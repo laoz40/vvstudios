@@ -1,5 +1,6 @@
 ---
 import DesktopNav from "../components/DesktopNav.svelte";
+import Footer from "../components/Footer.svelte";
 import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
 import '@fontsource-variable/montserrat';
@@ -31,14 +32,17 @@ const currentPath = Astro.url.pathname;
 		<title>{title} vv studios</title>
 	</head>
 	<body>
+		<!-- Mobile Nav -->
 		<MobileNav currentPath={currentPath} client:media="(max-width: 767px)" />
 		<div id="site-shell" class="flex min-h-screen flex-col">
+			<!-- Desktop Nav -->
 			<DesktopNav currentPath={currentPath} />
-			<!-- Page Content -->
-			<slot />
 			<main>
+				<!-- Page Content -->
 				<slot />
 			</main>
+			<!-- Footer -->
+			<Footer />
 		</div>
 	</body>
 
