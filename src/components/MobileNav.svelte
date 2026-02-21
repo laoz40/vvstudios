@@ -8,6 +8,7 @@
 	let isOpen = $state(false);
 
 	const navLinks = [
+		{ href: "/", label: "Home" },
 		{ href: "/studios", label: "Studios" },
 		{ href: "/pricing", label: "Pricing" },
 		{ href: "/about", label: "About" },
@@ -101,16 +102,6 @@
 				</button>
 			</div>
 			<ul class="flex flex-col gap-2">
-				<li>
-					<a
-						href={bookLink.href}
-						aria-current={currentPath === "/book" ? "page" : undefined}
-						class="block rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						onclick={closeMenu}
-					>
-						{bookLink.label}
-					</a>
-				</li>
 				{#each navLinks as link}
 					<li>
 						<a
@@ -123,6 +114,16 @@
 						</a>
 					</li>
 				{/each}
+				<li>
+					<a
+						href={bookLink.href}
+						aria-current={currentPath === "/book" ? "page" : undefined}
+						class="block rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onclick={closeMenu}
+					>
+						{bookLink.label}
+					</a>
+				</li>
 			</ul>
 		</div>
 	{/if}
