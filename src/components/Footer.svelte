@@ -3,7 +3,6 @@ import { Button } from "$lib/components/ui/button";
 
 const studioName = "vv studios";
 const companyName = "Vertigo Visuals";
-const linkButtonClass = "h-auto px-1 py-0 text-muted-foreground font-semibold";
 const companyLink = {
 	label: companyName,
 	href: undefined,
@@ -19,34 +18,37 @@ const currentYear = new Date().toLocaleDateString(undefined, {
 });
 </script>
 
-<footer class="border-t border-border px-4 py-8">
+<footer class="footer border-t border-border px-4 py-8">
 	<div class="mx-auto flex w-full max-w-5xl flex-col items-center gap-2 text-center">
 		<div class="flex flex-row items-center justify-center gap-4">
 			<span class="text-lg font-bold">{studioName}</span>
-			<p class="text-sm text-muted-foreground">
+			<p class="text-sm">
 				From
 				<Button
 					href={companyLink.href}
 					variant="link"
 					size="sm"
-					class={`${linkButtonClass} text-sm p-0`}
+					class="footer-link"
 				>
 					{companyLink.label}
 				</Button>
 			</p>
 		</div>
+		<div class="flex flex-row items-center justify-center gap-8 text-sm">
+			<p>23 Fields Rd, Macquarie Fields NSW 2564, Australia</p>
+		</div>
 		<div class="flex flex-row items-center justify-center gap-8">
 			<p class="text-sm text-muted-foreground">&copy; {currentYear} {companyName}</p>
 			<nav
 				aria-label="Footer links"
-				class="flex flex-wrap items-center justify-center gap-1 text-sm"
+				class="footer-links flex flex-wrap items-center justify-center gap-1 text-sm"
 			>
 				{#each footerLinks as link, index}
 					<Button
 						href={link.href}
 						variant="link"
 						size="sm"
-						class={linkButtonClass}
+						class="footer-link"
 					>
 						{link.label}
 					</Button>
@@ -62,5 +64,18 @@ const currentYear = new Date().toLocaleDateString(undefined, {
 <style>
 	p {
 		font-weight: var(--font-weight-medium);
+		color: var(--muted-foreground);
+	}
+
+	.footer :global(.footer-link) {
+		height: auto;
+		padding: 0;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
+		color: var(--muted-foreground);
+	}
+
+	.footer-links :global(.footer-link:hover) {
+		text-decoration: underline;
 	}
 </style>
