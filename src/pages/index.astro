@@ -6,21 +6,24 @@ import Layout from "../layouts/Layout.astro";
 <Layout>
 	<body class="bg-black">
 		<div class="fixed inset-0 flex items-center justify-center pointer-events-none">
-			<div class="flex flex-col items-center justify-center gap-8 pointer-events-auto">
-				<h1 class="text-3xl">vv studios</h1>
+			<div class="flex flex-col items-center justify-center gap-12 pointer-events-auto">
+				<div class="flex flex-col items-center justify-center gap-1">
+					<h1 class="text-3xl">vv studios</h1>
+					<h2 class="text-lg">From Vertigo Visuals</h2>
+				</div>
 				<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
 					<Button
 						href="/studios"
 						variant="secondary"
 						size="lg"
 						class="landing-button">
-						view studios
+						View Studios
 					</Button>
 					<Button
 						href="/book"
 						size="lg"
 						class="landing-button">
-						book session
+						Book Session
 					</Button>
 				</div>
 			</div>
@@ -32,6 +35,13 @@ import Layout from "../layouts/Layout.astro";
 	h1 {
 		font-weight: var(--font-weight-bold);
 		color: white;
+		text-align: center;
+	}
+
+	h2 {
+		font-weight: var(--font-weight-medium);
+		color: var(--muted-foreground);
+		text-align: center;
 	}
 
 	.landing-button {
