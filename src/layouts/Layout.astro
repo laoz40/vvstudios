@@ -1,5 +1,8 @@
 ---
+import DesktopNav from "../components/DesktopNav.svelte";
+import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
+import '@fontsource-variable/montserrat';
 const { title } = Astro.props;
 ---
 
@@ -27,7 +30,20 @@ const { title } = Astro.props;
 	</head>
 
 	<main>
-		<slot />
+		<!-- Nav Menu/Bar -->
+		<MobileNav client:media="(max-width: 767px)" />
+		<div id="site-shell">
+			<DesktopNav />
+			<!-- Page Content -->
+			<slot />
+		</div>
 	</main>
 
 </html>
+
+<style>
+	body {
+		font-family: var(--font-primary);
+		letter-spacing: 0.02em;
+	}
+</style>
