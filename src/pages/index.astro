@@ -1,7 +1,6 @@
 ---
 import { Button } from "$lib/components/ui/button/index.js";
 import Layout from "../layouts/Layout.astro";
-import "../styles/global.css";
 ---
 
 <Layout>
@@ -11,10 +10,17 @@ import "../styles/global.css";
 			<div class="flex flex-row items-center justify-center gap-4">
 				<Button
 					href="/studios"
-					variant="secondary">
-					View Studios
+					variant="secondary"
+					size="lg"
+					class="landing-button">
+					studios
 				</Button>
-				<Button href="/book">Book Now</Button>
+				<Button
+					href="/book"
+					size="lg"
+					class="landing-button">
+					book
+				</Button>
 			</div>
 		</div>
 	</body>
@@ -25,5 +31,10 @@ import "../styles/global.css";
 		font-family: var(--font-primary);
 		font-weight: var(--font-weight-bold);
 		color: white;
+	}
+
+	.landing-button {
+		font-family: var(--font-primary);
+		font-weight: var(--font-weight-bold);
 	}
 </style>
