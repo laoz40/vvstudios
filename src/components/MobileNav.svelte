@@ -47,7 +47,7 @@
 
 <nav
 	aria-label="Navigation Menu"
-	class="md:hidden flex flex-row items-center justify-between py-3 px-4">
+	class="md:hidden flex flex-row items-center justify-between py-3 px-4 fixed w-full">
 	<div>
 		<Button
 			href="/"

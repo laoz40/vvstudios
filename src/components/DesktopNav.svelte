@@ -13,7 +13,7 @@
 
 <nav
 	aria-label="Primary navigation"
-	class="hidden md:flex w-full items-center justify-between p-4 py-3">
+	class="hidden md:flex w-full items-center justify-between p-4 py-3 fixed">
 	<div>
 		<Button
 			href="/"

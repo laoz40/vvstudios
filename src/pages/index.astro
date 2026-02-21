@@ -4,31 +4,29 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout>
-	<body class="bg-black">
-		<div class="fixed inset-0 flex items-center justify-center pointer-events-none">
-			<div class="flex flex-col items-center justify-center gap-12 pointer-events-auto">
-				<div class="flex flex-col items-center justify-center gap-1">
-					<h1 class="text-3xl">vv studios</h1>
-					<h2 class="text-lg">From Vertigo Visuals</h2>
-				</div>
-				<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-					<Button
-						href="/studios"
-						variant="secondary"
-						size="lg"
-						class="landing-button">
-						View Studios
-					</Button>
-					<Button
-						href="/book"
-						size="lg"
-						class="landing-button">
-						Book Session
-					</Button>
-				</div>
+	<section class="flex min-h-dvh items-center justify-center px-4 py-20">
+		<div class="flex flex-col items-center justify-center gap-12">
+			<div class="flex flex-col items-center justify-center gap-1">
+				<h1 class="text-3xl">vv studios</h1>
+				<h2 class="text-lg">From Vertigo Visuals</h2>
+			</div>
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+				<Button
+					href="/studios"
+					variant="secondary"
+					size="lg"
+					class="landing-button">
+					View Studios
+				</Button>
+				<Button
+					href="/book"
+					size="lg"
+					class="landing-button">
+					Book Session
+				</Button>
 			</div>
 		</div>
-	</body>
+	</section>
 </Layout>
 
 <style>
