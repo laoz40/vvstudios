@@ -3,13 +3,16 @@
 	import X from "@lucide/svelte/icons/x";
 	import Menu from "@lucide/svelte/icons/menu";
 
+	let { currentPath = "/" }: { currentPath?: string } = $props();
+
 	let isOpen = $state(false);
 
 	const navLinks = [
-		{ href: "/studios", label: "studios" },
-		{ href: "/pricing", label: "pricing" },
-		{ href: "/about", label: "about" },
+		{ href: "/studios", label: "Studios" },
+		{ href: "/pricing", label: "Pricing" },
+		{ href: "/about", label: "About" },
 	] as const;
+	const bookLink = { href: "/book", label: "Book Session"}
 
 	const closeMenu = () => {
 		isOpen = false;
@@ -45,16 +48,19 @@
 <nav
 	aria-label="Navigation Menu"
 	class="md:hidden flex flex-row items-center justify-between py-3 px-4">
-	<Button
-		href="/"
-		variant="link"
-		size="sm"
-		class="font-bold">
-		vv studios
-	</Button>
+	<div>
+		<Button
+			href="/"
+			aria-label="VV Studios home"
+			variant="link"
+			size="sm"
+			class="font-bold">
+			vv studios
+		</Button>
+	</div>
 	<button
 		type="button"
-		aria-label="Toggle navigation menu"
+		aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
 		aria-expanded={isOpen}
 		aria-controls="mobile-nav-panel"
 		class="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -62,8 +68,10 @@
 			isOpen = !isOpen;
 		}}
 	>
-		<span class="sr-only">Open menu</span>
-		<Menu />
+		<span class="sr-only">{isOpen ? "Close menu" : "Open menu"}</span>
+		<span aria-hidden="true">
+			<Menu />
+		</span>
 	</button>
 
 	{#if isOpen}
@@ -95,17 +103,19 @@
 			<ul class="flex flex-col gap-2">
 				<li>
 					<a
-						href="/book"
+						href={bookLink.href}
+						aria-current={currentPath === "/book" ? "page" : undefined}
 						class="block rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onclick={closeMenu}
 					>
-						book session
+						{bookLink.label}
 					</a>
 				</li>
 				{#each navLinks as link}
 					<li>
 						<a
 							href={link.href}
+							aria-current={currentPath === link.href ? "page" : undefined}
 							class="block rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onclick={closeMenu}
 						>

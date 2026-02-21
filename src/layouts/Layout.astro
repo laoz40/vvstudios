@@ -4,6 +4,7 @@ import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
 import '@fontsource-variable/montserrat';
 const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
 ---
 
 <html lang="en">
@@ -31,9 +32,9 @@ const { title } = Astro.props;
 
 	<main>
 		<!-- Nav Menu/Bar -->
-		<MobileNav client:media="(max-width: 767px)" />
+		<MobileNav currentPath={currentPath} client:media="(max-width: 767px)" />
 		<div id="site-shell">
-			<DesktopNav />
+			<DesktopNav currentPath={currentPath} />
 			<!-- Page Content -->
 			<slot />
 		</div>
