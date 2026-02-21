@@ -5,22 +5,24 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout>
 	<body class="bg-black">
-		<div class="flex flex-col items-center justify-center h-screen gap-8">
-			<h1 class="text-3xl">vv studios</h1>
-			<div class="flex flex-row items-center justify-center gap-4">
-				<Button
-					href="/studios"
-					variant="secondary"
-					size="lg"
-					class="landing-button">
-					studios
-				</Button>
-				<Button
-					href="/book"
-					size="lg"
-					class="landing-button">
-					book
-				</Button>
+		<div class="fixed inset-0 flex items-center justify-center pointer-events-none">
+			<div class="flex flex-col items-center justify-center gap-8 pointer-events-auto">
+				<h1 class="text-3xl">vv studios</h1>
+				<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+					<Button
+						href="/studios"
+						variant="secondary"
+						size="lg"
+						class="landing-button">
+						view studios
+					</Button>
+					<Button
+						href="/book"
+						size="lg"
+						class="landing-button">
+						book session
+					</Button>
+				</div>
 			</div>
 		</div>
 	</body>
