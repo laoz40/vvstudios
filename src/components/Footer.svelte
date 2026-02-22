@@ -7,6 +7,7 @@ const companyLink = {
 	label: companyName,
 	href: undefined,
 };
+const address = "23 Fields Rd, Macquarie Fields NSW 2564";
 const footerLinks = [
 	{ label: "Studios", href: undefined },
 	{ label: "Weddings", href: undefined },
@@ -35,7 +36,7 @@ const currentYear = new Date().toLocaleDateString(undefined, {
 			</p>
 		</div>
 		<div class="flex flex-row items-center justify-center gap-8 text-sm">
-			<p>23 Fields Rd, Macquarie Fields NSW 2564, Australia</p>
+			<p>{address}</p>
 		</div>
 		<div class="flex flex-row items-center justify-center gap-8">
 			<p class="text-sm text-muted-foreground">&copy; {currentYear} {companyName}</p>
@@ -65,6 +66,7 @@ const currentYear = new Date().toLocaleDateString(undefined, {
 	p {
 		font-weight: var(--font-weight-medium);
 		color: var(--muted-foreground);
+		text-align: left;
 	}
 
 	.footer :global(.footer-link) {
