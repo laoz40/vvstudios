@@ -1,0 +1,128 @@
+<section
+	class="testimonials-section section-shell"
+	aria-labelledby="testimonials-title">
+	<div class="section-heading-wrap">
+		<p class="eyebrow">Testimonials</p>
+		<h2 id="testimonials-title">Trusted by Teams That Ship on Time.</h2>
+	</div>
+	<div class="testimonial-grid">
+		<figure class="testimonial-card">
+			<blockquote>
+				"The studio is clean, efficient, and easy to direct in. Everything from
+				setup to turnaround felt frictionless."
+			</blockquote>
+			<figcaption>
+				<span class="name">Mina C.</span>
+				<span class="role">Creative Producer</span>
+			</figcaption>
+		</figure>
+		<figure class="testimonial-card">
+			<blockquote>
+				"Our e-commerce shoot wrapped ahead of schedule and every look matched
+				our reference mood board exactly."
+			</blockquote>
+			<figcaption>
+				<span class="name">Aiden L.</span>
+				<span class="role">Brand Manager</span>
+			</figcaption>
+		</figure>
+		<figure class="testimonial-card">
+			<blockquote>
+				"We booked for one campaign and now use VV Studios monthly. The
+				consistency is why we keep coming back."
+			</blockquote>
+			<figcaption>
+				<span class="name">Priya R.</span>
+				<span class="role">Art Director</span>
+			</figcaption>
+		</figure>
+	</div>
+</section>
+
+<style>
+	.section-shell {
+		width: min(1100px, 100% - 2rem);
+		margin-inline: auto;
+		padding-block: clamp(3.5rem, 8vw, 6rem);
+	}
+
+	.testimonials-section {
+		background: transparent;
+		border: 0;
+	}
+
+	.eyebrow {
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--primary);
+	}
+
+	.section-heading-wrap {
+		display: grid;
+		gap: 0.8rem;
+		max-width: 42rem;
+		margin-bottom: 2rem;
+	}
+
+	h2 {
+		letter-spacing: 0.02em;
+		line-height: 1.1;
+		font-weight: 700;
+		font-size: clamp(1.6rem, 4vw, 2.6rem);
+		max-width: 18ch;
+	}
+
+	.testimonial-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 1rem;
+	}
+
+	.testimonial-card {
+		display: grid;
+		gap: 1rem;
+		background: var(--card);
+		border: 1px solid var(--border);
+		padding: 1.5rem;
+	}
+
+	.testimonial-card blockquote {
+		position: relative;
+		padding-top: 1rem;
+		line-height: 1.65;
+		color: var(--muted-foreground);
+	}
+
+	.testimonial-card blockquote::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 3px;
+		width: 2.5rem;
+		background: var(--primary);
+	}
+
+	.testimonial-card figcaption {
+		display: grid;
+		gap: 0.15rem;
+	}
+
+	.name {
+		font-weight: 700;
+		color: var(--foreground);
+	}
+
+	.role {
+		color: var(--muted-foreground);
+		font-size: 0.93rem;
+	}
+
+	@media (max-width: 900px) {
+		.testimonial-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

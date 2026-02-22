@@ -1,0 +1,218 @@
+---
+import { Button } from "$lib/components/ui/button/index.js";
+---
+
+<section
+	class="hero-section"
+	aria-labelledby="home-hero-title">
+	<div
+		class="hero-image"
+		aria-hidden="true">
+	</div>
+	<div class="hero-overlay"></div>
+	<div class="section-shell hero-content">
+		<p class="eyebrow">From Vertigo Visuals</p>
+		<h1 id="home-hero-title">vv studios</h1>
+		<p class="lead">
+			Professional production spaces for podcasts, e-commerce, and campaign
+			shoots.
+		</p>
+		<div class="hero-actions">
+			<Button
+				href="/book"
+				size="lg"
+				class="landing-button hero-primary">
+				Book Session
+			</Button>
+			<Button
+				href="/studios"
+				variant="outline"
+				size="lg"
+				class="landing-button hero-secondary">
+				View Studios
+			</Button>
+		</div>
+	</div>
+	<a
+		class="scroll-cue"
+		href="#info-section"
+		aria-label="Scroll to information section">
+		<span>Scroll</span>
+		<span class="scroll-arrow">↓</span>
+	</a>
+</section>
+
+<style>
+	.section-shell {
+		width: min(1100px, 100% - 2rem);
+		margin-inline: auto;
+		padding-block: clamp(3.5rem, 8vw, 6rem);
+	}
+
+	.eyebrow {
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--primary);
+	}
+
+	h1 {
+		letter-spacing: 0.02em;
+		line-height: 1.1;
+		font-weight: 700;
+		font-size: clamp(2.3rem, 7vw, 4.2rem);
+		max-width: 11ch;
+	}
+
+	.lead {
+		line-height: 1.65;
+		color: var(--muted-foreground);
+	}
+
+	.hero-section {
+		position: relative;
+		min-height: 100dvh;
+		display: flex;
+		align-items: center;
+		isolation: isolate;
+	}
+
+	.hero-image {
+		position: absolute;
+		inset: 0;
+		background-image: url("/images/hero-monochrome.jpg");
+		background-size: cover;
+		background-position: center;
+		filter: grayscale(100%) contrast(1.05) brightness(0.82);
+		z-index: -2;
+	}
+
+	.hero-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(
+				130deg,
+				color-mix(in srgb, var(--background) 76%, transparent) 20%,
+				color-mix(in srgb, var(--background) 48%, transparent) 65%
+			),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--background) 18%, transparent) 0%,
+				color-mix(in srgb, var(--background) 82%, transparent) 100%
+			);
+		z-index: -1;
+	}
+
+	.hero-content {
+		position: relative;
+		padding-top: clamp(7rem, 14vw, 8.5rem);
+		padding-bottom: clamp(5rem, 12vw, 7rem);
+		display: grid;
+		gap: 1rem;
+	}
+
+	.hero-actions {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		margin-top: 0.5rem;
+	}
+
+	.landing-button {
+		font-weight: 700;
+	}
+
+	.hero-primary {
+		background: var(--primary);
+		color: var(--primary-foreground);
+		border: 1px solid var(--primary);
+	}
+
+	.hero-primary:hover {
+		background: color-mix(in srgb, var(--primary) 86%, white);
+		border-color: color-mix(in srgb, var(--primary) 86%, white);
+	}
+
+	.hero-primary:focus-visible,
+	.hero-secondary:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+
+	.hero-secondary {
+		border-color: var(--foreground);
+		color: var(--foreground);
+		background: color-mix(in srgb, var(--secondary) 56%, transparent);
+	}
+
+	.hero-secondary:hover {
+		background: color-mix(in srgb, var(--accent) 84%, transparent);
+	}
+
+	.scroll-cue {
+		position: absolute;
+		left: 50%;
+		bottom: 1.25rem;
+		transform: translateX(-50%);
+		display: grid;
+		justify-items: center;
+		gap: 0.2rem;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		color: var(--muted-foreground);
+		opacity: 0.86;
+		text-decoration: none;
+	}
+
+	.scroll-cue:hover,
+	.scroll-cue:focus-visible {
+		color: var(--foreground);
+		opacity: 1;
+	}
+
+	.scroll-cue:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 4px;
+		border-radius: 0.25rem;
+	}
+
+	.scroll-arrow {
+		font-size: 1.1rem;
+		line-height: 1;
+		animation: cue-bounce 1.5s ease-in-out infinite;
+	}
+
+	@keyframes cue-bounce {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+
+		50% {
+			transform: translateY(0.3rem);
+		}
+	}
+
+	@media (max-width: 900px) {
+		.hero-actions {
+			width: 100%;
+		}
+
+		.hero-actions :global(a) {
+			flex: 1;
+			min-width: 12rem;
+		}
+
+		.scroll-cue {
+			bottom: 0.8rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.scroll-arrow {
+			animation: none;
+		}
+	}
+</style>

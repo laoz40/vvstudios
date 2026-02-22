@@ -1,48 +1,31 @@
 ---
-import { Button } from "$lib/components/ui/button/index.js";
+import HeroSection from "../components/landing/HeroSection.astro";
+import InformationSection from "../components/landing/InformationSection.astro";
 import Layout from "../layouts/Layout.astro";
+import PricingSection from "../components/landing/PricingSection.astro";
+import TestimonialsSection from "../components/landing/TestimonialsSection.astro";
 ---
 
-<Layout>
-	<section class="flex min-h-dvh items-center justify-center px-4 py-20">
-		<div class="flex flex-col items-center justify-center gap-12">
-			<div class="flex flex-col items-center justify-center gap-1">
-				<h1 class="text-3xl">vv studios</h1>
-				<h2 class="text-lg">From Vertigo Visuals</h2>
-			</div>
-			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-				<Button
-					href="/studios"
-					variant="secondary"
-					size="lg"
-					class="landing-button">
-					View Studios
-				</Button>
-				<Button
-					href="/book"
-					size="lg"
-					class="landing-button">
-					Book Session
-				</Button>
-			</div>
-		</div>
-	</section>
+<Layout title="Home -">
+	<div class="landing-page">
+		<HeroSection />
+		<InformationSection />
+		<TestimonialsSection />
+		<PricingSection />
+	</div>
 </Layout>
 
 <style>
-	h1 {
-		font-weight: var(--font-weight-bold);
-		color: white;
-		text-align: center;
+	.landing-page {
+		background: linear-gradient(
+			180deg,
+			var(--background) 0%,
+			var(--popover) 100%
+		);
+		color: var(--foreground);
 	}
 
-	h2 {
-		font-weight: var(--font-weight-medium);
-		color: var(--muted-foreground);
-		text-align: center;
-	}
-
-	.landing-button {
-		font-weight: var(--font-weight-semibold);
+	:global(html) {
+		scroll-behavior: smooth;
 	}
 </style>

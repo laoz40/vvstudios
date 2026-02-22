@@ -1,0 +1,108 @@
+<section
+	class="info-section section-shell"
+	id="info-section"
+	aria-labelledby="info-title">
+	<div class="section-heading-wrap">
+		<p class="eyebrow">Information</p>
+		<h2 id="info-title">Everything You Need, Nothing You Don't.</h2>
+	</div>
+	<div class="info-grid">
+		<article class="info-card">
+			<h3>Lighting-ready floor</h3>
+			<p>
+				A controlled black-and-white set environment designed for consistent,
+				client-ready output.
+			</p>
+		</article>
+		<article class="info-card">
+			<h3>Fast team workflow</h3>
+			<p>
+				Parking, load-in access, and session support keep your production
+				focused on delivery.
+			</p>
+		</article>
+		<article class="info-card">
+			<h3>Flexible bookings</h3>
+			<p>
+				Reserve by project size, from quick catalogue runs to full creative
+				direction days.
+			</p>
+		</article>
+		<article class="info-card">
+			<h3>Reliable quality</h3>
+			<p>
+				Consistent color, acoustic comfort, and pro-grade setup for smoother
+				post-production.
+			</p>
+		</article>
+	</div>
+</section>
+
+<style>
+	.section-shell {
+		width: min(1100px, 100% - 2rem);
+		margin-inline: auto;
+		padding-block: clamp(3.5rem, 8vw, 6rem);
+	}
+
+	.info-section {
+		border-top: 1px solid var(--border);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.eyebrow {
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--primary);
+	}
+
+	.section-heading-wrap {
+		display: grid;
+		gap: 0.8rem;
+		max-width: 42rem;
+		margin-bottom: 2rem;
+	}
+
+	h2,
+	h3 {
+		letter-spacing: 0.02em;
+		line-height: 1.1;
+		font-weight: 700;
+	}
+
+	h2 {
+		font-size: clamp(1.6rem, 4vw, 2.6rem);
+		max-width: 18ch;
+	}
+
+	h3 {
+		font-size: 1.2rem;
+	}
+
+	.info-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+	}
+
+	.info-card {
+		display: grid;
+		gap: 0.6rem;
+		background: var(--card);
+		border: 1px solid var(--border);
+		padding: 1.5rem;
+	}
+
+	.info-card p {
+		line-height: 1.65;
+		color: var(--muted-foreground);
+	}
+
+	@media (max-width: 900px) {
+		.info-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
