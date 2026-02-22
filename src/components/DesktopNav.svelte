@@ -26,8 +26,9 @@
 		},
 		{ href: "/pricing", label: "Pricing" },
 		{ href: "/about", label: "About" },
+		{ href: "/contact", label: "Contact" },
 	];
-	const bookLink = { href: "/book", label: "Book" };
+	const bookLink = { href: "/book", label: "Book Session" };
 </script>
 
 <nav
