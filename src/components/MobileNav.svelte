@@ -13,7 +13,7 @@
 		{ href: "/pricing", label: "Pricing" },
 		{ href: "/about", label: "About" },
 	] as const;
-	const bookLink = { href: "/book", label: "Book Session"}
+	const bookLink = { href: "/book", label: "Book Session" };
 
 	const closeMenu = () => {
 		isOpen = false;
@@ -48,7 +48,7 @@
 
 <nav
 	aria-label="Navigation Menu"
-	class="md:hidden flex flex-row items-center justify-between py-3 px-4 fixed w-full">
+	class="fixed z-40 flex w-full flex-row items-center justify-between border-b border-white/8 bg-black/42 px-4 py-3 backdrop-blur-md md:hidden">
 	<div>
 		<Button
 			href="/"
