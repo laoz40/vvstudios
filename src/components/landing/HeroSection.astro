@@ -1,5 +1,10 @@
 ---
 import { Button } from "$lib/components/ui/button/index.js";
+
+const eyebrow = "From Vertigo Visuals";
+const studioName = "vv studios";
+const lead =
+	"Professional production spaces for podcasts, e-commerce, and campaign shoots.";
 ---
 
 <section
@@ -11,11 +16,10 @@ import { Button } from "$lib/components/ui/button/index.js";
 	</div>
 	<div class="hero-overlay"></div>
 	<div class="section-shell hero-content">
-		<p class="eyebrow">From Vertigo Visuals</p>
-		<h1 id="home-hero-title">vv studios</h1>
+		<p class="eyebrow">{eyebrow}</p>
+		<h1 id="home-hero-title">{studioName}</h1>
 		<p class="lead">
-			Professional production spaces for podcasts, e-commerce, and campaign
-			shoots.
+			{lead}
 		</p>
 		<div class="hero-actions">
 			<Button
@@ -50,24 +54,28 @@ import { Button } from "$lib/components/ui/button/index.js";
 	}
 
 	.eyebrow {
+		margin: 0;
 		font-size: 0.75rem;
-		font-weight: 700;
+		font-weight: 500;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 		color: var(--primary);
 	}
 
 	h1 {
+		margin: 0;
 		letter-spacing: 0.02em;
-		line-height: 1.1;
+		line-height: 1;
 		font-weight: 700;
 		font-size: clamp(2.3rem, 7vw, 4.2rem);
 		max-width: 11ch;
 	}
 
 	.lead {
+		margin: 0 0 0;
 		line-height: 1.65;
 		color: var(--muted-foreground);
+		text-wrap: balance;
 	}
 
 	.hero-section {
@@ -117,7 +125,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 		display: flex;
 		gap: 0.75rem;
 		flex-wrap: wrap;
-		margin-top: 0.5rem;
+		margin-top: 4rem;
 	}
 
 	.landing-button {
@@ -160,6 +168,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 		justify-items: center;
 		gap: 0.2rem;
 		font-size: 0.75rem;
+		font-weight: 500;
 		text-transform: uppercase;
 		color: var(--muted-foreground);
 		opacity: 0.86;
