@@ -32,7 +32,7 @@
 
 <nav
 	aria-label="Primary navigation"
-	class="fixed z-40 hidden w-full items-center justify-between border-b border-white/8 bg-black/40 p-4 py-3 backdrop-blur-md md:flex">
+	class="fixed z-40 hidden w-full items-center justify-between border-b border-white/8 bg-black/15 p-4 py-3 backdrop-blur-md md:flex">
 	<div>
 		<Button
 			href="/"
