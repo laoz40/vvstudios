@@ -3,12 +3,31 @@
 
 	let { currentPath = "/" }: { currentPath?: string } = $props();
 
-	const navLinks = [
-		{ href: "/studios", label: "Studios" },
+	type DropdownItem = {
+		href: string;
+		label: string;
+	};
+
+	type NavLink = {
+		href: string;
+		label: string;
+		dropdown?: DropdownItem[];
+	};
+
+	const navLinks: NavLink[] = [
+		{
+			href: "/studios",
+			label: "Studios",
+			dropdown: [
+				{ href: "/studios", label: "Studio A" },
+				{ href: "/studios", label: "Studio B" },
+				{ href: "/studios", label: "Studio C" },
+			],
+		},
 		{ href: "/pricing", label: "Pricing" },
 		{ href: "/about", label: "About" },
-	] as const;
-	const bookLink = { href: "/book", label: "Book"}
+	];
+	const bookLink = { href: "/book", label: "Book" };
 </script>
 
 <nav
@@ -27,7 +46,7 @@
 	</div>
 	<ul class="flex items-center gap-8">
 		{#each navLinks as link}
-			<li>
+			<li class="relative group">
 				<Button
 					href={link.href}
 					aria-current={currentPath === link.href ? "page" : undefined}
@@ -35,6 +54,28 @@
 					size="sm">
 					{link.label}
 				</Button>
+				{#if link.dropdown}
+					<div
+						class="pointer-events-none absolute left-1/2 top-full w-44 -translate-x-1/2 pt-2 group-hover:pointer-events-auto group-focus-within:pointer-events-auto"
+					>
+						<div
+							class="rounded-md border border-white/10 bg-black/85 p-2 opacity-0 shadow-lg backdrop-blur-md transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+						>
+							<ul class="flex flex-col gap-1">
+								{#each link.dropdown as dropdownItem}
+									<li>
+										<a
+											href={dropdownItem.href}
+											class="block rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											{dropdownItem.label}
+										</a>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				{/if}
 			</li>
 		{/each}
 		<li>
