@@ -1,10 +1,53 @@
 ---
-import SimplybookWidget from "../components/SimplybookWidget.astro";
 import Layout from "../layouts/Layout.astro";
+import StudioBookingControls from "../components/book/StudioBookingControls.svelte";
+
+const bookingUrl =
+	"https://calendar.google.com/calendar/appointments/schedules/AcZssZ0Q2gslYTsJm1TCGUqh7rmvxGxM4oJXYrr0BKZ43EBANqZWJ_GwNE1QNUd4ibJF-72OmDVOB5a4?gv=true";
+
+const studios = [
+	{ id: 1, label: "Studio 1" },
+	{ id: 2, label: "Studio 2" },
+	{ id: 3, label: "Studio 3" },
+];
 ---
 
 <Layout title=" | Book Studio">
-	<body class="bg-black">
-		<SimplybookWidget />
-	</body>
+	<div class="flex min-h-dvh h-dvh items-center justify-center px-4 pt-24 pb-8">
+		<link
+			href="https://calendar.google.com/calendar/scheduling-button-script.css"
+			rel="stylesheet"
+		/>
+		<script
+			is:inline
+			src="https://calendar.google.com/calendar/scheduling-button-script.js"
+			async
+		></script>
+
+		<div class="mx-auto w-full max-w-6xl text-white">
+			Step 1
+			<div class="grid gap-6 md:grid-cols-3">
+				{
+					studios.map((studio) => (
+						<article class="flex min-h-[24rem] flex-col overflow-hidden rounded-xl border border-white/20 bg-black/45 shadow-lg backdrop-blur-sm">
+							<img
+								src="/images/hero-monochrome.jpg"
+								alt={`${studio.label} preview`}
+								class="h-36 w-full object-cover"
+							/>
+							<div class="flex flex-1 flex-col p-5">
+								<h2 class="text-xl font-bold text-white">{studio.label}</h2>
+								<StudioBookingControls
+									studioLabel={studio.label}
+									bookingUrl={bookingUrl}
+									durations={[1, 2, 3, 4]}
+									client:load
+								/>
+							</div>
+						</article>
+					))
+				}
+			</div>
+		</div>
+	</div>
 </Layout>
