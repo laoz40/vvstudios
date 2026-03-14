@@ -3,8 +3,8 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
+	import { cn } from "$lib/utils.js";
 	import {
-		CalendarDate,
 		today,
 		getLocalTimeZone,
 		type DateValue,
@@ -12,6 +12,8 @@
 
 	const scriptUrl =
 		import.meta.env.APP_SCRIPT_URL || "";
+	const contactPhone = import.meta.env.APP_CONTACT_PHONE || "";
+	const contactEmail = import.meta.env.APP_CONTACT_EMAIL || "";
 
 	/* ── Time slot data ─────────────────────────────────── */
 	const timeGroups = [
@@ -45,12 +47,63 @@
 		},
 	] as const;
 
-	const durations = ["1 hr", "2 hr", "3 hr", "4+ hr"] as const;
+	const durations = ["1 hr", "2 hr", "3 hr"] as const;
+	const videoFormatOptions = [
+		{
+			value: "horizontal",
+			label: "Horizontal / Widescreen",
+			description: "Best for YouTube, TV, and websites",
+		},
+		{
+			value: "vertical",
+			label: "Vertical / Tall",
+			description: "Best for TikTok, Instagram Reels, and Shorts",
+		},
+		{
+			value: "both",
+			label: "Both",
+			description: "We need full episodes and social media clips",
+		},
+	] as const;
+	const addOnOptions = [
+		{
+			value: "4k-uhd-recording",
+			label: "4K UHD Recording on Cameras",
+			price: "+$49",
+			description: "",
+		},
+		{
+			value: "teleprompter",
+			label: "Teleprompter",
+			price: "+$29",
+			description: "",
+		},
+		{
+			value: "video-editing",
+			label: "Video Editing",
+			price: "+$99",
+			description: "Synchronising audio to video and cutting between camera angles",
+		},
+		{
+			value: "10-social-media-clips",
+			label: "10 Social Media Clips",
+			price: "+$79",
+			description: "With subtitles and vertical crop",
+		},
+	] as const;
+	const toAddOnFieldName = (value: string) =>
+		`addOn${value
+			.split("-")
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join("")}`;
 
 	/* ── State ──────────────────────────────────────────── */
 	let selectedDate: DateValue | undefined = $state(undefined);
 	let selectedTime = $state("");
 	let selectedDuration = $state("");
+	let selectedVideoFormat = $state("");
+	let selectedAddOns: string[] = $state([]);
+	let questionsOrRequests = $state("");
 
 	let fullName = $state("");
 	let phone = $state("");
@@ -77,16 +130,38 @@
 
 		return "";
 	});
+	const selectedVideoFormatLabel = $derived.by(() => {
+		const match = videoFormatOptions.find(
+			(option) => option.value === selectedVideoFormat,
+		);
+		return match?.label || "";
+	});
+	const selectedAddOnLabels = $derived.by(() =>
+		addOnOptions
+			.filter((option) => selectedAddOns.includes(option.value))
+			.map((option) => `${option.label} (${option.price})`),
+	);
+	const selectedAddOnFields = $derived.by(() =>
+		Object.fromEntries(
+			addOnOptions.map((option) => [
+				toAddOnFieldName(option.value),
+				selectedAddOns.includes(option.value),
+			]),
+		),
+	);
 
 	const summaryItems = $derived([
 		{ label: "Date", value: dateString || "—" },
 		{ label: "Time", value: selectedTimeLabel || "—" },
 		{ label: "Duration", value: selectedDuration || "—" },
+		{ label: "Format", value: selectedVideoFormatLabel || "—" },
+		{ label: "Add-ons", value: selectedAddOnLabels.join(", ") || "—" },
 		{ label: "Name", value: fullName || "—" },
 		{ label: "Phone", value: phone || "—" },
 		{ label: "Account", value: accountName || "—" },
 		{ label: "ABN", value: abn || "—" },
 		{ label: "Email", value: email || "—" },
+		{ label: "Requests", value: questionsOrRequests || "—" },
 	]);
 
 	/* ── Submit (unchanged logic) ───────────────────────── */
@@ -108,8 +183,11 @@
 			date: dateString,
 			time: selectedTimeLabel,
 			duration: durationValue,
+			videoFormat: selectedVideoFormatLabel,
+			...selectedAddOnFields,
 			accountName,
 			abn,
+			questionsOrRequests,
 		};
 
 		try {
@@ -121,6 +199,8 @@
 				},
 				body: JSON.stringify(payload),
 			});
+
+			console.log("Submitted booking payload:", payload);
 
 			status = response.ok ? "Submitted successfully." : "Submission failed.";
 		} catch (error) {
@@ -139,7 +219,7 @@
 	<h2
 		class="text-center text-2xl font-bold tracking-wide text-foreground uppercase"
 	>
-		Confirm Your Booking Session
+		Finalise Your Booking
 	</h2>
 
 	<form class="space-y-10 md:space-y-12" onsubmit={handleSubmit}>
@@ -150,7 +230,7 @@
 			<!-- Calendar -->
 			<div class="w-fit space-y-3">
 				<Label class="text-primary text-xs uppercase tracking-[0.22em]"
-					>Booking Date</Label
+					>Confirm Booking Date</Label
 				>
 				<Calendar
 					type="single"
@@ -165,7 +245,7 @@
 				<!-- Time Slots -->
 				<div class="space-y-3">
 					<Label class="text-primary text-xs uppercase tracking-[0.22em]"
-						>Session Time</Label
+						>Confirm Session Time</Label
 					>
 					<div class="space-y-5">
 						{#each timeGroups as group}
@@ -195,7 +275,7 @@
 				<!-- Duration -->
 				<div class="space-y-3">
 					<Label class="text-primary text-xs uppercase tracking-[0.22em]"
-						>Session Duration</Label
+						>Confirm Session Duration</Label
 					>
 					<div class="flex flex-wrap gap-3">
 						{#each durations as dur}
@@ -212,6 +292,83 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- ── Video Format ─────────────────────────────── -->
+		<div class="space-y-5 pt-2">
+			<fieldset class="space-y-4">
+				<legend class="text-primary text-xs uppercase tracking-[0.22em]">
+					Video Format
+				</legend>
+				<div class="grid gap-3">
+					{#each videoFormatOptions as option}
+						<label
+							class={cn(
+								"flex cursor-pointer items-start gap-3 rounded-md border border-border bg-background px-4 py-3 text-left transition-colors",
+								selectedVideoFormat === option.value && "border-primary bg-card",
+							)}
+						>
+							<input
+								type="radio"
+								name="videoFormat"
+								value={option.value}
+								bind:group={selectedVideoFormat}
+								class="mt-1 size-4 accent-primary"
+							/>
+							<span class="space-y-1">
+								<span class="block text-sm font-medium text-foreground">
+									{option.label}
+								</span>
+								<span class="block text-sm text-muted-foreground">
+									{option.description}
+								</span>
+							</span>
+						</label>
+					{/each}
+				</div>
+			</fieldset>
+		</div>
+
+		<!-- ── Add-ons ──────────────────────────────────── -->
+		<div class="space-y-5 pt-2">
+			<fieldset class="space-y-4">
+				<legend class="text-primary text-xs uppercase tracking-[0.22em]">
+					Add-ons
+				</legend>
+				<p class="text-sm text-muted-foreground">
+					Video & Audio Package includes up to 4 RODE microphones and 3 Sony
+					cameras.
+				</p>
+				<div class="grid gap-3">
+					{#each addOnOptions as option}
+						<label
+							class={cn(
+								"flex cursor-pointer items-start gap-3 rounded-md border border-border bg-background px-4 py-3 text-left transition-colors",
+								selectedAddOns.includes(option.value) && "border-primary bg-card",
+							)}
+						>
+							<input
+								type="checkbox"
+								name="addOns"
+								value={option.value}
+								bind:group={selectedAddOns}
+								class="mt-1 size-4 accent-primary"
+							/>
+							<span class="space-y-1">
+								<span class="block text-sm font-medium text-foreground">
+									{option.label} <span class="text-primary">{option.price}</span>
+								</span>
+								{#if option.description}
+									<span class="block text-sm text-muted-foreground">
+										{option.description}
+									</span>
+								{/if}
+							</span>
+						</label>
+					{/each}
+				</div>
+			</fieldset>
+		</div>
+
 
 		<!-- ── Contact Information ─────────────────────── -->
 		<div class="space-y-5 pt-2">
@@ -273,13 +430,50 @@
 			</div>
 		</div>
 
+		<!-- ── Questions ────────────────────────────────── -->
+		<div class="space-y-5 pt-2">
+			<Label
+				for="questionsOrRequests"
+				class="text-primary text-xs uppercase tracking-[0.22em]"
+			>
+				Any Questions Or Requests?
+			</Label>
+			<div class="space-y-3">
+				<textarea
+					id="questionsOrRequests"
+					bind:value={questionsOrRequests}
+					rows="4"
+					class="border-input bg-background selection:bg-primary selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex min-h-28 w-full rounded-md border px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
+					placeholder="Let us know if you have any special requests or questions."
+				/>
+				<p class="text-sm text-muted-foreground">
+					Available for call at
+					{#if contactPhone}
+						<a class="text-primary hover:underline" href={`tel:${contactPhone}`}>
+							{contactPhone}
+						</a>
+					{:else}
+						0434367184
+					{/if}
+					{#if contactEmail}
+						& email at
+						<a class="text-primary hover:underline" href={`mailto:${contactEmail}`}>
+							{contactEmail}
+						</a>
+					{:else}
+						& email at contact@vertigovisuals.com.au
+					{/if}
+				</p>
+			</div>
+		</div>
+
 		<!-- ── Summary ─────────────────────────────────── -->
 		<div class="space-y-5 pt-2">
 			<Label class="text-primary text-xs uppercase tracking-[0.22em]"
 				>Summary</Label
 			>
 			<div
-				class="grid grid-cols-2 gap-x-6 gap-y-3 rounded-md border border-border bg-card/75 p-5 text-sm shadow-sm md:grid-cols-4"
+				class="grid grid-cols-1 gap-x-6 gap-y-3 rounded-md border border-border bg-card/75 p-5 text-sm shadow-sm md:grid-cols-3"
 			>
 				{#each summaryItems as item}
 					<div>
