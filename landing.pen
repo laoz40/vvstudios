@@ -1,0 +1,2166 @@
+{
+  "version": "2.8",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": -3,
+      "name": "Hero Section",
+      "clip": true,
+      "width": 1440,
+      "height": 920,
+      "fill": [
+        {
+          "type": "image",
+          "enabled": true,
+          "url": "./public/images/hero-monochrome.jpg",
+          "mode": "fill"
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 90,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#030303F0",
+              "position": 0
+            },
+            {
+              "color": "#090909C7",
+              "position": 0.38
+            },
+            {
+              "color": "#0A0A0A70",
+              "position": 0.7
+            },
+            {
+              "color": "#050505D8",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0A0A0A00",
+              "position": 0
+            },
+            {
+              "color": "#0A0A0A40",
+              "position": 0.58
+            },
+            {
+              "color": "#0A0A0ACC",
+              "position": 1
+            }
+          ]
+        }
+      ],
+      "layout": "vertical",
+      "padding": [
+        32,
+        32,
+        48,
+        120
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "vlFI3",
+          "name": "Top Bar",
+          "width": 1200,
+          "fill": "#0D0D0D78",
+          "stroke": {
+            "thickness": 1,
+            "fill": "$border"
+          },
+          "effect": {
+            "type": "background_blur",
+            "radius": 16
+          },
+          "padding": [
+            16,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "KAfJZ",
+              "name": "Nav Left",
+              "width": "fill_container",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Ph84s",
+                  "name": "brand",
+                  "fill": "$foreground",
+                  "content": "vv studios",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 17,
+                  "fontWeight": "700",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jw6bB",
+              "name": "Nav Center",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WKMh6",
+                  "name": "Nav Links",
+                  "gap": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SIcdg",
+                      "name": "link1",
+                      "fill": "#F5F5F5CC",
+                      "content": "Studios",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "SK7u9",
+                      "name": "link2",
+                      "fill": "#F5F5F5CC",
+                      "content": "Pricing",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "DLgW3",
+                      "name": "link3",
+                      "fill": "#F5F5F5CC",
+                      "content": "Location",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "VwBk8",
+              "name": "Nav Right",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "kZYGz",
+                  "name": "Nav CTA",
+                  "fill": "$primary",
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qwwRa",
+                      "name": "ctaText",
+                      "fill": "$primaryForeground",
+                      "content": "Book Session",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "0Va6s",
+          "name": "Hero Main Area",
+          "width": "fill_container",
+          "height": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "AkUPt",
+              "name": "Hero Main Left",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "padding": [
+                150,
+                0
+              ],
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "8unfv",
+                  "name": "Hero Content",
+                  "layout": "vertical",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BlxgH",
+                      "name": "eyebrow",
+                      "fill": "$primary",
+                      "content": "FROM VERTIGO VISUALS",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 2.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "TWLHt",
+                      "name": "headline",
+                      "fill": "$foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 679,
+                      "content": "Professional studios for modern content.",
+                      "lineHeight": 0.92,
+                      "fontFamily": "Montserrat",
+                      "fontSize": 60,
+                      "fontWeight": "700",
+                      "letterSpacing": -2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pl9eo",
+                      "name": "Hero Actions",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Pa9Ni",
+                          "name": "Primary CTA",
+                          "fill": "$primary",
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "a7QRN",
+                              "name": "primaryText",
+                              "fill": "$primaryForeground",
+                              "content": "Book Session",
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "iMflr",
+                          "name": "Secondary CTA",
+                          "fill": "#0f0f0fcc",
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "$border"
+                          },
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "u7b3t",
+                              "name": "secondaryText",
+                              "fill": "$foreground",
+                              "content": "Make a call",
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GujeK",
+              "name": "Hero Main Right",
+              "height": "fill_container",
+              "layout": "vertical",
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "E9Foc",
+                  "name": "Location Card",
+                  "stroke": {
+                    "thickness": 1
+                  },
+                  "gap": 6,
+                  "padding": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GnaWH",
+                      "name": "Pin Wrap",
+                      "height": "fill_container",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "8X912",
+                          "name": "pin",
+                          "width": 28,
+                          "height": 24,
+                          "iconFontName": "map-pin",
+                          "iconFontFamily": "lucide",
+                          "fill": "$primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "uO21i",
+                      "name": "locText",
+                      "fill": "#f5f5f5cc",
+                      "textGrowth": "fixed-width",
+                      "width": 299,
+                      "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Montserrat",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ULty9",
+      "x": 2962,
+      "y": 0,
+      "name": "Hero Section",
+      "clip": true,
+      "width": 1440,
+      "height": 920,
+      "fill": "$background",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "v9Jdr",
+          "x": 0,
+          "y": 0,
+          "name": "Collage Overlay",
+          "width": 1440,
+          "height": 920,
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "jC0sT",
+              "x": 368,
+              "y": 293,
+              "name": "Collage Image 1",
+              "rotation": -5,
+              "clip": true,
+              "width": 220,
+              "height": 150,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "./public/images/hero-monochrome.jpg",
+                "mode": "fill"
+              },
+              "cornerRadius": 14,
+              "layout": "none"
+            },
+            {
+              "type": "frame",
+              "id": "rYLTd",
+              "x": 596,
+              "y": 230,
+              "name": "Collage Image 2",
+              "rotation": 4,
+              "clip": true,
+              "width": 200,
+              "height": 140,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "./public/images/hero-monochrome.jpg",
+                "mode": "fill"
+              },
+              "cornerRadius": 14,
+              "layout": "none"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "3MWNr",
+          "x": 0,
+          "y": 0,
+          "name": "Hero Content",
+          "width": 1440,
+          "height": 920,
+          "layout": "vertical",
+          "padding": [
+            32,
+            32,
+            48,
+            120
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ijxmC",
+              "name": "Top Bar",
+              "width": 1200,
+              "fill": "$background",
+              "stroke": {
+                "thickness": 0
+              },
+              "effect": {
+                "type": "background_blur",
+                "radius": 0,
+                "enabled": false
+              },
+              "padding": [
+                12,
+                16
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EnPHS",
+                  "name": "Nav Left",
+                  "width": "fill_container",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zsPXe",
+                      "name": "brand",
+                      "fill": "$foreground",
+                      "content": "vv studios",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 17,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wx99H",
+                  "name": "Nav Center",
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SUujt",
+                      "name": "Nav Links",
+                      "gap": 20,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "K8SHq",
+                          "name": "link1",
+                          "fill": "#F5F5F5CC",
+                          "content": "Studios",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.4
+                        },
+                        {
+                          "type": "text",
+                          "id": "SJ99W",
+                          "name": "link2",
+                          "fill": "#F5F5F5CC",
+                          "content": "Pricing",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.4
+                        },
+                        {
+                          "type": "text",
+                          "id": "0zfP1",
+                          "name": "link3",
+                          "fill": "#F5F5F5CC",
+                          "content": "Location",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.4
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "5gXld",
+                  "name": "Nav Right",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "s4aOf",
+                      "name": "Nav CTA",
+                      "fill": "$primary",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border"
+                      },
+                      "padding": [
+                        12,
+                        20
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZdMeW",
+                          "name": "ctaText",
+                          "fill": "$primaryForeground",
+                          "content": "Book Session",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "700",
+                          "letterSpacing": 0.4
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WKPQa",
+              "name": "Hero Main Area",
+              "width": "fill_container",
+              "height": "fill_container",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hCkkd",
+                  "name": "Hero Main Left",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    100,
+                    0
+                  ],
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Dn7sz",
+                      "name": "Hero Content",
+                      "layout": "vertical",
+                      "gap": 24,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QzHum",
+                          "name": "eyebrow",
+                          "fill": "$primary",
+                          "content": "FROM VERTIGO VISUALS",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "700",
+                          "letterSpacing": 2.2
+                        },
+                        {
+                          "type": "text",
+                          "id": "YkVOu",
+                          "name": "headline",
+                          "fill": "$foreground",
+                          "textGrowth": "fixed-width",
+                          "width": 736,
+                          "content": "Professional studios for modern content.",
+                          "lineHeight": 0.92,
+                          "fontFamily": "Montserrat",
+                          "fontSize": 72,
+                          "fontWeight": "700",
+                          "letterSpacing": -2
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KSUCO",
+                          "name": "Hero Actions",
+                          "gap": 16,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "zNmnA",
+                              "name": "Primary CTA",
+                              "fill": "$primary",
+                              "padding": [
+                                16,
+                                24
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "S8iUZ",
+                                  "name": "primaryText",
+                                  "fill": "$primaryForeground",
+                                  "content": "Book Session",
+                                  "fontFamily": "Montserrat",
+                                  "fontSize": 14,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.5
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "5xs9F",
+                              "name": "Secondary CTA",
+                              "fill": "#0f0f0fcc",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "$border"
+                              },
+                              "padding": [
+                                16,
+                                24
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "z7n8V",
+                                  "name": "secondaryText",
+                                  "fill": "$foreground",
+                                  "content": "Make a call",
+                                  "fontFamily": "Montserrat",
+                                  "fontSize": 14,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.5
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XCOgB",
+                  "name": "Hero Main Right",
+                  "enabled": false,
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "justifyContent": "end",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "5CAX2",
+                      "name": "Location Card",
+                      "stroke": {
+                        "thickness": 1
+                      },
+                      "gap": 6,
+                      "padding": 20,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "bwDbj",
+                          "name": "Pin Wrap",
+                          "height": "fill_container",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "mW1aU",
+                              "name": "pin",
+                              "width": 28,
+                              "height": 24,
+                              "iconFontName": "map-pin",
+                              "iconFontFamily": "lucide",
+                              "fill": "$primary"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "0y57z",
+                          "name": "locText",
+                          "fill": "#f5f5f5cc",
+                          "textGrowth": "fixed-width",
+                          "width": 299,
+                          "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                          "lineHeight": 1.35,
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yfafM",
+                  "name": "Hero Main Right",
+                  "height": 710,
+                  "layout": "vertical",
+                  "justifyContent": "space_between",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qelbm",
+                      "name": "Hero Visual",
+                      "rotation": -4,
+                      "clip": true,
+                      "width": 566,
+                      "height": 324,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "./public/images/hero-monochrome.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 16,
+                      "layout": "none"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZeJAF",
+                      "name": "Location Card",
+                      "stroke": {
+                        "thickness": 1
+                      },
+                      "gap": 6,
+                      "padding": 20,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "QzFUC",
+                          "name": "Pin Wrap",
+                          "height": "fill_container",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "I4Xf1",
+                              "name": "pin",
+                              "width": 28,
+                              "height": 24,
+                              "iconFontName": "map-pin",
+                              "iconFontFamily": "lucide",
+                              "fill": "$primary"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "q9NDm",
+                          "name": "locText",
+                          "fill": "#f5f5f5cc",
+                          "textGrowth": "fixed-width",
+                          "width": 299,
+                          "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                          "lineHeight": 1.35,
+                          "fontFamily": "Montserrat",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "8nBo7",
+      "x": 1480,
+      "y": -3,
+      "name": "Hero Section",
+      "clip": true,
+      "width": 1440,
+      "height": 920,
+      "fill": [
+        {
+          "type": "image",
+          "enabled": true,
+          "url": "./public/images/hero-monochrome.jpg",
+          "mode": "fill"
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 90,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#030303F0",
+              "position": 0
+            },
+            {
+              "color": "#090909C7",
+              "position": 0.38
+            },
+            {
+              "color": "#0A0A0A70",
+              "position": 0.7
+            },
+            {
+              "color": "#050505D8",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0A0A0A00",
+              "position": 0
+            },
+            {
+              "color": "#0A0A0A40",
+              "position": 0.58
+            },
+            {
+              "color": "#0A0A0ACC",
+              "position": 1
+            }
+          ]
+        }
+      ],
+      "layout": "vertical",
+      "padding": [
+        32,
+        32,
+        48,
+        120
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "sDREy",
+          "name": "Top Bar",
+          "width": 1200,
+          "fill": "#0D0D0D78",
+          "stroke": {
+            "thickness": 1,
+            "fill": "$border"
+          },
+          "effect": {
+            "type": "background_blur",
+            "radius": 16
+          },
+          "padding": [
+            16,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "TOKVf",
+              "name": "Nav Left",
+              "width": "fill_container",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "663Bv",
+                  "name": "brand",
+                  "fill": "$foreground",
+                  "content": "vv studios",
+                  "fontFamily": "Merriweather",
+                  "fontSize": 17,
+                  "fontWeight": "700",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "1FqCw",
+              "name": "Nav Center",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "a03rc",
+                  "name": "Nav Links",
+                  "gap": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JF8sF",
+                      "name": "link1",
+                      "fill": "#F5F5F5CC",
+                      "content": "Studios",
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "lhln8",
+                      "name": "link2",
+                      "fill": "#F5F5F5CC",
+                      "content": "Pricing",
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "5gSgM",
+                      "name": "link3",
+                      "fill": "#F5F5F5CC",
+                      "content": "Location",
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "1ahjp",
+              "name": "Nav Right",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "DqRUG",
+                  "name": "Nav CTA",
+                  "fill": "$primary",
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NsfJ6",
+                      "name": "ctaText",
+                      "fill": "$primaryForeground",
+                      "content": "Book Session",
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "YcEJb",
+          "name": "Hero Main Area",
+          "width": "fill_container",
+          "height": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "TKPbB",
+              "name": "Hero Main Left",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "padding": [
+                100,
+                0
+              ],
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vS6e4",
+                  "name": "Hero Content",
+                  "layout": "vertical",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wqJBk",
+                      "name": "eyebrow",
+                      "fill": "$primary",
+                      "content": "FROM VERTIGO VISUALS",
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 2.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "qvXXH",
+                      "name": "headline",
+                      "fill": "$foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 736,
+                      "content": "Professional studios for modern content.",
+                      "lineHeight": 0.92,
+                      "fontFamily": "Playfair Display",
+                      "fontSize": 72,
+                      "fontWeight": "700",
+                      "letterSpacing": -2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "odIU0",
+                      "name": "Hero Actions",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "jLBVx",
+                          "name": "Primary CTA",
+                          "fill": "$primary",
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "wqJQX",
+                              "name": "primaryText",
+                              "fill": "$primaryForeground",
+                              "content": "Book Session",
+                              "fontFamily": "Merriweather",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lfOA0",
+                          "name": "Secondary CTA",
+                          "fill": "#0f0f0fcc",
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "$border"
+                          },
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "5YX1K",
+                              "name": "secondaryText",
+                              "fill": "$foreground",
+                              "content": "Make a call",
+                              "fontFamily": "Merriweather",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zgtBQ",
+              "name": "Hero Main Right",
+              "height": "fill_container",
+              "layout": "vertical",
+              "justifyContent": "end",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "N71X9",
+                  "name": "Location Card",
+                  "stroke": {
+                    "thickness": 1
+                  },
+                  "gap": 6,
+                  "padding": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "9Egvr",
+                      "name": "Pin Wrap",
+                      "height": "fill_container",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "mSVW5",
+                          "name": "pin",
+                          "width": 28,
+                          "height": 24,
+                          "iconFontName": "map-pin",
+                          "iconFontFamily": "lucide",
+                          "fill": "$primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "EzwVd",
+                      "name": "locText",
+                      "fill": "#f5f5f5cc",
+                      "textGrowth": "fixed-width",
+                      "width": 299,
+                      "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                      "lineHeight": 1.35,
+                      "fontFamily": "Merriweather",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ssBkP",
+      "x": 4680,
+      "y": 0,
+      "name": "Landing Variant C",
+      "clip": true,
+      "width": 1440,
+      "height": 920,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1,
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#3A2A0033",
+              "position": 0
+            },
+            {
+              "color": "#0A0A0B",
+              "position": 0.6
+            },
+            {
+              "color": "#0A0A0B",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.8,
+            "y": 0.1
+          }
+        },
+        "#0A0A0B"
+      ],
+      "layout": "vertical",
+      "padding": [
+        40,
+        80,
+        64,
+        80
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "WXxCf",
+          "name": "Top Bar",
+          "width": "fill_container",
+          "fill": "#11111180",
+          "stroke": {
+            "thickness": 1,
+            "fill": "#1F1F23"
+          },
+          "effect": {
+            "type": "background_blur",
+            "radius": 16
+          },
+          "padding": [
+            16,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "OfoqN",
+              "name": "Nav Left",
+              "width": "fill_container",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "s23dw",
+                  "name": "brand",
+                  "fill": "#ffffffff",
+                  "content": "vv studios",
+                  "fontFamily": "DM Mono",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "VyUkI",
+              "name": "Nav Center",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "RuMWp",
+                  "name": "Nav Links",
+                  "gap": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "0u9W3",
+                      "name": "link1",
+                      "fill": "#E8E8E8",
+                      "content": "Studios",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "gs48c",
+                      "name": "link2",
+                      "fill": "#E8E8E8",
+                      "content": "Pricing",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "MgIE4",
+                      "name": "link3",
+                      "fill": "#E8E8E8",
+                      "content": "Location",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lbw5D",
+              "name": "Nav Right",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "M5z97",
+                  "name": "Nav CTA",
+                  "fill": "#F5C518",
+                  "cornerRadius": 10,
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XIA11",
+                      "name": "ctaText",
+                      "fill": "#0A0A0B",
+                      "content": "Book Session",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Koynd",
+          "name": "Hero Main Area",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            31,
+            0,
+            0,
+            0
+          ],
+          "justifyContent": "space_around",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "ISOIU",
+              "name": "Hero Main Left",
+              "width": "fill_container",
+              "layout": "vertical",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "S90Vy",
+                  "name": "Hero Content",
+                  "layout": "vertical",
+                  "gap": 28,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EDvls",
+                      "name": "Frame 1",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PHg4m",
+                          "name": "eyebrow",
+                          "fill": "#F5C518",
+                          "content": "FROM VERTIGO VISUALS",
+                          "fontFamily": "DM Mono",
+                          "fontSize": 12,
+                          "fontWeight": "700",
+                          "letterSpacing": 2.4
+                        },
+                        {
+                          "type": "frame",
+                          "id": "hZRx1",
+                          "name": "Location Card",
+                          "width": 520,
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "thickness": 1
+                          },
+                          "padding": [
+                            12,
+                            20
+                          ],
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ki3DD",
+                              "name": "Pin Wrap",
+                              "height": "fill_container",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "PK4DV",
+                                  "name": "pin",
+                                  "width": 24,
+                                  "height": "fill_container",
+                                  "iconFontName": "map-pin",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#F5C518"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "OvoUp",
+                              "name": "locText",
+                              "fill": "#EAEAEA",
+                              "textGrowth": "fixed-width",
+                              "width": 280,
+                              "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                              "lineHeight": 1.35,
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "PCEJP",
+                      "name": "headline",
+                      "fill": "$foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 717,
+                      "content": "Professional studios for modern content.",
+                      "lineHeight": 0.95,
+                      "textAlign": "center",
+                      "fontFamily": "Instrument Serif",
+                      "fontSize": 78,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mu234",
+                      "name": "Hero Actions",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "IL3jM",
+                          "name": "Primary CTA",
+                          "fill": "#F5C518",
+                          "cornerRadius": 8,
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "nJzfa",
+                              "name": "primaryText",
+                              "fill": "#0A0A0B",
+                              "content": "Book Session",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "O4M0t",
+                          "name": "Secondary CTA",
+                          "fill": "#141417",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2A2A2E"
+                          },
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "TE12i",
+                              "name": "secondaryText",
+                              "fill": "#FFFFFF",
+                              "content": "View Studios",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YWebW",
+              "name": "Hero Main Right",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "9Hbj4",
+                  "name": "Hero Visual",
+                  "clip": true,
+                  "width": 960,
+                  "height": 360,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./public/images/hero-monochrome.jpg",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 16,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "sdzLQ",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Image Overlay",
+                      "width": 960,
+                      "height": 360,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#0A0A0A00",
+                            "position": 0
+                          },
+                          {
+                            "color": "#0A0A0ACC",
+                            "position": 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Cp47m",
+      "x": 6160,
+      "y": 0,
+      "name": "Landing Variant C",
+      "clip": true,
+      "width": 1440,
+      "height": 980,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1,
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#3A2A0033",
+              "position": 0
+            },
+            {
+              "color": "#0A0A0B",
+              "position": 0.6
+            },
+            {
+              "color": "#0A0A0B",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.8,
+            "y": 0.1
+          }
+        },
+        "#0A0A0B"
+      ],
+      "layout": "vertical",
+      "padding": [
+        32,
+        72,
+        72,
+        72
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "zlRVU",
+          "name": "Top Bar",
+          "width": "fill_container",
+          "fill": "#11111180",
+          "cornerRadius": 16,
+          "stroke": {
+            "thickness": 1,
+            "fill": "#1F1F23"
+          },
+          "effect": {
+            "type": "background_blur",
+            "radius": 16
+          },
+          "padding": [
+            18,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "529YF",
+              "name": "Nav Left",
+              "width": "fill_container",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cTeAr",
+                  "name": "brand",
+                  "fill": "#ffffffff",
+                  "content": "vv studios",
+                  "fontFamily": "DM Mono",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JTvNa",
+              "name": "Nav Center",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sxoyX",
+                  "name": "Nav Links",
+                  "gap": 20,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "6djmM",
+                      "name": "link1",
+                      "fill": "#E8E8E8",
+                      "content": "Studios",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "TpbjZ",
+                      "name": "link2",
+                      "fill": "#E8E8E8",
+                      "content": "Pricing",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "MFt1i",
+                      "name": "link3",
+                      "fill": "#E8E8E8",
+                      "content": "Location",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rSOBY",
+              "name": "Nav Right",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Tpe4q",
+                  "name": "Nav CTA",
+                  "fill": "#F5C518",
+                  "cornerRadius": 10,
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CGkTs",
+                      "name": "ctaText",
+                      "fill": "#0A0A0B",
+                      "content": "Book Session",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "letterSpacing": 0.4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "3EaRx",
+          "name": "Hero Main Area",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 56,
+          "padding": [
+            40,
+            0,
+            0,
+            0
+          ],
+          "justifyContent": "space_around",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "ylRxI",
+              "name": "Hero Main Left",
+              "width": "fill_container",
+              "layout": "vertical",
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rZd8s",
+                  "name": "Hero Content",
+                  "layout": "vertical",
+                  "gap": 28,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZjxQE",
+                      "name": "Frame 1",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TkMRP",
+                          "name": "eyebrow",
+                          "fill": "#F5C518",
+                          "content": "FROM VERTIGO VISUALS",
+                          "fontFamily": "DM Mono",
+                          "fontSize": 12,
+                          "fontWeight": "700",
+                          "letterSpacing": 2.4
+                        },
+                        {
+                          "type": "frame",
+                          "id": "0VTRO",
+                          "name": "Location Card",
+                          "width": 420,
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "thickness": 1
+                          },
+                          "padding": [
+                            12,
+                            20
+                          ],
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "JkcJ5",
+                              "name": "Pin Wrap",
+                              "height": "fill_container",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "Vtu1v",
+                                  "name": "pin",
+                                  "width": 24,
+                                  "height": "fill_container",
+                                  "iconFontName": "map-pin",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#F5C518"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "Xn5Ud",
+                              "name": "locText",
+                              "fill": "#EAEAEA",
+                              "textGrowth": "fixed-width",
+                              "width": 280,
+                              "content": "23 Fields Rd, Macquarie Fields NSW 2564",
+                              "lineHeight": 1.35,
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "w46NZ",
+                      "name": "headline",
+                      "fill": "$foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Professional studios for modern content.",
+                      "lineHeight": 0.92,
+                      "fontFamily": "Instrument Serif",
+                      "fontSize": 88,
+                      "fontWeight": "700",
+                      "letterSpacing": 0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "R8HiR",
+                      "name": "Hero Actions",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "zJW3J",
+                          "name": "Primary CTA",
+                          "fill": "#F5C518",
+                          "cornerRadius": 8,
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "QGG62",
+                              "name": "primaryText",
+                              "fill": "#0A0A0B",
+                              "content": "Book Session",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P5Gka",
+                          "name": "Secondary CTA",
+                          "fill": "#141417",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2A2A2E"
+                          },
+                          "padding": [
+                            16,
+                            24
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "7gBrV",
+                              "name": "secondaryText",
+                              "fill": "#FFFFFF",
+                              "content": "View Studios",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "700",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WmKfE",
+              "name": "Hero Main Right",
+              "width": "fill_container",
+              "height": 520,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EIF5I",
+                  "x": 80,
+                  "y": 40,
+                  "name": "Hero Visual",
+                  "clip": true,
+                  "width": 720,
+                  "height": 420,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./public/images/hero-monochrome.jpg",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 16,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JmOuL",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Image Overlay",
+                      "width": 960,
+                      "height": 360,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#0A0A0A00",
+                            "position": 0
+                          },
+                          {
+                            "color": "#0A0A0ACC",
+                            "position": 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 24,
+                  "id": "Pib87",
+                  "x": 20,
+                  "y": 210,
+                  "name": "Accent Frame",
+                  "rotation": -8,
+                  "fill": "#00000000",
+                  "width": 300,
+                  "height": 300,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#F5C518"
+                  }
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 4,
+                  "id": "1gEjY",
+                  "x": 511,
+                  "y": 20,
+                  "name": "Accent Bar",
+                  "fill": "#F5C518",
+                  "width": 220,
+                  "height": 8
+                },
+                {
+                  "type": "ellipse",
+                  "id": "MOS35",
+                  "x": 760,
+                  "y": 420,
+                  "name": "Accent Dot",
+                  "fill": "#F5C518",
+                  "width": 22,
+                  "height": 22
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "background": {
+      "type": "color",
+      "value": "#0A0A0A"
+    },
+    "border": {
+      "type": "color",
+      "value": "#2A2A2A"
+    },
+    "card": {
+      "type": "color",
+      "value": "#161616"
+    },
+    "fontSans": {
+      "type": "string",
+      "value": "Montserrat Variable"
+    },
+    "foreground": {
+      "type": "color",
+      "value": "#F5F5F5"
+    },
+    "mutedForeground": {
+      "type": "color",
+      "value": "#CFCFCF"
+    },
+    "overlaySoft": {
+      "type": "color",
+      "value": "#0A0A0A80"
+    },
+    "overlayStrong": {
+      "type": "color",
+      "value": "#050505CC"
+    },
+    "primary": {
+      "type": "color",
+      "value": "#F5C400"
+    },
+    "primaryForeground": {
+      "type": "color",
+      "value": "#111111"
+    }
+  }
+}
