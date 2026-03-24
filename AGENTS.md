@@ -40,6 +40,10 @@ Follow these instructions before making changes.
 - In Svelte components, keep typed props clear and colocated.
 - Preserve existing render structure and avoid unnecessary framework mixing.
 
+### Tailwind
+
+- Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints
+
 ### Accessibility and UX Safety
 
 - Preserve semantic HTML structure.
