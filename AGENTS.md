@@ -7,12 +7,7 @@ Follow these instructions before making changes.
 
 - Stack: Astro 5 + Svelte 5 + TypeScript + Tailwind CSS v4.
 - Package manager: `pnpm`
-- Important aliases: `$lib` and `$lib/*` from `tsconfig.json`.
 - UI baseline includes shadcn-svelte (`src/lib/components/ui`).
-
-- Build verification: `pnpm build`
-- Formatting check: `pnpm prettier --check .`
-- Formatting fix: `pnpm prettier --write .`
 
 ## Expected Workflow for Agents
 
@@ -25,7 +20,6 @@ Follow these instructions before making changes.
 
 - Prefer ESM imports.
 - Keep imports at file top.
-- Use `$lib` alias for shared library paths where appropriate.
 - Group imports by: external packages, then internal aliases/relative paths.
 
 ### TypeScript and Types
@@ -45,13 +39,6 @@ Follow these instructions before making changes.
 
 - In Svelte components, keep typed props clear and colocated.
 - Preserve existing render structure and avoid unnecessary framework mixing.
-
-### Tailwind and CSS
-
-- Reuse design tokens from `src/styles/global.css`.
-- Prefer utility classes and CSS variables over one-off hardcoded styles.
-- Keep theme variables consistent with current naming.
-- Avoid introducing a parallel design-token system.
 
 ### Accessibility and UX Safety
 
