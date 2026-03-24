@@ -1,0 +1,25 @@
+---
+import { Image } from "astro:assets";
+import BookingStepOne from "./BookingStepOne.svelte";
+import tableImage from "../../assets/table.jpg";
+import couchImage from "../../assets/couch.jpg";
+---
+
+<BookingStepOne client:load>
+	<Image
+		slot="table-image"
+		src={tableImage}
+		alt="Podcast table setup with microphones and studio lighting"
+		class="h-full w-full object-cover"
+		width={800}
+		sizes="(min-width: 768px) 50vw, 100vw"
+	/>
+	<Image
+		slot="couch-image"
+		src={couchImage}
+		alt="Podcast couch setup with warm lamps and casual seating"
+		class="h-full w-full object-cover"
+		width={800}
+		sizes="(min-width: 768px) 50vw, 100vw"
+	/>
+</BookingStepOne>
