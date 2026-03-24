@@ -64,7 +64,7 @@
 		{
 			value: "4k-uhd-recording",
 			icon: "camera",
-			label: "4K UHD Recording on Cameras",
+			label: "4K UHD Recording",
 			price: "+$49",
 			description: "High resolution camera capture for premium quality.",
 		},
@@ -144,17 +144,32 @@
 		),
 	);
 
-	const summaryItems = $derived([
-		{ label: "Date", value: dateString || "—" },
-		{ label: "Duration", value: selectedDuration || "—" },
-		{ label: "Format", value: selectedVideoFormatLabel || "—" },
-		{ label: "Add-ons", value: selectedAddOnLabels.join(", ") || "—" },
-		{ label: "Name", value: fullName || "—" },
-		{ label: "Phone", value: phone || "—" },
-		{ label: "Account", value: accountName || "—" },
-		{ label: "ABN", value: abn || "—" },
-		{ label: "Email", value: email || "—" },
-		{ label: "Requests", value: questionsOrRequests || "—" },
+	const summarySections = $derived([
+		{
+			title: "Booking Details",
+			items: [
+				{ label: "Date", value: dateString || "—" },
+				{ label: "Duration", value: selectedDuration || "—" },
+			],
+		},
+		{
+			title: "Session Details",
+			items: [
+				{ label: "Format", value: selectedVideoFormatLabel || "—" },
+				{ label: "Add-ons", value: selectedAddOnLabels.join("\n") || "—" },
+				{ label: "Questions or Requests", value: questionsOrRequests || "—" },
+			],
+		},
+		{
+			title: "Contact and Billing Information",
+			items: [
+				{ label: "Name", value: fullName || "—" },
+				{ label: "Phone", value: phone || "—" },
+				{ label: "Account", value: accountName || "—" },
+				{ label: "ABN", value: abn || "—" },
+				{ label: "Email", value: email || "—" },
+			],
+		},
 	]);
 
 	const handleSubmit = async (event: SubmitEvent) => {
@@ -191,9 +206,9 @@
 				body: JSON.stringify(payload),
 			});
 
-			console.log("Submitted booking payload:", payload);
+			// console.log("Submitted booking payload:", payload);
 
-			status = response.ok ? "Submitted successfully." : "Submission failed.";
+			status = response.ok ? "Booking completed successfully. Check your email for your invoice." : "Booking form fail to submit.";
 		} catch (error) {
 			status =
 				error instanceof Error ? error.message : "Submission failed unexpectedly.";
@@ -389,11 +404,41 @@
 					</RadioGroup>
 				</fieldset>
 			</div>
+
+			<!-- Questions -->
+			<div class="space-y-5 pt-2">
+				<Label
+					for="questionsOrRequests"
+					class="text-primary text-xs font-semibold tracking-widest"
+				>
+					ANY QUESTIONS OR REQUESTS?
+				</Label>
+				<div class="space-y-3">
+					<Textarea
+						id="questionsOrRequests"
+						autocomplete="off"
+						bind:value={questionsOrRequests}
+						rows={2}
+						class="rounded-none bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
+						placeholder="Let us know if you have any special requests or questions."
+					/>
+					<p class="text-sm font-medium text-muted-foreground">
+						Available for call at
+							<a class="font-semibold hover:underline" href={`tel:${contactPhone}`}>
+								{contactPhone}
+							</a>
+								&amp; email at
+							<a class="font-semibold hover:underline" href={`mailto:${contactEmail}`}>
+								{contactEmail}
+							</a>
+					</p>
+				</div>
+			</div>
 		</div>
 
 		<div class="space-y-6">
 			<h2 class="text-foreground text-xl font-bold">
-				Additional Information
+				CONTACT AND BILLING INFORMATION
 			</h2>
 
 			<!-- Contact Information -->
@@ -408,6 +453,7 @@
 							id="fullName"
 							placeholder="Awesome Artist"
 							autocomplete="name"
+							class="rounded-none"
 							bind:value={fullName}
 						/>
 					</div>
@@ -418,6 +464,7 @@
 							type="tel"
 							placeholder="0400 000 000"
 							autocomplete="tel"
+							class="rounded-none"
 							bind:value={phone}
 						/>
 					</div>
@@ -436,6 +483,7 @@
 							id="accountName"
 							placeholder="Account Name"
 							autocomplete="organization"
+							class="rounded-none"
 							bind:value={accountName}
 						/>
 					</div>
@@ -448,6 +496,7 @@
 							inputmode="numeric"
 							pattern="[0-9 ]*"
 							autocomplete="on"
+							class="rounded-none"
 							bind:value={abn}
 						/>
 					</div>
@@ -460,49 +509,13 @@
 							type="email"
 							placeholder="billing@example.com"
 							autocomplete="email"
+							class="rounded-none"
 							bind:value={email}
 						/>
 					</div>
 				</div>
 			</div>
 
-			<!-- Questions  -->
-			<div class="space-y-5 pt-2">
-				<Label
-					for="questionsOrRequests"
-					class="text-primary text-xs font-semibold tracking-widest"
-				>
-					ANY QUESTIONS OR REQUESTS?
-				</Label>
-				<div class="space-y-3">
-					<Textarea
-						id="questionsOrRequests"
-						autocomplete="off"
-						bind:value={questionsOrRequests}
-						rows={2}
-						class="bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
-						placeholder="Let us know if you have any special requests or questions."
-					/>
-					<p class="text-sm font-medium text-muted-foreground">
-						Available for call at
-						{#if contactPhone}
-							<a class="font-bold hover:underline" href={`tel:${contactPhone}`}>
-								{contactPhone}
-							</a>
-						{:else}
-							0434367184
-						{/if}
-							{#if contactEmail}
-								&amp; email at
-							<a class="font-bold hover:underline" href={`mailto:${contactEmail}`}>
-								{contactEmail}
-							</a>
-							{:else}
-								&amp; email at contact@vertigovisuals.com.au
-						{/if}
-					</p>
-				</div>
-			</div>
 		</div>
 
 		<!-- Summary -->
@@ -510,29 +523,72 @@
 			<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
 				>Summary</Label
 			>
-			<div
-				class="grid grid-cols-1 gap-x-6 gap-y-3 rounded-md border border-border bg-card/75 p-5 text-sm shadow-sm md:grid-cols-3"
-			>
-				{#each summaryItems as item}
-					<div>
-						<span class="text-muted-foreground">{item.label}</span>
-						<p class="font-medium text-foreground">{item.value}</p>
-					</div>
+			<div class="rounded-none border border-border bg-background p-5 text-sm shadow-sm">
+				{#each summarySections as section, index}
+					{#if index > 0}
+						<div class="my-5 border-t border-border"></div>
+					{/if}
+					<section class="space-y-3">
+						<h3
+							class="text-white text-xs font-semibold tracking-widest uppercase"
+						>
+							{section.title}
+						</h3>
+						{#if section.title === "Contact and Billing Information"}
+							<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
+								{#each section.items.slice(0, 2) as item}
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{item.label}</dt>
+										<dd
+											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
+										>
+											{item.value}
+										</dd>
+									</div>
+								{/each}
+							</dl>
+							<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
+								{#each section.items.slice(2) as item}
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{item.label}</dt>
+										<dd
+											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
+										>
+											{item.value}
+										</dd>
+									</div>
+								{/each}
+							</dl>
+						{:else}
+							<dl class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+								{#each section.items as item}
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{item.label}</dt>
+										<dd
+											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
+										>
+											{item.value}
+										</dd>
+									</div>
+								{/each}
+							</dl>
+						{/if}
+					</section>
 				{/each}
 			</div>
 		</div>
 
 		<!-- Submit -->
-		{#if status}
-			<p class="text-center text-sm text-muted-foreground">{status}</p>
-		{/if}
 		<Button
 			type="submit"
 			size="lg"
-			class="w-full text-base font-semibold tracking-wide uppercase"
+			class="h-12 w-full rounded-none text-base font-extrabold tracking-wider"
 			disabled={isSubmitting}
 		>
-			{isSubmitting ? "Submitting…" : "Complete Booking"}
+			{isSubmitting ? "SUBMITTING…" : "COMPLETE BOOKING"}
 		</Button>
+		{#if status}
+			<p class="text-primary text-bold text-center text-lg">{status}</p>
+		{/if}
 	</form>
 </div>
