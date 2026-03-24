@@ -7,25 +7,10 @@ import TestimonialsSection from "../components/landing/TestimonialsSection.astro
 ---
 
 <Layout title=" | Video Production Studios For Hire in Sydney">
-	<div class="landing-page">
+	<div class="bg-linear-to-b from-background to-popover text-foreground">
 		<HeroSection />
 		<InformationSection />
 		<TestimonialsSection />
 		<PricingSection />
 	</div>
 </Layout>
-
-<style>
-	.landing-page {
-		background: linear-gradient(
-			180deg,
-			var(--background) 0%,
-			var(--popover) 100%
-		);
-		color: var(--foreground);
-	}
-
-	:global(html) {
-		scroll-behavior: smooth;
-	}
-</style>
