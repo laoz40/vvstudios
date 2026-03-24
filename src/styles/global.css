@@ -40,7 +40,7 @@
 	--font-mono:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
 		"Courier New", monospace;
-	--radius: 0.25rem;
+	--radius: 0;
 	--shadow-x: 0;
 	--shadow-y: 1px;
 	--shadow-blur: 3px;
