@@ -17,11 +17,10 @@
 	const navLinks: NavLink[] = [
 		{
 			href: "/studios",
-			label: "Studios",
+			label: "Recording Spaces",
 			dropdown: [
-				{ href: "/studios", label: "Studio A" },
-				{ href: "/studios", label: "Studio B" },
-				{ href: "/studios", label: "Studio C" },
+				{ href: "/studios", label: "Open Setup" },
+				{ href: "/studios", label: "Table Setup" },
 			],
 		},
 		{ href: "/pricing", label: "Pricing" },
