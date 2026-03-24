@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount, tick } from "svelte";
 	import { Calendar } from "$lib/components/ui/calendar";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
@@ -17,6 +18,8 @@
 		getLocalTimeZone,
 		type DateValue,
 	} from "@internationalized/date";
+
+	const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
 
 	const scriptUrl =
 		import.meta.env.APP_SCRIPT_URL || "";
@@ -90,6 +93,27 @@
 			description: "With subtitles and vertical crop",
 		},
 	] as const;
+	const addOnValues = new Set<string>(addOnOptions.map((option) => option.value));
+	const videoFormatValues = new Set<string>(
+		videoFormatOptions.map((option) => option.value),
+	);
+
+	type PersistedBookingData = {
+		selectedAddOns: string[];
+		selectedVideoFormat: string;
+		questionsOrRequests: string;
+		fullName: string;
+		phone: string;
+		accountName: string;
+		abn: string;
+		email: string;
+	};
+
+	type PersistedBookingEnvelope = {
+		version: 1;
+		updatedAt: string;
+		data: PersistedBookingData;
+	};
 	const toAddOnFieldName = (value: string) =>
 		`addOn${value
 			.split("-")
@@ -112,9 +136,104 @@
 	let accountName = $state("");
 	let abn = $state("");
 	let email = $state("");
+	let saveBookingInfo = $state(false);
+	let hasSavedBookingData = $state(false);
+	let summarySectionEl: HTMLDivElement | undefined = $state(undefined);
 
 	let isSubmitting = $state(false);
 	let status = $state("");
+
+	const isStringArray = (value: unknown): value is string[] =>
+		Array.isArray(value) && value.every((item) => typeof item === "string");
+	const isPersistedBookingData = (
+		value: unknown,
+	): value is PersistedBookingData => {
+		if (!value || typeof value !== "object") return false;
+		const data = value as Record<string, unknown>;
+		return (
+			isStringArray(data.selectedAddOns) &&
+			typeof data.selectedVideoFormat === "string" &&
+			typeof data.questionsOrRequests === "string" &&
+			typeof data.fullName === "string" &&
+			typeof data.phone === "string" &&
+			typeof data.accountName === "string" &&
+			typeof data.abn === "string" &&
+			typeof data.email === "string"
+		);
+	};
+	const readStoredBooking = (): PersistedBookingEnvelope | null => {
+		if (typeof window === "undefined") return null;
+		const raw = window.localStorage.getItem(BOOKING_STORAGE_KEY);
+		if (!raw) return null;
+
+		try {
+			const parsed = JSON.parse(raw) as unknown;
+			if (!parsed || typeof parsed !== "object") return null;
+			const envelope = parsed as Record<string, unknown>;
+			if (
+				envelope.version !== 1 ||
+				typeof envelope.updatedAt !== "string" ||
+				!isPersistedBookingData(envelope.data)
+			) {
+				return null;
+			}
+			return {
+				version: 1,
+				updatedAt: envelope.updatedAt,
+				data: envelope.data,
+			};
+		} catch {
+			return null;
+		}
+	};
+	const writeStoredBooking = (data: PersistedBookingData) => {
+		if (typeof window === "undefined") return;
+		const envelope: PersistedBookingEnvelope = {
+			version: 1,
+			updatedAt: new Date().toISOString(),
+			data,
+		};
+		window.localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(envelope));
+	};
+	const applyStoredBooking = (data: PersistedBookingData) => {
+		selectedAddOns = data.selectedAddOns.filter((value) => addOnValues.has(value));
+		selectedVideoFormat = videoFormatValues.has(data.selectedVideoFormat)
+			? data.selectedVideoFormat
+			: "";
+		questionsOrRequests = data.questionsOrRequests;
+		fullName = data.fullName;
+		phone = data.phone;
+		accountName = data.accountName;
+		abn = data.abn;
+		email = data.email;
+	};
+	const handleReuseLastBooking = async () => {
+		const stored = readStoredBooking();
+		if (!stored) return;
+		applyStoredBooking(stored.data);
+		await tick();
+		summarySectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+	};
+	const resetFormState = () => {
+		selectedDate = undefined;
+		selectedDuration = "";
+		selectedVideoFormat = "";
+		selectedAddOns = [];
+		questionsOrRequests = "";
+		fullName = "";
+		phone = "";
+		accountName = "";
+		abn = "";
+		email = "";
+		saveBookingInfo = false;
+	};
+
+	onMount(() => {
+		const stored = readStoredBooking();
+		if (!stored) return;
+		hasSavedBookingData = true;
+		saveBookingInfo = true;
+	});
 
 	// Derived helpers
 	const dateString = $derived(
@@ -209,6 +328,22 @@
 			// console.log("Submitted booking payload:", payload);
 
 			status = response.ok ? "Booking completed successfully. Check your email for your invoice." : "Booking form fail to submit.";
+			if (response.ok && saveBookingInfo) {
+				writeStoredBooking({
+					selectedAddOns,
+					selectedVideoFormat,
+					questionsOrRequests,
+					fullName,
+					phone,
+					accountName,
+					abn,
+					email,
+				});
+				hasSavedBookingData = true;
+			}
+			if (response.ok) {
+				resetFormState();
+			}
 		} catch (error) {
 			status =
 				error instanceof Error ? error.message : "Submission failed unexpectedly.";
@@ -284,6 +419,22 @@
 				</div>
 			</div>
 		</div>
+
+		{#if hasSavedBookingData}
+			<div class="flex flex-row justify-between items-center border border-primary bg-card p-4">
+				<p class="text-sm font-medium text-muted-foreground">
+					Reuse your last saved booking information for this booking.
+				</p>
+				<Button
+					type="button"
+					variant="default"
+					class="rounded-none"
+					onclick={handleReuseLastBooking}
+				>
+					Reuse Last Booking Info
+				</Button>
+			</div>
+		{/if}
 
 		<div class="space-y-6">
 			<h2 class="text-foreground text-xl font-bold">Session Details</h2>
@@ -519,7 +670,10 @@
 		</div>
 
 		<!-- Summary -->
-		<div class="space-y-5 pt-2">
+		<div
+			class="space-y-5 pt-2 scroll-mt-24 md:scroll-mt-28"
+			bind:this={summarySectionEl}
+		>
 			<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
 				>Summary</Label
 			>
@@ -576,7 +730,14 @@
 					</section>
 				{/each}
 			</div>
+		<div class="flex items-center gap-3">
+			<Checkbox id="saveBookingInfo" bind:checked={saveBookingInfo} class="rounded-none" />
+			<Label for="saveBookingInfo" class="text-sm leading-relaxed text-muted-foreground">
+				Save booking information to this device for next time
+			</Label>
 		</div>
+		</div>
+
 
 		<!-- Submit -->
 		<Button
