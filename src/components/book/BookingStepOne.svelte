@@ -63,6 +63,8 @@ const bookingUrls: BookingUrlMap = {
 	},
 };
 
+const recurringBookingUrl = "https://calendar.app.google/oFhhKtMnJoa2WX9h7";
+
 let selectedStudioId = $state("");
 let selectedDurationValue = $state("");
 let selectedBookingUrl = $derived(
@@ -70,17 +72,25 @@ let selectedBookingUrl = $derived(
 );
 
 let showBookingModal = $state(false);
+let modalUrl = $state("");
 
 function openBooking() {
 	if (!selectedBookingUrl) {
 		return;
 	}
 
+	modalUrl = selectedBookingUrl;
+	showBookingModal = true;
+}
+
+function openRecurringBooking() {
+	modalUrl = recurringBookingUrl;
 	showBookingModal = true;
 }
 
 function closeBooking() {
 	showBookingModal = false;
+	modalUrl = "";
 }
 
 function handleOverlayClick(e: MouseEvent) {
@@ -167,6 +177,7 @@ function handleKeydown(e: KeyboardEvent) {
 		</RadioGroup>
 	</section>
 
+	<div class="flex flex-col gap-4">
 	<Button
 		type="button"
 		onclick={openBooking}
@@ -175,6 +186,18 @@ function handleKeydown(e: KeyboardEvent) {
 	>
 		PICK SESSION DATE
 	</Button>
+	<p class="text-sm font-medium text-muted-foreground">
+		Need recurring sessions?
+		<button
+			type="button"
+			onclick={openRecurringBooking}
+			class="text-primary font-semibold hover:underline"
+		>
+			Request a call
+		</button>
+		to lock in your slot and secure a discounted rate.
+	</p>
+	</div>
 </div>
 
 {#if showBookingModal}
@@ -193,11 +216,11 @@ function handleKeydown(e: KeyboardEvent) {
 		>
 			Close
 		</Button>
-		<iframe
-			title="Choose a session"
-			src={selectedBookingUrl}
-			class="h-full w-full rounded-lg border-none bg-white"
-			sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
-		></iframe>
-	</div>
+	<iframe
+		title="Choose a session"
+		src={modalUrl}
+		class="h-full w-full rounded-lg border-none bg-white"
+		sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+	></iframe>
+</div>
 {/if}
