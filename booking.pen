@@ -4760,7 +4760,7 @@
                   "fill": "#ffffff",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "Contact Details",
+                  "content": "Additional Infoasdasdasd",
                   "fontFamily": "Montserrat",
                   "fontSize": 24,
                   "fontWeight": "600"
@@ -5485,9 +5485,892 @@
     },
     {
       "type": "frame",
-      "id": "vsTza",
-      "x": 4091,
+      "id": "D60HL",
+      "x": 3772,
       "y": 40,
+      "name": "Booking Test Form 3",
+      "width": 1120,
+      "fill": "#0a0a0a",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        40,
+        200
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "KupG0",
+          "name": "Header",
+          "width": "fill_container",
+          "gap": 24,
+          "padding": [
+            0,
+            0,
+            40,
+            0
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "LwAM1",
+              "name": "stepMeta",
+              "fill": "#f5c400",
+              "content": "STEP 2 OF 2",
+              "fontFamily": "Montserrat",
+              "fontSize": 48,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "2aAr8",
+              "name": "Frame 3",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "8fhPK",
+                  "name": "headerText",
+                  "fill": "#f5f5f5",
+                  "content": "Finalise Your Booking",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "k1qj5",
+                  "name": "headerSubtext",
+                  "fill": "#b8b8b8",
+                  "content": "Confirm your session details and choose your addons.",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qMemI",
+          "name": "Form",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 48,
+          "children": [
+            {
+              "type": "frame",
+              "id": "7kQoW",
+              "name": "Booking Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "H1jba",
+                  "name": "Booking Details Heading",
+                  "fill": "#ffffff",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Booking Details",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "LKPxT",
+                  "name": "Date Time Section",
+                  "width": "fill_container",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "93xXa",
+                      "name": "Calendar Column",
+                      "width": 295,
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n5Pky",
+                          "name": "calLabel",
+                          "fill": "#F5C400",
+                          "content": "Confirm Booking Date",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 12,
+                          "fontWeight": "500",
+                          "letterSpacing": 1.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rRFGB",
+                          "name": "calCard",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#121212",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 2,
+                            "fill": "#2A2A2A"
+                          },
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 16,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "nw4PA",
+                              "name": "calMonth",
+                              "fill": "#f5f5f5",
+                              "content": "August 2026",
+                              "fontFamily": "Montserrat",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "oinvp",
+                              "name": "calWeekdays",
+                              "fill": "#cfcfcf",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Su   Mo   Tu   We   Th   Fr   Sa",
+                              "fontFamily": "Montserrat",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "6z6GX",
+                              "name": "calDays",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "     1    2    3    4    5    6\n 7    8    9   10   11   12   13\n14   15   16   17   18   19   20\n21   22   23   24   25   26   27\n28   29   30   31",
+                              "lineHeight": 1.7,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mLwsI",
+                      "name": "Right Column",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "7kcVo",
+                          "name": "durationWrap",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XZjvs",
+                              "name": "durationLabel",
+                              "fill": "#f5c400",
+                              "content": "Confirm Session Duration",
+                              "fontFamily": "Montserrat",
+                              "fontSize": 12,
+                              "fontWeight": "500",
+                              "letterSpacing": 1.8
+                            },
+                            {
+                              "type": "frame",
+                              "id": "UIJq2",
+                              "name": "durationList",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 16,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "q3I9I",
+                                  "name": "duration1",
+                                  "width": "fill_container",
+                                  "fill": "#17130a",
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#F5C400"
+                                  },
+                                  "gap": 12,
+                                  "padding": [
+                                    14,
+                                    16
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "qTdy8",
+                                      "name": "radio1",
+                                      "width": 18,
+                                      "height": 18,
+                                      "fill": "#0A0A0A",
+                                      "cornerRadius": 999,
+                                      "stroke": {
+                                        "align": "inside",
+                                        "thickness": 1,
+                                        "fill": "#F5C400"
+                                      },
+                                      "layout": "none",
+                                      "children": [
+                                        {
+                                          "type": "ellipse",
+                                          "id": "tf1Sd",
+                                          "x": 5,
+                                          "y": 5,
+                                          "name": "dot1",
+                                          "fill": "#F5C400",
+                                          "width": 8,
+                                          "height": 8
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "h2VMN",
+                                      "name": "stack1",
+                                      "width": "fill_container",
+                                      "layout": "vertical",
+                                      "gap": 4,
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "hObpL",
+                                          "name": "video1Title",
+                                          "fill": "#f5f5f5",
+                                          "content": "1 Hour Session",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "0Wots",
+                                          "name": "video1Body",
+                                          "fill": "#cfcfcf",
+                                          "textGrowth": "fixed-width",
+                                          "width": "fill_container",
+                                          "content": "Quick focused recording window",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "mI8N9",
+                                  "name": "duration2",
+                                  "width": "fill_container",
+                                  "fill": "#121212",
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#2A2A2A"
+                                  },
+                                  "gap": 12,
+                                  "padding": [
+                                    14,
+                                    16
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "svhTh",
+                                      "name": "radio2",
+                                      "width": 18,
+                                      "height": 18,
+                                      "fill": "#0A0A0A",
+                                      "cornerRadius": 999,
+                                      "stroke": {
+                                        "align": "inside",
+                                        "thickness": 1,
+                                        "fill": "#F5C400"
+                                      }
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "5Jg14",
+                                      "name": "stack2",
+                                      "width": "fill_container",
+                                      "layout": "vertical",
+                                      "gap": 4,
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "LhHwM",
+                                          "name": "video2Title",
+                                          "fill": "#f5f5f5",
+                                          "content": "2 Hour Session",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "qkpKd",
+                                          "name": "video2Body",
+                                          "fill": "#cfcfcf",
+                                          "textGrowth": "fixed-width",
+                                          "width": "fill_container",
+                                          "content": "Balanced option for most projects",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "J22RP",
+                                  "name": "duration3",
+                                  "width": "fill_container",
+                                  "fill": "#121212",
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#2A2A2A"
+                                  },
+                                  "gap": 12,
+                                  "padding": [
+                                    14,
+                                    16
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "kIgpY",
+                                      "name": "radio3",
+                                      "width": 18,
+                                      "height": 18,
+                                      "fill": "#0A0A0A",
+                                      "cornerRadius": 999,
+                                      "stroke": {
+                                        "align": "inside",
+                                        "thickness": 1,
+                                        "fill": "#F5C400"
+                                      }
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "ZHDlW",
+                                      "name": "stack3",
+                                      "width": "fill_container",
+                                      "layout": "vertical",
+                                      "gap": 4,
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "t2SDL",
+                                          "name": "video3Title",
+                                          "fill": "#f5f5f5",
+                                          "content": "3 Hour Session",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "WjGlO",
+                                          "name": "video3Body",
+                                          "fill": "#cfcfcf",
+                                          "textGrowth": "fixed-width",
+                                          "width": "fill_container",
+                                          "content": "Extended time for deeper coverage",
+                                          "fontFamily": "Montserrat",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "xXf0Q",
+              "fill": "#ffffff",
+              "content": "[X] Filled in before? Use most recent information",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "im6HZ",
+              "name": "contactRow",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cCMfV",
+                  "name": "contactCol1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "clAGN",
+                      "name": "contactNameLabel",
+                      "fill": "#f5f5f5",
+                      "content": "Name",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "7cvZv",
+                      "name": "contactNameInput",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#101010",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "#2A2A2A"
+                      },
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SWZtb",
+                          "name": "contactNameText",
+                          "fill": "#cfcfcf",
+                          "content": "leo",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XcMRG",
+                  "name": "contactCol1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "9mQfR",
+                      "name": "contactNameLabel",
+                      "fill": "#f5f5f5",
+                      "content": "Email",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "1l4Cl",
+                      "name": "contactNameInput",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#101010",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "#2A2A2A"
+                      },
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "9DeIL",
+                          "name": "contactNameText",
+                          "fill": "#cfcfcf",
+                          "content": "email@gmail..com",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "NomVo",
+              "name": "Contact Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Gzpsj",
+                  "name": "Contact Details Heading",
+                  "fill": "#ffffff",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Contact Details",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "nzfs0",
+                  "name": "Contact Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": [
+                    8,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h5TkV",
+                      "name": "contactLabel",
+                      "fill": "#F5C400",
+                      "content": "Contact Information",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 12,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.8
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "N3CnL",
+                  "name": "Summary Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": [
+                    8,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iHyQC",
+                      "name": "summaryLabel",
+                      "fill": "#F5C400",
+                      "content": "Summary",
+                      "fontFamily": "Montserrat",
+                      "fontSize": 12,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JNm6h",
+                      "name": "summaryCard",
+                      "width": "fill_container",
+                      "fill": "#161616",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "#2A2A2A"
+                      },
+                      "layout": "vertical",
+                      "gap": 16,
+                      "padding": 28,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "cucpZ",
+                          "name": "sessionHead",
+                          "fill": "#ffffffff",
+                          "content": "SESSION DETAILS",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "letterSpacing": 1.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Kfo3y",
+                          "name": "sessionRow1",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "fRyqZ",
+                              "name": "summaryDate",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 159,
+                              "content": "Date\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "C4DCd",
+                              "name": "summaryTime",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 166,
+                              "content": "Time\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "eba0L",
+                              "name": "summaryDuration",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 129,
+                              "content": "Duration\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "dUyuW",
+                          "name": "sessionRow2",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v9pLc",
+                              "name": "summaryFormat",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 154,
+                              "content": "Format\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "iHrMb",
+                              "name": "summaryAddons",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Add-ons\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "gvMGW",
+                          "name": "clientHead",
+                          "fill": "#ffffffff",
+                          "content": "CONTACT INFORMATION",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "letterSpacing": 1.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h4vS6",
+                          "name": "clientRow",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "0glhM",
+                              "name": "summaryName",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 340,
+                              "content": "Name\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Fz8E5",
+                              "name": "summaryPhone",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Phone\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "gzuBN",
+                          "name": "billingHead",
+                          "fill": "#ffffffff",
+                          "content": "BILLING INFORMATION",
+                          "fontFamily": "Montserrat",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "letterSpacing": 1.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "B3I8N",
+                          "name": "billingRow",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YszTT",
+                              "name": "summaryAccount",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 158,
+                              "content": "Account\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "am6Yv",
+                              "name": "summaryAbn",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": 167,
+                              "content": "ABN\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "GoIxN",
+                              "name": "summaryEmail",
+                              "fill": "#f5f5f5",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Email\n-",
+                              "lineHeight": 1.6,
+                              "fontFamily": "Montserrat",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "y3R6y",
+              "name": "Status",
+              "enabled": false,
+              "fill": "#CFCFCF",
+              "fontFamily": "Montserrat",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "3POKE",
+              "name": "Submit Button",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#F5C400",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "p90u9",
+                  "name": "submitLabel",
+                  "fill": "#111111",
+                  "content": "COMPLETE BOOKING",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vsTza",
+      "x": 6024,
+      "y": 15,
       "name": "Booking Test Form AI SLOPPPP",
       "width": 1180,
       "fill": {
@@ -7644,7 +8527,8 @@
                           "width": "fill_container",
                           "content": "For your serious discussions",
                           "fontFamily": "Montserrat",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -7702,7 +8586,8 @@
                           "width": "fill_container",
                           "content": "A more relaxed vibe",
                           "fontFamily": "Montserrat",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -7952,20 +8837,10 @@
               "id": "XvExU",
               "name": "headerText",
               "fill": "#f5f5f5",
-              "content": "Book Your Studio",
+              "content": "Select recording space",
               "fontFamily": "Montserrat",
               "fontSize": 40,
               "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "MKpFO",
-              "name": "headerSubtext",
-              "fill": "#CFCFCF",
-              "content": "Choose your space and session time",
-              "fontFamily": "Montserrat",
-              "fontSize": 14,
-              "fontWeight": "normal"
             }
           ]
         },
@@ -8058,7 +8933,8 @@
                           "width": "fill_container",
                           "content": "For your serious discussions",
                           "fontFamily": "Montserrat",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -8116,7 +8992,8 @@
                           "width": "fill_container",
                           "content": "A more relaxed vibe",
                           "fontFamily": "Montserrat",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -8308,7 +9185,7 @@
                   "id": "CGwTb",
                   "name": "buttonLabel",
                   "fill": "#111111",
-                  "content": "CHOOSE A SESSION",
+                  "content": "Choose your appointment date",
                   "fontFamily": "Montserrat",
                   "fontSize": 16,
                   "fontWeight": "700",

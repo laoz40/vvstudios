@@ -137,7 +137,7 @@
                       "id": "SIcdg",
                       "name": "link1",
                       "fill": "#F5F5F5CC",
-                      "content": "Studios",
+                      "content": "Recording Spaces",
                       "fontFamily": "Montserrat",
                       "fontSize": 13,
                       "fontWeight": "600",
@@ -145,8 +145,8 @@
                     },
                     {
                       "type": "text",
-                      "id": "SK7u9",
-                      "name": "link2",
+                      "id": "b52TG",
+                      "name": "link1",
                       "fill": "#F5F5F5CC",
                       "content": "Pricing",
                       "fontFamily": "Montserrat",
@@ -159,7 +159,7 @@
                       "id": "DLgW3",
                       "name": "link3",
                       "fill": "#F5F5F5CC",
-                      "content": "Location",
+                      "content": "Contact",
                       "fontFamily": "Montserrat",
                       "fontSize": 13,
                       "fontWeight": "600",
@@ -253,7 +253,7 @@
                       "fill": "$foreground",
                       "textGrowth": "fixed-width",
                       "width": 679,
-                      "content": "Professional studios for modern content.",
+                      "content": "The Best Studio In South West Sydney",
                       "lineHeight": 0.92,
                       "fontFamily": "Montserrat",
                       "fontSize": 60,
@@ -282,7 +282,7 @@
                               "id": "a7QRN",
                               "name": "primaryText",
                               "fill": "$primaryForeground",
-                              "content": "Book Session",
+                              "content": "Book session",
                               "fontFamily": "Montserrat",
                               "fontSize": 14,
                               "fontWeight": "700",
@@ -309,7 +309,7 @@
                               "id": "u7b3t",
                               "name": "secondaryText",
                               "fill": "$foreground",
-                              "content": "Make a call",
+                              "content": "Take a free tour",
                               "fontFamily": "Montserrat",
                               "fontSize": 14,
                               "fontWeight": "700",
@@ -2026,7 +2026,7 @@
               "id": "WmKfE",
               "name": "Hero Main Right",
               "width": "fill_container",
-              "height": 520,
+              "height": 524,
               "layout": "none",
               "children": [
                 {
@@ -2054,7 +2054,7 @@
                       "y": 0,
                       "name": "Image Overlay",
                       "width": 960,
-                      "height": 360,
+                      "height": 420,
                       "fill": {
                         "type": "gradient",
                         "gradientType": "linear",
@@ -2076,33 +2076,6 @@
                       }
                     }
                   ]
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 24,
-                  "id": "Pib87",
-                  "x": 20,
-                  "y": 210,
-                  "name": "Accent Frame",
-                  "rotation": -8,
-                  "fill": "#00000000",
-                  "width": 300,
-                  "height": 300,
-                  "stroke": {
-                    "thickness": 2,
-                    "fill": "#F5C518"
-                  }
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 4,
-                  "id": "1gEjY",
-                  "x": 511,
-                  "y": 20,
-                  "name": "Accent Bar",
-                  "fill": "#F5C518",
-                  "width": 220,
-                  "height": 8
                 },
                 {
                   "type": "ellipse",
