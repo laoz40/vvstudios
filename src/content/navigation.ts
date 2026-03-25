@@ -32,6 +32,7 @@ export const navContent = {
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
 		bookLink: { href: "/book", label: "Book Session" } satisfies NavCta,
+		backHomeLink: { href: "/", label: "Back to Home" } satisfies NavCta,
 	},
 	mobile: {
 		navAriaLabel: "Navigation Menu",
