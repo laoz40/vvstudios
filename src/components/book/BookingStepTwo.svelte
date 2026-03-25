@@ -24,7 +24,7 @@
 	const BookingSchema = z.object({
 		date: z.string().min(1, "Please select a booking date."),
 		duration: z.string().min(1, "Please select a session duration."),
-		videoFormat: z.string().min(1, "Please select a video format."),
+		videoFormat: z.string().min(1, "Please select a recording format."),
 		questionsOrRequests: z
 			.string()
 			.trim()
