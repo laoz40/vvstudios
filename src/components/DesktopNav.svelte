@@ -9,11 +9,11 @@
 	const isBookPage = currentPath === "/book";
 </script>
 
-<div class="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
+<div
+	class="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
 	<nav
 		aria-label={navContent.desktop.navAriaLabel}
-		class="border-border/70 bg-background/30 rounded-md border px-4 py-3 shadow-lg backdrop-blur-md"
-	>
+		class="border-border/70 bg-background/30 rounded-md border px-4 py-3 shadow-lg backdrop-blur-md">
 		<div class="grid grid-cols-3 items-center gap-4">
 			<div class="justify-self-start">
 				<Button
@@ -39,18 +39,15 @@
 						</Button>
 						{#if link.dropdown}
 							<div
-								class="pointer-events-none absolute left-1/2 top-full w-44 -translate-x-1/2 pt-2 group-hover:pointer-events-auto group-focus-within:pointer-events-auto"
-							>
+								class="pointer-events-none absolute top-full left-1/2 w-44 -translate-x-1/2 pt-2 group-focus-within:pointer-events-auto group-hover:pointer-events-auto">
 								<div
-									class="bg-background/95 border-border rounded-md border p-2 opacity-0 shadow-lg backdrop-blur-md transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-								>
+									class="bg-background/95 border-border rounded-md border p-2 opacity-0 shadow-lg backdrop-blur-md transition duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
 									<ul class="flex flex-col gap-1">
 										{#each link.dropdown as dropdownItem}
 											<li>
 												<a
 													href={dropdownItem.href}
-													class="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2"
-												>
+													class="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring text-foreground block rounded-md px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none">
 													{dropdownItem.label}
 												</a>
 											</li>
@@ -65,7 +62,10 @@
 
 			<div class="justify-self-end">
 				{#if isBookPage}
-					<Button href={backHomeLink.href} variant="secondary" size="default">
+					<Button
+						href={backHomeLink.href}
+						variant="secondary"
+						size="default">
 						{backHomeLink.label}
 					</Button>
 				{:else}

@@ -56,15 +56,19 @@
 	</div>
 	<button
 		type="button"
-		aria-label={isOpen ? navContent.mobile.closeNavAriaLabel : navContent.mobile.openNavAriaLabel}
+		aria-label={isOpen
+			? navContent.mobile.closeNavAriaLabel
+			: navContent.mobile.openNavAriaLabel}
 		aria-expanded={isOpen}
 		aria-controls="mobile-nav-panel"
-		class="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+		class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
 		on:click={() => {
 			isOpen = !isOpen;
-		}}
-	>
-		<span class="sr-only">{isOpen ? navContent.mobile.closeMenuSrText : navContent.mobile.openMenuSrText}</span>
+		}}>
+		<span class="sr-only"
+			>{isOpen
+				? navContent.mobile.closeMenuSrText
+				: navContent.mobile.openMenuSrText}</span>
 		<span aria-hidden="true">
 			<Menu />
 		</span>
@@ -75,22 +79,19 @@
 			type="button"
 			class="fixed inset-0 z-40 bg-black/60"
 			on:click={closeMenu}
-			aria-label={navContent.mobile.closeNavAriaLabel}
-		></button>
+			aria-label={navContent.mobile.closeNavAriaLabel}></button>
 		<div
 			id="mobile-nav-panel"
-			class="fixed right-0 top-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col border-l border-border bg-background p-6"
-		>
+			class="border-border bg-background fixed top-0 right-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col border-l p-6">
 			<div class="mb-6 flex items-center justify-between">
-				<p class="text-sm font-semibold tracking-wide text-muted-foreground">
+				<p class="text-muted-foreground text-sm font-semibold tracking-wide">
 					{navContent.brandLabel}
 				</p>
 				<button
 					type="button"
-					class="rounded-md p-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
 					aria-label={navContent.mobile.closeNavAriaLabel}
-					on:click={closeMenu}
-				>
+					on:click={closeMenu}>
 					<span aria-hidden="true">
 						<X />
 					</span>
@@ -102,9 +103,8 @@
 						<a
 							href={link.href}
 							aria-current={currentPath === link.href ? "page" : undefined}
-							class="block rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							on:click={closeMenu}
-						>
+							class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+							on:click={closeMenu}>
 							{link.label}
 						</a>
 					</li>
@@ -113,9 +113,8 @@
 					<a
 						href={bookLink.href}
 						aria-current={currentPath === "/book" ? "page" : undefined}
-						class="block rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						on:click={closeMenu}
-					>
+						class="bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+						on:click={closeMenu}>
 						{bookLink.label}
 					</a>
 				</li>

@@ -14,9 +14,9 @@
 	bind:ref
 	class={cn(
 		buttonVariants({ variant: "ghost" }),
-		"flex size-(--cell-size) flex-col items-center justify-center gap-1 p-0 leading-none font-medium whitespace-nowrap select-none rounded-none",
+		"flex size-(--cell-size) flex-col items-center justify-center gap-1 rounded-none p-0 leading-none font-medium whitespace-nowrap select-none",
 		"[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground [&[data-today][data-disabled]]:text-muted-foreground",
-		"[&[data-selected]]:bg-primary [&[data-selected]]:text-primary-foreground [&[data-selected]]:font-medium [&[data-selected]:hover]:bg-primary/90 [&[data-selected]:focus-visible]:bg-primary/90",
+		"[&[data-selected]]:bg-primary [&[data-selected]]:text-primary-foreground [&[data-selected]:hover]:bg-primary/90 [&[data-selected]:focus-visible]:bg-primary/90 [&[data-selected]]:font-medium",
 		// Outside months
 		"[&[data-outside-month]:not([data-selected])]:text-muted-foreground [&[data-outside-month]:not([data-selected])]:hover:text-accent-foreground",
 		// Disabled
@@ -29,7 +29,6 @@
 		"focus:border-ring focus:ring-ring/50 focus:relative",
 		// inner spans
 		"[&>span]:text-xs [&>span]:opacity-70",
-		className
+		className,
 	)}
-	{...restProps}
-/>
+	{...restProps} />

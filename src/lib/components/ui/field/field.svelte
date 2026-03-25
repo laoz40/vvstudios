@@ -1,4 +1,6 @@
-<script lang="ts" module>
+<script
+	lang="ts"
+	module>
 	import { tv, type VariantProps } from "tailwind-variants";
 
 	export const fieldVariants = tv({
@@ -23,7 +25,9 @@
 		},
 	});
 
-	export type FieldOrientation = VariantProps<typeof fieldVariants>["orientation"];
+	export type FieldOrientation = VariantProps<
+		typeof fieldVariants
+	>["orientation"];
 </script>
 
 <script lang="ts">
@@ -47,7 +51,6 @@
 	data-slot="field"
 	data-orientation={orientation}
 	class={cn(fieldVariants({ orientation }), className)}
-	{...restProps}
->
+	{...restProps}>
 	{@render children?.()}
 </div>

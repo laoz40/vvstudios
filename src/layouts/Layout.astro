@@ -3,7 +3,7 @@ import DesktopNav from "../components/DesktopNav.svelte";
 import Footer from "../components/Footer.svelte";
 import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
-import '@fontsource-variable/montserrat';
+import "@fontsource-variable/montserrat";
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
@@ -33,8 +33,13 @@ const currentPath = Astro.url.pathname;
 	</head>
 	<body>
 		<!-- Mobile Nav -->
-		<MobileNav currentPath={currentPath} client:media="(max-width: 767px)" />
-		<div id="site-shell" class="flex min-h-screen flex-col">
+		<MobileNav
+			currentPath={currentPath}
+			client:media="(max-width: 767px)"
+		/>
+		<div
+			id="site-shell"
+			class="flex min-h-screen flex-col">
 			<!-- Desktop Nav -->
 			<DesktopNav currentPath={currentPath} />
 			<main>
@@ -45,7 +50,6 @@ const currentPath = Astro.url.pathname;
 			<Footer />
 		</div>
 	</body>
-
 </html>
 
 <style>

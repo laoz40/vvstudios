@@ -51,13 +51,12 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{disableDaysOutsideMonth}
 	class={cn(
 		"bg-input/30 group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-		className
+		className,
 	)}
 	{locale}
 	{monthFormat}
 	{yearFormat}
-	{...restProps}
->
+	{...restProps}>
 	{#snippet children({ months, weekdays })}
 		<Calendar.Months>
 			<Calendar.Nav>
@@ -76,8 +75,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 							month={month.value}
 							bind:placeholder
 							{locale}
-							{monthIndex}
-						/>
+							{monthIndex} />
 					</Calendar.Header>
 					<Calendar.Grid>
 						<Calendar.GridHead>
@@ -93,7 +91,9 @@ get along, so we shut typescript up by casting `value` to `never`.
 							{#each month.weeks as weekDates (weekDates)}
 								<Calendar.GridRow class="mt-2 w-full">
 									{#each weekDates as date (date)}
-										<Calendar.Cell {date} month={month.value}>
+										<Calendar.Cell
+											{date}
+											month={month.value}>
 											{#if day}
 												{@render day({
 													day: date,

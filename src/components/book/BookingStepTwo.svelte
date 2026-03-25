@@ -31,7 +31,9 @@
 	const statusMessages = bookingStepTwoContent.statusMessages;
 	const sectionCopy = bookingStepTwoContent.sections;
 	const summaryCopy = bookingStepTwoContent.summary;
-	const addOnValues = new Set<string>(addOnOptions.map((option) => option.value));
+	const addOnValues = new Set<string>(
+		addOnOptions.map((option) => option.value),
+	);
 	const videoFormatValues = new Set<string>(
 		videoFormatOptions.map((option) => option.value),
 	);
@@ -134,7 +136,9 @@
 		window.localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(envelope));
 	};
 	const applyStoredBooking = (data: PersistedBookingData) => {
-		selectedAddOns = data.selectedAddOns.filter((value) => addOnValues.has(value));
+		selectedAddOns = data.selectedAddOns.filter((value) =>
+			addOnValues.has(value),
+		);
 		selectedVideoFormat = videoFormatValues.has(data.selectedVideoFormat)
 			? data.selectedVideoFormat
 			: "";
@@ -205,8 +209,14 @@
 		{
 			title: summaryCopy.bookingDetailsTitle,
 			items: [
-				{ label: summaryCopy.labels.date, value: dateString || summaryCopy.emptyValue },
-				{ label: summaryCopy.labels.duration, value: selectedDuration || summaryCopy.emptyValue },
+				{
+					label: summaryCopy.labels.date,
+					value: dateString || summaryCopy.emptyValue,
+				},
+				{
+					label: summaryCopy.labels.duration,
+					value: selectedDuration || summaryCopy.emptyValue,
+				},
 			],
 		},
 		{
@@ -229,11 +239,23 @@
 		{
 			title: summaryCopy.contactBillingTitle,
 			items: [
-				{ label: summaryCopy.labels.name, value: fullName || summaryCopy.emptyValue },
-				{ label: summaryCopy.labels.phone, value: phone || summaryCopy.emptyValue },
-				{ label: summaryCopy.labels.account, value: accountName || summaryCopy.emptyValue },
+				{
+					label: summaryCopy.labels.name,
+					value: fullName || summaryCopy.emptyValue,
+				},
+				{
+					label: summaryCopy.labels.phone,
+					value: phone || summaryCopy.emptyValue,
+				},
+				{
+					label: summaryCopy.labels.account,
+					value: accountName || summaryCopy.emptyValue,
+				},
 				{ label: summaryCopy.labels.abn, value: abn || summaryCopy.emptyValue },
-				{ label: summaryCopy.labels.email, value: email || summaryCopy.emptyValue },
+				{
+					label: summaryCopy.labels.email,
+					value: email || summaryCopy.emptyValue,
+				},
 			],
 		},
 	]);
@@ -274,7 +296,9 @@
 
 			// console.log("Submitted booking payload:", payload);
 
-			status = response.ok ? statusMessages.success : statusMessages.submitFailed;
+			status = response.ok
+				? statusMessages.success
+				: statusMessages.submitFailed;
 			if (response.ok && saveBookingInfo) {
 				writeStoredBooking({
 					selectedAddOns,
@@ -293,7 +317,9 @@
 			}
 		} catch (error) {
 			status =
-				error instanceof Error ? error.message : statusMessages.submitUnexpectedlyFailed;
+				error instanceof Error
+					? error.message
+					: statusMessages.submitUnexpectedlyFailed;
 		} finally {
 			isSubmitting = false;
 		}
@@ -303,62 +329,62 @@
 </script>
 
 <div class="mx-auto w-full max-w-4xl space-y-8">
-	<form class="space-y-10 md:space-y-12" onsubmit={handleSubmit}>
-			<div class="space-y-6">
-				<h2 class="text-foreground text-xl font-bold">
-					{sectionCopy.bookingDetailsTitle}
-				</h2>
+	<form
+		class="space-y-10 md:space-y-12"
+		onsubmit={handleSubmit}>
+		<div class="space-y-6">
+			<h2 class="text-foreground text-xl font-bold">
+				{sectionCopy.bookingDetailsTitle}
+			</h2>
 			<div
-				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-10"
-			>
-		<!-- Booking Date -->
-					<div class="w-fit space-y-3">
-						<Label class="text-primary text-xs font-semibold tracking-widest"
-							>{sectionCopy.confirmBookingDateLabel}</Label
-						>
+				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-10">
+				<!-- Booking Date -->
+				<div class="w-fit space-y-3">
+					<Label class="text-primary text-xs font-semibold tracking-widest"
+						>{sectionCopy.confirmBookingDateLabel}</Label>
 					<Calendar
 						type="single"
 						bind:value={selectedDate}
 						minValue={minDate}
 						captionLayout="dropdown"
-						class="w-fit rounded-lg border border-border [--cell-size:--spacing(9)]"
-					/>
+						class="border-border w-fit rounded-lg border [--cell-size:--spacing(9)]" />
 				</div>
 
-		<!-- Session Duration -->
-					<div class="space-y-3 md:h-full md:flex md:flex-col md:space-y-0 md:gap-3">
-						<Label class="text-primary text-xs font-semibold tracking-widest"
-							>{sectionCopy.confirmSessionDurationLabel}</Label
-						>
+				<!-- Session Duration -->
+				<div
+					class="space-y-3 md:flex md:h-full md:flex-col md:gap-3 md:space-y-0">
+					<Label class="text-primary text-xs font-semibold tracking-widest"
+						>{sectionCopy.confirmSessionDurationLabel}</Label>
 					<RadioGroup
 						bind:value={selectedDuration}
 						name="sessionDuration"
-						class="grid gap-2 md:h-full md:flex-1 md:flex md:flex-col md:justify-between md:gap-0"
-					>
+						class="grid gap-2 md:flex md:h-full md:flex-1 md:flex-col md:justify-between md:gap-0">
 						{#each durationOptions as option}
 							<label
 								class={cn(
-									"flex cursor-pointer items-center border border-border bg-input/30 rounded-lg px-4 py-3 md:py-6 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
-									selectedDuration === option.value && "border-primary bg-primary/10",
-								)}
-							>
+									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 md:py-6",
+									selectedDuration === option.value &&
+										"border-primary bg-primary/10",
+								)}>
 								<div class="flex w-full items-center justify-between gap-3">
 									<span class="flex flex-col gap-1">
 										<span class="block text-base font-semibold">
 											{option.label}
 										</span>
-										<span class="block text-sm font-normal text-muted-foreground">
+										<span
+											class="text-muted-foreground block text-sm font-normal">
 											{option.description}
 										</span>
 									</span>
-									<RadioGroupItem value={option.value} class="sr-only" />
+									<RadioGroupItem
+										value={option.value}
+										class="sr-only" />
 									{#if selectedDuration === option.value}
-											<span
-												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
-											>
-												{sectionCopy.selectedBadge}
-											</span>
-										{/if}
+										<span
+											class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+											{sectionCopy.selectedBadge}
+										</span>
+									{/if}
 								</div>
 							</label>
 						{/each}
@@ -367,68 +393,67 @@
 			</div>
 		</div>
 
-
-			<div class="space-y-6">
-				<h2 class="text-foreground text-xl font-bold">{sectionCopy.sessionDetailsTitle}</h2>
+		<div class="space-y-6">
+			<h2 class="text-foreground text-xl font-bold">
+				{sectionCopy.sessionDetailsTitle}
+			</h2>
 
 			<!-- Addons -->
 			<div class="space-y-5 pt-2">
-
-		{#if hasSavedBookingData}
-				<div class="flex flex-row items-center justify-between rounded-lg border border-primary bg-input/30 p-4 mb-8">
-					<p class="text-sm font-medium text-muted-foreground">
-						{sectionCopy.reuseSavedBookingText}
-					</p>
-				<Button
-					type="button"
-					variant="default"
-					class="rounded-lg"
-					onclick={handleReuseLastBooking}
-					>
-						{sectionCopy.reuseSavedBookingButton}
-					</Button>
-				</div>
-			{/if}
-
-					<fieldset class="space-y-4">
-						<legend class="text-primary text-xs font-semibold tracking-widest">
-							{sectionCopy.addOnsLegend}
-						</legend>
-						<p class="text-sm font-medium text-muted-foreground">
-							{sectionCopy.addOnsHelper}
+				{#if hasSavedBookingData}
+					<div
+						class="border-primary bg-input/30 mb-8 flex flex-row items-center justify-between rounded-lg border p-4">
+						<p class="text-muted-foreground text-sm font-medium">
+							{sectionCopy.reuseSavedBookingText}
 						</p>
+						<Button
+							type="button"
+							variant="default"
+							class="rounded-lg"
+							onclick={handleReuseLastBooking}>
+							{sectionCopy.reuseSavedBookingButton}
+						</Button>
+					</div>
+				{/if}
+
+				<fieldset class="space-y-4">
+					<legend class="text-primary text-xs font-semibold tracking-widest">
+						{sectionCopy.addOnsLegend}
+					</legend>
+					<p class="text-muted-foreground text-sm font-medium">
+						{sectionCopy.addOnsHelper}
+					</p>
 					<div class="grid gap-3 md:grid-cols-2">
 						{#each addOnOptions as option}
 							<label
 								class={cn(
-									"flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-300 hover:border-primary hover:bg-primary/10",
-									selectedAddOns.includes(option.value) && "border-primary bg-primary/10"
-								)}
-							>
+									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer flex-col gap-3 rounded-lg border px-4 py-4 text-left transition duration-300",
+									selectedAddOns.includes(option.value) &&
+										"border-primary bg-primary/10",
+								)}>
 								<div class="flex flex-row items-start justify-between">
 									{#if option.icon === "camera"}
-										<CameraIcon class="size-10 text-primary" />
+										<CameraIcon class="text-primary size-10" />
 									{:else if option.icon === "scroll-text"}
-										<ScrollTextIcon class="size-10 text-primary" />
+										<ScrollTextIcon class="text-primary size-10" />
 									{:else if option.icon === "scissors"}
-										<ScissorsIcon class="size-10 text-primary" />
+										<ScissorsIcon class="text-primary size-10" />
 									{:else}
-										<SmartphoneIcon class="size-10 text-primary" />
+										<SmartphoneIcon class="text-primary size-10" />
 									{/if}
 									<Checkbox
 										name="addOns"
 										value={option.value}
 										checked={selectedAddOns.includes(option.value)}
-										onCheckedChange={(checked) => toggleAddOn(option.value, checked)}
-										class="sr-only"
-									/>
+										onCheckedChange={(checked) =>
+											toggleAddOn(option.value, checked)}
+										class="sr-only" />
 									{#if selectedAddOns.includes(option.value)}
-											<span
-												class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
-											>
-												{sectionCopy.selectedBadge}
-											</span>
-										{/if}
+										<span
+											class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+											{sectionCopy.selectedBadge}
+										</span>
+									{/if}
 								</div>
 								<div class="flex flex-col gap-1.5">
 									<div class="flex items-start justify-between gap-4">
@@ -439,7 +464,7 @@
 											{option.price}
 										</span>
 									</div>
-									<p class="text-sm font-normal text-muted-foreground">
+									<p class="text-muted-foreground text-sm font-normal">
 										{option.description}
 									</p>
 								</div>
@@ -451,34 +476,36 @@
 
 			<!-- Video Format -->
 			<div class="space-y-5 pt-2">
-					<fieldset class="space-y-4">
-						<legend class="text-primary font-semibold text-xs tracking-widest">
-							{sectionCopy.videoFormatLegend}
-						</legend>
+				<fieldset class="space-y-4">
+					<legend class="text-primary text-xs font-semibold tracking-widest">
+						{sectionCopy.videoFormatLegend}
+					</legend>
 					<RadioGroup
 						bind:value={selectedVideoFormat}
 						name="videoFormat"
-						class="grid gap-3"
-					>
+						class="grid gap-3">
 						{#each videoFormatOptions as option}
 							<label
 								class={cn(
-									"flex justify-start cursor-pointer items-center gap-4 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
-									selectedVideoFormat === option.value && "border-primary bg-primary/10",
-								)}
-							>
+									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-4 text-left transition duration-500",
+									selectedVideoFormat === option.value &&
+										"border-primary bg-primary/10",
+								)}>
 								{#if option.icon === "monitor"}
-									<div class="flex h-7 w-11 shrink-0 items-center justify-center">
-										<MonitorIcon class="size-7 text-primary" />
+									<div
+										class="flex h-7 w-11 shrink-0 items-center justify-center">
+										<MonitorIcon class="text-primary size-7" />
 									</div>
 								{:else if option.icon === "smartphone"}
-									<div class="flex h-7 w-11 shrink-0 items-center justify-center">
-										<SmartphoneIcon class="size-7 text-primary" />
+									<div
+										class="flex h-7 w-11 shrink-0 items-center justify-center">
+										<SmartphoneIcon class="text-primary size-7" />
 									</div>
 								{:else}
-									<div class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
-										<SmartphoneIcon class="size-5 text-primary" />
-										<MonitorIcon class="size-5 text-primary" />
+									<div
+										class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
+										<SmartphoneIcon class="text-primary size-5" />
+										<MonitorIcon class="text-primary size-5" />
 									</div>
 								{/if}
 								<div class="flex w-full items-center justify-between gap-3">
@@ -486,18 +513,20 @@
 										<span class="block text-base font-semibold text-white">
 											{option.label}
 										</span>
-										<span class="block text-sm font-normal text-muted-foreground">
+										<span
+											class="text-muted-foreground block text-sm font-normal">
 											{option.description}
 										</span>
 									</div>
-								<RadioGroupItem value={option.value} class="sr-only" />
+									<RadioGroupItem
+										value={option.value}
+										class="sr-only" />
 									{#if selectedVideoFormat === option.value}
-											<span
-												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
-											>
-												{sectionCopy.selectedBadge}
-											</span>
-										{/if}
+										<span
+											class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+											{sectionCopy.selectedBadge}
+										</span>
+									{/if}
 								</div>
 							</label>
 						{/each}
@@ -509,8 +538,7 @@
 			<div class="space-y-5 pt-2">
 				<Label
 					for="questionsOrRequests"
-					class="text-primary text-xs font-semibold tracking-widest"
-				>
+					class="text-primary text-xs font-semibold tracking-widest">
 					{sectionCopy.questionsLabel}
 				</Label>
 				<div class="space-y-3">
@@ -519,16 +547,19 @@
 						autocomplete="off"
 						bind:value={questionsOrRequests}
 						rows={2}
-						class="rounded-lg bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
-						placeholder={sectionCopy.questionsPlaceholder}
-					/>
-					<p class="text-sm font-medium text-muted-foreground">
+						class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
+						placeholder={sectionCopy.questionsPlaceholder} />
+					<p class="text-muted-foreground text-sm font-medium">
 						{sectionCopy.questionsContactPrefix}
-						<a class="font-semibold hover:underline" href={`tel:${contactPhone}`}>
+						<a
+							class="font-semibold hover:underline"
+							href={`tel:${contactPhone}`}>
 							{contactPhone}
 						</a>
 						{sectionCopy.questionsContactMiddle}
-						<a class="font-semibold hover:underline" href={`mailto:${contactEmail}`}>
+						<a
+							class="font-semibold hover:underline"
+							href={`mailto:${contactEmail}`}>
 							{contactEmail}
 						</a>
 					</p>
@@ -544,8 +575,7 @@
 			<!-- Contact Information -->
 			<div class="space-y-5 pt-2">
 				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>{sectionCopy.contactInfoLabel}</Label
-				>
+					>{sectionCopy.contactInfoLabel}</Label>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
 						<Label for="fullName">{sectionCopy.fullNameLabel}</Label>
@@ -554,8 +584,7 @@
 							placeholder={sectionCopy.fullNamePlaceholder}
 							autocomplete="name"
 							class="rounded-lg"
-							bind:value={fullName}
-						/>
+							bind:value={fullName} />
 					</div>
 					<div class="space-y-1.5">
 						<Label for="phone">{sectionCopy.phoneLabel}</Label>
@@ -565,8 +594,7 @@
 							placeholder={sectionCopy.phonePlaceholder}
 							autocomplete="tel"
 							class="rounded-lg"
-							bind:value={phone}
-						/>
+							bind:value={phone} />
 					</div>
 				</div>
 			</div>
@@ -574,8 +602,7 @@
 			<!-- Billing Information -->
 			<div class="space-y-5 pt-2">
 				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>{sectionCopy.billingInfoLabel}</Label
-				>
+					>{sectionCopy.billingInfoLabel}</Label>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
 						<Label for="accountName">{sectionCopy.accountNameLabel}</Label>
@@ -584,8 +611,7 @@
 							placeholder={sectionCopy.accountNamePlaceholder}
 							autocomplete="organization"
 							class="rounded-lg"
-							bind:value={accountName}
-						/>
+							bind:value={accountName} />
 					</div>
 					<div class="space-y-1.5">
 						<Label for="abn">{sectionCopy.abnLabel}</Label>
@@ -597,8 +623,7 @@
 							pattern="[0-9 ]*"
 							autocomplete="on"
 							class="rounded-lg"
-							bind:value={abn}
-						/>
+							bind:value={abn} />
 					</div>
 				</div>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
@@ -610,31 +635,28 @@
 							placeholder={sectionCopy.invoiceEmailPlaceholder}
 							autocomplete="email"
 							class="rounded-lg"
-							bind:value={email}
-						/>
+							bind:value={email} />
 					</div>
 				</div>
 			</div>
-
 		</div>
 
 		<!-- Summary -->
 		<div
-			class="space-y-5 pt-2 scroll-mt-24 md:scroll-mt-28"
-			bind:this={summarySectionEl}
-		>
+			class="scroll-mt-24 space-y-5 pt-2 md:scroll-mt-28"
+			bind:this={summarySectionEl}>
 			<h2 class="text-foreground text-xl font-bold">
 				{sectionCopy.summaryLabel}
 			</h2>
-			<div class="rounded-lg border border-border bg-background p-5 text-sm shadow-sm">
+			<div
+				class="border-border bg-background rounded-lg border p-5 text-sm shadow-sm">
 				{#each summarySections as section, index}
 					{#if index > 0}
-						<div class="my-5 border-t border-border"></div>
+						<div class="border-border my-5 border-t"></div>
 					{/if}
 					<section class="space-y-3">
 						<h3
-							class="text-white text-xs font-semibold tracking-widest uppercase"
-						>
+							class="text-xs font-semibold tracking-widest text-white uppercase">
 							{section.title}
 						</h3>
 						{#if section.title === summaryCopy.contactBillingTitle}
@@ -643,8 +665,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
-										>
+											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
@@ -655,8 +676,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
-										>
+											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
@@ -668,8 +688,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground wrap-break-word font-medium leading-relaxed whitespace-pre-line"
-										>
+											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
@@ -679,23 +698,28 @@
 					</section>
 				{/each}
 			</div>
-		<div class="flex items-center gap-3">
-			<Checkbox id="saveBookingInfo" bind:checked={saveBookingInfo} class="rounded-sm" />
-			<Label for="saveBookingInfo" class="text-sm leading-relaxed text-muted-foreground cursor-pointer">
-				{sectionCopy.saveBookingInfoLabel}
-			</Label>
+			<div class="flex items-center gap-3">
+				<Checkbox
+					id="saveBookingInfo"
+					bind:checked={saveBookingInfo}
+					class="rounded-sm" />
+				<Label
+					for="saveBookingInfo"
+					class="text-muted-foreground cursor-pointer text-sm leading-relaxed">
+					{sectionCopy.saveBookingInfoLabel}
+				</Label>
+			</div>
 		</div>
-		</div>
-
 
 		<!-- Submit -->
 		<Button
 			type="submit"
 			size="lg"
 			class="h-12 w-full rounded-lg text-base font-extrabold tracking-wider"
-			disabled={isSubmitting}
-		>
-			{isSubmitting ? sectionCopy.submitButtonLoading : sectionCopy.submitButtonDefault}
+			disabled={isSubmitting}>
+			{isSubmitting
+				? sectionCopy.submitButtonLoading
+				: sectionCopy.submitButtonDefault}
 		</Button>
 		{#if status}
 			<p class="text-primary text-bold text-center text-lg">{status}</p>

@@ -5,4 +5,6 @@
 	let { class: className, ...restProps }: IconProps = $props();
 </script>
 
-<MapPin class={className} {...restProps} />
+<MapPin
+	class={className}
+	{...restProps} />

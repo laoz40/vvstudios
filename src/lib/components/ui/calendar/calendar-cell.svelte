@@ -13,7 +13,6 @@
 	bind:ref
 	class={cn(
 		"relative size-(--cell-size) p-0 text-center text-sm focus-within:z-20",
-		className
+		className,
 	)}
-	{...restProps}
-/>
+	{...restProps} />

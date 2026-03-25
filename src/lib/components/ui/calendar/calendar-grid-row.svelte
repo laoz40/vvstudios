@@ -9,4 +9,7 @@
 	}: CalendarPrimitive.GridRowProps = $props();
 </script>
 
-<CalendarPrimitive.GridRow bind:ref class={cn("flex", className)} {...restProps} />
+<CalendarPrimitive.GridRow
+	bind:ref
+	class={cn("flex", className)}
+	{...restProps} />

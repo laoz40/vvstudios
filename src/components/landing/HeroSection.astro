@@ -30,7 +30,7 @@ import MapPinIcon from "./MapPinIcon.svelte";
 			<Button
 				href={heroContent.primaryCtaHref}
 				size="lg"
-				class="border-primary border-2 hover:border-[#d4aa00] px-8 py-5 font-semibold md:flex-none">
+				class="border-primary border-2 px-8 py-5 font-semibold hover:border-[#d4aa00] md:flex-none">
 				{heroContent.primaryCtaLabel}
 			</Button>
 			<Button
@@ -51,8 +51,6 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	<div
 		class="text-muted-foreground absolute right-0 bottom-16 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:text-base">
 		<MapPinIcon class="text-primary" />
-		<span class="text-muted-foreground font-medium"
-			>{heroContent.address}</span
-		>
+		<span class="text-muted-foreground font-medium">{heroContent.address}</span>
 	</div>
 </section>

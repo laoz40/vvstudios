@@ -6,27 +6,37 @@ import { bookingPageContent } from "../content/booking";
 ---
 
 <Layout title=" | Book Studio">
-	<div class="min-h-dvh flex flex-col gap-18 px-4 pt-32 pb-12">
-		<div class="mx-auto w-full max-w-200 text-foreground">
-			<div class="space-y-2 mb-12">
-				<p class="text-primary text-base font-semibold tracking-widest uppercase">
+	<div class="flex min-h-dvh flex-col gap-18 px-4 pt-32 pb-12">
+		<div class="text-foreground mx-auto w-full max-w-200">
+			<div class="mb-12 space-y-2">
+				<p
+					class="text-primary text-base font-semibold tracking-widest uppercase">
 					{bookingPageContent.stepOne.eyebrow}
 				</p>
-				<h1 class="text-4xl font-extrabold">{bookingPageContent.stepOne.title}</h1>
-				<p class="text-base text-muted-foreground">{bookingPageContent.stepOne.lead}</p>
+				<h1 class="text-4xl font-extrabold">
+					{bookingPageContent.stepOne.title}
+				</h1>
+				<p class="text-muted-foreground text-base">
+					{bookingPageContent.stepOne.lead}
+				</p>
 			</div>
 			<BookingStepOneWrapper />
 		</div>
 
-		<div class="mx-auto w-full max-w-200 text-foreground">
-			<div class="space-y-2 mb-12">
-				<p class="text-primary text-base font-semibold tracking-widest uppercase">
+		<div class="text-foreground mx-auto w-full max-w-200">
+			<div class="mb-12 space-y-2">
+				<p
+					class="text-primary text-base font-semibold tracking-widest uppercase">
 					{bookingPageContent.stepTwo.eyebrow}
 				</p>
-				<h1 class="text-4xl font-extrabold">{bookingPageContent.stepTwo.title}</h1>
-				<p class="text-base text-muted-foreground">{bookingPageContent.stepTwo.lead}</p>
+				<h1 class="text-4xl font-extrabold">
+					{bookingPageContent.stepTwo.title}
+				</h1>
+				<p class="text-muted-foreground text-base">
+					{bookingPageContent.stepTwo.lead}
+				</p>
 			</div>
-			<BookingStepTwo client:load/>
+			<BookingStepTwo client:load />
 		</div>
 	</div>
 </Layout>

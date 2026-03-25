@@ -13,7 +13,6 @@
 	bind:ref
 	class={cn(
 		"text-muted-foreground w-(--cell-size) rounded-none text-[0.8rem] font-medium",
-		className
+		className,
 	)}
-	{...restProps}
-/>
+	{...restProps} />
