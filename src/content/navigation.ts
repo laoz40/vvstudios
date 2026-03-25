@@ -15,7 +15,7 @@ export type NavCta = {
 };
 
 export const navContent = {
-	brandLabel: "VV Podcast Studio",
+	brandLabel: "VV PODCAST STUDIO",
 	homeAriaLabel: "VV Podcast Studio home",
 	desktop: {
 		navAriaLabel: "Primary navigation",

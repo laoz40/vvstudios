@@ -14,6 +14,9 @@ importers:
       '@fontsource-variable/montserrat':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource/squada-one':
+        specifier: ^5.2.8
+        version: 5.2.8
       astro:
         specifier: ^5.17.1
         version: 5.17.3(jiti@2.6.1)(lightningcss@1.31.1)(rollup@4.57.1)(typescript@5.9.3)
@@ -444,6 +447,9 @@ packages:
 
   '@fontsource-variable/montserrat@5.2.8':
     resolution: {integrity: sha512-d8wykq7GCKhEOlLwEuQIOK3w3qsXNxwDlH0meru4AZZzQ4/+rZyvHWKL6BBtHdmbovSHEEQDkwkD8qYUKlcFtQ==}
+
+  '@fontsource/squada-one@5.2.8':
+    resolution: {integrity: sha512-Nwj+D/aROr8igYhKEf+MuG8YDeTOhOqUFI8f1QMCbjktGA+xJ4TTbZxWDVlZuNCi1bU8+3Ah2PRBTSMLXLiQSA==}
 
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
@@ -2415,6 +2421,8 @@ snapshots:
   '@floating-ui/utils@0.2.10': {}
 
   '@fontsource-variable/montserrat@5.2.8': {}
+
+  '@fontsource/squada-one@5.2.8': {}
 
   '@img/colour@1.0.0': {}
 

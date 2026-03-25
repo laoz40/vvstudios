@@ -22,7 +22,7 @@
 					aria-label={navContent.homeAriaLabel}
 					variant="link"
 					size="sm"
-					class="font-bold tracking-wide">
+					class="font-mono text-xl font-bold tracking-tight">
 					{navContent.brandLabel}
 				</Button>
 			</div>
