@@ -327,7 +327,8 @@
 		});
 
 		if (!parsed.success) {
-			console.log("Failed to parse booking payload:", parsed);
+			// console.log("Failed to parse booking payload:", parsed);
+
 			const fieldErrors: BookingErrors = {};
 			for (const issue of parsed.error.issues) {
 				const key = issue.path[0] as keyof BookingErrors;
@@ -335,6 +336,14 @@
 			}
 			errors = fieldErrors;
 			isSubmitting = false;
+
+			tick().then(() => {
+				const firstError = document.querySelector('[role="alert"]');
+				if (firstError) {
+					firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+				}
+			});
+
 			return;
 		}
 		errors = {};
