@@ -6,7 +6,7 @@
 	const navLinks = navContent.desktop.links;
 	const bookLink = navContent.desktop.bookLink;
 	const backHomeLink = navContent.desktop.backHomeLink;
-	const isBookPage = currentPath === "/book";
+	const isBookPage = $derived(currentPath === "/book");
 </script>
 
 <div
