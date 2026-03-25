@@ -1,9 +1,11 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import { Button } from "$lib/components/ui/button";
 import { Label } from "$lib/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
+import { bookingStepOneContent } from "../../content/booking";
+import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 import { cn } from "$lib/utils.js";
-import type { Snippet } from "svelte";
 
 let {
 	children: _children,
@@ -11,59 +13,11 @@ let {
 	children?: Snippet;
 } = $props();
 
-type StudioOption = {
-	id: string;
-	name: string;
-	description: string;
-	imageSlot: "table-image" | "couch-image";
-	alt: string;
-};
+const studios: BookingStepOneStudioOption[] = bookingStepOneContent.studios;
+const durations = bookingStepOneContent.durations;
+const bookingUrls = bookingStepOneContent.bookingUrls;
 
-type DurationOption = {
-	value: string;
-	label: string;
-	price: string;
-};
-
-type BookingUrlMap = Record<string, Record<string, string>>;
-
-const studios: StudioOption[] = [
-	{
-		id: "table",
-		name: "Table Setup",
-		description: "For your serious discussions",
-		imageSlot: "table-image",
-		alt: "Podcast table setup with microphones and studio lighting",
-	},
-	{
-		id: "couch",
-		name: "Couch Setup",
-		description: "A more relaxed vibe",
-		imageSlot: "couch-image",
-		alt: "Podcast couch setup with warm lamps and casual seating",
-	},
-];
-
-const durations: DurationOption[] = [
-	{ value: "1", label: "1 Hour", price: "$200" },
-	{ value: "2", label: "2 Hours", price: "$299" },
-	{ value: "3", label: "3 Hours", price: "$399" },
-];
-
-const bookingUrls: BookingUrlMap = {
-	table: {
-		"1": import.meta.env.PUBLIC_BOOKING_TABLE_1_URL || "",
-		"2": import.meta.env.PUBLIC_BOOKING_TABLE_2_URL || "",
-		"3": import.meta.env.PUBLIC_BOOKING_TABLE_3_URL || "",
-	},
-	couch: {
-		"1": import.meta.env.PUBLIC_BOOKING_COUCH_1_URL || "",
-		"2": import.meta.env.PUBLIC_BOOKING_COUCH_2_URL || "",
-		"3": import.meta.env.PUBLIC_BOOKING_COUCH_3_URL || "",
-	},
-};
-
-const recurringBookingUrl = "https://calendar.app.google/oFhhKtMnJoa2WX9h7";
+const recurringBookingUrl = bookingStepOneContent.recurringBookingUrl;
 
 let selectedStudioId = $state("");
 let selectedDurationValue = $state("");
@@ -112,7 +66,7 @@ function handleKeydown(e: KeyboardEvent) {
 <div class="space-y-14">
 	<section class="space-y-1">
 		<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
-		>Studio Selection</Label
+		>{bookingStepOneContent.sectionLabels.studioSelection}</Label
 		>
 		<RadioGroup bind:value={selectedStudioId} name="studio" class="grid gap-4 md:grid-cols-2">
 			{#each studios as studio}
@@ -127,11 +81,11 @@ function handleKeydown(e: KeyboardEvent) {
 					>
 						<div class="relative h-56 w-full">
 							{#if selectedStudioId === studio.id}
-								<span
-									class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 px-2 py-1 text-xs font-semibold tracking-widest transition duration-500"
-								>
-									SELECTED
-								</span>
+									<span
+										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 px-2 py-1 text-xs font-semibold tracking-widest transition duration-500"
+									>
+										{bookingStepOneContent.selectedBadge}
+									</span>
 							{/if}
 							{#if studio.imageSlot === "table-image"}
 								<slot name="table-image" {studio}></slot>
@@ -152,7 +106,7 @@ function handleKeydown(e: KeyboardEvent) {
 		<!-- Session Duration -->
 	<section class="space-y-1">
 		<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
-		>Session Duration</Label
+		>{bookingStepOneContent.sectionLabels.sessionDuration}</Label
 		>
 		<RadioGroup
 			bind:value={selectedDurationValue}
@@ -184,18 +138,18 @@ function handleKeydown(e: KeyboardEvent) {
 		disabled={!selectedBookingUrl}
 		class="h-12 w-full rounded-none text-base font-extrabold tracking-wider"
 	>
-		PICK SESSION DATE
+		{bookingStepOneContent.primaryButtonLabel}
 	</Button>
 	<p class="text-sm font-medium text-muted-foreground">
-		Need recurring sessions?
+		{bookingStepOneContent.recurringPromptPrefix}
 		<button
 			type="button"
 			onclick={openRecurringBooking}
 			class="text-primary font-semibold hover:underline"
 		>
-			Request a call
+			{bookingStepOneContent.recurringPromptAction}
 		</button>
-		to lock in your slot and secure a discounted rate.
+		{bookingStepOneContent.recurringPromptSuffix}
 	</p>
 	</div>
 </div>
@@ -207,17 +161,17 @@ function handleKeydown(e: KeyboardEvent) {
 		onkeydown={(e) => (e.key === "Enter" || e.key === " " || e.key === "Escape") && closeBooking()}
 		role="button"
 		tabindex="-1"
-		aria-label="Close modal"
+		aria-label={bookingStepOneContent.modalAriaLabel}
 	>
 		<Button
 			variant="default"
 			onclick={closeBooking}
 			class="fixed top-4 right-4 z-10000 flex h-9 items-center gap-2 px-4 sm:top-6.5 sm:right-18"
 		>
-			Close
+			{bookingStepOneContent.modalCloseLabel}
 		</Button>
 	<iframe
-		title="Choose a session"
+		title={bookingStepOneContent.modalIframeTitle}
 		src={modalUrl}
 		class="h-full w-full rounded-lg border-none bg-white"
 		sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"

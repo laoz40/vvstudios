@@ -1,5 +1,15 @@
 <script lang="ts">
 	import { onMount, tick } from "svelte";
+	import {
+		today,
+		getLocalTimeZone,
+		type DateValue,
+	} from "@internationalized/date";
+	import CameraIcon from "@lucide/svelte/icons/camera";
+	import MonitorIcon from "@lucide/svelte/icons/monitor";
+	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
+	import ScissorsIcon from "@lucide/svelte/icons/scissors";
+	import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 	import { Calendar } from "$lib/components/ui/calendar";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
@@ -7,92 +17,20 @@
 	import { Label } from "$lib/components/ui/label";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import { Textarea } from "$lib/components/ui/textarea";
-	import CameraIcon from "@lucide/svelte/icons/camera";
-	import MonitorIcon from "@lucide/svelte/icons/monitor";
-	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
-	import ScissorsIcon from "@lucide/svelte/icons/scissors";
-	import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 	import { cn } from "$lib/utils.js";
-	import {
-		today,
-		getLocalTimeZone,
-		type DateValue,
-	} from "@internationalized/date";
+	import { bookingStepTwoContent } from "../../content/booking";
 
 	const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
 
-	const scriptUrl =
-		import.meta.env.APP_SCRIPT_URL || "";
-	const contactPhone = import.meta.env.APP_CONTACT_PHONE || "";
-	const contactEmail = import.meta.env.APP_CONTACT_EMAIL || "";
-
-	const durationOptions = [
-		{
-			value: "1 hr",
-			label: "1 Hour",
-			description: "Quick focused recording window",
-		},
-		{
-			value: "2 hr",
-			label: "2 Hours",
-			description: "Balanced option for most projects",
-		},
-		{
-			value: "3 hr",
-			label: "3 Hours",
-			description: "Extended time for deeper coverage",
-		},
-	] as const;
-	const videoFormatOptions = [
-		{
-			value: "horizontal",
-			icon: "monitor",
-			label: "Horizontal / Widescreen",
-			description: "Best for YouTube, TV, and websites",
-		},
-		{
-			value: "vertical",
-			icon: "smartphone",
-			label: "Vertical / Tall",
-			description: "Best for TikTok, Instagram Reels, and Shorts",
-		},
-		{
-			value: "both",
-			icon: "both",
-			label: "Both",
-			description: "When you need full episodes and social media clips",
-		},
-	] as const;
-	const addOnOptions = [
-		{
-			value: "4k-uhd-recording",
-			icon: "camera",
-			label: "4K UHD Recording",
-			price: "+$49",
-			description: "High resolution camera capture for premium quality.",
-		},
-		{
-			value: "teleprompter",
-			icon: "scroll-text",
-			label: "Teleprompter",
-			price: "+$29",
-			description: "On-screen script guidance for confident delivery.",
-		},
-		{
-			value: "video-editing",
-			icon: "scissors",
-			label: "Video Editing",
-			price: "+$99",
-			description: "Synchronising audio and cutting between camera angles",
-		},
-		{
-			value: "10-social-media-clips",
-			icon: "smartphone",
-			label: "10 Social Media Clips",
-			price: "+$79",
-			description: "With subtitles and vertical crop",
-		},
-	] as const;
+	const durationOptions = bookingStepTwoContent.durationOptions;
+	const videoFormatOptions = bookingStepTwoContent.videoFormatOptions;
+	const addOnOptions = bookingStepTwoContent.addOnOptions;
+	const scriptUrl = bookingStepTwoContent.scriptUrl;
+	const contactPhone = bookingStepTwoContent.contact.phone;
+	const contactEmail = bookingStepTwoContent.contact.email;
+	const statusMessages = bookingStepTwoContent.statusMessages;
+	const sectionCopy = bookingStepTwoContent.sections;
+	const summaryCopy = bookingStepTwoContent.summary;
 	const addOnValues = new Set<string>(addOnOptions.map((option) => option.value));
 	const videoFormatValues = new Set<string>(
 		videoFormatOptions.map((option) => option.value),
@@ -265,28 +203,37 @@
 
 	const summarySections = $derived([
 		{
-			title: "Booking Details",
+			title: summaryCopy.bookingDetailsTitle,
 			items: [
-				{ label: "Date", value: dateString || "—" },
-				{ label: "Duration", value: selectedDuration || "—" },
+				{ label: summaryCopy.labels.date, value: dateString || summaryCopy.emptyValue },
+				{ label: summaryCopy.labels.duration, value: selectedDuration || summaryCopy.emptyValue },
 			],
 		},
 		{
-			title: "Session Details",
+			title: summaryCopy.sessionDetailsTitle,
 			items: [
-				{ label: "Format", value: selectedVideoFormatLabel || "—" },
-				{ label: "Add-ons", value: selectedAddOnLabels.join("\n") || "—" },
-				{ label: "Questions or Requests", value: questionsOrRequests || "—" },
+				{
+					label: summaryCopy.labels.format,
+					value: selectedVideoFormatLabel || summaryCopy.emptyValue,
+				},
+				{
+					label: summaryCopy.labels.addOns,
+					value: selectedAddOnLabels.join("\n") || summaryCopy.emptyValue,
+				},
+				{
+					label: summaryCopy.labels.questions,
+					value: questionsOrRequests || summaryCopy.emptyValue,
+				},
 			],
 		},
 		{
-			title: "Contact and Billing Information",
+			title: summaryCopy.contactBillingTitle,
 			items: [
-				{ label: "Name", value: fullName || "—" },
-				{ label: "Phone", value: phone || "—" },
-				{ label: "Account", value: accountName || "—" },
-				{ label: "ABN", value: abn || "—" },
-				{ label: "Email", value: email || "—" },
+				{ label: summaryCopy.labels.name, value: fullName || summaryCopy.emptyValue },
+				{ label: summaryCopy.labels.phone, value: phone || summaryCopy.emptyValue },
+				{ label: summaryCopy.labels.account, value: accountName || summaryCopy.emptyValue },
+				{ label: summaryCopy.labels.abn, value: abn || summaryCopy.emptyValue },
+				{ label: summaryCopy.labels.email, value: email || summaryCopy.emptyValue },
 			],
 		},
 	]);
@@ -295,7 +242,7 @@
 		event.preventDefault();
 
 		if (!scriptUrl) {
-			status = "Missing script URL.";
+			status = statusMessages.missingScriptUrl;
 			return;
 		}
 
@@ -327,7 +274,7 @@
 
 			// console.log("Submitted booking payload:", payload);
 
-			status = response.ok ? "Booking completed successfully. Check your email for your invoice." : "Booking form fail to submit.";
+			status = response.ok ? statusMessages.success : statusMessages.submitFailed;
 			if (response.ok && saveBookingInfo) {
 				writeStoredBooking({
 					selectedAddOns,
@@ -346,7 +293,7 @@
 			}
 		} catch (error) {
 			status =
-				error instanceof Error ? error.message : "Submission failed unexpectedly.";
+				error instanceof Error ? error.message : statusMessages.submitUnexpectedlyFailed;
 		} finally {
 			isSubmitting = false;
 		}
@@ -357,18 +304,18 @@
 
 <div class="mx-auto w-full max-w-4xl space-y-8">
 	<form class="space-y-10 md:space-y-12" onsubmit={handleSubmit}>
-		<div class="space-y-6">
-			<h2 class="text-foreground text-xl font-bold">
-				Booking Details
-			</h2>
+			<div class="space-y-6">
+				<h2 class="text-foreground text-xl font-bold">
+					{sectionCopy.bookingDetailsTitle}
+				</h2>
 			<div
 				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-10"
 			>
 		<!-- Booking Date -->
-				<div class="w-fit space-y-3">
-					<Label class="text-primary text-xs font-semibold tracking-widest"
-						>CONFIRM BOOKING DATE</Label
-					>
+					<div class="w-fit space-y-3">
+						<Label class="text-primary text-xs font-semibold tracking-widest"
+							>{sectionCopy.confirmBookingDateLabel}</Label
+						>
 					<Calendar
 						type="single"
 						bind:value={selectedDate}
@@ -379,10 +326,10 @@
 				</div>
 
 		<!-- Session Duration -->
-				<div class="space-y-3 md:h-full md:flex md:flex-col md:space-y-0 md:gap-3">
-					<Label class="text-primary text-xs font-semibold tracking-widest"
-						>CONFIRM SESSION DURATION</Label
-					>
+					<div class="space-y-3 md:h-full md:flex md:flex-col md:space-y-0 md:gap-3">
+						<Label class="text-primary text-xs font-semibold tracking-widest"
+							>{sectionCopy.confirmSessionDurationLabel}</Label
+						>
 					<RadioGroup
 						bind:value={selectedDuration}
 						name="sessionDuration"
@@ -406,12 +353,12 @@
 									</span>
 									<RadioGroupItem value={option.value} class="sr-only" />
 									{#if selectedDuration === option.value}
-										<span
-											class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
-										>
-											SELECTED
-										</span>
-									{/if}
+											<span
+												class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
+											>
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
 								</div>
 							</label>
 						{/each}
@@ -421,32 +368,32 @@
 		</div>
 
 		{#if hasSavedBookingData}
-			<div class="flex flex-row justify-between items-center border border-primary bg-card p-4">
-				<p class="text-sm font-medium text-muted-foreground">
-					Reuse your last saved booking information for this booking.
-				</p>
+				<div class="flex flex-row justify-between items-center border border-primary bg-card p-4">
+					<p class="text-sm font-medium text-muted-foreground">
+						{sectionCopy.reuseSavedBookingText}
+					</p>
 				<Button
 					type="button"
 					variant="default"
 					class="rounded-none"
 					onclick={handleReuseLastBooking}
-				>
-					Reuse Last Booking Info
-				</Button>
-			</div>
-		{/if}
+					>
+						{sectionCopy.reuseSavedBookingButton}
+					</Button>
+				</div>
+			{/if}
 
-		<div class="space-y-6">
-			<h2 class="text-foreground text-xl font-bold">Session Details</h2>
+			<div class="space-y-6">
+				<h2 class="text-foreground text-xl font-bold">{sectionCopy.sessionDetailsTitle}</h2>
 
 			<!-- Addons -->
 			<div class="space-y-5 pt-2">
-				<fieldset class="space-y-4">
-					<legend class="text-primary text-xs font-semibold tracking-widest">
-						ADD-ONS
-					</legend>
+					<fieldset class="space-y-4">
+						<legend class="text-primary text-xs font-semibold tracking-widest">
+							{sectionCopy.addOnsLegend}
+						</legend>
 						<p class="text-sm font-medium text-muted-foreground">
-							Video &amp; Audio Package includes up to 4 RODE microphones and 3 Sony cameras.
+							{sectionCopy.addOnsHelper}
 						</p>
 					<div class="grid gap-3 md:grid-cols-2">
 						{#each addOnOptions as option}
@@ -474,12 +421,12 @@
 										class="sr-only"
 									/>
 									{#if selectedAddOns.includes(option.value)}
-										<span
-											class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
-										>
-											SELECTED
-										</span>
-									{/if}
+											<span
+												class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
+											>
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
 								</div>
 								<div class="flex flex-col gap-1.5">
 									<div class="flex items-start justify-between gap-4">
@@ -502,10 +449,10 @@
 
 			<!-- Video Format -->
 			<div class="space-y-5 pt-2">
-				<fieldset class="space-y-4">
-					<legend class="text-primary font-semibold text-xs tracking-widest">
-						VIDEO FORMAT
-					</legend>
+					<fieldset class="space-y-4">
+						<legend class="text-primary font-semibold text-xs tracking-widest">
+							{sectionCopy.videoFormatLegend}
+						</legend>
 					<RadioGroup
 						bind:value={selectedVideoFormat}
 						name="videoFormat"
@@ -543,12 +490,12 @@
 									</div>
 								<RadioGroupItem value={option.value} class="sr-only" />
 									{#if selectedVideoFormat === option.value}
-										<span
-											class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
-										>
-											SELECTED
-										</span>
-									{/if}
+											<span
+												class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
+											>
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
 								</div>
 							</label>
 						{/each}
@@ -562,7 +509,7 @@
 					for="questionsOrRequests"
 					class="text-primary text-xs font-semibold tracking-widest"
 				>
-					ANY QUESTIONS OR REQUESTS?
+					{sectionCopy.questionsLabel}
 				</Label>
 				<div class="space-y-3">
 					<Textarea
@@ -571,17 +518,17 @@
 						bind:value={questionsOrRequests}
 						rows={2}
 						class="rounded-none bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
-						placeholder="Let us know if you have any special requests or questions."
+						placeholder={sectionCopy.questionsPlaceholder}
 					/>
 					<p class="text-sm font-medium text-muted-foreground">
-						Available for call at
-							<a class="font-semibold hover:underline" href={`tel:${contactPhone}`}>
-								{contactPhone}
-							</a>
-								&amp; email at
-							<a class="font-semibold hover:underline" href={`mailto:${contactEmail}`}>
-								{contactEmail}
-							</a>
+						{sectionCopy.questionsContactPrefix}
+						<a class="font-semibold hover:underline" href={`tel:${contactPhone}`}>
+							{contactPhone}
+						</a>
+						{sectionCopy.questionsContactMiddle}
+						<a class="font-semibold hover:underline" href={`mailto:${contactEmail}`}>
+							{contactEmail}
+						</a>
 					</p>
 				</div>
 			</div>
@@ -589,31 +536,31 @@
 
 		<div class="space-y-6">
 			<h2 class="text-foreground text-xl font-bold">
-				CONTACT AND BILLING INFORMATION
+				{sectionCopy.contactBillingTitle}
 			</h2>
 
 			<!-- Contact Information -->
 			<div class="space-y-5 pt-2">
 				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>CONTACT INFORMATION</Label
+					>{sectionCopy.contactInfoLabel}</Label
 				>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
-						<Label for="fullName">Full Name</Label>
+						<Label for="fullName">{sectionCopy.fullNameLabel}</Label>
 						<Input
 							id="fullName"
-							placeholder="Awesome Artist"
+							placeholder={sectionCopy.fullNamePlaceholder}
 							autocomplete="name"
 							class="rounded-none"
 							bind:value={fullName}
 						/>
 					</div>
 					<div class="space-y-1.5">
-						<Label for="phone">Contact Phone Number</Label>
+						<Label for="phone">{sectionCopy.phoneLabel}</Label>
 						<Input
 							id="phone"
 							type="tel"
-							placeholder="0400 000 000"
+							placeholder={sectionCopy.phonePlaceholder}
 							autocomplete="tel"
 							class="rounded-none"
 							bind:value={phone}
@@ -625,25 +572,25 @@
 			<!-- Billing Information -->
 			<div class="space-y-5 pt-2">
 				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>BILLING INFORMATION</Label
+					>{sectionCopy.billingInfoLabel}</Label
 				>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
-						<Label for="accountName">Account Name</Label>
+						<Label for="accountName">{sectionCopy.accountNameLabel}</Label>
 						<Input
 							id="accountName"
-							placeholder="Account Name"
+							placeholder={sectionCopy.accountNamePlaceholder}
 							autocomplete="organization"
 							class="rounded-none"
 							bind:value={accountName}
 						/>
 					</div>
 					<div class="space-y-1.5">
-						<Label for="abn">ABN</Label>
+						<Label for="abn">{sectionCopy.abnLabel}</Label>
 						<Input
 							id="abn"
 							name="abn"
-							placeholder="00 000 000 000"
+							placeholder={sectionCopy.abnPlaceholder}
 							inputmode="numeric"
 							pattern="[0-9 ]*"
 							autocomplete="on"
@@ -654,11 +601,11 @@
 				</div>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
-						<Label for="invoiceEmail">Email (to receive your invoice)</Label>
+						<Label for="invoiceEmail">{sectionCopy.invoiceEmailLabel}</Label>
 						<Input
 							id="invoiceEmail"
 							type="email"
-							placeholder="billing@example.com"
+							placeholder={sectionCopy.invoiceEmailPlaceholder}
 							autocomplete="email"
 							class="rounded-none"
 							bind:value={email}
@@ -675,7 +622,7 @@
 			bind:this={summarySectionEl}
 		>
 			<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
-				>Summary</Label
+				>{sectionCopy.summaryLabel}</Label
 			>
 			<div class="rounded-none border border-border bg-background p-5 text-sm shadow-sm">
 				{#each summarySections as section, index}
@@ -688,7 +635,7 @@
 						>
 							{section.title}
 						</h3>
-						{#if section.title === "Contact and Billing Information"}
+						{#if section.title === summaryCopy.contactBillingTitle}
 							<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
 								{#each section.items.slice(0, 2) as item}
 									<div class="space-y-1">
@@ -733,7 +680,7 @@
 		<div class="flex items-center gap-3">
 			<Checkbox id="saveBookingInfo" bind:checked={saveBookingInfo} class="rounded-none" />
 			<Label for="saveBookingInfo" class="text-sm leading-relaxed text-muted-foreground">
-				Save booking information to this device for next time
+				{sectionCopy.saveBookingInfoLabel}
 			</Label>
 		</div>
 		</div>
@@ -746,7 +693,7 @@
 			class="h-12 w-full rounded-none text-base font-extrabold tracking-wider"
 			disabled={isSubmitting}
 		>
-			{isSubmitting ? "SUBMITTING…" : "COMPLETE BOOKING"}
+			{isSubmitting ? sectionCopy.submitButtonLoading : sectionCopy.submitButtonDefault}
 		</Button>
 		{#if status}
 			<p class="text-primary text-bold text-center text-lg">{status}</p>

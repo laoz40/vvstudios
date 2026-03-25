@@ -3,13 +3,14 @@ import { Image } from "astro:assets";
 import BookingStepOne from "./BookingStepOne.svelte";
 import tableImage from "../../assets/table.jpg";
 import couchImage from "../../assets/couch.jpg";
+import { bookingStepOneContent } from "../../content/booking";
 ---
 
 <BookingStepOne client:load>
 	<Image
 		slot="table-image"
 		src={tableImage}
-		alt="Podcast table setup with microphones and studio lighting"
+		alt={bookingStepOneContent.studios[0].alt}
 		class="h-full w-full object-cover"
 		width={800}
 		sizes="(min-width: 768px) 50vw, 100vw"
@@ -17,7 +18,7 @@ import couchImage from "../../assets/couch.jpg";
 	<Image
 		slot="couch-image"
 		src={couchImage}
-		alt="Podcast couch setup with warm lamps and casual seating"
+		alt={bookingStepOneContent.studios[1].alt}
 		class="h-full w-full object-cover"
 		width={800}
 		sizes="(min-width: 768px) 50vw, 100vw"

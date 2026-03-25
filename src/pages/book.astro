@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import BookingStepOneWrapper from "../components/book/BookingStepOneWrapper.astro";
 import BookingStepTwo from "../components/book/BookingStepTwo.svelte";
+import { bookingPageContent } from "../content/booking";
 ---
 
 <Layout title=" | Book Studio">
@@ -9,10 +10,10 @@ import BookingStepTwo from "../components/book/BookingStepTwo.svelte";
 		<div class="mx-auto w-full max-w-200 text-foreground">
 			<div class="space-y-2 mb-12">
 				<p class="text-primary text-base font-semibold tracking-widest uppercase">
-					Step 1 of 2
+					{bookingPageContent.stepOne.eyebrow}
 				</p>
-				<h1 class="text-4xl font-extrabold">Select recording space</h1>
-				<p class="text-base text-muted-foreground">Choose your space and session time</p>
+				<h1 class="text-4xl font-extrabold">{bookingPageContent.stepOne.title}</h1>
+				<p class="text-base text-muted-foreground">{bookingPageContent.stepOne.lead}</p>
 			</div>
 			<BookingStepOneWrapper />
 		</div>
@@ -20,10 +21,10 @@ import BookingStepTwo from "../components/book/BookingStepTwo.svelte";
 		<div class="mx-auto w-full max-w-200 text-foreground">
 			<div class="space-y-2 mb-12">
 				<p class="text-primary text-base font-semibold tracking-widest uppercase">
-					Step 2 of 2
+					{bookingPageContent.stepTwo.eyebrow}
 				</p>
-				<h1 class="text-4xl font-extrabold">Finalise Your Booking</h1>
-				<p class="text-base text-muted-foreground">Confirm your session details and choose your addons</p>
+				<h1 class="text-4xl font-extrabold">{bookingPageContent.stepTwo.title}</h1>
+				<p class="text-base text-muted-foreground">{bookingPageContent.stepTwo.lead}</p>
 			</div>
 			<BookingStepTwo client:load/>
 		</div>
