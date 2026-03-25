@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { Button } from "$lib/components/ui/button";
-	import X from "@lucide/svelte/icons/x";
 	import Menu from "@lucide/svelte/icons/menu";
+	import X from "@lucide/svelte/icons/x";
+	import { Button } from "$lib/components/ui/button";
+	import { navContent } from "../content/navigation";
 
 	let { currentPath = "/" }: { currentPath?: string } = $props();
 
 	let isOpen = $state(false);
-
-	const navLinks = [
-		{ href: "/", label: "Home" },
-		{ href: "/studios", label: "Studios" },
-		{ href: "/pricing", label: "Pricing" },
-		{ href: "/about", label: "About" },
-	] as const;
-	const bookLink = { href: "/book", label: "Book Session" };
+	const navLinks = navContent.mobile.links;
+	const bookLink = navContent.mobile.bookLink;
 
 	const closeMenu = () => {
 		isOpen = false;
@@ -47,29 +42,29 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <nav
-	aria-label="Navigation Menu"
+	aria-label={navContent.mobile.navAriaLabel}
 	class="fixed z-40 flex w-full flex-row items-center justify-between border-b border-white/8 bg-black/15 px-4 py-3 backdrop-blur-md md:hidden">
 	<div>
 		<Button
 			href="/"
-			aria-label="VV Studios home"
+			aria-label={navContent.homeAriaLabel}
 			variant="link"
 			size="sm"
 			class="font-bold">
-			vv studios
+			{navContent.brandLabel}
 		</Button>
 	</div>
 	<button
 		type="button"
-		aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+		aria-label={isOpen ? navContent.mobile.closeNavAriaLabel : navContent.mobile.openNavAriaLabel}
 		aria-expanded={isOpen}
 		aria-controls="mobile-nav-panel"
 		class="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-		onclick={() => {
+		on:click={() => {
 			isOpen = !isOpen;
 		}}
 	>
-		<span class="sr-only">{isOpen ? "Close menu" : "Open menu"}</span>
+		<span class="sr-only">{isOpen ? navContent.mobile.closeMenuSrText : navContent.mobile.openMenuSrText}</span>
 		<span aria-hidden="true">
 			<Menu />
 		</span>
@@ -79,8 +74,8 @@
 		<button
 			type="button"
 			class="fixed inset-0 z-40 bg-black/60"
-			onclick={closeMenu}
-			aria-label="Close navigation menu"
+			on:click={closeMenu}
+			aria-label={navContent.mobile.closeNavAriaLabel}
 		></button>
 		<div
 			id="mobile-nav-panel"
@@ -88,13 +83,13 @@
 		>
 			<div class="mb-6 flex items-center justify-between">
 				<p class="text-sm font-semibold tracking-wide text-muted-foreground">
-					vv studios
+					{navContent.brandLabel}
 				</p>
 				<button
 					type="button"
 					class="rounded-md p-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					aria-label="Close navigation menu"
-					onclick={closeMenu}
+					aria-label={navContent.mobile.closeNavAriaLabel}
+					on:click={closeMenu}
 				>
 					<span aria-hidden="true">
 						<X />
@@ -108,7 +103,7 @@
 							href={link.href}
 							aria-current={currentPath === link.href ? "page" : undefined}
 							class="block rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							onclick={closeMenu}
+							on:click={closeMenu}
 						>
 							{link.label}
 						</a>
@@ -119,7 +114,7 @@
 						href={bookLink.href}
 						aria-current={currentPath === "/book" ? "page" : undefined}
 						class="block rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						onclick={closeMenu}
+						on:click={closeMenu}
 					>
 						{bookLink.label}
 					</a>

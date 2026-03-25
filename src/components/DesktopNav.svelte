@@ -1,47 +1,24 @@
 <script lang="ts">
 	import { Button } from "$lib/components/ui/button";
+	import { navContent } from "../content/navigation";
 
 	let { currentPath = "/" }: { currentPath?: string } = $props();
-
-	type DropdownItem = {
-		href: string;
-		label: string;
-	};
-
-	type NavLink = {
-		href: string;
-		label: string;
-		dropdown?: DropdownItem[];
-	};
-
-	const navLinks: NavLink[] = [
-		{
-			href: "/studios",
-			label: "Recording Spaces",
-			dropdown: [
-				{ href: "/studios", label: "Open Setup" },
-				{ href: "/studios", label: "Table Setup" },
-			],
-		},
-		{ href: "/pricing", label: "Pricing" },
-		{ href: "/about", label: "About" },
-		{ href: "/contact", label: "Contact" },
-	];
-	const bookLink = { href: "/book", label: "Book Session" };
+	const navLinks = navContent.desktop.links;
+	const bookLink = navContent.desktop.bookLink;
 </script>
 
 <nav
-	aria-label="Primary navigation"
+	aria-label={navContent.desktop.navAriaLabel}
 	class="fixed z-40 hidden w-full items-center justify-between border-b border-white/8 bg-black/15 px-4 py-3 backdrop-blur-md md:flex md:px-8 xl:px-24 2xl:px-40">
 	<div>
 		<Button
 			href="/"
 			aria-current={currentPath === "/" ? "page" : undefined}
-			aria-label="VV Studios home"
+			aria-label={navContent.homeAriaLabel}
 			variant="link"
 			size="sm"
 			class="font-bold">
-			vv studios
+			{navContent.brandLabel}
 		</Button>
 	</div>
 	<ul class="flex items-center gap-8">
