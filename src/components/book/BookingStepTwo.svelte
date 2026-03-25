@@ -401,7 +401,7 @@
 
 <div class="mx-auto w-full max-w-4xl space-y-8">
 	<form
-		class="space-y-10 md:space-y-12"
+		class="space-y-10 md:space-y-14"
 		onsubmit={handleSubmit}>
 		<div class="space-y-6">
 			<h2 class="text-foreground text-xl font-bold">
