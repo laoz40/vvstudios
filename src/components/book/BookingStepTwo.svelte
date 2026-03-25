@@ -367,8 +367,15 @@
 			</div>
 		</div>
 
+
+			<div class="space-y-6">
+				<h2 class="text-foreground text-xl font-bold">{sectionCopy.sessionDetailsTitle}</h2>
+
+			<!-- Addons -->
+			<div class="space-y-5 pt-2">
+
 		{#if hasSavedBookingData}
-				<div class="flex flex-row items-center justify-between rounded-lg border border-primary bg-input/30 p-4">
+				<div class="flex flex-row items-center justify-between rounded-lg border border-primary bg-input/30 p-4 mb-8">
 					<p class="text-sm font-medium text-muted-foreground">
 						{sectionCopy.reuseSavedBookingText}
 					</p>
@@ -383,11 +390,6 @@
 				</div>
 			{/if}
 
-			<div class="space-y-6">
-				<h2 class="text-foreground text-xl font-bold">{sectionCopy.sessionDetailsTitle}</h2>
-
-			<!-- Addons -->
-			<div class="space-y-5 pt-2">
 					<fieldset class="space-y-4">
 						<legend class="text-primary text-xs font-semibold tracking-widest">
 							{sectionCopy.addOnsLegend}
