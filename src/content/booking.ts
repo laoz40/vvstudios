@@ -191,7 +191,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		addOnsLegend: "ADD-ONS",
 		addOnsHelper:
 			"Video & Audio Package includes up to 4 RODE microphones and 3 Sony cameras.",
-		videoFormatLegend: "VIDEO FORMAT",
+		videoFormatLegend: "RECORDING FORMAT",
 		questionsLabel: "ANY QUESTIONS OR REQUESTS?",
 		questionsPlaceholder:
 			"Let us know if you have any special requests or questions.",
