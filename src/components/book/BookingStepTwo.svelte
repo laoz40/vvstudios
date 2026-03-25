@@ -321,7 +321,7 @@
 						bind:value={selectedDate}
 						minValue={minDate}
 						captionLayout="dropdown"
-						class="w-fit border border-border [--cell-size:--spacing(9)]"
+						class="w-fit rounded-lg border border-border [--cell-size:--spacing(9)]"
 					/>
 				</div>
 
@@ -338,13 +338,13 @@
 						{#each durationOptions as option}
 							<label
 								class={cn(
-									"flex cursor-pointer items-center border border-border bg-input/30 px-4 py-3 md:py-6 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
+									"flex cursor-pointer items-center border border-border bg-input/30 rounded-lg px-4 py-3 md:py-6 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
 									selectedDuration === option.value && "border-primary bg-primary/10",
 								)}
 							>
 								<div class="flex w-full items-center justify-between gap-3">
 									<span class="flex flex-col gap-1">
-										<span class="block text-base font-semibold text-white">
+										<span class="block text-base font-semibold">
 											{option.label}
 										</span>
 										<span class="block text-sm font-normal text-muted-foreground">
@@ -354,7 +354,7 @@
 									<RadioGroupItem value={option.value} class="sr-only" />
 									{#if selectedDuration === option.value}
 											<span
-												class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
+												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
 											>
 												{sectionCopy.selectedBadge}
 											</span>
@@ -368,14 +368,14 @@
 		</div>
 
 		{#if hasSavedBookingData}
-				<div class="flex flex-row justify-between items-center border border-primary bg-card p-4">
+				<div class="flex flex-row items-center justify-between rounded-lg border border-primary bg-input/30 p-4">
 					<p class="text-sm font-medium text-muted-foreground">
 						{sectionCopy.reuseSavedBookingText}
 					</p>
 				<Button
 					type="button"
 					variant="default"
-					class="rounded-none"
+					class="rounded-lg"
 					onclick={handleReuseLastBooking}
 					>
 						{sectionCopy.reuseSavedBookingButton}
@@ -399,7 +399,7 @@
 						{#each addOnOptions as option}
 							<label
 								class={cn(
-									"flex cursor-pointer flex-col gap-3 border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
+									"flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
 									selectedAddOns.includes(option.value) && "border-primary bg-primary/10"
 								)}
 							>
@@ -461,7 +461,7 @@
 						{#each videoFormatOptions as option}
 							<label
 								class={cn(
-									"flex justify-start cursor-pointer items-center gap-4 border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
+									"flex justify-start cursor-pointer items-center gap-4 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
 									selectedVideoFormat === option.value && "border-primary bg-primary/10",
 								)}
 							>
@@ -491,7 +491,7 @@
 								<RadioGroupItem value={option.value} class="sr-only" />
 									{#if selectedVideoFormat === option.value}
 											<span
-												class="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold tracking-widest"
+												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest"
 											>
 												{sectionCopy.selectedBadge}
 											</span>
@@ -517,7 +517,7 @@
 						autocomplete="off"
 						bind:value={questionsOrRequests}
 						rows={2}
-						class="rounded-none bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
+						class="rounded-lg bg-background selection:bg-primary selection:text-primary-foreground shadow-xs"
 						placeholder={sectionCopy.questionsPlaceholder}
 					/>
 					<p class="text-sm font-medium text-muted-foreground">
@@ -551,7 +551,7 @@
 							id="fullName"
 							placeholder={sectionCopy.fullNamePlaceholder}
 							autocomplete="name"
-							class="rounded-none"
+							class="rounded-lg"
 							bind:value={fullName}
 						/>
 					</div>
@@ -562,7 +562,7 @@
 							type="tel"
 							placeholder={sectionCopy.phonePlaceholder}
 							autocomplete="tel"
-							class="rounded-none"
+							class="rounded-lg"
 							bind:value={phone}
 						/>
 					</div>
@@ -581,7 +581,7 @@
 							id="accountName"
 							placeholder={sectionCopy.accountNamePlaceholder}
 							autocomplete="organization"
-							class="rounded-none"
+							class="rounded-lg"
 							bind:value={accountName}
 						/>
 					</div>
@@ -594,7 +594,7 @@
 							inputmode="numeric"
 							pattern="[0-9 ]*"
 							autocomplete="on"
-							class="rounded-none"
+							class="rounded-lg"
 							bind:value={abn}
 						/>
 					</div>
@@ -607,7 +607,7 @@
 							type="email"
 							placeholder={sectionCopy.invoiceEmailPlaceholder}
 							autocomplete="email"
-							class="rounded-none"
+							class="rounded-lg"
 							bind:value={email}
 						/>
 					</div>
@@ -621,10 +621,10 @@
 			class="space-y-5 pt-2 scroll-mt-24 md:scroll-mt-28"
 			bind:this={summarySectionEl}
 		>
-			<Label class="text-primary text-xs font-semibold tracking-widest uppercase"
-				>{sectionCopy.summaryLabel}</Label
-			>
-			<div class="rounded-none border border-border bg-background p-5 text-sm shadow-sm">
+			<h2 class="text-foreground text-xl font-bold">
+				{sectionCopy.summaryLabel}
+			</h2>
+			<div class="rounded-lg border border-border bg-background p-5 text-sm shadow-sm">
 				{#each summarySections as section, index}
 					{#if index > 0}
 						<div class="my-5 border-t border-border"></div>
@@ -678,8 +678,8 @@
 				{/each}
 			</div>
 		<div class="flex items-center gap-3">
-			<Checkbox id="saveBookingInfo" bind:checked={saveBookingInfo} class="rounded-none" />
-			<Label for="saveBookingInfo" class="text-sm leading-relaxed text-muted-foreground">
+			<Checkbox id="saveBookingInfo" bind:checked={saveBookingInfo} class="rounded-sm" />
+			<Label for="saveBookingInfo" class="text-sm leading-relaxed text-muted-foreground cursor-pointer">
 				{sectionCopy.saveBookingInfoLabel}
 			</Label>
 		</div>
@@ -690,7 +690,7 @@
 		<Button
 			type="submit"
 			size="lg"
-			class="h-12 w-full rounded-none text-base font-extrabold tracking-wider"
+			class="h-12 w-full rounded-lg text-base font-extrabold tracking-wider"
 			disabled={isSubmitting}
 		>
 			{isSubmitting ? sectionCopy.submitButtonLoading : sectionCopy.submitButtonDefault}

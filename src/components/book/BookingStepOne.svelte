@@ -75,14 +75,14 @@ function handleKeydown(e: KeyboardEvent) {
 					<label
 						for={`studio-${studio.id}`}
 						class={cn(
-							"block cursor-pointer overflow-hidden border border-border bg-input transition duration-500 hover:border-primary",
+							"block cursor-pointer overflow-hidden rounded-lg border border-border bg-input transition duration-500 hover:border-primary",
 							selectedStudioId === studio.id && "border-primary",
 						)}
 					>
 						<div class="relative h-56 w-full">
 							{#if selectedStudioId === studio.id}
 									<span
-										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 px-2 py-1 text-xs font-semibold tracking-widest transition duration-500"
+										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest transition duration-500"
 									>
 										{bookingStepOneContent.selectedBadge}
 									</span>
@@ -92,8 +92,8 @@ function handleKeydown(e: KeyboardEvent) {
 							{:else if studio.imageSlot === "couch-image"}
 								<slot name="couch-image" {studio}></slot>
 							{/if}
-							<div class={cn("absolute inset-x-0 bottom-0 bg-background/90 px-4 py-2 backdrop-blur-xs transition duration-500", selectedStudioId === studio.id && "bg-[#151308]/90")}>
-								<p class="text-base font-semibold text-white">{studio.name}</p>
+							<div class={cn("absolute inset-x-0 bottom-0 bg-background/90 px-4 py-2 backdrop-blur-xs transition duration-500", selectedStudioId === studio.id && "bg-[#393420]/90")}>
+								<p class="text-base font-semibold">{studio.name}</p>
 								<p class="text-sm font-normal">{studio.description}</p>
 							</div>
 						</div>
@@ -119,7 +119,7 @@ function handleKeydown(e: KeyboardEvent) {
 					<label
 						for={`duration-${duration.value}`}
 						class={cn(
-							"flex min-h-14 cursor-pointer flex-col items-center justify-center border border-border bg-input/30 px-4 py-2 transition duration-500 hover:border-primary hover:bg-primary/10",
+							"flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border border-border bg-input/30 px-4 py-2 transition duration-500 hover:border-primary hover:bg-primary/10",
 							selectedDurationValue === duration.value && "border-primary bg-primary/10",
 						)}
 					>
@@ -136,7 +136,7 @@ function handleKeydown(e: KeyboardEvent) {
 		type="button"
 		onclick={openBooking}
 		disabled={!selectedBookingUrl}
-		class="h-12 w-full rounded-none text-base font-extrabold tracking-wider"
+		class="h-12 w-full rounded-lg text-base font-extrabold tracking-wider"
 	>
 		{bookingStepOneContent.primaryButtonLabel}
 	</Button>
@@ -166,7 +166,7 @@ function handleKeydown(e: KeyboardEvent) {
 		<Button
 			variant="default"
 			onclick={closeBooking}
-			class="fixed top-4 right-4 z-10000 flex h-9 items-center gap-2 px-4 sm:top-6.5 sm:right-18"
+			class="fixed top-4 right-4 z-10000 flex h-9 items-center gap-2 rounded-lg px-4 sm:top-6.5 sm:right-18"
 		>
 			{bookingStepOneContent.modalCloseLabel}
 		</Button>
