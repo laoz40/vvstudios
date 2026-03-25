@@ -360,33 +360,37 @@
 						name="sessionDuration"
 						class="grid gap-2 md:flex md:h-full md:flex-1 md:flex-col md:justify-between md:gap-0">
 						{#each durationOptions as option}
-							<label
-								class={cn(
-									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 md:py-6",
-									selectedDuration === option.value &&
-										"border-primary bg-primary/10",
-								)}>
-								<div class="flex w-full items-center justify-between gap-3">
-									<span class="flex flex-col gap-1">
-										<span class="block text-base font-semibold">
-											{option.label}
+							<div>
+								<RadioGroupItem
+									id={`session-duration-${option.value}`}
+									value={option.value}
+									class="peer sr-only" />
+								<label
+									for={`session-duration-${option.value}`}
+									class={cn(
+										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 peer-focus-visible:ring-[3px] md:py-6",
+										selectedDuration === option.value &&
+											"border-primary bg-primary/10",
+									)}>
+									<div class="flex w-full items-center justify-between gap-3">
+										<span class="flex flex-col gap-1">
+											<span class="block text-base font-semibold">
+												{option.label}
+											</span>
+											<span
+												class="text-muted-foreground block text-sm font-normal">
+												{option.description}
+											</span>
 										</span>
-										<span
-											class="text-muted-foreground block text-sm font-normal">
-											{option.description}
-										</span>
-									</span>
-									<RadioGroupItem
-										value={option.value}
-										class="sr-only" />
-									{#if selectedDuration === option.value}
-										<span
-											class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-											{sectionCopy.selectedBadge}
-										</span>
-									{/if}
-								</div>
-							</label>
+										{#if selectedDuration === option.value}
+											<span
+												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
+									</div>
+								</label>
+							</div>
 						{/each}
 					</RadioGroup>
 				</div>
@@ -425,50 +429,54 @@
 					</p>
 					<div class="grid gap-3 md:grid-cols-2">
 						{#each addOnOptions as option}
-							<label
-								class={cn(
-									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer flex-col gap-3 rounded-lg border px-4 py-4 text-left transition duration-300",
-									selectedAddOns.includes(option.value) &&
-										"border-primary bg-primary/10",
-								)}>
-								<div class="flex flex-row items-start justify-between">
-									{#if option.icon === "camera"}
-										<CameraIcon class="text-primary size-10" />
-									{:else if option.icon === "scroll-text"}
-										<ScrollTextIcon class="text-primary size-10" />
-									{:else if option.icon === "scissors"}
-										<ScissorsIcon class="text-primary size-10" />
-									{:else}
-										<SmartphoneIcon class="text-primary size-10" />
-									{/if}
-									<Checkbox
-										name="addOns"
-										value={option.value}
-										checked={selectedAddOns.includes(option.value)}
-										onCheckedChange={(checked) =>
-											toggleAddOn(option.value, checked)}
-										class="sr-only" />
-									{#if selectedAddOns.includes(option.value)}
-										<span
-											class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-											{sectionCopy.selectedBadge}
-										</span>
-									{/if}
-								</div>
-								<div class="flex flex-col gap-1.5">
-									<div class="flex items-start justify-between gap-4">
-										<span class="text-base font-semibold text-white">
-											{option.label}
-										</span>
-										<span class="text-primary text-base font-medium">
-											{option.price}
-										</span>
+							<div class="h-full">
+								<Checkbox
+									id={`addon-${option.value}`}
+									name="addOns"
+									value={option.value}
+									checked={selectedAddOns.includes(option.value)}
+									onCheckedChange={(checked) =>
+										toggleAddOn(option.value, checked)}
+									class="peer sr-only" />
+								<label
+									for={`addon-${option.value}`}
+									class={cn(
+										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-3 rounded-lg border px-4 py-4 text-left transition duration-300 peer-focus-visible:ring-[3px]",
+										selectedAddOns.includes(option.value) &&
+											"border-primary bg-primary/10",
+									)}>
+									<div class="flex flex-row items-start justify-between">
+										{#if option.icon === "camera"}
+											<CameraIcon class="text-primary size-10" />
+										{:else if option.icon === "scroll-text"}
+											<ScrollTextIcon class="text-primary size-10" />
+										{:else if option.icon === "scissors"}
+											<ScissorsIcon class="text-primary size-10" />
+										{:else}
+											<SmartphoneIcon class="text-primary size-10" />
+										{/if}
+										{#if selectedAddOns.includes(option.value)}
+											<span
+												class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
 									</div>
-									<p class="text-muted-foreground text-sm font-normal">
-										{option.description}
-									</p>
-								</div>
-							</label>
+									<div class="flex flex-col gap-1.5">
+										<div class="flex items-start justify-between gap-4">
+											<span class="text-base font-semibold text-white">
+												{option.label}
+											</span>
+											<span class="text-primary text-base font-medium">
+												{option.price}
+											</span>
+										</div>
+										<p class="text-muted-foreground text-sm font-normal">
+											{option.description}
+										</p>
+									</div>
+								</label>
+							</div>
 						{/each}
 					</div>
 				</fieldset>
@@ -485,50 +493,54 @@
 						name="videoFormat"
 						class="grid gap-3">
 						{#each videoFormatOptions as option}
-							<label
-								class={cn(
-									"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-4 text-left transition duration-500",
-									selectedVideoFormat === option.value &&
-										"border-primary bg-primary/10",
-								)}>
-								{#if option.icon === "monitor"}
-									<div
-										class="flex h-7 w-11 shrink-0 items-center justify-center">
-										<MonitorIcon class="text-primary size-7" />
-									</div>
-								{:else if option.icon === "smartphone"}
-									<div
-										class="flex h-7 w-11 shrink-0 items-center justify-center">
-										<SmartphoneIcon class="text-primary size-7" />
-									</div>
-								{:else}
-									<div
-										class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
-										<SmartphoneIcon class="text-primary size-5" />
-										<MonitorIcon class="text-primary size-5" />
-									</div>
-								{/if}
-								<div class="flex w-full items-center justify-between gap-3">
-									<div class="flex flex-col gap-1">
-										<span class="block text-base font-semibold text-white">
-											{option.label}
-										</span>
-										<span
-											class="text-muted-foreground block text-sm font-normal">
-											{option.description}
-										</span>
-									</div>
-									<RadioGroupItem
-										value={option.value}
-										class="sr-only" />
-									{#if selectedVideoFormat === option.value}
-										<span
-											class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-											{sectionCopy.selectedBadge}
-										</span>
+							<div>
+								<RadioGroupItem
+									id={`video-format-${option.value}`}
+									value={option.value}
+									class="peer sr-only" />
+								<label
+									for={`video-format-${option.value}`}
+									class={cn(
+										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-4 text-left transition duration-500 peer-focus-visible:ring-[3px]",
+										selectedVideoFormat === option.value &&
+											"border-primary bg-primary/10",
+									)}>
+									{#if option.icon === "monitor"}
+										<div
+											class="flex h-7 w-11 shrink-0 items-center justify-center">
+											<MonitorIcon class="text-primary size-7" />
+										</div>
+									{:else if option.icon === "smartphone"}
+										<div
+											class="flex h-7 w-11 shrink-0 items-center justify-center">
+											<SmartphoneIcon class="text-primary size-7" />
+										</div>
+									{:else}
+										<div
+											class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
+											<SmartphoneIcon class="text-primary size-5" />
+											<MonitorIcon class="text-primary size-5" />
+										</div>
 									{/if}
-								</div>
-							</label>
+									<div class="flex w-full items-center justify-between gap-3">
+										<div class="flex flex-col gap-1">
+											<span class="block text-base font-semibold text-white">
+												{option.label}
+											</span>
+											<span
+												class="text-muted-foreground block text-sm font-normal">
+												{option.description}
+											</span>
+										</div>
+										{#if selectedVideoFormat === option.value}
+											<span
+												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+												{sectionCopy.selectedBadge}
+											</span>
+										{/if}
+									</div>
+								</label>
+							</div>
 						{/each}
 					</RadioGroup>
 				</fieldset>

@@ -59,25 +59,9 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{...restProps}>
 	{#snippet children({ months, weekdays })}
 		<Calendar.Months>
-			<Calendar.Nav>
-				<Calendar.PrevButton variant={buttonVariant} />
-				<Calendar.NextButton variant={buttonVariant} />
-			</Calendar.Nav>
 			{#each months as month, monthIndex (month)}
 				<Calendar.Month>
-					<Calendar.Header>
-						<Calendar.Caption
-							{captionLayout}
-							months={monthsProp}
-							{monthFormat}
-							{years}
-							{yearFormat}
-							month={month.value}
-							bind:placeholder
-							{locale}
-							{monthIndex} />
-					</Calendar.Header>
-					<Calendar.Grid>
+					<Calendar.Grid class="order-2">
 						<Calendar.GridHead>
 							<Calendar.GridRow class="select-none">
 								{#each weekdays as weekday (weekday)}
@@ -108,8 +92,24 @@ get along, so we shut typescript up by casting `value` to `never`.
 							{/each}
 						</Calendar.GridBody>
 					</Calendar.Grid>
+					<Calendar.Header class="order-1">
+						<Calendar.Caption
+							{captionLayout}
+							months={monthsProp}
+							{monthFormat}
+							{years}
+							{yearFormat}
+							month={month.value}
+							bind:placeholder
+							{locale}
+							{monthIndex} />
+					</Calendar.Header>
 				</Calendar.Month>
 			{/each}
+			<Calendar.Nav>
+				<Calendar.PrevButton variant={buttonVariant} />
+				<Calendar.NextButton variant={buttonVariant} />
+			</Calendar.Nav>
 		</Calendar.Months>
 	{/snippet}
 </CalendarPrimitive.Root>

@@ -76,11 +76,11 @@
 					<RadioGroupItem
 						id={`studio-${studio.id}`}
 						value={studio.id}
-						class="sr-only" />
+						class="peer sr-only" />
 					<label
 						for={`studio-${studio.id}`}
 						class={cn(
-							"border-border bg-input hover:border-primary block cursor-pointer overflow-hidden rounded-lg border transition duration-500",
+							"border-border bg-input hover:border-primary peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block cursor-pointer overflow-hidden rounded-lg border transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 							selectedStudioId === studio.id && "border-primary",
 						)}>
 						<div class="relative h-56 w-full">
@@ -127,11 +127,11 @@
 					<RadioGroupItem
 						id={`duration-${duration.value}`}
 						value={duration.value}
-						class="sr-only" />
+						class="peer sr-only" />
 					<label
 						for={`duration-${duration.value}`}
 						class={cn(
-							"border-border bg-input/30 hover:border-primary hover:bg-primary/10 flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-500",
+							"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 							selectedDurationValue === duration.value &&
 								"border-primary bg-primary/10",
 						)}>
