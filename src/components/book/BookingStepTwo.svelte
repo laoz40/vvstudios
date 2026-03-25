@@ -340,8 +340,9 @@
 				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-10">
 				<!-- Booking Date -->
 				<div class="w-fit space-y-3">
-					<Label class="text-primary text-xs font-semibold tracking-widest"
-						>{sectionCopy.confirmBookingDateLabel}</Label>
+					<p class="text-primary text-xs font-semibold tracking-widest">
+						{sectionCopy.confirmBookingDateLabel}
+					</p>
 					<Calendar
 						type="single"
 						bind:value={selectedDate}
@@ -353,46 +354,50 @@
 				<!-- Session Duration -->
 				<div
 					class="space-y-3 md:flex md:h-full md:flex-col md:gap-3 md:space-y-0">
-					<Label class="text-primary text-xs font-semibold tracking-widest"
-						>{sectionCopy.confirmSessionDurationLabel}</Label>
-					<RadioGroup
-						bind:value={selectedDuration}
-						name="sessionDuration"
-						class="grid gap-2 md:flex md:h-full md:flex-1 md:flex-col md:justify-between md:gap-0">
-						{#each durationOptions as option}
-							<div>
-								<RadioGroupItem
-									id={`session-duration-${option.value}`}
-									value={option.value}
-									class="peer sr-only" />
-								<label
-									for={`session-duration-${option.value}`}
-									class={cn(
-										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 peer-focus-visible:ring-[3px] md:py-6",
-										selectedDuration === option.value &&
-											"border-primary bg-primary/10",
-									)}>
-									<div class="flex w-full items-center justify-between gap-3">
-										<span class="flex flex-col gap-1">
-											<span class="block text-base font-semibold">
-												{option.label}
+					<fieldset
+						class="space-y-3 md:flex md:h-full md:flex-col md:gap-3 md:space-y-0">
+						<legend class="text-primary text-xs font-semibold tracking-widest">
+							{sectionCopy.confirmSessionDurationLabel}
+						</legend>
+						<RadioGroup
+							bind:value={selectedDuration}
+							name="sessionDuration"
+							class="grid gap-2 md:flex md:h-full md:flex-1 md:flex-col md:justify-between md:gap-0">
+							{#each durationOptions as option}
+								<div>
+									<RadioGroupItem
+										id={`session-duration-${option.value}`}
+										value={option.value}
+										class="peer sr-only" />
+									<label
+										for={`session-duration-${option.value}`}
+										class={cn(
+											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 peer-focus-visible:ring-[3px] md:py-6",
+											selectedDuration === option.value &&
+												"border-primary bg-primary/10",
+										)}>
+										<div class="flex w-full items-center justify-between gap-3">
+											<span class="flex flex-col gap-1">
+												<span class="block text-base font-semibold">
+													{option.label}
+												</span>
+												<span
+													class="text-muted-foreground block text-sm font-normal">
+													{option.description}
+												</span>
 											</span>
-											<span
-												class="text-muted-foreground block text-sm font-normal">
-												{option.description}
-											</span>
-										</span>
-										{#if selectedDuration === option.value}
-											<span
-												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
-											</span>
-										{/if}
-									</div>
-								</label>
-							</div>
-						{/each}
-					</RadioGroup>
+											{#if selectedDuration === option.value}
+												<span
+													class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+													{sectionCopy.selectedBadge}
+												</span>
+											{/if}
+										</div>
+									</label>
+								</div>
+							{/each}
+						</RadioGroup>
+					</fieldset>
 				</div>
 			</div>
 		</div>
@@ -586,8 +591,9 @@
 
 			<!-- Contact Information -->
 			<div class="space-y-5 pt-2">
-				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>{sectionCopy.contactInfoLabel}</Label>
+				<p class="text-primary text-xs font-semibold tracking-widest">
+					{sectionCopy.contactInfoLabel}
+				</p>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
 						<Label for="fullName">{sectionCopy.fullNameLabel}</Label>
@@ -613,8 +619,9 @@
 
 			<!-- Billing Information -->
 			<div class="space-y-5 pt-2">
-				<Label class="text-primary text-xs font-semibold tracking-widest"
-					>{sectionCopy.billingInfoLabel}</Label>
+				<p class="text-primary text-xs font-semibold tracking-widest">
+					{sectionCopy.billingInfoLabel}
+				</p>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 					<div class="space-y-1.5">
 						<Label for="accountName">{sectionCopy.accountNameLabel}</Label>
@@ -734,7 +741,12 @@
 				: sectionCopy.submitButtonDefault}
 		</Button>
 		{#if status}
-			<p class="text-primary text-bold text-center text-lg">{status}</p>
+			<p
+				class="text-primary text-bold text-center text-lg"
+				role="status"
+				aria-live="polite">
+				{status}
+			</p>
 		{/if}
 	</form>
 </div>

@@ -33,10 +33,12 @@ const currentPath = Astro.url.pathname;
 	</head>
 	<body>
 		<!-- Mobile Nav -->
-		<MobileNav
-			currentPath={currentPath}
-			client:media="(max-width: 767px)"
-		/>
+		<div id="mobile-nav-shell">
+			<MobileNav
+				currentPath={currentPath}
+				client:media="(max-width: 767px)"
+			/>
+		</div>
 		<div
 			id="site-shell"
 			class="flex min-h-screen flex-col">
