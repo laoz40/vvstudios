@@ -208,7 +208,7 @@
 			type="button"
 			onclick={openBooking}
 			disabled={!selectedBookingUrl}
-			class="h-12 w-full rounded-lg text-base font-extrabold tracking-wider">
+			class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
 			{bookingStepOneContent.primaryButtonLabel}
 		</Button>
 		<p class="text-muted-foreground text-sm font-medium">

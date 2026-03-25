@@ -337,7 +337,7 @@
 				{sectionCopy.bookingDetailsTitle}
 			</h2>
 			<div
-				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-10">
+				class="grid gap-5 md:grid-cols-[max-content_minmax(0,1fr)] md:items-start md:justify-between md:gap-8">
 				<!-- Booking Date -->
 				<div class="w-fit space-y-3">
 					<p class="text-primary text-xs font-semibold tracking-widest">
@@ -352,27 +352,25 @@
 				</div>
 
 				<!-- Session Duration -->
-				<div
-					class="space-y-3 md:flex md:h-full md:flex-col md:gap-3 md:space-y-0">
-					<fieldset
-						class="space-y-3 md:flex md:h-full md:flex-col md:gap-3 md:space-y-0">
+				<div class="flex h-full flex-col space-x-3">
+					<fieldset class="h-full space-y-3">
 						<legend class="text-primary text-xs font-semibold tracking-widest">
 							{sectionCopy.confirmSessionDurationLabel}
 						</legend>
 						<RadioGroup
 							bind:value={selectedDuration}
 							name="sessionDuration"
-							class="grid gap-2 md:flex md:h-full md:flex-1 md:flex-col md:justify-between md:gap-0">
+							class="flex h-full flex-col justify-between">
 							{#each durationOptions as option}
 								<div>
 									<RadioGroupItem
 										id={`session-duration-${option.value}`}
 										value={option.value}
-										class="peer sr-only" />
+										class="peer sr-only size-0" />
 									<label
 										for={`session-duration-${option.value}`}
 										class={cn(
-											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-3 text-left transition duration-500 peer-focus-visible:ring-[3px] md:py-6",
+											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-6 text-left transition duration-500 peer-focus-visible:ring-[3px]",
 											selectedDuration === option.value &&
 												"border-primary bg-primary/10",
 										)}>
@@ -407,147 +405,152 @@
 				{sectionCopy.sessionDetailsTitle}
 			</h2>
 
-			<!-- Addons -->
-			<div class="space-y-5 pt-2">
-				{#if hasSavedBookingData}
-					<div
-						class="border-primary bg-input/30 mb-8 flex flex-row items-center justify-between rounded-lg border p-4">
-						<p class="text-muted-foreground text-sm font-medium">
-							{sectionCopy.reuseSavedBookingText}
-						</p>
-						<Button
-							type="button"
-							variant="default"
-							class="rounded-lg"
-							onclick={handleReuseLastBooking}>
-							{sectionCopy.reuseSavedBookingButton}
-						</Button>
-					</div>
-				{/if}
+			{#if hasSavedBookingData}
+				<div
+					class="border-primary bg-input/30 mb-8 flex flex-row items-center justify-between rounded-lg border p-4">
+					<p class="text-muted-foreground text-sm font-medium">
+						{sectionCopy.reuseSavedBookingText}
+					</p>
+					<Button
+						type="button"
+						variant="default"
+						class="rounded-lg"
+						onclick={handleReuseLastBooking}>
+						{sectionCopy.reuseSavedBookingButton}
+					</Button>
+				</div>
+			{/if}
 
-				<fieldset class="space-y-4">
+			<!-- Addons -->
+			<div class="space-y-5">
+				<fieldset>
 					<legend class="text-primary text-xs font-semibold tracking-widest">
 						{sectionCopy.addOnsLegend}
 					</legend>
-					<p class="text-muted-foreground text-sm font-medium">
-						{sectionCopy.addOnsHelper}
-					</p>
-					<div class="grid gap-3 md:grid-cols-2">
-						{#each addOnOptions as option}
-							<div class="h-full">
-								<Checkbox
-									id={`addon-${option.value}`}
-									name="addOns"
-									value={option.value}
-									checked={selectedAddOns.includes(option.value)}
-									onCheckedChange={(checked) =>
-										toggleAddOn(option.value, checked)}
-									class="peer sr-only" />
-								<label
-									for={`addon-${option.value}`}
-									class={cn(
-										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-3 rounded-lg border px-4 py-4 text-left transition duration-300 peer-focus-visible:ring-[3px]",
-										selectedAddOns.includes(option.value) &&
-											"border-primary bg-primary/10",
-									)}>
-									<div class="flex flex-row items-start justify-between">
-										{#if option.icon === "camera"}
-											<CameraIcon class="text-primary size-10" />
-										{:else if option.icon === "scroll-text"}
-											<ScrollTextIcon class="text-primary size-10" />
-										{:else if option.icon === "scissors"}
-											<ScissorsIcon class="text-primary size-10" />
-										{:else}
-											<SmartphoneIcon class="text-primary size-10" />
-										{/if}
-										{#if selectedAddOns.includes(option.value)}
-											<span
-												class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
-											</span>
-										{/if}
-									</div>
-									<div class="flex flex-col gap-1.5">
-										<div class="flex items-start justify-between gap-4">
-											<span class="text-base font-semibold text-white">
-												{option.label}
-											</span>
-											<span class="text-primary text-base font-medium">
-												{option.price}
-											</span>
+					<div class="mt-4 space-y-4">
+						<p class="text-muted-foreground text-sm font-medium">
+							{sectionCopy.addOnsHelper}
+						</p>
+						<div class="grid gap-4 md:grid-cols-2">
+							{#each addOnOptions as option}
+								<div class="h-full">
+									<Checkbox
+										id={`addon-${option.value}`}
+										name="addOns"
+										value={option.value}
+										checked={selectedAddOns.includes(option.value)}
+										onCheckedChange={(checked) =>
+											toggleAddOn(option.value, checked)}
+										class="peer sr-only size-0" />
+									<label
+										for={`addon-${option.value}`}
+										class={cn(
+											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-4 rounded-lg border px-4 py-4 text-left transition duration-300 peer-focus-visible:ring-[3px]",
+											selectedAddOns.includes(option.value) &&
+												"border-primary bg-primary/10",
+										)}>
+										<div class="flex flex-row items-start justify-between">
+											{#if option.icon === "camera"}
+												<CameraIcon class="text-primary size-10" />
+											{:else if option.icon === "scroll-text"}
+												<ScrollTextIcon class="text-primary size-10" />
+											{:else if option.icon === "scissors"}
+												<ScissorsIcon class="text-primary size-10" />
+											{:else}
+												<SmartphoneIcon class="text-primary size-10" />
+											{/if}
+
+											{#if selectedAddOns.includes(option.value)}
+												<span
+													class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+													{sectionCopy.selectedBadge}
+												</span>
+											{/if}
 										</div>
-										<p class="text-muted-foreground text-sm font-normal">
-											{option.description}
-										</p>
-									</div>
-								</label>
-							</div>
-						{/each}
+										<div class="flex flex-col gap-1.5">
+											<div class="flex items-start justify-between gap-4">
+												<span class="text-base font-semibold text-white">
+													{option.label}
+												</span>
+												<span class="text-primary text-base font-medium">
+													{option.price}
+												</span>
+											</div>
+											<p class="text-muted-foreground text-sm font-normal">
+												{option.description}
+											</p>
+										</div>
+									</label>
+								</div>
+							{/each}
+						</div>
 					</div>
 				</fieldset>
 			</div>
 
 			<!-- Video Format -->
 			<div class="space-y-5 pt-2">
-				<fieldset class="space-y-4">
+				<fieldset>
 					<legend class="text-primary text-xs font-semibold tracking-widest">
 						{sectionCopy.videoFormatLegend}
 					</legend>
-					<RadioGroup
-						bind:value={selectedVideoFormat}
-						name="videoFormat"
-						class="grid gap-3">
-						{#each videoFormatOptions as option}
-							<div>
-								<RadioGroupItem
-									id={`video-format-${option.value}`}
-									value={option.value}
-									class="peer sr-only" />
-								<label
-									for={`video-format-${option.value}`}
-									class={cn(
-										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-4 text-left transition duration-500 peer-focus-visible:ring-[3px]",
-										selectedVideoFormat === option.value &&
-											"border-primary bg-primary/10",
-									)}>
-									{#if option.icon === "monitor"}
-										<div
-											class="flex h-7 w-11 shrink-0 items-center justify-center">
-											<MonitorIcon class="text-primary size-7" />
-										</div>
-									{:else if option.icon === "smartphone"}
-										<div
-											class="flex h-7 w-11 shrink-0 items-center justify-center">
-											<SmartphoneIcon class="text-primary size-7" />
-										</div>
-									{:else}
-										<div
-											class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
-											<SmartphoneIcon class="text-primary size-5" />
-											<MonitorIcon class="text-primary size-5" />
-										</div>
-									{/if}
-									<div class="flex w-full items-center justify-between gap-3">
-										<div class="flex flex-col gap-1">
-											<span class="block text-base font-semibold text-white">
-												{option.label}
-											</span>
-											<span
-												class="text-muted-foreground block text-sm font-normal">
-												{option.description}
-											</span>
-										</div>
-										{#if selectedVideoFormat === option.value}
-											<span
-												class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
-											</span>
+					<div class="mt-4">
+						<RadioGroup
+							bind:value={selectedVideoFormat}
+							name="videoFormat"
+							class="grid gap-4">
+							{#each videoFormatOptions as option}
+								<div>
+									<RadioGroupItem
+										id={`video-format-${option.value}`}
+										value={option.value}
+										class="peer sr-only size-0" />
+									<label
+										for={`video-format-${option.value}`}
+										class={cn(
+											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-500 peer-focus-visible:ring-[3px]",
+											selectedVideoFormat === option.value &&
+												"border-primary bg-primary/10",
+										)}>
+										{#if option.icon === "monitor"}
+											<div
+												class="flex h-7 w-11 shrink-0 items-center justify-center">
+												<MonitorIcon class="text-primary size-7" />
+											</div>
+										{:else if option.icon === "smartphone"}
+											<div
+												class="flex h-7 w-11 shrink-0 items-center justify-center">
+												<SmartphoneIcon class="text-primary size-7" />
+											</div>
+										{:else}
+											<div
+												class="flex h-7 w-11 shrink-0 items-center justify-center gap-1">
+												<SmartphoneIcon class="text-primary size-5" />
+												<MonitorIcon class="text-primary size-5" />
+											</div>
 										{/if}
-									</div>
-								</label>
-							</div>
-						{/each}
-					</RadioGroup>
+										<div class="flex w-full items-center justify-between gap-3">
+											<div class="flex flex-col gap-1">
+												<span class="block text-base font-semibold text-white">
+													{option.label}
+												</span>
+												<span
+													class="text-muted-foreground block text-sm font-normal">
+													{option.description}
+												</span>
+											</div>
+											{#if selectedVideoFormat === option.value}
+												<span
+													class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
+													{sectionCopy.selectedBadge}
+												</span>
+											{/if}
+										</div>
+									</label>
+								</div>
+							{/each}
+						</RadioGroup>
+					</div>
 				</fieldset>
 			</div>
 
@@ -734,7 +737,7 @@
 		<Button
 			type="submit"
 			size="lg"
-			class="h-12 w-full rounded-lg text-base font-extrabold tracking-wider"
+			class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
 			disabled={isSubmitting}>
 			{isSubmitting
 				? sectionCopy.submitButtonLoading
