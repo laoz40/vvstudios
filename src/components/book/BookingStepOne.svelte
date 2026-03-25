@@ -6,6 +6,8 @@
 	import { bookingStepOneContent } from "../../content/booking";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
+	import tableImage from "../../assets/table.jpg";
+	import couchImage from "../../assets/couch.jpg";
 
 	let {
 		children: _children,
@@ -146,13 +148,22 @@
 									</span>
 								{/if}
 								{#if studio.imageSlot === "table-image"}
-									<slot
-										name="table-image"
-										{studio}></slot>
+									<img
+										src={tableImage.src}
+										alt={bookingStepOneContent.studios[0].alt}
+										class="h-full w-full object-cover"
+										width={tableImage.width}
+										height={tableImage.height}
+										loading="lazy"
+										decoding="async" />
 								{:else if studio.imageSlot === "couch-image"}
-									<slot
-										name="couch-image"
-										{studio}></slot>
+									<img
+										src={couchImage.src}
+										alt={bookingStepOneContent.studios[1].alt}
+										class="h-full w-full object-cover"
+										width={800}
+										loading="lazy"
+										decoding="async" />
 								{/if}
 								<div
 									class={cn(

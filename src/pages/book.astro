@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import BookingStepOneWrapper from "../components/book/BookingStepOneWrapper.astro";
+import BookingStepOne from "../components/book/BookingStepOne.svelte";
 import BookingStepTwo from "../components/book/BookingStepTwo.svelte";
 import { bookingPageContent } from "../content/booking";
 ---
@@ -20,7 +20,7 @@ import { bookingPageContent } from "../content/booking";
 					{bookingPageContent.stepOne.lead}
 				</p>
 			</div>
-			<BookingStepOneWrapper />
+			<BookingStepOne client:load />
 		</div>
 
 		<div class="text-foreground mx-auto w-full max-w-200">
