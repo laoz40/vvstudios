@@ -229,7 +229,11 @@
 		use:portal
 		class="fixed inset-0 z-9999 box-border bg-black/70 p-4 sm:p-18"
 		onclick={handleOverlayClick}
+		onkeydown={(e) => {
+			if (e.key === "Escape") closeBooking();
+		}}
 		role="dialog"
+		tabindex="0"
 		aria-modal="true"
 		aria-label={bookingStepOneContent.modalAriaLabel}>
 		<Button
