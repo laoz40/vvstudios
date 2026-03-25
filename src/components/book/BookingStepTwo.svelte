@@ -10,6 +10,7 @@
 	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 	import ScissorsIcon from "@lucide/svelte/icons/scissors";
 	import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+	import { z } from "zod";
 	import { Calendar } from "$lib/components/ui/calendar";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
@@ -19,6 +20,50 @@
 	import { Textarea } from "$lib/components/ui/textarea";
 	import { cn } from "$lib/utils.js";
 	import { bookingStepTwoContent } from "../../content/booking";
+
+	const BookingSchema = z.object({
+		date: z.string().min(1, "Please select a booking date."),
+		duration: z.string().min(1, "Please select a session duration."),
+		videoFormat: z.string().min(1, "Please select a video format."),
+		questionsOrRequests: z
+			.string()
+			.trim()
+			.max(200, "Please keep this under 200 characters.")
+			.optional(),
+		fullName: z
+			.string()
+			.trim()
+			.min(1, "Full name is required.")
+			.max(50, "Name must be 50 characters or fewer.")
+			.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters."),
+		phone: z
+			.string()
+			.trim()
+			.min(1, "Phone number is required.")
+			.regex(/^[\d\s().+\-]{6,20}$/, "Please enter a valid phone number."),
+		accountName: z
+			.string()
+			.trim()
+			.min(1, "Account name is required.")
+			.max(50, "Account name must be 50 characters or fewer.")
+			.regex(
+				/^[\p{L}\p{M}' ,.()-]+$/u,
+				"Account name contains invalid characters.",
+			),
+		abn: z
+			.string()
+			.trim()
+			.min(1, "ABN is required.")
+			.transform((val) => val.replace(/\s+/g, ""))
+			.refine((val) => /^\d{11}$/.test(val), {
+				message: "ABN must be exactly 11 digits.",
+			}),
+		email: z.email("Please enter a valid email address."),
+	});
+
+	type BookingErrors = Partial<
+		Record<keyof z.infer<typeof BookingSchema>, string>
+	>;
 
 	const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
 
@@ -82,6 +127,7 @@
 
 	let isSubmitting = $state(false);
 	let status = $state("");
+	let errors: BookingErrors = $state({});
 
 	const isStringArray = (value: unknown): value is string[] =>
 		Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -174,7 +220,6 @@
 		const stored = readStoredBooking();
 		if (!stored) return;
 		hasSavedBookingData = true;
-		saveBookingInfo = true;
 	});
 
 	// Derived helpers
@@ -268,6 +313,32 @@
 			return;
 		}
 
+		// Validate with Zod before submitting
+		const parsed = BookingSchema.safeParse({
+			date: dateString,
+			duration: selectedDuration,
+			videoFormat: selectedVideoFormat,
+			questionsOrRequests,
+			fullName,
+			phone,
+			accountName,
+			abn,
+			email,
+		});
+
+		if (!parsed.success) {
+			console.log("Failed to parse booking payload:", parsed);
+			const fieldErrors: BookingErrors = {};
+			for (const issue of parsed.error.issues) {
+				const key = issue.path[0] as keyof BookingErrors;
+				if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+			}
+			errors = fieldErrors;
+			isSubmitting = false;
+			return;
+		}
+		errors = {};
+
 		isSubmitting = true;
 		status = "";
 
@@ -294,7 +365,7 @@
 				body: JSON.stringify(payload),
 			});
 
-			// console.log("Submitted booking payload:", payload);
+			console.log("Submitted booking payload:", payload);
 
 			status = response.ok
 				? statusMessages.success
@@ -349,18 +420,25 @@
 						minValue={minDate}
 						captionLayout="dropdown"
 						class="border-border w-fit rounded-lg border [--cell-size:--spacing(9)]" />
+					{#if errors.date}
+						<p
+							class="text-destructive text-xs font-medium"
+							role="alert">
+							{errors.date}
+						</p>
+					{/if}
 				</div>
 
 				<!-- Session Duration -->
-				<div class="flex h-full flex-col space-x-3">
-					<fieldset class="h-full space-y-3">
-						<legend class="text-primary text-xs font-semibold tracking-widest">
+				<div class="flex h-full flex-col gap-3">
+					<fieldset class="flex-1 flex flex-col">
+						<legend class="text-primary text-xs font-semibold tracking-widest mb-3">
 							{sectionCopy.confirmSessionDurationLabel}
 						</legend>
 						<RadioGroup
 							bind:value={selectedDuration}
 							name="sessionDuration"
-							class="flex h-full flex-col justify-between">
+							class="flex flex-1 flex-col justify-between">
 							{#each durationOptions as option}
 								<div>
 									<RadioGroupItem
@@ -396,6 +474,13 @@
 							{/each}
 						</RadioGroup>
 					</fieldset>
+					{#if errors.duration}
+						<p
+							class="text-destructive text-xs font-medium"
+							role="alert">
+							{errors.duration}
+						</p>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -552,6 +637,13 @@
 						</RadioGroup>
 					</div>
 				</fieldset>
+				{#if errors.videoFormat}
+					<p
+						class="text-destructive text-xs font-medium"
+						role="alert">
+						{errors.videoFormat}
+					</p>
+				{/if}
 			</div>
 
 			<!-- Questions -->
@@ -569,6 +661,13 @@
 						rows={2}
 						class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
 						placeholder={sectionCopy.questionsPlaceholder} />
+					{#if errors.questionsOrRequests}
+						<p
+							class="text-destructive text-xs font-medium"
+							role="alert">
+							{errors.questionsOrRequests}
+						</p>
+					{/if}
 					<p class="text-muted-foreground text-sm font-medium">
 						{sectionCopy.questionsContactPrefix}
 						<a
@@ -606,6 +705,13 @@
 							autocomplete="name"
 							class="rounded-lg"
 							bind:value={fullName} />
+						{#if errors.fullName}
+							<p
+								class="text-destructive text-xs font-medium"
+								role="alert">
+								{errors.fullName}
+							</p>
+						{/if}
 					</div>
 					<div class="space-y-1.5">
 						<Label for="phone">{sectionCopy.phoneLabel}</Label>
@@ -616,6 +722,13 @@
 							autocomplete="tel"
 							class="rounded-lg"
 							bind:value={phone} />
+						{#if errors.phone}
+							<p
+								class="text-destructive text-xs font-medium"
+								role="alert">
+								{errors.phone}
+							</p>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -634,6 +747,13 @@
 							autocomplete="organization"
 							class="rounded-lg"
 							bind:value={accountName} />
+						{#if errors.accountName}
+							<p
+								class="text-destructive text-xs font-medium"
+								role="alert">
+								{errors.accountName}
+							</p>
+						{/if}
 					</div>
 					<div class="space-y-1.5">
 						<Label for="abn">{sectionCopy.abnLabel}</Label>
@@ -646,6 +766,13 @@
 							autocomplete="on"
 							class="rounded-lg"
 							bind:value={abn} />
+						{#if errors.abn}
+							<p
+								class="text-destructive text-xs font-medium"
+								role="alert">
+								{errors.abn}
+							</p>
+						{/if}
 					</div>
 				</div>
 				<div class="grid gap-5 md:grid-cols-2 md:gap-6">
@@ -658,6 +785,13 @@
 							autocomplete="email"
 							class="rounded-lg"
 							bind:value={email} />
+						{#if errors.email}
+							<p
+								class="text-destructive text-xs font-medium"
+								role="alert">
+								{errors.email}
+							</p>
+						{/if}
 					</div>
 				</div>
 			</div>
