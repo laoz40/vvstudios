@@ -4,6 +4,7 @@ import Footer from "../components/Footer.svelte";
 import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
 import "@fontsource-variable/montserrat";
+import '@fontsource/squada-one';
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
@@ -53,10 +54,3 @@ const currentPath = Astro.url.pathname;
 		</div>
 	</body>
 </html>
-
-<style>
-	body {
-		font-family: var(--font-primary);
-		letter-spacing: 0.02em;
-	}
-</style>
