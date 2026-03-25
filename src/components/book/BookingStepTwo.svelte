@@ -399,7 +399,7 @@
 						{#each addOnOptions as option}
 							<label
 								class={cn(
-									"flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-500 hover:border-primary hover:bg-primary/10",
+									"flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-input/30 px-4 py-4 text-left transition duration-300 hover:border-primary hover:bg-primary/10",
 									selectedAddOns.includes(option.value) && "border-primary bg-primary/10"
 								)}
 							>
