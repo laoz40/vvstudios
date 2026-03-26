@@ -62,7 +62,7 @@
 		aria-expanded={isOpen}
 		aria-controls="mobile-nav-panel"
 		class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
-		on:click={() => {
+		onclick={() => {
 			isOpen = !isOpen;
 		}}>
 		<span class="sr-only"
@@ -78,7 +78,7 @@
 		<button
 			type="button"
 			class="fixed inset-0 z-40 bg-black/60"
-			on:click={closeMenu}
+			onclick={closeMenu}
 			aria-label={navContent.mobile.closeNavAriaLabel}></button>
 		<div
 			id="mobile-nav-panel"
@@ -91,7 +91,7 @@
 					type="button"
 					class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
 					aria-label={navContent.mobile.closeNavAriaLabel}
-					on:click={closeMenu}>
+					onclick={closeMenu}>
 					<span aria-hidden="true">
 						<X />
 					</span>
@@ -104,7 +104,7 @@
 							href={link.href}
 							aria-current={currentPath === link.href ? "page" : undefined}
 							class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-							on:click={closeMenu}>
+							onclick={closeMenu}>
 							{link.label}
 						</a>
 					</li>
@@ -114,7 +114,7 @@
 						href={bookLink.href}
 						aria-current={currentPath === "/book" ? "page" : undefined}
 						class="bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-						on:click={closeMenu}>
+						onclick={closeMenu}>
 						{bookLink.label}
 					</a>
 				</li>
