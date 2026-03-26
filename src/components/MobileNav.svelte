@@ -50,7 +50,7 @@
 			aria-label={navContent.homeAriaLabel}
 			variant="link"
 			size="sm"
-			class="font-bold">
+			class="font-mono text-xl font-bold">
 			{navContent.brandLabel}
 		</Button>
 	</div>
