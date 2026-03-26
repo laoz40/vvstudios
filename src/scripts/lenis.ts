@@ -16,6 +16,7 @@ const initLenis = () => {
 	if (lenis) return;
 	lenis = new Lenis({
 		autoRaf: true,
+		anchors: true,
 		lerp: 0.1,
 	});
 };
