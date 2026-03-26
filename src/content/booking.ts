@@ -185,7 +185,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		confirmBookingDateLabel: "CONFIRM BOOKING DATE",
 		confirmSessionDurationLabel: "CONFIRM SESSION DURATION",
 		reuseSavedBookingText:
-			"Reuse your last saved booking information for this booking.",
+			"You can reuse your last saved booking information.",
 		reuseSavedBookingButton: "Reuse Last Booking Info",
 		sessionDetailsTitle: "Session Details",
 		addOnsLegend: "ADD-ONS",
