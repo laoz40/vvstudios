@@ -420,7 +420,7 @@
 				<div
 					class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-start md:justify-between md:gap-8">
 					<!-- Booking Date -->
-					<div class="w-fit space-y-3">
+					<div class="w-full space-y-3 md:w-fit">
 						<p class="text-primary text-xs font-semibold tracking-widest">
 							{sectionCopy.confirmBookingDateLabel}
 						</p>
@@ -429,7 +429,7 @@
 							bind:value={selectedDate}
 							minValue={minDate}
 							captionLayout="dropdown"
-							class="border-border w-fit rounded-lg border [--cell-size:--spacing(9)]" />
+							class="border-border w-full rounded-lg border [--cell-size:--spacing(9)] md:w-fit" />
 						{#if errors.date}
 							<p
 								class="text-destructive text-xs font-medium"

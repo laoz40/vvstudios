@@ -63,7 +63,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 				<Calendar.Month>
 					<Calendar.Grid class="order-2">
 						<Calendar.GridHead>
-							<Calendar.GridRow class="select-none">
+							<Calendar.GridRow class="select-none w-full justify-between">
 								{#each weekdays as weekday (weekday)}
 									<Calendar.HeadCell>
 										{weekday.slice(0, 2)}
@@ -73,7 +73,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 						</Calendar.GridHead>
 						<Calendar.GridBody>
 							{#each month.weeks as weekDates (weekDates)}
-								<Calendar.GridRow class="mt-2 w-full">
+								<Calendar.GridRow class="mt-2 w-full justify-between">
 									{#each weekDates as date (date)}
 										<Calendar.Cell
 											{date}
