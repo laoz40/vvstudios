@@ -10,6 +10,7 @@ import lenisScript from "../scripts/lenis.ts?url";
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
+const isHome = currentPath === "/";
 ---
 
 <html lang="en">
@@ -46,7 +47,14 @@ const currentPath = Astro.url.pathname;
 			id="site-shell"
 			class="flex min-h-screen flex-col">
 			<!-- Desktop Nav -->
-			<DesktopNav currentPath={currentPath} />
+			{
+				// Hydrate only on the home page (for motion) to keep other routes static
+				isHome ? (
+					<DesktopNav currentPath={currentPath} client:load />
+				) : (
+					<DesktopNav currentPath={currentPath} />
+				)
+			}
 			<main>
 				<!-- Page Content -->
 				<slot />
