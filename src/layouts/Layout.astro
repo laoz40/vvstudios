@@ -4,7 +4,9 @@ import Footer from "../components/Footer.svelte";
 import MobileNav from "../components/MobileNav.svelte";
 import "../styles/global.css";
 import "@fontsource-variable/montserrat";
-import '@fontsource/squada-one';
+import "@fontsource/squada-one";
+import "lenis/dist/lenis.css";
+import lenisScript from "../scripts/lenis.ts?url";
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
@@ -52,5 +54,6 @@ const currentPath = Astro.url.pathname;
 			<!-- Footer -->
 			<Footer />
 		</div>
+		<script is:inline type="module" src={lenisScript}></script>
 	</body>
 </html>
