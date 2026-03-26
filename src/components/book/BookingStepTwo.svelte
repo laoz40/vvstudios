@@ -412,12 +412,12 @@
 	<form
 		class="space-y-10 md:space-y-14"
 		onsubmit={handleSubmit}>
-		<div class="space-y-6">
+		<div class="space-y-10">
 			<h2 class="text-foreground text-xl font-bold">
 				{sectionCopy.bookingDetailsTitle}
 			</h2>
 			<div
-				class="grid gap-5 md:grid-cols-[max-content_minmax(0,1fr)] md:items-start md:justify-between md:gap-8">
+				class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-start md:justify-between md:gap-8">
 				<!-- Booking Date -->
 				<div class="w-fit space-y-3">
 					<p class="text-primary text-xs font-semibold tracking-widest">
@@ -447,7 +447,7 @@
 						<RadioGroup
 							bind:value={selectedDuration}
 							name="sessionDuration"
-							class="flex flex-1 flex-col justify-between">
+							class="flex flex-1 flex-col gap-4 justify-between">
 							{#each durationOptions as option}
 								<div>
 									<RadioGroupItem
@@ -494,15 +494,15 @@
 			</div>
 		</div>
 
-		<div class="space-y-6">
+		<div class="space-y-10">
 			<h2 class="text-foreground text-xl font-bold">
 				{sectionCopy.sessionDetailsTitle}
 			</h2>
 
 			{#if hasSavedBookingData}
 				<div
-					class="border-primary bg-input/30 mb-8 flex flex-row items-center justify-between rounded-lg border p-4">
-					<p class="text-muted-foreground text-sm font-medium">
+					class="border-primary bg-input/30 mb-8 flex flex-col gap-6 items-end justify-between rounded-lg border p-4 sm:flex-row sm:gap-0 sm:items-center">
+					<p class="text-muted-foreground text-sm font-medium w-full">
 						{sectionCopy.reuseSavedBookingText}
 					</p>
 					<Button
@@ -516,7 +516,7 @@
 			{/if}
 
 			<!-- Addons -->
-			<div class="space-y-5">
+			<div class="space-y-8 md:space-y-5">
 				<fieldset>
 					<legend class="text-primary text-xs font-semibold tracking-widest">
 						{sectionCopy.addOnsLegend}
@@ -583,7 +583,7 @@
 			</div>
 
 			<!-- Video Format -->
-			<div class="space-y-5 pt-2">
+			<div class="space-y-8 md:space-y-5">
 				<fieldset>
 					<legend class="text-primary text-xs font-semibold tracking-widest">
 						{sectionCopy.videoFormatLegend}
@@ -602,7 +602,7 @@
 									<label
 										for={`video-format-${option.value}`}
 										class={cn(
-											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-500 peer-focus-visible:ring-[3px]",
+											"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex min-h-28 cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-500 peer-focus-visible:ring-[3px] sm:min-h-0",
 											selectedVideoFormat === option.value &&
 												"border-primary bg-primary/10",
 										)}>
@@ -656,7 +656,7 @@
 			</div>
 
 			<!-- Questions -->
-			<div class="space-y-5 pt-2">
+			<div class="space-y-8 md:space-y-5">
 				<Label
 					for="questionsOrRequests"
 					class="text-primary text-xs font-semibold tracking-widest">
@@ -695,13 +695,13 @@
 			</div>
 		</div>
 
-		<div class="space-y-6">
+		<div class="space-y-10">
 			<h2 class="text-foreground text-xl font-bold">
 				{sectionCopy.contactBillingTitle}
 			</h2>
 
 			<!-- Contact Information -->
-			<div class="space-y-5 pt-2">
+			<div class="space-y-8 md:space-y-5">
 				<p class="text-primary text-xs font-semibold tracking-widest">
 					{sectionCopy.contactInfoLabel}
 				</p>
@@ -743,7 +743,7 @@
 			</div>
 
 			<!-- Billing Information -->
-			<div class="space-y-5 pt-2">
+			<div class="space-y-8 md:space-y-5">
 				<p class="text-primary text-xs font-semibold tracking-widest">
 					{sectionCopy.billingInfoLabel}
 				</p>
@@ -808,7 +808,7 @@
 
 		<!-- Summary -->
 		<div
-			class="scroll-mt-24 space-y-5 pt-2 md:scroll-mt-28"
+			class="scroll-mt-24 space-y-6 pt-2 md:scroll-mt-28"
 			bind:this={summarySectionEl}>
 			<h2 class="text-foreground text-xl font-bold">
 				{sectionCopy.summaryLabel}

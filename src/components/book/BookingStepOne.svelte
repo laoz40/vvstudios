@@ -117,11 +117,11 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- Studio Selection -->
-<div class="space-y-14">
+<div class="space-y-10">
 	<section class="space-y-1">
 		<fieldset class="space-y-1">
 			<legend
-				class="text-primary text-xs font-semibold tracking-widest uppercase">
+				class="text-primary text-xs font-semibold tracking-widest uppercase mb-3">
 				{bookingStepOneContent.sectionLabels.studioSelection}
 			</legend>
 			<RadioGroup
@@ -133,7 +133,7 @@
 						<RadioGroupItem
 							id={`studio-${studio.id}`}
 							value={studio.id}
-							class="peer sr-only" />
+							class="peer sr-only size-0" />
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
@@ -185,7 +185,7 @@
 	<section class="space-y-1">
 		<fieldset class="space-y-1">
 			<legend
-				class="text-primary text-xs font-semibold tracking-widest uppercase">
+				class="text-primary text-xs font-semibold tracking-widest uppercase mb-3">
 				{bookingStepOneContent.sectionLabels.sessionDuration}
 			</legend>
 			<RadioGroup
@@ -197,7 +197,7 @@
 						<RadioGroupItem
 							id={`duration-${duration.value}`}
 							value={duration.value}
-							class="peer sr-only" />
+							class="peer sr-only size-0" />
 						<label
 							for={`duration-${duration.value}`}
 							class={cn(
