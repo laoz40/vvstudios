@@ -50,7 +50,10 @@ const isHome = currentPath === "/";
 			{
 				// Hydrate only on the home page (for motion) to keep other routes static
 				isHome ? (
-					<DesktopNav currentPath={currentPath} client:load />
+					<DesktopNav
+						currentPath={currentPath}
+						client:load
+					/>
 				) : (
 					<DesktopNav currentPath={currentPath} />
 				)
@@ -62,6 +65,10 @@ const isHome = currentPath === "/";
 			<!-- Footer -->
 			<Footer />
 		</div>
-		<script is:inline type="module" src={lenisScript}></script>
+		<script
+			is:inline
+			type="module"
+			src={lenisScript}
+		></script>
 	</body>
 </html>

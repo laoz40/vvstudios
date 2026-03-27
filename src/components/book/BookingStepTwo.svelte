@@ -441,14 +441,15 @@
 
 					<!-- Session Duration -->
 					<div class="flex h-full flex-col gap-3">
-						<fieldset class="flex-1 flex flex-col">
-							<legend class="text-primary text-xs font-semibold tracking-widest mb-3">
+						<fieldset class="flex flex-1 flex-col">
+							<legend
+								class="text-primary mb-3 text-xs font-semibold tracking-widest">
 								{sectionCopy.confirmSessionDurationLabel}
 							</legend>
 							<RadioGroup
 								bind:value={selectedDuration}
 								name="sessionDuration"
-								class="flex flex-1 flex-col gap-4 justify-between">
+								class="flex flex-1 flex-col justify-between gap-4">
 								{#each durationOptions as option}
 									<div>
 										<RadioGroupItem
@@ -462,7 +463,8 @@
 												selectedDuration === option.value &&
 													"border-primary bg-primary/10",
 											)}>
-											<div class="flex w-full items-center justify-between gap-3">
+											<div
+												class="flex w-full items-center justify-between gap-3">
 												<span class="flex flex-col gap-1">
 													<span class="block text-base font-semibold">
 														{option.label}
@@ -504,8 +506,8 @@
 			<div class="space-y-10">
 				{#if hasSavedBookingData}
 					<div
-						class="border-primary bg-input/30 mb-8 flex flex-col gap-6 items-end justify-between rounded-lg border p-4 sm:flex-row sm:gap-0 sm:items-center">
-						<p class="text-muted-foreground text-sm font-medium w-full">
+						class="border-primary bg-input/30 mb-8 flex flex-col items-end justify-between gap-6 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-0">
+						<p class="text-muted-foreground w-full text-sm font-medium">
 							{sectionCopy.reuseSavedBookingText}
 						</p>
 						<Button
@@ -626,9 +628,11 @@
 													<MonitorIcon class="text-primary size-5" />
 												</div>
 											{/if}
-											<div class="flex w-full items-center justify-between gap-3">
+											<div
+												class="flex w-full items-center justify-between gap-3">
 												<div class="flex flex-col gap-1">
-													<span class="block text-base font-semibold text-white">
+													<span
+														class="block text-base font-semibold text-white">
 														{option.label}
 													</span>
 													<span

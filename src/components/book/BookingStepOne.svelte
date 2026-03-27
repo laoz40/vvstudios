@@ -121,7 +121,7 @@
 	<section class="space-y-1">
 		<fieldset class="space-y-1">
 			<legend
-				class="text-primary text-xs font-semibold tracking-widest uppercase mb-3">
+				class="text-primary mb-3 text-xs font-semibold tracking-widest uppercase">
 				{bookingStepOneContent.sectionLabels.studioSelection}
 			</legend>
 			<RadioGroup
@@ -185,7 +185,7 @@
 	<section class="space-y-1">
 		<fieldset class="space-y-1">
 			<legend
-				class="text-primary text-xs font-semibold tracking-widest uppercase mb-3">
+				class="text-primary mb-3 text-xs font-semibold tracking-widest uppercase">
 				{bookingStepOneContent.sectionLabels.sessionDuration}
 			</legend>
 			<RadioGroup

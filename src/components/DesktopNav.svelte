@@ -22,7 +22,7 @@
 		if (!navMotionEl || !isHomePage) return;
 
 		const prefersReducedMotion = window.matchMedia(
-			"(prefers-reduced-motion: reduce)"
+			"(prefers-reduced-motion: reduce)",
 		).matches;
 
 		if (prefersReducedMotion) {
@@ -52,7 +52,9 @@
 	class="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
 	<div
 		bind:this={navMotionEl}
-		style={isHomePage ? "opacity: 0; transform: translateY(-24px);" : undefined}>
+		style={isHomePage
+			? "opacity: 0; transform: translateY(-24px);"
+			: undefined}>
 		<nav
 			aria-label={navContent.desktop.navAriaLabel}
 			class={`border-border/70 bg-background/30 rounded-md border px-4 py-3 shadow-lg transition duration-700 ease-out ${
