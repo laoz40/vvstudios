@@ -14,43 +14,43 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	<div
 		class="from-background/75 via-background/45 to-background/80 absolute inset-0 -z-10 bg-linear-to-br">
 	</div>
-	<div class="relative container mx-auto grid gap-4 px-4 py-24 md:py-32">
+	<div class="relative container mx-auto grid gap-4 px-4 py-24 mt-60 md:py-32">
 		<p class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
 			{heroContent.eyebrow}
 		</p>
 		<h1
-			class="text-foreground m-0 max-w-3xl text-4xl leading-tight font-bold tracking-tight md:text-6xl">
+			class="text-foreground m-0 max-w-xl text-4xl leading-tight font-bold tracking-tight md:text-6xl">
 			{heroContent.title}
 		</h1>
 		<p
-			class="text-muted-foreground m-0 max-w-3xl text-base leading-relaxed font-medium">
+			class="text-muted-foreground m-0 max-w-3xl text-base leading-relaxed">
 			{heroContent.lead}
 		</p>
 		<div class="mt-12 flex w-full flex-wrap gap-3">
 			<Button
 				href={heroContent.primaryCtaHref}
 				size="lg"
-				class="border-primary border-2 px-8 py-5 font-semibold hover:border-[#d4aa00] md:flex-none">
+				class="text-base border-primary border-2 px-8 py-5 font-semibold hover:border-[#d4aa00] md:flex-none">
 				{heroContent.primaryCtaLabel}
 			</Button>
 			<Button
 				href={heroContent.secondaryCtaHref}
 				variant="outline"
 				size="lg"
-				class="text-foreground hover:bg-accent/80 flex-1 border-2 px-8 py-5 font-semibold md:flex-none">
+				class="text-base text-foreground hover:bg-accent/80 flex-1 border-2 px-8 py-5 font-semibold md:flex-none">
 				{heroContent.secondaryCtaLabel}
 			</Button>
 		</div>
 	</div>
 	<a
-		class="text-muted-foreground hover:text-foreground focus-visible:outline-ring absolute bottom-4 left-1/2 grid -translate-x-1/2 justify-items-center text-xs font-medium uppercase no-underline transition focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 md:bottom-5"
+		class="text-muted-foreground hover:text-foreground focus-visible:outline-ring absolute bottom-4 left-1/2 grid -translate-x-1/2 justify-items-center no-underline transition focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 md:bottom-5"
 		href="#info-section"
 		aria-label={heroContent.scrollAriaLabel}>
-		<span class="text-3xl leading-none font-medium">↓</span>
+		<span class="text-2xl leading-none font-light">↓</span>
 	</a>
 	<div
 		class="text-muted-foreground absolute right-0 bottom-16 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:text-base">
 		<MapPinIcon class="text-primary" />
-		<span class="text-muted-foreground font-medium">{heroContent.address}</span>
+		<span class="text-muted-foreground">{heroContent.address}</span>
 	</div>
 </section>

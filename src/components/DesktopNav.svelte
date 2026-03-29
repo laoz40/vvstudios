@@ -68,7 +68,7 @@
 						aria-label={navContent.homeAriaLabel}
 						variant="link"
 						size="sm"
-						class="font-mono text-2xl font-medium">
+						class="font-mono text-xl font-medium">
 						{navContent.brandLabel}
 					</Button>
 				</div>
@@ -93,7 +93,7 @@
 												<li>
 													<a
 														href={dropdownItem.href}
-														class="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring text-foreground block rounded-md px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none">
+														class="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring text-foreground block rounded-md px-3 py-2 text-base transition-colors focus-visible:ring-2 focus-visible:outline-none">
 														{dropdownItem.label}
 													</a>
 												</li>
