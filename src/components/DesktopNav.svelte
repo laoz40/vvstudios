@@ -34,10 +34,10 @@
 
 		const keyframes: DOMKeyframesDefinition = {
 			opacity: [0, 1],
-			transform: ["translateY(-24px)", "translateY(0px)"],
+			transform: ["translateY(-32px)", "translateY(0px)"],
 		};
 		const options: AnimationOptions = {
-			duration: 0.55,
+			duration: 1,
 			ease: "easeOut",
 		};
 		const controls = animate(navMotionEl, keyframes, options);
