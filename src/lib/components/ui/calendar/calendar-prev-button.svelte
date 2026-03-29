@@ -26,7 +26,7 @@
 	bind:ref
 	class={cn(
 		buttonVariants({ variant }),
-		"size-(--cell-size) rounded-md bg-transparent p-0 select-none disabled:opacity-50 rtl:rotate-180",
+		"pointer-events-auto size-(--cell-size) rounded-md bg-transparent p-0 select-none disabled:opacity-50 rtl:rotate-180",
 		className,
 	)}
 	children={children || Fallback}
