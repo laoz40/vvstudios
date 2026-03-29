@@ -20,7 +20,25 @@ import { bookingPageContent } from "../content/booking";
 					{bookingPageContent.stepOne.lead}
 				</p>
 			</div>
-			<BookingStepOne client:visible />
+			<BookingStepOne client:only="svelte">
+				<div
+					slot="fallback"
+					class="space-y-6"
+					aria-hidden="true">
+					<div class="bg-muted h-5 w-40 animate-pulse rounded"></div>
+					<div class="grid gap-4 md:grid-cols-2">
+						<div class="bg-muted h-56 animate-pulse rounded-lg"></div>
+						<div class="bg-muted h-56 animate-pulse rounded-lg"></div>
+					</div>
+					<div class="bg-muted h-5 w-48 animate-pulse rounded"></div>
+					<div class="grid gap-4 sm:grid-cols-3">
+						<div class="bg-muted h-16 animate-pulse rounded-lg"></div>
+						<div class="bg-muted h-16 animate-pulse rounded-lg"></div>
+						<div class="bg-muted h-16 animate-pulse rounded-lg"></div>
+					</div>
+					<div class="bg-muted h-12 w-full animate-pulse rounded-lg"></div>
+				</div>
+			</BookingStepOne>
 		</div>
 
 		<div class="text-foreground mx-auto w-full max-w-200">
@@ -36,7 +54,41 @@ import { bookingPageContent } from "../content/booking";
 					{bookingPageContent.stepTwo.lead}
 				</p>
 			</div>
-			<BookingStepTwo client:visible />
+			<BookingStepTwo client:only="svelte">
+				<div
+					slot="fallback"
+					class="space-y-10"
+					aria-hidden="true">
+					<div class="space-y-6">
+						<div class="bg-muted h-6 w-44 animate-pulse rounded"></div>
+						<div class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)]">
+							<div class="bg-muted h-90 w-full animate-pulse rounded-lg md:w-80"></div>
+							<div class="space-y-4">
+								<div class="bg-muted h-20 animate-pulse rounded-lg"></div>
+								<div class="bg-muted h-20 animate-pulse rounded-lg"></div>
+								<div class="bg-muted h-20 animate-pulse rounded-lg"></div>
+							</div>
+						</div>
+					</div>
+					<div class="space-y-6">
+						<div class="bg-muted h-6 w-40 animate-pulse rounded"></div>
+						<div class="space-y-4">
+							<div class="bg-muted h-20 animate-pulse rounded-lg"></div>
+							<div class="bg-muted h-20 animate-pulse rounded-lg"></div>
+							<div class="bg-muted h-28 animate-pulse rounded-lg"></div>
+						</div>
+					</div>
+					<div class="space-y-6">
+						<div class="bg-muted h-6 w-52 animate-pulse rounded"></div>
+						<div class="space-y-4">
+							<div class="bg-muted h-12 animate-pulse rounded-lg"></div>
+							<div class="bg-muted h-12 animate-pulse rounded-lg"></div>
+							<div class="bg-muted h-12 animate-pulse rounded-lg"></div>
+							<div class="bg-muted h-12 animate-pulse rounded-lg"></div>
+						</div>
+					</div>
+				</div>
+			</BookingStepTwo>
 		</div>
 	</div>
 </Layout>
