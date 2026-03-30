@@ -6,7 +6,6 @@ import "../styles/global.css";
 import "@fontsource-variable/gabarito/wght.css";
 import "@fontsource/squada-one";
 import "lenis/dist/lenis.css";
-import lenisScript from "../scripts/lenis.ts?url";
 
 const { title } = Astro.props;
 const normalizePathname = (pathname: string) => {
@@ -85,10 +84,8 @@ const isHome = currentPath === "/";
 			<!-- Footer -->
 			<Footer />
 		</div>
-		<script
-			is:inline
-			type="module"
-			src={lenisScript}
-		></script>
+		<script>
+			import "../scripts/lenis.ts";
+		</script>
 	</body>
 </html>
