@@ -1,18 +1,21 @@
 <script lang="ts">
-	import type { HTMLButtonAttributes } from "svelte/elements";
 	import { Button } from "$lib/components/ui/button";
 	import type {
+		ButtonProps,
 		ButtonSize,
 		ButtonVariant,
 	} from "$lib/components/ui/button/button";
 	import { freeTourContent } from "../../content/tour";
 	import IframeModal from "./IframeModal.svelte";
 
-	export type FreeTourButtonProps = HTMLButtonAttributes & {
+	type ButtonClickEvent = Parameters<NonNullable<ButtonProps["onclick"]>>[0];
+
+	export type FreeTourButtonProps = Omit<ButtonProps, "children" | "onclick"> & {
 		label?: string;
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 		class?: string;
+		onclick?: ButtonProps["onclick"];
 	};
 
 	let {
@@ -28,7 +31,7 @@
 
 	let open = $state(false);
 
-	function handleClick(event: MouseEvent) {
+	const handleClick: NonNullable<ButtonProps["onclick"]> = (event) => {
 		onclick?.(event);
 
 		if (event.defaultPrevented || disabled) {
@@ -36,7 +39,7 @@
 		}
 
 		open = true;
-	}
+	};
 </script>
 
 <Button
