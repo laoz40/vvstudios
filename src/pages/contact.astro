@@ -25,7 +25,7 @@ const directContactItems = contactItems.filter(
 				/>
 				<div class="absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
 					<h1
-						class="text-foreground text-3xl font-bold tracking-tight text-shadow-sm md:text-5xl">
+						class="text-foreground text-3xl font-bold tracking-tight text-shadow-sm md:text-4xl">
 						Contact
 					</h1>
 
@@ -49,20 +49,20 @@ const directContactItems = contactItems.filter(
 							))
 						}
 					</dl>
-					<div class="mt-5 flex gap-2 sm:gap-3">
-						<Button
-							href="/book"
-							size="lg"
-							class="border-primary min-w-0 flex-1 px-4 py-5 text-base font-semibold sm:px-8">
-							Book Session
-						</Button>
-						<FreeTourButton
-							client:load
-							class="min-w-0 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"
-						/>
-					</div>
 				</div>
 			</div>
+		</div>
+		<div class="mx-auto mt-7 md:mt-12 flex max-w-2xl flex-wrap gap-4 sm:gap-3">
+			<Button
+				href="/book"
+				size="lg"
+				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8">
+				Book Session
+			</Button>
+			<FreeTourButton
+				client:load
+				class="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"
+			/>
 		</div>
 	</section>
 </Layout>
