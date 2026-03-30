@@ -6,6 +6,7 @@ import "../styles/global.css";
 import "@fontsource-variable/gabarito/wght.css";
 import "@fontsource/squada-one";
 import "lenis/dist/lenis.css";
+import Analytics from "@vercel/analytics/astro";
 
 const { title } = Astro.props;
 const normalizePathname = (pathname: string) => {
@@ -83,6 +84,7 @@ const isHome = currentPath === "/";
 			</main>
 			<!-- Footer -->
 			<Footer />
+			<Analytics />
 		</div>
 		<script>
 			import "../scripts/lenis.ts";
