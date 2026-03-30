@@ -2,6 +2,7 @@
 	import Menu from "@lucide/svelte/icons/menu";
 	import X from "@lucide/svelte/icons/x";
 	import { Button } from "$lib/components/ui/button";
+	import logoYellow from "../assets/vv-logo-yellow.svg?url";
 	import { navContent } from "../content/navigation";
 
 	let { currentPath = "/" }: { currentPath?: string } = $props();
@@ -44,14 +45,20 @@
 <div class="fixed top-4 z-40 w-full px-4 md:hidden">
 	<nav
 		aria-label={navContent.mobile.navAriaLabel}
-		class="border-border/70 bg-background/30 flex flex-row items-center justify-between rounded-md border px-4 py-3 shadow-lg backdrop-blur-xs">
-		<div>
+		class="border-border/70 bg-background/30 flex h-16 flex-row items-center justify-between rounded-md border px-4 shadow-lg backdrop-blur-xs">
+		<div class="flex h-full items-center">
 			<Button
 				href="/"
 				aria-label={navContent.homeAriaLabel}
 				variant="link"
 				size="sm"
-				class="font-mono text-xl font-bold">
+				class="inline-flex h-full items-center gap-2 font-mono text-xl font-bold no-underline hover:no-underline">
+				<img
+					src={logoYellow}
+					alt=""
+					class="h-5 w-5 shrink-0"
+					aria-hidden="true"
+				/>
 				{navContent.brandLabel}
 			</Button>
 		</div>

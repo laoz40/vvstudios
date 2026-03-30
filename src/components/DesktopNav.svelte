@@ -6,12 +6,18 @@
 		type DOMKeyframesDefinition,
 	} from "motion";
 	import { Button } from "$lib/components/ui/button";
+	import logoYellow from "../assets/vv-logo-yellow.svg?url";
 	import { navContent } from "../content/navigation";
 
 	let { currentPath = "/" }: { currentPath?: string } = $props();
 	const navLinks = navContent.desktop.links;
 	const bookLink = navContent.desktop.bookLink;
 	const backHomeLink = navContent.desktop.backHomeLink;
+	const contactLink = navLinks.find(({ href }) => href === "/contact");
+	const visibleDesktopLinks = navLinks.filter(
+		({ href }) =>
+			href !== "/spaces" && href !== "/pricing" && href !== "/contact",
+	);
 	const isBookPage = $derived(currentPath === "/book");
 	const isHomePage = $derived(currentPath === "/");
 	let blurEnabled = $derived(currentPath !== "/");
@@ -60,21 +66,26 @@
 			class={`border-border/70 bg-background/30 rounded-md border px-4 py-3 shadow-lg transition duration-700 ease-out ${
 				blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none"
 			}`}>
-			<div class="grid grid-cols-3 items-center gap-4">
-				<div class="justify-self-start">
+			<div class="grid grid-cols-3 items-stretch gap-4">
+				<div class="flex h-full items-stretch justify-self-start">
 					<Button
 						href="/"
 						aria-current={currentPath === "/" ? "page" : undefined}
 						aria-label={navContent.homeAriaLabel}
 						variant="link"
 						size="sm"
-						class="font-mono text-xl font-medium">
+						class="inline-flex h-full items-center gap-2 self-stretch font-mono text-xl font-medium no-underline hover:no-underline">
+						<img
+							src={logoYellow}
+							alt=""
+							class="size-9 shrink-0"
+							aria-hidden="true" />
 						{navContent.brandLabel}
 					</Button>
 				</div>
 
 				<ul class="flex items-center justify-center gap-6 justify-self-center">
-					{#each navLinks as link}
+					{#each visibleDesktopLinks as link}
 						<li class="group relative">
 							<Button
 								href={link.href}
@@ -106,7 +117,19 @@
 					{/each}
 				</ul>
 
-				<div class="justify-self-end">
+				<div class="flex items-center justify-end gap-3 justify-self-end">
+					{#if contactLink}
+						<Button
+							href={contactLink.href}
+							aria-current={currentPath === contactLink.href
+								? "page"
+								: undefined}
+							variant="link"
+							size="default">
+							{contactLink.label}
+						</Button>
+					{/if}
+
 					{#if isBookPage}
 						<Button
 							href={backHomeLink.href}
