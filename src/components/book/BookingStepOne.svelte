@@ -18,6 +18,7 @@
 	const studios: BookingStepOneStudioOption[] = bookingStepOneContent.studios;
 	const durations = bookingStepOneContent.durations;
 	const bookingUrls = bookingStepOneContent.bookingUrls;
+	const unavailableStudioId = "couch";
 
 	const recurringBookingUrl = bookingStepOneContent.recurringBookingUrl;
 
@@ -61,15 +62,20 @@
 				name="studio"
 				class="grid gap-4 md:grid-cols-2">
 				{#each studios as studio}
+					{@const isUnavailable = studio.id === unavailableStudioId}
 					<div>
 						<RadioGroupItem
 							id={`studio-${studio.id}`}
 							value={studio.id}
+							disabled={isUnavailable}
 							class="peer sr-only size-0" />
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
-								"border-border bg-input hover:border-primary peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block cursor-pointer overflow-hidden rounded-lg border transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"border-border bg-input peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block overflow-hidden rounded-lg border transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								!isUnavailable && "cursor-pointer hover:border-primary",
+								isUnavailable &&
+									"cursor-not-allowed opacity-60 saturate-0",
 								selectedStudioId === studio.id && "border-primary",
 							)}>
 							<div class="relative h-56 w-full">
@@ -100,10 +106,17 @@
 								<div
 									class={cn(
 										"bg-background/90 absolute inset-x-0 bottom-0 px-4 py-2 backdrop-blur-xs transition duration-500",
-										selectedStudioId === studio.id && "bg-[#393420]/90",
+										selectedStudioId === studio.id &&
+											!isUnavailable &&
+											"bg-[#393420]/90",
 									)}>
 									<p class="text-base font-semibold">{studio.name}</p>
 									<p class="text-sm font-normal">{studio.description}</p>
+									{#if isUnavailable}
+										<p class="text-primary mt-1 text-xs font-semibold tracking-wide">
+											This option is being changed.
+										</p>
+									{/if}
 								</div>
 							</div>
 						</label>
