@@ -110,7 +110,7 @@
 											"bg-[#393420]/90",
 									)}>
 									<p class="text-base font-semibold">{studio.name}</p>
-									<p class="text-sm font-light">{studio.description}</p>
+									<p class="text-sm font-light text-muted-foreground">{studio.description}</p>
 								</div>
 							</div>
 						</label>
