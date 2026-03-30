@@ -110,13 +110,7 @@
 											"bg-[#393420]/90",
 									)}>
 									<p class="text-base font-semibold">{studio.name}</p>
-									<p class="text-sm font-normal">{studio.description}</p>
-									{#if isUnavailable}
-										<p
-											class="text-primary mt-1 text-xs font-semibold tracking-wide">
-											This option is being changed into something better.
-										</p>
-									{/if}
+									<p class="text-sm font-light">{studio.description}</p>
 								</div>
 							</div>
 						</label>
@@ -151,7 +145,7 @@
 									"border-primary bg-primary/10",
 							)}>
 							<p class="text-base font-semibold text-white">{duration.label}</p>
-							<p class="text-primary text-sm font-medium">{duration.price}</p>
+							<p class="text-primary text-sm">{duration.price}</p>
 						</label>
 					</div>
 				{/each}
@@ -167,7 +161,7 @@
 			class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
 			{bookingStepOneContent.primaryButtonLabel}
 		</Button>
-		<p class="text-muted-foreground text-sm font-medium">
+		<p class="text-muted-foreground text-sm">
 			{bookingStepOneContent.recurringPromptPrefix}
 			<button
 				type="button"

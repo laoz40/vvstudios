@@ -67,7 +67,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
 		{
 			id: "couch",
 			name: "Couch Setup",
-			description: "A more relaxed vibe",
+			description: "This setup will be changing into something better!",
 			imageSlot: "couch-image",
 			alt: "Podcast couch setup with warm lamps and casual seating",
 		},

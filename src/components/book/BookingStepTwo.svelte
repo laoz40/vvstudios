@@ -545,7 +545,7 @@
 						</fieldset>
 						{#if errors.duration}
 							<p
-								class="text-destructive text-xs font-medium"
+								class="text-destructive text-xs"
 								role="alert">
 								{errors.duration}
 							</p>
@@ -564,7 +564,7 @@
 				{#if hasSavedBookingData}
 					<div
 						class="border-primary bg-input/30 mb-8 flex flex-col items-end justify-between gap-6 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-0">
-						<p class="text-muted-foreground w-full text-sm font-medium">
+						<p class="text-muted-foreground w-full text-sm">
 							{sectionCopy.reuseSavedBookingText}
 						</p>
 						<Button
@@ -584,7 +584,7 @@
 							{sectionCopy.addOnsLegend}
 						</legend>
 						<div class="mt-4 space-y-4">
-							<p class="text-muted-foreground text-sm font-medium">
+							<p class="text-muted-foreground text-sm">
 								{sectionCopy.addOnsHelper}
 							</p>
 							<div class="grid gap-4 md:grid-cols-2">
@@ -628,7 +628,7 @@
 													<span class="text-base font-semibold text-white">
 														{option.label}
 													</span>
-													<span class="text-primary text-base font-medium">
+													<span class="text-primary text-base">
 														{option.price}
 													</span>
 												</div>
@@ -712,7 +712,7 @@
 					</fieldset>
 					{#if errors.videoFormat}
 						<p
-							class="text-destructive text-xs font-medium"
+							class="text-destructive text-xs"
 							role="alert">
 							{errors.videoFormat}
 						</p>
@@ -738,12 +738,12 @@
 							placeholder={sectionCopy.questionsPlaceholder} />
 						{#if errors.questionsOrRequests}
 							<p
-								class="text-destructive text-xs font-medium"
+								class="text-destructive text-xs"
 								role="alert">
 								{errors.questionsOrRequests}
 							</p>
 						{/if}
-						<p class="text-muted-foreground text-sm font-medium">
+						<p class="text-muted-foreground text-sm">
 							{sectionCopy.questionsContactPrefix}
 							<a
 								class="font-semibold hover:underline"
@@ -786,7 +786,7 @@
 								onblur={handleFieldBlur} />
 							{#if errors.fullName}
 								<p
-									class="text-destructive text-xs font-medium"
+									class="text-destructive text-xs"
 									role="alert">
 									{errors.fullName}
 								</p>
@@ -805,7 +805,7 @@
 								onblur={handleFieldBlur} />
 							{#if errors.phone}
 								<p
-									class="text-destructive text-xs font-medium"
+									class="text-destructive text-xs"
 									role="alert">
 									{errors.phone}
 								</p>
@@ -832,7 +832,7 @@
 								onblur={handleFieldBlur} />
 							{#if errors.accountName}
 								<p
-									class="text-destructive text-xs font-medium"
+									class="text-destructive text-xs"
 									role="alert">
 									{errors.accountName}
 								</p>
@@ -852,7 +852,7 @@
 								onblur={handleFieldBlur} />
 							{#if errors.abn}
 								<p
-									class="text-destructive text-xs font-medium"
+									class="text-destructive text-xs"
 									role="alert">
 									{errors.abn}
 								</p>
@@ -873,7 +873,7 @@
 								onblur={handleFieldBlur} />
 							{#if errors.email}
 								<p
-									class="text-destructive text-xs font-medium"
+									class="text-destructive text-xs"
 									role="alert">
 									{errors.email}
 								</p>
@@ -908,7 +908,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
@@ -919,7 +919,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
@@ -931,7 +931,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{item.label}</dt>
 										<dd
-											class="text-foreground leading-relaxed font-medium wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
 											{item.value}
 										</dd>
 									</div>
