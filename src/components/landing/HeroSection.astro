@@ -7,6 +7,7 @@ import MapPinIcon from "./MapPinIcon.svelte";
 
 <section
 	class="relative isolate flex min-h-dvh items-center"
+	data-hero-root
 	aria-labelledby="home-hero-title">
 	<div
 		class="absolute inset-0 -z-20 bg-[url('/images/mobile.jpg')] bg-cover bg-center brightness-65 md:bg-[url('/images/landing.jpg')]"
@@ -17,37 +18,108 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	</div>
 	<div
 		class="relative container mx-auto mt-60 mb-10 grid gap-4 px-4 py-24 md:py-32">
-		<p class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
-			{heroContent.eyebrow}
-		</p>
-		<h1
-			class="text-foreground m-0 max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl"
-			style="text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);">
-			{heroContent.title}
-		</h1>
-		<p
-			class="text-muted-foreground m-0 max-w-sm text-base leading-relaxed text-pretty md:max-w-xl">
-			{heroContent.lead}
-		</p>
-		<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
-			<Button
-				href={heroContent.primaryCtaHref}
-				size="lg"
-				class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
-				{heroContent.primaryCtaLabel}
-			</Button>
-			<FreeTourButton
-				client:load
-				label={heroContent.secondaryCtaLabel}
-				variant="outline"
-				size="lg"
-				class="text-foreground flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px md:flex-none"
-			/>
+		<div
+			data-hero-fade="content"
+			style="opacity: 0; transform: translateY(12px); filter: blur(10px);">
+			<p class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
+				{heroContent.eyebrow}
+			</p>
+			<h1
+				class="text-foreground m-0 max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl"
+				style="text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);">
+				{heroContent.title}
+			</h1>
+			<p
+				class="text-muted-foreground m-0 max-w-sm text-base leading-relaxed text-pretty md:max-w-xl">
+				{heroContent.lead}
+			</p>
+			<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
+				<Button
+					href={heroContent.primaryCtaHref}
+					size="lg"
+					class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
+					{heroContent.primaryCtaLabel}
+				</Button>
+				<FreeTourButton
+					client:load
+					label={heroContent.secondaryCtaLabel}
+					variant="outline"
+					size="lg"
+					class="text-foreground flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px md:flex-none"
+				/>
+			</div>
 		</div>
 	</div>
 	<div
-		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:left-auto md:text-base">
+		data-hero-fade="address"
+		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:left-auto md:text-base"
+		style="opacity: 0;">
 		<MapPinIcon class="text-primary" />
 		<span class="text-muted-foreground">{heroContent.address}</span>
 	</div>
 </section>
+
+<noscript>
+	<style>
+		[data-hero-fade] {
+			opacity: 1 !important;
+		}
+
+		[data-hero-fade="content"] {
+			transform: translateY(0) !important;
+			filter: blur(0) !important;
+		}
+	</style>
+</noscript>
+
+<script>
+	import {
+		animate,
+		type AnimationOptions,
+		type DOMKeyframesDefinition,
+	} from "motion";
+
+	const heroRoots = document.querySelectorAll("[data-hero-root]");
+	const prefersReducedMotion = window.matchMedia(
+		"(prefers-reduced-motion: reduce)",
+	).matches;
+
+	for (const heroRoot of heroRoots) {
+		const content = heroRoot.querySelector('[data-hero-fade="content"]');
+		const address = heroRoot.querySelector('[data-hero-fade="address"]');
+
+		if (!(content instanceof HTMLElement) || !(address instanceof HTMLElement)) {
+			continue;
+		}
+
+		if (prefersReducedMotion) {
+			content.style.opacity = "1";
+			content.style.transform = "translateY(0)";
+			content.style.filter = "blur(0px)";
+			address.style.opacity = "1";
+			continue;
+		}
+
+		const contentKeyframes: DOMKeyframesDefinition = {
+			opacity: [0, 1],
+			transform: ["translateY(12px)", "translateY(0px)"],
+			filter: ["blur(6px)", "blur(0px)"],
+		};
+		const addressKeyframes: DOMKeyframesDefinition = {
+			opacity: [0, 1],
+			filter: ["blur(6px)", "blur(0px)"],
+		};
+		const contentOptions: AnimationOptions = {
+			duration: 0.75,
+			ease: "easeOut",
+		};
+		const addressOptions: AnimationOptions = {
+			duration: 0.75,
+			delay: 0.15,
+			ease: "easeOut",
+		};
+
+		animate(content, contentKeyframes, contentOptions);
+		animate(address, addressKeyframes, addressOptions);
+	}
+</script>

@@ -38,7 +38,7 @@
 			transform: ["translateY(-32px)", "translateY(0px)"],
 		};
 		const options: AnimationOptions = {
-			duration: 1,
+			duration: 0.75,
 			ease: "easeOut",
 		};
 		const controls = animate(navMotionEl, keyframes, options);
