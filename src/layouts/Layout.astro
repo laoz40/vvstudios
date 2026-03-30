@@ -9,7 +9,15 @@ import "lenis/dist/lenis.css";
 import lenisScript from "../scripts/lenis.ts?url";
 
 const { title } = Astro.props;
-const currentPath = Astro.url.pathname;
+const normalizePathname = (pathname: string) => {
+	if (pathname.length > 1 && pathname.endsWith("/")) {
+		return pathname.slice(0, -1);
+	}
+
+	return pathname;
+};
+
+const currentPath = normalizePathname(Astro.url.pathname);
 const isHome = currentPath === "/";
 ---
 
