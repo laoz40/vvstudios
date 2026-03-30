@@ -14,30 +14,30 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	<div
 		class="from-background/75 via-background/45 to-background/80 absolute inset-0 -z-10 bg-linear-to-br">
 	</div>
-	<div class="relative container mx-auto grid gap-4 px-4 py-24 mt-60 md:py-32">
+	<div class="relative container mx-auto grid gap-4 px-4 py-24 mt-60 mb-10 md:py-32">
 		<p class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
 			{heroContent.eyebrow}
 		</p>
 		<h1
-			class="text-foreground m-0 max-w-xl text-4xl leading-tight font-bold tracking-tight md:text-6xl">
+			class="text-foreground m-0 max-w-sm text-4xl leading-tight text-balance font-bold tracking-tight md:text-6xl md:max-w-xl">
 			{heroContent.title}
 		</h1>
 		<p
-			class="text-muted-foreground m-0 max-w-3xl text-base leading-relaxed">
+			class="text-muted-foreground m-0 max-w-sm text-base text-pretty leading-relaxed md:max-w-xl">
 			{heroContent.lead}
 		</p>
-		<div class="mt-12 flex w-full flex-wrap gap-3">
+		<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
 			<Button
 				href={heroContent.primaryCtaHref}
 				size="lg"
-				class="text-base border-primary border-2 px-8 py-5 font-semibold hover:border-[#d4aa00] md:flex-none">
+				class="border-primary text-base flex-1 border-2 px-8 py-5 font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
 				{heroContent.primaryCtaLabel}
 			</Button>
 			<Button
 				href={heroContent.secondaryCtaHref}
 				variant="outline"
 				size="lg"
-				class="text-base text-foreground hover:bg-accent/80 flex-1 border-2 px-8 py-5 font-semibold md:flex-none">
+				class="text-foreground text-base flex-1 border-2 px-8 py-5 font-semibold transition-transform duration-200 ease-out hover:-translate-y-px md:flex-none">
 				{heroContent.secondaryCtaLabel}
 			</Button>
 		</div>
@@ -49,7 +49,7 @@ import MapPinIcon from "./MapPinIcon.svelte";
 		<span class="text-2xl leading-none font-light">↓</span>
 	</a>
 	<div
-		class="text-muted-foreground absolute right-0 bottom-16 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:text-base">
+		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:left-auto md:right-8 md:text-base">
 		<MapPinIcon class="text-primary" />
 		<span class="text-muted-foreground">{heroContent.address}</span>
 	</div>

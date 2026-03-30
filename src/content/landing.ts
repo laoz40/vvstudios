@@ -12,8 +12,8 @@ export type HeroContent = {
 
 export const heroContent: HeroContent = {
 	eyebrow: "From Vertigo Visuals",
-	title: "The Only Pro Studio in South West Sydney",
-	lead: "Professional production spaces for podcasts, e-commerce, and campaign shoots.",
+	title: "The Only Studio in South West Sydney",
+	lead: "Professional production spaces for podcasts, e‑commerce, and campaign shoots.",
 	primaryCtaLabel: "Book session",
 	primaryCtaHref: "/book",
 	secondaryCtaLabel: "Get free tour",
