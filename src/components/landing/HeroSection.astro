@@ -1,5 +1,6 @@
 ---
 import { Button } from "$lib/components/ui/button/index.js";
+import FreeTourButton from "../shared/FreeTourButton.svelte";
 import { heroContent } from "../../content/landing";
 import MapPinIcon from "./MapPinIcon.svelte";
 ---
@@ -8,43 +9,44 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	class="relative isolate flex min-h-dvh items-center"
 	aria-labelledby="home-hero-title">
 	<div
-		class="absolute inset-0 -z-20 bg-[url('/images/landing.jpg')] bg-cover bg-center brightness-65"
+		class="absolute inset-0 -z-20 bg-[url('/images/mobile.jpg')] bg-cover bg-center brightness-65 md:bg-[url('/images/landing.jpg')]"
 		aria-hidden="true">
 	</div>
 	<div
 		class="from-background/75 via-background/45 to-background/80 absolute inset-0 -z-10 bg-linear-to-br">
 	</div>
-	<div class="relative container mx-auto grid gap-4 px-4 py-24 mt-60 mb-10 md:py-32">
+	<div
+		class="relative container mx-auto mt-60 mb-10 grid gap-4 px-4 py-24 md:py-32">
 		<p class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
 			{heroContent.eyebrow}
 		</p>
 		<h1
-			class="text-foreground m-0 max-w-sm text-4xl leading-tight text-balance font-bold tracking-tight md:text-6xl md:max-w-xl"
+			class="text-foreground m-0 max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl"
 			style="text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);">
 			{heroContent.title}
 		</h1>
 		<p
-			class="text-muted-foreground m-0 max-w-sm text-base text-pretty leading-relaxed md:max-w-xl">
+			class="text-muted-foreground m-0 max-w-sm text-base leading-relaxed text-pretty md:max-w-xl">
 			{heroContent.lead}
 		</p>
 		<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
 			<Button
 				href={heroContent.primaryCtaHref}
 				size="lg"
-				class="border-primary text-base flex-1 border-2 px-8 py-5 font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
+				class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
 				{heroContent.primaryCtaLabel}
 			</Button>
-			<Button
-				href={heroContent.secondaryCtaHref}
+			<FreeTourButton
+				client:load
+				label={heroContent.secondaryCtaLabel}
 				variant="outline"
 				size="lg"
-				class="text-foreground text-base flex-1 border-2 px-8 py-5 font-semibold transition-transform duration-200 ease-out hover:-translate-y-px md:flex-none">
-				{heroContent.secondaryCtaLabel}
-			</Button>
+				class="text-foreground flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px md:flex-none"
+			/>
 		</div>
 	</div>
 	<div
-		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:left-auto md:right-8 md:text-base">
+		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:left-auto md:text-base">
 		<MapPinIcon class="text-primary" />
 		<span class="text-muted-foreground">{heroContent.address}</span>
 	</div>
