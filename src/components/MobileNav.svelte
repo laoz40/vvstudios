@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { fade, fly } from "svelte/transition";
 	import Menu from "@lucide/svelte/icons/menu";
 	import X from "@lucide/svelte/icons/x";
 	import {
@@ -21,6 +22,9 @@
 	const isBookPage = $derived(currentPath === "/book");
 	let blurEnabled = $derived(currentPath !== "/");
 	let navMotionEl: HTMLDivElement | null = $state(null);
+	let prefersReducedMotion = $state(false);
+	const getTransitionDuration = (normalDuration: number) =>
+		prefersReducedMotion ? 0 : normalDuration;
 
 	const closeMenu = () => {
 		isOpen = false;
@@ -51,11 +55,11 @@
 	});
 
 	onMount(() => {
-		if (!navMotionEl || !isHomePage) return;
-
-		const prefersReducedMotion = window.matchMedia(
+		prefersReducedMotion = window.matchMedia(
 			"(prefers-reduced-motion: reduce)",
 		).matches;
+
+		if (!navMotionEl || !isHomePage) return;
 
 		if (prefersReducedMotion) {
 			navMotionEl.style.opacity = "1";
@@ -134,11 +138,15 @@
 {#if isOpen}
 	<button
 		type="button"
-		class="fixed inset-0 z-40 bg-black/60 md:hidden"
+		in:fade={{ duration: getTransitionDuration(220) }}
+		out:fade={{ duration: getTransitionDuration(220) }}
+		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
 		onclick={closeMenu}
 		aria-label={navContent.mobile.closeNavAriaLabel}></button>
 	<div
 		id="mobile-nav-panel"
+		in:fly={{ x: 48, duration: getTransitionDuration(260) }}
+		out:fly={{ x: 48, duration: getTransitionDuration(220) }}
 		class="border-border bg-background fixed top-0 right-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col border-l p-6 md:hidden">
 		<div class="mb-6 flex items-center justify-between">
 			<p class="text-muted-foreground text-sm font-semibold tracking-wide">
