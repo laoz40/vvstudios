@@ -147,14 +147,14 @@
 		id="mobile-nav-panel"
 		in:fly={{ x: 48, duration: getTransitionDuration(260) }}
 		out:fly={{ x: 48, duration: getTransitionDuration(220) }}
-		class="border-border bg-background fixed top-0 right-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col border-l p-6 md:hidden">
-		<div class="mb-6 flex items-center justify-between">
-			<p class="text-muted-foreground text-sm font-semibold tracking-wide">
+		class="border-border bg-background fixed top-0 right-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col border-l p-5 shadow-xl md:hidden">
+		<div class="mb-5 flex items-center justify-between border-b pb-4">
+			<p class="text-muted-foreground text-lg font-mono font-semibold tracking-wide">
 				{navContent.brandLabel}
 			</p>
 			<button
 				type="button"
-				class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+				class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
 				aria-label={navContent.mobile.closeNavAriaLabel}
 				onclick={closeMenu}>
 				<span aria-hidden="true">
@@ -162,25 +162,29 @@
 				</span>
 			</button>
 		</div>
-		<ul class="flex flex-col gap-2">
+		<ul class="flex flex-col gap-1">
 			{#each navLinks as link}
 				<li>
 					<a
 						href={link.href}
 						aria-current={currentPath === link.href ? "page" : undefined}
-						class="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+						class={`focus-visible:ring-ring flex h-11 items-center rounded-md px-3 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none ${
+							currentPath === link.href
+								? "bg-accent text-accent-foreground"
+								: "text-foreground hover:bg-accent hover:text-accent-foreground"
+						}`}
 						onclick={closeMenu}>
 						{link.label}
 					</a>
 				</li>
 			{/each}
-			<li>
+			<li class="mt-3 border-t pt-4">
 				{#if isBookPage}
 					<Button
 						href={backHomeLink.href}
 						variant="secondary"
 						size="default"
-						class="w-full justify-start"
+						class="h-11 w-full justify-center"
 						onclick={closeMenu}>
 						{backHomeLink.label}
 					</Button>
@@ -189,7 +193,7 @@
 						href={bookLink.href}
 						aria-current={currentPath === "/book" ? "page" : undefined}
 						size="default"
-						class="w-full justify-start"
+						class="h-11 w-full justify-center"
 						onclick={closeMenu}>
 						{bookLink.label}
 					</Button>
