@@ -104,8 +104,7 @@
 						src={logoYellow}
 						alt=""
 						class="h-5 w-5 shrink-0"
-						aria-hidden="true"
-					/>
+						aria-hidden="true" />
 					{navContent.brandLabel}
 				</Button>
 			</div>

@@ -901,8 +901,8 @@
 			{isSubmitted
 				? "SUBMITTED"
 				: isSubmitting
-				? sectionCopy.submitButtonLoading
-				: sectionCopy.submitButtonDefault}
+					? sectionCopy.submitButtonLoading
+					: sectionCopy.submitButtonDefault}
 		</Button>
 		{#if status}
 			<p

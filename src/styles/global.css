@@ -47,7 +47,9 @@
 	--sidebar-ring: #f5c400;
 
 	--font-sans: "Gabarito Variable", ui-sans-serif, sans-serif, system-ui;
-	--font-serif: "Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-serif:
+		"Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times,
+		serif;
 	--font-mono:
 		"Squada One", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
 		"Liberation Mono", "Courier New", monospace;

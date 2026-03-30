@@ -73,9 +73,8 @@
 							for={`studio-${studio.id}`}
 							class={cn(
 								"border-border bg-input peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block overflow-hidden rounded-lg border transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
-								!isUnavailable && "cursor-pointer hover:border-primary",
-								isUnavailable &&
-									"cursor-not-allowed opacity-60 saturate-0",
+								!isUnavailable && "hover:border-primary cursor-pointer",
+								isUnavailable && "cursor-not-allowed opacity-60 saturate-0",
 								selectedStudioId === studio.id && "border-primary",
 							)}>
 							<div class="relative h-56 w-full">
@@ -113,7 +112,8 @@
 									<p class="text-base font-semibold">{studio.name}</p>
 									<p class="text-sm font-normal">{studio.description}</p>
 									{#if isUnavailable}
-										<p class="text-primary mt-1 text-xs font-semibold tracking-wide">
+										<p
+											class="text-primary mt-1 text-xs font-semibold tracking-wide">
 											This option is being changed into something better.
 										</p>
 									{/if}
