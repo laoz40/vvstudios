@@ -1,4 +1,6 @@
 ---
+import heroDesktop from "../../assets/bg/landing.webp";
+import heroMobile from "../../assets/bg/mobile.webp";
 import { Button } from "$lib/components/ui/button/index.js";
 import FreeTourButton from "../shared/FreeTourButton.svelte";
 import { heroContent } from "../../content/landing";
@@ -9,9 +11,19 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	class="relative isolate flex min-h-dvh items-center"
 	data-hero-root
 	aria-labelledby="home-hero-title">
-	<div
-		class="absolute inset-0 -z-20 bg-[url('/images/mobile.jpg')] bg-cover bg-center brightness-65 md:bg-[url('/images/landing.jpg')]"
-		aria-hidden="true">
+<div class="absolute inset-0 -z-20 overflow-hidden" aria-hidden="true">
+  <picture>
+    <source media="(min-width: 768px)" srcset={heroDesktop.src} />
+    <img
+      src={heroMobile.src}
+      alt=""
+      loading="eager"
+      decoding="sync"
+      fetchpriority="high"
+      class="h-full w-full object-cover brightness-65"
+    />
+  </picture>
+</div>
 	</div>
 	<div
 		class="from-background/75 via-background/45 to-background/80 absolute inset-0 -z-10 bg-linear-to-br">
