@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import { Button } from "$lib/components/ui/button/index.js";
 import Layout from "../layouts/Layout.astro";
 import micImage from "../assets/mic.jpg";
@@ -14,11 +15,13 @@ const directContactItems = contactItems.filter(
 	<section class="px-4 pt-24 pb-12 sm:pt-28 sm:pb-16">
 		<div class="mx-auto w-full max-w-2xl">
 			<div class="relative overflow-hidden rounded-md shadow-2xl">
-				<img
-					src={micImage.src}
+				<Image
+					src={micImage}
 					alt="Studio microphone"
 					class="h-auto w-full rounded-md object-cover"
 					loading="lazy"
+					widths={[480, 672, 960, 1344]}
+					sizes="(max-width: 672px) 100vw, 672px"
 				/>
 				<div class="absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
 					<h1
