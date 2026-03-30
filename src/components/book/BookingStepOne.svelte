@@ -114,7 +114,7 @@
 									<p class="text-sm font-normal">{studio.description}</p>
 									{#if isUnavailable}
 										<p class="text-primary mt-1 text-xs font-semibold tracking-wide">
-											This option is being changed.
+											This option is being changed into something better.
 										</p>
 									{/if}
 								</div>
