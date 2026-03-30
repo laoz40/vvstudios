@@ -961,7 +961,7 @@
 			class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
 			disabled={isSubmitting || isSubmitted}>
 			{isSubmitted
-				? "SUBMITTED"
+				? sectionCopy.submitButtonSubmitted
 				: isSubmitting
 					? sectionCopy.submitButtonLoading
 					: sectionCopy.submitButtonDefault}

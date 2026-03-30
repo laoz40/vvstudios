@@ -1,6 +1,6 @@
 ---
-import { Button } from "$lib/components/ui/button/index.js";
 import FreeTourButton from "../components/shared/FreeTourButton.svelte";
+import BookSessionButton from "../components/shared/BookSessionButton.astro";
 import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
@@ -64,12 +64,10 @@ const galleryImages = Object.entries(galleryModules)
 			</div>
 		</div>
 		<div class="mx-auto mt-7 md:mt-12 flex max-w-6xl flex-wrap gap-4 sm:gap-3">
-			<Button
-				href="/book"
+			<BookSessionButton
 				size="lg"
-				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8">
-				Book Session
-			</Button>
+				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8"
+			/>
 			<FreeTourButton
 				client:load
 				class="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"

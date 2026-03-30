@@ -1,0 +1,27 @@
+---
+import { Button } from "$lib/components/ui/button/index.js";
+import { bookSessionCta } from "../../content/cta";
+
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+
+type Props = {
+	size?: ButtonSize;
+	class?: string;
+	href?: string;
+	label?: string;
+};
+
+const {
+	size = "lg",
+	class: className,
+	href = bookSessionCta.href,
+	label = bookSessionCta.label,
+} = Astro.props as Props;
+---
+
+<Button
+	href={href}
+	size={size}
+	class={className}>
+	{label}
+</Button>

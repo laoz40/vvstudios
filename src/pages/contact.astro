@@ -1,10 +1,14 @@
 ---
 import { Image } from "astro:assets";
-import { Button } from "$lib/components/ui/button/index.js";
 import Layout from "../layouts/Layout.astro";
 import micImage from "../assets/mic.jpg";
 import FreeTourButton from "../components/shared/FreeTourButton.svelte";
-import { contactItems, studioAddressHref } from "../content/contact";
+import BookSessionButton from "../components/shared/BookSessionButton.astro";
+import {
+	contactItems,
+	contactPageContent,
+	studioAddressHref,
+} from "../content/contact";
 
 const directContactItems = contactItems.filter(
 	({ href }) => href !== studioAddressHref,
@@ -26,11 +30,11 @@ const directContactItems = contactItems.filter(
 				<div class="absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
 					<h1
 						class="text-foreground text-3xl font-bold tracking-tight text-shadow-sm md:text-4xl">
-						Contact
+						{contactPageContent.title}
 					</h1>
 
 					<dl
-						aria-label="Contact information"
+						aria-label={contactPageContent.contactInfoAriaLabel}
 						class="mt-1 space-y-2 md:mt-6">
 						{
 							directContactItems.map((item) => (
@@ -53,12 +57,10 @@ const directContactItems = contactItems.filter(
 			</div>
 		</div>
 		<div class="mx-auto mt-7 md:mt-12 flex max-w-2xl flex-wrap gap-4 sm:gap-3">
-			<Button
-				href="/book"
+			<BookSessionButton
 				size="lg"
-				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8">
-				Book Session
-			</Button>
+				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8"
+			/>
 			<FreeTourButton
 				client:load
 				class="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"

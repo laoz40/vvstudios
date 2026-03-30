@@ -3,40 +3,21 @@ import type {
 	BookingStepOneContent,
 	BookingStepTwoContent,
 } from "./bookingTypes";
+import { requireEnv } from "../lib/requireEnv";
 
 // Environment variables
-const tableBookingUrl1 = import.meta.env.PUBLIC_BOOKING_TABLE_1_URL;
-const tableBookingUrl2 = import.meta.env.PUBLIC_BOOKING_TABLE_2_URL;
-const tableBookingUrl3 = import.meta.env.PUBLIC_BOOKING_TABLE_3_URL;
-const couchBookingUrl1 = import.meta.env.PUBLIC_BOOKING_COUCH_1_URL;
-const couchBookingUrl2 = import.meta.env.PUBLIC_BOOKING_COUCH_2_URL;
-const couchBookingUrl3 = import.meta.env.PUBLIC_BOOKING_COUCH_3_URL;
-const recurringBookingUrl = import.meta.env.PUBLIC_BOOKING_RECURRING_URL;
+const tableBookingUrl1 = requireEnv("PUBLIC_BOOKING_TABLE_1_URL");
+const tableBookingUrl2 = requireEnv("PUBLIC_BOOKING_TABLE_2_URL");
+const tableBookingUrl3 = requireEnv("PUBLIC_BOOKING_TABLE_3_URL");
+const couchBookingUrl1 = requireEnv("PUBLIC_BOOKING_COUCH_1_URL");
+const couchBookingUrl2 = requireEnv("PUBLIC_BOOKING_COUCH_2_URL");
+const couchBookingUrl3 = requireEnv("PUBLIC_BOOKING_COUCH_3_URL");
+const recurringBookingUrl = requireEnv("PUBLIC_BOOKING_RECURRING_URL");
 
-const scriptUrl = import.meta.env.APP_SCRIPT_URL;
+const scriptUrl = requireEnv("APP_SCRIPT_URL");
 
-const contactPhone = import.meta.env.APP_CONTACT_PHONE;
-const contactEmail = import.meta.env.APP_CONTACT_EMAIL;
-
-if (!tableBookingUrl1)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_TABLE_1_URL");
-if (!tableBookingUrl2)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_TABLE_2_URL");
-if (!tableBookingUrl3)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_TABLE_3_URL");
-if (!couchBookingUrl1)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_COUCH_1_URL");
-if (!couchBookingUrl2)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_COUCH_2_URL");
-if (!couchBookingUrl3)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_COUCH_3_URL");
-if (!recurringBookingUrl)
-	throw new Error("Missing required env var: PUBLIC_BOOKING_RECURRING_URL");
-if (!scriptUrl) throw new Error("Missing required env var: APP_SCRIPT_URL");
-if (!contactPhone)
-	throw new Error("Missing required env var: APP_CONTACT_PHONE");
-if (!contactEmail)
-	throw new Error("Missing required env var: APP_CONTACT_EMAIL");
+const contactPhone = requireEnv("APP_CONTACT_PHONE");
+const contactEmail = requireEnv("APP_CONTACT_EMAIL");
 
 export const bookingPageContent: BookingPageContent = {
 	stepOne: {
@@ -215,6 +196,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		selectedBadge: "SELECTED",
 		submitButtonDefault: "COMPLETE BOOKING",
 		submitButtonLoading: "SUBMITTING…",
+		submitButtonSubmitted: "SUBMITTED",
 	},
 	summary: {
 		bookingDetailsTitle: "Booking Details",

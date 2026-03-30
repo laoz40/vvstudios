@@ -53,3 +53,7 @@ This repository is an Astro 5 + Svelte 5 + TypeScript + Tailwind CSS v4 project.
 - Do not add new dependencies unless needed for the task.
 - Do not edit generated artifacts unless the task explicitly requires it.
 - Keep diffs small and task-focused.
+
+### Content
+
+- Define page text content in `src/content` and use `import` to reference it.

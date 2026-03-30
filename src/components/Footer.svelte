@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { contactItems } from "../content/contact";
-
-	const studioName = "VV Podcast Studio";
+	import { footerContent } from "../content/footer";
 
 	const currentYear = new Date().toLocaleDateString(undefined, {
 		year: "numeric",
@@ -14,16 +13,16 @@
 			class="flex flex-col gap-5 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
 			<div class="space-y-2">
 				<p class="text-foreground text-xl font-black tracking-wide">
-					{studioName}
+					{footerContent.studioName}
 				</p>
 				<p class="text-muted-foreground max-w-md text-sm leading-relaxed">
-					Studio hire and production support in South West Sydney.
+					{footerContent.lead}
 				</p>
 			</div>
 
 			<ul
 				class="flex flex-col gap-3 text-sm sm:items-end"
-				aria-label="Contact details">
+				aria-label={footerContent.contactAriaLabel}>
 				{#each contactItems as item}
 					<li class="text-muted-foreground flex flex-col gap-1 sm:items-end">
 						<span
@@ -44,10 +43,10 @@
 			class="border-border flex flex-col gap-3 border-t pt-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
 			<p class="text-muted-foreground text-sm font-medium">
 				&copy; {currentYear}
-				{studioName}
+				{footerContent.parentCompanyName}
 			</p>
 			<p class="text-muted-foreground text-sm">
-				Available for bookings, tours, and production enquiries.
+				{footerContent.availability}
 			</p>
 		</div>
 	</div>

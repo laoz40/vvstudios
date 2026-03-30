@@ -1,3 +1,5 @@
+import { requireEnv } from "../lib/requireEnv";
+
 export type FreeTourContent = {
 	ctaLabel: string;
 	url: string;
@@ -6,10 +8,7 @@ export type FreeTourContent = {
 	modalIframeTitle: string;
 };
 
-const freeTourUrl = import.meta.env.PUBLIC_FREE_TOUR_URL;
-
-if (!freeTourUrl)
-	throw new Error("Missing required env var: PUBLIC_FREE_TOUR_URL");
+const freeTourUrl = requireEnv("PUBLIC_FREE_TOUR_URL");
 
 export const freeTourContent: FreeTourContent = {
 	ctaLabel: "Take free tour",

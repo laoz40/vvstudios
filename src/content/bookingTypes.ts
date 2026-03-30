@@ -112,6 +112,7 @@ export type BookingStepTwoContent = {
 		selectedBadge: string;
 		submitButtonDefault: string;
 		submitButtonLoading: string;
+		submitButtonSubmitted: string;
 	};
 	summary: {
 		bookingDetailsTitle: string;

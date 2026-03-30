@@ -1,3 +1,5 @@
+import { bookSessionCta } from "./cta";
+
 export type NavLink = {
 	href: string;
 	label: string;
@@ -17,8 +19,8 @@ export const navContent = {
 			{ href: "/photos", label: "Photos" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
-		bookLink: { href: "/book", label: "Book Session" } satisfies NavCta,
-		backHomeLink: { href: "/", label: "Back to Home" } satisfies NavCta,
+		bookLink: bookSessionCta satisfies NavCta,
+		backHomeLink: { href: "/", label: "Back to home" } satisfies NavCta,
 	},
 	mobile: {
 		navAriaLabel: "Navigation Menu",
@@ -31,7 +33,7 @@ export const navContent = {
 			{ href: "/photos", label: "Photos" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
-		bookLink: { href: "/book", label: "Book Session" } satisfies NavCta,
-		backHomeLink: { href: "/", label: "Back to Home" } satisfies NavCta,
+		bookLink: bookSessionCta satisfies NavCta,
+		backHomeLink: { href: "/", label: "Back to home" } satisfies NavCta,
 	},
 };

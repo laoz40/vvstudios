@@ -1,8 +1,8 @@
 ---
 import heroDesktop from "../../assets/bg/landing.webp";
 import heroMobile from "../../assets/bg/mobile.webp";
-import { Button } from "$lib/components/ui/button/index.js";
 import FreeTourButton from "../shared/FreeTourButton.svelte";
+import BookSessionButton from "../shared/BookSessionButton.astro";
 import { heroContent } from "../../content/landing";
 import MapPinIcon from "./MapPinIcon.svelte";
 ---
@@ -51,12 +51,10 @@ import MapPinIcon from "./MapPinIcon.svelte";
 				{heroContent.lead}
 			</p>
 			<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
-				<Button
-					href={heroContent.primaryCtaHref}
+				<BookSessionButton
 					size="lg"
-					class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none">
-					{heroContent.primaryCtaLabel}
-				</Button>
+					class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none"
+				/>
 				<FreeTourButton
 					client:load
 					label={heroContent.secondaryCtaLabel}
