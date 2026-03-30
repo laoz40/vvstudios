@@ -64,6 +64,7 @@
 	type BookingErrors = Partial<
 		Record<keyof z.infer<typeof BookingSchema>, string>
 	>;
+	type BookingField = keyof z.infer<typeof BookingSchema>;
 
 	const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
 
@@ -306,6 +307,56 @@
 		},
 	]);
 
+	const getFieldValue = (field: BookingField): string => {
+		switch (field) {
+			case "date":
+				return dateString;
+			case "duration":
+				return selectedDuration;
+			case "videoFormat":
+				return selectedVideoFormat;
+			case "questionsOrRequests":
+				return questionsOrRequests;
+			case "fullName":
+				return fullName;
+			case "phone":
+				return phone;
+			case "accountName":
+				return accountName;
+			case "abn":
+				return abn;
+			case "email":
+				return email;
+		}
+	};
+
+	const handleFieldBlur = (event: FocusEvent) => {
+		const target = event.currentTarget as
+			| HTMLInputElement
+			| HTMLTextAreaElement
+			| null;
+		if (!target || !target.name) return;
+
+		const fieldName = target.name as BookingField;
+		if (!(fieldName in BookingSchema.shape)) return;
+
+		const fieldSchema = BookingSchema.shape[fieldName];
+		const result = fieldSchema.safeParse(getFieldValue(fieldName));
+
+		if (result.success) {
+			if (!errors[fieldName]) return;
+			const { [fieldName]: _removed, ...rest } = errors;
+			errors = rest;
+			return;
+		}
+
+		errors = {
+			...errors,
+			[fieldName]:
+				result.error.issues[0]?.message ?? "Please check this field and try again.",
+		};
+	};
+
 	const handleSubmit = async (event: SubmitEvent) => {
 		event.preventDefault();
 
@@ -438,7 +489,7 @@
 							class="border-border w-full rounded-lg border [--cell-size:--spacing(9)] md:w-fit" />
 						{#if errors.date}
 							<p
-								class="text-destructive text-xs font-medium"
+								class="text-destructive text-xs"
 								role="alert">
 								{errors.date}
 							</p>
@@ -678,8 +729,10 @@
 					<div class="space-y-3">
 						<Textarea
 							id="questionsOrRequests"
+							name="questionsOrRequests"
 							autocomplete="off"
 							bind:value={questionsOrRequests}
+							onblur={handleFieldBlur}
 							rows={2}
 							class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
 							placeholder={sectionCopy.questionsPlaceholder} />
@@ -725,10 +778,12 @@
 							<Label for="fullName">{sectionCopy.fullNameLabel}</Label>
 							<Input
 								id="fullName"
+								name="fullName"
 								placeholder={sectionCopy.fullNamePlaceholder}
 								autocomplete="name"
 								class="rounded-lg"
-								bind:value={fullName} />
+								bind:value={fullName}
+								onblur={handleFieldBlur} />
 							{#if errors.fullName}
 								<p
 									class="text-destructive text-xs font-medium"
@@ -741,11 +796,13 @@
 							<Label for="phone">{sectionCopy.phoneLabel}</Label>
 							<Input
 								id="phone"
+								name="phone"
 								type="tel"
 								placeholder={sectionCopy.phonePlaceholder}
 								autocomplete="tel"
 								class="rounded-lg"
-								bind:value={phone} />
+								bind:value={phone}
+								onblur={handleFieldBlur} />
 							{#if errors.phone}
 								<p
 									class="text-destructive text-xs font-medium"
@@ -767,10 +824,12 @@
 							<Label for="accountName">{sectionCopy.accountNameLabel}</Label>
 							<Input
 								id="accountName"
+								name="accountName"
 								placeholder={sectionCopy.accountNamePlaceholder}
 								autocomplete="organization"
 								class="rounded-lg"
-								bind:value={accountName} />
+								bind:value={accountName}
+								onblur={handleFieldBlur} />
 							{#if errors.accountName}
 								<p
 									class="text-destructive text-xs font-medium"
@@ -789,7 +848,8 @@
 								pattern="[0-9 ]*"
 								autocomplete="on"
 								class="rounded-lg"
-								bind:value={abn} />
+								bind:value={abn}
+								onblur={handleFieldBlur} />
 							{#if errors.abn}
 								<p
 									class="text-destructive text-xs font-medium"
@@ -804,11 +864,13 @@
 							<Label for="invoiceEmail">{sectionCopy.invoiceEmailLabel}</Label>
 							<Input
 								id="invoiceEmail"
+								name="email"
 								type="email"
 								placeholder={sectionCopy.invoiceEmailPlaceholder}
 								autocomplete="email"
 								class="rounded-lg"
-								bind:value={email} />
+								bind:value={email}
+								onblur={handleFieldBlur} />
 							{#if errors.email}
 								<p
 									class="text-destructive text-xs font-medium"
