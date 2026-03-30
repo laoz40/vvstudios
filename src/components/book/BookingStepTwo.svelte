@@ -126,6 +126,7 @@
 	let summarySectionEl: HTMLDivElement | undefined = $state(undefined);
 
 	let isSubmitting = $state(false);
+	let isSubmitted = $state(false);
 	let status = $state("");
 	let errors: BookingErrors = $state({});
 
@@ -308,6 +309,10 @@
 	const handleSubmit = async (event: SubmitEvent) => {
 		event.preventDefault();
 
+		if (isSubmitted) {
+			return;
+		}
+
 		if (!scriptUrl) {
 			status = statusMessages.missingScriptUrl;
 			return;
@@ -393,6 +398,7 @@
 				hasSavedBookingData = true;
 			}
 			if (response.ok) {
+				isSubmitted = true;
 				resetFormState();
 			}
 		} catch (error) {
@@ -891,8 +897,10 @@
 			type="submit"
 			size="lg"
 			class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
-			disabled={isSubmitting}>
-			{isSubmitting
+			disabled={isSubmitting || isSubmitted}>
+			{isSubmitted
+				? "SUBMITTED"
+				: isSubmitting
 				? sectionCopy.submitButtonLoading
 				: sectionCopy.submitButtonDefault}
 		</Button>
