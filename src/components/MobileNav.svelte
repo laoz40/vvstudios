@@ -16,7 +16,9 @@
 	let isOpen = $state(false);
 	const navLinks = navContent.mobile.links;
 	const bookLink = navContent.mobile.bookLink;
+	const backHomeLink = navContent.mobile.backHomeLink;
 	const isHomePage = $derived(currentPath === "/");
+	const isBookPage = $derived(currentPath === "/book");
 	let blurEnabled = $derived(currentPath !== "/");
 	let navMotionEl: HTMLDivElement | null = $state(null);
 
@@ -166,13 +168,25 @@
 				</li>
 			{/each}
 			<li>
-				<a
-					href={bookLink.href}
-					aria-current={currentPath === "/book" ? "page" : undefined}
-					class="bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block rounded-md px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-					onclick={closeMenu}>
-					{bookLink.label}
-				</a>
+				{#if isBookPage}
+					<Button
+						href={backHomeLink.href}
+						variant="secondary"
+						size="default"
+						class="w-full justify-start"
+						onclick={closeMenu}>
+						{backHomeLink.label}
+					</Button>
+				{:else}
+					<Button
+						href={bookLink.href}
+						aria-current={currentPath === "/book" ? "page" : undefined}
+						size="default"
+						class="w-full justify-start"
+						onclick={closeMenu}>
+						{bookLink.label}
+					</Button>
+				{/if}
 			</li>
 		</ul>
 	</div>
