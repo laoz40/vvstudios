@@ -13,11 +13,6 @@
 	const navLinks = navContent.desktop.links;
 	const bookLink = navContent.desktop.bookLink;
 	const backHomeLink = navContent.desktop.backHomeLink;
-	const contactLink = navLinks.find(({ href }) => href === "/contact");
-	const visibleDesktopLinks = navLinks.filter(
-		({ href }) =>
-			href !== "/spaces" && href !== "/pricing" && href !== "/contact",
-	);
 	const isBookPage = $derived(currentPath === "/book");
 	const isHomePage = $derived(currentPath === "/");
 	let blurEnabled = $derived(currentPath !== "/");
@@ -66,7 +61,7 @@
 			class={`border-border/70 bg-background/30 rounded-md border px-4 py-3 shadow-lg transition duration-700 ease-out ${
 				blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none"
 			}`}>
-			<div class="grid grid-cols-3 items-stretch gap-4">
+			<div class="flex items-stretch justify-between gap-4">
 				<div class="flex h-full items-stretch justify-self-start">
 					<Button
 						href="/"
@@ -84,51 +79,20 @@
 					</Button>
 				</div>
 
-				<ul class="flex items-center justify-center gap-6 justify-self-center">
-					{#each visibleDesktopLinks as link}
-						<li class="group relative">
-							<Button
-								href={link.href}
-								aria-current={currentPath === link.href ? "page" : undefined}
-								variant="link"
-								size="sm">
-								{link.label}
-							</Button>
-							{#if link.dropdown}
-								<div
-									class="pointer-events-none absolute top-full left-1/2 w-44 -translate-x-1/2 pt-2 group-focus-within:pointer-events-auto group-hover:pointer-events-auto">
-									<div
-										class="bg-background/95 border-border rounded-md border p-2 opacity-0 shadow-lg backdrop-blur-md transition duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-										<ul class="flex flex-col gap-1">
-											{#each link.dropdown as dropdownItem}
-												<li>
-													<a
-														href={dropdownItem.href}
-														class="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring text-foreground block rounded-md px-3 py-2 text-base transition-colors focus-visible:ring-2 focus-visible:outline-none">
-														{dropdownItem.label}
-													</a>
-												</li>
-											{/each}
-										</ul>
-									</div>
-								</div>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-
-				<div class="flex items-center justify-end gap-3 justify-self-end">
-					{#if contactLink}
-						<Button
-							href={contactLink.href}
-							aria-current={currentPath === contactLink.href
-								? "page"
-								: undefined}
-							variant="link"
-							size="default">
-							{contactLink.label}
-						</Button>
-					{/if}
+				<div class="flex items-center justify-end gap-5">
+					<ul class="flex items-center gap-3">
+						{#each navLinks as link}
+							<li class="group relative">
+								<Button
+									href={link.href}
+									aria-current={currentPath === link.href ? "page" : undefined}
+									variant="link"
+									size="sm">
+									{link.label}
+								</Button>
+							</li>
+						{/each}
+					</ul>
 
 					{#if isBookPage}
 						<Button

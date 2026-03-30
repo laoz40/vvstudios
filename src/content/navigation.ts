@@ -1,12 +1,6 @@
-export type NavDropdownItem = {
-	href: string;
-	label: string;
-};
-
 export type NavLink = {
 	href: string;
 	label: string;
-	dropdown?: NavDropdownItem[];
 };
 
 export type NavCta = {
@@ -20,15 +14,7 @@ export const navContent = {
 	desktop: {
 		navAriaLabel: "Primary navigation",
 		links: [
-			{
-				href: "/spaces",
-				label: "Recording Spaces",
-				dropdown: [
-					{ href: "/spaces", label: "Browse Setups" },
-					{ href: "/spaces", label: "View Equipment" },
-				],
-			},
-			{ href: "/pricing", label: "Pricing" },
+			{ href: "/photos", label: "Photos" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
 		bookLink: { href: "/book", label: "Book Session" } satisfies NavCta,
@@ -42,8 +28,7 @@ export const navContent = {
 		closeMenuSrText: "Close menu",
 		links: [
 			{ href: "/", label: "Home" },
-			{ href: "/spaces", label: "Recording Spaces" },
-			{ href: "/pricing", label: "Pricing" },
+			{ href: "/photos", label: "Photos" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
 		bookLink: { href: "/book", label: "Book Session" } satisfies NavCta,

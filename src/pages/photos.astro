@@ -1,0 +1,63 @@
+---
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+import Layout from "../layouts/Layout.astro";
+
+type GalleryModule = {
+	default: ImageMetadata;
+};
+
+type GalleryImage = {
+	alt: string;
+	filename: string;
+	src: ImageMetadata;
+};
+
+const galleryModules = import.meta.glob<GalleryModule>(
+	"../assets/gallery/*.{jpg,jpeg,png,webp,avif}",
+	{ eager: true },
+);
+
+const galleryImages = Object.entries(galleryModules)
+	.map(([path, module]) => {
+		const filename = path.split("/").pop() ?? "Studio photo";
+		const stem = filename.replace(/\.[^.]+$/, "");
+		const label = stem.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+
+		return {
+			alt: label
+				? `VV Podcast Studio gallery image ${label}`
+				: "VV Podcast Studio gallery image",
+			filename,
+			src: module.default,
+		} satisfies GalleryImage;
+	})
+	.sort((left, right) =>
+		left.filename.localeCompare(right.filename, undefined, { numeric: true }),
+	);
+---
+
+<Layout title=" | Photos">
+	<section class="px-4 pt-28 pb-16 md:pt-32">
+		<div class="mx-auto flex w-full max-w-6xl flex-col gap-10">
+					<h1 class="text-4xl font-bold leading-none md:text-5xl">A quick look at the space</h1>
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+				{
+					galleryImages.map((image, index) => (
+						<figure class="border-border bg-card overflow-hidden rounded-lg border">
+							<Image
+								src={image.src}
+								alt={image.alt}
+								widths={[480, 768, 1080]}
+								sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+								format="webp"
+								loading={index < 3 ? "eager" : "lazy"}
+								class="block h-full w-full object-cover"
+							/>
+						</figure>
+					))
+				}
+			</div>
+		</div>
+	</section>
+</Layout>
