@@ -1,39 +1,11 @@
 <script lang="ts">
+	import { contactItems } from "../content/contact";
+
 	const studioName = "VV Podcast Studio";
-	const address = "23 Fields Rd, Macquarie Fields NSW 2564";
-	const addressHref = "https://maps.app.goo.gl/LkePeAa1Gb22KZSV6";
-	const contactPhone = import.meta.env.APP_CONTACT_PHONE;
-	const contactEmail = import.meta.env.APP_CONTACT_EMAIL;
 
 	const currentYear = new Date().toLocaleDateString(undefined, {
 		year: "numeric",
 	});
-
-	const contactItems = [
-		{
-			label: "Address",
-			value: address,
-			href: addressHref,
-		},
-		...(contactPhone
-			? [
-					{
-						label: "Phone",
-						value: contactPhone,
-						href: `tel:${contactPhone}`,
-					},
-				]
-			: []),
-		...(contactEmail
-			? [
-					{
-						label: "Email",
-						value: contactEmail,
-						href: `mailto:${contactEmail}`,
-					},
-				]
-			: []),
-	] as const;
 </script>
 
 <footer class="border-border border-t px-4 py-10 sm:py-12">
@@ -54,18 +26,15 @@
 				aria-label="Contact details">
 				{#each contactItems as item}
 					<li class="text-muted-foreground flex flex-col gap-1 sm:items-end">
-						<span class="text-primary text-xs font-semibold tracking-widest uppercase">
+						<span
+							class="text-primary text-xs font-semibold tracking-widest uppercase">
 							{item.label}
 						</span>
-						{#if "href" in item}
-							<a
-								class="footer-link text-sm font-medium"
-								href={item.href}>
-								{item.value}
-							</a>
-						{:else}
-							<span class="font-medium">{item.value}</span>
-						{/if}
+						<a
+							class="footer-link text-sm font-medium"
+							href={item.href}>
+							{item.value}
+						</a>
 					</li>
 				{/each}
 			</ul>
@@ -74,7 +43,8 @@
 		<div
 			class="border-border flex flex-col gap-3 border-t pt-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
 			<p class="text-muted-foreground text-sm font-medium">
-				&copy; {currentYear} {studioName}
+				&copy; {currentYear}
+				{studioName}
 			</p>
 			<p class="text-muted-foreground text-sm">
 				Available for bookings, tours, and production enquiries.
@@ -86,11 +56,7 @@
 <style>
 	.footer-link {
 		color: var(--foreground);
-		text-decoration-color: color-mix(
-			in srgb,
-			var(--primary) 70%,
-			transparent
-		);
+		text-decoration-color: color-mix(in srgb, var(--primary) 70%, transparent);
 		text-underline-offset: 0.22em;
 		transition:
 			color 160ms ease,
