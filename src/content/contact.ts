@@ -10,11 +10,6 @@ export const contactPhone = import.meta.env.APP_CONTACT_PHONE;
 export const contactEmail = import.meta.env.APP_CONTACT_EMAIL;
 
 export const contactItems: readonly ContactItem[] = [
-	{
-		label: "Address",
-		value: studioAddress,
-		href: studioAddressHref,
-	},
 	...(contactPhone
 		? [
 				{
@@ -33,4 +28,9 @@ export const contactItems: readonly ContactItem[] = [
 				},
 			]
 		: []),
+	{
+		label: "Location",
+		value: studioAddress,
+		href: studioAddressHref,
+	},
 ];

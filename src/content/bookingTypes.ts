@@ -38,7 +38,7 @@ export type BookingStepOneContent = {
 	recurringPromptPrefix: string;
 	recurringPromptAction: string;
 	recurringPromptSuffix: string;
-	modalAriaLabel: string;
+	modalDialogLabel: string;
 	modalCloseLabel: string;
 	modalIframeTitle: string;
 	recurringBookingUrl: string;

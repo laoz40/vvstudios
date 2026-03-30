@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { onDestroy, tick } from "svelte";
 	import type { Snippet } from "svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
+	import IframeModal from "../shared/IframeModal.svelte";
 	import { bookingStepOneContent } from "../../content/booking";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
@@ -29,92 +29,24 @@
 
 	let showBookingModal = $state(false);
 	let modalUrl = $state("");
-	let lastFocusedEl: HTMLElement | null = $state(null);
-	let closeButtonEl: HTMLButtonElement | null = $state(null);
 
-	function portal(node: HTMLElement) {
-		if (typeof document === "undefined") {
+	function openModal(url: string) {
+		if (!url) {
 			return;
 		}
 
-		document.body.appendChild(node);
-
-		return {
-			destroy() {
-				node.remove();
-			},
-		};
-	}
-
-	function setBackgroundInert(isInert: boolean) {
-		if (typeof document === "undefined") {
-			return;
-		}
-
-		const inertTargets = [
-			document.getElementById("site-shell"),
-			document.getElementById("mobile-nav-shell"),
-		];
-
-		for (const target of inertTargets) {
-			if (!target) continue;
-			target.inert = isInert;
-		}
+		modalUrl = url;
+		showBookingModal = true;
 	}
 
 	function openBooking() {
-		if (!selectedBookingUrl) {
-			return;
-		}
-
-		if (typeof document !== "undefined") {
-			lastFocusedEl = document.activeElement as HTMLElement | null;
-		}
-		modalUrl = selectedBookingUrl;
-		showBookingModal = true;
-		setBackgroundInert(true);
-		void tick().then(() => closeButtonEl?.focus());
+		openModal(selectedBookingUrl);
 	}
 
 	function openRecurringBooking() {
-		if (typeof document !== "undefined") {
-			lastFocusedEl = document.activeElement as HTMLElement | null;
-		}
-		modalUrl = recurringBookingUrl;
-		showBookingModal = true;
-		setBackgroundInert(true);
-		void tick().then(() => closeButtonEl?.focus());
+		openModal(recurringBookingUrl);
 	}
-
-	function closeBooking() {
-		showBookingModal = false;
-		modalUrl = "";
-		setBackgroundInert(false);
-
-		if (lastFocusedEl?.isConnected) {
-			lastFocusedEl.focus();
-		}
-		lastFocusedEl = null;
-	}
-
-	function handleOverlayClick(e: MouseEvent) {
-		if (e.target === e.currentTarget) {
-			closeBooking();
-		}
-	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === "Escape") {
-			closeBooking();
-		}
-	}
-
-	onDestroy(() => {
-		setBackgroundInert(false);
-	});
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <!-- Studio Selection -->
 <div class="space-y-10">
@@ -236,29 +168,13 @@
 </div>
 
 {#if showBookingModal}
-	<div
-		use:portal
-		class="fixed inset-0 z-9999 box-border bg-black/70 p-4 sm:p-18"
-		onclick={handleOverlayClick}
-		onkeydown={(e) => {
-			if (e.key === "Escape") closeBooking();
-		}}
-		role="dialog"
-		tabindex="0"
-		aria-modal="true"
-		aria-label={bookingStepOneContent.modalAriaLabel}>
-		<Button
-			variant="default"
-			bind:ref={closeButtonEl}
-			onclick={closeBooking}
-			class="fixed top-4 right-4 z-10000 flex h-9 items-center gap-2 rounded-lg px-4 sm:top-6.5 sm:right-18">
-			{bookingStepOneContent.modalCloseLabel}
-		</Button>
-		<iframe
-			title={bookingStepOneContent.modalIframeTitle}
-			src={modalUrl}
-			class="h-full w-full rounded-lg border-none bg-white"
-			sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
-		></iframe>
-	</div>
+	<IframeModal
+		bind:open={showBookingModal}
+		url={modalUrl}
+		dialogLabel={bookingStepOneContent.modalDialogLabel}
+		closeLabel={bookingStepOneContent.modalCloseLabel}
+		iframeTitle={bookingStepOneContent.modalIframeTitle}
+		onClose={() => {
+			modalUrl = "";
+		}} />
 {/if}

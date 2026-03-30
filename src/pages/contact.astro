@@ -1,0 +1,79 @@
+---
+import Layout from "../layouts/Layout.astro";
+import micImage from "../assets/mic.jpg";
+import FreeTourButton from "../components/shared/FreeTourButton.svelte";
+import { contactItems, studioAddressHref } from "../content/contact";
+
+const directContactItems = contactItems.filter(
+	({ href }) => href !== studioAddressHref,
+);
+---
+
+<Layout title=" | Contact">
+	<section class="px-4 pt-24 pb-12 sm:pt-28 sm:pb-16">
+		<div class="mx-auto w-full max-w-2xl">
+			<div class="relative overflow-hidden rounded-md shadow-2xl">
+				<img
+					src={micImage.src}
+					alt="Studio microphone"
+					class="h-auto w-full rounded-md object-cover"
+					loading="lazy"
+				/>
+				<div class="absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
+					<h1
+						class="text-foreground text-3xl font-bold tracking-tight text-shadow-sm md:text-5xl">
+						Contact
+					</h1>
+
+					<dl
+						aria-label="Contact information"
+						class="mt-1 space-y-2 md:mt-6">
+						{
+							directContactItems.map((item) => (
+								<div class="grid gap-1">
+									<dt class="text-foreground/70 text-base font-medium md:text-lg">
+										{item.label}
+									</dt>
+									<dd class="min-w-0">
+										<a
+											class="contact-link text-foreground block text-base font-medium wrap-break-word md:text-lg"
+											href={item.href}>
+											{item.value}
+										</a>
+									</dd>
+								</div>
+							))
+						}
+					</dl>
+					<div class="mt-5">
+						<FreeTourButton
+							client:load
+							class="border-2 px-8 py-5 text-base font-semibold"
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.contact-link {
+		text-decoration-color: color-mix(in srgb, var(--primary) 65%, transparent);
+		text-underline-offset: 0.22em;
+		transition:
+			color 160ms ease,
+			text-decoration-color 160ms ease;
+	}
+
+	.contact-link:hover {
+		color: var(--primary);
+		text-decoration: underline;
+	}
+
+	.contact-link:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 3px;
+		border-radius: 2px;
+	}
+</style>

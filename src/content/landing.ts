@@ -1,3 +1,5 @@
+import { studioAddress } from "./contact";
+
 export type HeroContent = {
 	eyebrow: string;
 	title: string;
@@ -5,7 +7,6 @@ export type HeroContent = {
 	primaryCtaLabel: string;
 	primaryCtaHref: string;
 	secondaryCtaLabel: string;
-	secondaryCtaHref: string;
 	scrollAriaLabel: string;
 	address: string;
 };
@@ -13,11 +14,10 @@ export type HeroContent = {
 export const heroContent: HeroContent = {
 	eyebrow: "From Vertigo Visuals",
 	title: "The Only Pro Studio in South West Sydney",
-	lead: "Professional production spaces for podcasts, e‑commerce, and campaign shoots.",
+	lead: "A space to focus on your business or craft. We take care of the production from setup through to final output.",
 	primaryCtaLabel: "Book session",
 	primaryCtaHref: "/book",
-	secondaryCtaLabel: "Get free tour",
-	secondaryCtaHref: "/contact",
+	secondaryCtaLabel: "Take free tour",
 	scrollAriaLabel: "Scroll to information section",
-	address: "23 Fields Rd, Macquarie Fields NSW 2564",
+	address: studioAddress,
 };

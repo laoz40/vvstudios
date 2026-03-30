@@ -94,7 +94,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
 	recurringPromptPrefix: "Need recurring sessions?",
 	recurringPromptAction: "Request a call",
 	recurringPromptSuffix: "to lock in your slot and secure a discounted rate.",
-	modalAriaLabel: "Close modal",
+	modalDialogLabel: "Choose a session",
 	modalCloseLabel: "Close",
 	modalIframeTitle: "Choose a session",
 	recurringBookingUrl,
