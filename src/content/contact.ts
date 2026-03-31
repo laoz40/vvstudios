@@ -9,6 +9,7 @@ export type ContactItem = {
 export type ContactPageContent = {
 	title: string;
 	contactInfoAriaLabel: string;
+	studioImageAlt: string;
 };
 
 export const studioAddress = "23 Fields Rd, Macquarie Fields NSW 2564";
@@ -18,6 +19,7 @@ export const contactEmail = requireEnv("APP_CONTACT_EMAIL");
 export const contactPageContent: ContactPageContent = {
 	title: "Contact",
 	contactInfoAriaLabel: "Contact information",
+	studioImageAlt: "Studio microphone",
 };
 
 export const contactItems: readonly ContactItem[] = [

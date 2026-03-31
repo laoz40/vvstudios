@@ -14,20 +14,20 @@ import MapPinIcon from "./MapPinIcon.svelte";
 	<div
 		class="absolute inset-0 -z-20 overflow-hidden"
 		aria-hidden="true">
-		<picture>
-			<source
-				media="(min-width: 768px)"
-				srcset={heroDesktop.src}
-			/>
-			<img
-				src={heroMobile.src}
-				alt=""
-				loading="eager"
-				decoding="sync"
-				fetchpriority="high"
-				class="h-full w-full object-cover brightness-65"
-			/>
-		</picture>
+			<picture>
+				<source
+					media="(min-width: 768px)"
+					srcset={heroDesktop.src}
+				/>
+				<img
+					src={heroMobile.src}
+					alt={heroContent.desktopBackgroundAlt}
+					loading="eager"
+					decoding="sync"
+					fetchpriority="high"
+					class="h-full w-full object-cover brightness-65"
+				/>
+			</picture>
 	</div>
 	<div
 		class="from-background/75 via-background/45 to-background/80 absolute inset-0 -z-10 bg-linear-to-br">
