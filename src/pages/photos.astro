@@ -5,6 +5,7 @@ import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
 import { photosPageContent } from "../content/photos";
+import { seoPages } from "../content/seo";
 
 type GalleryModule = {
 	default: ImageMetadata;
@@ -49,12 +50,23 @@ const galleryImages = Object.entries(galleryModules)
 	});
 ---
 
-<Layout title=" | Photos">
+<Layout
+	title={seoPages.photos.title}
+	description={seoPages.photos.description}
+	canonicalPath={seoPages.photos.path}
+	ogImage={seoPages.photos.ogImage}>
 	<section class="px-4 pt-28 pb-16 md:pt-32">
 		<div class="mx-auto flex w-full max-w-6xl flex-col gap-10">
-			<h1 class="text-2xl leading-none font-bold md:text-4xl">
-				{photosPageContent.title}
-			</h1>
+			<div class="max-w-3xl space-y-4">
+				<h1 class="text-2xl leading-none font-bold md:text-4xl">
+					{photosPageContent.title}
+				</h1>
+				<p class="text-muted-foreground text-sm leading-7 sm:text-base">
+					These photos give you a proper look at the studio before you book. You
+					can see the sets, the lighting, and the overall feel of the space, so
+					you know what to expect when you walk in.
+				</p>
+			</div>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 				{
 					galleryImages.map((image, index) => (
@@ -72,6 +84,13 @@ const galleryImages = Object.entries(galleryModules)
 					))
 				}
 			</div>
+		</div>
+		<div class="text-muted-foreground mx-auto mt-6 max-w-6xl text-sm leading-7 sm:text-base">
+			<p>
+				If you are deciding between setups, start here, then book a session or
+				arrange a tour. The room is built for podcasts, interviews, and branded
+				content that needs to look clean on camera.
+			</p>
 		</div>
 		<div class="mx-auto mt-7 md:mt-12 flex max-w-6xl flex-wrap gap-4 sm:gap-3">
 			<BookSessionButton

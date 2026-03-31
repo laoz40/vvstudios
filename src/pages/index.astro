@@ -1,9 +1,14 @@
 ---
 import HeroSection from "../components/landing/HeroSection.astro";
 import Layout from "../layouts/Layout.astro";
+import { seoPages } from "../content/seo";
 ---
 
-<Layout title=" | For Hire in Sydney">
+<Layout
+	title={seoPages.home.title}
+	description={seoPages.home.description}
+	canonicalPath={seoPages.home.path}
+	ogImage={seoPages.home.ogImage}>
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
 	</div>

@@ -9,13 +9,18 @@ import {
 	contactPageContent,
 	studioAddressHref,
 } from "../content/contact";
+import { seoPages } from "../content/seo";
 
 const directContactItems = contactItems.filter(
 	({ href }) => href !== studioAddressHref,
 );
 ---
 
-<Layout title=" | Contact">
+<Layout
+	title={seoPages.contact.title}
+	description={seoPages.contact.description}
+	canonicalPath={seoPages.contact.path}
+	ogImage={seoPages.contact.ogImage}>
 	<section class="px-4 pt-24 pb-12 sm:pt-28 sm:pb-16">
 		<div class="mx-auto w-full max-w-2xl">
 			<div class="relative overflow-hidden rounded-md shadow-2xl">
@@ -55,6 +60,14 @@ const directContactItems = contactItems.filter(
 					</dl>
 				</div>
 			</div>
+		</div>
+		<div class="text-muted-foreground mx-auto mt-6 max-w-2xl text-sm leading-7 sm:text-base">
+			<p>
+				Reach out if you want to book the studio, ask a question before you lock
+				in a session, or get a better feel for how the space works. We work with
+				creators, business owners, and teams who want a professional setup
+				without a drawn-out booking process.
+			</p>
 		</div>
 		<div class="mx-auto mt-7 md:mt-12 flex max-w-2xl flex-wrap gap-4 sm:gap-3">
 			<BookSessionButton
