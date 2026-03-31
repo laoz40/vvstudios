@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/cinematic",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/j",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/about-1",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/copy-of-song-teaser",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/podcast",
+      "destination": "/",
+      "statusCode": 301
+    }
+  ]
+}
