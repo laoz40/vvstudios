@@ -9,6 +9,7 @@
 		"astro": "astro"
 	},
 	"dependencies": {
+		"@astrojs/sitemap": "^3.7.2",
 		"@astrojs/svelte": "^7.2.5",
 		"@fontsource-variable/gabarito": "^5.2.8",
 		"@fontsource-variable/montserrat": "^5.2.8",
