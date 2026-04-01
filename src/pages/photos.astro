@@ -1,59 +1,9 @@
 ---
-import FreeTourButton from "../components/shared/FreeTourButton.svelte";
-import BookSessionButton from "../components/shared/BookSessionButton.astro";
-import type { ImageMetadata } from "astro";
-import { Image } from "astro:assets";
+import PhotosSection from "../components/photos/PhotosSection.astro";
 import Layout from "../layouts/Layout.astro";
-import { photosPageContent } from "../content/photos";
 import { seoPages } from "../content/seo";
 import { structuredDataBusiness } from "../content/structuredData";
 import { buildBreadcrumbSchema } from "../lib/seo/schema";
-
-type GalleryModule = {
-	default: ImageMetadata;
-};
-
-type GalleryImage = {
-	alt: string;
-	filename: string;
-	src: ImageMetadata;
-};
-
-const galleryModules = import.meta.glob<GalleryModule>(
-	"../assets/gallery/*.{jpg,jpeg,png,webp,avif}",
-	{ eager: true },
-);
-
-const galleryOrder = new Map(
-	photosPageContent.galleryImages.map((image, index) => [
-		image.filename,
-		index,
-	]),
-);
-
-const galleryImages = Object.entries(galleryModules)
-	.map(([path, module]) => {
-		const filename = path.split("/").pop() ?? "Studio photo";
-		const galleryEntry = photosPageContent.galleryImages.find(
-			(image) => image.filename === filename,
-		);
-
-		return {
-			alt:
-				galleryEntry?.alt ??
-				`VV Podcast Studio gallery image for ${filename.replace(/\.[^.]+$/, "")}`,
-			filename,
-			src: module.default,
-		} satisfies GalleryImage;
-	})
-	.sort((left, right) => {
-		const leftIndex =
-			galleryOrder.get(left.filename) ?? Number.MAX_SAFE_INTEGER;
-		const rightIndex =
-			galleryOrder.get(right.filename) ?? Number.MAX_SAFE_INTEGER;
-
-		return leftIndex - rightIndex;
-	});
 const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
 const photosStructuredData = buildBreadcrumbSchema(
 	[
@@ -70,47 +20,5 @@ const photosStructuredData = buildBreadcrumbSchema(
 	canonicalPath={seoPages.photos.path}
 	ogImage={seoPages.photos.ogImage}
 	structuredData={photosStructuredData}>
-	<section class="px-4 pt-28 pb-16 md:pt-32">
-		<div class="mx-auto flex w-full max-w-6xl flex-col gap-10">
-			<div class="max-w-3xl space-y-4">
-				<h1 class="text-2xl leading-none font-bold md:text-4xl">
-					{photosPageContent.title}
-				</h1>
-				<p class="text-muted-foreground text-sm leading-7 sm:text-base">
-					{photosPageContent.introText}
-				</p>
-			</div>
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-				{
-					galleryImages.map((image, index) => (
-						<figure class="border-border bg-card overflow-hidden rounded-lg border">
-							<Image
-								src={image.src}
-								alt={image.alt}
-								widths={[480, 768, 1080]}
-								sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-								format="webp"
-								loading={index < 3 ? "eager" : "lazy"}
-								class="block h-full w-full object-cover"
-							/>
-						</figure>
-					))
-				}
-			</div>
-		</div>
-		<div
-			class="text-muted-foreground mx-auto mt-6 max-w-6xl text-sm leading-7 sm:text-base">
-			<p>{photosPageContent.closingText}</p>
-		</div>
-		<div class="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
-			<BookSessionButton
-				size="lg"
-				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8"
-			/>
-			<FreeTourButton
-				client:load
-				class="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"
-			/>
-		</div>
-	</section>
+	<PhotosSection headingLevel="h1" />
 </Layout>

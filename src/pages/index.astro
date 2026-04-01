@@ -1,6 +1,7 @@
 ---
 import FaqSection from "../components/landing/FaqSection.svelte";
 import HeroSection from "../components/landing/HeroSection.astro";
+import PhotosSection from "../components/photos/PhotosSection.astro";
 import Layout from "../layouts/Layout.astro";
 import { faqSectionContent } from "../content/landing";
 import { structuredDataBusiness } from "../content/structuredData";
@@ -34,6 +35,9 @@ const homepageStructuredData = [
 	structuredData={homepageStructuredData}>
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
+	</div>
+	<PhotosSection class="bg-background text-foreground pt-16 md:pt-20" />
+	<div class="bg-background text-foreground">
 		<FaqSection client:visible />
 	</div>
 </Layout>
