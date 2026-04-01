@@ -38,21 +38,22 @@ import { Button } from "$lib/components/ui/button";
 		class="relative container mx-auto mt-60 mb-10 grid gap-4 px-4 py-24 md:py-32">
 		<div
 			data-hero-fade="content"
-			style="opacity: 0; transform: translateY(12px); filter: blur(10px);">
+			class="flex flex-col gap-3 md:block">
 			<p
 				class="text-primary m-0 text-sm font-semibold tracking-widest uppercase">
 				{heroContent.eyebrow}
 			</p>
 			<h1
+				data-hero-title
 				class="text-foreground m-0 max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl"
-				style="text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);">
+			>
 				{heroContent.title}
 			</h1>
 			<p
 				class="text-muted-foreground m-0 max-w-sm text-base leading-relaxed text-pretty md:max-w-xl">
 				{heroContent.lead}
 			</p>
-			<div class="mt-4 flex w-full flex-wrap gap-3 md:mt-12">
+			<div class="mt-6 flex w-full flex-wrap gap-3 md:mt-12">
 				<BookSessionButton
 					size="lg"
 					class="border-primary flex-1 border-2 px-8 py-5 text-base font-semibold transition-transform duration-200 ease-out hover:-translate-y-px hover:border-[#d9ac00] md:flex-none"
@@ -69,8 +70,7 @@ import { Button } from "$lib/components/ui/button";
 	</div>
 	<div
 		data-hero-fade="address"
-		class="text-muted-foreground absolute bottom-16 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:left-auto md:text-base"
-		style="opacity: 0;">
+		class="text-muted-foreground absolute bottom-8 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-normal md:right-8 md:left-auto md:text-base">
 		<MapPinIcon class="text-primary" />
 		<Button
 			variant="link"
@@ -81,8 +81,26 @@ import { Button } from "$lib/components/ui/button";
 	</div>
 </section>
 
+<style>
+	/* Start hidden so motion can animate in cleanly. */
+	[data-hero-fade="content"] {
+		opacity: 0;
+		transform: translateY(12px);
+		filter: blur(10px);
+	}
+
+	[data-hero-fade="address"] {
+		opacity: 0;
+	}
+
+	[data-hero-title] {
+		text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);
+	}
+</style>
+
 <noscript>
 	<style>
+		/* Show hero content when JS is off. */
 		[data-hero-fade] {
 			opacity: 1 !important;
 		}
