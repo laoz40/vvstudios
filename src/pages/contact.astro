@@ -2,6 +2,7 @@
 import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
 import micImage from "../assets/mic.jpg";
+import ContactFaqSection from "../components/contact/ContactFaqSection.svelte";
 import FreeTourButton from "../components/shared/FreeTourButton.svelte";
 import BookSessionButton from "../components/shared/BookSessionButton.astro";
 import {
@@ -61,6 +62,7 @@ const directContactItems = contactItems.filter(
 				</div>
 			</div>
 		</div>
+		<ContactFaqSection client:visible />
 		<div class="text-muted-foreground mx-auto mt-6 max-w-2xl text-sm leading-7 sm:text-base">
 			<p>{contactPageContent.introText}</p>
 		</div>

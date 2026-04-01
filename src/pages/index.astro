@@ -1,4 +1,5 @@
 ---
+import FaqSection from "../components/landing/FaqSection.svelte";
 import HeroSection from "../components/landing/HeroSection.astro";
 import Layout from "../layouts/Layout.astro";
 import { seoPages } from "../content/seo";
@@ -11,5 +12,6 @@ import { seoPages } from "../content/seo";
 	ogImage={seoPages.home.ogImage}>
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
+		<FaqSection client:visible />
 	</div>
 </Layout>
