@@ -13,7 +13,7 @@ export const photosPageContent: PhotosPageContent = {
 	introText:
 		"These photos give you a proper look at the studio before you book. You can see the sets, the lighting, and the overall feel of the space, so you know what to expect when you walk in.",
 	closingText:
-		"Like what you see? Book a session or arrange a tour. The space is designed for podcasts, interviews, and branded content, with a clean and professional look on camera.",
+		"Like what you see? Book a session or take a free tour. The space is set up for podcasts, interviews, and branded content, with a clean, professional look on camera.",
 	galleryImages: [
 		{
 			filename: "leonardo-dicaprio.jpg",

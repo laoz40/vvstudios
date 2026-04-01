@@ -67,7 +67,7 @@ const galleryImages = Object.entries(galleryModules)
 			<HeadingTag class="text-2xl leading-none font-bold md:text-4xl">
 				{photosPageContent.title}
 			</HeadingTag>
-			<p class="text-muted-foreground text-sm leading-7 sm:text-base">
+			<p class="text-muted-foreground text-sm text-pretty leading-7 sm:text-base">
 				{photosPageContent.introText}
 			</p>
 		</div>
@@ -89,9 +89,10 @@ const galleryImages = Object.entries(galleryModules)
 			}
 		</div>
 	</div>
-	<div
-		class="text-muted-foreground mx-auto mt-6 max-w-6xl text-sm leading-7 sm:text-base">
-		<p>{photosPageContent.closingText}</p>
+	<div class="mx-auto mt-6 max-w-6xl">
+		<p class="max-w-3xl text-sm text-pretty leading-7 text-muted-foreground sm:text-base">
+			{photosPageContent.closingText}
+		</p>
 	</div>
 	<div class="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
 		<BookSessionButton
