@@ -3,6 +3,7 @@ import FaqSection from "../components/landing/FaqSection.svelte";
 import HeroSection from "../components/landing/HeroSection.astro";
 import PhotosSection from "../components/photos/PhotosSection.astro";
 import Layout from "../layouts/Layout.astro";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import { faqSectionContent } from "../content/landing";
 import { structuredDataBusiness } from "../content/structuredData";
 import { seoPages } from "../content/seo";
@@ -37,6 +38,7 @@ const homepageStructuredData = [
 		<HeroSection />
 	</div>
 	<PhotosSection class="bg-background text-foreground pt-16 md:pt-20" />
+	<Separator class="mx-auto my-4 max-w-6xl" />
 	<div class="bg-background text-foreground">
 		<FaqSection client:visible />
 	</div>

@@ -30,7 +30,7 @@
 				aria-hidden="true" />
 		</Collapsible.Trigger>
 		<Collapsible.Content class="overflow-hidden">
-			<div class="max-w-2xl pb-5 text-sm text-pretty leading-7 text-muted-foreground md:pb-6 md:text-base">
+			<div class="max-w-5xl pb-5 text-sm text-pretty leading-7 text-muted-foreground md:pb-6 md:text-base">
 				{#each item.answerParts as part}
 					{#if part.type === "text"}
 						{part.value}

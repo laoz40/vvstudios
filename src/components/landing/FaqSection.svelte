@@ -6,7 +6,7 @@
 <section
 	class="bg-background w-full"
 	aria-labelledby="faq-title">
-	<div class="mx-auto max-w-5xl px-4 py-8 md:py-12 md:px-0">
+	<div class="mx-auto max-w-6xl px-4 py-8 md:py-12 md:px-0">
 		<div>
 			<h2
 				id="faq-title"

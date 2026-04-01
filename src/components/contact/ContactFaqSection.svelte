@@ -4,7 +4,7 @@
 </script>
 
 <section
-	class="mx-auto mt-16 w-full max-w-2xl"
+	class="mx-auto mt-16 w-full max-w-6xl"
 	aria-labelledby="contact-faq-title">
 	<h2
 		id="contact-faq-title"

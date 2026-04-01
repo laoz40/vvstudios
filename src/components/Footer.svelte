@@ -8,7 +8,7 @@
 </script>
 
 <footer class="border-border border-t px-4 py-10 sm:py-12">
-	<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+	<div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
 		<div
 			class="flex flex-col gap-5 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
 			<div class="space-y-2">
