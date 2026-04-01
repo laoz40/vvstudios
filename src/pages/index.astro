@@ -2,14 +2,36 @@
 import FaqSection from "../components/landing/FaqSection.svelte";
 import HeroSection from "../components/landing/HeroSection.astro";
 import Layout from "../layouts/Layout.astro";
+import { faqSectionContent } from "../content/landing";
+import { structuredDataBusiness } from "../content/structuredData";
 import { seoPages } from "../content/seo";
+import {
+	buildFaqSchema,
+	buildLocalBusinessSchema,
+	buildOrganizationSchema,
+	buildWebSiteSchema,
+} from "../lib/seo/schema";
+
+const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
+const homepageStructuredData = [
+	buildWebSiteSchema(structuredDataBusiness.name, siteUrl.toString()),
+	buildOrganizationSchema(structuredDataBusiness),
+	buildLocalBusinessSchema(structuredDataBusiness),
+	buildFaqSchema(
+		faqSectionContent.items.map((item) => ({
+			question: item.question,
+			answer: item.answer,
+		})),
+	),
+];
 ---
 
 <Layout
 	title={seoPages.home.title}
 	description={seoPages.home.description}
 	canonicalPath={seoPages.home.path}
-	ogImage={seoPages.home.ogImage}>
+	ogImage={seoPages.home.ogImage}
+	structuredData={homepageStructuredData}>
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
 		<FaqSection client:visible />

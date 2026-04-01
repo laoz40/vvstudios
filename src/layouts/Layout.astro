@@ -7,12 +7,17 @@ import "@fontsource-variable/gabarito/wght.css";
 import "@fontsource/squada-one";
 import "lenis/dist/lenis.css";
 import Analytics from "@vercel/analytics/astro";
+import {
+	serializeJsonLd,
+	type JsonLdNode,
+} from "../lib/seo/schema";
 
 export type LayoutProps = {
 	title: string;
 	description: string;
 	canonicalPath?: string;
 	ogImage?: string;
+	structuredData?: JsonLdNode | JsonLdNode[];
 };
 
 const {
@@ -20,6 +25,7 @@ const {
 	description,
 	canonicalPath,
 	ogImage = "/android-chrome-512x512.png",
+	structuredData,
 } = Astro.props as LayoutProps;
 const normalizePathname = (pathname: string) => {
 	if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -35,6 +41,11 @@ const siteUrl = Astro.site ?? new URL("https://vertigovisuals.com.au");
 const resolvedCanonicalPath = canonicalPath ?? currentPath;
 const canonicalUrl = new URL(resolvedCanonicalPath, siteUrl).toString();
 const ogImageUrl = new URL(ogImage, siteUrl).toString();
+const structuredDataNodes = Array.isArray(structuredData)
+	? structuredData
+	: structuredData
+		? [structuredData]
+		: [];
 ---
 
 <html
@@ -117,6 +128,14 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
 			property="og:image"
 			content={ogImageUrl}
 		/>
+		{
+			structuredDataNodes.map((schema) => (
+				<script
+					type="application/ld+json"
+					set:html={serializeJsonLd(schema)}
+				/>
+			))
+		}
 	</head>
 	<body class="bg-background">
 		<!-- Mobile Nav -->

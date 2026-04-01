@@ -6,6 +6,8 @@ import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
 import { photosPageContent } from "../content/photos";
 import { seoPages } from "../content/seo";
+import { structuredDataBusiness } from "../content/structuredData";
+import { buildBreadcrumbSchema } from "../lib/seo/schema";
 
 type GalleryModule = {
 	default: ImageMetadata;
@@ -52,13 +54,22 @@ const galleryImages = Object.entries(galleryModules)
 
 		return leftIndex - rightIndex;
 	});
+const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
+const photosStructuredData = buildBreadcrumbSchema(
+	[
+		{ name: "Home", path: seoPages.home.path },
+		{ name: "Photos", path: seoPages.photos.path },
+	],
+	siteUrl,
+);
 ---
 
 <Layout
 	title={seoPages.photos.title}
 	description={seoPages.photos.description}
 	canonicalPath={seoPages.photos.path}
-	ogImage={seoPages.photos.ogImage}>
+	ogImage={seoPages.photos.ogImage}
+	structuredData={photosStructuredData}>
 	<section class="px-4 pt-28 pb-16 md:pt-32">
 		<div class="mx-auto flex w-full max-w-6xl flex-col gap-10">
 			<div class="max-w-3xl space-y-4">

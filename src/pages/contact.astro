@@ -7,22 +7,64 @@ import FreeTourButton from "../components/shared/FreeTourButton.svelte";
 import BookSessionButton from "../components/shared/BookSessionButton.astro";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import {
+	type ContactFaqAnswerPart,
+	contactEmail,
+	contactFaqItems,
 	contactItems,
+	contactPhone,
 	contactPageContent,
 	studioAddressHref,
 } from "../content/contact";
 import { seoPages } from "../content/seo";
+import { structuredDataBusiness } from "../content/structuredData";
+import {
+	buildBreadcrumbSchema,
+	buildFaqSchema,
+} from "../lib/seo/schema";
 
 const directContactItems = contactItems.filter(
 	({ href }) => href !== studioAddressHref,
 );
+const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
+
+const flattenContactFaqAnswer = (answerParts: readonly ContactFaqAnswerPart[]) =>
+	answerParts
+		.map((part) => {
+			switch (part.type) {
+				case "text":
+					return part.value;
+				case "email":
+					return contactEmail;
+				case "phone":
+					return contactPhone;
+			}
+		})
+		.join("")
+		.trim();
+
+const contactStructuredData = [
+	buildBreadcrumbSchema(
+		[
+			{ name: "Home", path: seoPages.home.path },
+			{ name: "Contact", path: seoPages.contact.path },
+		],
+		siteUrl,
+	),
+	buildFaqSchema(
+		contactFaqItems.map((item) => ({
+			question: item.question,
+			answer: flattenContactFaqAnswer(item.answerParts),
+		})),
+	),
+];
 ---
 
 <Layout
 	title={seoPages.contact.title}
 	description={seoPages.contact.description}
 	canonicalPath={seoPages.contact.path}
-	ogImage={seoPages.contact.ogImage}>
+	ogImage={seoPages.contact.ogImage}
+	structuredData={contactStructuredData}>
 	<section class="px-4 pt-24 pb-12 sm:pt-28 sm:pb-16">
 		<div class="mx-auto w-full max-w-2xl">
 			<div class="relative overflow-hidden rounded-md shadow-2xl">

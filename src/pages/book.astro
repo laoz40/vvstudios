@@ -4,13 +4,25 @@ import BookingStepOne from "../components/book/BookingStepOne.svelte";
 import BookingStepTwo from "../components/book/BookingStepTwo.svelte";
 import { bookingPageContent } from "../content/booking";
 import { seoPages } from "../content/seo";
+import { structuredDataBusiness } from "../content/structuredData";
+import { buildBreadcrumbSchema } from "../lib/seo/schema";
+
+const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
+const bookStructuredData = buildBreadcrumbSchema(
+	[
+		{ name: "Home", path: seoPages.home.path },
+		{ name: "Book Studio", path: seoPages.book.path },
+	],
+	siteUrl,
+);
 ---
 
 <Layout
 	title={seoPages.book.title}
 	description={seoPages.book.description}
 	canonicalPath={seoPages.book.path}
-	ogImage={seoPages.book.ogImage}>
+	ogImage={seoPages.book.ogImage}
+	structuredData={bookStructuredData}>
 	<div class="flex min-h-dvh flex-col gap-18 px-4 pt-24 pb-12 sm:pt-32">
 		<div class="text-foreground mx-auto w-full max-w-200">
 			<div class="mb-12 space-y-2">
