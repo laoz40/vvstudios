@@ -131,6 +131,7 @@ const structuredDataNodes = Array.isArray(structuredData)
 		{
 			structuredDataNodes.map((schema) => (
 				<script
+					is:inline
 					type="application/ld+json"
 					set:html={serializeJsonLd(schema)}
 				/>
