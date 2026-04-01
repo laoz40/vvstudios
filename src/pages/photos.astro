@@ -23,7 +23,10 @@ const galleryModules = import.meta.glob<GalleryModule>(
 );
 
 const galleryOrder = new Map(
-	photosPageContent.galleryImages.map((image, index) => [image.filename, index]),
+	photosPageContent.galleryImages.map((image, index) => [
+		image.filename,
+		index,
+	]),
 );
 
 const galleryImages = Object.entries(galleryModules)
@@ -42,7 +45,8 @@ const galleryImages = Object.entries(galleryModules)
 		} satisfies GalleryImage;
 	})
 	.sort((left, right) => {
-		const leftIndex = galleryOrder.get(left.filename) ?? Number.MAX_SAFE_INTEGER;
+		const leftIndex =
+			galleryOrder.get(left.filename) ?? Number.MAX_SAFE_INTEGER;
 		const rightIndex =
 			galleryOrder.get(right.filename) ?? Number.MAX_SAFE_INTEGER;
 
@@ -62,9 +66,7 @@ const galleryImages = Object.entries(galleryModules)
 					{photosPageContent.title}
 				</h1>
 				<p class="text-muted-foreground text-sm leading-7 sm:text-base">
-					These photos give you a proper look at the studio before you book. You
-					can see the sets, the lighting, and the overall feel of the space, so
-					you know what to expect when you walk in.
+					{photosPageContent.introText}
 				</p>
 			</div>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -85,14 +87,11 @@ const galleryImages = Object.entries(galleryModules)
 				}
 			</div>
 		</div>
-		<div class="text-muted-foreground mx-auto mt-6 max-w-6xl text-sm leading-7 sm:text-base">
-			<p>
-				If you are deciding between setups, start here, then book a session or
-				arrange a tour. The room is built for podcasts, interviews, and branded
-				content that needs to look clean on camera.
-			</p>
+		<div
+			class="text-muted-foreground mx-auto mt-6 max-w-6xl text-sm leading-7 sm:text-base">
+			<p>{photosPageContent.closingText}</p>
 		</div>
-		<div class="mx-auto mt-7 md:mt-12 flex max-w-6xl flex-wrap gap-4 sm:gap-3">
+		<div class="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
 			<BookSessionButton
 				size="lg"
 				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8"

@@ -27,7 +27,7 @@ const directContactItems = contactItems.filter(
 				<Image
 					src={micImage}
 					alt={contactPageContent.studioImageAlt}
-					class="h-auto w-full rounded-md object-cover"
+					class="h-auto w-full rounded-md object-cover border"
 					loading="lazy"
 					widths={[480, 672, 960, 1344]}
 					sizes="(max-width: 672px) 100vw, 672px"
@@ -62,12 +62,7 @@ const directContactItems = contactItems.filter(
 			</div>
 		</div>
 		<div class="text-muted-foreground mx-auto mt-6 max-w-2xl text-sm leading-7 sm:text-base">
-			<p>
-				Reach out if you want to book the studio, ask a question before you lock
-				in a session, or get a better feel for how the space works. We work with
-				creators, business owners, and teams who want a professional setup
-				without a drawn-out booking process.
-			</p>
+			<p>{contactPageContent.introText}</p>
 		</div>
 		<div class="mx-auto mt-7 md:mt-12 flex max-w-2xl flex-wrap gap-4 sm:gap-3">
 			<BookSessionButton

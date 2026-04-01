@@ -1,5 +1,7 @@
 export type PhotosPageContent = {
 	title: string;
+	introText: string;
+	closingText: string;
 	galleryImages: {
 		filename: string;
 		alt: string;
@@ -8,6 +10,10 @@ export type PhotosPageContent = {
 
 export const photosPageContent: PhotosPageContent = {
 	title: "A quick look at the space",
+	introText:
+		"These photos give you a proper look at the studio before you book. You can see the sets, the lighting, and the overall feel of the space, so you know what to expect when you walk in.",
+	closingText:
+		"Like what you see? Book a session or arrange a tour. The space is designed for podcasts, interviews, and branded content, with a clean and professional look on camera.",
 	galleryImages: [
 		{
 			filename: "leonardo-dicaprio.jpg",
