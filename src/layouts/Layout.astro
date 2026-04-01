@@ -37,9 +37,15 @@ const canonicalUrl = new URL(resolvedCanonicalPath, siteUrl).toString();
 const ogImageUrl = new URL(ogImage, siteUrl).toString();
 ---
 
-<html lang="en">
+<html
+	lang="en"
+	class="bg-background">
 	<head>
 		<meta charset="utf-8" />
+		<meta
+			name="theme-color"
+			content="#1a1a1a"
+		/>
 		<meta
 			name="viewport"
 			content="width=device-width"
