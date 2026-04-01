@@ -1,5 +1,3 @@
-import { studioAddress } from "./contact";
-
 export type HeroContent = {
 	eyebrow: string;
 	title: string;
@@ -19,5 +17,5 @@ export const heroContent: HeroContent = {
 	scrollAriaLabel: "Scroll to information section",
 	desktopBackgroundAlt: "VV Podcast Studio interior with lights and set pieces",
 	mobileBackgroundAlt: "VV Podcast Studio interior background image",
-	address: studioAddress,
+	address: "23 Fields Rd, Macquarie Fields NSW",
 };
