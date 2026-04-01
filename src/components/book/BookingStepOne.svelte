@@ -110,7 +110,7 @@
 											"bg-[#393420]/90",
 									)}>
 									<p class="text-base font-semibold">{studio.name}</p>
-									<p class="text-sm font-light text-muted-foreground">{studio.description}</p>
+									<p class="text-sm font-light text-muted-foreground text-pretty">{studio.description}</p>
 								</div>
 							</div>
 						</label>
@@ -161,7 +161,7 @@
 			class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
 			{bookingStepOneContent.primaryButtonLabel}
 		</Button>
-		<p class="text-muted-foreground text-sm">
+		<p class="text-muted-foreground text-sm text-pretty">
 			{bookingStepOneContent.recurringPromptPrefix}
 			<button
 				type="button"

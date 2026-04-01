@@ -632,7 +632,7 @@
 														{option.price}
 													</span>
 												</div>
-												<p class="text-muted-foreground text-sm font-normal">
+												<p class="text-muted-foreground text-sm font-normal text-pretty">
 													{option.description}
 												</p>
 											</div>
@@ -693,7 +693,7 @@
 														{option.label}
 													</span>
 													<span
-														class="text-muted-foreground block text-sm font-normal">
+														class="text-muted-foreground block text-sm font-normal text-pretty">
 														{option.description}
 													</span>
 												</div>
