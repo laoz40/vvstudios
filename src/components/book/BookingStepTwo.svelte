@@ -746,13 +746,13 @@
 						<p class="text-muted-foreground text-sm">
 							{sectionCopy.questionsContactPrefix}
 							<a
-								class="font-semibold hover:underline"
+								class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
 								href={`tel:${contactPhone}`}>
 								{contactPhone}
 							</a>
 							{sectionCopy.questionsContactMiddle}
 							<a
-								class="font-semibold hover:underline"
+								class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
 								href={`mailto:${contactEmail}`}>
 								{contactEmail}
 							</a>

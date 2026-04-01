@@ -166,7 +166,7 @@
 			<button
 				type="button"
 				onclick={openRecurringBooking}
-				class="text-primary font-semibold hover:underline">
+				class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary">
 				{bookingStepOneContent.recurringPromptAction}
 			</button>
 			{bookingStepOneContent.recurringPromptSuffix}
