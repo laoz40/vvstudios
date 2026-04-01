@@ -10,7 +10,6 @@ export type ContactPageContent = {
 	title: string;
 	contactInfoAriaLabel: string;
 	studioImageAlt: string;
-	introText: string;
 };
 
 export type ContactFaqAnswerPart =
@@ -38,8 +37,6 @@ export const contactPageContent: ContactPageContent = {
 	title: "Contact",
 	contactInfoAriaLabel: "Contact information",
 	studioImageAlt: "Studio microphone",
-	introText:
-		"Reach out if you want to book the studio, ask a question before you lock in a session, or get a better feel for how the space works. We work with business owners, creators and teams who want a professional setup without a drawn-out booking process.",
 };
 
 export const contactItems: readonly ContactItem[] = [
