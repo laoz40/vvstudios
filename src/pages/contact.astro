@@ -1,7 +1,6 @@
 ---
-import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
-import micImage from "../assets/mic.jpg";
+import ContactCard from "../components/contact/ContactCard.svelte";
 import ContactFaqSection from "../components/contact/ContactFaqSection.svelte";
 import FreeTourButton from "../components/shared/FreeTourButton.svelte";
 import BookSessionButton from "../components/shared/BookSessionButton.astro";
@@ -17,17 +16,16 @@ import {
 } from "../content/contact";
 import { seoPages } from "../content/seo";
 import { structuredDataBusiness } from "../content/structuredData";
-import {
-	buildBreadcrumbSchema,
-	buildFaqSchema,
-} from "../lib/seo/schema";
+import { buildBreadcrumbSchema, buildFaqSchema } from "../lib/seo/schema";
 
 const directContactItems = contactItems.filter(
 	({ href }) => href !== studioAddressHref,
 );
 const siteUrl = Astro.site ?? new URL(structuredDataBusiness.url);
 
-const flattenContactFaqAnswer = (answerParts: readonly ContactFaqAnswerPart[]) =>
+const flattenContactFaqAnswer = (
+	answerParts: readonly ContactFaqAnswerPart[],
+) =>
 	answerParts
 		.map((part) => {
 			switch (part.type) {
@@ -67,47 +65,17 @@ const contactStructuredData = [
 	structuredData={contactStructuredData}>
 	<section class="px-4 pt-24 pb-12 sm:pt-28 sm:pb-16">
 		<div class="mx-auto w-full max-w-2xl">
-			<div class="relative overflow-hidden rounded-md shadow-2xl">
-				<Image
-					src={micImage}
-					alt={contactPageContent.studioImageAlt}
-					class="h-auto w-full rounded-md object-cover border"
-					loading="lazy"
-					widths={[480, 672, 960, 1344]}
-					sizes="(max-width: 672px) 100vw, 672px"
-				/>
-				<div class="absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
-					<h1
-						class="text-foreground text-3xl font-bold tracking-tight text-shadow-sm md:text-4xl">
-						{contactPageContent.title}
-					</h1>
-
-					<dl
-						aria-label={contactPageContent.contactInfoAriaLabel}
-						class="mt-1 space-y-2 md:mt-6">
-						{
-							directContactItems.map((item) => (
-								<div class="grid gap-1">
-									<dt class="text-foreground/70 text-base font-medium md:text-lg">
-										{item.label}
-									</dt>
-									<dd class="min-w-0">
-										<a
-											class="contact-link text-foreground block text-base font-medium wrap-break-word md:text-lg"
-											href={item.href}>
-											{item.value}
-										</a>
-									</dd>
-								</div>
-							))
-						}
-					</dl>
-				</div>
-			</div>
+			<ContactCard
+				client:media="(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)"
+				title={contactPageContent.title}
+				contactInfoAriaLabel={contactPageContent.contactInfoAriaLabel}
+				studioImageAlt={contactPageContent.studioImageAlt}
+				items={directContactItems}
+			/>
 		</div>
 		<ContactFaqSection client:visible />
 		<Separator class="mx-auto my-4 max-w-6xl" />
-		<div class="mx-auto mt-7 md:mt-12 flex max-w-6xl flex-wrap gap-4 sm:gap-3">
+		<div class="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
 			<BookSessionButton
 				size="lg"
 				class="border-primary min-w-64 flex-1 px-4 py-5 text-base font-semibold sm:px-8"
@@ -119,24 +87,3 @@ const contactStructuredData = [
 		</div>
 	</section>
 </Layout>
-
-<style>
-	.contact-link {
-		text-decoration-color: color-mix(in srgb, var(--primary) 65%, transparent);
-		text-underline-offset: 0.22em;
-		transition:
-			color 160ms ease,
-			text-decoration-color 160ms ease;
-	}
-
-	.contact-link:hover {
-		color: var(--primary);
-		text-decoration: underline;
-	}
-
-	.contact-link:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 3px;
-		border-radius: 2px;
-	}
-</style>
