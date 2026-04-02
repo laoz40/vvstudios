@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import micImage from "../../assets/mic.jpg";
+	import micImage from "../../assets/mic.webp";
 	import type { ContactItem } from "../../content/contact";
 
 	export type ContactCardProps = {
