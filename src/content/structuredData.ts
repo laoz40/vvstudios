@@ -27,5 +27,6 @@ export const structuredDataBusiness: BusinessSchemaConfig = {
 	parentOrganization: {
 		"@type": "Organization",
 		name: "Vertigo Visuals",
+		"@id": "https://vertigovisuals.com.au/#organization",
 	},
 };

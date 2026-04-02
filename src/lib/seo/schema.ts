@@ -12,11 +12,13 @@ export type PostalAddress = {
 export type OrganizationReference = {
 	"@type": "Organization";
 	name: string;
+	"@id"?: string;
 };
 
 export type WebSiteSchema = {
 	"@context": SchemaContext;
 	"@type": "WebSite";
+	"@id"?: string;
 	name: string;
 	url: string;
 };
@@ -24,7 +26,9 @@ export type WebSiteSchema = {
 export type OrganizationSchema = {
 	"@context": SchemaContext;
 	"@type": "Organization";
+	"@id"?: string;
 	name: string;
+	alternateName?: string;
 	url: string;
 	image: string;
 	telephone: string;
@@ -34,7 +38,9 @@ export type OrganizationSchema = {
 export type LocalBusinessSchema = {
 	"@context": SchemaContext;
 	"@type": "LocalBusiness";
+	"@id"?: string;
 	name: string;
+	alternateName?: string;
 	url: string;
 	image: string;
 	telephone: string;
@@ -105,6 +111,7 @@ const schemaContext: SchemaContext = "https://schema.org";
 export const buildWebSiteSchema = (name: string, url: string): WebSiteSchema => ({
 	"@context": schemaContext,
 	"@type": "WebSite",
+	"@id": `${url}#website`,
 	name,
 	url,
 });
@@ -117,7 +124,9 @@ export const buildOrganizationSchema = (
 ): OrganizationSchema => ({
 	"@context": schemaContext,
 	"@type": "Organization",
+	"@id": `${config.url}#organization`,
 	name: config.name,
+	alternateName: "Vertigo Visuals",
 	url: config.url,
 	image: config.image,
 	telephone: config.telephone,
@@ -129,7 +138,9 @@ export const buildLocalBusinessSchema = (
 ): LocalBusinessSchema => ({
 	"@context": schemaContext,
 	"@type": "LocalBusiness",
+	"@id": `${config.url}#localbusiness`,
 	name: config.name,
+	alternateName: "Vertigo Visuals",
 	url: config.url,
 	image: config.image,
 	telephone: config.telephone,
