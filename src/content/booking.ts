@@ -76,6 +76,11 @@ export const bookingStepOneContent: BookingStepOneContent = {
 	modalDialogLabel: "Choose a session",
 	modalCloseLabel: "Close",
 	modalIframeTitle: "Choose a session",
+	postBookingNotice: {
+		title: "IMPORTANT",
+		body: "After you make an appointment through Google, there is still one more step to finish your booking. Please return to the website and complete Step 2, or it will be invalid.",
+		dismissLabel: "I understand",
+	},
 	recurringBookingUrl,
 };
 

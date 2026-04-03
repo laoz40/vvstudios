@@ -1,6 +1,15 @@
 <script lang="ts">
+	import { tick } from "svelte";
 	import type { Snippet } from "svelte";
 	import { Button } from "$lib/components/ui/button";
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle,
+	} from "$lib/components/ui/dialog";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import IframeModal from "../shared/IframeModal.svelte";
 	import { bookingStepOneContent } from "../../content/booking";
@@ -29,7 +38,9 @@
 	);
 
 	let showBookingModal = $state(false);
+	let showPostBookingNotice = $state(false);
 	let modalUrl = $state("");
+	let postBookingNoticeButtonEl: HTMLButtonElement | null = $state(null);
 
 	function openModal(url: string) {
 		if (!url) {
@@ -38,6 +49,7 @@
 
 		modalUrl = url;
 		showBookingModal = true;
+		showPostBookingNotice = true;
 	}
 
 	function openBooking() {
@@ -47,6 +59,18 @@
 	function openRecurringBooking() {
 		openModal(recurringBookingUrl);
 	}
+
+	function dismissPostBookingNotice() {
+		showPostBookingNotice = false;
+	}
+
+	$effect(() => {
+		if (!showPostBookingNotice) {
+			return;
+		}
+
+		void tick().then(() => postBookingNoticeButtonEl?.focus());
+	});
 </script>
 
 <!-- Studio Selection -->
@@ -183,5 +207,32 @@
 		iframeTitle={bookingStepOneContent.modalIframeTitle}
 		onClose={() => {
 			modalUrl = "";
+			showPostBookingNotice = false;
 		}} />
 {/if}
+
+<Dialog bind:open={showPostBookingNotice}>
+	{#if showBookingModal && showPostBookingNotice}
+		<DialogContent
+			class="z-10001 max-w-lg rounded-2xl p-6 shadow-2xl sm:p-8"
+			showCloseButton={false}>
+			<DialogHeader class="gap-3">
+				<DialogTitle class="text-xl">
+					{bookingStepOneContent.postBookingNotice.title}
+				</DialogTitle>
+				<DialogDescription class="text-sm leading-6 text-pretty sm:text-base">
+					{bookingStepOneContent.postBookingNotice.body}
+				</DialogDescription>
+			</DialogHeader>
+			<DialogFooter class="mt-2 sm:justify-end">
+				<Button
+					type="button"
+					bind:ref={postBookingNoticeButtonEl}
+					onclick={dismissPostBookingNotice}
+					class="min-w-36 rounded-lg">
+					{bookingStepOneContent.postBookingNotice.dismissLabel}
+				</Button>
+			</DialogFooter>
+		</DialogContent>
+	{/if}
+</Dialog>

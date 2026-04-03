@@ -40,6 +40,11 @@ export type BookingStepOneContent = {
 	modalDialogLabel: string;
 	modalCloseLabel: string;
 	modalIframeTitle: string;
+	postBookingNotice: {
+		title: string;
+		body: string;
+		dismissLabel: string;
+	};
 	recurringBookingUrl: string;
 };
 
