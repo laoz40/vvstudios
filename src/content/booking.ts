@@ -21,11 +21,11 @@ const contactEmail = requireEnv("APP_CONTACT_EMAIL");
 
 export const bookingPageContent: BookingPageContent = {
 	stepOne: {
-		title: "Step 1",
+		title: "STEP 1",
 		lead: "Choose your space and session time. Once you’ve chosen your session time, close the calendar and complete the form below to secure your booking.",
 	},
 	stepTwo: {
-		title: "Step 2",
+		title: "STEP 2",
 		lead: "Just confirm your session and add anything extra you need.",
 	},
 };
