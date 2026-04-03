@@ -15,7 +15,7 @@
 	import { bookingStepOneContent } from "../../content/booking";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
-	import tableImage from "../../assets/gallery/table-setup.jpg";
+	import tableImage from "../../assets/gallery/table-setup.webp";
 	import couchImage from "../../assets/couch.jpg";
 
 	let {
