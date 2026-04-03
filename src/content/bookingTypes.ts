@@ -1,5 +1,4 @@
 export type BookingPageStepContent = {
-	eyebrow: string;
 	title: string;
 	lead: string;
 };
