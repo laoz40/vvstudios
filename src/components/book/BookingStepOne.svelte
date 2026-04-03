@@ -64,6 +64,17 @@
 		showPostBookingNotice = false;
 	}
 
+	function scrollToStepTwo() {
+		if (typeof document === "undefined") {
+			return;
+		}
+
+		document.getElementById("booking-step-two-heading")?.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
+	}
+
 	$effect(() => {
 		if (!showPostBookingNotice) {
 			return;
@@ -208,6 +219,7 @@
 		onClose={() => {
 			modalUrl = "";
 			showPostBookingNotice = false;
+			scrollToStepTwo();
 		}} />
 {/if}
 
