@@ -21,7 +21,9 @@ export type BookingStepOneStudioOption = {
 export type BookingStepOneDurationOption = {
 	value: string;
 	label: string;
-	price: string;
+	originalPrice: string;
+	discountedPrice: string;
+	badgeLabel?: string;
 };
 
 export type BookingStepOneContent = {

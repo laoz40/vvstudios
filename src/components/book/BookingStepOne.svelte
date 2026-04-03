@@ -167,6 +167,7 @@
 				name="duration"
 				class="grid gap-4 sm:grid-cols-3">
 				{#each durations as duration}
+					{@const hasDiscount = duration.originalPrice !== duration.discountedPrice}
 					<div>
 						<RadioGroupItem
 							id={`duration-${duration.value}`}
@@ -175,12 +176,30 @@
 						<label
 							for={`duration-${duration.value}`}
 							class={cn(
-								"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 								selectedDurationValue === duration.value &&
 									"border-primary bg-primary/10",
 							)}>
-							<p class="text-base font-semibold text-white">{duration.label}</p>
-							<p class="text-primary text-sm">{duration.price}</p>
+							{#if duration.badgeLabel}
+								<span
+									class="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-sm px-2 py-0.5 text-[10px] font-semibold shadow-lg">
+									{duration.badgeLabel}
+								</span>
+							{/if}
+							<p class="text-base font-semibold">{duration.label}</p>
+							<div class="relative flex items-center justify-center text-sm gap-1">
+								{#if hasDiscount}
+									<p
+										class="text-muted-foreground whitespace-nowrap line-through">
+										{duration.originalPrice}
+									</p>
+									<p class="text-primary whitespace-nowrap">
+										{duration.discountedPrice}
+									</p>
+								{:else}
+									<p class="text-primary whitespace-nowrap">{duration.discountedPrice}</p>
+								{/if}
+							</div>
 						</label>
 					</div>
 				{/each}

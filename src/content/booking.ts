@@ -52,9 +52,25 @@ export const bookingStepOneContent: BookingStepOneContent = {
 		},
 	],
 	durations: [
-		{ value: "1", label: "1 Hour", price: "$200" },
-		{ value: "2", label: "2 Hours", price: "$299" },
-		{ value: "3", label: "3 Hours", price: "$399" },
+		{
+			value: "1",
+			label: "1 Hour",
+			originalPrice: "$200",
+			discountedPrice: "$200",
+		},
+		{
+			value: "2",
+			label: "2 Hours",
+			originalPrice: "$400",
+			discountedPrice: "$299",
+			badgeLabel: "MOST POPULAR",
+		},
+		{
+			value: "3",
+			label: "3 Hours",
+			originalPrice: "$600",
+			discountedPrice: "$399",
+		},
 	],
 	bookingUrls: {
 		table: {
@@ -78,7 +94,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
 	modalIframeTitle: "Choose a session",
 	postBookingNotice: {
 		title: "IMPORTANT",
-		body: "After you make an appointment through Google, there is still one more step to finish your booking. Please return to the website and complete Step 2, or it will be invalid.",
+		body: "After you make an appointment through Google, please return to the website and complete STEP 2 or your booking will be invalid.",
 		dismissLabel: "I understand",
 	},
 	recurringBookingUrl,
