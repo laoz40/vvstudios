@@ -20,7 +20,7 @@ export const photosPageContent: PhotosPageContent = {
 			alt: "VV Podcast Studio gallery image of the main recording setup",
 		},
 		{
-			filename: "table-setup.jpg",
+			filename: "table-setup.webp",
 			alt: "VV Podcast Studio gallery image of a seated recording area",
 		},
 		{
