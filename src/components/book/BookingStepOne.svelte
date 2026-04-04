@@ -253,7 +253,7 @@
 
 <Dialog bind:open={showPostBookingNotice}>
 	<DialogContent
-		class="z-10001 max-w-[calc(100%-1.5rem)] rounded-2xl p-6 shadow-2xl sm:max-w-lg sm:p-8"
+		class="z-10001 max-w-[calc(100%-1.5rem)] rounded-2xl ring-0! p-6 shadow-2xl sm:max-w-lg sm:p-8"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
 			<DialogTitle class="text-xl">
