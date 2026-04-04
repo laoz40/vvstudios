@@ -209,12 +209,12 @@
 							<p class="text-base font-semibold">{duration.label}</p>
 							<div class="relative flex items-center justify-center text-sm gap-1">
 								{#if hasDiscount}
+									<p class="text-primary whitespace-nowrap">
+										{duration.discountedPrice}
+									</p>
 									<p
 										class="text-muted-foreground whitespace-nowrap line-through">
 										{duration.originalPrice}
-									</p>
-									<p class="text-primary whitespace-nowrap">
-										{duration.discountedPrice}
 									</p>
 								{:else}
 									<p class="text-primary whitespace-nowrap">{duration.discountedPrice}</p>
