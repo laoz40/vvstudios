@@ -1,4 +1,5 @@
 <script lang="ts">
+	import XIcon from "@lucide/svelte/icons/x";
 	import { onDestroy, tick } from "svelte";
 	import { Button } from "$lib/components/ui/button";
 
@@ -64,6 +65,16 @@
 		}
 	}
 
+	function handleOverlayKeydown(event: KeyboardEvent) {
+		if (
+			event.target === event.currentTarget &&
+			(event.key === "Enter" || event.key === " ")
+		) {
+			event.preventDefault();
+			closeModal();
+		}
+	}
+
 	$effect(() => {
 		if (!open) {
 			return;
@@ -102,24 +113,32 @@
 {#if open}
 	<div
 		use:portal
-		class="fixed inset-0 z-9999 box-border bg-black/70 p-4 sm:p-18"
+		class="fixed inset-0 z-9999 box-border flex items-center justify-center bg-black/70 p-4 sm:p-8"
 		onclick={handleOverlayClick}
+		onkeydown={handleOverlayKeydown}
 		role="dialog"
 		tabindex="0"
 		aria-modal="true"
 		aria-label={dialogLabel}>
-		<Button
-			variant="default"
-			bind:ref={closeButtonEl}
-			onclick={closeModal}
-			class="fixed top-4 right-4 z-10000 flex h-9 items-center gap-2 rounded-lg px-4 sm:top-6.5 sm:right-18">
-			{closeLabel}
-		</Button>
-		<iframe
-			title={iframeTitle}
-			src={url}
-			class="h-full w-full rounded-lg border-none bg-white"
-			sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
-		></iframe>
+		<div class="relative h-[90vh] md:h-[60vh] w-full max-w-7xl overflow-visible">
+			<Button
+				variant="destructive"
+				size="icon"
+				bind:ref={closeButtonEl}
+				onclick={closeModal}
+				aria-label={closeLabel}
+				class="absolute -top-4 -right-4 z-10000 rounded-xl shadow-2xl md:-top-5 md:-right-5 md:size-12">
+				<XIcon class="size-6" />
+				<span class="sr-only">{closeLabel}</span>
+			</Button>
+			<div class="h-full w-full overflow-hidden rounded-lg">
+				<iframe
+					title={iframeTitle}
+					src={url}
+					class="h-full w-full border-none bg-white"
+					sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+				></iframe>
+			</div>
+		</div>
 	</div>
 {/if}

@@ -39,16 +39,16 @@
 
 	let showBookingModal = $state(false);
 	let showPostBookingNotice = $state(false);
-	let postBookingNoticeMode = $state<"external" | "modal" | null>(null);
 	let modalUrl = $state("");
-	let pendingBookingUrl = $state("");
+	let activeModalType = $state<"booking" | "recurring" | null>(null);
 	let postBookingNoticeButtonEl: HTMLButtonElement | null = $state(null);
 
-	function openModal(url: string) {
+	function openModal(url: string, type: "booking" | "recurring") {
 		if (!url) {
 			return;
 		}
 
+		activeModalType = type;
 		modalUrl = url;
 		showBookingModal = true;
 	}
@@ -58,30 +58,16 @@
 			return;
 		}
 
-		pendingBookingUrl = selectedBookingUrl;
-		postBookingNoticeMode = "external";
 		showPostBookingNotice = true;
 	}
 
 	function openRecurringBooking() {
-		postBookingNoticeMode = "modal";
-		showPostBookingNotice = true;
-		openModal(recurringBookingUrl);
+		openModal(recurringBookingUrl, "recurring");
 	}
 
 	function dismissPostBookingNotice() {
 		showPostBookingNotice = false;
-		if (
-			postBookingNoticeMode === "external" &&
-			pendingBookingUrl &&
-			typeof window !== "undefined"
-		) {
-			window.open(pendingBookingUrl, "_blank", "noopener,noreferrer");
-			pendingBookingUrl = "";
-			scrollToStepTwo();
-		}
-
-		postBookingNoticeMode = null;
+		openModal(selectedBookingUrl, "booking");
 	}
 
 	function scrollToStepTwo() {
@@ -257,16 +243,17 @@
 		iframeTitle={bookingStepOneContent.modalIframeTitle}
 		onClose={() => {
 			modalUrl = "";
-			postBookingNoticeMode = null;
-			pendingBookingUrl = "";
 			showPostBookingNotice = false;
-			scrollToStepTwo();
+			if (activeModalType === "booking") {
+				scrollToStepTwo();
+			}
+			activeModalType = null;
 		}} />
 {/if}
 
 <Dialog bind:open={showPostBookingNotice}>
 	<DialogContent
-		class="z-10001 max-w-lg rounded-2xl p-6 shadow-2xl sm:p-8"
+		class="z-10001 max-w-[calc(100%-1.5rem)] rounded-2xl p-6 shadow-2xl sm:max-w-lg sm:p-8"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
 			<DialogTitle class="text-xl">

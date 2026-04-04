@@ -94,7 +94,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
 	modalIframeTitle: "Choose a session",
 	postBookingNotice: {
 		title: "IMPORTANT",
-		body: "After you make an appointment through Google, please return to the website and complete STEP 2 or your booking will be invalid.",
+		body: "After picking session date, complete STEP 2 below or booking will be invalid.",
 		dismissLabel: "I understand",
 	},
 	recurringBookingUrl,
