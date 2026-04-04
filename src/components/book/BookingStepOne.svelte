@@ -39,7 +39,9 @@
 
 	let showBookingModal = $state(false);
 	let showPostBookingNotice = $state(false);
+	let postBookingNoticeMode = $state<"external" | "modal" | null>(null);
 	let modalUrl = $state("");
+	let pendingBookingUrl = $state("");
 	let postBookingNoticeButtonEl: HTMLButtonElement | null = $state(null);
 
 	function openModal(url: string) {
@@ -49,19 +51,37 @@
 
 		modalUrl = url;
 		showBookingModal = true;
-		showPostBookingNotice = true;
 	}
 
 	function openBooking() {
-		openModal(selectedBookingUrl);
+		if (!selectedBookingUrl) {
+			return;
+		}
+
+		pendingBookingUrl = selectedBookingUrl;
+		postBookingNoticeMode = "external";
+		showPostBookingNotice = true;
 	}
 
 	function openRecurringBooking() {
+		postBookingNoticeMode = "modal";
+		showPostBookingNotice = true;
 		openModal(recurringBookingUrl);
 	}
 
 	function dismissPostBookingNotice() {
 		showPostBookingNotice = false;
+		if (
+			postBookingNoticeMode === "external" &&
+			pendingBookingUrl &&
+			typeof window !== "undefined"
+		) {
+			window.open(pendingBookingUrl, "_blank", "noopener,noreferrer");
+			pendingBookingUrl = "";
+			scrollToStepTwo();
+		}
+
+		postBookingNoticeMode = null;
 	}
 
 	function scrollToStepTwo() {
@@ -237,33 +257,33 @@
 		iframeTitle={bookingStepOneContent.modalIframeTitle}
 		onClose={() => {
 			modalUrl = "";
+			postBookingNoticeMode = null;
+			pendingBookingUrl = "";
 			showPostBookingNotice = false;
 			scrollToStepTwo();
 		}} />
 {/if}
 
 <Dialog bind:open={showPostBookingNotice}>
-	{#if showBookingModal && showPostBookingNotice}
-		<DialogContent
-			class="z-10001 max-w-lg rounded-2xl p-6 shadow-2xl sm:p-8"
-			showCloseButton={false}>
-			<DialogHeader class="gap-3">
-				<DialogTitle class="text-xl">
-					{bookingStepOneContent.postBookingNotice.title}
-				</DialogTitle>
-				<DialogDescription class="text-sm leading-6 text-pretty sm:text-base">
-					{bookingStepOneContent.postBookingNotice.body}
-				</DialogDescription>
-			</DialogHeader>
-			<DialogFooter class="mt-2 sm:justify-end">
-				<Button
-					type="button"
-					bind:ref={postBookingNoticeButtonEl}
-					onclick={dismissPostBookingNotice}
-					class="min-w-36 rounded-lg">
-					{bookingStepOneContent.postBookingNotice.dismissLabel}
-				</Button>
-			</DialogFooter>
-		</DialogContent>
-	{/if}
+	<DialogContent
+		class="z-10001 max-w-lg rounded-2xl p-6 shadow-2xl sm:p-8"
+		showCloseButton={false}>
+		<DialogHeader class="gap-3">
+			<DialogTitle class="text-xl">
+				{bookingStepOneContent.postBookingNotice.title}
+			</DialogTitle>
+			<DialogDescription class="text-sm leading-6 text-pretty sm:text-base">
+				{bookingStepOneContent.postBookingNotice.body}
+			</DialogDescription>
+		</DialogHeader>
+		<DialogFooter class="mt-2 sm:justify-end">
+			<Button
+				type="button"
+				bind:ref={postBookingNoticeButtonEl}
+				onclick={dismissPostBookingNotice}
+				class="min-w-36 rounded-lg">
+				{bookingStepOneContent.postBookingNotice.dismissLabel}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
 </Dialog>
