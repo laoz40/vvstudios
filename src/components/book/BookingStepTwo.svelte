@@ -475,9 +475,9 @@
 			</h2>
 			<div class="space-y-10">
 				<div
-					class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-start md:justify-between md:gap-8">
+					class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-8">
 					<!-- Booking Date -->
-					<div class="w-full space-y-3 md:w-fit">
+					<div class="flex w-full flex-col space-y-3 md:w-fit md:self-stretch">
 						<p class="text-primary text-xs font-semibold tracking-widest">
 							{sectionCopy.confirmBookingDateLabel}
 						</p>
@@ -486,7 +486,7 @@
 							bind:value={selectedDate}
 							minValue={minDate}
 							captionLayout="dropdown"
-							class="border-border w-full rounded-lg border [--cell-size:--spacing(9)] md:w-fit" />
+							class="border-border h-full w-full rounded-lg border [--cell-size:--spacing(9)] md:w-fit md:h-full" />
 						{#if errors.date}
 							<p
 								class="text-destructive text-xs"
