@@ -44,15 +44,18 @@
 	let selectedBookingUrl = $derived(
 		bookingUrls[selectedStudioId]?.[selectedDurationValue]?.trim() ?? "",
 	);
+	let isBookingReady = $derived(Boolean(selectedStudioId && selectedDurationValue));
 	let errors: BookingStepOneErrors = $state({});
 
 	let showBookingModal = $state(false);
 	let showPostBookingNotice = $state(false);
 	let modalUrl = $state("");
 	let activeModalType = $state<"booking" | "recurring" | null>(null);
+	let shouldAnimateBookingButton = $state(false);
 	let postBookingNoticeButtonEl: HTMLButtonElement | null = $state(null);
 	let studioSectionEl: HTMLElement | null = $state(null);
 	let durationSectionEl: HTMLElement | null = $state(null);
+	let wasBookingReady = false;
 
 	function clearFieldError(field: keyof BookingStepOneErrors) {
 		if (!errors[field]) {
@@ -149,6 +152,22 @@
 		}
 
 		clearFieldError("durationValue");
+	});
+
+	$effect(() => {
+		if (isBookingReady && !wasBookingReady) {
+			shouldAnimateBookingButton = true;
+
+			const timeoutId = window.setTimeout(() => {
+				shouldAnimateBookingButton = false;
+			}, 700);
+
+			wasBookingReady = true;
+
+			return () => window.clearTimeout(timeoutId);
+		}
+
+		wasBookingReady = isBookingReady;
 	});
 </script>
 
@@ -294,12 +313,14 @@
 	</section>
 
 	<div class="flex flex-col gap-4">
-		<Button
-			type="button"
-			onclick={openBooking}
-			class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
-			{bookingStepOneContent.primaryButtonLabel}
-		</Button>
+		<div class={shouldAnimateBookingButton ? "booking-cta-ready" : undefined}>
+			<Button
+				type="button"
+				onclick={openBooking}
+				class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
+				{bookingStepOneContent.primaryButtonLabel}
+			</Button>
+		</div>
 		<p class="text-muted-foreground text-sm text-pretty">
 			{bookingStepOneContent.recurringPromptPrefix}
 			<button
@@ -353,3 +374,23 @@
 		</DialogFooter>
 	</DialogContent>
 </Dialog>
+
+<style>
+	.booking-cta-ready {
+		animation: booking-cta-ready 700ms ease-out;
+	}
+
+	@keyframes booking-cta-ready {
+		0% {
+			transform: scale(1);
+		}
+
+		35% {
+			transform: scale(1.05);
+		}
+
+		100% {
+			transform: scale(1);
+		}
+	}
+</style>
