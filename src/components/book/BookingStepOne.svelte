@@ -72,11 +72,15 @@
 	function scrollToFirstInvalidSection(fieldErrors: BookingStepOneErrors) {
 		if (fieldErrors.studioId) {
 			studioSectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+			document.getElementById(`studio-${studios[0]?.id}`)?.focus();
 			return;
 		}
 
 		if (fieldErrors.durationValue) {
 			durationSectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+			document
+				.getElementById(`duration-${durations[0]?.value}`)
+				?.focus();
 		}
 	}
 
@@ -391,6 +395,12 @@
 <style>
 	.booking-cta-ready {
 		animation: booking-cta-ready 850ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.booking-cta-ready {
+			animation: none;
+		}
 	}
 
 	@keyframes booking-cta-ready {

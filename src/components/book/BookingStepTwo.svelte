@@ -138,6 +138,9 @@
 	let showSummaryDialog = $state(false);
 	let showStatusDialog = $state(false);
 	let completeBookingSection: HTMLDivElement | null = $state(null);
+	let bookingDateCalendarEl: HTMLElement | null = $state(null);
+	let bookingDurationGroupEl: HTMLElement | null = $state(null);
+	let videoFormatGroupEl: HTMLElement | null = $state(null);
 
 	let isSubmitting = $state(false);
 	let isSubmitted = $state(false);
@@ -394,6 +397,57 @@
 		};
 	};
 
+	const focusCalendarControl = () => {
+		const selectedOrFirstDay = bookingDateCalendarEl?.querySelector<HTMLElement>(
+			'[aria-selected="true"], button:not([disabled])',
+		);
+		selectedOrFirstDay?.focus();
+	};
+
+	const focusInvalidField = (fieldName: BookingField) => {
+		switch (fieldName) {
+			case "date":
+				focusCalendarControl();
+				return;
+			case "duration":
+				bookingDurationGroupEl?.scrollIntoView({
+					behavior: "smooth",
+					block: "center",
+				});
+				document
+					.getElementById(`session-duration-${durationOptions[0]?.value}`)
+					?.focus();
+				return;
+			case "videoFormat":
+				videoFormatGroupEl?.scrollIntoView({
+					behavior: "smooth",
+					block: "center",
+				});
+				document
+					.getElementById(`video-format-${videoFormatOptions[0]?.value}`)
+					?.focus();
+				return;
+			case "questionsOrRequests":
+				document.getElementById("questionsOrRequests")?.focus();
+				return;
+			case "fullName":
+				document.getElementById("fullName")?.focus();
+				return;
+			case "phone":
+				document.getElementById("phone")?.focus();
+				return;
+			case "accountName":
+				document.getElementById("accountName")?.focus();
+				return;
+			case "abn":
+				document.getElementById("abn")?.focus();
+				return;
+			case "email":
+				document.getElementById("invoiceEmail")?.focus();
+				return;
+		}
+	};
+
 	const validateBookingForm = () => {
 		const parsed = BookingSchema.safeParse({
 			date: dateString,
@@ -420,6 +474,12 @@
 				const firstError = document.querySelector('[role="alert"]');
 				if (firstError) {
 					firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+				}
+				const firstInvalidField = parsed.error.issues[0]?.path[0] as
+					| BookingField
+					| undefined;
+				if (firstInvalidField) {
+					focusInvalidField(firstInvalidField);
 				}
 			});
 
@@ -532,6 +592,13 @@
 </script>
 
 <div class="mx-auto w-full max-w-4xl space-y-8">
+	<div
+		class="sr-only"
+		role="status"
+		aria-live="polite"
+		aria-atomic="true">
+		{status}
+	</div>
 	<form
 		class="space-y-10 md:space-y-14"
 		onsubmit={handleSubmit}>
@@ -544,22 +611,29 @@
 					class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-8">
 					<!-- Booking Date -->
 					<div class="flex w-full flex-col space-y-3 md:w-fit md:self-stretch">
-						<p class="text-primary text-xs font-semibold tracking-widest">
-							{sectionCopy.confirmBookingDateLabel}
-						</p>
-						<Calendar
-							type="single"
-							bind:value={selectedDate}
-							minValue={minDate}
-							captionLayout="dropdown"
-							class="border-border h-full w-full rounded-lg border [--cell-size:--spacing(9)] md:w-fit md:h-full" />
-						{#if errors.date}
-							<p
-								class="text-destructive text-xs"
-								role="alert">
-								{errors.date}
-							</p>
-						{/if}
+						<fieldset class="space-y-3">
+							<legend
+								id="booking-date-label"
+								class="text-primary text-xs font-semibold tracking-widest">
+								{sectionCopy.confirmBookingDateLabel}
+							</legend>
+							<Calendar
+								bind:ref={bookingDateCalendarEl}
+								type="single"
+								bind:value={selectedDate}
+								minValue={minDate}
+								captionLayout="dropdown"
+								aria-labelledby="booking-date-label"
+								class="border-border h-full w-full rounded-lg border [--cell-size:--spacing(9)] md:h-full md:w-fit" />
+							{#if errors.date}
+								<p
+									id="booking-date-error"
+									class="text-destructive text-xs"
+									role="alert">
+									{errors.date}
+								</p>
+							{/if}
+						</fieldset>
 					</div>
 
 					<!-- Session Duration -->
@@ -570,6 +644,7 @@
 								{sectionCopy.confirmSessionDurationLabel}
 							</legend>
 							<RadioGroup
+								bind:ref={bookingDurationGroupEl}
 								bind:value={selectedDuration}
 								name="sessionDuration"
 								class="flex flex-1 flex-col justify-between gap-4">
@@ -720,6 +795,7 @@
 						</legend>
 						<div class="mt-4">
 							<RadioGroup
+								bind:ref={videoFormatGroupEl}
 								bind:value={selectedVideoFormat}
 								name="videoFormat"
 								class="grid gap-4">
