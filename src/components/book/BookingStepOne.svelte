@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from "svelte";
 	import type { Snippet } from "svelte";
+	import { z } from "zod";
 	import { Button } from "$lib/components/ui/button";
 	import {
 		Dialog,
@@ -28,20 +29,50 @@
 	const durations = bookingStepOneContent.durations;
 	const bookingUrls = bookingStepOneContent.bookingUrls;
 	const unavailableStudioId = "couch";
-
 	const recurringBookingUrl = bookingStepOneContent.recurringBookingUrl;
+	const BookingStepOneSchema = z.object({
+		studioId: z.string().min(1, "Please select a studio space."),
+		durationValue: z.string().min(1, "Please select a session duration."),
+	});
+
+	type BookingStepOneErrors = Partial<
+		Record<keyof z.infer<typeof BookingStepOneSchema>, string>
+	>;
 
 	let selectedStudioId = $state("");
 	let selectedDurationValue = $state("");
 	let selectedBookingUrl = $derived(
 		bookingUrls[selectedStudioId]?.[selectedDurationValue]?.trim() ?? "",
 	);
+	let errors: BookingStepOneErrors = $state({});
 
 	let showBookingModal = $state(false);
 	let showPostBookingNotice = $state(false);
 	let modalUrl = $state("");
 	let activeModalType = $state<"booking" | "recurring" | null>(null);
 	let postBookingNoticeButtonEl: HTMLButtonElement | null = $state(null);
+	let studioSectionEl: HTMLElement | null = $state(null);
+	let durationSectionEl: HTMLElement | null = $state(null);
+
+	function clearFieldError(field: keyof BookingStepOneErrors) {
+		if (!errors[field]) {
+			return;
+		}
+
+		const { [field]: _removed, ...rest } = errors;
+		errors = rest;
+	}
+
+	function scrollToFirstInvalidSection(fieldErrors: BookingStepOneErrors) {
+		if (fieldErrors.studioId) {
+			studioSectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+			return;
+		}
+
+		if (fieldErrors.durationValue) {
+			durationSectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+	}
 
 	function openModal(url: string, type: "booking" | "recurring") {
 		if (!url) {
@@ -54,10 +85,25 @@
 	}
 
 	function openBooking() {
-		if (!selectedBookingUrl) {
+		const parsed = BookingStepOneSchema.safeParse({
+			studioId: selectedStudioId,
+			durationValue: selectedDurationValue,
+		});
+
+		if (!parsed.success) {
+			const fieldErrors: BookingStepOneErrors = {};
+			for (const issue of parsed.error.issues) {
+				const key = issue.path[0] as keyof BookingStepOneErrors;
+				if (key && !fieldErrors[key]) {
+					fieldErrors[key] = issue.message;
+				}
+			}
+			errors = fieldErrors;
+			void tick().then(() => scrollToFirstInvalidSection(fieldErrors));
 			return;
 		}
 
+		errors = {};
 		showPostBookingNotice = true;
 	}
 
@@ -88,11 +134,29 @@
 
 		void tick().then(() => postBookingNoticeButtonEl?.focus());
 	});
+
+	$effect(() => {
+		if (!selectedStudioId) {
+			return;
+		}
+
+		clearFieldError("studioId");
+	});
+
+	$effect(() => {
+		if (!selectedDurationValue) {
+			return;
+		}
+
+		clearFieldError("durationValue");
+	});
 </script>
 
 <!-- Studio Selection -->
 <div class="space-y-10">
-	<section class="space-y-1">
+	<section
+		bind:this={studioSectionEl}
+		class="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 		<fieldset class="space-y-1">
 			<legend
 				class="text-primary mb-3 text-xs font-semibold tracking-widest uppercase">
@@ -159,10 +223,19 @@
 				{/each}
 			</RadioGroup>
 		</fieldset>
+		{#if errors.studioId}
+			<p
+				class="text-destructive text-xs"
+				role="alert">
+				{errors.studioId}
+			</p>
+		{/if}
 	</section>
 
 	<!-- Session Duration -->
-	<section class="space-y-1">
+	<section
+		bind:this={durationSectionEl}
+		class="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 		<fieldset class="space-y-1">
 			<legend
 				class="text-primary mb-3 text-xs font-semibold tracking-widest uppercase">
@@ -211,13 +284,19 @@
 				{/each}
 			</RadioGroup>
 		</fieldset>
+		{#if errors.durationValue}
+			<p
+				class="text-destructive text-xs"
+				role="alert">
+				{errors.durationValue}
+			</p>
+		{/if}
 	</section>
 
 	<div class="flex flex-col gap-4">
 		<Button
 			type="button"
 			onclick={openBooking}
-			disabled={!selectedBookingUrl}
 			class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
 			{bookingStepOneContent.primaryButtonLabel}
 		</Button>
