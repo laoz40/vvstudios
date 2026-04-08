@@ -134,6 +134,7 @@
 	let hasSavedBookingData = $state(false);
 	let showSummaryDialog = $state(false);
 	let showStatusDialog = $state(false);
+	let completeBookingSection: HTMLDivElement | null = $state(null);
 
 	let isSubmitting = $state(false);
 	let isSubmitted = $state(false);
@@ -213,6 +214,10 @@
 		if (!stored) return;
 		applyStoredBooking(stored.data);
 		await tick();
+		completeBookingSection?.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
 	};
 	const resetFormState = () => {
 		selectedDate = undefined;
@@ -942,7 +947,9 @@
 			</div>
 		</div>
 
-		<div class="space-y-6">
+		<div
+			class="space-y-6"
+			bind:this={completeBookingSection}>
 			<div class="flex items-center gap-3">
 				<Checkbox
 					id="saveBookingInfo"
@@ -996,7 +1003,7 @@
 				{/if}
 				<section class="space-y-3">
 					<h3
-						class="text-xs font-semibold tracking-widest text-white uppercase">
+						class="text-xs font-semibold tracking-widest text-primary uppercase">
 						{section.title}
 					</h3>
 					{#if section.title === summaryCopy.contactBillingTitle}
