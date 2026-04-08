@@ -32,8 +32,8 @@ export const bookingPageContent: BookingPageContent = {
 
 export const bookingStepOneContent: BookingStepOneContent = {
 	sectionLabels: {
-		studioSelection: "Studio Selection",
-		sessionDuration: "Session Duration",
+		studioSelection: "SELECT RECORDING SPACE",
+		sessionDuration: "SELECT SESSION DURATION",
 	},
 	studios: [
 		{
@@ -181,24 +181,24 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		submitUnexpectedlyFailed: "Submission failed unexpectedly.",
 	},
 	sections: {
-		bookingDetailsTitle: "Booking Details",
-		confirmBookingDateLabel: "CONFIRM BOOKING DATE",
+		bookingDetailsTitle: "Confirm Booking Details",
+		confirmBookingDateLabel: "CONFIRM SESSION DATE",
 		confirmSessionDurationLabel: "CONFIRM SESSION DURATION",
 		reuseSavedBookingText: "You can reuse your last saved booking information.",
 		reuseSavedBookingButton: "Reuse Last Booking Info",
-		sessionDetailsTitle: "Session Details",
-		addOnsLegend: "ADD-ONS",
+		sessionDetailsTitle: "Customise Your Session",
+		addOnsLegend: "SELECT ADD-ONS",
 		addOnsHelper:
 			"Video & Audio Package includes up to 4 RODE microphones and 3 Sony cameras.",
-		videoFormatLegend: "RECORDING FORMAT",
-		questionsLabel: "ANY QUESTIONS OR REQUESTS?",
+		videoFormatLegend: "SELECT RECORDING FORMAT",
+		questionsLabel: "ADD ANY QUESTIONS OR REQUESTS?",
 		questionsPlaceholder:
 			"Let us know if you have any special requests or questions.",
 		questionsContactPrefix: "Available for call at",
 		questionsContactMiddle: "& email at",
-		contactBillingTitle: "Contact and Billing Information",
-		contactInfoLabel: "CONTACT INFORMATION",
-		billingInfoLabel: "BILLING INFORMATION",
+		contactBillingTitle: "Contact & Billing Information",
+		contactInfoLabel: "ENTER CONTACT DETAILS",
+		billingInfoLabel: "ENTER BILLING INFORMATION",
 		fullNameLabel: "Full Name",
 		fullNamePlaceholder: "Awesome Artist",
 		phoneLabel: "Contact Phone Number",
