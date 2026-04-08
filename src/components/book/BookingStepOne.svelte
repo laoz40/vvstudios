@@ -19,6 +19,9 @@
 	import tableImage from "../../assets/gallery/table-setup.webp";
 	import couchImage from "../../assets/couch.jpg";
 
+	const pressableClass =
+		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
+
 	let {
 		children: _children,
 	}: {
@@ -202,7 +205,8 @@
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
-								"border-border bg-input peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block overflow-hidden rounded-lg border transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"border-border bg-input peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block overflow-hidden rounded-lg border transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								pressableClass,
 								!isUnavailable && "hover:border-primary cursor-pointer",
 								isUnavailable && "cursor-not-allowed opacity-60 saturate-0",
 								selectedStudioId === studio.id && "border-primary",
@@ -210,7 +214,7 @@
 							<div class="relative h-56 w-full">
 								{#if selectedStudioId === studio.id}
 									<span
-										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest transition duration-500">
+										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest transition duration-300!">
 										{bookingStepOneContent.selectedBadge}
 									</span>
 								{/if}
@@ -234,7 +238,7 @@
 								{/if}
 								<div
 									class={cn(
-										"bg-background/90 absolute inset-x-0 bottom-0 px-4 py-2 backdrop-blur-xs transition duration-500",
+										"bg-background/90 absolute inset-x-0 bottom-0 px-4 py-2 backdrop-blur-xs transition duration-300!",
 										selectedStudioId === studio.id &&
 											!isUnavailable &&
 											"bg-[#393420]/90",
@@ -280,7 +284,8 @@
 						<label
 							for={`duration-${duration.value}`}
 							class={cn(
-								"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-500 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								pressableClass,
 								selectedDurationValue === duration.value &&
 									"border-primary bg-primary/10",
 							)}>
@@ -323,18 +328,21 @@
 			<Button
 				type="button"
 				onclick={openBooking}
-				class="h-12 w-full rounded-lg text-base font-bold tracking-wider">
+				class={cn(
+					" h-12 w-full rounded-lg text-base font-bold tracking-wider",
+					pressableClass,
+				)}>
 				{bookingStepOneContent.primaryButtonLabel}
 			</Button>
 		</div>
 		<p class="text-muted-foreground text-sm text-pretty">
 			{bookingStepOneContent.recurringPromptPrefix}
-			<button
-				type="button"
+			<Button
+				variant="link"
 				onclick={openRecurringBooking}
-				class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary">
+				class= "text-foreground underline decoration-primary/65 underline-offset-4 hover:text-primary p-0">
 				{bookingStepOneContent.recurringPromptAction}
-			</button>
+			</Button>
 			{bookingStepOneContent.recurringPromptSuffix}
 		</p>
 	</div>
@@ -376,7 +384,7 @@
 				type="button"
 				bind:ref={postBookingNoticeButtonEl}
 				onclick={dismissPostBookingNotice}
-				class="min-w-36 rounded-lg">
+				class={cn("min-w-36 rounded-lg", pressableClass)}>
 				{bookingStepOneContent.postBookingNotice.dismissLabel}
 			</Button>
 		</DialogFooter>
@@ -385,7 +393,7 @@
 
 <style>
 	.booking-cta-ready {
-		animation: booking-cta-ready 700ms ease-out;
+		animation: booking-cta-ready 850ms cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	@keyframes booking-cta-ready {
@@ -393,8 +401,16 @@
 			transform: scale(1);
 		}
 
-		35% {
-			transform: scale(1.05);
+		30% {
+			transform: scale(1.08);
+		}
+
+		52% {
+			transform: scale(0.97);
+		}
+
+		72% {
+			transform: scale(1.03);
 		}
 
 		100% {

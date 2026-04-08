@@ -29,6 +29,9 @@
 	import { cn } from "$lib/utils.js";
 	import { bookingStepTwoContent } from "../../content/booking";
 
+	const pressableClass =
+		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
+
 	const BookingSchema = z.object({
 		date: z.string().min(1, "Please select a booking date."),
 		duration: z.string().min(1, "Please select a session duration."),
@@ -579,7 +582,8 @@
 										<label
 											for={`session-duration-${option.value}`}
 											class={cn(
-												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-6 text-left transition duration-500 peer-focus-visible:ring-[3px]",
+												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-6 text-left transition duration-300! peer-focus-visible:ring-[3px]",
+												pressableClass,
 												selectedDuration === option.value &&
 													"border-primary bg-primary/10",
 											)}>
@@ -633,7 +637,7 @@
 						<Button
 							type="button"
 							variant="default"
-							class="rounded-lg"
+							class={cn("rounded-lg", pressableClass)}
 							onclick={handleReuseLastBooking}>
 							{sectionCopy.reuseSavedBookingButton}
 						</Button>
@@ -664,7 +668,8 @@
 										<label
 											for={`addon-${option.value}`}
 											class={cn(
-												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-4 rounded-lg border px-4 py-4 text-left transition duration-300 peer-focus-visible:ring-[3px]",
+												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-4 rounded-lg border px-4 py-4 text-left transition duration-300! peer-focus-visible:ring-[3px]",
+												pressableClass,
 												selectedAddOns.includes(option.value) &&
 													"border-primary bg-primary/10",
 											)}>
@@ -727,7 +732,8 @@
 										<label
 											for={`video-format-${option.value}`}
 											class={cn(
-												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex min-h-28 cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-500 peer-focus-visible:ring-[3px] sm:min-h-0",
+												"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex min-h-28 cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-300! peer-focus-visible:ring-[3px] sm:min-h-0",
+												pressableClass,
 												selectedVideoFormat === option.value &&
 													"border-primary bg-primary/10",
 											)}>
@@ -808,17 +814,19 @@
 						{/if}
 						<p class="text-muted-foreground text-sm">
 							{sectionCopy.questionsContactPrefix}
-							<a
-								class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
+							<Button
+								variant="link"
+								class="p-0 text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
 								href={`tel:${contactPhone}`}>
 								{contactPhone}
-							</a>
+							</Button>
 							{sectionCopy.questionsContactMiddle}
-							<a
-								class="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
+							<Button
+								variant="link"
+								class="p-0 text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
 								href={`mailto:${contactEmail}`}>
 								{contactEmail}
-							</a>
+							</Button>
 						</p>
 					</div>
 				</div>
@@ -966,7 +974,10 @@
 			<Button
 				type="submit"
 				size="lg"
-				class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
+				class={cn(
+					"h-12 w-full rounded-lg text-base font-bold tracking-wider",
+					pressableClass,
+				)}
 				disabled={isSubmitting || isSubmitted}>
 				{isSubmitted
 					? sectionCopy.submitButtonSubmitted
