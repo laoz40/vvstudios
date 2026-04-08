@@ -107,6 +107,13 @@
 		}
 
 		errors = {};
+		if (!selectedBookingUrl) {
+			return;
+		}
+
+		activeModalType = "booking";
+		modalUrl = selectedBookingUrl;
+		showBookingModal = true;
 		showPostBookingNotice = true;
 	}
 
@@ -116,7 +123,6 @@
 
 	function dismissPostBookingNotice() {
 		showPostBookingNotice = false;
-		openModal(selectedBookingUrl, "booking");
 	}
 
 	function scrollToStepTwo() {
@@ -353,7 +359,9 @@
 
 <Dialog bind:open={showPostBookingNotice}>
 	<DialogContent
-		class="z-10001 max-w-[calc(100%-1.5rem)] rounded-2xl ring-0! p-6 shadow-2xl sm:max-w-lg sm:p-8"
+		overlayProps={{ class: "z-10001" }}
+		onInteractOutside={(event) => event.preventDefault()}
+		class="z-10002 max-w-[calc(100%-1.5rem)] rounded-2xl ring-2 ring-primary px-6 py-4 shadow-2xl sm:max-w-lg sm:px-8 sm:py-6"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
 			<DialogTitle class="text-xl">
