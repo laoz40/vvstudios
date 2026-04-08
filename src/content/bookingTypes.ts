@@ -114,6 +114,13 @@ export type BookingStepTwoContent = {
 		invoiceEmailLabel: string;
 		invoiceEmailPlaceholder: string;
 		summaryLabel: string;
+		summaryDialogTitle: string;
+		summaryDialogDescription: string;
+		summaryDialogCancelButton: string;
+		summaryDialogConfirmButton: string;
+		statusDialogSuccessTitle: string;
+		statusDialogErrorTitle: string;
+		statusDialogDismissButton: string;
 		saveBookingInfoLabel: string;
 		selectedBadge: string;
 		submitButtonDefault: string;

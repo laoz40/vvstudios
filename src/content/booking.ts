@@ -176,7 +176,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 	statusMessages: {
 		missingScriptUrl: "Missing script URL.",
 		success:
-			"Booking completed successfully. Check your email for your invoice.",
+			"Your booking has been successfully completed. We’ve sent your invoice to your email. Please check your inbox (and spam folder just in case). Looking forward to seeing you soon!",
 		submitFailed: "Booking form fail to submit.",
 		submitUnexpectedlyFailed: "Submission failed unexpectedly.",
 	},
@@ -210,6 +210,14 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		invoiceEmailLabel: "Email (to receive your invoice)",
 		invoiceEmailPlaceholder: "billing@example.com",
 		summaryLabel: "Summary",
+		summaryDialogTitle: "Your Booking Summary",
+		summaryDialogDescription:
+			"Check your details before submitting your booking.",
+		summaryDialogCancelButton: "Back",
+		summaryDialogConfirmButton: "Confirm booking",
+		statusDialogSuccessTitle: "Booking completed!",
+		statusDialogErrorTitle: "Booking failed. Please try again.",
+		statusDialogDismissButton: "Close",
 		saveBookingInfoLabel:
 			"Save booking information to this device for next time",
 		selectedBadge: "SELECTED",

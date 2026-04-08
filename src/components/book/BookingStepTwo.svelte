@@ -14,6 +14,14 @@
 	import { Calendar } from "$lib/components/ui/calendar";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle,
+	} from "$lib/components/ui/dialog";
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
@@ -124,11 +132,14 @@
 	let email = $state("");
 	let saveBookingInfo = $state(false);
 	let hasSavedBookingData = $state(false);
-	let summarySectionEl: HTMLDivElement | undefined = $state(undefined);
+	let showSummaryDialog = $state(false);
+	let showStatusDialog = $state(false);
 
 	let isSubmitting = $state(false);
 	let isSubmitted = $state(false);
 	let status = $state("");
+	let statusType = $state<"success" | "error" | "">("");
+	let wasStatusDialogOpen = $state(false);
 	let errors: BookingErrors = $state({});
 
 	const isStringArray = (value: unknown): value is string[] =>
@@ -202,7 +213,6 @@
 		if (!stored) return;
 		applyStoredBooking(stored.data);
 		await tick();
-		summarySectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
 	};
 	const resetFormState = () => {
 		selectedDate = undefined;
@@ -217,6 +227,25 @@
 		email = "";
 		saveBookingInfo = false;
 	};
+	const openStatusDialog = (type: "success" | "error", message: string) => {
+		statusType = type;
+		status = message;
+		showStatusDialog = true;
+	};
+	const clearStatusDialog = () => {
+		showStatusDialog = false;
+		status = "";
+		statusType = "";
+	};
+
+	$effect(() => {
+		if (wasStatusDialogOpen && !showStatusDialog) {
+			status = "";
+			statusType = "";
+		}
+
+		wasStatusDialogOpen = showStatusDialog;
+	});
 
 	onMount(() => {
 		const stored = readStoredBooking();
@@ -357,19 +386,7 @@
 		};
 	};
 
-	const handleSubmit = async (event: SubmitEvent) => {
-		event.preventDefault();
-
-		if (isSubmitted) {
-			return;
-		}
-
-		if (!scriptUrl) {
-			status = statusMessages.missingScriptUrl;
-			return;
-		}
-
-		// Validate with Zod before submitting
+	const validateBookingForm = () => {
 		const parsed = BookingSchema.safeParse({
 			date: dateString,
 			duration: selectedDuration,
@@ -383,8 +400,6 @@
 		});
 
 		if (!parsed.success) {
-			// console.log("Failed to parse booking payload:", parsed);
-
 			const fieldErrors: BookingErrors = {};
 			for (const issue of parsed.error.issues) {
 				const key = issue.path[0] as keyof BookingErrors;
@@ -400,12 +415,50 @@
 				}
 			});
 
-			return;
+			return false;
 		}
 		errors = {};
+		return true;
+	};
+
+	const handleSubmit = (event: SubmitEvent) => {
+		event.preventDefault();
+
+		if (isSubmitted) {
+			return;
+		}
+
+		if (!scriptUrl) {
+			openStatusDialog("error", statusMessages.missingScriptUrl);
+			return;
+		}
+
+		if (!validateBookingForm()) {
+			return;
+		}
+
+		clearStatusDialog();
+		showSummaryDialog = true;
+	};
+
+	const handleConfirmBooking = async () => {
+		if (isSubmitted || isSubmitting) {
+			return;
+		}
+
+		if (!scriptUrl) {
+			showSummaryDialog = false;
+			openStatusDialog("error", statusMessages.missingScriptUrl);
+			return;
+		}
+
+		if (!validateBookingForm()) {
+			showSummaryDialog = false;
+			return;
+		}
 
 		isSubmitting = true;
-		status = "";
+		clearStatusDialog();
 
 		const payload = {
 			name: fullName,
@@ -432,9 +485,6 @@
 
 			console.log("Submitted booking payload:", payload);
 
-			status = response.ok
-				? statusMessages.success
-				: statusMessages.submitFailed;
 			if (response.ok && saveBookingInfo) {
 				writeStoredBooking({
 					selectedAddOns,
@@ -450,13 +500,21 @@
 			}
 			if (response.ok) {
 				isSubmitted = true;
+				showSummaryDialog = false;
 				resetFormState();
+				openStatusDialog("success", statusMessages.success);
+			} else {
+				showSummaryDialog = false;
+				openStatusDialog("error", statusMessages.submitFailed);
 			}
 		} catch (error) {
-			status =
+			showSummaryDialog = false;
+			openStatusDialog(
+				"error",
 				error instanceof Error
 					? error.message
-					: statusMessages.submitUnexpectedlyFailed;
+					: statusMessages.submitUnexpectedlyFailed,
+			);
 		} finally {
 			isSubmitting = false;
 		}
@@ -884,63 +942,7 @@
 			</div>
 		</div>
 
-		<!-- Summary -->
-		<div
-			class="scroll-mt-24 space-y-6 pt-2 md:scroll-mt-28"
-			bind:this={summarySectionEl}>
-			<h2 class="text-foreground text-xl font-bold">
-				{sectionCopy.summaryLabel}
-			</h2>
-			<div
-				class="border-border bg-background rounded-lg border p-5 text-sm shadow-sm">
-				{#each summarySections as section, index}
-					{#if index > 0}
-						<div class="border-border my-5 border-t"></div>
-					{/if}
-					<section class="space-y-3">
-						<h3
-							class="text-xs font-semibold tracking-widest text-white uppercase">
-							{section.title}
-						</h3>
-						{#if section.title === summaryCopy.contactBillingTitle}
-							<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
-								{#each section.items.slice(0, 2) as item}
-									<div class="space-y-1">
-										<dt class="text-muted-foreground">{item.label}</dt>
-										<dd
-											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-											{item.value}
-										</dd>
-									</div>
-								{/each}
-							</dl>
-							<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
-								{#each section.items.slice(2) as item}
-									<div class="space-y-1">
-										<dt class="text-muted-foreground">{item.label}</dt>
-										<dd
-											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-											{item.value}
-										</dd>
-									</div>
-								{/each}
-							</dl>
-						{:else}
-							<dl class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-								{#each section.items as item}
-									<div class="space-y-1">
-										<dt class="text-muted-foreground">{item.label}</dt>
-										<dd
-											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-											{item.value}
-										</dd>
-									</div>
-								{/each}
-							</dl>
-						{/if}
-					</section>
-				{/each}
-			</div>
+		<div class="space-y-6">
 			<div class="flex items-center gap-3">
 				<Checkbox
 					id="saveBookingInfo"
@@ -952,27 +954,137 @@
 					{sectionCopy.saveBookingInfoLabel}
 				</Label>
 			</div>
-		</div>
 
-		<!-- Submit -->
-		<Button
-			type="submit"
-			size="lg"
-			class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
-			disabled={isSubmitting || isSubmitted}>
-			{isSubmitted
-				? sectionCopy.submitButtonSubmitted
-				: isSubmitting
-					? sectionCopy.submitButtonLoading
-					: sectionCopy.submitButtonDefault}
-		</Button>
-		{#if status}
-			<p
-				class="text-primary text-bold text-center text-lg"
-				role="status"
-				aria-live="polite">
-				{status}
-			</p>
-		{/if}
+			<!-- Submit -->
+			<Button
+				type="submit"
+				size="lg"
+				class="h-12 w-full rounded-lg text-base font-bold tracking-wider"
+				disabled={isSubmitting || isSubmitted}>
+				{isSubmitted
+					? sectionCopy.submitButtonSubmitted
+					: isSubmitting
+						? sectionCopy.submitButtonLoading
+						: sectionCopy.submitButtonDefault}
+			</Button>
+		</div>
 	</form>
 </div>
+
+<Dialog bind:open={showSummaryDialog}>
+	<DialogContent
+		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-5 sm:max-w-3xl sm:p-6"
+		onInteractOutside={(event) => {
+			if (isSubmitting) event.preventDefault();
+		}}
+		onEscapeKeydown={(event) => {
+			if (isSubmitting) event.preventDefault();
+		}}>
+		<DialogHeader class="gap-2">
+			<DialogTitle class="text-xl">
+				{sectionCopy.summaryDialogTitle}
+			</DialogTitle>
+			<DialogDescription class="text-muted-foreground text-sm leading-6">
+				{sectionCopy.summaryDialogDescription}
+			</DialogDescription>
+		</DialogHeader>
+
+		<div class="border-border bg-background rounded-lg border p-5 text-sm shadow-sm">
+			{#each summarySections as section, index}
+				{#if index > 0}
+					<div class="border-border my-5 border-t"></div>
+				{/if}
+				<section class="space-y-3">
+					<h3
+						class="text-xs font-semibold tracking-widest text-white uppercase">
+						{section.title}
+					</h3>
+					{#if section.title === summaryCopy.contactBillingTitle}
+						<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
+							{#each section.items.slice(0, 2) as item}
+								<div class="space-y-1">
+									<dt class="text-muted-foreground">{item.label}</dt>
+									<dd
+										class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+										{item.value}
+									</dd>
+								</div>
+							{/each}
+						</dl>
+						<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
+							{#each section.items.slice(2) as item}
+								<div class="space-y-1">
+									<dt class="text-muted-foreground">{item.label}</dt>
+									<dd
+										class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+										{item.value}
+									</dd>
+								</div>
+							{/each}
+						</dl>
+					{:else}
+						<dl class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+							{#each section.items as item}
+								<div class="space-y-1">
+									<dt class="text-muted-foreground">{item.label}</dt>
+									<dd
+										class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+										{item.value}
+									</dd>
+								</div>
+							{/each}
+						</dl>
+					{/if}
+				</section>
+			{/each}
+		</div>
+
+		<DialogFooter class="gap-3 sm:justify-end">
+			<Button
+				type="button"
+				variant="outline"
+				class="rounded-lg"
+				disabled={isSubmitting}
+				onclick={() => {
+					showSummaryDialog = false;
+				}}>
+				{sectionCopy.summaryDialogCancelButton}
+			</Button>
+			<Button
+				type="button"
+				class="rounded-lg"
+				disabled={isSubmitting || isSubmitted}
+				onclick={handleConfirmBooking}>
+				{isSubmitted
+					? sectionCopy.submitButtonSubmitted
+					: isSubmitting
+						? sectionCopy.submitButtonLoading
+						: sectionCopy.summaryDialogConfirmButton}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
+
+<Dialog bind:open={showStatusDialog}>
+	<DialogContent class="rounded-xl p-5 sm:max-w-lg sm:p-6">
+		<DialogHeader class="gap-2">
+			<DialogTitle class="text-xl">
+				{statusType === "success"
+					? sectionCopy.statusDialogSuccessTitle
+					: sectionCopy.statusDialogErrorTitle}
+			</DialogTitle>
+			<DialogDescription class="text-muted-foreground text-sm leading-6">
+				{status}
+			</DialogDescription>
+		</DialogHeader>
+
+		<DialogFooter class="sm:justify-end">
+			<Button
+				type="button"
+				class="rounded-lg"
+				onclick={clearStatusDialog}>
+				{sectionCopy.statusDialogDismissButton}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
