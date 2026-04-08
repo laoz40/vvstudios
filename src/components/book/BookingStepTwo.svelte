@@ -610,29 +610,31 @@
 				<div
 					class="grid gap-8 md:grid-cols-[max-content_minmax(0,1fr)] md:items-stretch md:justify-between md:gap-8">
 					<!-- Booking Date -->
-					<div class="flex w-full flex-col space-y-3 md:w-fit md:self-stretch">
-						<fieldset class="space-y-3">
+					<div class="flex h-full w-full flex-col md:w-fit md:self-stretch">
+						<fieldset class="flex h-full flex-col">
 							<legend
 								id="booking-date-label"
 								class="text-primary text-xs font-semibold tracking-widest">
 								{sectionCopy.confirmBookingDateLabel}
 							</legend>
-							<Calendar
-								bind:ref={bookingDateCalendarEl}
-								type="single"
-								bind:value={selectedDate}
-								minValue={minDate}
-								captionLayout="dropdown"
-								aria-labelledby="booking-date-label"
-								class="border-border h-full w-full rounded-lg border [--cell-size:--spacing(9)] md:h-full md:w-fit" />
-							{#if errors.date}
-								<p
-									id="booking-date-error"
-									class="text-destructive text-xs"
-									role="alert">
-									{errors.date}
-								</p>
-							{/if}
+							<div class="flex flex-1 flex-col gap-3 pt-3">
+								<Calendar
+									bind:ref={bookingDateCalendarEl}
+									type="single"
+									bind:value={selectedDate}
+									minValue={minDate}
+									captionLayout="dropdown"
+									aria-labelledby="booking-date-label"
+									class="border-border h-full flex-1 rounded-lg border [--cell-size:--spacing(9)] md:w-fit" />
+								{#if errors.date}
+									<p
+										id="booking-date-error"
+										class="text-destructive text-xs"
+										role="alert">
+										{errors.date}
+									</p>
+								{/if}
+							</div>
 						</fieldset>
 					</div>
 
