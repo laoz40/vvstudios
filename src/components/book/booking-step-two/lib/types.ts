@@ -4,13 +4,13 @@ import type {
 	BookingStepTwoContent,
 	BookingStepTwoDurationOption,
 	BookingStepTwoVideoFormatOption,
-} from "../../../content/bookingTypes";
+} from "../../../../content/bookingTypes";
 import type {
 	BookingErrors,
 	BookingField,
 	PricingLineItem,
 	SummarySection,
-} from "./lib/form-types";
+} from "./form-types";
 
 export type BookingStepTwoState = {
 	form: {

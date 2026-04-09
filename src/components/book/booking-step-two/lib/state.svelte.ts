@@ -1,10 +1,10 @@
-import { formatSelectedDate, getDateString, getDurationValue } from "./lib/date";
-import { getSelectedAddOnLabels, getSelectedVideoFormatLabel } from "./lib/selection-mappers";
+import { formatSelectedDate, getDateString, getDurationValue } from "./date";
+import { getSelectedAddOnLabels, getSelectedVideoFormatLabel } from "./selection-mappers";
 import type {
 	BookingStepTwoDerived,
 	BookingStepTwoState,
 	BookingStepTwoUi,
-} from "./lib/types";
+} from "./types";
 
 class BookingState implements BookingStepTwoState {
 	form = $state({

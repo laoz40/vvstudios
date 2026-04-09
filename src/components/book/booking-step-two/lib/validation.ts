@@ -1,10 +1,10 @@
 import { tick } from "svelte";
-import type { BookingField, BookingFormData } from "./lib/form-types";
-import type { BookingStepTwoState } from "./lib/types";
+import type { BookingField, BookingFormData } from "./form-types";
+import type { BookingStepTwoState } from "./types";
 import {
 	BookingSchema,
 	getFieldErrors,
-} from "./lib/zod";
+} from "./zod";
 
 export function clearBookingFieldError(
 	state: BookingStepTwoState,

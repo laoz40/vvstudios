@@ -1,7 +1,7 @@
 import type {
 	BookingStepTwoAddOnOption,
 	BookingStepTwoContent,
-} from "../../../content/bookingTypes";
+} from "../../../../content/bookingTypes";
 
 // map the selected video format value to its display label
 export function getSelectedVideoFormatLabel(

@@ -1,8 +1,8 @@
 import type {
 	BookingStepTwoAddOnOption,
 	BookingStepTwoContent,
-} from "../../../content/bookingTypes";
-import type { PricingLineItem } from "./lib/form-types";
+} from "../../../../content/bookingTypes";
+import type { PricingLineItem } from "./form-types";
 
 export function parseCurrency(value: string): number {
 	const normalized = value.replace(/[^0-9.-]/g, "");

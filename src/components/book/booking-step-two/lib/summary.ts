@@ -1,9 +1,9 @@
-import type { BookingStepTwoContent } from "../../../content/bookingTypes";
+import type { BookingStepTwoContent } from "../../../../content/bookingTypes";
 import type {
 	BookingSummaryData,
 	SummaryItem,
 	SummarySection,
-} from "./lib/form-types";
+} from "./form-types";
 
 export function createSummarySections(
 	data: BookingSummaryData,

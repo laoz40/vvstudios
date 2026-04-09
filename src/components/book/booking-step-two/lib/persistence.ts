@@ -1,11 +1,11 @@
 import { tick } from "svelte";
-import type { PersistedBookingData } from "./lib/form-types";
-import type { BookingStepTwoState } from "./lib/types";
+import type { PersistedBookingData } from "./form-types";
+import type { BookingStepTwoState } from "./types";
 import {
 	readStoredBooking,
 	sanitizeStoredBookingData,
 	writeStoredBooking,
-} from "./lib/storage";
+} from "./storage";
 
 export function getPersistedBookingData(
 	state: BookingStepTwoState,
