@@ -38,6 +38,7 @@ export function createPricingItems(
 	summaryCopy: BookingStepTwoContent["summary"],
 ): PricingLineItem[] {
 	const sessionPrice = getSessionPriceFromDuration(duration);
+	// keep only selected add-ons and format them for display
 	const addOnItems = addOnOptions
 		.filter((option) => selectedAddOns.includes(option.value))
 		.map((option) => ({
@@ -45,11 +46,14 @@ export function createPricingItems(
 			amount: formatCurrency(parseCurrency(option.price)),
 			isAddOn: true,
 		}));
+	// add up all selected add-on amounts
 	const addOnTotal = addOnItems.reduce(
 		(total, item) => total + parseCurrency(item.amount),
 		0,
 	);
+	// apply the fixed booking deposit
 	const deposit = 50;
+	// calculate the final total after the deposit
 	const total = sessionPrice + addOnTotal - deposit;
 
 	return [

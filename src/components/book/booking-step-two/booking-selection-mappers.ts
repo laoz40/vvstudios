@@ -3,13 +3,7 @@ import type {
 	BookingStepTwoContent,
 } from "../../../content/bookingTypes";
 
-export function toAddOnFieldName(value: string): string {
-	return `addOn${value
-		.split("-")
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join("")}`;
-}
-
+// map the selected video format value to its display label
 export function getSelectedVideoFormatLabel(
 	selectedVideoFormat: string,
 	videoFormatOptions: BookingStepTwoContent["videoFormatOptions"],
@@ -21,6 +15,15 @@ export function getSelectedVideoFormatLabel(
 	return match?.label || "";
 }
 
+// turn a kebab-case add-on value into a form field name
+export function toAddOnFieldName(value: string): string {
+	return `addOn${value
+		.split("-")
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join("")}`;
+}
+
+// filter the chosen add-ons and return their labels
 export function getSelectedAddOnLabels(
 	selectedAddOns: string[],
 	addOnOptions: BookingStepTwoAddOnOption[],
@@ -30,7 +33,8 @@ export function getSelectedAddOnLabels(
 		.map((option) => option.label);
 }
 
-export function createSelectedAddOnFields(
+// convert add-on options into boolean values keyed by field name
+export function mapAllAddOnsToBooleanSelectionState(
 	selectedAddOns: string[],
 	addOnOptions: BookingStepTwoAddOnOption[],
 ): Record<string, boolean> {

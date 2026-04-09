@@ -1,8 +1,10 @@
-import { BOOKING_STORAGE_KEY } from "./booking-constants";
 import type {
 	PersistedBookingData,
 	PersistedBookingEnvelope,
 } from "./booking-types";
+
+
+const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
 
 export function isStringArray(value: unknown): value is string[] {
 	return Array.isArray(value) && value.every((item) => typeof item === "string");

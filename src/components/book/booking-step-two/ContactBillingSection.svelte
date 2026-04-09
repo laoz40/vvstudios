@@ -1,117 +1,131 @@
 <script lang="ts">
+	import { getContext, onMount } from "svelte";
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
-	import type { BookingStepTwoContent } from "../../../content/bookingTypes";
-	import type { BookingErrors } from "./booking-types";
+	import {
+		BOOKING_STEP_TWO_CONTEXT,
+		type BookingStepTwoContext,
+	} from "./booking-store.svelte";
 	import FieldError from "./FieldError.svelte";
 
-	type Props = {
-		sectionCopy: BookingStepTwoContent["sections"];
-		errors: BookingErrors;
-		fullName?: string;
-		phone?: string;
-		accountName?: string;
-		abn?: string;
-		email?: string;
-		onFieldBlur: (event: FocusEvent) => void;
-	};
+	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
+	const { state: bookingState, ui, actions } = booking;
 
-	let {
-		sectionCopy,
-		errors,
-		fullName = $bindable(""),
-		phone = $bindable(""),
-		accountName = $bindable(""),
-		abn = $bindable(""),
-		email = $bindable(""),
-		onFieldBlur,
-	}: Props = $props();
+	function focusTextField(id: string): void {
+		document.getElementById(id)?.focus();
+	}
+
+	onMount(() => {
+		const unregisterFullName = actions.registerFieldFocus("fullName", () =>
+			focusTextField("fullName"),
+		);
+		const unregisterPhone = actions.registerFieldFocus("phone", () =>
+			focusTextField("phone"),
+		);
+		const unregisterAccountName = actions.registerFieldFocus("accountName", () =>
+			focusTextField("accountName"),
+		);
+		const unregisterAbn = actions.registerFieldFocus("abn", () =>
+			focusTextField("abn"),
+		);
+		const unregisterEmail = actions.registerFieldFocus("email", () =>
+			focusTextField("invoiceEmail"),
+		);
+
+		return () => {
+			unregisterFullName();
+			unregisterPhone();
+			unregisterAccountName();
+			unregisterAbn();
+			unregisterEmail();
+		};
+	});
 </script>
 
 <div class="space-y-6">
 	<h2 class="text-foreground text-xl font-bold">
-		{sectionCopy.contactBillingTitle}
+		{ui.sectionCopy.contactBillingTitle}
 	</h2>
 
 	<div class="space-y-10">
 		<div class="space-y-5">
 			<p class="text-primary text-xs font-semibold tracking-widest">
-				{sectionCopy.contactInfoLabel}
+				{ui.sectionCopy.contactInfoLabel}
 			</p>
 			<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 				<div class="space-y-1.5">
-					<Label for="fullName">{sectionCopy.fullNameLabel}</Label>
+					<Label for="fullName">{ui.sectionCopy.fullNameLabel}</Label>
 					<Input
 						id="fullName"
 						name="fullName"
-						placeholder={sectionCopy.fullNamePlaceholder}
+						placeholder={ui.sectionCopy.fullNamePlaceholder}
 						autocomplete="name"
 						class="rounded-lg"
-						bind:value={fullName}
-						onblur={onFieldBlur} />
-					<FieldError message={errors.fullName} />
+						bind:value={bookingState.form.fullName}
+						onblur={actions.handleFieldBlur} />
+					<FieldError message={bookingState.errors.fullName} />
 				</div>
 				<div class="space-y-1.5">
-					<Label for="phone">{sectionCopy.phoneLabel}</Label>
+					<Label for="phone">{ui.sectionCopy.phoneLabel}</Label>
 					<Input
 						id="phone"
 						name="phone"
 						type="tel"
-						placeholder={sectionCopy.phonePlaceholder}
+						placeholder={ui.sectionCopy.phonePlaceholder}
 						autocomplete="tel"
 						class="rounded-lg"
-						bind:value={phone}
-						onblur={onFieldBlur} />
-					<FieldError message={errors.phone} />
+						bind:value={bookingState.form.phone}
+						onblur={actions.handleFieldBlur} />
+					<FieldError message={bookingState.errors.phone} />
 				</div>
 			</div>
 		</div>
 
 		<div class="space-y-5">
 			<p class="text-primary text-xs font-semibold tracking-widest">
-				{sectionCopy.billingInfoLabel}
+				{ui.sectionCopy.billingInfoLabel}
 			</p>
 			<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 				<div class="space-y-1.5">
-					<Label for="accountName">{sectionCopy.accountNameLabel}</Label>
+					<Label for="accountName">{ui.sectionCopy.accountNameLabel}</Label>
 					<Input
 						id="accountName"
 						name="accountName"
-						placeholder={sectionCopy.accountNamePlaceholder}
+						placeholder={ui.sectionCopy.accountNamePlaceholder}
 						autocomplete="organization"
 						class="rounded-lg"
-						bind:value={accountName}
-						onblur={onFieldBlur} />
-					<FieldError message={errors.accountName} />
+						bind:value={bookingState.form.accountName}
+						onblur={actions.handleFieldBlur} />
+					<FieldError message={bookingState.errors.accountName} />
 				</div>
 				<div class="space-y-1.5">
-					<Label for="abn">{sectionCopy.abnLabel}</Label>
+					<Label for="abn">{ui.sectionCopy.abnLabel}</Label>
 					<Input
 						id="abn"
 						name="abn"
-						placeholder={sectionCopy.abnPlaceholder}
+						placeholder={ui.sectionCopy.abnPlaceholder}
 						inputmode="numeric"
 						pattern="[0-9 ]*"
 						autocomplete="on"
 						class="rounded-lg"
-						bind:value={abn}
-						onblur={onFieldBlur} />
-					<FieldError message={errors.abn} />
+						bind:value={bookingState.form.abn}
+						onblur={actions.handleFieldBlur} />
+					<FieldError message={bookingState.errors.abn} />
 				</div>
 			</div>
 			<div class="grid gap-5 md:grid-cols-2 md:gap-6">
 				<div class="space-y-1.5">
-					<Label for="invoiceEmail">{sectionCopy.invoiceEmailLabel}</Label>
+					<Label for="invoiceEmail">{ui.sectionCopy.invoiceEmailLabel}</Label>
 					<Input
 						id="invoiceEmail"
 						name="email"
 						type="email"
-						placeholder={sectionCopy.invoiceEmailPlaceholder}
+						placeholder={ui.sectionCopy.invoiceEmailPlaceholder}
 						autocomplete="email"
 						class="rounded-lg"
-						bind:value={email}
-						onblur={onFieldBlur} />
-					<FieldError message={errors.email} />
+						bind:value={bookingState.form.email}
+						onblur={actions.handleFieldBlur} />
+					<FieldError message={bookingState.errors.email} />
 				</div>
 			</div>
 		</div>

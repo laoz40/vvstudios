@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BookingSchema } from "./booking-validation";
+import { BookingSchema } from "./zod";
 
 export type BookingFormData = z.infer<typeof BookingSchema>;
 export type BookingField = keyof BookingFormData;

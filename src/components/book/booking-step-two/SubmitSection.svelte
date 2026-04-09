@@ -1,29 +1,27 @@
 <script lang="ts">
+	import { getContext, onMount } from "svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
 	import { Label } from "$lib/components/ui/label";
 	import { cn } from "$lib/utils.js";
-	import type { BookingStepTwoContent } from "../../../content/bookingTypes";
+	import {
+		BOOKING_STEP_TWO_CONTEXT,
+		type BookingStepTwoContext,
+	} from "./booking-store.svelte";
 
-	type Props = {
-		sectionCopy: BookingStepTwoContent["sections"];
-		pressableClass: string;
-		submitButtonLabel: string;
-		isSubmitting: boolean;
-		isSubmitted: boolean;
-		saveBookingInfo?: boolean;
-		completeBookingSection?: HTMLDivElement | null;
-	};
+	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
+	const { state: bookingState, derived, ui, actions } = booking;
 
-	let {
-		sectionCopy,
-		pressableClass,
-		submitButtonLabel,
-		isSubmitting,
-		isSubmitted,
-		saveBookingInfo = $bindable(false),
-		completeBookingSection = $bindable(null),
-	}: Props = $props();
+	let completeBookingSection: HTMLDivElement | null = $state(null);
+
+	onMount(() => {
+		return actions.registerReuseTarget(() => {
+			completeBookingSection?.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
+			});
+		});
+	});
 </script>
 
 <div
@@ -32,12 +30,12 @@
 	<div class="flex items-center gap-3">
 		<Checkbox
 			id="saveBookingInfo"
-			bind:checked={saveBookingInfo}
+			bind:checked={bookingState.form.saveBookingInfo}
 			class="rounded-sm" />
 		<Label
 			for="saveBookingInfo"
 			class="text-muted-foreground cursor-pointer text-sm leading-relaxed">
-			{sectionCopy.saveBookingInfoLabel}
+			{ui.sectionCopy.saveBookingInfoLabel}
 		</Label>
 	</div>
 
@@ -46,9 +44,9 @@
 		size="lg"
 		class={cn(
 			"h-12 w-full rounded-lg text-base font-bold tracking-wider",
-			pressableClass,
+			ui.pressableClass,
 		)}
-		disabled={isSubmitting || isSubmitted}>
-		{submitButtonLabel}
+		disabled={bookingState.isSubmitting || bookingState.isSubmitted}>
+		{derived.submitButtonLabel}
 	</Button>
 </div>

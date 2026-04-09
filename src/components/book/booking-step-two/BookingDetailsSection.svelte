@@ -1,43 +1,54 @@
 <script lang="ts">
-	import type { DateValue } from "@internationalized/date";
+	import { getContext, onMount } from "svelte";
 	import { Calendar } from "$lib/components/ui/calendar";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import { cn } from "$lib/utils.js";
-	import type {
-		BookingStepTwoContent,
-		BookingStepTwoDurationOption,
-	} from "../../../content/bookingTypes";
-	import type { BookingErrors } from "./booking-types";
+	import {
+		BOOKING_STEP_TWO_CONTEXT,
+		type BookingStepTwoContext,
+	} from "./booking-store.svelte";
 	import FieldError from "./FieldError.svelte";
 
-	type Props = {
-		sectionCopy: BookingStepTwoContent["sections"];
-		durationOptions: BookingStepTwoDurationOption[];
-		selectedDate?: DateValue;
-		selectedDuration?: string;
-		errors: BookingErrors;
-		minDate: DateValue;
-		pressableClass: string;
-		bookingDateCalendarEl?: HTMLElement | null;
-		bookingDurationGroupEl?: HTMLElement | null;
-	};
+	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
+	const { state: bookingState, ui, actions } = booking;
 
-	let {
-		sectionCopy,
-		durationOptions,
-		selectedDate = $bindable(),
-		selectedDuration = $bindable(""),
-		errors,
-		minDate,
-		pressableClass,
-		bookingDateCalendarEl = $bindable(null),
-		bookingDurationGroupEl = $bindable(null),
-	}: Props = $props();
+	let bookingDateCalendarEl: HTMLElement | null = $state(null);
+	let bookingDurationGroupEl: HTMLElement | null = $state(null);
+
+	function focusCalendarControl(): void {
+		const selectedOrFirstDay = bookingDateCalendarEl?.querySelector<HTMLElement>(
+			'[aria-selected="true"], button:not([disabled])',
+		);
+		selectedOrFirstDay?.focus();
+	}
+
+	function focusDurationField(): void {
+		bookingDurationGroupEl?.scrollIntoView({
+			behavior: "smooth",
+			block: "center",
+		});
+		document
+			.getElementById(`session-duration-${ui.durationOptions[0]?.value}`)
+			?.focus();
+	}
+
+	onMount(() => {
+		const unregisterDate = actions.registerFieldFocus("date", focusCalendarControl);
+		const unregisterDuration = actions.registerFieldFocus(
+			"duration",
+			focusDurationField,
+		);
+
+		return () => {
+			unregisterDate();
+			unregisterDuration();
+		};
+	});
 </script>
 
 <div class="space-y-6">
 	<h2 class="text-foreground text-xl font-bold">
-		{sectionCopy.bookingDetailsTitle}
+		{ui.sectionCopy.bookingDetailsTitle}
 	</h2>
 	<div class="space-y-10">
 		<div
@@ -47,20 +58,20 @@
 					<legend
 						id="booking-date-label"
 						class="text-primary text-xs font-semibold tracking-widest">
-						{sectionCopy.confirmBookingDateLabel}
+						{ui.sectionCopy.confirmBookingDateLabel}
 					</legend>
 					<div class="flex flex-1 flex-col gap-3 pt-3">
 						<Calendar
 							bind:ref={bookingDateCalendarEl}
 							type="single"
-							bind:value={selectedDate}
-							minValue={minDate}
+							bind:value={bookingState.form.selectedDate}
+							minValue={ui.minDate}
 							captionLayout="dropdown"
 							aria-labelledby="booking-date-label"
 							class="border-border h-full flex-1 rounded-lg border [--cell-size:--spacing(9)] md:w-fit" />
 						<FieldError
 							id="booking-date-error"
-							message={errors.date} />
+							message={bookingState.errors.date} />
 					</div>
 				</fieldset>
 			</div>
@@ -68,14 +79,14 @@
 			<div class="flex h-full flex-col gap-3">
 				<fieldset class="flex flex-1 flex-col">
 					<legend class="text-primary mb-3 text-xs font-semibold tracking-widest">
-						{sectionCopy.confirmSessionDurationLabel}
+						{ui.sectionCopy.confirmSessionDurationLabel}
 					</legend>
 					<RadioGroup
 						bind:ref={bookingDurationGroupEl}
-						bind:value={selectedDuration}
+						bind:value={bookingState.form.selectedDuration}
 						name="sessionDuration"
 						class="flex flex-1 flex-col justify-between gap-4">
-						{#each durationOptions as option}
+						{#each ui.durationOptions as option}
 							<div>
 								<RadioGroupItem
 									id={`session-duration-${option.value}`}
@@ -85,8 +96,8 @@
 									for={`session-duration-${option.value}`}
 									class={cn(
 										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex cursor-pointer items-center rounded-lg border px-4 py-6 text-left transition duration-300! peer-focus-visible:ring-[3px]",
-										pressableClass,
-										selectedDuration === option.value &&
+										ui.pressableClass,
+										bookingState.form.selectedDuration === option.value &&
 											"border-primary bg-primary/10",
 									)}>
 									<div class="flex w-full items-center justify-between gap-3">
@@ -98,9 +109,9 @@
 												{option.description}
 											</span>
 										</span>
-										{#if selectedDuration === option.value}
+										{#if bookingState.form.selectedDuration === option.value}
 											<span class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
+												{ui.sectionCopy.selectedBadge}
 											</span>
 										{/if}
 									</div>
@@ -109,7 +120,7 @@
 						{/each}
 					</RadioGroup>
 				</fieldset>
-				<FieldError message={errors.duration} />
+				<FieldError message={bookingState.errors.duration} />
 			</div>
 		</div>
 	</div>

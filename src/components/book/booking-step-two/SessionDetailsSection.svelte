@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getContext, onMount } from "svelte";
 	import CameraIcon from "@lucide/svelte/icons/camera";
 	import MonitorIcon from "@lucide/svelte/icons/monitor";
 	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
@@ -10,72 +11,66 @@
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import { Textarea } from "$lib/components/ui/textarea";
 	import { cn } from "$lib/utils.js";
-	import type {
-		BookingStepTwoAddOnOption,
-		BookingStepTwoContent,
-	} from "../../../content/bookingTypes";
-	import type { BookingErrors } from "./booking-types";
+	import {
+		BOOKING_STEP_TWO_CONTEXT,
+		type BookingStepTwoContext,
+	} from "./booking-store.svelte";
 	import FieldError from "./FieldError.svelte";
 
-	type Props = {
-		sectionCopy: BookingStepTwoContent["sections"];
-		addOnOptions: BookingStepTwoAddOnOption[];
-		videoFormatOptions: BookingStepTwoContent["videoFormatOptions"];
-		contactPhone: string;
-		contactEmail: string;
-		hasSavedBookingData: boolean;
-		pressableClass: string;
-		selectedAddOns?: string[];
-		selectedVideoFormat?: string;
-		questionsOrRequests?: string;
-		errors: BookingErrors;
-		videoFormatGroupEl?: HTMLElement | null;
-		onReuseLastBooking: () => void | Promise<void>;
-		onFieldBlur: (event: FocusEvent) => void;
-	};
+	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
+	const { state: bookingState, ui, actions } = booking;
 
-	let {
-		sectionCopy,
-		addOnOptions,
-		videoFormatOptions,
-		contactPhone,
-		contactEmail,
-		hasSavedBookingData,
-		pressableClass,
-		selectedAddOns = $bindable([]),
-		selectedVideoFormat = $bindable(""),
-		questionsOrRequests = $bindable(""),
-		errors,
-		videoFormatGroupEl = $bindable(null),
-		onReuseLastBooking,
-		onFieldBlur,
-	}: Props = $props();
+	let videoFormatGroupEl: HTMLElement | null = $state(null);
 
-	function toggleAddOn(value: string, checked: boolean): void {
-		selectedAddOns = checked
-			? [...selectedAddOns, value]
-			: selectedAddOns.filter((item) => item !== value);
+	function focusVideoFormatField(): void {
+		videoFormatGroupEl?.scrollIntoView({
+			behavior: "smooth",
+			block: "center",
+		});
+		document
+			.getElementById(`video-format-${ui.videoFormatOptions[0]?.value}`)
+			?.focus();
 	}
+
+	function focusQuestionsField(): void {
+		document.getElementById("questionsOrRequests")?.focus();
+	}
+
+	onMount(() => {
+		const unregisterVideoFormat = actions.registerFieldFocus(
+			"videoFormat",
+			focusVideoFormatField,
+		);
+		const unregisterQuestions = actions.registerFieldFocus(
+			"questionsOrRequests",
+			focusQuestionsField,
+		);
+
+		return () => {
+			unregisterVideoFormat();
+			unregisterQuestions();
+		};
+	});
 </script>
 
 <div class="space-y-6">
 	<h2 class="text-foreground text-xl font-bold">
-		{sectionCopy.sessionDetailsTitle}
+		{ui.sectionCopy.sessionDetailsTitle}
 	</h2>
 
 	<div class="space-y-10">
-		{#if hasSavedBookingData}
+		{#if bookingState.hasSavedBookingData}
 			<div
 				class="border-primary bg-input/30 mb-8 flex flex-col items-end justify-between gap-6 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-0">
 				<p class="text-muted-foreground w-full text-sm">
-					{sectionCopy.reuseSavedBookingText}
+					{ui.sectionCopy.reuseSavedBookingText}
 				</p>
 				<Button
 					type="button"
 					variant="default"
-					class={cn("rounded-lg", pressableClass)}
-					onclick={onReuseLastBooking}>
-					{sectionCopy.reuseSavedBookingButton}
+					class={cn("rounded-lg", ui.pressableClass)}
+					onclick={actions.reuseLastBooking}>
+					{ui.sectionCopy.reuseSavedBookingButton}
 				</Button>
 			</div>
 		{/if}
@@ -83,28 +78,29 @@
 		<div class="space-y-5">
 			<fieldset>
 				<legend class="text-primary text-xs font-semibold tracking-widest">
-					{sectionCopy.addOnsLegend}
+					{ui.sectionCopy.addOnsLegend}
 				</legend>
 				<div class="mt-4 space-y-4">
 					<p class="text-muted-foreground text-sm">
-						{sectionCopy.addOnsHelper}
+						{ui.sectionCopy.addOnsHelper}
 					</p>
 					<div class="grid gap-4 md:grid-cols-2">
-						{#each addOnOptions as option}
+						{#each ui.addOnOptions as option}
 							<div class="h-full">
 								<Checkbox
 									id={`addon-${option.value}`}
 									name="addOns"
 									value={option.value}
-									checked={selectedAddOns.includes(option.value)}
-									onCheckedChange={(checked) => toggleAddOn(option.value, checked)}
+									checked={bookingState.form.selectedAddOns.includes(option.value)}
+									onCheckedChange={(checked) =>
+										actions.toggleAddOn(option.value, checked)}
 									class="peer sr-only size-0" />
 								<label
 									for={`addon-${option.value}`}
 									class={cn(
 										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-4 rounded-lg border px-4 py-4 text-left transition duration-300! peer-focus-visible:ring-[3px]",
-										pressableClass,
-										selectedAddOns.includes(option.value) &&
+										ui.pressableClass,
+										bookingState.form.selectedAddOns.includes(option.value) &&
 											"border-primary bg-primary/10",
 									)}>
 									<div class="flex flex-row items-start justify-between">
@@ -118,9 +114,9 @@
 											<SmartphoneIcon class="text-primary size-10" />
 										{/if}
 
-										{#if selectedAddOns.includes(option.value)}
+										{#if bookingState.form.selectedAddOns.includes(option.value)}
 											<span class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
+												{ui.sectionCopy.selectedBadge}
 											</span>
 										{/if}
 									</div>
@@ -148,15 +144,15 @@
 		<div class="space-y-5">
 			<fieldset>
 				<legend class="text-primary text-xs font-semibold tracking-widest">
-					{sectionCopy.videoFormatLegend}
+					{ui.sectionCopy.videoFormatLegend}
 				</legend>
 				<div class="mt-4">
 					<RadioGroup
 						bind:ref={videoFormatGroupEl}
-						bind:value={selectedVideoFormat}
+						bind:value={bookingState.form.selectedVideoFormat}
 						name="videoFormat"
 						class="grid gap-4">
-						{#each videoFormatOptions as option}
+						{#each ui.videoFormatOptions as option}
 							<div>
 								<RadioGroupItem
 									id={`video-format-${option.value}`}
@@ -166,8 +162,8 @@
 									for={`video-format-${option.value}`}
 									class={cn(
 										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex min-h-28 cursor-pointer items-center justify-start gap-4 rounded-lg border px-4 py-5 text-left transition duration-300! peer-focus-visible:ring-[3px] sm:min-h-0",
-										pressableClass,
-										selectedVideoFormat === option.value &&
+										ui.pressableClass,
+										bookingState.form.selectedVideoFormat === option.value &&
 											"border-primary bg-primary/10",
 									)}>
 									{#if option.icon === "monitor"}
@@ -193,9 +189,9 @@
 												{option.description}
 											</span>
 										</div>
-										{#if selectedVideoFormat === option.value}
+										{#if bookingState.form.selectedVideoFormat === option.value}
 											<span class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{sectionCopy.selectedBadge}
+												{ui.sectionCopy.selectedBadge}
 											</span>
 										{/if}
 									</div>
@@ -205,40 +201,40 @@
 					</RadioGroup>
 				</div>
 			</fieldset>
-			<FieldError message={errors.videoFormat} />
+			<FieldError message={bookingState.errors.videoFormat} />
 		</div>
 
 		<div class="space-y-5">
 			<Label
 				for="questionsOrRequests"
 				class="text-primary text-xs font-semibold tracking-widest">
-				{sectionCopy.questionsLabel}
+				{ui.sectionCopy.questionsLabel}
 			</Label>
 			<div class="space-y-3">
 				<Textarea
 					id="questionsOrRequests"
 					name="questionsOrRequests"
 					autocomplete="off"
-					bind:value={questionsOrRequests}
-					onblur={onFieldBlur}
+					bind:value={bookingState.form.questionsOrRequests}
+					onblur={actions.handleFieldBlur}
 					rows={2}
 					class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
-					placeholder={sectionCopy.questionsPlaceholder} />
-				<FieldError message={errors.questionsOrRequests} />
+					placeholder={ui.sectionCopy.questionsPlaceholder} />
+				<FieldError message={bookingState.errors.questionsOrRequests} />
 				<p class="text-muted-foreground text-sm">
-					{sectionCopy.questionsContactPrefix}
+					{ui.sectionCopy.questionsContactPrefix}
 					<Button
 						variant="link"
 						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
-						href={`tel:${contactPhone}`}>
-						{contactPhone}
+						href={`tel:${ui.contactPhone}`}>
+						{ui.contactPhone}
 					</Button>
-					{sectionCopy.questionsContactMiddle}
+					{ui.sectionCopy.questionsContactMiddle}
 					<Button
 						variant="link"
 						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
-						href={`mailto:${contactEmail}`}>
-						{contactEmail}
+						href={`mailto:${ui.contactEmail}`}>
+						{ui.contactEmail}
 					</Button>
 				</p>
 			</div>
