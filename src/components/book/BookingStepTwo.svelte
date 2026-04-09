@@ -283,6 +283,8 @@
 		status = "";
 		statusType = "";
 	};
+	const getSuccessMessage = (invoiceEmail: string) =>
+		statusMessages.success.replace("{email}", invoiceEmail);
 
 	$effect(() => {
 		if (wasStatusDialogOpen && !showStatusDialog) {
@@ -580,7 +582,7 @@
 	};
 
 	const handleOpenTestSuccessDialog = () => {
-		status = statusMessages.success;
+		status = getSuccessMessage(email);
 		statusType = "success";
 		submittedSummarySections = createSummarySections({
 			date: formattedDateString || summaryCopy.emptyValue,
@@ -664,7 +666,7 @@
 
 			if (response.ok) {
 				isSubmitted = true;
-				status = statusMessages.success;
+				status = getSuccessMessage(email);
 				statusType = "success";
 				submittedSummarySections = createSummarySections(bookingSummaryData);
 				submittedPricingItems = createPricingItems(
@@ -1192,14 +1194,15 @@
 						? sectionCopy.submitButtonLoading
 						: sectionCopy.submitButtonDefault}
 			</Button>
-			<!-- <BookingSuccessTestButton -->
-			<!-- 	onclick={handleOpenTestSuccessDialog} -->
-			<!-- 	disabled={isSubmitting} -->
-			<!-- 	{pressableClass} /> -->
+			<BookingSuccessTestButton
+				onclick={handleOpenTestSuccessDialog}
+				disabled={isSubmitting}
+				{pressableClass} />
 		</div>
 	</form>
 </div>
 
+<!-- for terms & conditions -->
 <Dialog bind:open={showTermsDialog}>
 	<DialogContent
 		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-2xl sm:p-6"
@@ -1249,9 +1252,10 @@
 	</DialogContent>
 </Dialog>
 
+<!-- for summary/success -->
 <Dialog bind:open={showSummaryDialog}>
 	<DialogContent
-		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-3xl sm:p-5"
+		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-lg sm:p-5"
 		onInteractOutside={(event) => {
 			if (isSubmitting) event.preventDefault();
 		}}
@@ -1267,6 +1271,7 @@
 			</DialogDescription>
 		</DialogHeader>
 
+		<!-- summary -->
 		<div class="bg-card rounded-lg border p-4 text-sm">
 			{#each submittedSummarySections as section, index}
 				{#if index > 0}
@@ -1290,50 +1295,46 @@
 						{@const questionsItem = section.items.find(
 							(item) => item.label === summaryCopy.labels.questions,
 						)}
-						<div class="space-y-0">
-							<div class="grid grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-3">
-								{#if dateItem}
-									<dl>
-										<div class="space-y-1">
-											<dt class="text-muted-foreground">{dateItem.label}</dt>
-											<dd
-												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-												{dateItem.value}
-											</dd>
-										</div>
-									</dl>
-								{/if}
-								{#if durationItem}
-									<dl>
-										<div class="space-y-1">
-											<dt class="text-muted-foreground">
-												{durationItem.label}
-											</dt>
-											<dd
-												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-												{durationItem.value}
-											</dd>
-										</div>
-									</dl>
-								{/if}
-								{#if formatItem}
-									<dl>
-										<div class="space-y-1">
-											<dt class="text-muted-foreground">{formatItem.label}</dt>
-											<dd
-												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-												{formatItem.value}
-											</dd>
-										</div>
-									</dl>
-								{/if}
-							</div>
+						<div class="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+							{#if dateItem}
+								<dl>
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{dateItem.label}</dt>
+										<dd
+											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											{dateItem.value}
+										</dd>
+									</div>
+								</dl>
+							{/if}
+							{#if durationItem}
+								<dl>
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{durationItem.label}</dt>
+										<dd
+											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											{durationItem.value}
+										</dd>
+									</div>
+								</dl>
+							{/if}
+							{#if formatItem}
+								<dl>
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{formatItem.label}</dt>
+										<dd
+											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											{formatItem.value}
+										</dd>
+									</div>
+								</dl>
+							{/if}
 							{#if questionsItem}
-								<dl class="pt-2">
+								<dl>
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{questionsItem.label}</dt>
 										<dd
-											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
 											{questionsItem.value}
 										</dd>
 									</div>
@@ -1358,6 +1359,7 @@
 
 			<div class="border-border my-4 border-t"></div>
 
+			<!-- pricing -->
 			<section class="space-y-2">
 				<h3
 					class="text-primary text-xs font-semibold tracking-widest uppercase">
@@ -1383,7 +1385,7 @@
 					{/each}
 				</div>
 				<p
-					class="text-muted-foreground border-border mt-4 pt-3 text-sm leading-6">
+					class="text-muted-foreground border-border mt-4 pt-3 text-xs leading-6">
 					{summaryCopy.paymentDueNote}
 				</p>
 			</section>
@@ -1392,6 +1394,7 @@
 		<DialogFooter class="sm:justify-end">
 			<Button
 				type="button"
+				variant="outline"
 				class="rounded-lg"
 				onclick={() => {
 					showSummaryDialog = false;
@@ -1406,6 +1409,7 @@
 	</DialogContent>
 </Dialog>
 
+<!-- for errors -->
 <Dialog bind:open={showStatusDialog}>
 	<DialogContent class="rounded-xl p-5 sm:max-w-lg sm:p-6">
 		<DialogHeader class="gap-2">
