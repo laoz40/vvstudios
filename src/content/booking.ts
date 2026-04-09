@@ -176,7 +176,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 	statusMessages: {
 		missingScriptUrl: "Missing script URL.",
 		success:
-			"Your booking has been successfully completed. We’ve sent your invoice to your email. Please check your inbox (and spam folder just in case). Looking forward to seeing you soon!",
+			"Your booking has been successfully completed. We’ve sent your invoice to your email. See you soon!",
 		submitFailed: "Booking form fail to submit.",
 		submitUnexpectedlyFailed: "Submission failed unexpectedly.",
 	},
@@ -227,8 +227,9 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 	},
 	summary: {
 		bookingDetailsTitle: "Booking Details",
-		sessionDetailsTitle: "Session Details",
+		sessionDetailsTitle: "Recording Session Details",
 		contactBillingTitle: "Contact and Billing Information",
+		paymentDueTitle: "Payment Due",
 		labels: {
 			date: "Date",
 			duration: "Duration",
@@ -240,6 +241,9 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 			account: "Account",
 			abn: "ABN",
 			email: "Email",
+			recordingSession: "Recording Session",
+			bookingDeposit: "Booking Deposit",
+			total: "Total",
 		},
 		emptyValue: "—",
 	},

@@ -131,6 +131,7 @@ export type BookingStepTwoContent = {
 		bookingDetailsTitle: string;
 		sessionDetailsTitle: string;
 		contactBillingTitle: string;
+		paymentDueTitle: string;
 		labels: {
 			date: string;
 			duration: string;
@@ -142,6 +143,9 @@ export type BookingStepTwoContent = {
 			account: string;
 			abn: string;
 			email: string;
+			recordingSession: string;
+			bookingDeposit: string;
+			total: string;
 		};
 		emptyValue: string;
 	};

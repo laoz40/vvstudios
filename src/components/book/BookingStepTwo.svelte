@@ -28,6 +28,7 @@
 	import { Textarea } from "$lib/components/ui/textarea";
 	import { cn } from "$lib/utils.js";
 	import { bookingStepTwoContent } from "../../content/booking";
+	import BookingSuccessTestButton from "./BookingSuccessTestButton.svelte";
 
 	const pressableClass =
 		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
@@ -142,12 +143,44 @@
 	let bookingDurationGroupEl: HTMLElement | null = $state(null);
 	let videoFormatGroupEl: HTMLElement | null = $state(null);
 
+	type SummaryItem = {
+		label: string;
+		value: string;
+	};
+
+	type SummarySection = {
+		title: string;
+		items: SummaryItem[];
+	};
+
+	type BookingSummaryData = {
+		date: string;
+		duration: string;
+		videoFormatLabel: string;
+		addOnLabels: string[];
+		questionsOrRequests: string;
+		fullName: string;
+		phone: string;
+		accountName: string;
+		abn: string;
+		email: string;
+	};
+
+	type PricingLineItem = {
+		label: string;
+		amount: string;
+		isAddOn?: boolean;
+		isTotal?: boolean;
+	};
+
 	let isSubmitting = $state(false);
 	let isSubmitted = $state(false);
 	let status = $state("");
 	let statusType = $state<"success" | "error" | "">("");
 	let wasStatusDialogOpen = $state(false);
 	let errors: BookingErrors = $state({});
+	let submittedSummarySections = $state<SummarySection[]>([]);
+	let submittedPricingItems = $state<PricingLineItem[]>([]);
 
 	const isStringArray = (value: unknown): value is string[] =>
 		Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -270,6 +303,21 @@
 			? `${selectedDate.year}-${String(selectedDate.month).padStart(2, "0")}-${String(selectedDate.day).padStart(2, "0")}`
 			: "",
 	);
+	const formattedDateString = $derived.by(() => {
+		if (!selectedDate) return "";
+
+		const date = new Date(
+			selectedDate.year,
+			selectedDate.month - 1,
+			selectedDate.day,
+		);
+
+		return new Intl.DateTimeFormat("en-AU", {
+			day: "numeric",
+			month: "long",
+			year: "numeric",
+		}).format(date);
+	});
 
 	const durationValue = $derived(selectedDuration.replace(/[^0-9+]/g, ""));
 	const selectedVideoFormatLabel = $derived.by(() => {
@@ -281,7 +329,7 @@
 	const selectedAddOnLabels = $derived.by(() =>
 		addOnOptions
 			.filter((option) => selectedAddOns.includes(option.value))
-			.map((option) => `${option.label} (${option.price})`),
+			.map((option) => option.label),
 	);
 	const selectedAddOnFields = $derived.by(() =>
 		Object.fromEntries(
@@ -292,60 +340,96 @@
 		),
 	);
 
-	const summarySections = $derived([
-		{
-			title: summaryCopy.bookingDetailsTitle,
-			items: [
-				{
-					label: summaryCopy.labels.date,
-					value: dateString || summaryCopy.emptyValue,
-				},
-				{
-					label: summaryCopy.labels.duration,
-					value: selectedDuration || summaryCopy.emptyValue,
-				},
-			],
-		},
-		{
-			title: summaryCopy.sessionDetailsTitle,
-			items: [
-				{
-					label: summaryCopy.labels.format,
-					value: selectedVideoFormatLabel || summaryCopy.emptyValue,
-				},
-				{
-					label: summaryCopy.labels.addOns,
-					value: selectedAddOnLabels.join("\n") || summaryCopy.emptyValue,
-				},
-				{
-					label: summaryCopy.labels.questions,
-					value: questionsOrRequests || summaryCopy.emptyValue,
-				},
-			],
-		},
-		{
-			title: summaryCopy.contactBillingTitle,
-			items: [
-				{
-					label: summaryCopy.labels.name,
-					value: fullName || summaryCopy.emptyValue,
-				},
-				{
-					label: summaryCopy.labels.phone,
-					value: phone || summaryCopy.emptyValue,
-				},
-				{
-					label: summaryCopy.labels.account,
-					value: accountName || summaryCopy.emptyValue,
-				},
-				{ label: summaryCopy.labels.abn, value: abn || summaryCopy.emptyValue },
-				{
-					label: summaryCopy.labels.email,
-					value: email || summaryCopy.emptyValue,
-				},
-			],
-		},
-	]);
+	const parseCurrency = (value: string) => {
+		const normalized = value.replace(/[^0-9.-]/g, "");
+		const parsed = Number(normalized);
+		return Number.isFinite(parsed) ? parsed : 0;
+	};
+
+	const formatCurrency = (value: number) =>
+		new Intl.NumberFormat("en-AU", {
+			style: "currency",
+			currency: "AUD",
+			maximumFractionDigits: 0,
+		}).format(value);
+
+	const getSessionPriceFromDuration = (duration: string) => {
+		switch (duration.replace(/\s+/g, "").toLowerCase()) {
+			case "1hr":
+				return 200;
+			case "2hr":
+				return 299;
+			case "3hr":
+				return 399;
+			default:
+				return 0;
+		}
+	};
+
+	const createPricingItems = (duration: string, addOnValues: string[]) => {
+		const sessionPrice = getSessionPriceFromDuration(duration);
+		const addOnItems = addOnOptions
+			.filter((option) => addOnValues.includes(option.value))
+			.map((option) => ({
+				label: option.label,
+				amount: formatCurrency(parseCurrency(option.price)),
+				isAddOn: true,
+			}));
+		const addOnTotal = addOnItems.reduce(
+			(total, item) => total + parseCurrency(item.amount),
+			0,
+		);
+		const deposit = 50;
+		const total = sessionPrice + addOnTotal - deposit;
+
+		return [
+			{
+				label: `${summaryCopy.labels.recordingSession}${duration ? ` (${duration})` : ""}`,
+				amount: formatCurrency(sessionPrice),
+			},
+			...addOnItems,
+			{
+				label: summaryCopy.labels.bookingDeposit,
+				amount: `-${formatCurrency(deposit)}`,
+			},
+			{
+				label: summaryCopy.labels.total,
+				amount: formatCurrency(total),
+				isTotal: true,
+			},
+		] satisfies PricingLineItem[];
+	};
+
+	const createSummarySections = (data: BookingSummaryData): SummarySection[] => {
+		const sessionItems: SummaryItem[] = [
+			{
+				label: summaryCopy.labels.date,
+				value: data.date || summaryCopy.emptyValue,
+			},
+			{
+				label: summaryCopy.labels.duration,
+				value: data.duration || summaryCopy.emptyValue,
+			},
+			{
+				label: summaryCopy.labels.format,
+				value: data.videoFormatLabel || summaryCopy.emptyValue,
+			},
+		];
+
+		if (data.questionsOrRequests.trim()) {
+			sessionItems.push({
+				label: summaryCopy.labels.questions,
+				value: data.questionsOrRequests,
+			});
+		}
+
+		return [
+			{
+				title: summaryCopy.sessionDetailsTitle,
+				items: sessionItems,
+			},
+		];
+	};
 
 	const getFieldValue = (field: BookingField): string => {
 		switch (field) {
@@ -489,44 +573,57 @@
 		return true;
 	};
 
-	const handleSubmit = (event: SubmitEvent) => {
-		event.preventDefault();
-
-		if (isSubmitted) {
-			return;
-		}
-
-		if (!scriptUrl) {
-			openStatusDialog("error", statusMessages.missingScriptUrl);
-			return;
-		}
-
-		if (!validateBookingForm()) {
-			return;
-		}
-
-		clearStatusDialog();
+	const handleOpenTestSuccessDialog = () => {
+		status = statusMessages.success;
+		statusType = "success";
+		submittedSummarySections = createSummarySections({
+			date: formattedDateString || summaryCopy.emptyValue,
+			duration: selectedDuration || summaryCopy.emptyValue,
+			videoFormatLabel: selectedVideoFormatLabel || summaryCopy.emptyValue,
+			addOnLabels: [...selectedAddOnLabels],
+			questionsOrRequests,
+			fullName,
+			phone,
+			accountName,
+			abn,
+			email,
+		});
+		submittedPricingItems = createPricingItems(selectedDuration, selectedAddOns);
+		showStatusDialog = false;
 		showSummaryDialog = true;
 	};
 
-	const handleConfirmBooking = async () => {
+	const handleSubmit = async (event: SubmitEvent) => {
+		event.preventDefault();
+
 		if (isSubmitted || isSubmitting) {
 			return;
 		}
 
 		if (!scriptUrl) {
-			showSummaryDialog = false;
 			openStatusDialog("error", statusMessages.missingScriptUrl);
 			return;
 		}
 
 		if (!validateBookingForm()) {
-			showSummaryDialog = false;
 			return;
 		}
 
 		isSubmitting = true;
 		clearStatusDialog();
+
+		const bookingSummaryData: BookingSummaryData = {
+			date: formattedDateString,
+			duration: selectedDuration,
+			videoFormatLabel: selectedVideoFormatLabel,
+			addOnLabels: [...selectedAddOnLabels],
+			questionsOrRequests,
+			fullName,
+			phone,
+			accountName,
+			abn,
+			email,
+		};
 
 		const payload = {
 			name: fullName,
@@ -566,17 +663,23 @@
 				});
 				hasSavedBookingData = true;
 			}
+
 			if (response.ok) {
 				isSubmitted = true;
-				showSummaryDialog = false;
+				status = statusMessages.success;
+				statusType = "success";
+				submittedSummarySections = createSummarySections(bookingSummaryData);
+				submittedPricingItems = createPricingItems(
+					selectedDuration,
+					selectedAddOns,
+				);
+				showStatusDialog = false;
+				showSummaryDialog = true;
 				resetFormState();
-				openStatusDialog("success", statusMessages.success);
 			} else {
-				showSummaryDialog = false;
 				openStatusDialog("error", statusMessages.submitFailed);
 			}
 		} catch (error) {
-			showSummaryDialog = false;
 			openStatusDialog(
 				"error",
 				error instanceof Error
@@ -1063,63 +1166,105 @@
 						? sectionCopy.submitButtonLoading
 						: sectionCopy.submitButtonDefault}
 			</Button>
+			<BookingSuccessTestButton
+				onclick={handleOpenTestSuccessDialog}
+				disabled={isSubmitting}
+				{pressableClass} />
 		</div>
 	</form>
 </div>
 
 <Dialog bind:open={showSummaryDialog}>
 	<DialogContent
-		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-5 sm:max-w-3xl sm:p-6"
+		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-3xl sm:p-5"
 		onInteractOutside={(event) => {
 			if (isSubmitting) event.preventDefault();
 		}}
 		onEscapeKeydown={(event) => {
 			if (isSubmitting) event.preventDefault();
 		}}>
-		<DialogHeader class="gap-2">
+		<DialogHeader class="gap-1.5">
 			<DialogTitle class="text-xl">
-				{sectionCopy.summaryDialogTitle}
+				{sectionCopy.statusDialogSuccessTitle}
 			</DialogTitle>
 			<DialogDescription class="text-muted-foreground text-sm leading-6">
-				{sectionCopy.summaryDialogDescription}
+				{status}
 			</DialogDescription>
 		</DialogHeader>
 
-		<div class="border-border bg-background rounded-lg border p-5 text-sm shadow-sm">
-			{#each summarySections as section, index}
+		<div class="bg-card rounded-lg border p-4 text-sm">
+			{#each submittedSummarySections as section, index}
 				{#if index > 0}
-					<div class="border-border my-5 border-t"></div>
+					<div class="border-border my-4 border-t"></div>
 				{/if}
-				<section class="space-y-3">
+				<section class="space-y-2">
 					<h3
 						class="text-xs font-semibold tracking-widest text-primary uppercase">
 						{section.title}
 					</h3>
-					{#if section.title === summaryCopy.contactBillingTitle}
-						<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
-							{#each section.items.slice(0, 2) as item}
-								<div class="space-y-1">
-									<dt class="text-muted-foreground">{item.label}</dt>
-									<dd
-										class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-										{item.value}
-									</dd>
-								</div>
-							{/each}
-						</dl>
-						<dl class="grid grid-cols-1 gap-3 md:grid-cols-3">
-							{#each section.items.slice(2) as item}
-								<div class="space-y-1">
-									<dt class="text-muted-foreground">{item.label}</dt>
-									<dd
-										class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
-										{item.value}
-									</dd>
-								</div>
-							{/each}
-						</dl>
+					{#if section.title === summaryCopy.sessionDetailsTitle}
+						{@const dateItem = section.items.find(
+							(item) => item.label === summaryCopy.labels.date,
+						)}
+						{@const durationItem = section.items.find(
+							(item) => item.label === summaryCopy.labels.duration,
+						)}
+						{@const formatItem = section.items.find(
+							(item) => item.label === summaryCopy.labels.format,
+						)}
+						{@const questionsItem = section.items.find(
+							(item) => item.label === summaryCopy.labels.questions,
+						)}
+						<div class="space-y-0">
+							<div class="grid grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-3">
+								{#if dateItem}
+									<dl>
+										<div class="space-y-1">
+											<dt class="text-muted-foreground">{dateItem.label}</dt>
+											<dd
+												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+												{dateItem.value}
+											</dd>
+										</div>
+									</dl>
+								{/if}
+								{#if durationItem}
+									<dl>
+										<div class="space-y-1">
+											<dt class="text-muted-foreground">{durationItem.label}</dt>
+											<dd
+												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+												{durationItem.value}
+											</dd>
+										</div>
+									</dl>
+								{/if}
+								{#if formatItem}
+									<dl>
+										<div class="space-y-1">
+											<dt class="text-muted-foreground">{formatItem.label}</dt>
+											<dd
+												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+												{formatItem.value}
+											</dd>
+										</div>
+									</dl>
+								{/if}
+							</div>
+							{#if questionsItem}
+								<dl class="pt-2">
+									<div class="space-y-1">
+										<dt class="text-muted-foreground">{questionsItem.label}</dt>
+										<dd
+											class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
+											{questionsItem.value}
+										</dd>
+									</div>
+								</dl>
+							{/if}
+						</div>
 					{:else}
-						<dl class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+						<dl class="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
 							{#each section.items as item}
 								<div class="space-y-1">
 									<dt class="text-muted-foreground">{item.label}</dt>
@@ -1133,29 +1278,46 @@
 					{/if}
 				</section>
 			{/each}
+
+			<div class="border-border my-4 border-t"></div>
+
+			<section class="space-y-2">
+				<h3 class="text-xs font-semibold tracking-widest text-primary uppercase">
+					{summaryCopy.paymentDueTitle}
+				</h3>
+				<div class="space-y-2">
+					{#each submittedPricingItems as item}
+						<div
+							class={cn(
+								"flex items-center justify-between gap-4",
+								item.isAddOn && "pl-4",
+								item.isTotal && "border-border pt-3 text-base font-semibold",
+							)}>
+							<span class={cn(
+								item.isTotal ? "text-foreground" : "text-muted-foreground",
+								item.isAddOn && "before:text-muted-foreground before:mr-2",
+							)}>
+								{item.label}
+							</span>
+							<span class="text-foreground text-right">{item.amount}</span>
+						</div>
+					{/each}
+				</div>
+			</section>
 		</div>
 
-		<DialogFooter class="gap-3 sm:justify-end">
+		<DialogFooter class="sm:justify-end">
 			<Button
 				type="button"
-				variant="outline"
 				class="rounded-lg"
-				disabled={isSubmitting}
 				onclick={() => {
 					showSummaryDialog = false;
+					status = "";
+					statusType = "";
+					submittedSummarySections = [];
+					submittedPricingItems = [];
 				}}>
-				{sectionCopy.summaryDialogCancelButton}
-			</Button>
-			<Button
-				type="button"
-				class="rounded-lg"
-				disabled={isSubmitting || isSubmitted}
-				onclick={handleConfirmBooking}>
-				{isSubmitted
-					? sectionCopy.submitButtonSubmitted
-					: isSubmitting
-						? sectionCopy.submitButtonLoading
-						: sectionCopy.summaryDialogConfirmButton}
+				{sectionCopy.statusDialogDismissButton}
 			</Button>
 		</DialogFooter>
 	</DialogContent>
