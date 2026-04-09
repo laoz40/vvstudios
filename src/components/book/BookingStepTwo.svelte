@@ -1195,10 +1195,10 @@
 						? sectionCopy.submitButtonLoading
 						: sectionCopy.submitButtonDefault}
 			</Button>
-			<BookingSuccessTestButton
-				onclick={handleOpenTestSuccessDialog}
-				disabled={isSubmitting}
-				{pressableClass} />
+			<!-- <BookingSuccessTestButton -->
+			<!-- 	onclick={handleOpenTestSuccessDialog} -->
+			<!-- 	disabled={isSubmitting} -->
+			<!-- 	{pressableClass} /> -->
 		</div>
 	</form>
 </div>
