@@ -9,7 +9,7 @@
 		DialogHeader,
 		DialogTitle,
 	} from "$lib/components/ui/dialog";
-	import type { BookingStepTwoContent } from "../../../content/bookingTypes";
+	import type { BookingStepTwoContent } from "../../../../content/bookingTypes";
 
 	type Props = {
 		open?: boolean;

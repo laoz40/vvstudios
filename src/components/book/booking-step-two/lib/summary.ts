@@ -3,7 +3,7 @@ import type {
 	BookingSummaryData,
 	SummaryItem,
 	SummarySection,
-} from "./booking-types";
+} from "./lib/form-types";
 
 export function createSummarySections(
 	data: BookingSummaryData,

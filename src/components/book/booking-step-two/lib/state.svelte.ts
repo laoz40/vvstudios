@@ -1,4 +1,10 @@
-import type { BookingStepTwoState } from "./booking-store-types";
+import { formatSelectedDate, getDateString, getDurationValue } from "./lib/date";
+import { getSelectedAddOnLabels, getSelectedVideoFormatLabel } from "./lib/selection-mappers";
+import type {
+	BookingStepTwoDerived,
+	BookingStepTwoState,
+	BookingStepTwoUi,
+} from "./lib/types";
 
 class BookingState implements BookingStepTwoState {
 	form = $state({
@@ -26,6 +32,39 @@ class BookingState implements BookingStepTwoState {
 
 export function createBookingState(): BookingStepTwoState {
 	return new BookingState();
+}
+
+export function createBookingDerived(
+	state: BookingStepTwoState,
+	ui: BookingStepTwoUi,
+): BookingStepTwoDerived {
+	return {
+		get dateString() {
+			return getDateString(state.form.selectedDate);
+		},
+		get formattedDateString() {
+			return formatSelectedDate(state.form.selectedDate);
+		},
+		get durationValue() {
+			return getDurationValue(state.form.selectedDuration);
+		},
+		get selectedVideoFormatLabel() {
+			return getSelectedVideoFormatLabel(state.form.selectedVideoFormat, ui.videoFormatOptions);
+		},
+		get selectedAddOnLabels() {
+			return getSelectedAddOnLabels(state.form.selectedAddOns, ui.addOnOptions);
+		},
+		get submitButtonLabel() {
+			if (state.isSubmitted) return ui.sectionCopy.submitButtonSubmitted;
+			if (state.isSubmitting) return ui.sectionCopy.submitButtonLoading;
+			return ui.sectionCopy.submitButtonDefault;
+		},
+		get statusDialogTitle() {
+			return state.statusType === "success"
+				? ui.sectionCopy.statusDialogSuccessTitle
+				: ui.sectionCopy.statusDialogErrorTitle;
+		},
+	} satisfies BookingStepTwoDerived;
 }
 
 export function resetBookingFormState(state: BookingStepTwoState): void {

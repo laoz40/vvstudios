@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BookingSchema } from "./zod";
+import { BookingSchema } from "./lib/zod";
 
 export type BookingFormData = z.infer<typeof BookingSchema>;
 export type BookingField = keyof BookingFormData;

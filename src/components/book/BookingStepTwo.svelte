@@ -2,13 +2,13 @@
 	import { today, getLocalTimeZone } from "@internationalized/date";
 	import { onMount, setContext } from "svelte";
 	import { bookingStepTwoContent } from "../../content/booking";
-	import BookingDetailsSection from "./booking-step-two/BookingDetailsSection.svelte";
-	import ContactBillingSection from "./booking-step-two/ContactBillingSection.svelte";
-	import SessionDetailsSection from "./booking-step-two/SessionDetailsSection.svelte";
-	import StatusDialog from "./booking-step-two/StatusDialog.svelte";
-	import SubmitSection from "./booking-step-two/SubmitSection.svelte";
-	import SummaryDialog from "./booking-step-two/SummaryDialog.svelte";
-	import TermsDialog from "./booking-step-two/TermsDialog.svelte";
+	import BookingDetailsSection from "./booking-step-two/components/BookingDetailsSection.svelte";
+	import ContactBillingSection from "./booking-step-two/components/ContactBillingSection.svelte";
+	import SessionDetailsSection from "./booking-step-two/components/SessionDetailsSection.svelte";
+	import StatusDialog from "./booking-step-two/components/StatusDialog.svelte";
+	import SubmitSection from "./booking-step-two/components/SubmitSection.svelte";
+	import SummaryDialog from "./booking-step-two/components/SummaryDialog.svelte";
+	import TermsDialog from "./booking-step-two/components/TermsDialog.svelte";
 	import {
 		BOOKING_STEP_TWO_CONTEXT,
 		createBookingStore,

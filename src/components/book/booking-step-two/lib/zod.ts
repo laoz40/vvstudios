@@ -3,7 +3,7 @@ import type {
 	BookingErrors,
 	BookingField,
 	BookingFormData,
-} from "./booking-types";
+} from "./lib/form-types";
 
 export const BookingSchema = z.object({
 	date: z.string().min(1, "Please select a booking date."),

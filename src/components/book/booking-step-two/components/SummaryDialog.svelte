@@ -9,7 +9,7 @@
 		DialogTitle,
 	} from "$lib/components/ui/dialog";
 	import { cn } from "$lib/utils.js";
-	import type { BookingStepTwoContent } from "../../../content/bookingTypes";
+	import type { BookingStepTwoContent } from "../../../../content/bookingTypes";
 	import type {
 		PricingLineItem,
 		SummaryItem,

@@ -1,7 +1,7 @@
 import type {
 	PersistedBookingData,
 	PersistedBookingEnvelope,
-} from "./booking-types";
+} from "./lib/form-types";
 
 
 const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";

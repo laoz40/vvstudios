@@ -1,13 +1,13 @@
 import type { BookingStepTwoContent } from "../../../content/bookingTypes";
-import { createPricingItems } from "./calculate-pricing";
-import { mapAllAddOnsToBooleanSelectionState } from "./booking-selection-mappers";
-import { createSummarySections, getSuccessMessage } from "./booking-summary";
-import type { BookingSummaryData } from "./booking-types";
+import { createPricingItems } from "./lib/calculate-pricing";
+import { mapAllAddOnsToBooleanSelectionState } from "./lib/selection-mappers";
+import { createSummarySections, getSuccessMessage } from "./lib/summary";
+import type { BookingSummaryData } from "./lib/form-types";
 import type {
 	BookingStepTwoDerived,
 	BookingStepTwoState,
 	BookingStepTwoUi,
-} from "./booking-store-types";
+} from "./lib/types";
 
 type BookingStatusMessages = BookingStepTwoContent["statusMessages"];
 

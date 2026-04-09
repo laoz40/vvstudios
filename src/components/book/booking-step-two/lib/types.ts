@@ -10,7 +10,7 @@ import type {
 	BookingField,
 	PricingLineItem,
 	SummarySection,
-} from "./booking-types";
+} from "./lib/form-types";
 
 export type BookingStepTwoState = {
 	form: {
