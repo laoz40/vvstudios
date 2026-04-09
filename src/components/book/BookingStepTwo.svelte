@@ -87,6 +87,7 @@
 	const contactPhone = bookingStepTwoContent.contact.phone;
 	const contactEmail = bookingStepTwoContent.contact.email;
 	const statusMessages = bookingStepTwoContent.statusMessages;
+	const termsDialogCopy = bookingStepTwoContent.termsDialog;
 	const sectionCopy = bookingStepTwoContent.sections;
 	const summaryCopy = bookingStepTwoContent.summary;
 	const addOnValues = new Set<string>(
@@ -136,6 +137,7 @@
 	let email = $state("");
 	let saveBookingInfo = $state(false);
 	let hasSavedBookingData = $state(false);
+	let showTermsDialog = $state(false);
 	let showSummaryDialog = $state(false);
 	let showStatusDialog = $state(false);
 	let completeBookingSection: HTMLDivElement | null = $state(null);
@@ -400,7 +402,9 @@
 		] satisfies PricingLineItem[];
 	};
 
-	const createSummarySections = (data: BookingSummaryData): SummarySection[] => {
+	const createSummarySections = (
+		data: BookingSummaryData,
+	): SummarySection[] => {
 		const sessionItems: SummaryItem[] = [
 			{
 				label: summaryCopy.labels.date,
@@ -477,14 +481,16 @@
 		errors = {
 			...errors,
 			[fieldName]:
-				result.error.issues[0]?.message ?? "Please check this field and try again.",
+				result.error.issues[0]?.message ??
+				"Please check this field and try again.",
 		};
 	};
 
 	const focusCalendarControl = () => {
-		const selectedOrFirstDay = bookingDateCalendarEl?.querySelector<HTMLElement>(
-			'[aria-selected="true"], button:not([disabled])',
-		);
+		const selectedOrFirstDay =
+			bookingDateCalendarEl?.querySelector<HTMLElement>(
+				'[aria-selected="true"], button:not([disabled])',
+			);
 		selectedOrFirstDay?.focus();
 	};
 
@@ -588,24 +594,16 @@
 			abn,
 			email,
 		});
-		submittedPricingItems = createPricingItems(selectedDuration, selectedAddOns);
+		submittedPricingItems = createPricingItems(
+			selectedDuration,
+			selectedAddOns,
+		);
 		showStatusDialog = false;
 		showSummaryDialog = true;
 	};
 
-	const handleSubmit = async (event: SubmitEvent) => {
-		event.preventDefault();
-
+	const submitBookingToAppsScript = async () => {
 		if (isSubmitted || isSubmitting) {
-			return;
-		}
-
-		if (!scriptUrl) {
-			openStatusDialog("error", statusMessages.missingScriptUrl);
-			return;
-		}
-
-		if (!validateBookingForm()) {
 			return;
 		}
 
@@ -673,13 +671,16 @@
 					selectedDuration,
 					selectedAddOns,
 				);
+				showTermsDialog = false;
 				showStatusDialog = false;
 				showSummaryDialog = true;
 				resetFormState();
 			} else {
+				showTermsDialog = false;
 				openStatusDialog("error", statusMessages.submitFailed);
 			}
 		} catch (error) {
+			showTermsDialog = false;
 			openStatusDialog(
 				"error",
 				error instanceof Error
@@ -689,6 +690,30 @@
 		} finally {
 			isSubmitting = false;
 		}
+	};
+
+	const handleSubmit = async (event: SubmitEvent) => {
+		event.preventDefault();
+
+		if (isSubmitted || isSubmitting) {
+			return;
+		}
+
+		if (!scriptUrl) {
+			openStatusDialog("error", statusMessages.missingScriptUrl);
+			return;
+		}
+
+		if (!validateBookingForm()) {
+			return;
+		}
+
+		clearStatusDialog();
+		showTermsDialog = true;
+	};
+
+	const handleConfirmTerms = async () => {
+		await submitBookingToAppsScript();
 	};
 
 	const minDate = today(getLocalTimeZone());
@@ -880,7 +905,8 @@
 														{option.price}
 													</span>
 												</div>
-												<p class="text-muted-foreground text-sm font-normal text-pretty">
+												<p
+													class="text-muted-foreground text-sm font-normal text-pretty">
 													{option.description}
 												</p>
 											</div>
@@ -997,14 +1023,14 @@
 							{sectionCopy.questionsContactPrefix}
 							<Button
 								variant="link"
-								class="p-0 text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
+								class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
 								href={`tel:${contactPhone}`}>
 								{contactPhone}
 							</Button>
 							{sectionCopy.questionsContactMiddle}
 							<Button
 								variant="link"
-								class="p-0 text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary"
+								class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
 								href={`mailto:${contactEmail}`}>
 								{contactEmail}
 							</Button>
@@ -1174,6 +1200,55 @@
 	</form>
 </div>
 
+<Dialog bind:open={showTermsDialog}>
+	<DialogContent
+		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-2xl sm:p-6"
+		onInteractOutside={(event) => {
+			if (isSubmitting) event.preventDefault();
+		}}
+		onEscapeKeydown={(event) => {
+			if (isSubmitting) event.preventDefault();
+		}}>
+		<DialogHeader class="gap-2">
+			<DialogTitle class="text-xl">{termsDialogCopy.title}</DialogTitle>
+			<DialogDescription class="text-muted-foreground text-sm leading-6">
+				{termsDialogCopy.description}
+			</DialogDescription>
+		</DialogHeader>
+
+		<div class="bg-card space-y-4 rounded-lg border p-4 text-sm">
+			{#each termsDialogCopy.items as item}
+				<section class="space-y-1.5">
+					<h3 class="text-foreground font-semibold">{item.title}</h3>
+					<p class="text-muted-foreground leading-6">{item.body}</p>
+				</section>
+			{/each}
+		</div>
+
+		<DialogFooter class="flex-col gap-3 sm:flex-row sm:justify-end">
+			<Button
+				type="button"
+				variant="outline"
+				class="rounded-lg"
+				disabled={isSubmitting}
+				onclick={() => {
+					showTermsDialog = false;
+				}}>
+				{termsDialogCopy.cancelButton}
+			</Button>
+			<Button
+				type="button"
+				class="rounded-lg"
+				disabled={isSubmitting || isSubmitted}
+				onclick={handleConfirmTerms}>
+				{isSubmitting
+					? sectionCopy.submitButtonLoading
+					: termsDialogCopy.confirmButton}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
+
 <Dialog bind:open={showSummaryDialog}>
 	<DialogContent
 		class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl p-4 sm:max-w-3xl sm:p-5"
@@ -1199,7 +1274,7 @@
 				{/if}
 				<section class="space-y-2">
 					<h3
-						class="text-xs font-semibold tracking-widest text-primary uppercase">
+						class="text-primary text-xs font-semibold tracking-widest uppercase">
 						{section.title}
 					</h3>
 					{#if section.title === summaryCopy.sessionDetailsTitle}
@@ -1231,7 +1306,9 @@
 								{#if durationItem}
 									<dl>
 										<div class="space-y-1">
-											<dt class="text-muted-foreground">{durationItem.label}</dt>
+											<dt class="text-muted-foreground">
+												{durationItem.label}
+											</dt>
 											<dd
 												class="text-foreground leading-relaxed wrap-break-word whitespace-pre-line">
 												{durationItem.value}
@@ -1282,7 +1359,8 @@
 			<div class="border-border my-4 border-t"></div>
 
 			<section class="space-y-2">
-				<h3 class="text-xs font-semibold tracking-widest text-primary uppercase">
+				<h3
+					class="text-primary text-xs font-semibold tracking-widest uppercase">
 					{summaryCopy.paymentDueTitle}
 				</h3>
 				<div class="space-y-2">
@@ -1293,16 +1371,21 @@
 								item.isAddOn && "pl-4",
 								item.isTotal && "border-border pt-3 text-base font-semibold",
 							)}>
-							<span class={cn(
-								item.isTotal ? "text-foreground" : "text-muted-foreground",
-								item.isAddOn && "before:text-muted-foreground before:mr-2",
-							)}>
+							<span
+								class={cn(
+									item.isTotal ? "text-foreground" : "text-muted-foreground",
+									item.isAddOn && "before:text-muted-foreground before:mr-2",
+								)}>
 								{item.label}
 							</span>
 							<span class="text-foreground text-right">{item.amount}</span>
 						</div>
 					{/each}
 				</div>
+				<p
+					class="text-muted-foreground border-border mt-4 pt-3 text-sm leading-6">
+					{summaryCopy.paymentDueNote}
+				</p>
 			</section>
 		</div>
 

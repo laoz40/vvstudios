@@ -71,6 +71,11 @@ export type BookingStepTwoAddOnOption = {
 	description: string;
 };
 
+export type BookingStepTwoTermsItem = {
+	title: string;
+	body: string;
+};
+
 export type BookingStepTwoContent = {
 	durationOptions: BookingStepTwoDurationOption[];
 	videoFormatOptions: BookingStepTwoVideoFormatOption[];
@@ -85,6 +90,13 @@ export type BookingStepTwoContent = {
 		success: string;
 		submitFailed: string;
 		submitUnexpectedlyFailed: string;
+	};
+	termsDialog: {
+		title: string;
+		description: string;
+		cancelButton: string;
+		confirmButton: string;
+		items: BookingStepTwoTermsItem[];
 	};
 	sections: {
 		bookingDetailsTitle: string;
@@ -132,6 +144,7 @@ export type BookingStepTwoContent = {
 		sessionDetailsTitle: string;
 		contactBillingTitle: string;
 		paymentDueTitle: string;
+		paymentDueNote: string;
 		labels: {
 			date: string;
 			duration: string;
