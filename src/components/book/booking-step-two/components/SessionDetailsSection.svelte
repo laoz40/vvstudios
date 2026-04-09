@@ -14,8 +14,8 @@
 	import {
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
-	} from "./booking-store.svelte";
-	import FieldError from "./components/FieldError.svelte";
+	} from "../booking-store.svelte";
+	import FieldError from "../components/FieldError.svelte";
 
 	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 	const { state: bookingState, ui, actions } = booking;

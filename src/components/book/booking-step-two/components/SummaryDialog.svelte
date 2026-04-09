@@ -14,7 +14,7 @@
 		PricingLineItem,
 		SummaryItem,
 		SummarySection,
-	} from "./booking-types";
+	} from "../lib/form-types";
 
 	type Props = {
 		open?: boolean;

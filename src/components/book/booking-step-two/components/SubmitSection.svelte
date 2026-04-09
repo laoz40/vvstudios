@@ -7,7 +7,7 @@
 	import {
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
-	} from "./booking-store.svelte";
+	} from "../booking-store.svelte";
 
 	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 	const { state: bookingState, derived, ui, actions } = booking;
