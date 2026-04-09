@@ -6,6 +6,7 @@
 		type DateValue,
 	} from "@internationalized/date";
 	import CameraIcon from "@lucide/svelte/icons/camera";
+	import LoaderCircleIcon from "@lucide/svelte/icons/loader-circle";
 	import MonitorIcon from "@lucide/svelte/icons/monitor";
 	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 	import ScissorsIcon from "@lucide/svelte/icons/scissors";
@@ -1244,9 +1245,14 @@
 				class="rounded-lg"
 				disabled={isSubmitting || isSubmitted}
 				onclick={handleConfirmTerms}>
-				{isSubmitting
-					? sectionCopy.submitButtonLoading
-					: termsDialogCopy.confirmButton}
+				{#if isSubmitting}
+					<span class="flex items-center justify-center gap-2">
+						<LoaderCircleIcon class="size-4 animate-spin" />
+						<span>{sectionCopy.submitButtonLoading}</span>
+					</span>
+				{:else}
+					{termsDialogCopy.confirmButton}
+				{/if}
 			</Button>
 		</DialogFooter>
 	</DialogContent>
@@ -1301,7 +1307,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{dateItem.label}</dt>
 										<dd
-											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed font-bold wrap-break-word whitespace-pre-line">
 											{dateItem.value}
 										</dd>
 									</div>
@@ -1312,7 +1318,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{durationItem.label}</dt>
 										<dd
-											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed font-bold wrap-break-word whitespace-pre-line">
 											{durationItem.value}
 										</dd>
 									</div>
@@ -1323,7 +1329,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{formatItem.label}</dt>
 										<dd
-											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed font-bold wrap-break-word whitespace-pre-line">
 											{formatItem.value}
 										</dd>
 									</div>
@@ -1334,7 +1340,7 @@
 									<div class="space-y-1">
 										<dt class="text-muted-foreground">{questionsItem.label}</dt>
 										<dd
-											class="text-foreground font-bold leading-relaxed wrap-break-word whitespace-pre-line">
+											class="text-foreground leading-relaxed font-bold wrap-break-word whitespace-pre-line">
 											{questionsItem.value}
 										</dd>
 									</div>

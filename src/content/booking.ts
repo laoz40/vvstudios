@@ -176,7 +176,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 	statusMessages: {
 		missingScriptUrl: "Missing script URL.",
 		success:
-			"Your booking has been successfully completed. We’ve sent your invoice to {email}. See you soon!",
+			"Your booking has been successfully completed. Your invoice will be sent to {email}. See you soon!",
 		submitFailed: "Booking form fail to submit.",
 		submitUnexpectedlyFailed: "Submission failed unexpectedly.",
 	},
@@ -250,7 +250,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 			"Save booking information to this device for next time",
 		selectedBadge: "SELECTED",
 		submitButtonDefault: "COMPLETE BOOKING",
-		submitButtonLoading: "SUBMITTING…",
+		submitButtonLoading: "Creating Booking…",
 		submitButtonSubmitted: "SUBMITTED",
 	},
 	summary: {
