@@ -1,29 +1,31 @@
 import type { BookingStepTwoState } from "./booking-store-types";
 
-export function createBookingState(): BookingStepTwoState {
-	return $state<BookingStepTwoState>({
-		form: {
-			selectedDate: undefined,
-			selectedDuration: "",
-			selectedVideoFormat: "",
-			selectedAddOns: [],
-			questionsOrRequests: "",
-			fullName: "",
-			phone: "",
-			accountName: "",
-			abn: "",
-			email: "",
-			saveBookingInfo: false,
-		},
-		hasSavedBookingData: false,
-		isSubmitting: false,
-		isSubmitted: false,
-		status: "",
-		statusType: "",
-		errors: {},
-		submittedSummarySections: [],
-		submittedPricingItems: [],
+class BookingState implements BookingStepTwoState {
+	form = $state({
+		selectedDate: undefined,
+		selectedDuration: "",
+		selectedVideoFormat: "",
+		selectedAddOns: [],
+		questionsOrRequests: "",
+		fullName: "",
+		phone: "",
+		accountName: "",
+		abn: "",
+		email: "",
+		saveBookingInfo: false,
 	});
+	hasSavedBookingData = $state(false);
+	isSubmitting = $state(false);
+	isSubmitted = $state(false);
+	status = $state("");
+	statusType = $state<"success" | "error" | "">("");
+	errors = $state({});
+	submittedSummarySections = $state([]);
+	submittedPricingItems = $state([]);
+}
+
+export function createBookingState(): BookingStepTwoState {
+	return new BookingState();
 }
 
 export function resetBookingFormState(state: BookingStepTwoState): void {
