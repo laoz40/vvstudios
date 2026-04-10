@@ -9,8 +9,7 @@
 	} from "../booking-store.svelte";
 	import FieldError from "../components/FieldError.svelte";
 
-	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
-	const { state: bookingState, ui, actions } = booking;
+	const { state: bookingState, ui, actions } = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 
 	let bookingDateCalendarEl: HTMLElement | null = $state(null);
 	let bookingDurationGroupEl: HTMLElement | null = $state(null);
