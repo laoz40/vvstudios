@@ -1,0 +1,25 @@
+{
+  "projectName": "test",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "bun",
+  "includeExamples": false,
+  "tailwind": true,
+  "addOnOptions": {},
+  "envVarValues": {
+    "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_d2VsY29tZWQtcmVpbmRlZXItMTAuY2xlcmsuYWNjb3VudHMuZGV2JA",
+    "VITE_CONVEX_URL": "dev:silent-ferret-609"
+  },
+  "git": false,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "clerk",
+    "convex",
+    "compiler",
+    "shadcn",
+    "t3env",
+    "tanstack-query"
+  ]
+}
