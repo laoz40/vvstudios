@@ -380,19 +380,19 @@
 		class="ring-primary z-10002 max-w-[calc(100%-1.5rem)] rounded-2xl px-6 py-4 shadow-2xl ring-2 sm:max-w-lg sm:px-8 sm:py-6"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
-			<DialogTitle class="text-xl">
+			<DialogTitle class="text-3xl text-primary text-center">
 				{bookingStepOneContent.postBookingNotice.title}
 			</DialogTitle>
-			<DialogDescription class="text-sm leading-6 text-pretty sm:text-base">
+			<DialogDescription class="text-white text-sm leading-6 text-pretty sm:text-base text-center">
 				{bookingStepOneContent.postBookingNotice.body}
 			</DialogDescription>
 		</DialogHeader>
-		<DialogFooter class="mt-2 sm:justify-end">
+		<DialogFooter class="mt-2">
 			<Button
 				type="button"
 				bind:ref={postBookingNoticeButtonEl}
 				onclick={dismissPostBookingNotice}
-				class={cn("min-w-36 rounded-lg", pressableClass)}>
+				class={cn("rounded-lg w-full", pressableClass)}>
 				{bookingStepOneContent.postBookingNotice.dismissLabel}
 			</Button>
 		</DialogFooter>

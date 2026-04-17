@@ -93,7 +93,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
   modalIframeTitle: "Choose a session",
   postBookingNotice: {
     title: "IMPORTANT",
-    body: "After clicking I understand, you will be redirected to choose your session date in the same tab. Once that is done, you will be sent to STEP 2. You MUST complete STEP 2 or your booking will be invalid.",
+    body: "After securing your time slot, you'll be redirected to the booking form. It MUST be completed or booking is invalid.",
     dismissLabel: "I understand",
   },
   recurringBookingUrl,
