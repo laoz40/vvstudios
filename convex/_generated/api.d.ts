@@ -13,13 +13,17 @@ import type * as env from "../env.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as lib_bookingDateTime from "../lib/bookingDateTime.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-	bookings: typeof bookings;
-	env: typeof env;
-	googleCalendar: typeof googleCalendar;
-	"lib/bookingDateTime": typeof lib_bookingDateTime;
+  bookings: typeof bookings;
+  env: typeof env;
+  googleCalendar: typeof googleCalendar;
+  "lib/bookingDateTime": typeof lib_bookingDateTime;
 }>;
 
 /**
@@ -30,7 +34,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -40,6 +47,9 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {};
