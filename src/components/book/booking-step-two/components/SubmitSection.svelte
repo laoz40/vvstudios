@@ -56,8 +56,8 @@
 		{derived.submitButtonLabel}
 	</Button>
 
-	<BookingSuccessTestButton
-		onclick={onOpenSuccessDialog}
-		disabled={bookingState.isSubmitting}
-		pressableClass={ui.pressableClass} />
+	<!-- <BookingSuccessTestButton -->
+	<!-- 	onclick={onOpenSuccessDialog} -->
+	<!-- 	disabled={bookingState.isSubmitting} -->
+	<!-- 	pressableClass={ui.pressableClass} /> -->
 </div>
