@@ -120,9 +120,6 @@
 			return;
 		}
 
-		activeModalType = "booking";
-		modalUrl = selectedBookingUrl;
-		showBookingModal = true;
 		showPostBookingNotice = true;
 	}
 
@@ -132,6 +129,12 @@
 
 	function dismissPostBookingNotice() {
 		showPostBookingNotice = false;
+
+		if (typeof window === "undefined" || !selectedBookingUrl) {
+			return;
+		}
+
+		window.location.assign(selectedBookingUrl);
 	}
 
 	function navigateToFinaliseBooking() {
