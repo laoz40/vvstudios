@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext } from "svelte";
 	import CameraIcon from "@lucide/svelte/icons/camera";
-	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 	import ScissorsIcon from "@lucide/svelte/icons/scissors";
 	import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 	import { Button } from "$lib/components/ui/button";
@@ -11,6 +10,7 @@
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
 	} from "../booking-store.svelte";
+	import SelectedCheckBadge from "../../../shared/SelectedCheckBadge.svelte";
 
 	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 	const { state: bookingState, ui, actions } = booking;
@@ -69,8 +69,6 @@
 									<div class="flex flex-row items-start justify-between">
 										{#if option.icon === "camera"}
 											<CameraIcon class="text-primary size-10" />
-										{:else if option.icon === "scroll-text"}
-											<ScrollTextIcon class="text-primary size-10" />
 										{:else if option.icon === "scissors"}
 											<ScissorsIcon class="text-primary size-10" />
 										{:else}
@@ -78,9 +76,7 @@
 										{/if}
 
 										{#if bookingState.form.selectedAddOns.includes(option.value)}
-											<span class="bg-primary text-primary-foreground mt-1 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{ui.sectionCopy.selectedBadge}
-											</span>
+											<SelectedCheckBadge class="mt-1" />
 										{/if}
 									</div>
 									<div class="flex flex-col gap-1.5">

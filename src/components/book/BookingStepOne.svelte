@@ -13,6 +13,7 @@
 	} from "$lib/components/ui/dialog";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import IframeModal from "../shared/IframeModal.svelte";
+	import SelectedCheckBadge from "../shared/SelectedCheckBadge.svelte";
 	import { bookingStepOneContent } from "../../content/booking";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
@@ -217,10 +218,7 @@
 							)}>
 							<div class="relative h-56 w-full">
 								{#if selectedStudioId === studio.id}
-									<span
-										class="bg-primary text-primary-foreground absolute top-3 right-3 z-10 rounded-sm px-2 py-1 text-xs font-semibold tracking-widest transition duration-300!">
-										{bookingStepOneContent.selectedBadge}
-									</span>
+									<SelectedCheckBadge class="absolute top-3 right-3 z-10 transition duration-300!" />
 								{/if}
 								{#if studio.imageSlot === "table-image"}
 									<enhanced:img

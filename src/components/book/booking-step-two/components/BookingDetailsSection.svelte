@@ -8,6 +8,7 @@
 		type BookingStepTwoContext,
 	} from "../booking-store.svelte";
 	import FieldError from "../components/FieldError.svelte";
+	import SelectedCheckBadge from "../../../shared/SelectedCheckBadge.svelte";
 
 	const { state: bookingState, ui, actions } = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 
@@ -109,9 +110,7 @@
 											</span>
 										</span>
 										{#if bookingState.form.selectedDuration === option.value}
-											<span class="bg-primary text-primary-foreground rounded-sm px-2 py-1 text-xs font-semibold tracking-widest">
-												{ui.sectionCopy.selectedBadge}
-											</span>
+											<SelectedCheckBadge />
 										{/if}
 									</div>
 								</label>

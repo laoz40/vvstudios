@@ -84,7 +84,6 @@ export const bookingStepOneContent: BookingStepOneContent = {
 			"3": couchBookingUrl3,
 		},
 	},
-	selectedBadge: "SELECTED",
 	primaryButtonLabel: "PICK SESSION DATE",
 	recurringPromptPrefix: "Need recurring sessions?",
 	recurringPromptAction: "Request a call",
@@ -125,13 +124,6 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 			label: "4K UHD Recording",
 			price: "+$49",
 			description: "High resolution camera capture for premium quality.",
-		},
-		{
-			value: "teleprompter",
-			icon: "scroll-text",
-			label: "Teleprompter",
-			price: "+$29",
-			description: "On-screen script guidance for confident delivery.",
 		},
 		{
 			value: "video-editing",
@@ -227,7 +219,6 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		statusDialogDismissButton: "Close",
 		saveBookingInfoLabel:
 			"Save booking information to this device for next time",
-		selectedBadge: "SELECTED",
 		submitButtonDefault: "COMPLETE BOOKING",
 		submitButtonLoading: "Creating Booking…",
 		submitButtonSubmitted: "SUBMITTED",

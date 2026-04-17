@@ -34,7 +34,6 @@ export type BookingStepOneContent = {
 	studios: BookingStepOneStudioOption[];
 	durations: BookingStepOneDurationOption[];
 	bookingUrls: BookingUrlMap;
-	selectedBadge: string;
 	primaryButtonLabel: string;
 	recurringPromptPrefix: string;
 	recurringPromptAction: string;
@@ -58,7 +57,7 @@ export type BookingStepTwoDurationOption = {
 
 export type BookingStepTwoAddOnOption = {
 	value: string;
-	icon: "camera" | "scroll-text" | "scissors" | "smartphone";
+	icon: "camera" | "scissors" | "smartphone";
 	label: string;
 	price: string;
 	description: string;
@@ -125,7 +124,6 @@ export type BookingStepTwoContent = {
 		statusDialogErrorTitle: string;
 		statusDialogDismissButton: string;
 		saveBookingInfoLabel: string;
-		selectedBadge: string;
 		submitButtonDefault: string;
 		submitButtonLoading: string;
 		submitButtonSubmitted: string;
