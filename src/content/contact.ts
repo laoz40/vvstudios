@@ -64,7 +64,7 @@ export const contactFaqItems: readonly ContactFaqItem[] = [
 			{
 				type: "text",
 				value:
-					"Each session includes a fully prepared studio with professional cameras, audio, and lighting already set up. You don’t need to bring any equipment. We handle the technical side so you can focus entirely on your content.",
+					"Each session includes a fully prepared studio with three 4K Sony cameras, up to four RØDE PodMic microphones, and cinematic lighting already set up.",
 			},
 		],
 	},
