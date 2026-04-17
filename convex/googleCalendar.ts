@@ -1,161 +1,173 @@
 "use node";
 
-import { google } from 'googleapis'
-import { v } from 'convex/values'
-import { type Id } from './_generated/dataModel'
-import { internal } from './_generated/api'
-import { action } from './_generated/server'
+import { ConvexError, v } from "convex/values";
+import { google } from "googleapis";
+import { internal } from "./_generated/api";
+import { type Id } from "./_generated/dataModel";
+import { action } from "./_generated/server";
+import { buildEventWindow } from "./lib/bookingDateTime";
 
-type DateParts = {
-  year: number
-  month: number
-  day: number
+type BookingCalendarErrorCode =
+	| "BOOKING_INVALID_DATE"
+	| "BOOKING_INVALID_DURATION"
+	| "BOOKING_INVALID_TIME"
+	| "BOOKING_STORE_FAILED"
+	| "GOOGLE_CALENDAR_AUTH_FAILED"
+	| "GOOGLE_CALENDAR_CONFIG_MISSING"
+	| "GOOGLE_CALENDAR_CREATE_FAILED";
+
+type BookingCalendarErrorData = {
+	code: BookingCalendarErrorCode;
+};
+
+function createBookingCalendarError(code: BookingCalendarErrorCode) {
+	return new ConvexError<BookingCalendarErrorData>({ code });
 }
 
-type TimeParts = {
-  hours: number
-  minutes: number
-}
+function getGoogleCalendarErrorCode(error: unknown): BookingCalendarErrorCode {
+	const isObject = (value: unknown): value is Record<string, unknown> => {
+		return typeof value === "object" && value !== null;
+	}
 
-function parseDurationMinutes(duration: string) {
-  if (duration === '1h') return 60
-  if (duration === '2h') return 120
-  if (duration === '3h') return 180
-  throw new Error(`Unsupported duration: ${duration}`)
-}
+	// Unknown/non-object throw values can't be inspected, so fall back to a generic code.
+	if (!isObject(error)) {
+		return "GOOGLE_CALENDAR_CREATE_FAILED";
+	}
 
-function parseDate(date: string): DateParts {
-  const [year, month, day] = date.split('-').map(Number)
+	// Google auth failures sometimes surface as "invalid_grant" in the error message.
+	const message = typeof error.message === "string" ? error.message : "";
+	if (message.includes("invalid_grant")) {
+		return "GOOGLE_CALENDAR_AUTH_FAILED";
+	}
 
-  if (!year || !month || !day) {
-    throw new Error('Invalid booking date')
-  }
+	// Google API errors may also include an HTTP response with a status code.
+	const response = isObject(error.response) ? error.response : null;
+	const status = typeof response?.status === "number" ? response.status : null;
 
-  return { year, month, day }
-}
+	// 401/403 mean auth failed or the client lacks calendar access.
+	if (status === 401 || status === 403) {
+		return "GOOGLE_CALENDAR_AUTH_FAILED";
+	}
 
-function parseTime(time: string): TimeParts {
-  const [hours, minutes] = time.split(':').map(Number)
-
-  if (hours === undefined || minutes === undefined) {
-    throw new Error('Invalid booking time')
-  }
-
-  return { hours, minutes }
-}
-
-function formatDateTime(date: Date) {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  const hours = String(date.getUTCHours()).padStart(2, '0')
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
-}
-
-function buildEventWindow(date: string, time: string, duration: string) {
-  const dateParts = parseDate(date)
-  const timeParts = parseTime(time)
-  const durationMinutes = parseDurationMinutes(duration)
-
-  const startUtc = new Date(
-    Date.UTC(
-      dateParts.year,
-      dateParts.month - 1,
-      dateParts.day,
-      timeParts.hours,
-      timeParts.minutes,
-      0,
-      0,
-    ),
-  )
-  const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000)
-
-  return {
-    startDateTime: formatDateTime(startUtc),
-    endDateTime: formatDateTime(endUtc),
-  }
+	// Everything else is treated as a generic event creation failure.
+	return "GOOGLE_CALENDAR_CREATE_FAILED";
 }
 
 export const createBookingWithCalendarEvent = action({
-  args: {
-    name: v.string(),
-    email: v.string(),
-    date: v.string(),
-    time: v.string(),
-    duration: v.string(),
-    service: v.string(),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args): Promise<{
-    bookingId: Id<'bookings'>
-    googleEventId: string | null
-    htmlLink: string | null
-  }> => {
-    const clientId = process.env.GOOGLE_CLIENT_ID
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
-    const calendarId = process.env.GOOGLE_CALENDAR_ID ?? 'primary'
-    const timeZone = process.env.GOOGLE_CALENDAR_TIMEZONE ?? 'Australia/Sydney'
+	args: {
+		name: v.string(),
+		email: v.string(),
+		date: v.string(),
+		time: v.string(),
+		duration: v.string(),
+		service: v.string(),
+		notes: v.optional(v.string()),
+	},
+	handler: async (
+		ctx,
+		args,
+	): Promise<{
+		bookingId: Id<"bookings">;
+		googleEventId: string | null;
+		htmlLink: string | null;
+	}> => {
+		try {
+			const clientId = process.env.GOOGLE_CLIENT_ID;
+			const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+			const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+			const calendarId = process.env.GOOGLE_CALENDAR_ID ?? "primary";
+			const timeZone = process.env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
+			const hostEmails = (process.env.GOOGLE_CALENDAR_HOST_EMAILS ?? "")
+				.split(",")
+				.map((email) => email.trim())
+				.filter(Boolean);
 
-    if (!clientId || !clientSecret || !refreshToken) {
-      throw new Error('Missing Google Calendar environment variables')
-    }
+			if (!clientId || !clientSecret || !refreshToken) {
+				throw createBookingCalendarError("GOOGLE_CALENDAR_CONFIG_MISSING");
+			}
 
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret)
-    oauth2Client.setCredentials({ refresh_token: refreshToken })
+			const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+			oauth2Client.setCredentials({ refresh_token: refreshToken });
 
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
-    const { startDateTime, endDateTime } = buildEventWindow(
-      args.date,
-      args.time,
-      args.duration,
-    )
+			const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+			const { startDateTime, endDateTime } = buildEventWindow(args.date, args.time, args.duration);
 
-    const event = await calendar.events.insert({
-      calendarId,
-      requestBody: {
-        summary: `${args.service} - ${args.name}`,
-        description: [
-          `Name: ${args.name}`,
-          `Email: ${args.email}`,
-          `Service: ${args.service}`,
-          args.notes ? `Notes: ${args.notes}` : undefined,
-        ]
-          .filter(Boolean)
-          .join('\n'),
-        start: {
-          dateTime: startDateTime,
-          timeZone,
-        },
-        end: {
-          dateTime: endDateTime,
-          timeZone,
-        },
-      },
-    })
+			let googleEventId: string | undefined;
+			let htmlLink: string | null = null;
+			try {
+				const event = await calendar.events.insert({
+					calendarId,
+					sendUpdates: "all",
+					requestBody: {
+						summary: `${args.service} - ${args.name}`,
+						description: [
+							`Name: ${args.name}`,
+							`Email: ${args.email}`,
+							`Service: ${args.service}`,
+							args.notes ? `Notes: ${args.notes}` : undefined,
+						]
+							.filter(Boolean)
+							.join("\n"),
+						start: {
+							dateTime: startDateTime,
+							timeZone,
+						},
+						end: {
+							dateTime: endDateTime,
+							timeZone,
+						},
+						attendees: [{ email: args.email }, ...hostEmails.map((email) => ({ email }))],
+					},
+				});
 
-    const bookingId: Id<'bookings'> = await ctx.runMutation(
-      internal.bookings.storeBooking,
-      {
-      name: args.name,
-      email: args.email,
-      date: args.date,
-      time: args.time,
-      duration: args.duration,
-      service: args.service,
-      notes: args.notes,
-        googleEventId: event.data.id ?? undefined,
-        googleCalendarId: calendarId,
-      },
-    )
+				googleEventId = event.data.id ?? undefined;
+				htmlLink = event.data.htmlLink ?? null;
+			} catch (error) {
+				console.error("Google Calendar event insert failed", {
+					error,
+					bookingEmail: args.email,
+					calendarId,
+				});
+				throw createBookingCalendarError(getGoogleCalendarErrorCode(error));
+			}
 
-    return {
-      bookingId,
-      googleEventId: event.data.id ?? null,
-      htmlLink: event.data.htmlLink ?? null,
-    }
-  },
-})
+			try {
+				const bookingId: Id<"bookings"> = await ctx.runMutation(internal.bookings.storeBooking, {
+					name: args.name,
+					email: args.email,
+					date: args.date,
+					time: args.time,
+					duration: args.duration,
+					service: args.service,
+					notes: args.notes,
+					googleEventId,
+					googleCalendarId: calendarId,
+				});
+
+				return {
+					bookingId,
+					googleEventId: googleEventId ?? null,
+					htmlLink,
+				};
+			} catch (error) {
+				console.error("Booking storage failed after Google Calendar event creation", {
+					error,
+					bookingEmail: args.email,
+					calendarId,
+					googleEventId: googleEventId ?? null,
+				});
+				throw createBookingCalendarError("BOOKING_STORE_FAILED");
+			}
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			console.error("Unexpected booking calendar error", {
+				error,
+				bookingEmail: args.email,
+			});
+			throw createBookingCalendarError("GOOGLE_CALENDAR_CREATE_FAILED");
+		}
+	},
+});

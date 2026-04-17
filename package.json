@@ -9,7 +9,9 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "oxfmt .",
+    "lint": "oxlint ."
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.3",
@@ -29,6 +31,7 @@
     "convex": "^1.32.0",
     "googleapis": "^171.4.0",
     "lucide-react": "^0.577.0",
+    "neverthrow": "^8.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.0.2",
