@@ -120,7 +120,7 @@
 		tabindex="0"
 		aria-modal="true"
 		aria-label={dialogLabel}>
-		<div class="relative h-[90vh] md:h-[60vh] w-full max-w-7xl overflow-visible">
+		<div class="relative h-[90vh] md:h-[85vh] w-full max-w-7xl overflow-visible">
 			<Button
 				variant="destructive"
 				size="icon"
