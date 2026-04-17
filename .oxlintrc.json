@@ -15,7 +15,7 @@
 		"@next/next/no-async-client-component": "warn",
 		"@next/next/no-before-interactive-script-outside-document": "warn",
 		"@next/next/no-css-tags": "warn",
-		"@next/next/no-head-element": "warn",
+		"@next/next/no-head-element": "off",
 		"@next/next/no-html-link-for-pages": "error",
 		"@next/next/no-img-element": "warn",
 		"@next/next/no-page-custom-font": "warn",
