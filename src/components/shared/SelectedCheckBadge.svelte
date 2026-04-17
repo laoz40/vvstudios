@@ -12,7 +12,7 @@
 
 <span
 	class={cn(
-		"bg-primary text-primary-foreground inline-flex items-center justify-center rounded-full p-1",
+		"bg-primary text-primary-foreground inline-flex items-center justify-center rounded-full p-0.5",
 		className,
 	)}
 	aria-label={label}>

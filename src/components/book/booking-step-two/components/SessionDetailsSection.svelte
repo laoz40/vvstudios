@@ -47,7 +47,7 @@
 					<p class="text-muted-foreground text-sm">
 						{ui.sectionCopy.addOnsHelper}
 					</p>
-					<div class="grid gap-4 md:grid-cols-2">
+					<div class="flex flex-col gap-4">
 						{#each ui.addOnOptions as option}
 							<div class="h-full">
 								<Checkbox
@@ -61,37 +61,42 @@
 								<label
 									for={`addon-${option.value}`}
 									class={cn(
-										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full min-h-40 cursor-pointer flex-col gap-4 rounded-lg border px-4 py-4 text-left transition duration-300! peer-focus-visible:ring-[3px]",
+										"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-ring peer-focus-visible:ring-ring/50 flex h-full cursor-pointer items-center justify-between gap-4 rounded-lg border px-4 py-6 text-left transition duration-300! peer-focus-visible:ring-[3px]",
 										ui.pressableClass,
 										bookingState.form.selectedAddOns.includes(option.value) &&
 											"border-primary bg-primary/10",
 									)}>
-									<div class="flex flex-row items-start justify-between">
-										{#if option.icon === "camera"}
-											<CameraIcon class="text-primary size-10" />
-										{:else if option.icon === "scissors"}
-											<ScissorsIcon class="text-primary size-10" />
-										{:else}
-											<SmartphoneIcon class="text-primary size-10" />
-										{/if}
-
-										{#if bookingState.form.selectedAddOns.includes(option.value)}
-											<SelectedCheckBadge class="mt-1" />
-										{/if}
-									</div>
-									<div class="flex flex-col gap-1.5">
-										<div class="flex items-start justify-between gap-4">
-											<span class="text-base font-semibold text-white">
-												{option.label}
-											</span>
-											<span class="text-primary text-base">
-												{option.price}
-											</span>
+									<div class="flex min-w-0 items-center gap-4">
+										<div class="flex shrink-0 items-center justify-center">
+											{#if option.icon === "camera"}
+												<CameraIcon class="text-primary size-8" />
+											{:else if option.icon === "scissors"}
+												<ScissorsIcon class="text-primary size-8" />
+											{:else}
+												<SmartphoneIcon class="text-primary size-8" />
+											{/if}
 										</div>
-										<p class="text-muted-foreground text-sm font-normal text-pretty">
-											{option.description}
-										</p>
+
+										<div class="min-w-0">
+											<div class="flex items-center gap-2">
+												<span class="text-foreground text-base font-semibold">
+													{option.label}
+												</span>
+												{#if bookingState.form.selectedAddOns.includes(option.value)}
+													<SelectedCheckBadge />
+												{/if}
+											</div>
+											<div>
+												<p class="text-muted-foreground text-sm font-normal text-pretty">
+													{option.description}
+												</p>
+											</div>
+										</div>
 									</div>
+
+									<span class="text-primary shrink-0 text-base font-semibold">
+										{option.price}
+									</span>
 								</label>
 							</div>
 						{/each}
