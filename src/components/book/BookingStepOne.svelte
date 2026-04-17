@@ -15,6 +15,7 @@
 	import IframeModal from "../shared/IframeModal.svelte";
 	import SelectedCheckBadge from "../shared/SelectedCheckBadge.svelte";
 	import { bookingStepOneContent } from "../../content/booking";
+	import { seoPages } from "../../content/seo";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
 	import tableImage from "../../assets/gallery/table-setup.webp?enhanced";
@@ -48,7 +49,9 @@
 	let selectedBookingUrl = $derived(
 		bookingUrls[selectedStudioId]?.[selectedDurationValue]?.trim() ?? "",
 	);
-	let isBookingReady = $derived(Boolean(selectedStudioId && selectedDurationValue));
+	let isBookingReady = $derived(
+		Boolean(selectedStudioId && selectedDurationValue),
+	);
 	let errors: BookingStepOneErrors = $state({});
 
 	let showBookingModal = $state(false);
@@ -79,9 +82,7 @@
 
 		if (fieldErrors.durationValue) {
 			durationSectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
-			document
-				.getElementById(`duration-${durations[0]?.value}`)
-				?.focus();
+			document.getElementById(`duration-${durations[0]?.value}`)?.focus();
 		}
 	}
 
@@ -133,15 +134,12 @@
 		showPostBookingNotice = false;
 	}
 
-	function scrollToStepTwo() {
-		if (typeof document === "undefined") {
+	function navigateToFinaliseBooking() {
+		if (typeof window === "undefined") {
 			return;
 		}
 
-		document.getElementById("booking-step-two-heading")?.scrollIntoView({
-			behavior: "smooth",
-			block: "start",
-		});
+		window.location.assign(seoPages.finaliseBooking.path);
 	}
 
 	$effect(() => {
@@ -218,7 +216,8 @@
 							)}>
 							<div class="relative h-56 w-full">
 								{#if selectedStudioId === studio.id}
-									<SelectedCheckBadge class="absolute top-3 right-3 z-10 transition duration-300!" />
+									<SelectedCheckBadge
+										class="absolute top-3 right-3 z-10 transition duration-300!" />
 								{/if}
 								{#if studio.imageSlot === "table-image"}
 									<enhanced:img
@@ -243,7 +242,10 @@
 											"bg-[#393420]/90",
 									)}>
 									<p class="text-base font-semibold">{studio.name}</p>
-									<p class="text-sm font-light text-muted-foreground text-pretty">{studio.description}</p>
+									<p
+										class="text-muted-foreground text-sm font-light text-pretty">
+										{studio.description}
+									</p>
 								</div>
 							</div>
 						</label>
@@ -274,7 +276,8 @@
 				name="duration"
 				class="grid gap-4 sm:grid-cols-3">
 				{#each durations as duration}
-					{@const hasDiscount = duration.originalPrice !== duration.discountedPrice}
+					{@const hasDiscount =
+						duration.originalPrice !== duration.discountedPrice}
 					<div>
 						<RadioGroupItem
 							id={`duration-${duration.value}`}
@@ -295,7 +298,8 @@
 								</span>
 							{/if}
 							<p class="text-base font-semibold">{duration.label}</p>
-							<div class="relative flex items-center justify-center text-sm gap-1">
+							<div
+								class="relative flex items-center justify-center gap-1 text-sm">
 								{#if hasDiscount}
 									<p class="text-primary whitespace-nowrap">
 										{duration.discountedPrice}
@@ -305,7 +309,9 @@
 										{duration.originalPrice}
 									</p>
 								{:else}
-									<p class="text-primary whitespace-nowrap">{duration.discountedPrice}</p>
+									<p class="text-primary whitespace-nowrap">
+										{duration.discountedPrice}
+									</p>
 								{/if}
 							</div>
 						</label>
@@ -339,7 +345,7 @@
 			<Button
 				variant="link"
 				onclick={openRecurringBooking}
-				class= "text-foreground underline decoration-primary/65 underline-offset-4 hover:text-primary p-0">
+				class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4">
 				{bookingStepOneContent.recurringPromptAction}
 			</Button>
 			{bookingStepOneContent.recurringPromptSuffix}
@@ -358,7 +364,7 @@
 			modalUrl = "";
 			showPostBookingNotice = false;
 			if (activeModalType === "booking") {
-				scrollToStepTwo();
+				navigateToFinaliseBooking();
 			}
 			activeModalType = null;
 		}} />
@@ -368,7 +374,7 @@
 	<DialogContent
 		overlayProps={{ class: "z-10001" }}
 		onInteractOutside={(event) => event.preventDefault()}
-		class="z-10002 max-w-[calc(100%-1.5rem)] rounded-2xl ring-2 ring-primary px-6 py-4 shadow-2xl sm:max-w-lg sm:px-8 sm:py-6"
+		class="ring-primary z-10002 max-w-[calc(100%-1.5rem)] rounded-2xl px-6 py-4 shadow-2xl ring-2 sm:max-w-lg sm:px-8 sm:py-6"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
 			<DialogTitle class="text-xl">

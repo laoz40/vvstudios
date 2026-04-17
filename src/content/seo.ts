@@ -1,4 +1,9 @@
-export type SeoPageKey = "home" | "book" | "contact" | "photos";
+export type SeoPageKey =
+	| "home"
+	| "book"
+	| "finaliseBooking"
+	| "contact"
+	| "photos";
 
 export type SeoPageEntry = {
 	title: string;
@@ -20,8 +25,15 @@ export const seoPages: Record<SeoPageKey, SeoPageEntry> = {
 	book: {
 		title: "Book a Podcast Studio Session | VV Podcast Studio",
 		description:
-			"Book your podcast studio session in Macquarie Fields. Choose your recording space, session time, and add-ons for a smooth, professional production experience.",
+			"Book your podcast studio session in Macquarie Fields. Choose your recording space and session time before moving to the final booking details.",
 		path: "/book",
+		ogImage: "/android-chrome-512x512.png",
+	},
+	finaliseBooking: {
+		title: "Finalise Your Podcast Studio Booking | VV Podcast Studio",
+		description:
+			"Finalise your VV Podcast Studio booking with session details, add-ons, and billing information before submission.",
+		path: "/finalise-booking",
 		ogImage: "/android-chrome-512x512.png",
 	},
 	contact: {
