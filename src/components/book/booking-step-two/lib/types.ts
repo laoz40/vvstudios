@@ -62,6 +62,7 @@ export type BookingStepTwoActions = {
 	reuseLastBooking: () => Promise<void>;
 	requestSubmit: () => Promise<boolean>;
 	submitBooking: () => Promise<boolean>;
+	prepareSuccessSummaryPreview: () => void;
 	clearStatusState: () => void;
 	closeSummary: () => void;
 	registerFieldFocus: (

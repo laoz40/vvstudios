@@ -154,6 +154,11 @@ export function createBookingStore({
 		return restoreLastBooking(state, addOnValues, reuseTargetHandler ?? undefined);
 	}
 
+	function prepareSuccessSummaryPreview(): void {
+		const bookingSummaryData = createCurrentBookingSummaryData(state, derived);
+		openBookingSuccessSummary(state, bookingSummaryData, content.statusMessages, ui);
+	}
+
 	function clearBookingStatus(): void {
 		clearBookingStatusState(state);
 	}
@@ -177,6 +182,7 @@ export function createBookingStore({
 		reuseLastBooking: restoreSavedBooking,
 		requestSubmit: validateBeforeSubmit,
 		submitBooking: sendBooking,
+		prepareSuccessSummaryPreview,
 		clearStatusState: clearBookingStatus,
 		closeSummary: closeSuccessSummary,
 		registerFieldFocus,

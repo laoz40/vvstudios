@@ -85,6 +85,13 @@
 		}
 	}
 
+	function handleOpenSuccessDialog(): void {
+		booking.actions.prepareSuccessSummaryPreview();
+		showStatusDialog = false;
+		showTermsDialog = false;
+		showSummaryDialog = true;
+	}
+
 	function handleSummaryDialogClose(): void {
 		showSummaryDialog = false;
 		booking.actions.closeSummary();
@@ -131,7 +138,7 @@
 		<BookingDetailsSection />
 		<SessionDetailsSection />
 		<ContactBillingSection />
-		<SubmitSection />
+		<SubmitSection onOpenSuccessDialog={handleOpenSuccessDialog} />
 	</form>
 </div>
 

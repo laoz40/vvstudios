@@ -8,9 +8,15 @@
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
 	} from "../booking-store.svelte";
+	import BookingSuccessTestButton from "../../BookingSuccessTestButton.svelte";
+
+	type Props = {
+		onOpenSuccessDialog: () => void;
+	};
 
 	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 	const { state: bookingState, derived, ui, actions } = booking;
+	let { onOpenSuccessDialog }: Props = $props();
 
 	let completeBookingSection: HTMLDivElement | null = $state(null);
 
@@ -49,4 +55,9 @@
 		disabled={bookingState.isSubmitting || bookingState.isSubmitted}>
 		{derived.submitButtonLabel}
 	</Button>
+
+	<BookingSuccessTestButton
+		onclick={onOpenSuccessDialog}
+		disabled={bookingState.isSubmitting}
+		pressableClass={ui.pressableClass} />
 </div>
