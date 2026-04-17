@@ -7,7 +7,6 @@ export type BookingErrors = Partial<Record<BookingField, string>>;
 
 export type PersistedBookingData = {
 	selectedAddOns: string[];
-	selectedVideoFormat: string;
 	questionsOrRequests: string;
 	fullName: string;
 	phone: string;
@@ -17,7 +16,7 @@ export type PersistedBookingData = {
 };
 
 export type PersistedBookingEnvelope = {
-	version: 1;
+	version: 2;
 	updatedAt: string;
 	data: PersistedBookingData;
 };
@@ -35,7 +34,6 @@ export type SummarySection = {
 export type BookingSummaryData = {
 	date: string;
 	duration: string;
-	videoFormatLabel: string;
 	addOnLabels: string[];
 	questionsOrRequests: string;
 	fullName: string;

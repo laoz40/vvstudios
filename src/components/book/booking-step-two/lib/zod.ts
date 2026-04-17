@@ -4,7 +4,6 @@ import type { BookingErrors, BookingField, BookingFormData } from "./form-types"
 export const BookingSchema = z.object({
   date: z.string().min(1, "Please select a booking date."),
   duration: z.string().min(1, "Please select a session duration."),
-  videoFormat: z.string().min(1, "Please select a recording format."),
   questionsOrRequests: z
     .string()
     .trim()

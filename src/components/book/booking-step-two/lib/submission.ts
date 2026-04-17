@@ -18,7 +18,6 @@ export function createCurrentBookingSummaryData(
 	return {
 		date: derived.formattedDateString,
 		duration: state.form.selectedDuration,
-		videoFormatLabel: derived.selectedVideoFormatLabel,
 		addOnLabels: [...derived.selectedAddOnLabels],
 		questionsOrRequests: state.form.questionsOrRequests,
 		fullName: state.form.fullName,
@@ -57,7 +56,6 @@ export function createSubmissionPayload(
 		phone: state.form.phone,
 		date: derived.dateString,
 		duration: derived.durationValue,
-		videoFormat: derived.selectedVideoFormatLabel,
 		...mapAllAddOnsToBooleanSelectionState(state.form.selectedAddOns, ui.addOnOptions),
 		accountName: state.form.accountName,
 		abn: state.form.abn,

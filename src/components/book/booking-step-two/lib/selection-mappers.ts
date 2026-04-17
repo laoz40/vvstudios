@@ -1,19 +1,4 @@
-import type {
-	BookingStepTwoAddOnOption,
-	BookingStepTwoContent,
-} from "../../../../content/bookingTypes";
-
-// map the selected video format value to its display label
-export function getSelectedVideoFormatLabel(
-	selectedVideoFormat: string,
-	videoFormatOptions: BookingStepTwoContent["videoFormatOptions"],
-): string {
-	const match = videoFormatOptions.find(
-		(option) => option.value === selectedVideoFormat,
-	);
-
-	return match?.label || "";
-}
+import type { BookingStepTwoAddOnOption } from "../../../../content/bookingTypes";
 
 // turn a kebab-case add-on value into a form field name
 export function toAddOnFieldName(value: string): string {

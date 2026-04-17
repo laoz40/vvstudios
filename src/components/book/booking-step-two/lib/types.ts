@@ -3,7 +3,6 @@ import type {
 	BookingStepTwoAddOnOption,
 	BookingStepTwoContent,
 	BookingStepTwoDurationOption,
-	BookingStepTwoVideoFormatOption,
 } from "../../../../content/bookingTypes";
 import type {
 	BookingErrors,
@@ -16,7 +15,6 @@ export type BookingStepTwoState = {
 	form: {
 		selectedDate: DateValue | undefined;
 		selectedDuration: string;
-		selectedVideoFormat: string;
 		selectedAddOns: string[];
 		questionsOrRequests: string;
 		fullName: string;
@@ -40,7 +38,6 @@ export type BookingStepTwoDerived = {
 	dateString: string;
 	formattedDateString: string;
 	durationValue: string;
-	selectedVideoFormatLabel: string;
 	selectedAddOnLabels: string[];
 	submitButtonLabel: string;
 	statusDialogTitle: string;
@@ -51,7 +48,6 @@ export type BookingStepTwoUi = {
 	summaryCopy: BookingStepTwoContent["summary"];
 	termsDialogCopy: BookingStepTwoContent["termsDialog"];
 	durationOptions: BookingStepTwoDurationOption[];
-	videoFormatOptions: BookingStepTwoVideoFormatOption[];
 	addOnOptions: BookingStepTwoAddOnOption[];
 	contactPhone: string;
 	contactEmail: string;

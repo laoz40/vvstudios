@@ -1,5 +1,5 @@
 import { formatSelectedDate, getDateString, getDurationValue } from "./date";
-import { getSelectedAddOnLabels, getSelectedVideoFormatLabel } from "./selection-mappers";
+import { getSelectedAddOnLabels } from "./selection-mappers";
 import type {
 	BookingStepTwoDerived,
 	BookingStepTwoState,
@@ -10,7 +10,6 @@ class BookingState implements BookingStepTwoState {
 	form = $state({
 		selectedDate: undefined,
 		selectedDuration: "",
-		selectedVideoFormat: "",
 		selectedAddOns: [],
 		questionsOrRequests: "",
 		fullName: "",
@@ -48,9 +47,6 @@ export function createBookingDerived(
 		get durationValue() {
 			return getDurationValue(state.form.selectedDuration);
 		},
-		get selectedVideoFormatLabel() {
-			return getSelectedVideoFormatLabel(state.form.selectedVideoFormat, ui.videoFormatOptions);
-		},
 		get selectedAddOnLabels() {
 			return getSelectedAddOnLabels(state.form.selectedAddOns, ui.addOnOptions);
 		},
@@ -70,7 +66,6 @@ export function createBookingDerived(
 export function resetBookingFormState(state: BookingStepTwoState): void {
 	state.form.selectedDate = undefined;
 	state.form.selectedDuration = "";
-	state.form.selectedVideoFormat = "";
 	state.form.selectedAddOns = [];
 	state.form.questionsOrRequests = "";
 	state.form.fullName = "";

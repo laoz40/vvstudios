@@ -4,7 +4,7 @@ import type {
 } from "./form-types";
 
 
-const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v1";
+const BOOKING_STORAGE_KEY = "vvstudios.booking.step2.v2";
 
 export function isStringArray(value: unknown): value is string[] {
 	return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -20,7 +20,6 @@ export function isPersistedBookingData(
 	const data = value as Record<string, unknown>;
 	return (
 		isStringArray(data.selectedAddOns) &&
-		typeof data.selectedVideoFormat === "string" &&
 		typeof data.questionsOrRequests === "string" &&
 		typeof data.fullName === "string" &&
 		typeof data.phone === "string" &&
@@ -48,7 +47,7 @@ export function readStoredBooking(): PersistedBookingEnvelope | null {
 
 		const envelope = parsed as Record<string, unknown>;
 		if (
-			envelope.version !== 1 ||
+			envelope.version !== 2 ||
 			typeof envelope.updatedAt !== "string" ||
 			!isPersistedBookingData(envelope.data)
 		) {
@@ -56,7 +55,7 @@ export function readStoredBooking(): PersistedBookingEnvelope | null {
 		}
 
 		return {
-			version: 1,
+			version: 2,
 			updatedAt: envelope.updatedAt,
 			data: envelope.data,
 		};
@@ -71,7 +70,7 @@ export function writeStoredBooking(data: PersistedBookingData): void {
 	}
 
 	const envelope: PersistedBookingEnvelope = {
-		version: 1,
+		version: 2,
 		updatedAt: new Date().toISOString(),
 		data,
 	};
@@ -82,15 +81,11 @@ export function writeStoredBooking(data: PersistedBookingData): void {
 export function sanitizeStoredBookingData(
 	data: PersistedBookingData,
 	validAddOnValues: Set<string>,
-	validVideoFormatValues: Set<string>,
 ): PersistedBookingData {
 	return {
 		...data,
 		selectedAddOns: data.selectedAddOns.filter((value) =>
 			validAddOnValues.has(value),
 		),
-		selectedVideoFormat: validVideoFormatValues.has(data.selectedVideoFormat)
-			? data.selectedVideoFormat
-			: "",
 	};
 }

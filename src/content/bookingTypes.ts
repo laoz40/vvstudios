@@ -56,13 +56,6 @@ export type BookingStepTwoDurationOption = {
 	description: string;
 };
 
-export type BookingStepTwoVideoFormatOption = {
-	value: string;
-	icon: "monitor" | "smartphone" | "both";
-	label: string;
-	description: string;
-};
-
 export type BookingStepTwoAddOnOption = {
 	value: string;
 	icon: "camera" | "scroll-text" | "scissors" | "smartphone";
@@ -78,7 +71,6 @@ export type BookingStepTwoTermsItem = {
 
 export type BookingStepTwoContent = {
 	durationOptions: BookingStepTwoDurationOption[];
-	videoFormatOptions: BookingStepTwoVideoFormatOption[];
 	addOnOptions: BookingStepTwoAddOnOption[];
 	scriptUrl: string;
 	contact: {
@@ -107,7 +99,6 @@ export type BookingStepTwoContent = {
 		sessionDetailsTitle: string;
 		addOnsLegend: string;
 		addOnsHelper: string;
-		videoFormatLegend: string;
 		questionsLabel: string;
 		questionsPlaceholder: string;
 		questionsContactPrefix: string;
@@ -148,7 +139,6 @@ export type BookingStepTwoContent = {
 		labels: {
 			date: string;
 			duration: string;
-			format: string;
 			addOns: string;
 			questions: string;
 			name: string;

@@ -12,7 +12,6 @@ export function getPersistedBookingData(
 ): PersistedBookingData {
 	return {
 		selectedAddOns: [...state.form.selectedAddOns],
-		selectedVideoFormat: state.form.selectedVideoFormat,
 		questionsOrRequests: state.form.questionsOrRequests,
 		fullName: state.form.fullName,
 		phone: state.form.phone,
@@ -26,16 +25,10 @@ export function applyPersistedBookingData(
 	state: BookingStepTwoState,
 	data: PersistedBookingData,
 	addOnValues: Set<string>,
-	videoFormatValues: Set<string>,
 ): void {
-	const sanitizedData = sanitizeStoredBookingData(
-		data,
-		addOnValues,
-		videoFormatValues,
-	);
+	const sanitizedData = sanitizeStoredBookingData(data, addOnValues);
 
 	state.form.selectedAddOns = sanitizedData.selectedAddOns;
-	state.form.selectedVideoFormat = sanitizedData.selectedVideoFormat;
 	state.form.questionsOrRequests = sanitizedData.questionsOrRequests;
 	state.form.fullName = sanitizedData.fullName;
 	state.form.phone = sanitizedData.phone;
@@ -58,7 +51,6 @@ export function persistBookingDataIfNeeded(
 export async function reuseLastBooking(
 	state: BookingStepTwoState,
 	addOnValues: Set<string>,
-	videoFormatValues: Set<string>,
 	onAfterReuse?: () => void,
 ): Promise<void> {
 	const stored = readStoredBooking();
@@ -66,12 +58,7 @@ export async function reuseLastBooking(
 		return;
 	}
 
-	applyPersistedBookingData(
-		state,
-		stored.data,
-		addOnValues,
-		videoFormatValues,
-	);
+	applyPersistedBookingData(state, stored.data, addOnValues);
 	await tick();
 	onAfterReuse?.();
 }

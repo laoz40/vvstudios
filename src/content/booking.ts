@@ -118,26 +118,6 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 			description: "Extended time for deeper coverage",
 		},
 	],
-	videoFormatOptions: [
-		{
-			value: "horizontal",
-			icon: "monitor",
-			label: "Horizontal / Widescreen",
-			description: "Best for YouTube, TV, and websites",
-		},
-		{
-			value: "vertical",
-			icon: "smartphone",
-			label: "Vertical / Tall",
-			description: "Best for TikTok, Instagram Reels, and Shorts",
-		},
-		{
-			value: "both",
-			icon: "both",
-			label: "Both",
-			description: "When you need full episodes and social media clips",
-		},
-	],
 	addOnOptions: [
 		{
 			value: "4k-uhd-recording",
@@ -218,7 +198,6 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		addOnsLegend: "SELECT ADD-ONS",
 		addOnsHelper:
 			"Video & Audio Package includes up to 4 RODE microphones and 3 Sony cameras.",
-		videoFormatLegend: "SELECT RECORDING FORMAT",
 		questionsLabel: "ADD ANY QUESTIONS OR REQUESTS?",
 		questionsPlaceholder:
 			"Let us know if you have any special requests or questions.",
@@ -263,7 +242,6 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
 		labels: {
 			date: "Date",
 			duration: "Duration",
-			format: "Recording Format",
 			addOns: "Add-ons",
 			questions: "Questions/Requests",
 			name: "Name",

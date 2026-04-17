@@ -37,7 +37,6 @@ type BookingActions = BookingStepTwoStore["actions"];
 type BookingFormData = {
 	date: string;
 	duration: string;
-	videoFormat: string;
 	questionsOrRequests: string;
 	fullName: string;
 	phone: string;
@@ -50,7 +49,6 @@ function createBookingFormData(state: BookingStepTwoStore["state"], derived: Boo
 	return {
 		date: derived.dateString,
 		duration: state.form.selectedDuration,
-		videoFormat: state.form.selectedVideoFormat,
 		questionsOrRequests: state.form.questionsOrRequests,
 		fullName: state.form.fullName,
 		phone: state.form.phone,
@@ -70,7 +68,6 @@ export function createBookingStore({
 		summaryCopy: content.summary,
 		termsDialogCopy: content.termsDialog,
 		durationOptions: content.durationOptions,
-		videoFormatOptions: content.videoFormatOptions,
 		addOnOptions: content.addOnOptions,
 		contactPhone: content.contact.phone,
 		contactEmail: content.contact.email,
@@ -79,7 +76,6 @@ export function createBookingStore({
 	};
 
 	const addOnValues = new Set(ui.addOnOptions.map((option) => option.value));
-	const videoFormatValues = new Set(ui.videoFormatOptions.map((option) => option.value));
 	const state = createBookingState();
 	const derived = createBookingDerived(state, ui);
 	const fieldFocusHandlers = new Map<BookingField, () => void>();
@@ -155,7 +151,7 @@ export function createBookingStore({
 	}
 
 	function restoreSavedBooking(): Promise<void> {
-		return restoreLastBooking(state, addOnValues, videoFormatValues, reuseTargetHandler ?? undefined);
+		return restoreLastBooking(state, addOnValues, reuseTargetHandler ?? undefined);
 	}
 
 	function clearBookingStatus(): void {

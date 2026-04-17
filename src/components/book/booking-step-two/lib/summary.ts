@@ -18,10 +18,6 @@ export function createSummarySections(
 			label: summaryCopy.labels.duration,
 			value: data.duration || summaryCopy.emptyValue,
 		},
-		{
-			label: summaryCopy.labels.format,
-			value: data.videoFormatLabel || summaryCopy.emptyValue,
-		},
 	];
 
 	if (data.questionsOrRequests.trim()) {
