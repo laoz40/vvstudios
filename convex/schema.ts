@@ -10,6 +10,8 @@ export default defineSchema({
     duration: v.optional(v.string()),
     service: v.string(),
     notes: v.optional(v.string()),
+    googleEventId: v.optional(v.string()),
+    googleCalendarId: v.optional(v.string()),
     createdAt: v.number(),
   }).index('by_createdAt', ['createdAt']),
 })

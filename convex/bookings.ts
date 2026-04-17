@@ -1,7 +1,7 @@
-import { mutation, query } from './_generated/server'
+import { internalMutation, query } from './_generated/server'
 import { v } from 'convex/values'
 
-export const createBooking = mutation({
+export const storeBooking = internalMutation({
   args: {
     name: v.string(),
     email: v.string(),
@@ -10,9 +10,11 @@ export const createBooking = mutation({
     duration: v.string(),
     service: v.string(),
     notes: v.optional(v.string()),
+    googleEventId: v.optional(v.string()),
+    googleCalendarId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert('bookings', {
+    return await ctx.db.insert('bookings', {
       name: args.name,
       email: args.email,
       date: args.date,
@@ -20,10 +22,10 @@ export const createBooking = mutation({
       duration: args.duration,
       service: args.service,
       notes: args.notes,
+      googleEventId: args.googleEventId,
+      googleCalendarId: args.googleCalendarId,
       createdAt: Date.now(),
     })
-
-    return null
   },
 })
 
@@ -40,6 +42,6 @@ export const getBookings = query({
       .query('bookings')
       .withIndex('by_createdAt')
       .order('desc')
-      .collect()
+      .take(100)
   },
 })

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { type ComponentProps, useState } from "react";
 import { api } from "../../convex/_generated/api";
 
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/book")({
 });
 
 function BookingPage() {
-  const createBooking = useMutation(api.bookings.createBooking);
+  const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [submittedBooking, setSubmittedBooking] = useState<null | {
