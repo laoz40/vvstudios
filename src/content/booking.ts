@@ -21,11 +21,11 @@ const contactEmail = requireEnv("APP_CONTACT_EMAIL");
 
 export const bookingPageContent: BookingPageContent = {
   stepOne: {
-    title: "STEP 1",
-    lead: "Pick your space and session date. Afterwards, you will be redirected to finalise your booking details.",
+    title: "Pick a space and time",
+    lead: "Afterwards, you will be redirected to finalise your booking details.",
   },
   stepTwo: {
-    title: "STEP 2",
+    title: "Finalise Booking",
     lead: "Confirm your details and choose an add-on to enhance your session.",
   },
 };

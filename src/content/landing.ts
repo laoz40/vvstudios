@@ -21,8 +21,8 @@ export type FaqSectionContent = {
 
 export const heroContent: HeroContent = {
 	eyebrow: "From Vertigo Visuals",
-	title: "The Only Pro Studio in South West Sydney",
-	lead: "A space to focus on your business or craft. We take care of the production from setup through to final output.",
+	title: "The Best Studio in South West Sydney",
+	lead: "A space to focus on your business or craft. We take care of the production from setup to final product.",
 	secondaryCtaLabel: "Take free tour",
 	scrollAriaLabel: "Scroll to information section",
 	desktopBackgroundAlt: "VV Podcast Studio interior with lights and set pieces",
