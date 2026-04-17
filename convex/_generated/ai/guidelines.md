@@ -11,12 +11,12 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 const http = httpRouter();
 http.route({
-  path: "/echo",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const body = await req.bytes();
-    return new Response(body, { status: 200 });
-  }),
+	path: "/echo",
+	method: "POST",
+	handler: httpAction(async (ctx, req) => {
+		const body = await req.bytes();
+		return new Response(body, { status: 200 });
+	}),
 });
 ```
 
@@ -31,12 +31,12 @@ import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export default mutation({
-  args: {
-    simpleArray: v.array(v.union(v.string(), v.number())),
-  },
-  handler: async (ctx, args) => {
-    //...
-  },
+	args: {
+		simpleArray: v.array(v.union(v.string(), v.number())),
+	},
+	handler: async (ctx, args) => {
+		//...
+	},
 });
 ```
 
@@ -47,18 +47,18 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  results: defineTable(
-    v.union(
-      v.object({
-        kind: v.literal("error"),
-        errorMessage: v.string(),
-      }),
-      v.object({
-        kind: v.literal("success"),
-        value: v.number(),
-      }),
-    ),
-  ),
+	results: defineTable(
+		v.union(
+			v.object({
+				kind: v.literal("error"),
+				errorMessage: v.string(),
+			}),
+			v.object({
+				kind: v.literal("success"),
+				value: v.number(),
+			}),
+		),
+	),
 });
 ```
 
@@ -127,14 +127,14 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 export const listWithExtraArg = query({
-  args: { paginationOpts: paginationOptsValidator, author: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("messages")
-      .withIndex("by_author", (q) => q.eq("author", args.author))
-      .order("desc")
-      .paginate(args.paginationOpts);
-  },
+	args: { paginationOpts: paginationOptsValidator, author: v.string() },
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("messages")
+			.withIndex("by_author", (q) => q.eq("author", args.author))
+			.order("desc")
+			.paginate(args.paginationOpts);
+	},
 });
 ```
 
@@ -164,12 +164,12 @@ Note: `paginationOpts` is an object with the following properties:
 
 ```typescript
 export default {
-  providers: [
-    {
-      domain: "https://your-auth-provider.com",
-      applicationID: "convex",
-    },
-  ],
+	providers: [
+		{
+			domain: "https://your-auth-provider.com",
+			applicationID: "convex",
+		},
+	],
 };
 ```
 
@@ -186,11 +186,13 @@ import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function App({ children }: { children: React.ReactNode }) {
-  return (
-    <ConvexProviderWithAuth client={convex} useAuth={useYourAuthHook}>
-      {children}
-    </ConvexProviderWithAuth>
-  );
+	return (
+		<ConvexProviderWithAuth
+			client={convex}
+			useAuth={useYourAuthHook}>
+			{children}
+		</ConvexProviderWithAuth>
+	);
 }
 ```
 
@@ -208,18 +210,18 @@ import { query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
 export const exampleQuery = query({
-  args: { userIds: v.array(v.id("users")) },
-  handler: async (ctx, args) => {
-    const idToUsername: Record<Id<"users">, string> = {};
-    for (const userId of args.userIds) {
-      const user = await ctx.db.get("users", userId);
-      if (user) {
-        idToUsername[user._id] = user.username;
-      }
-    }
+	args: { userIds: v.array(v.id("users")) },
+	handler: async (ctx, args) => {
+		const idToUsername: Record<Id<"users">, string> = {};
+		for (const userId of args.userIds) {
+			const user = await ctx.db.get("users", userId);
+			if (user) {
+				idToUsername[user._id] = user.username;
+			}
+		}
 
-    return idToUsername;
-  },
+		return idToUsername;
+	},
 });
 ```
 
@@ -269,11 +271,11 @@ q.search("body", "hello hi").eq("channel", "#general"),
 import { action } from "./_generated/server";
 
 export const exampleAction = action({
-  args: {},
-  handler: async (ctx, args) => {
-    console.log("This action does not return anything");
-    return null;
-  },
+	args: {},
+	handler: async (ctx, args) => {
+		console.log("This action does not return anything");
+		return null;
+	},
 });
 ```
 
@@ -291,10 +293,10 @@ import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
 const empty = internalAction({
-  args: {},
-  handler: async (ctx, args) => {
-    console.log("empty");
-  },
+	args: {},
+	handler: async (ctx, args) => {
+		console.log("empty");
+	},
 });
 
 const crons = cronJobs();
@@ -324,10 +326,10 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 test("some behavior", async () => {
-  const t = convexTest(schema, modules);
-  await t.mutation(api.messages.send, { body: "Hi!", author: "Sarah" });
-  const messages = await t.query(api.messages.list);
-  expect(messages).toMatchObject([{ body: "Hi!", author: "Sarah" }]);
+	const t = convexTest(schema, modules);
+	await t.mutation(api.messages.send, { body: "Hi!", author: "Sarah" });
+	const messages = await t.query(api.messages.list);
+	expect(messages).toMatchObject([{ body: "Hi!", author: "Sarah" }]);
 });
 ```
 

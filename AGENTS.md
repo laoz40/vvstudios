@@ -62,14 +62,16 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Convert raw failures into those codes at the boundary.
 - Handle with result.match(...).
 - Switch on error.code exhaustively, with:
+
 ```ts
  default:
    throw new Error(`Unhandled app error code: ${code satisfies never}`);
 ```
+
 - Map codes by layer:
-    - helper -> error code
-    - route -> HTTP response/status
-    - UI -> toast/message
+  - helper -> error code
+  - route -> HTTP response/status
+  - UI -> toast/message
 
 - For Convex, throw `ConvexError` with structured `data.code` values and handle exact codes
 - Re-throw known `ConvexError`s and map unknown server errors to safe app error codes

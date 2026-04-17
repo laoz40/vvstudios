@@ -1,14 +1,14 @@
-const clerkIssuerUrl = process.env.CLERK_FRONTEND_API_URL
+import { env } from "./env";
 
-if (!clerkIssuerUrl) {
-  throw new Error('Missing CLERK_FRONTEND_API_URL in environment')
-}
+const clerkIssuerUrl = env.CLERK_FRONTEND_API_URL;
 
-export default {
-  providers: [
-    {
-      domain: clerkIssuerUrl,
-      applicationID: 'convex',
-    },
-  ],
-}
+const authConfig = {
+	providers: [
+		{
+			domain: clerkIssuerUrl,
+			applicationID: "convex",
+		},
+	],
+};
+
+export default authConfig;

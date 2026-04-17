@@ -5,6 +5,7 @@ import { google } from "googleapis";
 import { internal } from "./_generated/api";
 import { type Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
+import { env } from "./env";
 import { buildEventWindow } from "./lib/bookingDateTime";
 
 type BookingCalendarErrorCode =
@@ -13,7 +14,6 @@ type BookingCalendarErrorCode =
 	| "BOOKING_INVALID_TIME"
 	| "BOOKING_STORE_FAILED"
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
-	| "GOOGLE_CALENDAR_CONFIG_MISSING"
 	| "GOOGLE_CALENDAR_CREATE_FAILED";
 
 type BookingCalendarErrorData = {
@@ -27,7 +27,7 @@ function createBookingCalendarError(code: BookingCalendarErrorCode) {
 function getGoogleCalendarErrorCode(error: unknown): BookingCalendarErrorCode {
 	const isObject = (value: unknown): value is Record<string, unknown> => {
 		return typeof value === "object" && value !== null;
-	}
+	};
 
 	// Unknown/non-object throw values can't be inspected, so fall back to a generic code.
 	if (!isObject(error)) {
@@ -72,19 +72,15 @@ export const createBookingWithCalendarEvent = action({
 		htmlLink: string | null;
 	}> => {
 		try {
-			const clientId = process.env.GOOGLE_CLIENT_ID;
-			const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-			const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-			const calendarId = process.env.GOOGLE_CALENDAR_ID ?? "primary";
-			const timeZone = process.env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
-			const hostEmails = (process.env.GOOGLE_CALENDAR_HOST_EMAILS ?? "")
+			const clientId = env.GOOGLE_CLIENT_ID;
+			const clientSecret = env.GOOGLE_CLIENT_SECRET;
+			const refreshToken = env.GOOGLE_REFRESH_TOKEN;
+			const calendarId = env.GOOGLE_CALENDAR_ID ?? "primary";
+			const timeZone = env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
+			const hostEmails = (env.GOOGLE_CALENDAR_HOST_EMAILS ?? "")
 				.split(",")
 				.map((email) => email.trim())
 				.filter(Boolean);
-
-			if (!clientId || !clientSecret || !refreshToken) {
-				throw createBookingCalendarError("GOOGLE_CALENDAR_CONFIG_MISSING");
-			}
 
 			const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
 			oauth2Client.setCredentials({ refresh_token: refreshToken });
