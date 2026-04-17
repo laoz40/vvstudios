@@ -73,9 +73,8 @@
 					{#if section.title === summaryCopy.sessionDetailsTitle}
 						{@const dateItem = findItem(section, summaryCopy.labels.date)}
 						{@const durationItem = findItem(section, summaryCopy.labels.duration)}
-						{@const questionsItem = findItem(section, summaryCopy.labels.questions)}
 						<div class="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-							{#each [dateItem, durationItem, questionsItem] as item}
+							{#each [dateItem, durationItem] as item}
 								{#if item}
 									<dl>
 										<div class="space-y-1">

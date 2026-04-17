@@ -1,37 +1,19 @@
 <script lang="ts">
-	import { getContext, onMount } from "svelte";
+	import { getContext } from "svelte";
 	import CameraIcon from "@lucide/svelte/icons/camera";
 	import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 	import ScissorsIcon from "@lucide/svelte/icons/scissors";
 	import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 	import { Button } from "$lib/components/ui/button";
 	import { Checkbox } from "$lib/components/ui/checkbox";
-	import { Label } from "$lib/components/ui/label";
-	import { Textarea } from "$lib/components/ui/textarea";
 	import { cn } from "$lib/utils.js";
 	import {
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
 	} from "../booking-store.svelte";
-	import FieldError from "../components/FieldError.svelte";
 
 	const booking = getContext<BookingStepTwoContext>(BOOKING_STEP_TWO_CONTEXT);
 	const { state: bookingState, ui, actions } = booking;
-
-	function focusQuestionsField(): void {
-		document.getElementById("questionsOrRequests")?.focus();
-	}
-
-	onMount(() => {
-		const unregisterQuestions = actions.registerFieldFocus(
-			"questionsOrRequests",
-			focusQuestionsField,
-		);
-
-		return () => {
-			unregisterQuestions();
-		};
-	});
 </script>
 
 <div class="space-y-6">
@@ -120,43 +102,6 @@
 					</div>
 				</div>
 			</fieldset>
-		</div>
-
-
-		<div class="space-y-5">
-			<Label
-				for="questionsOrRequests"
-				class="text-primary text-xs font-semibold tracking-widest">
-				{ui.sectionCopy.questionsLabel}
-			</Label>
-			<div class="space-y-3">
-				<Textarea
-					id="questionsOrRequests"
-					name="questionsOrRequests"
-					autocomplete="off"
-					bind:value={bookingState.form.questionsOrRequests}
-					onblur={actions.handleFieldBlur}
-					rows={2}
-					class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
-					placeholder={ui.sectionCopy.questionsPlaceholder} />
-				<FieldError message={bookingState.errors.questionsOrRequests} />
-				<p class="text-muted-foreground text-sm">
-					{ui.sectionCopy.questionsContactPrefix}
-					<Button
-						variant="link"
-						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
-						href={`tel:${ui.contactPhone}`}>
-						{ui.contactPhone}
-					</Button>
-					{ui.sectionCopy.questionsContactMiddle}
-					<Button
-						variant="link"
-						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
-						href={`mailto:${ui.contactEmail}`}>
-						{ui.contactEmail}
-					</Button>
-				</p>
-			</div>
 		</div>
 	</div>
 </div>

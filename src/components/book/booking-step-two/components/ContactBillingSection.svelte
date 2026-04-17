@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { getContext, onMount } from "svelte";
+	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
+	import { Textarea } from "$lib/components/ui/textarea";
 	import {
 		BOOKING_STEP_TWO_CONTEXT,
 		type BookingStepTwoContext,
@@ -31,6 +33,10 @@
 		const unregisterEmail = actions.registerFieldFocus("email", () =>
 			focusTextField("invoiceEmail"),
 		);
+		const unregisterQuestions = actions.registerFieldFocus(
+			"questionsOrRequests",
+			() => focusTextField("questionsOrRequests"),
+		);
 
 		return () => {
 			unregisterFullName();
@@ -38,6 +44,7 @@
 			unregisterAccountName();
 			unregisterAbn();
 			unregisterEmail();
+			unregisterQuestions();
 		};
 	});
 </script>
@@ -127,6 +134,39 @@
 						onblur={actions.handleFieldBlur} />
 					<FieldError message={bookingState.errors.email} />
 				</div>
+			</div>
+			<div class="space-y-3 pt-2">
+				<Label
+					for="questionsOrRequests"
+					class="text-primary text-xs font-semibold tracking-widest">
+					{ui.sectionCopy.questionsLabel}
+				</Label>
+				<Textarea
+					id="questionsOrRequests"
+					name="questionsOrRequests"
+					autocomplete="off"
+					bind:value={bookingState.form.questionsOrRequests}
+					onblur={actions.handleFieldBlur}
+					rows={2}
+					class="bg-background selection:bg-primary selection:text-primary-foreground rounded-lg shadow-xs"
+					placeholder={ui.sectionCopy.questionsPlaceholder} />
+				<FieldError message={bookingState.errors.questionsOrRequests} />
+				<p class="text-muted-foreground text-sm">
+					{ui.sectionCopy.questionsContactPrefix}
+					<Button
+						variant="link"
+						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
+						href={`tel:${ui.contactPhone}`}>
+						{ui.contactPhone}
+					</Button>
+					{ui.sectionCopy.questionsContactMiddle}
+					<Button
+						variant="link"
+						class="text-foreground decoration-primary/65 hover:text-primary p-0 underline underline-offset-4 transition-colors duration-150"
+						href={`mailto:${ui.contactEmail}`}>
+						{ui.contactEmail}
+					</Button>
+				</p>
 			</div>
 		</div>
 	</div>
