@@ -383,7 +383,7 @@
 			<DialogTitle class="text-3xl text-primary text-center">
 				{bookingStepOneContent.postBookingNotice.title}
 			</DialogTitle>
-			<DialogDescription class="text-white text-sm leading-6 text-pretty sm:text-base text-center">
+			<DialogDescription class="text-white text-sm leading-6 text-balance sm:text-base text-center">
 				{bookingStepOneContent.postBookingNotice.body}
 			</DialogDescription>
 		</DialogHeader>

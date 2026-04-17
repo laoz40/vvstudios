@@ -92,7 +92,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
   modalCloseLabel: "Close",
   modalIframeTitle: "Choose a session",
   postBookingNotice: {
-    title: "IMPORTANT",
+    title: "WARNING",
     body: "After securing your time slot, you'll be redirected to the booking form. It MUST be completed or booking is invalid.",
     dismissLabel: "I understand",
   },
