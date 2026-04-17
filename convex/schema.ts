@@ -6,6 +6,8 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     date: v.string(),
+    time: v.optional(v.string()),
+    duration: v.optional(v.string()),
     service: v.string(),
     notes: v.optional(v.string()),
     createdAt: v.number(),

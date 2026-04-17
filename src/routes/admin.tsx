@@ -77,6 +77,8 @@ function AdminDashboard() {
               <th>Name</th>
               <th>Email</th>
               <th>Date</th>
+              <th>Time</th>
+              <th>Duration</th>
               <th>Service</th>
               <th>Notes</th>
               <th>Created at</th>
@@ -88,6 +90,8 @@ function AdminDashboard() {
                 <td>{booking.name}</td>
                 <td>{booking.email}</td>
                 <td>{booking.date}</td>
+                <td>{booking.time ?? '—'}</td>
+                <td>{booking.duration ?? '—'}</td>
                 <td>{booking.service}</td>
                 <td>{booking.notes ?? '—'}</td>
                 <td>{new Date(booking.createdAt).toLocaleString()}</td>
