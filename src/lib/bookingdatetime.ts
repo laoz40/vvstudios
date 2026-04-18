@@ -38,6 +38,43 @@ export function getAvailableTimesForBusyPeriods({
 	});
 }
 
+export function formatMonthKey(date: Date) {
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function parseMonthKey(monthKey: string) {
+	const [year, month] = monthKey.split("-").map(Number);
+
+	return new Date(year, month - 1, 1);
+}
+
+export function formatDateValue(date: Date) {
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+		date.getDate(),
+	).padStart(2, "0")}`;
+}
+
+export function parseDateValue(value: string) {
+	if (!value) {
+		return undefined;
+	}
+
+	const [year, month, day] = value.split("-").map(Number);
+	if (!year || !month || !day) {
+		return undefined;
+	}
+
+	return new Date(year, month - 1, day);
+}
+
+export function startOfMonth(date: Date) {
+	return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+export function toOptionId(value: string) {
+	return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
+}
+
 function parseTimeToMinutes(time: string) {
 	const [hours, minutes] = time.split(":").map(Number);
 	return hours * 60 + minutes;

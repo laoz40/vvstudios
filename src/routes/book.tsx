@@ -2,11 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { type ComponentProps, useEffect, useMemo, useState } from "react";
 
+import { Button } from "#/components/ui/button";
 import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSet,
+	FieldTitle,
+} from "#/components/ui/field";
+import { Input } from "#/components/ui/input";
+import { Calendar } from "#/components/ui/calendar";
+import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { Textarea } from "#/components/ui/textarea";
+import {
+	formatDateValue,
+	formatMonthKey,
 	getAvailableTimesForBusyPeriods,
 	getCurrentMonthKey,
+	parseDateValue,
+	parseMonthKey,
+	startOfMonth,
+	toOptionId,
 	type BusyPeriod,
-} from "#/lib/bookingAvailability";
+} from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
 const SERVICES = ["Table Setup", "Open Setup"];
@@ -17,6 +38,24 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 
 	return `${hours}:${minutes}`;
 });
+
+const TIME_SECTIONS = [
+	{
+		key: "morning",
+		label: "Morning",
+		includes: (time: string) => time < "12:00",
+	},
+	{
+		key: "afternoon",
+		label: "Afternoon",
+		includes: (time: string) => time >= "12:00" && time < "17:00",
+	},
+	{
+		key: "evening",
+		label: "Evening",
+		includes: (time: string) => time >= "17:00",
+	},
+] as const;
 
 interface BookingFormState {
 	name: string;
@@ -67,6 +106,7 @@ function BookingPage() {
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 
 	const [form, setForm] = useState(INITIAL_FORM);
+	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
 		Record<string, BusyDayWindow[]>
 	>({});
@@ -75,7 +115,9 @@ function BookingPage() {
 	const [submittedBooking, setSubmittedBooking] = useState<SubmittedBooking | null>(null);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const visibleMonth = form.date ? form.date.slice(0, 7) : getCurrentMonthKey();
+	const selectedDate = useMemo(() => parseDateValue(form.date), [form.date]);
+	const visibleMonth = useMemo(() => formatMonthKey(calendarMonth), [calendarMonth]);
+	const selectedMonth = form.date ? form.date.slice(0, 7) : visibleMonth;
 
 	useEffect(() => {
 		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
@@ -99,15 +141,14 @@ function BookingPage() {
 					...current,
 					[result.month]: result.busyWindows,
 				}));
-				console.log(`${result.month} busy days`, result.busyWindows);
 			})
-			.catch((error) => {
+			.catch((availabilityFetchError) => {
 				if (isCancelled) {
 					return;
 				}
 
-				setAvailabilityError(getBookingErrorMessage(error));
-				console.error("Could not load month availability", error);
+				setAvailabilityError(getBookingErrorMessage(availabilityFetchError));
+				console.error("Could not load month availability", availabilityFetchError);
 			})
 			.finally(() => {
 				if (!isCancelled) {
@@ -125,15 +166,19 @@ function BookingPage() {
 			return null;
 		}
 
-		return monthlyBusyWindowsByMonth[visibleMonth]?.find((day) => day.date === form.date) ?? null;
-	}, [form.date, monthlyBusyWindowsByMonth, visibleMonth]);
+		return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === form.date) ?? null;
+	}, [form.date, monthlyBusyWindowsByMonth, selectedMonth]);
 
 	const availableTimes = useMemo(() => {
 		if (!form.date) {
 			return [];
 		}
 
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[visibleMonth]) {
+		if (
+			selectedMonth === visibleMonth &&
+			isLoadingMonthAvailability &&
+			!monthlyBusyWindowsByMonth[selectedMonth]
+		) {
 			return [];
 		}
 
@@ -147,8 +192,18 @@ function BookingPage() {
 		isLoadingMonthAvailability,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
+		selectedMonth,
 		visibleMonth,
 	]);
+
+	const availableTimeSections = useMemo(
+		() =>
+			TIME_SECTIONS.map((section) => ({
+				...section,
+				times: availableTimes.filter(section.includes),
+			})).filter((section) => section.times.length > 0),
+		[availableTimes],
+	);
 
 	useEffect(() => {
 		if (!form.date) {
@@ -156,7 +211,11 @@ function BookingPage() {
 			return;
 		}
 
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[visibleMonth]) {
+		if (
+			selectedMonth === visibleMonth &&
+			isLoadingMonthAvailability &&
+			!monthlyBusyWindowsByMonth[selectedMonth]
+		) {
 			return;
 		}
 
@@ -176,6 +235,7 @@ function BookingPage() {
 		form.date,
 		isLoadingMonthAvailability,
 		monthlyBusyWindowsByMonth,
+		selectedMonth,
 		visibleMonth,
 	]);
 
@@ -203,6 +263,7 @@ function BookingPage() {
 				service: form.service,
 			});
 			setForm(INITIAL_FORM);
+			setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
 		} catch (submissionError) {
 			setError(getBookingErrorMessage(submissionError));
 		} finally {
@@ -212,150 +273,198 @@ function BookingPage() {
 
 	if (submittedBooking) {
 		return (
-			<main>
-				<h1>Booking confirmed</h1>
+			<main className="mx-auto flex max-w-3xl flex-col gap-4 py-8">
+				<h1 className="text-3xl font-semibold">Booking confirmed</h1>
 				<p>
 					Thank you, {submittedBooking.name}. Your booking for{" "}
 					<strong>{submittedBooking.service}</strong> on <strong>{submittedBooking.date}</strong> at{" "}
 					<strong>{submittedBooking.time}</strong> for <strong>{submittedBooking.duration}</strong>{" "}
 					has been received.
 				</p>
-				<button
+				<Button
 					type="button"
+					className="w-fit"
 					onClick={() => setSubmittedBooking(null)}>
 					Create another booking
-				</button>
+				</Button>
 			</main>
 		);
 	}
 
 	return (
-		<main>
-			<h1>Book</h1>
-			<form onSubmit={handleSubmit}>
-				<div>
-					<label htmlFor="service">Service *</label>
-					<br />
-					<select
-						id="service"
-						value={form.service}
-						onChange={(event) =>
-							setForm((current) => ({ ...current, service: event.target.value }))
-						}
-						required>
-						{SERVICES.map((service) => (
-							<option
-								key={service}
-								value={service}>
-								{service}
-							</option>
-						))}
-					</select>
-				</div>
+		<main className="mx-auto flex max-w-4xl flex-col gap-8 py-8">
+			<div className="flex flex-col gap-2">
+				<h1 className="text-3xl font-semibold">Book</h1>
+				<p className="text-muted-foreground">Choose your service, date, and available time.</p>
+			</div>
 
-				<div>
-					<label htmlFor="duration">Duration *</label>
-					<br />
-					<select
-						id="duration"
-						value={form.duration}
-						onChange={(event) =>
-							setForm((current) => ({ ...current, duration: event.target.value }))
-						}
-						required>
-						{DURATION_OPTIONS.map((duration) => (
-							<option
-								key={duration}
-								value={duration}>
-								{duration}
-							</option>
-						))}
-					</select>
-				</div>
+			<form
+				onSubmit={handleSubmit}
+				className="flex flex-col gap-8">
+				<FieldGroup>
+					<FieldSet>
+						<FieldLegend>Service *</FieldLegend>
+						<RadioGroup
+							value={form.service}
+							onValueChange={(service) => setForm((current) => ({ ...current, service }))}
+							className="flex flex-wrap gap-3">
+							{SERVICES.map((service) => (
+								<FieldLabel
+									key={service}
+									className="cursor-pointer w-auto! flex-row! rounded-md border">
+									<Field
+										orientation="horizontal"
+										className="w-auto items-center rounded-md px-3 py-2">
+										<RadioGroupItem
+											value={service}
+											id={`service-${toOptionId(service)}`}
+										/>
+										<FieldTitle>{service}</FieldTitle>
+									</Field>
+								</FieldLabel>
+							))}
+						</RadioGroup>
+					</FieldSet>
 
-				<div>
-					<label htmlFor="date">Date *</label>
-					<br />
-					<input
-						id="date"
-						type="date"
-						value={form.date}
-						onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
-						required
-					/>
-				</div>
+					<FieldSet>
+						<FieldLegend>Duration *</FieldLegend>
+						<RadioGroup
+							value={form.duration}
+							onValueChange={(duration) => setForm((current) => ({ ...current, duration }))}
+							className="flex flex-wrap gap-3">
+							{DURATION_OPTIONS.map((duration) => (
+								<FieldLabel
+									key={duration}
+									className="cursor-pointer w-auto! flex-row! rounded-md border">
+									<Field
+										orientation="horizontal"
+										className="w-auto items-center rounded-md px-3 py-2">
+										<RadioGroupItem
+											value={duration}
+											id={`duration-${toOptionId(duration)}`}
+										/>
+										<FieldTitle>{duration}</FieldTitle>
+									</Field>
+								</FieldLabel>
+							))}
+						</RadioGroup>
+					</FieldSet>
 
-				<div>
-					<label htmlFor="time">Time *</label>
-					<br />
-					<select
-						id="time"
-						value={form.time}
-						onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))}
-						disabled={
-							!form.date || isLoadingMonthAvailability || availableTimes.length === 0
-						}
-						required>
-						{availableTimes.map((time) => (
-							<option
-								key={time}
-								value={time}>
-								{time}
-							</option>
-						))}
-					</select>
-					{isLoadingMonthAvailability ? <p>Loading available times…</p> : null}
-					{!isLoadingMonthAvailability &&
-					form.date &&
-					availableTimes.length === 0 &&
-					!availabilityError ? (
-						<p>No times available for this date.</p>
-					) : null}
-					{availabilityError ? <p>{availabilityError}</p> : null}
-				</div>
+					<div className="grid gap-6 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-start">
+						<Field>
+							<FieldLabel>Date *</FieldLabel>
+							<div className="w-fit rounded-md border bg-background">
+								<Calendar
+									mode="single"
+									required
+									month={calendarMonth}
+									onMonthChange={setCalendarMonth}
+									selected={selectedDate}
+									onSelect={(date) => {
+										if (!date) {
+											return;
+										}
 
-				<div>
-					<label htmlFor="name">Name *</label>
-					<br />
-					<input
-						id="name"
-						type="text"
-						value={form.name}
-						onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-						required
-					/>
-				</div>
+										setCalendarMonth(startOfMonth(date));
+										setForm((current) => ({ ...current, date: formatDateValue(date) }));
+									}}
+								/>
+							</div>
+						</Field>
 
-				<div>
-					<label htmlFor="email">Email *</label>
-					<br />
-					<input
-						id="email"
-						type="email"
-						value={form.email}
-						onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-						required
-					/>
-				</div>
+						<FieldSet className="min-w-0">
+							<FieldLegend>Time *</FieldLegend>
+							<RadioGroup
+								value={form.time}
+								onValueChange={(time) => setForm((current) => ({ ...current, time }))}
+								disabled={!form.date || isLoadingMonthAvailability || availableTimes.length === 0}
+								className="flex flex-col gap-5">
+								{availableTimeSections.map((section) => (
+									<div
+										key={section.key}
+										className="flex flex-col gap-3">
+										<p className="text-sm font-medium text-muted-foreground">{section.label}</p>
+										<div className="flex flex-wrap gap-2">
+											{section.times.map((time) => (
+												<FieldLabel
+													key={time}
+													className="cursor-pointer w-auto! flex-row! rounded-md border">
+													<Field
+														orientation="horizontal"
+														className="w-auto items-center rounded-md px-2.5 py-1.5">
+														<RadioGroupItem
+															value={time}
+															id={`time-${toOptionId(time)}`}
+														/>
+														<FieldTitle>{time}</FieldTitle>
+													</Field>
+												</FieldLabel>
+											))}
+										</div>
+									</div>
+								))}
+							</RadioGroup>
+							{!form.date ? (
+								<FieldDescription>Select a date to view times.</FieldDescription>
+							) : null}
+							{form.date && isLoadingMonthAvailability ? (
+								<FieldDescription>Loading available times…</FieldDescription>
+							) : null}
+							{!isLoadingMonthAvailability &&
+							form.date &&
+							availableTimes.length === 0 &&
+							!availabilityError ? (
+								<FieldDescription>No times available for this date.</FieldDescription>
+							) : null}
+							{availabilityError ? <FieldError>{availabilityError}</FieldError> : null}
+						</FieldSet>
+					</div>
 
-				<div>
-					<label htmlFor="notes">Notes</label>
-					<br />
-					<textarea
-						id="notes"
-						value={form.notes}
-						onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-						rows={4}
-					/>
-				</div>
+					<Field>
+						<FieldLabel htmlFor="name">Name *</FieldLabel>
+						<Input
+							id="name"
+							type="text"
+							value={form.name}
+							onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+							required
+						/>
+					</Field>
 
-				{error ? <p>{error}</p> : null}
+					<Field>
+						<FieldLabel htmlFor="email">Email *</FieldLabel>
+						<Input
+							id="email"
+							type="email"
+							value={form.email}
+							onChange={(event) =>
+								setForm((current) => ({ ...current, email: event.target.value }))
+							}
+							required
+						/>
+					</Field>
 
-				<button
+					<Field>
+						<FieldLabel htmlFor="notes">Notes</FieldLabel>
+						<Textarea
+							id="notes"
+							value={form.notes}
+							onChange={(event) =>
+								setForm((current) => ({ ...current, notes: event.target.value }))
+							}
+							rows={4}
+						/>
+					</Field>
+				</FieldGroup>
+
+				{error ? <FieldError>{error}</FieldError> : null}
+
+				<Button
 					type="submit"
+					className="w-fit"
 					disabled={isSubmitting || !form.time || isLoadingMonthAvailability}>
 					{isSubmitting ? "Submitting..." : "Create booking"}
-				</button>
+				</Button>
 			</form>
 		</main>
 	);
