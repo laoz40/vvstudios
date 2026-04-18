@@ -1,7 +1,10 @@
+import { useStore } from "@tanstack/react-store";
+import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
-import { type ComponentProps, useEffect, useMemo, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import { Calendar } from "#/components/ui/calendar";
 import { Button } from "#/components/ui/button";
 import {
 	Field,
@@ -14,15 +17,14 @@ import {
 	FieldTitle,
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
-import { Calendar } from "#/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import {
 	formatDateValue,
 	formatMonthKey,
 	getAvailableTimesForBusyPeriods,
-	hasAvailableTimesForBusyPeriods,
 	getCurrentMonthKey,
+	hasAvailableTimesForBusyPeriods,
 	parseDateValue,
 	parseMonthKey,
 	startOfMonth,
@@ -32,15 +34,8 @@ import {
 } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
-const SERVICES = ["Table Setup", "Open Setup"];
-const DURATION_OPTIONS = ["1h", "2h", "3h"];
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hours = String(Math.floor(index / 2)).padStart(2, "0");
-	const minutes = index % 2 === 0 ? "00" : "30";
-
-	return `${hours}:${minutes}`;
-});
-
+const SERVICES = ["Table Setup", "Open Setup"] as const;
+const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 const TIME_SECTIONS = [
 	{
 		key: "morning",
@@ -59,22 +54,29 @@ const TIME_SECTIONS = [
 	},
 ] as const;
 
-interface BookingFormState {
-	name: string;
-	email: string;
-	date: string;
-	time: string;
-	duration: string;
-	service: string;
-	notes: string;
-}
+const bookingSchema = z.object({
+	name: z.string().trim().min(2, "Name is required."),
+	email: z.email("Enter a valid email address.").trim(),
+	date: z.string().min(1, "Date is required."),
+	time: z.string().min(1, "Time is required."),
+	duration: z
+		.union([z.literal(""), z.enum(DURATION_OPTIONS)])
+		.refine((value) => value !== "", "Duration is required."),
+	service: z
+		.union([z.literal(""), z.enum(SERVICES)])
+		.refine((value) => value !== "", "Service is required."),
+	notes: z.string(),
+});
+
+type BookingFormValues = z.input<typeof bookingSchema>;
+type ParsedBookingFormValues = z.output<typeof bookingSchema>;
 
 interface SubmittedBooking {
 	name: string;
 	date: string;
 	time: string;
-	duration: string;
-	service: string;
+	duration: ParsedBookingFormValues["duration"];
+	service: ParsedBookingFormValues["service"];
 }
 
 interface BookingErrorWithData {
@@ -89,13 +91,13 @@ interface BusyDayWindow {
 	label: string;
 }
 
-const INITIAL_FORM: BookingFormState = {
+const INITIAL_FORM: BookingFormValues = {
 	name: "",
 	email: "",
 	date: "",
-	time: TIME_OPTIONS[18],
-	duration: DURATION_OPTIONS[0],
-	service: SERVICES[0],
+	time: "",
+	duration: "",
+	service: "",
 	notes: "",
 };
 
@@ -108,7 +110,6 @@ function BookingPage() {
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const today = useMemo(() => startOfToday(), []);
 
-	const [form, setForm] = useState(INITIAL_FORM);
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
 		Record<string, BusyDayWindow[]>
@@ -118,13 +119,57 @@ function BookingPage() {
 	const [submittedBooking, setSubmittedBooking] = useState<SubmittedBooking | null>(null);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const selectedDate = useMemo(() => parseDateValue(form.date), [form.date]);
+
+	const formApi = useForm({
+		defaultValues: INITIAL_FORM,
+		validators: {
+			onBlur: bookingSchema,
+			onSubmit: bookingSchema,
+		},
+		onSubmit: async ({ value, formApi: submittedFormApi }) => {
+			const parsedValue = bookingSchema.parse(value);
+
+			setError("");
+			setIsSubmitting(true);
+
+			try {
+				await createBooking({
+					name: parsedValue.name,
+					email: parsedValue.email,
+					date: parsedValue.date,
+					time: parsedValue.time,
+					duration: parsedValue.duration,
+					service: parsedValue.service,
+					notes: parsedValue.notes || undefined,
+				});
+
+				setSubmittedBooking({
+					name: parsedValue.name,
+					date: parsedValue.date,
+					time: parsedValue.time,
+					duration: parsedValue.duration,
+					service: parsedValue.service,
+				});
+				submittedFormApi.reset(INITIAL_FORM);
+				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
+			} catch (submissionError) {
+				setError(getBookingErrorMessage(submissionError));
+			} finally {
+				setIsSubmitting(false);
+			}
+		},
+	});
+	const formValues = useStore(formApi.store, (state) => state.values);
+	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
+	const shouldShowFieldError = submissionAttempts > 0;
+
+	const selectedDate = useMemo(() => parseDateValue(formValues.date), [formValues.date]);
 	const isSelectedDateInPast = useMemo(
 		() => (selectedDate ? selectedDate < today : false),
 		[selectedDate, today],
 	);
 	const visibleMonth = useMemo(() => formatMonthKey(calendarMonth), [calendarMonth]);
-	const selectedMonth = form.date ? form.date.slice(0, 7) : visibleMonth;
+	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 
 	useEffect(() => {
 		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
@@ -169,12 +214,14 @@ function BookingPage() {
 	}, [getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
 
 	const selectedBusyDay = useMemo(() => {
-		if (!form.date) {
+		if (!formValues.date) {
 			return null;
 		}
 
-		return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === form.date) ?? null;
-	}, [form.date, monthlyBusyWindowsByMonth, selectedMonth]);
+		return (
+			monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ?? null
+		);
+	}, [formValues.date, monthlyBusyWindowsByMonth, selectedMonth]);
 
 	const disabledDates = useMemo(() => {
 		return (date: Date) => {
@@ -195,13 +242,13 @@ function BookingPage() {
 
 			return !hasAvailableTimesForBusyPeriods({
 				busyPeriods: busyDay.busyPeriods,
-				duration: form.duration,
+				duration: formValues.duration,
 			});
 		};
-	}, [form.duration, monthlyBusyWindowsByMonth, today]);
+	}, [formValues.duration, monthlyBusyWindowsByMonth, today]);
 
 	const availableTimes = useMemo(() => {
-		if (!form.date || isSelectedDateInPast) {
+		if (!formValues.date || isSelectedDateInPast) {
 			return [];
 		}
 
@@ -215,11 +262,11 @@ function BookingPage() {
 
 		return getAvailableTimesForBusyPeriods({
 			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
-			duration: form.duration,
+			duration: formValues.duration,
 		});
 	}, [
-		form.date,
-		form.duration,
+		formValues.date,
+		formValues.duration,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
 		monthlyBusyWindowsByMonth,
@@ -238,8 +285,10 @@ function BookingPage() {
 	);
 
 	useEffect(() => {
-		if (!form.date || isSelectedDateInPast) {
-			setForm((current) => (current.time ? { ...current, time: "" } : current));
+		if (!formValues.date || isSelectedDateInPast) {
+			if (formValues.time) {
+				formApi.setFieldValue("time", "");
+			}
 			return;
 		}
 
@@ -251,58 +300,27 @@ function BookingPage() {
 			return;
 		}
 
-		setForm((current) => {
-			if (availableTimes.length === 0) {
-				return current.time ? { ...current, time: "" } : current;
+		if (availableTimes.length === 0) {
+			if (formValues.time) {
+				formApi.setFieldValue("time", "");
 			}
+			return;
+		}
 
-			if (availableTimes.includes(current.time)) {
-				return current;
-			}
-
-			return { ...current, time: availableTimes[0] };
-		});
+		if (formValues.time && !availableTimes.includes(formValues.time)) {
+			formApi.setFieldValue("time", "");
+		}
 	}, [
 		availableTimes,
-		form.date,
+		formApi,
+		formValues.date,
+		formValues.time,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
 		monthlyBusyWindowsByMonth,
 		selectedMonth,
 		visibleMonth,
 	]);
-
-	const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = async (event) => {
-		event.preventDefault();
-		setError("");
-		setIsSubmitting(true);
-
-		try {
-			await createBooking({
-				name: form.name,
-				email: form.email,
-				date: form.date,
-				time: form.time,
-				duration: form.duration,
-				service: form.service,
-				notes: form.notes || undefined,
-			});
-
-			setSubmittedBooking({
-				name: form.name,
-				date: form.date,
-				time: form.time,
-				duration: form.duration,
-				service: form.service,
-			});
-			setForm(INITIAL_FORM);
-			setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
-		} catch (submissionError) {
-			setError(getBookingErrorMessage(submissionError));
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
 
 	if (submittedBooking) {
 		return (
@@ -332,167 +350,229 @@ function BookingPage() {
 			</div>
 
 			<form
-				onSubmit={handleSubmit}
+				onSubmit={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void formApi.handleSubmit();
+				}}
 				className="flex flex-col gap-8">
 				<FieldGroup>
-					<FieldSet>
-						<FieldLegend>Service *</FieldLegend>
-						<RadioGroup
-							value={form.service}
-							onValueChange={(service) => setForm((current) => ({ ...current, service }))}
-							className="flex flex-wrap gap-3">
-							{SERVICES.map((service) => (
-								<FieldLabel
-									key={service}
-									className="cursor-pointer w-auto! flex-row! rounded-md border">
-									<Field
-										orientation="horizontal"
-										className="w-auto items-center rounded-md px-3 py-2">
-										<RadioGroupItem
-											value={service}
-											id={`service-${toOptionId(service)}`}
-										/>
-										<FieldTitle>{service}</FieldTitle>
-									</Field>
-								</FieldLabel>
-							))}
-						</RadioGroup>
-					</FieldSet>
+					<formApi.Field name="service">
+						{(field) => (
+							<FieldSet>
+								<FieldLegend>Service *</FieldLegend>
+								<RadioGroup
+									value={field.state.value}
+									onValueChange={(value) =>
+										field.handleChange(value as BookingFormValues["service"])
+									}
+									className="flex flex-wrap gap-3">
+									{SERVICES.map((service) => (
+										<FieldLabel
+											key={service}
+											className="cursor-pointer w-auto! flex-row! rounded-md border">
+											<Field
+												orientation="horizontal"
+												className="w-auto items-center rounded-md px-3 py-2">
+												<RadioGroupItem
+													value={service}
+													id={`service-${toOptionId(service)}`}
+												/>
+												<FieldTitle>{service}</FieldTitle>
+											</Field>
+										</FieldLabel>
+									))}
+								</RadioGroup>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</FieldSet>
+						)}
+					</formApi.Field>
 
-					<FieldSet>
-						<FieldLegend>Duration *</FieldLegend>
-						<RadioGroup
-							value={form.duration}
-							onValueChange={(duration) => setForm((current) => ({ ...current, duration }))}
-							className="flex flex-wrap gap-3">
-							{DURATION_OPTIONS.map((duration) => (
-								<FieldLabel
-									key={duration}
-									className="cursor-pointer w-auto! flex-row! rounded-md border">
-									<Field
-										orientation="horizontal"
-										className="w-auto items-center rounded-md px-3 py-2">
-										<RadioGroupItem
-											value={duration}
-											id={`duration-${toOptionId(duration)}`}
-										/>
-										<FieldTitle>{duration}</FieldTitle>
-									</Field>
-								</FieldLabel>
-							))}
-						</RadioGroup>
-					</FieldSet>
+					<formApi.Field name="duration">
+						{(field) => (
+							<FieldSet>
+								<FieldLegend>Duration *</FieldLegend>
+								<RadioGroup
+									value={field.state.value}
+									onValueChange={(value) =>
+										field.handleChange(value as BookingFormValues["duration"])
+									}
+									className="flex flex-wrap gap-3">
+									{DURATION_OPTIONS.map((duration) => (
+										<FieldLabel
+											key={duration}
+											className="cursor-pointer w-auto! flex-row! rounded-md border">
+											<Field
+												orientation="horizontal"
+												className="w-auto items-center rounded-md px-3 py-2">
+												<RadioGroupItem
+													value={duration}
+													id={`duration-${toOptionId(duration)}`}
+												/>
+												<FieldTitle>{duration}</FieldTitle>
+											</Field>
+										</FieldLabel>
+									))}
+								</RadioGroup>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</FieldSet>
+						)}
+					</formApi.Field>
 
 					<div className="grid gap-6 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-start">
-						<Field>
-							<FieldLabel>Date *</FieldLabel>
-							<div className="w-fit rounded-md border bg-background">
-								<Calendar
-									mode="single"
-									required
-									disabled={disabledDates}
-									month={calendarMonth}
-									onMonthChange={setCalendarMonth}
-									selected={selectedDate}
-									onSelect={(date) => {
-										if (!date) {
-											return;
-										}
+						<formApi.Field name="date">
+							{(field) => (
+								<Field>
+									<FieldLabel>Date *</FieldLabel>
+									<div className="w-fit rounded-md border bg-background">
+										<Calendar
+											mode="single"
+											required
+											disabled={disabledDates}
+											month={calendarMonth}
+											onMonthChange={setCalendarMonth}
+											selected={selectedDate}
+											onSelect={(date) => {
+												if (!date) {
+													return;
+												}
 
-										setCalendarMonth(startOfMonth(date));
-										setForm((current) => ({ ...current, date: formatDateValue(date) }));
-									}}
-								/>
-							</div>
-						</Field>
-
-						<FieldSet className="min-w-0">
-							<FieldLegend>Time *</FieldLegend>
-							<RadioGroup
-								value={form.time}
-								onValueChange={(time) => setForm((current) => ({ ...current, time }))}
-								disabled={!form.date || isLoadingMonthAvailability || availableTimes.length === 0}
-								className="flex flex-col gap-5">
-								{availableTimeSections.map((section) => (
-									<div
-										key={section.key}
-										className="flex flex-col gap-3">
-										<p className="text-sm font-medium text-muted-foreground">{section.label}</p>
-										<div className="flex flex-wrap gap-2">
-											{section.times.map((time) => (
-												<FieldLabel
-													key={time}
-													className="cursor-pointer w-auto! flex-row! rounded-md border">
-													<Field
-														orientation="horizontal"
-														className="w-auto items-center rounded-md px-2.5 py-1.5">
-														<RadioGroupItem
-															value={time}
-															id={`time-${toOptionId(time)}`}
-														/>
-														<FieldTitle>{time}</FieldTitle>
-													</Field>
-												</FieldLabel>
-											))}
-										</div>
+												setCalendarMonth(startOfMonth(date));
+												field.handleChange(formatDateValue(date));
+												field.handleBlur();
+											}}
+										/>
 									</div>
-								))}
-							</RadioGroup>
-							{!form.date ? (
-								<FieldDescription>Select a date to view times.</FieldDescription>
-							) : null}
-							{form.date && isSelectedDateInPast ? (
-								<FieldDescription>Past dates are unavailable.</FieldDescription>
-							) : null}
-							{form.date && isLoadingMonthAvailability ? (
-								<FieldDescription>Loading available times…</FieldDescription>
-							) : null}
-							{!isLoadingMonthAvailability &&
-							form.date &&
-							!isSelectedDateInPast &&
-							availableTimes.length === 0 &&
-							!availabilityError ? (
-								<FieldDescription>No times available for this date.</FieldDescription>
-							) : null}
-							{availabilityError ? <FieldError>{availabilityError}</FieldError> : null}
-						</FieldSet>
+									{field.state.meta.isBlurred || shouldShowFieldError ? (
+										<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+									) : null}
+								</Field>
+							)}
+						</formApi.Field>
+
+						<formApi.Field name="time">
+							{(field) => (
+								<FieldSet className="min-w-0">
+									<FieldLegend>Time *</FieldLegend>
+									<RadioGroup
+										value={field.state.value}
+										onValueChange={(value) => {
+											field.handleChange(value);
+											field.handleBlur();
+										}}
+										disabled={
+											!formValues.date || isLoadingMonthAvailability || availableTimes.length === 0
+										}
+										className="flex flex-col gap-5">
+										{availableTimeSections.map((section) => (
+											<div
+												key={section.key}
+												className="flex flex-col gap-3">
+												<p className="text-sm font-medium text-muted-foreground">{section.label}</p>
+												<div className="flex flex-wrap gap-2">
+													{section.times.map((time) => (
+														<FieldLabel
+															key={time}
+															className="cursor-pointer w-auto! flex-row! rounded-md border">
+															<Field
+																orientation="horizontal"
+																className="w-auto items-center rounded-md px-2.5 py-1.5">
+																<RadioGroupItem
+																	value={time}
+																	id={`time-${toOptionId(time)}`}
+																/>
+																<FieldTitle>{time}</FieldTitle>
+															</Field>
+														</FieldLabel>
+													))}
+												</div>
+											</div>
+										))}
+									</RadioGroup>
+									{!formValues.date ? (
+										<FieldDescription>Select a date to view times.</FieldDescription>
+									) : null}
+									{formValues.date && isSelectedDateInPast ? (
+										<FieldDescription>Past dates are unavailable.</FieldDescription>
+									) : null}
+									{formValues.date && isLoadingMonthAvailability ? (
+										<FieldDescription>Loading available times…</FieldDescription>
+									) : null}
+									{!isLoadingMonthAvailability &&
+									formValues.date &&
+									!isSelectedDateInPast &&
+									availableTimes.length === 0 &&
+									!availabilityError ? (
+										<FieldDescription>No times available for this date.</FieldDescription>
+									) : null}
+									{availabilityError ? <FieldError>{availabilityError}</FieldError> : null}
+									{field.state.meta.isBlurred || shouldShowFieldError ? (
+										<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+									) : null}
+								</FieldSet>
+							)}
+						</formApi.Field>
 					</div>
 
-					<Field>
-						<FieldLabel htmlFor="name">Name *</FieldLabel>
-						<Input
-							id="name"
-							type="text"
-							value={form.name}
-							onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-							required
-						/>
-					</Field>
+					<formApi.Field name="name">
+						{(field) => (
+							<Field>
+								<FieldLabel htmlFor="name">Name *</FieldLabel>
+								<Input
+									id="name"
+									type="text"
+									value={field.state.value}
+									onChange={(event) => field.handleChange(event.target.value)}
+									onBlur={field.handleBlur}
+									required
+								/>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</Field>
+						)}
+					</formApi.Field>
 
-					<Field>
-						<FieldLabel htmlFor="email">Email *</FieldLabel>
-						<Input
-							id="email"
-							type="email"
-							value={form.email}
-							onChange={(event) =>
-								setForm((current) => ({ ...current, email: event.target.value }))
-							}
-							required
-						/>
-					</Field>
+					<formApi.Field name="email">
+						{(field) => (
+							<Field>
+								<FieldLabel htmlFor="email">Email *</FieldLabel>
+								<Input
+									id="email"
+									type="email"
+									value={field.state.value}
+									onChange={(event) => field.handleChange(event.target.value)}
+									onBlur={field.handleBlur}
+									required
+								/>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</Field>
+						)}
+					</formApi.Field>
 
-					<Field>
-						<FieldLabel htmlFor="notes">Notes</FieldLabel>
-						<Textarea
-							id="notes"
-							value={form.notes}
-							onChange={(event) =>
-								setForm((current) => ({ ...current, notes: event.target.value }))
-							}
-							rows={4}
-						/>
-					</Field>
+					<formApi.Field name="notes">
+						{(field) => (
+							<Field>
+								<FieldLabel htmlFor="notes">Notes</FieldLabel>
+								<Textarea
+									id="notes"
+									value={field.state.value}
+									onChange={(event) => field.handleChange(event.target.value)}
+									onBlur={field.handleBlur}
+									rows={4}
+								/>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</Field>
+						)}
+					</formApi.Field>
 				</FieldGroup>
 
 				{error ? <FieldError>{error}</FieldError> : null}
@@ -500,7 +580,7 @@ function BookingPage() {
 				<Button
 					type="submit"
 					className="w-fit"
-					disabled={isSubmitting || !form.time || isLoadingMonthAvailability}>
+					disabled={isSubmitting || !formValues.time || isLoadingMonthAvailability}>
 					{isSubmitting ? "Submitting..." : "Create booking"}
 				</Button>
 			</form>
@@ -526,4 +606,23 @@ function getBookingErrorMessage(error: unknown) {
 	}
 
 	return error instanceof Error ? error.message : "Something went wrong.";
+}
+
+function toFieldErrorObjects(errors: unknown[]) {
+	return errors.flatMap((error) => {
+		if (!error) {
+			return [];
+		}
+
+		if (typeof error === "string") {
+			return [{ message: error }];
+		}
+
+		if (typeof error === "object" && "message" in error) {
+			const message = error.message;
+			return typeof message === "string" ? [{ message }] : [];
+		}
+
+		return [];
+	});
 }
