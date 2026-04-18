@@ -38,6 +38,16 @@ export function getAvailableTimesForBusyPeriods({
 	});
 }
 
+export function hasAvailableTimesForBusyPeriods({
+	busyPeriods,
+	duration,
+}: {
+	busyPeriods: BusyPeriod[];
+	duration: string;
+}) {
+	return getAvailableTimesForBusyPeriods({ busyPeriods, duration }).length > 0;
+}
+
 export function formatMonthKey(date: Date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }

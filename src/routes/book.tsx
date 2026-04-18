@@ -21,6 +21,7 @@ import {
 	formatDateValue,
 	formatMonthKey,
 	getAvailableTimesForBusyPeriods,
+	hasAvailableTimesForBusyPeriods,
 	getCurrentMonthKey,
 	parseDateValue,
 	parseMonthKey,
@@ -174,6 +175,30 @@ function BookingPage() {
 
 		return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === form.date) ?? null;
 	}, [form.date, monthlyBusyWindowsByMonth, selectedMonth]);
+
+	const disabledDates = useMemo(() => {
+		return (date: Date) => {
+			if (date < today) {
+				return true;
+			}
+
+			const monthKey = formatMonthKey(date);
+			const busyDays = monthlyBusyWindowsByMonth[monthKey];
+			if (!busyDays) {
+				return false;
+			}
+
+			const busyDay = busyDays.find((day) => day.date === formatDateValue(date));
+			if (!busyDay) {
+				return false;
+			}
+
+			return !hasAvailableTimesForBusyPeriods({
+				busyPeriods: busyDay.busyPeriods,
+				duration: form.duration,
+			});
+		};
+	}, [form.duration, monthlyBusyWindowsByMonth, today]);
 
 	const availableTimes = useMemo(() => {
 		if (!form.date || isSelectedDateInPast) {
@@ -365,7 +390,7 @@ function BookingPage() {
 								<Calendar
 									mode="single"
 									required
-									disabled={{ before: today }}
+									disabled={disabledDates}
 									month={calendarMonth}
 									onMonthChange={setCalendarMonth}
 									selected={selectedDate}
