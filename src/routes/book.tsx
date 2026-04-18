@@ -2,7 +2,7 @@ import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { Calendar } from "#/components/ui/calendar";
 import { Button } from "#/components/ui/button";
@@ -109,6 +109,7 @@ function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const today = startOfToday();
+	const formRef = useRef<HTMLFormElement>(null);
 
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
@@ -272,6 +273,27 @@ function BookingPage() {
 		times: availableTimes.filter(section.includes),
 	})).filter((section) => section.times.length > 0);
 
+	const scrollToFirstError = () => {
+		requestAnimationFrame(() => {
+			const fieldOrder = ["service", "duration", "date", "time", "name", "email", "notes"];
+
+			for (const fieldName of fieldOrder) {
+				const fieldContainer = formRef.current?.querySelector<HTMLElement>(
+					`[data-field-name="${fieldName}"]`,
+				);
+				const fieldError = fieldContainer?.querySelector<HTMLElement>('[data-slot="field-error"]');
+
+				if (fieldContainer && fieldError) {
+					fieldContainer.scrollIntoView({
+						behavior: "smooth",
+						block: "center",
+					});
+					return;
+				}
+			}
+		});
+	};
+
 	useEffect(() => {
 		if (!formValues.date || isSelectedDateInPast) {
 			if (formValues.time) {
@@ -338,22 +360,28 @@ function BookingPage() {
 			</div>
 
 			<form
+				ref={formRef}
 				onSubmit={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
-					void formApi.handleSubmit();
+					void formApi.handleSubmit().then(() => {
+						if (!formApi.state.isValid) {
+							scrollToFirstError();
+						}
+					});
 				}}
 				className="flex flex-col gap-8">
 				<FieldGroup>
 					<formApi.Field name="service">
 						{(field) => (
-							<FieldSet>
+							<FieldSet data-field-name="service">
 								<FieldLegend>Service *</FieldLegend>
 								<RadioGroup
 									value={field.state.value}
-									onValueChange={(value) =>
-										field.handleChange(value as BookingFormValues["service"])
-									}
+									onValueChange={(value) => {
+										field.handleChange(value as BookingFormValues["service"]);
+										field.handleBlur();
+									}}
 									className="flex flex-wrap gap-3">
 									{SERVICES.map((service) => (
 										<FieldLabel
@@ -380,13 +408,14 @@ function BookingPage() {
 
 					<formApi.Field name="duration">
 						{(field) => (
-							<FieldSet>
+							<FieldSet data-field-name="duration">
 								<FieldLegend>Duration *</FieldLegend>
 								<RadioGroup
 									value={field.state.value}
-									onValueChange={(value) =>
-										field.handleChange(value as BookingFormValues["duration"])
-									}
+									onValueChange={(value) => {
+										field.handleChange(value as BookingFormValues["duration"]);
+										field.handleBlur();
+									}}
 									className="flex flex-wrap gap-3">
 									{DURATION_OPTIONS.map((duration) => (
 										<FieldLabel
@@ -414,7 +443,7 @@ function BookingPage() {
 					<div className="grid gap-6 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-start">
 						<formApi.Field name="date">
 							{(field) => (
-								<Field>
+								<Field data-field-name="date">
 									<FieldLabel>Date *</FieldLabel>
 									<div className="w-fit rounded-md border bg-background">
 										<Calendar
@@ -444,7 +473,9 @@ function BookingPage() {
 
 						<formApi.Field name="time">
 							{(field) => (
-								<FieldSet className="min-w-0">
+								<FieldSet
+									data-field-name="time"
+									className="min-w-0">
 									<FieldLegend>Time *</FieldLegend>
 									<RadioGroup
 										value={field.state.value}
@@ -508,7 +539,7 @@ function BookingPage() {
 
 					<formApi.Field name="name">
 						{(field) => (
-							<Field>
+							<Field data-field-name="name">
 								<FieldLabel htmlFor="name">Name *</FieldLabel>
 								<Input
 									id="name"
@@ -516,7 +547,6 @@ function BookingPage() {
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
-									required
 								/>
 								{field.state.meta.isBlurred || shouldShowFieldError ? (
 									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
@@ -527,7 +557,7 @@ function BookingPage() {
 
 					<formApi.Field name="email">
 						{(field) => (
-							<Field>
+							<Field data-field-name="email">
 								<FieldLabel htmlFor="email">Email *</FieldLabel>
 								<Input
 									id="email"
@@ -535,7 +565,6 @@ function BookingPage() {
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
-									required
 								/>
 								{field.state.meta.isBlurred || shouldShowFieldError ? (
 									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
@@ -546,7 +575,7 @@ function BookingPage() {
 
 					<formApi.Field name="notes">
 						{(field) => (
-							<Field>
+							<Field data-field-name="notes">
 								<FieldLabel htmlFor="notes">Notes</FieldLabel>
 								<Textarea
 									id="notes"
@@ -568,7 +597,7 @@ function BookingPage() {
 				<Button
 					type="submit"
 					className="w-fit"
-					disabled={isSubmitting || !formValues.time || isLoadingMonthAvailability}>
+					disabled={isSubmitting}>
 					{isSubmitting ? "Submitting..." : "Create booking"}
 				</Button>
 			</form>
