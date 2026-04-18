@@ -108,7 +108,7 @@ export const Route = createFileRoute("/book")({
 function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
-	const today = useMemo(() => startOfToday(), []);
+	const today = startOfToday();
 
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
@@ -163,12 +163,9 @@ function BookingPage() {
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
-	const selectedDate = useMemo(() => parseDateValue(formValues.date), [formValues.date]);
-	const isSelectedDateInPast = useMemo(
-		() => (selectedDate ? selectedDate < today : false),
-		[selectedDate, today],
-	);
-	const visibleMonth = useMemo(() => formatMonthKey(calendarMonth), [calendarMonth]);
+	const selectedDate = parseDateValue(formValues.date);
+	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
+	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 
 	useEffect(() => {
@@ -213,15 +210,10 @@ function BookingPage() {
 		};
 	}, [getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
 
-	const selectedBusyDay = useMemo(() => {
-		if (!formValues.date) {
-			return null;
-		}
-
-		return (
-			monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ?? null
-		);
-	}, [formValues.date, monthlyBusyWindowsByMonth, selectedMonth]);
+	const selectedBusyDay = !formValues.date
+		? null
+		: (monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ??
+			null);
 
 	const disabledDates = useMemo(() => {
 		return (date: Date) => {
@@ -247,7 +239,7 @@ function BookingPage() {
 		};
 	}, [formValues.duration, monthlyBusyWindowsByMonth, today]);
 
-	const availableTimes = useMemo(() => {
+	const availableTimes = useMemo<string[]>(() => {
 		if (!formValues.date || isSelectedDateInPast) {
 			return [];
 		}
@@ -275,14 +267,10 @@ function BookingPage() {
 		visibleMonth,
 	]);
 
-	const availableTimeSections = useMemo(
-		() =>
-			TIME_SECTIONS.map((section) => ({
-				...section,
-				times: availableTimes.filter(section.includes),
-			})).filter((section) => section.times.length > 0),
-		[availableTimes],
-	);
+	const availableTimeSections = TIME_SECTIONS.map((section) => ({
+		...section,
+		times: availableTimes.filter(section.includes),
+	})).filter((section) => section.times.length > 0);
 
 	useEffect(() => {
 		if (!formValues.date || isSelectedDateInPast) {
