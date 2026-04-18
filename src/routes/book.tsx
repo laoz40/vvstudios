@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
-import { type ComponentProps, useState } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import { api } from "../../convex/_generated/api";
 
 const SERVICES = ["Table Setup", "Open Setup"];
@@ -12,7 +12,31 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 	return `${hours}:${minutes}`;
 });
 
-const INITIAL_FORM = {
+interface BookingFormState {
+	name: string;
+	email: string;
+	date: string;
+	time: string;
+	duration: string;
+	service: string;
+	notes: string;
+}
+
+interface SubmittedBooking {
+	name: string;
+	date: string;
+	time: string;
+	duration: string;
+	service: string;
+}
+
+interface BookingErrorWithData {
+	data?: {
+		code?: string;
+	};
+}
+
+const INITIAL_FORM: BookingFormState = {
 	name: "",
 	email: "",
 	date: "",
@@ -28,17 +52,66 @@ export const Route = createFileRoute("/book")({
 
 function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
+	const getAvailableBookingTimes = useAction(api.googleCalendar.getAvailableBookingTimes);
 
 	const [form, setForm] = useState(INITIAL_FORM);
-	const [submittedBooking, setSubmittedBooking] = useState<null | {
-		name: string;
-		date: string;
-		time: string;
-		duration: string;
-		service: string;
-	}>(null);
+	const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+	const [availabilityError, setAvailabilityError] = useState("");
+	const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+	const [submittedBooking, setSubmittedBooking] = useState<SubmittedBooking | null>(null);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		if (!form.date) {
+			setAvailableTimes([]);
+			setAvailabilityError("");
+			setForm((current) => ({ ...current, time: "" }));
+			return;
+		}
+
+		let isCancelled = false;
+
+		const loadAvailability = async () => {
+			setAvailabilityError("");
+			setIsLoadingAvailability(true);
+
+			try {
+				const result = await getAvailableBookingTimes({
+					date: form.date,
+					duration: form.duration,
+				});
+
+				if (isCancelled) {
+					return;
+				}
+
+				setAvailableTimes(result.times);
+				setForm((current) => ({
+					...current,
+					time: result.times.includes(current.time) ? current.time : (result.times[0] ?? ""),
+				}));
+			} catch (availabilityLookupError) {
+				if (isCancelled) {
+					return;
+				}
+
+				setAvailableTimes([]);
+				setForm((current) => ({ ...current, time: "" }));
+				setAvailabilityError(getBookingErrorMessage(availabilityLookupError));
+			} finally {
+				if (!isCancelled) {
+					setIsLoadingAvailability(false);
+				}
+			}
+		};
+
+		void loadAvailability();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [form.date, form.duration, getAvailableBookingTimes]);
 
 	const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = async (event) => {
 		event.preventDefault();
@@ -65,9 +138,7 @@ function BookingPage() {
 			});
 			setForm(INITIAL_FORM);
 		} catch (submissionError) {
-			setError(
-				submissionError instanceof Error ? submissionError.message : "Something went wrong.",
-			);
+			setError(getBookingErrorMessage(submissionError));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -139,8 +210,9 @@ function BookingPage() {
 						id="time"
 						value={form.time}
 						onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))}
+						disabled={!form.date || isLoadingAvailability || availableTimes.length === 0}
 						required>
-						{TIME_OPTIONS.map((time) => (
+						{availableTimes.map((time) => (
 							<option
 								key={time}
 								value={time}>
@@ -148,6 +220,14 @@ function BookingPage() {
 							</option>
 						))}
 					</select>
+					{isLoadingAvailability ? <p>Loading available times…</p> : null}
+					{!isLoadingAvailability &&
+					form.date &&
+					availableTimes.length === 0 &&
+					!availabilityError ? (
+						<p>No times available for this date.</p>
+					) : null}
+					{availabilityError ? <p>{availabilityError}</p> : null}
 				</div>
 
 				<div>
@@ -205,10 +285,30 @@ function BookingPage() {
 
 				<button
 					type="submit"
-					disabled={isSubmitting}>
+					disabled={isSubmitting || !form.time || isLoadingAvailability}>
 					{isSubmitting ? "Submitting..." : "Create booking"}
 				</button>
 			</form>
 		</main>
 	);
+}
+
+function getBookingErrorMessage(error: unknown) {
+	const errorWithData =
+		typeof error === "object" && error !== null ? (error as BookingErrorWithData) : null;
+	const code = errorWithData?.data?.code;
+
+	if (code === "BOOKING_TIME_UNAVAILABLE") {
+		return "That time was just taken. Please choose another available time.";
+	}
+
+	if (code === "GOOGLE_CALENDAR_AUTH_FAILED") {
+		return "Google Calendar authentication failed. Regenerate the refresh token and try again.";
+	}
+
+	if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
+		return "Could not load availability right now. Check the Convex logs for the Google error details.";
+	}
+
+	return error instanceof Error ? error.message : "Something went wrong.";
 }

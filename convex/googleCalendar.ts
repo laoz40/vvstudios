@@ -6,52 +6,105 @@ import { internal } from "./_generated/api";
 import { type Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 import { env } from "./env";
-import { buildEventWindow } from "./lib/bookingDateTime";
+import {
+	buildEventWindow,
+	getAvailableTimeOptions,
+	isTimeSlotAvailable,
+} from "./lib/bookingTimeUtils";
+import {
+	getGoogleCalendarErrorCode,
+	getGoogleCalendarErrorDetails,
+} from "./lib/googleCalendarErrors";
+import { getBusyWindows } from "./lib/googleCalendarAvailability";
 
 type BookingCalendarErrorCode =
 	| "BOOKING_INVALID_DATE"
 	| "BOOKING_INVALID_DURATION"
 	| "BOOKING_INVALID_TIME"
 	| "BOOKING_STORE_FAILED"
+	| "BOOKING_TIME_UNAVAILABLE"
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
+	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED";
 
 type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
 };
 
+interface AvailableBookingTimesResult {
+	timeZone: string;
+	times: string[];
+}
+
+interface CreateBookingWithCalendarEventResult {
+	bookingId: Id<"bookings">;
+	googleEventId: string | null;
+	htmlLink: string | null;
+}
+
 function createBookingCalendarError(code: BookingCalendarErrorCode) {
 	return new ConvexError<BookingCalendarErrorData>({ code });
 }
 
-function getGoogleCalendarErrorCode(error: unknown): BookingCalendarErrorCode {
-	const isObject = (value: unknown): value is Record<string, unknown> => {
-		return typeof value === "object" && value !== null;
+function getGoogleCalendarClient() {
+	const clientId = env.GOOGLE_CLIENT_ID;
+	const clientSecret = env.GOOGLE_CLIENT_SECRET;
+	const refreshToken = env.GOOGLE_REFRESH_TOKEN;
+	const calendarId = env.GOOGLE_CALENDAR_ID ?? "primary";
+	const timeZone = env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
+
+	const oauth2Client = new google.auth.OAuth2({
+		clientId,
+		clientSecret,
+	});
+	oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+	return {
+		calendarId,
+		timeZone,
+		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
 	};
-
-	// Unknown/non-object throw values can't be inspected, so fall back to a generic code.
-	if (!isObject(error)) {
-		return "GOOGLE_CALENDAR_CREATE_FAILED";
-	}
-
-	// Google auth failures sometimes surface as "invalid_grant" in the error message.
-	const message = typeof error.message === "string" ? error.message : "";
-	if (message.includes("invalid_grant")) {
-		return "GOOGLE_CALENDAR_AUTH_FAILED";
-	}
-
-	// Google API errors may also include an HTTP response with a status code.
-	const response = isObject(error.response) ? error.response : null;
-	const status = typeof response?.status === "number" ? response.status : null;
-
-	// 401/403 mean auth failed or the client lacks calendar access.
-	if (status === 401 || status === 403) {
-		return "GOOGLE_CALENDAR_AUTH_FAILED";
-	}
-
-	// Everything else is treated as a generic event creation failure.
-	return "GOOGLE_CALENDAR_CREATE_FAILED";
 }
+
+export const getAvailableBookingTimes = action({
+	args: {
+		date: v.string(),
+		duration: v.string(),
+	},
+	handler: async (_ctx, args): Promise<AvailableBookingTimesResult> => {
+		try {
+			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			const busyWindows = await getBusyWindows({
+				calendar,
+				calendarId,
+				date: args.date,
+				timeZone,
+			});
+			const times = getAvailableTimeOptions({
+				busyWindows,
+				date: args.date,
+				duration: args.duration,
+				timeZone,
+			});
+
+			return {
+				timeZone,
+				times,
+			};
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+			console.error("Google Calendar availability lookup failed", {
+				date: args.date,
+				...getGoogleCalendarErrorDetails(error),
+			});
+			throw createBookingCalendarError(code);
+		}
+	},
+});
 
 export const createBookingWithCalendarEvent = action({
 	args: {
@@ -63,30 +116,38 @@ export const createBookingWithCalendarEvent = action({
 		service: v.string(),
 		notes: v.optional(v.string()),
 	},
-	handler: async (
-		ctx,
-		args,
-	): Promise<{
-		bookingId: Id<"bookings">;
-		googleEventId: string | null;
-		htmlLink: string | null;
-	}> => {
+	handler: async (ctx, args): Promise<CreateBookingWithCalendarEventResult> => {
 		try {
-			const clientId = env.GOOGLE_CLIENT_ID;
-			const clientSecret = env.GOOGLE_CLIENT_SECRET;
-			const refreshToken = env.GOOGLE_REFRESH_TOKEN;
-			const calendarId = env.GOOGLE_CALENDAR_ID ?? "primary";
-			const timeZone = env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
+			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
 			const hostEmails = (env.GOOGLE_CALENDAR_HOST_EMAILS ?? "")
 				.split(",")
 				.map((email) => email.trim())
 				.filter(Boolean);
+			const busyWindows = await getBusyWindows({
+				calendar,
+				calendarId,
+				date: args.date,
+				timeZone,
+			});
 
-			const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-			oauth2Client.setCredentials({ refresh_token: refreshToken });
+			if (
+				!isTimeSlotAvailable({
+					busyWindows,
+					date: args.date,
+					duration: args.duration,
+					time: args.time,
+					timeZone,
+				})
+			) {
+				throw createBookingCalendarError("BOOKING_TIME_UNAVAILABLE");
+			}
 
-			const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-			const { startDateTime, endDateTime } = buildEventWindow(args.date, args.time, args.duration);
+			const { startDateTime, endDateTime } = buildEventWindow(
+				args.date,
+				args.time,
+				args.duration,
+				timeZone,
+			);
 
 			let googleEventId: string | undefined;
 			let htmlLink: string | null = null;
@@ -106,12 +167,11 @@ export const createBookingWithCalendarEvent = action({
 							.join("\n"),
 						start: {
 							dateTime: startDateTime,
-							timeZone,
 						},
 						end: {
 							dateTime: endDateTime,
-							timeZone,
 						},
+						transparency: "opaque",
 						attendees: [{ email: args.email }, ...hostEmails.map((email) => ({ email }))],
 					},
 				});
@@ -124,7 +184,9 @@ export const createBookingWithCalendarEvent = action({
 					bookingEmail: args.email,
 					calendarId,
 				});
-				throw createBookingCalendarError(getGoogleCalendarErrorCode(error));
+				throw createBookingCalendarError(
+					getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED"),
+				);
 			}
 
 			try {
