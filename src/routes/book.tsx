@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
+
+import {
+	getAvailableTimesForBusyPeriods,
+	getCurrentMonthKey,
+	type BusyPeriod,
+} from "#/lib/bookingAvailability";
 import { api } from "../../convex/_generated/api";
 
 const SERVICES = ["Table Setup", "Open Setup"];
@@ -36,6 +42,12 @@ interface BookingErrorWithData {
 	};
 }
 
+interface BusyDayWindow {
+	busyPeriods: BusyPeriod[];
+	date: string;
+	label: string;
+}
+
 const INITIAL_FORM: BookingFormState = {
 	name: "",
 	email: "",
@@ -52,66 +64,120 @@ export const Route = createFileRoute("/book")({
 
 function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
-	const getAvailableBookingTimes = useAction(api.googleCalendar.getAvailableBookingTimes);
+	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 
 	const [form, setForm] = useState(INITIAL_FORM);
-	const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
+		Record<string, BusyDayWindow[]>
+	>({});
 	const [availabilityError, setAvailabilityError] = useState("");
-	const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [submittedBooking, setSubmittedBooking] = useState<SubmittedBooking | null>(null);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const visibleMonth = form.date ? form.date.slice(0, 7) : getCurrentMonthKey();
 
 	useEffect(() => {
-		if (!form.date) {
-			setAvailableTimes([]);
+		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
+		if (cachedBusyDays) {
 			setAvailabilityError("");
-			setForm((current) => ({ ...current, time: "" }));
+			setIsLoadingMonthAvailability(false);
 			return;
 		}
 
 		let isCancelled = false;
+		setAvailabilityError("");
+		setIsLoadingMonthAvailability(true);
 
-		const loadAvailability = async () => {
-			setAvailabilityError("");
-			setIsLoadingAvailability(true);
-
-			try {
-				const result = await getAvailableBookingTimes({
-					date: form.date,
-					duration: form.duration,
-				});
-
+		void getMonthlyBusyWindows({ month: visibleMonth })
+			.then((result) => {
 				if (isCancelled) {
 					return;
 				}
 
-				setAvailableTimes(result.times);
-				setForm((current) => ({
+				setMonthlyBusyWindowsByMonth((current) => ({
 					...current,
-					time: result.times.includes(current.time) ? current.time : (result.times[0] ?? ""),
+					[result.month]: result.busyWindows,
 				}));
-			} catch (availabilityLookupError) {
+				console.log(`${result.month} busy days`, result.busyWindows);
+			})
+			.catch((error) => {
 				if (isCancelled) {
 					return;
 				}
 
-				setAvailableTimes([]);
-				setForm((current) => ({ ...current, time: "" }));
-				setAvailabilityError(getBookingErrorMessage(availabilityLookupError));
-			} finally {
+				setAvailabilityError(getBookingErrorMessage(error));
+				console.error("Could not load month availability", error);
+			})
+			.finally(() => {
 				if (!isCancelled) {
-					setIsLoadingAvailability(false);
+					setIsLoadingMonthAvailability(false);
 				}
-			}
-		};
-
-		void loadAvailability();
+			});
 
 		return () => {
 			isCancelled = true;
 		};
-	}, [form.date, form.duration, getAvailableBookingTimes]);
+	}, [getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
+
+	const selectedBusyDay = useMemo(() => {
+		if (!form.date) {
+			return null;
+		}
+
+		return monthlyBusyWindowsByMonth[visibleMonth]?.find((day) => day.date === form.date) ?? null;
+	}, [form.date, monthlyBusyWindowsByMonth, visibleMonth]);
+
+	const availableTimes = useMemo(() => {
+		if (!form.date) {
+			return [];
+		}
+
+		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[visibleMonth]) {
+			return [];
+		}
+
+		return getAvailableTimesForBusyPeriods({
+			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+			duration: form.duration,
+		});
+	}, [
+		form.date,
+		form.duration,
+		isLoadingMonthAvailability,
+		monthlyBusyWindowsByMonth,
+		selectedBusyDay,
+		visibleMonth,
+	]);
+
+	useEffect(() => {
+		if (!form.date) {
+			setForm((current) => (current.time ? { ...current, time: "" } : current));
+			return;
+		}
+
+		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[visibleMonth]) {
+			return;
+		}
+
+		setForm((current) => {
+			if (availableTimes.length === 0) {
+				return current.time ? { ...current, time: "" } : current;
+			}
+
+			if (availableTimes.includes(current.time)) {
+				return current;
+			}
+
+			return { ...current, time: availableTimes[0] };
+		});
+	}, [
+		availableTimes,
+		form.date,
+		isLoadingMonthAvailability,
+		monthlyBusyWindowsByMonth,
+		visibleMonth,
+	]);
 
 	const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = async (event) => {
 		event.preventDefault();
@@ -168,6 +234,87 @@ function BookingPage() {
 			<h1>Book</h1>
 			<form onSubmit={handleSubmit}>
 				<div>
+					<label htmlFor="service">Service *</label>
+					<br />
+					<select
+						id="service"
+						value={form.service}
+						onChange={(event) =>
+							setForm((current) => ({ ...current, service: event.target.value }))
+						}
+						required>
+						{SERVICES.map((service) => (
+							<option
+								key={service}
+								value={service}>
+								{service}
+							</option>
+						))}
+					</select>
+				</div>
+
+				<div>
+					<label htmlFor="duration">Duration *</label>
+					<br />
+					<select
+						id="duration"
+						value={form.duration}
+						onChange={(event) =>
+							setForm((current) => ({ ...current, duration: event.target.value }))
+						}
+						required>
+						{DURATION_OPTIONS.map((duration) => (
+							<option
+								key={duration}
+								value={duration}>
+								{duration}
+							</option>
+						))}
+					</select>
+				</div>
+
+				<div>
+					<label htmlFor="date">Date *</label>
+					<br />
+					<input
+						id="date"
+						type="date"
+						value={form.date}
+						onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
+						required
+					/>
+				</div>
+
+				<div>
+					<label htmlFor="time">Time *</label>
+					<br />
+					<select
+						id="time"
+						value={form.time}
+						onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))}
+						disabled={
+							!form.date || isLoadingMonthAvailability || availableTimes.length === 0
+						}
+						required>
+						{availableTimes.map((time) => (
+							<option
+								key={time}
+								value={time}>
+								{time}
+							</option>
+						))}
+					</select>
+					{isLoadingMonthAvailability ? <p>Loading available times…</p> : null}
+					{!isLoadingMonthAvailability &&
+					form.date &&
+					availableTimes.length === 0 &&
+					!availabilityError ? (
+						<p>No times available for this date.</p>
+					) : null}
+					{availabilityError ? <p>{availabilityError}</p> : null}
+				</div>
+
+				<div>
 					<label htmlFor="name">Name *</label>
 					<br />
 					<input
@@ -192,85 +339,6 @@ function BookingPage() {
 				</div>
 
 				<div>
-					<label htmlFor="date">Date *</label>
-					<br />
-					<input
-						id="date"
-						type="date"
-						value={form.date}
-						onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
-						required
-					/>
-				</div>
-
-				<div>
-					<label htmlFor="time">Time *</label>
-					<br />
-					<select
-						id="time"
-						value={form.time}
-						onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))}
-						disabled={!form.date || isLoadingAvailability || availableTimes.length === 0}
-						required>
-						{availableTimes.map((time) => (
-							<option
-								key={time}
-								value={time}>
-								{time}
-							</option>
-						))}
-					</select>
-					{isLoadingAvailability ? <p>Loading available times…</p> : null}
-					{!isLoadingAvailability &&
-					form.date &&
-					availableTimes.length === 0 &&
-					!availabilityError ? (
-						<p>No times available for this date.</p>
-					) : null}
-					{availabilityError ? <p>{availabilityError}</p> : null}
-				</div>
-
-				<div>
-					<label htmlFor="duration">Duration *</label>
-					<br />
-					<select
-						id="duration"
-						value={form.duration}
-						onChange={(event) =>
-							setForm((current) => ({ ...current, duration: event.target.value }))
-						}
-						required>
-						{DURATION_OPTIONS.map((duration) => (
-							<option
-								key={duration}
-								value={duration}>
-								{duration}
-							</option>
-						))}
-					</select>
-				</div>
-
-				<div>
-					<label htmlFor="service">Service *</label>
-					<br />
-					<select
-						id="service"
-						value={form.service}
-						onChange={(event) =>
-							setForm((current) => ({ ...current, service: event.target.value }))
-						}
-						required>
-						{SERVICES.map((service) => (
-							<option
-								key={service}
-								value={service}>
-								{service}
-							</option>
-						))}
-					</select>
-				</div>
-
-				<div>
 					<label htmlFor="notes">Notes</label>
 					<br />
 					<textarea
@@ -285,7 +353,7 @@ function BookingPage() {
 
 				<button
 					type="submit"
-					disabled={isSubmitting || !form.time || isLoadingAvailability}>
+					disabled={isSubmitting || !form.time || isLoadingMonthAvailability}>
 					{isSubmitting ? "Submitting..." : "Create booking"}
 				</button>
 			</form>

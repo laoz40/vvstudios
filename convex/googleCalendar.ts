@@ -9,13 +9,15 @@ import { env } from "./env";
 import {
 	buildEventWindow,
 	getAvailableTimeOptions,
+	getMonthAvailabilityRange,
+	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 } from "./lib/bookingTimeUtils";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
 } from "./lib/googleCalendarErrors";
-import { getBusyWindows } from "./lib/googleCalendarAvailability";
+import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 
 type BookingCalendarErrorCode =
 	| "BOOKING_INVALID_DATE"
@@ -42,6 +44,16 @@ interface CreateBookingWithCalendarEventResult {
 	htmlLink: string | null;
 }
 
+interface MonthlyBusyWindowsResult {
+	busyWindows: Array<{
+		busyPeriods: Array<{ end: string; start: string }>;
+		date: string;
+		label: string;
+	}>;
+	month: string;
+	timeZone: string;
+}
+
 function createBookingCalendarError(code: BookingCalendarErrorCode) {
 	return new ConvexError<BookingCalendarErrorData>({ code });
 }
@@ -65,6 +77,42 @@ function getGoogleCalendarClient() {
 		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
 	};
 }
+
+export const getMonthlyBusyWindows = action({
+	args: {
+		month: v.string(),
+	},
+	handler: async (_ctx, args): Promise<MonthlyBusyWindowsResult> => {
+		try {
+			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			const { timeMin, timeMax } = getMonthAvailabilityRange(args.month, timeZone);
+			const busyWindows = await getBusyWindowsInRange({
+				calendar,
+				calendarId,
+				timeMax,
+				timeMin,
+				timeZone,
+			});
+
+			return {
+				busyWindows: groupBusyWindowsByDay(busyWindows, timeZone),
+				month: args.month,
+				timeZone,
+			};
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+			console.error("Google Calendar month availability lookup failed", {
+				month: args.month,
+				...getGoogleCalendarErrorDetails(error),
+			});
+			throw createBookingCalendarError(code);
+		}
+	},
+});
 
 export const getAvailableBookingTimes = action({
 	args: {

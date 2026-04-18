@@ -11,6 +11,14 @@ interface GetBusyWindowsArgs {
 	timeZone: string;
 }
 
+interface GetBusyWindowsInRangeArgs {
+	calendar: GoogleCalendarLike;
+	calendarId: string;
+	timeMax: string;
+	timeMin: string;
+	timeZone: string;
+}
+
 // load calendar availability for the date range and turn busy windows into booking blockers
 export async function getBusyWindows({
 	calendar,
@@ -20,6 +28,22 @@ export async function getBusyWindows({
 }: GetBusyWindowsArgs): Promise<BusyWindow[]> {
 	const { timeMin, timeMax } = getAvailabilityRange(date);
 
+	return await getBusyWindowsInRange({
+		calendar,
+		calendarId,
+		timeMax,
+		timeMin,
+		timeZone,
+	});
+}
+
+export async function getBusyWindowsInRange({
+	calendar,
+	calendarId,
+	timeMax,
+	timeMin,
+	timeZone,
+}: GetBusyWindowsInRangeArgs): Promise<BusyWindow[]> {
 	const response = await calendar.freebusy.query({
 		requestBody: {
 			items: [{ id: calendarId }],

@@ -5,6 +5,15 @@ export interface BusyWindow {
 	end: string;
 }
 
+export interface BusyDayWindow {
+	date: string;
+	label: string;
+	busyPeriods: Array<{
+		end: string;
+		start: string;
+	}>;
+}
+
 interface DateParts {
 	year: number;
 	month: number;
@@ -19,6 +28,7 @@ interface TimeParts {
 type BookingTimeUtilsErrorCode =
 	| "BOOKING_INVALID_DATE"
 	| "BOOKING_INVALID_DURATION"
+	| "BOOKING_INVALID_MONTH"
 	| "BOOKING_INVALID_TIME";
 
 type BookingTimeUtilsErrorData = {
@@ -52,6 +62,16 @@ function parseDate(date: string): DateParts {
 	}
 
 	return { year, month, day };
+}
+
+function parseMonth(month: string): Pick<DateParts, "year" | "month"> {
+	const [year, monthNumber] = month.split("-").map(Number);
+
+	if (!year || !monthNumber) {
+		throw createBookingTimeUtilsError("BOOKING_INVALID_MONTH");
+	}
+
+	return { year, month: monthNumber };
 }
 
 function parseTime(time: string): TimeParts {
@@ -223,6 +243,87 @@ export function getAvailabilityRange(date: string) {
 	};
 }
 
+export function getMonthAvailabilityRange(month: string, timeZone: string) {
+	const { year, month: monthNumber } = parseMonth(month);
+	const startOfMonth = `${year}-${String(monthNumber).padStart(2, "0")}-01`;
+	const startOfNextMonth =
+		monthNumber === 12
+			? `${year + 1}-01-01`
+			: `${year}-${String(monthNumber + 1).padStart(2, "0")}-01`;
+
+	return {
+		timeMax: getUtcDateForZonedDateTime(startOfNextMonth, "00:00", timeZone).toISOString(),
+		timeMin: getUtcDateForZonedDateTime(startOfMonth, "00:00", timeZone).toISOString(),
+	};
+}
+
+export function mergeBusyWindows(busyWindows: BusyWindow[]) {
+	const sortedWindows = busyWindows
+		.map((window) => ({
+			endMs: Date.parse(window.end),
+			startMs: Date.parse(window.start),
+		}))
+		.sort((left, right) => left.startMs - right.startMs);
+
+	const mergedWindows: BusyWindow[] = [];
+
+	for (const window of sortedWindows) {
+		const lastWindow = mergedWindows.at(-1);
+		if (!lastWindow) {
+			mergedWindows.push({
+				end: new Date(window.endMs).toISOString(),
+				start: new Date(window.startMs).toISOString(),
+			});
+			continue;
+		}
+
+		const lastEndMs = Date.parse(lastWindow.end);
+		if (window.startMs <= lastEndMs) {
+			lastWindow.end = new Date(Math.max(lastEndMs, window.endMs)).toISOString();
+			continue;
+		}
+
+		mergedWindows.push({
+			end: new Date(window.endMs).toISOString(),
+			start: new Date(window.startMs).toISOString(),
+		});
+	}
+
+	return mergedWindows;
+}
+
+export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: string) {
+	const mergedWindows = mergeBusyWindows(busyWindows);
+	const dayBuckets = new Map<string, BusyDayWindow>();
+
+	for (const window of mergedWindows) {
+		let segmentStartMs = Date.parse(window.start);
+		const windowEndMs = Date.parse(window.end);
+
+		while (segmentStartMs < windowEndMs) {
+			const segmentStartDate = new Date(segmentStartMs);
+			const localDateKey = getLocalDateKey(segmentStartDate, timeZone);
+			const dayEndMs = Date.parse(
+				getUtcDateForZonedDateTime(getNextDate(localDateKey), "00:00", timeZone).toISOString(),
+			);
+			const segmentEndMs = Math.min(windowEndMs, dayEndMs);
+			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
+
+			bucket.busyPeriods.push({
+				end: formatTimeInTimeZone(
+					new Date(segmentEndMs === dayEndMs ? segmentEndMs - 60 * 1000 : segmentEndMs),
+					timeZone,
+				),
+				start: formatTimeInTimeZone(segmentStartDate, timeZone),
+			});
+
+			segmentStartMs = segmentEndMs;
+		}
+	}
+
+	return Array.from(dayBuckets.values());
+}
+
 // turn google event dates into one normal datetime value we can compare (for all day events)
 interface EventDateTimeRange {
 	date?: string | null;
@@ -268,4 +369,51 @@ function getNextDate(date: string) {
 	const nextDay = String(nextDate.getUTCDate()).padStart(2, "0");
 
 	return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
+function getLocalDateKey(date: Date, timeZone: string) {
+	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
+	const values = Object.fromEntries(
+		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
+	) as Record<"day" | "month" | "year", number>;
+
+	return `${values.year}-${String(values.month).padStart(2, "0")}-${String(values.day).padStart(2, "0")}`;
+}
+
+function getOrCreateDayBucket(
+	dayBuckets: Map<string, BusyDayWindow>,
+	date: string,
+	timeZone: string,
+) {
+	const existingBucket = dayBuckets.get(date);
+	if (existingBucket) {
+		return existingBucket;
+	}
+
+	const bucket: BusyDayWindow = {
+		busyPeriods: [],
+		date,
+		label: formatDayLabel(date, timeZone),
+	};
+	dayBuckets.set(date, bucket);
+
+	return bucket;
+}
+
+function formatDayLabel(date: string, timeZone: string) {
+	return new Intl.DateTimeFormat("en-US", {
+		day: "numeric",
+		month: "short",
+		weekday: "short",
+		timeZone,
+	}).format(getUtcDateForZonedDateTime(date, "12:00", timeZone));
+}
+
+function formatTimeInTimeZone(date: Date, timeZone: string) {
+	return new Intl.DateTimeFormat("en-US", {
+		hour: "numeric",
+		hour12: true,
+		minute: "2-digit",
+		timeZone,
+	}).format(date);
 }
