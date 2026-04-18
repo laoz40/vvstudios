@@ -71,6 +71,11 @@ export function startOfMonth(date: Date) {
 	return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
+export function startOfToday() {
+	const today = new Date();
+	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
 export function toOptionId(value: string) {
 	return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 }

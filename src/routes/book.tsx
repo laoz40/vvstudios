@@ -25,6 +25,7 @@ import {
 	parseDateValue,
 	parseMonthKey,
 	startOfMonth,
+	startOfToday,
 	toOptionId,
 	type BusyPeriod,
 } from "#/lib/bookingdatetime";
@@ -104,6 +105,7 @@ export const Route = createFileRoute("/book")({
 function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
+	const today = useMemo(() => startOfToday(), []);
 
 	const [form, setForm] = useState(INITIAL_FORM);
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
@@ -116,6 +118,10 @@ function BookingPage() {
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const selectedDate = useMemo(() => parseDateValue(form.date), [form.date]);
+	const isSelectedDateInPast = useMemo(
+		() => (selectedDate ? selectedDate < today : false),
+		[selectedDate, today],
+	);
 	const visibleMonth = useMemo(() => formatMonthKey(calendarMonth), [calendarMonth]);
 	const selectedMonth = form.date ? form.date.slice(0, 7) : visibleMonth;
 
@@ -170,7 +176,7 @@ function BookingPage() {
 	}, [form.date, monthlyBusyWindowsByMonth, selectedMonth]);
 
 	const availableTimes = useMemo(() => {
-		if (!form.date) {
+		if (!form.date || isSelectedDateInPast) {
 			return [];
 		}
 
@@ -190,6 +196,7 @@ function BookingPage() {
 		form.date,
 		form.duration,
 		isLoadingMonthAvailability,
+		isSelectedDateInPast,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedMonth,
@@ -206,7 +213,7 @@ function BookingPage() {
 	);
 
 	useEffect(() => {
-		if (!form.date) {
+		if (!form.date || isSelectedDateInPast) {
 			setForm((current) => (current.time ? { ...current, time: "" } : current));
 			return;
 		}
@@ -234,6 +241,7 @@ function BookingPage() {
 		availableTimes,
 		form.date,
 		isLoadingMonthAvailability,
+		isSelectedDateInPast,
 		monthlyBusyWindowsByMonth,
 		selectedMonth,
 		visibleMonth,
@@ -357,6 +365,7 @@ function BookingPage() {
 								<Calendar
 									mode="single"
 									required
+									disabled={{ before: today }}
 									month={calendarMonth}
 									onMonthChange={setCalendarMonth}
 									selected={selectedDate}
@@ -407,11 +416,15 @@ function BookingPage() {
 							{!form.date ? (
 								<FieldDescription>Select a date to view times.</FieldDescription>
 							) : null}
+							{form.date && isSelectedDateInPast ? (
+								<FieldDescription>Past dates are unavailable.</FieldDescription>
+							) : null}
 							{form.date && isLoadingMonthAvailability ? (
 								<FieldDescription>Loading available times…</FieldDescription>
 							) : null}
 							{!isLoadingMonthAvailability &&
 							form.date &&
+							!isSelectedDateInPast &&
 							availableTimes.length === 0 &&
 							!availabilityError ? (
 								<FieldDescription>No times available for this date.</FieldDescription>
