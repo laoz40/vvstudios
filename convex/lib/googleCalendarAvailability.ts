@@ -1,38 +1,8 @@
-import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./bookingTimeUtils";
+import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 
-interface GoogleCalendarEventDateTimeRange {
-	date?: string | null;
-	dateTime?: string | null;
-}
+import { getAvailabilityRange, type BusyWindow } from "./bookingTimeUtils";
 
-interface GoogleCalendarEventItem {
-	status?: string | null;
-	transparency?: string | null;
-	start?: GoogleCalendarEventDateTimeRange | null;
-	end?: GoogleCalendarEventDateTimeRange | null;
-}
-
-interface GoogleCalendarEventsListArgs {
-	calendarId: string;
-	eventTypes: ["default"];
-	singleEvents: boolean;
-	showDeleted: boolean;
-	orderBy: "startTime";
-	timeMax: string;
-	timeMin: string;
-}
-
-interface GoogleCalendarEventsListResponse {
-	data: {
-		items?: GoogleCalendarEventItem[];
-	};
-}
-
-interface GoogleCalendarLike {
-	events: {
-		list: (args: GoogleCalendarEventsListArgs) => Promise<GoogleCalendarEventsListResponse>;
-	};
-}
+type GoogleCalendarLike = Pick<calendar_v3.Calendar, "freebusy">;
 
 interface GetBusyWindowsArgs {
 	calendar: GoogleCalendarLike;
@@ -41,7 +11,7 @@ interface GetBusyWindowsArgs {
 	timeZone: string;
 }
 
-// load calendar events for the date range and turn them into busy windows
+// load calendar availability for the date range and turn busy windows into booking blockers
 export async function getBusyWindows({
 	calendar,
 	calendarId,
@@ -50,29 +20,22 @@ export async function getBusyWindows({
 }: GetBusyWindowsArgs): Promise<BusyWindow[]> {
 	const { timeMin, timeMax } = getAvailabilityRange(date);
 
-	const response = await calendar.events.list({
-		calendarId,
-		eventTypes: ["default"],
-		singleEvents: true,
-		showDeleted: false,
-		orderBy: "startTime",
-		timeMax,
-		timeMin,
+	const response = await calendar.freebusy.query({
+		requestBody: {
+			items: [{ id: calendarId }],
+			timeMax,
+			timeMin,
+			timeZone,
+		},
 	});
 
-	// skip events that should not block bookings and keep only start and end times
-	return (response.data.items ?? []).flatMap((event) => {
-		if (event.status === "cancelled" || event.transparency === "transparent") {
+	const busyWindows = response.data.calendars?.[calendarId]?.busy ?? [];
+
+	return busyWindows.flatMap((window) => {
+		if (!window.start || !window.end) {
 			return [];
 		}
 
-		const start = getEventDateTime(event.start, timeZone);
-		const end = getEventDateTime(event.end, timeZone);
-
-		if (!start || !end) {
-			return [];
-		}
-
-		return [{ start, end }];
+		return [{ start: window.start, end: window.end }];
 	});
 }
