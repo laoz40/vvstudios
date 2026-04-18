@@ -12,6 +12,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+	notFoundComponent: NotFoundPage,
 	head: () => ({
 		meta: [
 			{
@@ -57,5 +58,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<Scripts />
 			</body>
 		</html>
+	);
+}
+
+function NotFoundPage() {
+	return (
+		<main>
+			<h1>Page not found</h1>
+			<p>The page you requested does not exist.</p>
+			<p>
+				Go back to <Link to="/book">booking</Link>.
+			</p>
+		</main>
 	);
 }
