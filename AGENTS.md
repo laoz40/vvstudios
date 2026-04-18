@@ -56,18 +56,6 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 ### Error handling
 
-- Use neverthrow for expected failures
-- Return ok(...) / err({ code: "..." } as const)
-- Use narrow literal code values, not freeform messages
-- Convert raw failures into those codes at the boundary.
-- Handle with result.match(...).
-- Switch on error.code exhaustively, with:
-
-```ts
- default:
-   throw new Error(`Unhandled app error code: ${code satisfies never}`);
-```
-
 - Map codes by layer:
   - helper -> error code
   - route -> HTTP response/status
