@@ -27,7 +27,7 @@ import {
 	formatMonthKey,
 	getAvailableTimesForDate,
 	getCurrentMonthKey,
-	getCurrentTimeInMinutes,
+	getCurrentTimestamp,
 	parseDateValue,
 	parseMonthKey,
 	startOfToday,
@@ -66,7 +66,7 @@ function BookingPage() {
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [currentTimeInMinutes, setCurrentTimeInMinutes] = useState(getCurrentTimeInMinutes);
+	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
@@ -176,7 +176,6 @@ function BookingPage() {
 		? null
 		: (monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ??
 			null);
-	const todayDateValue = formatDateValue(today);
 
 	const disabledDates = useMemo(() => {
 		return (date: Date) => {
@@ -189,10 +188,9 @@ function BookingPage() {
 			const busyDay = busyDays?.find((day) => day.date === formatDateValue(date));
 			const availableTimesForDate = getAvailableTimesForDate({
 				busyPeriods: busyDay?.busyPeriods ?? [],
-				currentTimeInMinutes,
+				currentTimestamp,
 				dateValue: formatDateValue(date),
 				duration: formValues.duration,
-				todayDateValue,
 			});
 
 			if (!busyDays) {
@@ -201,7 +199,7 @@ function BookingPage() {
 
 			return availableTimesForDate.length === 0;
 		};
-	}, [currentTimeInMinutes, formValues.duration, monthlyBusyWindowsByMonth, today, todayDateValue]);
+	}, [currentTimestamp, formValues.duration, monthlyBusyWindowsByMonth, today]);
 
 	const availableTimes = useMemo<string[]>(() => {
 		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
@@ -218,13 +216,12 @@ function BookingPage() {
 
 		return getAvailableTimesForDate({
 			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
-			currentTimeInMinutes,
+			currentTimestamp,
 			dateValue: formValues.date,
 			duration: formValues.duration,
-			todayDateValue,
 		});
 	}, [
-		currentTimeInMinutes,
+		currentTimestamp,
 		formValues.date,
 		formValues.duration,
 		isLoadingMonthAvailability,
@@ -233,7 +230,6 @@ function BookingPage() {
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedMonth,
-		todayDateValue,
 		visibleMonth,
 	]);
 
@@ -276,7 +272,7 @@ function BookingPage() {
 
 	useEffect(() => {
 		const interval = window.setInterval(() => {
-			setCurrentTimeInMinutes(getCurrentTimeInMinutes());
+			setCurrentTimestamp(getCurrentTimestamp());
 		}, 60_000);
 
 		return () => {
