@@ -16,7 +16,13 @@ import {
 	type AvailableTimeSection,
 	type BookingFormValues,
 } from "#/features/booking-form/lib/form-shared";
-import { formatDateValue, startOfMonth, toOptionId } from "#/lib/bookingdatetime";
+import {
+	formatDateValue,
+	formatMonthName,
+	parseDateValue,
+	startOfMonth,
+	toOptionId,
+} from "#/lib/bookingdatetime";
 
 export interface BookingDateTimeSectionProps {
 	availabilityError: string;
@@ -25,6 +31,7 @@ export interface BookingDateTimeSectionProps {
 	disabledDates: (date: Date) => boolean;
 	isLoadingMonthAvailability: boolean;
 	isSelectedDateInPast: boolean;
+	isViewingSelectedMonth: boolean;
 	selectedDate: Date | undefined;
 	setCalendarMonth: (date: Date) => void;
 }
@@ -36,6 +43,7 @@ export function BookingDateTimeSection({
 	disabledDates,
 	isLoadingMonthAvailability,
 	isSelectedDateInPast,
+	isViewingSelectedMonth,
 	selectedDate,
 	setCalendarMonth,
 }: BookingDateTimeSectionProps) {
@@ -44,6 +52,9 @@ export function BookingDateTimeSection({
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 	const hasAvailableTimes = availableTimeSections.some((section) => section.times.length > 0);
+	const selectedMonthName = formValues.date
+		? formatMonthName(parseDateValue(formValues.date) ?? new Date())
+		: undefined;
 
 	return (
 		<div className="grid gap-6 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-start">
@@ -89,7 +100,12 @@ export function BookingDateTimeSection({
 								field.handleChange(value as BookingFormValues["time"]);
 								field.handleBlur();
 							}}
-							disabled={!formValues.date || isLoadingMonthAvailability || !hasAvailableTimes}
+							disabled={
+								!formValues.date ||
+								!isViewingSelectedMonth ||
+								isLoadingMonthAvailability ||
+								!hasAvailableTimes
+							}
 							className="flex flex-col gap-5">
 							{availableTimeSections.map((section) => (
 								<div
@@ -116,17 +132,18 @@ export function BookingDateTimeSection({
 								</div>
 							))}
 						</RadioGroup>
-						{!formValues.date ? (
+						{!formValues.date || !isViewingSelectedMonth ? (
 							<FieldDescription>Select a date to view times.</FieldDescription>
 						) : null}
-						{formValues.date && isSelectedDateInPast ? (
+						{formValues.date && isViewingSelectedMonth && isSelectedDateInPast ? (
 							<FieldDescription>Past dates are unavailable.</FieldDescription>
 						) : null}
-						{formValues.date && isLoadingMonthAvailability ? (
-							<FieldDescription>Loading available times…</FieldDescription>
+						{selectedMonthName && isViewingSelectedMonth && isLoadingMonthAvailability ? (
+							<FieldDescription>Loading times for {selectedMonthName}...</FieldDescription>
 						) : null}
 						{!isLoadingMonthAvailability &&
 						formValues.date &&
+						isViewingSelectedMonth &&
 						!isSelectedDateInPast &&
 						!hasAvailableTimes &&
 						!availabilityError ? (

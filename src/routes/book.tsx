@@ -113,6 +113,7 @@ function BookingPage() {
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
+	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
 
 	useEffect(() => {
 		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
@@ -125,6 +126,10 @@ function BookingPage() {
 		let isCancelled = false;
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
+		console.log("Loading month availability", {
+			month: visibleMonth,
+			selectedDate: formValues.date || null,
+		});
 
 		void getMonthlyBusyWindows({ month: visibleMonth })
 			.then((result) => {
@@ -154,7 +159,7 @@ function BookingPage() {
 		return () => {
 			isCancelled = true;
 		};
-	}, [getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
+	}, [formValues.date, getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
 
 	const selectedBusyDay = !formValues.date
 		? null
@@ -186,7 +191,7 @@ function BookingPage() {
 	}, [formValues.duration, monthlyBusyWindowsByMonth, today]);
 
 	const availableTimes = useMemo<string[]>(() => {
-		if (!formValues.date || isSelectedDateInPast) {
+		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
 			return [];
 		}
 
@@ -207,6 +212,7 @@ function BookingPage() {
 		formValues.duration,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
+		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedMonth,
@@ -240,7 +246,7 @@ function BookingPage() {
 	};
 
 	useEffect(() => {
-		if (!formValues.date || isSelectedDateInPast) {
+		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
 			if (formValues.time) {
 				formApi.setFieldValue("time", "");
 			}
@@ -272,6 +278,7 @@ function BookingPage() {
 		formValues.time,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
+		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedMonth,
 		visibleMonth,
@@ -306,6 +313,7 @@ function BookingPage() {
 							disabledDates={disabledDates}
 							isLoadingMonthAvailability={isLoadingMonthAvailability}
 							isSelectedDateInPast={isSelectedDateInPast}
+							isViewingSelectedMonth={isViewingSelectedMonth}
 							selectedDate={selectedDate}
 							setCalendarMonth={setCalendarMonth}
 						/>

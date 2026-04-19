@@ -58,6 +58,10 @@ export function parseMonthKey(monthKey: string) {
 	return new Date(year, month - 1, 1);
 }
 
+export function formatMonthName(date: Date) {
+	return date.toLocaleString("default", { month: "long" });
+}
+
 export function formatDateValue(date: Date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
 		date.getDate(),
