@@ -1,6 +1,7 @@
 export const DEFAULT_BOOKING_START_TIME = "08:00";
 export const DEFAULT_BOOKING_END_TIME = "22:00";
 export const BOOKING_LEAD_TIME_MINUTES = 12 * 60;
+export const BOOKING_EVENT_BUFFER_MINUTES = 30;
 export const BOOKING_MAX_DAYS_AHEAD = 60;
 
 export interface BookingDaySchedule {
@@ -50,8 +51,14 @@ export function getAvailableTimesForBusyPeriods({
 	const dayStartMinutes = parseTimeToMinutes(startTime);
 	const dayEndMinutes = parseTimeToMinutes(endTime);
 	const busyRanges = busyPeriods.map((period) => ({
-		endMinutes: parseReadableTimeToMinutes(period.end),
-		startMinutes: parseReadableTimeToMinutes(period.start),
+		endMinutes: Math.min(
+			24 * 60,
+			parseReadableTimeToMinutes(period.end) + BOOKING_EVENT_BUFFER_MINUTES,
+		),
+		startMinutes: Math.max(
+			0,
+			parseReadableTimeToMinutes(period.start) - BOOKING_EVENT_BUFFER_MINUTES,
+		),
 	}));
 
 	return TIME_OPTIONS.filter((time) => {

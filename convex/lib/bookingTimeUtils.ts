@@ -35,6 +35,8 @@ type BookingTimeUtilsErrorData = {
 	code: BookingTimeUtilsErrorCode;
 };
 
+const BOOKING_EVENT_BUFFER_MINUTES = 30;
+
 function createBookingTimeUtilsError(code: BookingTimeUtilsErrorCode) {
 	return new ConvexError<BookingTimeUtilsErrorData>({ code });
 }
@@ -226,8 +228,8 @@ export function isTimeSlotAvailable({
 	const endMs = Date.parse(endDateTime);
 
 	return !busyWindows.some((window) => {
-		const busyStartMs = Date.parse(window.start);
-		const busyEndMs = Date.parse(window.end);
+		const busyStartMs = Date.parse(window.start) - BOOKING_EVENT_BUFFER_MINUTES * 60 * 1000;
+		const busyEndMs = Date.parse(window.end) + BOOKING_EVENT_BUFFER_MINUTES * 60 * 1000;
 
 		return startMs < busyEndMs && endMs > busyStartMs;
 	});
