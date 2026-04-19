@@ -178,6 +178,20 @@ export function getAvailableTimesForDate({
 	});
 }
 
+export function formatTimeValue(time: string) {
+	const [hours, minutes] = time.split(":").map(Number);
+
+	if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+		return time;
+	}
+
+	return new Intl.DateTimeFormat("en-AU", {
+		hour: "numeric",
+		hour12: true,
+		minute: "2-digit",
+	}).format(new Date(2000, 0, 1, hours, minutes));
+}
+
 export function toOptionId(value: string) {
 	return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 }

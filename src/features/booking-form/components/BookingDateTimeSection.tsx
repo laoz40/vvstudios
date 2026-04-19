@@ -19,6 +19,7 @@ import {
 import {
 	formatDateValue,
 	formatMonthName,
+	formatTimeValue,
 	parseDateValue,
 	startOfMonth,
 	toOptionId,
@@ -124,7 +125,7 @@ export function BookingDateTimeSection({
 														value={time}
 														id={`time-${toOptionId(time)}`}
 													/>
-													<FieldTitle>{time}</FieldTitle>
+													<FieldTitle>{formatTimeValue(time)}</FieldTitle>
 												</Field>
 											</FieldLabel>
 										))}

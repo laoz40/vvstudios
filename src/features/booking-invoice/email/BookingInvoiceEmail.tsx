@@ -12,30 +12,18 @@ import {
 	Section,
 	Text,
 } from "@react-email/components";
-import type { BookingInvoiceData } from "#/features/booking-invoice/lib/types";
 import { formatAud } from "#/features/booking-invoice/lib/money";
+import type { BookingInvoiceData } from "#/features/booking-invoice/lib/types";
+import { formatTimeValue } from "#/lib/bookingdatetime";
 
 export interface BookingInvoiceEmailProps {
 	data: BookingInvoiceData;
 }
 
-function formatSessionTime(time: string) {
-	const [hoursText, minutes] = time.split(":");
-	const hours = Number(hoursText);
-
-	if (Number.isNaN(hours) || !minutes) {
-		return time;
-	}
-
-	const meridiem = hours >= 12 ? "PM" : "AM";
-	const twelveHour = hours % 12 || 12;
-	return `${twelveHour}:${minutes} ${meridiem}`;
-}
-
 export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
 	const paymentInstruction = data.notes.paymentNote.replace(` ${receiptNote}`, "");
-	const formattedSessionTime = formatSessionTime(data.booking.time);
+	const formattedSessionTime = formatTimeValue(data.booking.time);
 
 	return (
 		<Html>

@@ -1,26 +1,14 @@
 import { Document, Link, Page, Polygon, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { formatAud } from "#/features/booking-invoice/lib/money";
 import type { BookingInvoiceData } from "#/features/booking-invoice/lib/types";
+import { formatTimeValue } from "#/lib/bookingdatetime";
 
 export interface BookingInvoicePdfProps {
 	data: BookingInvoiceData;
 }
 
-function formatSessionTime(time: string) {
-	const [hoursText, minutes] = time.split(":");
-	const hours = Number(hoursText);
-
-	if (Number.isNaN(hours) || !minutes) {
-		return time;
-	}
-
-	const meridiem = hours >= 12 ? "PM" : "AM";
-	const twelveHour = hours % 12 || 12;
-	return `${twelveHour}:${minutes} ${meridiem}`;
-}
-
 export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
-	const formattedSessionTime = formatSessionTime(data.booking.time);
+	const formattedSessionTime = formatTimeValue(data.booking.time);
 
 	return (
 		<Document>
