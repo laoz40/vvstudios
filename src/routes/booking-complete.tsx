@@ -39,6 +39,22 @@ function BookingCompletePage() {
 							value={submittedBooking.service}
 						/>
 						<BookingDetail
+							label="Phone"
+							value={submittedBooking.phone}
+						/>
+						<BookingDetail
+							label="Account Name"
+							value={submittedBooking.accountName}
+						/>
+						<BookingDetail
+							label="ABN"
+							value={submittedBooking.abn || "—"}
+						/>
+						<BookingDetail
+							label="Invoice Email"
+							value={submittedBooking.email}
+						/>
+						<BookingDetail
 							label="Date"
 							value={submittedBooking.date}
 						/>

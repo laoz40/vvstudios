@@ -26,8 +26,33 @@ export const TIME_SECTIONS = [
 ] as const;
 
 export const bookingSchema = z.object({
-	name: z.string().trim().min(2, "Name is required."),
-	email: z.email("Enter a valid email address.").trim(),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Full name is required.")
+		.max(50, "Name must be 50 characters or fewer.")
+		.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters."),
+	phone: z
+		.string()
+		.trim()
+		.min(1, "Phone number is required.")
+		.regex(/^[\d\s().+-]{6,20}$/, "Please enter a valid phone number."),
+	accountName: z
+		.string()
+		.trim()
+		.min(1, "Account name is required.")
+		.max(50, "Account name must be 50 characters or fewer.")
+		.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters."),
+	abn: z
+		.string()
+		.trim()
+		.transform((value) => (value === "" ? undefined : value))
+		.optional()
+		.transform((value) => value?.replace(/\s+/g, ""))
+		.refine((value) => !value || /^\d{11}$/.test(value), {
+			message: "ABN must be exactly 11 digits.",
+		}),
+	email: z.email("Please enter a valid email address."),
 	date: z.string().min(1, "Date is required."),
 	time: z.string().min(1, "Time is required."),
 	duration: z
@@ -37,7 +62,7 @@ export const bookingSchema = z.object({
 		.union([z.literal(""), z.enum(SERVICES)])
 		.refine((value) => value !== "", "Service is required."),
 	addons: z.array(z.enum(ADDON_OPTIONS)),
-	notes: z.string(),
+	notes: z.string().trim().max(200, "Please keep this under 200 characters."),
 });
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
@@ -51,6 +76,9 @@ export interface AvailableTimeSection {
 
 export const INITIAL_FORM: BookingFormValues = {
 	name: "",
+	phone: "",
+	accountName: "",
+	abn: "",
 	email: "",
 	date: "",
 	time: "",

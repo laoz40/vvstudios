@@ -82,6 +82,9 @@ function BookingPage() {
 			try {
 				await createBooking({
 					name: parsedValue.name,
+					phone: parsedValue.phone,
+					accountName: parsedValue.accountName,
+					abn: parsedValue.abn || undefined,
 					email: parsedValue.email,
 					date: parsedValue.date,
 					time: parsedValue.time,
@@ -93,6 +96,10 @@ function BookingPage() {
 
 				const submittedBooking: SubmittedBooking = {
 					name: parsedValue.name,
+					phone: parsedValue.phone,
+					accountName: parsedValue.accountName,
+					abn: parsedValue.abn,
+					email: parsedValue.email,
 					date: parsedValue.date,
 					time: parsedValue.time,
 					duration: parsedValue.duration,
@@ -229,7 +236,18 @@ function BookingPage() {
 
 	const scrollToFirstError = () => {
 		requestAnimationFrame(() => {
-			const fieldOrder = ["service", "duration", "date", "time", "name", "email", "notes"];
+			const fieldOrder = [
+				"service",
+				"duration",
+				"date",
+				"time",
+				"name",
+				"phone",
+				"accountName",
+				"abn",
+				"email",
+				"notes",
+			];
 
 			for (const fieldName of fieldOrder) {
 				const fieldContainer = formRef.current?.querySelector<HTMLElement>(

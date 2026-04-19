@@ -157,6 +157,9 @@ export const getAvailableBookingTimes = action({
 export const createBookingWithCalendarEvent = action({
 	args: {
 		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
 		email: v.string(),
 		date: v.string(),
 		time: v.string(),
@@ -208,6 +211,9 @@ export const createBookingWithCalendarEvent = action({
 						summary: `${args.service} - ${args.name}`,
 						description: [
 							`Name: ${args.name}`,
+							`Phone: ${args.phone}`,
+							`Account Name: ${args.accountName}`,
+							args.abn ? `ABN: ${args.abn}` : undefined,
 							`Email: ${args.email}`,
 							`Service: ${args.service}`,
 							args.addons.length > 0 ? `Add-ons: ${args.addons.join(", ")}` : undefined,
@@ -242,6 +248,9 @@ export const createBookingWithCalendarEvent = action({
 			try {
 				const bookingId: Id<"bookings"> = await ctx.runMutation(internal.bookings.storeBooking, {
 					name: args.name,
+					phone: args.phone,
+					accountName: args.accountName,
+					abn: args.abn,
 					email: args.email,
 					date: args.date,
 					time: args.time,

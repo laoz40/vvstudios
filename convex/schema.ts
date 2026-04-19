@@ -4,6 +4,9 @@ import { v } from "convex/values";
 export default defineSchema({
 	bookings: defineTable({
 		name: v.string(),
+		phone: v.optional(v.string()),
+		accountName: v.optional(v.string()),
+		abn: v.optional(v.string()),
 		email: v.string(),
 		date: v.string(),
 		time: v.optional(v.string()),

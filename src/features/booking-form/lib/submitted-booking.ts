@@ -4,6 +4,10 @@ const SUBMITTED_BOOKING_STORAGE_KEY = "submitted-booking";
 
 export interface SubmittedBooking {
 	name: string;
+	phone: string;
+	accountName: string;
+	abn: string;
+	email: string;
 	date: string;
 	time: string;
 	duration: ParsedBookingFormValues["duration"];
@@ -58,6 +62,10 @@ function isSubmittedBooking(value: unknown): value is SubmittedBooking {
 
 	return (
 		typeof booking.name === "string" &&
+		typeof booking.phone === "string" &&
+		typeof booking.accountName === "string" &&
+		typeof booking.abn === "string" &&
+		typeof booking.email === "string" &&
 		typeof booking.date === "string" &&
 		typeof booking.time === "string" &&
 		typeof booking.duration === "string" &&

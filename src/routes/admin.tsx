@@ -73,6 +73,9 @@ function AdminDashboard() {
 					<thead>
 						<tr>
 							<th>Name</th>
+							<th>Phone</th>
+							<th>Account Name</th>
+							<th>ABN</th>
 							<th>Email</th>
 							<th>Date</th>
 							<th>Time</th>
@@ -87,6 +90,9 @@ function AdminDashboard() {
 						{bookings.map((booking) => (
 							<tr key={booking._id}>
 								<td>{booking.name}</td>
+								<td>{booking.phone ?? "—"}</td>
+								<td>{booking.accountName ?? "—"}</td>
+								<td>{booking.abn ?? "—"}</td>
 								<td>{booking.email}</td>
 								<td>{booking.date}</td>
 								<td>{booking.time ?? "—"}</td>

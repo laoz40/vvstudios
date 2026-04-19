@@ -4,6 +4,9 @@ import { internalMutation, query } from "./_generated/server";
 export const storeBooking = internalMutation({
 	args: {
 		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
 		email: v.string(),
 		date: v.string(),
 		time: v.string(),
@@ -17,6 +20,9 @@ export const storeBooking = internalMutation({
 	handler: async (ctx, args) => {
 		return await ctx.db.insert("bookings", {
 			name: args.name,
+			phone: args.phone,
+			accountName: args.accountName,
+			abn: args.abn,
 			email: args.email,
 			date: args.date,
 			time: args.time,
