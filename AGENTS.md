@@ -13,6 +13,7 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Do not add new dependencies unless needed for task
 - Keep diffs small and task-focused
 - Preserve existing architectural style.
+- Before adding helper functions, check for lib files that have related logic
 - bun run format and lint once changes are complete
 
 ## Behavior
