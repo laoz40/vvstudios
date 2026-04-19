@@ -92,7 +92,10 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			locationAddress: BOOKING_INVOICE_BUSINESS.locationAddress,
 			locationLabel: BOOKING_INVOICE_BUSINESS.locationLabel,
 			locationUrl: BOOKING_INVOICE_BUSINESS.locationUrl,
+			logoUrl: BOOKING_INVOICE_BUSINESS.logoUrl,
 			ownerName: BOOKING_INVOICE_BUSINESS.ownerName,
+			websiteLabel: BOOKING_INVOICE_BUSINESS.websiteLabel,
+			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl,
 		},
 		customer: {
 			abn: input.abn,

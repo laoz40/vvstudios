@@ -60,8 +60,61 @@ interface MonthlyBusyWindowsResult {
 	timeZone: string;
 }
 
+interface ResendSendEmailSuccessResponse {
+	id: string;
+}
+
 function createBookingCalendarError(code: BookingCalendarErrorCode) {
 	return new ConvexError<BookingCalendarErrorData>({ code });
+}
+
+function formatBookingDateShort(date: string) {
+	const [year, month, day] = date.split("-");
+
+	if (!year || !month || !day) {
+		return date;
+	}
+
+	return `${day}/${month}/${year.slice(-2)}`;
+}
+
+async function sendBookingInvoiceEmail(args: {
+	to: string;
+	subject: string;
+	html: string;
+	attachment: {
+		content: Uint8Array;
+		contentType: string;
+		filename: string;
+	};
+}) {
+	const response = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${env.RESEND_API_KEY}`,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			from: `VV Podcast Studio <${env.RESEND_FROM_EMAIL}>`,
+			to: [args.to],
+			subject: args.subject,
+			html: args.html,
+			attachments: [
+				{
+					filename: args.attachment.filename,
+					content: Buffer.from(args.attachment.content).toString("base64"),
+					contentType: args.attachment.contentType,
+				},
+			],
+		}),
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.text();
+		throw new Error(`Resend request failed (${response.status}): ${errorBody}`);
+	}
+
+	return (await response.json()) as ResendSendEmailSuccessResponse;
 }
 
 function getGoogleCalendarClient() {
@@ -291,8 +344,22 @@ export const createBookingWithCalendarEvent = action({
 						pdfBytes: artifacts.pdf.content.byteLength,
 						pdfFilename: artifacts.pdf.filename,
 					});
+
+					const resendEmail = await sendBookingInvoiceEmail({
+						to: args.email,
+						subject: `Your Studio Booking Invoice - ${formatBookingDateShort(args.date)}`,
+						html: artifacts.emailHtml,
+						attachment: artifacts.pdf,
+					});
+
+					console.log("Sent booking invoice email", {
+						bookingId,
+						bookingEmail: args.email,
+						invoiceNumber: artifacts.data.invoice.number,
+						resendEmailId: resendEmail.id,
+					});
 				} catch (invoiceError) {
-					console.error("Booking invoice artifact generation failed", {
+					console.error("Booking invoice artifact generation or send failed", {
 						bookingId,
 						bookingEmail: args.email,
 						error: invoiceError,

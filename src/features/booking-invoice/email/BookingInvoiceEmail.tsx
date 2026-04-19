@@ -19,35 +19,49 @@ export interface BookingInvoiceEmailProps {
 	data: BookingInvoiceData;
 }
 
-const LOGO_SRC =
-	"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%202048%202048%22%20width%3D%221000%22%20height%3D%221000%22%3E%3Cg%20fill%3D%22%23f5c400%22%3E%3Cpolygon%20points%3D%22264%2C229%20886%2C1287%20934%2C1200%20415%2C314%201875%2C314%201833%2C229%22/%3E%3Cpolygon%20points%3D%22227%2C287%20180%2C364%20886%2C1558%201334%2C787%201236%2C787%20885%2C1388%22/%3E%3Cpolygon%20points%3D%22504%2C368%20965%2C1150%201014%2C1066%20655%2C454%201944%2C454%201901%2C368%22/%3E%3Cpolygon%20points%3D%22148%2C415%20100%2C493%20886%2C1830%201491%2C786%201394%2C786%20886%2C1660%22/%3E%3Cpolygon%20points%3D%221971%2C508%20746%2C508%20799%2C595%201821%2C595%201105%2C1830%201203%2C1830%22/%3E%3Cpolygon%20points%3D%221731%2C647%20829%2C647%20880%2C733%201581%2C734%20947%2C1830%201047%2C1830%22/%3E%3C/g%3E%3C/svg%3E";
+function formatSessionTime(time: string) {
+	const [hoursText, minutes] = time.split(":");
+	const hours = Number(hoursText);
+
+	if (Number.isNaN(hours) || !minutes) {
+		return time;
+	}
+
+	const meridiem = hours >= 12 ? "PM" : "AM";
+	const twelveHour = hours % 12 || 12;
+	return `${twelveHour}:${minutes} ${meridiem}`;
+}
 
 export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
 	const paymentInstruction = data.notes.paymentNote.replace(` ${receiptNote}`, "");
+	const formattedSessionTime = formatSessionTime(data.booking.time);
 
 	return (
 		<Html>
 			<Head />
 			<Preview>
-				Your booking is confirmed. Invoice #{data.invoice.number} is ready with a balance due of{" "}
+				Studio booking confirmed! Your invoice is ready with a balance due of{" "}
 				{formatAud(data.amounts.totalDueAmount)}.
 			</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Text style={invoiceNumber}>Invoice #{data.invoice.number}</Text>
-					<Img
-						alt={`${data.branding.businessName} logo`}
-						height="100"
-						width="100"
-						src={LOGO_SRC}
-						style={logo}
-					/>
+					{data.branding.logoUrl ? (
+						<Img
+							alt={`${data.branding.businessName} logo`}
+							height="100"
+							width="100"
+							src={data.branding.logoUrl}
+							style={logo}
+						/>
+					) : null}
 					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
 					<Text style={paragraph}>
 						Your {data.booking.service.toLowerCase()} session on{" "}
-						<strong>{data.booking.bookingDateLabel}</strong> at <strong>{data.booking.time}</strong>{" "}
-						has been booked. Your fully itemised invoice is attached to this email.
+						<strong>{data.booking.bookingDateLabel}</strong> at{" "}
+						<strong>{formattedSessionTime}</strong> has been booked. Your fully itemised invoice is
+						attached to this email.
 					</Text>
 					<Section style={summaryCard}>
 						<Text style={eyebrow}>Balance due</Text>
@@ -150,7 +164,7 @@ const summaryCard = {
 const detailLine = {
 	color: "#374151",
 	fontSize: "14px",
-	lineHeight: "24px",
+	lineHeight: "16px",
 	margin: "0 0 8px",
 };
 
@@ -175,8 +189,8 @@ const paymentColumnRight = {
 
 const paymentOptionTitle = {
 	color: "#111827",
-	fontSize: "16px",
-	fontWeight: "400",
+	fontSize: "14px",
+	fontWeight: "700",
 	margin: "0 0 12px",
 };
 
@@ -212,7 +226,7 @@ const amount = {
 	color: "#111827",
 	fontSize: "36px",
 	fontWeight: "700",
-	margin: "0 0 8px",
+	margin: "0 0 16px",
 };
 
 const summaryDueLine = {
@@ -227,9 +241,9 @@ const section = {
 };
 
 const sectionTitle = {
-	color: "#111827",
+	color: "#6d7481",
 	fontSize: "14px",
-	fontWeight: "600",
+	fontWeight: "700",
 	margin: "0 0 8px",
 	textTransform: "uppercase" as const,
 };
