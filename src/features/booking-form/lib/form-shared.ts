@@ -30,19 +30,27 @@ export const bookingSchema = z.object({
 		.string()
 		.trim()
 		.min(1, "Full name is required.")
-		.max(50, "Name must be 50 characters or fewer.")
-		.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters."),
+		.pipe(
+			z
+				.string()
+				.max(50, "Name must be 50 characters or fewer.")
+				.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters."),
+		),
 	phone: z
 		.string()
 		.trim()
 		.min(1, "Phone number is required.")
-		.regex(/^[\d\s().+-]{6,20}$/, "Please enter a valid phone number."),
+		.pipe(z.string().regex(/^[\d\s().+-]{6,20}$/, "Please enter a valid phone number.")),
 	accountName: z
 		.string()
 		.trim()
 		.min(1, "Account name is required.")
-		.max(50, "Account name must be 50 characters or fewer.")
-		.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters."),
+		.pipe(
+			z
+				.string()
+				.max(50, "Account name must be 50 characters or fewer.")
+				.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters."),
+		),
 	abn: z
 		.string()
 		.trim()
@@ -52,7 +60,11 @@ export const bookingSchema = z.object({
 		.refine((value) => !value || /^\d{11}$/.test(value), {
 			message: "ABN must be exactly 11 digits.",
 		}),
-	email: z.email("Please enter a valid email address."),
+	email: z
+		.string()
+		.trim()
+		.min(1, "Email is required.")
+		.pipe(z.email("Please enter a valid email address.")),
 	date: z.string().min(1, "Date is required."),
 	time: z.string().min(1, "Time is required."),
 	duration: z
