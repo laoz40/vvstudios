@@ -28,6 +28,7 @@ import {
 	getAvailableTimesForDate,
 	getCurrentMonthKey,
 	getCurrentTimestamp,
+	getLastBookableDate,
 	parseDateValue,
 	parseMonthKey,
 	startOfToday,
@@ -56,6 +57,7 @@ function BookingPage() {
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const today = startOfToday();
+	const lastBookableDate = getLastBookableDate(today);
 	const formRef = useRef<HTMLFormElement>(null);
 
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
@@ -122,6 +124,7 @@ function BookingPage() {
 	const formValues = useStore(formApi.store, (state) => state.values);
 	const selectedDate = parseDateValue(formValues.date);
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
+	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
@@ -179,7 +182,7 @@ function BookingPage() {
 
 	const disabledDates = useMemo(() => {
 		return (date: Date) => {
-			if (date < today) {
+			if (date < today || date > lastBookableDate) {
 				return true;
 			}
 
@@ -199,10 +202,15 @@ function BookingPage() {
 
 			return availableTimesForDate.length === 0;
 		};
-	}, [currentTimestamp, formValues.duration, monthlyBusyWindowsByMonth, today]);
+	}, [currentTimestamp, formValues.duration, lastBookableDate, monthlyBusyWindowsByMonth, today]);
 
 	const availableTimes = useMemo<string[]>(() => {
-		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
+		if (
+			!formValues.date ||
+			isSelectedDateInPast ||
+			isSelectedDateTooFarInFuture ||
+			!isViewingSelectedMonth
+		) {
 			return [];
 		}
 
@@ -226,6 +234,7 @@ function BookingPage() {
 		formValues.duration,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
+		isSelectedDateTooFarInFuture,
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
@@ -281,7 +290,12 @@ function BookingPage() {
 	}, []);
 
 	useEffect(() => {
-		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
+		if (
+			!formValues.date ||
+			isSelectedDateInPast ||
+			isSelectedDateTooFarInFuture ||
+			!isViewingSelectedMonth
+		) {
 			if (formValues.time) {
 				formApi.setFieldValue("time", "");
 			}
@@ -313,6 +327,7 @@ function BookingPage() {
 		formValues.time,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
+		isSelectedDateTooFarInFuture,
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedMonth,

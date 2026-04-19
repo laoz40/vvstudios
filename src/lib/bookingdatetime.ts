@@ -1,6 +1,7 @@
 export const DEFAULT_BOOKING_START_TIME = "08:00";
 export const DEFAULT_BOOKING_END_TIME = "22:00";
 export const BOOKING_LEAD_TIME_MINUTES = 12 * 60;
+export const BOOKING_MAX_DAYS_AHEAD = 60;
 
 export interface BookingDaySchedule {
 	endTime: string;
@@ -117,6 +118,16 @@ export function startOfMonth(date: Date) {
 export function startOfToday() {
 	const today = new Date();
 	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+export function addDays(date: Date, days: number) {
+	const result = new Date(date);
+	result.setDate(result.getDate() + days);
+	return result;
+}
+
+export function getLastBookableDate(today = startOfToday()) {
+	return addDays(today, BOOKING_MAX_DAYS_AHEAD);
 }
 
 export function getCurrentTimestamp() {
