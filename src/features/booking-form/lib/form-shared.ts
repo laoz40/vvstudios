@@ -2,6 +2,11 @@ import { z } from "zod";
 
 export const SERVICES = ["Table Setup", "Open Setup"] as const;
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
+export const ADDON_OPTIONS = [
+	"4K UHD Recording",
+	"Video Editing",
+	"10 Social Media Clips",
+] as const;
 export const TIME_SECTIONS = [
 	{
 		key: "morning",
@@ -31,6 +36,7 @@ export const bookingSchema = z.object({
 	service: z
 		.union([z.literal(""), z.enum(SERVICES)])
 		.refine((value) => value !== "", "Service is required."),
+	addons: z.array(z.enum(ADDON_OPTIONS)),
 	notes: z.string(),
 });
 
@@ -50,6 +56,7 @@ export const INITIAL_FORM: BookingFormValues = {
 	time: "",
 	duration: "",
 	service: "",
+	addons: [],
 	notes: "",
 };
 

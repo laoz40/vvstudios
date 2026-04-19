@@ -78,6 +78,7 @@ function AdminDashboard() {
 							<th>Time</th>
 							<th>Duration</th>
 							<th>Service</th>
+							<th>Add-ons</th>
 							<th>Notes</th>
 							<th>Created at</th>
 						</tr>
@@ -91,6 +92,7 @@ function AdminDashboard() {
 								<td>{booking.time ?? "—"}</td>
 								<td>{booking.duration ?? "—"}</td>
 								<td>{booking.service}</td>
+								<td>{booking.addons?.length ? booking.addons.join(", ") : "—"}</td>
 								<td>{booking.notes ?? "—"}</td>
 								<td>{new Date(booking.createdAt).toLocaleString()}</td>
 							</tr>

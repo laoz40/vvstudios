@@ -50,6 +50,12 @@ function BookingCompletePage() {
 							label="Duration"
 							value={submittedBooking.duration}
 						/>
+						<BookingDetail
+							label="Add-ons"
+							value={
+								submittedBooking.addons.length > 0 ? submittedBooking.addons.join(", ") : "None"
+							}
+						/>
 					</div>
 				) : (
 					<p className="text-sm text-muted-foreground">

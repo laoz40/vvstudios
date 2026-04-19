@@ -9,6 +9,7 @@ export default defineSchema({
 		time: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		service: v.string(),
+		addons: v.optional(v.array(v.string())),
 		notes: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
 		googleCalendarId: v.optional(v.string()),

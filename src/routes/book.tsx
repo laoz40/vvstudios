@@ -3,9 +3,10 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookingContactSection } from "#/features/booking-form/components/contact-section";
-import { BookingDateTimeSection } from "#/features/booking-form/components/date-time-section";
-import { BookingRecordingSpaceDurationSection } from "#/features/booking-form/components/recording-space-duration-section";
+import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
+import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
+import { BookingRecordingSpaceDurationSection } from "#/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
+import { BookingAddonsSection } from "#/features/booking-form/components/BookingAddonsSection.tsx";
 import {
 	bookingFormContext,
 	type BookingFormApi,
@@ -86,6 +87,7 @@ function BookingPage() {
 					time: parsedValue.time,
 					duration: parsedValue.duration,
 					service: parsedValue.service,
+					addons: parsedValue.addons,
 					notes: parsedValue.notes || undefined,
 				});
 
@@ -95,6 +97,7 @@ function BookingPage() {
 					time: parsedValue.time,
 					duration: parsedValue.duration,
 					service: parsedValue.service,
+					addons: parsedValue.addons,
 				};
 
 				persistSubmittedBooking(submittedBooking);
@@ -317,6 +320,7 @@ function BookingPage() {
 							selectedDate={selectedDate}
 							setCalendarMonth={setCalendarMonth}
 						/>
+						<BookingAddonsSection />
 						<BookingContactSection />
 					</FieldGroup>
 

@@ -162,6 +162,7 @@ export const createBookingWithCalendarEvent = action({
 		time: v.string(),
 		duration: v.string(),
 		service: v.string(),
+		addons: v.array(v.string()),
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreateBookingWithCalendarEventResult> => {
@@ -209,6 +210,7 @@ export const createBookingWithCalendarEvent = action({
 							`Name: ${args.name}`,
 							`Email: ${args.email}`,
 							`Service: ${args.service}`,
+							args.addons.length > 0 ? `Add-ons: ${args.addons.join(", ")}` : undefined,
 							args.notes ? `Notes: ${args.notes}` : undefined,
 						]
 							.filter(Boolean)
@@ -245,6 +247,7 @@ export const createBookingWithCalendarEvent = action({
 					time: args.time,
 					duration: args.duration,
 					service: args.service,
+					addons: args.addons,
 					notes: args.notes,
 					googleEventId,
 					googleCalendarId: calendarId,

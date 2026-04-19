@@ -8,6 +8,7 @@ export interface SubmittedBooking {
 	time: string;
 	duration: ParsedBookingFormValues["duration"];
 	service: ParsedBookingFormValues["service"];
+	addons: ParsedBookingFormValues["addons"];
 }
 
 export function persistSubmittedBooking(booking: SubmittedBooking) {
@@ -60,6 +61,8 @@ function isSubmittedBooking(value: unknown): value is SubmittedBooking {
 		typeof booking.date === "string" &&
 		typeof booking.time === "string" &&
 		typeof booking.duration === "string" &&
-		typeof booking.service === "string"
+		typeof booking.service === "string" &&
+		Array.isArray(booking.addons) &&
+		booking.addons.every((addon) => typeof addon === "string")
 	);
 }
