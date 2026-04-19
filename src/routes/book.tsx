@@ -98,7 +98,7 @@ function BookingPage() {
 					name: parsedValue.name,
 					phone: parsedValue.phone,
 					accountName: parsedValue.accountName,
-					abn: parsedValue.abn,
+					abn: parsedValue.abn ?? "",
 					email: parsedValue.email,
 					date: parsedValue.date,
 					time: parsedValue.time,

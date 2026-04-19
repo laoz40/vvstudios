@@ -11,6 +11,13 @@
 		"jsx": "react-jsx",
 		"skipLibCheck": true,
 		"allowSyntheticDefaultImports": true,
+		"allowImportingTsExtensions": true,
+		"types": ["vite/client"],
+		"baseUrl": "..",
+		"paths": {
+			"#/*": ["src/*"],
+			"@/*": ["src/*"]
+		},
 
 		/* These compiler options are required by Convex */
 		"target": "ESNext",
@@ -20,6 +27,6 @@
 		"isolatedModules": true,
 		"noEmit": true
 	},
-	"include": ["./**/*"],
+	"include": ["./**/*", "../src/**/*.ts", "../src/**/*.tsx"],
 	"exclude": ["./_generated"]
 }

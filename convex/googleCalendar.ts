@@ -5,6 +5,11 @@ import { google } from "googleapis";
 import { internal } from "./_generated/api";
 import { type Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
+import type {
+	BookingAddon,
+	BookingDuration,
+	BookingService,
+} from "../src/features/booking-invoice/lib/types";
 import { env } from "./env";
 import {
 	buildEventWindow,
@@ -18,6 +23,7 @@ import {
 	getGoogleCalendarErrorDetails,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
+import { createBookingInvoiceArtifacts } from "../src/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
 type BookingCalendarErrorCode =
 	| "BOOKING_INVALID_DATE"
@@ -261,6 +267,37 @@ export const createBookingWithCalendarEvent = action({
 					googleEventId,
 					googleCalendarId: calendarId,
 				});
+
+				try {
+					const artifacts = await createBookingInvoiceArtifacts({
+						bookingId,
+						name: args.name,
+						phone: args.phone,
+						accountName: args.accountName,
+						abn: args.abn,
+						email: args.email,
+						date: args.date,
+						time: args.time,
+						duration: args.duration as BookingDuration,
+						service: args.service as BookingService,
+						addons: args.addons as BookingAddon[],
+						createdAt: Date.now(),
+					});
+
+					console.log("Generated booking invoice artifacts", {
+						bookingId,
+						emailHtmlLength: artifacts.emailHtml.length,
+						invoiceNumber: artifacts.data.invoice.number,
+						pdfBytes: artifacts.pdf.content.byteLength,
+						pdfFilename: artifacts.pdf.filename,
+					});
+				} catch (invoiceError) {
+					console.error("Booking invoice artifact generation failed", {
+						bookingId,
+						bookingEmail: args.email,
+						error: invoiceError,
+					});
+				}
 
 				return {
 					bookingId,
