@@ -140,10 +140,6 @@ function BookingPage() {
 		let isCancelled = false;
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
-		console.log("Loading month availability", {
-			month: visibleMonth,
-			selectedDate: formValues.date || null,
-		});
 
 		void getMonthlyBusyWindows({ month: visibleMonth })
 			.then((result) => {

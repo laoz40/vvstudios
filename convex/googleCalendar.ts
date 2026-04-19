@@ -273,26 +273,11 @@ export const createBookingWithCalendarEvent = action({
 						createdAt: Date.now(),
 					});
 
-					console.log("Generated booking invoice artifacts", {
-						bookingId,
-						emailHtmlLength: artifacts.emailHtml.length,
-						invoiceNumber: artifacts.data.invoice.number,
-						pdfBytes: artifacts.pdf.content.byteLength,
-						pdfFilename: artifacts.pdf.filename,
-					});
-
-					const resendEmail = await sendBookingInvoiceEmail({
+					await sendBookingInvoiceEmail({
 						to: args.email,
 						subject: `Your Studio Booking Invoice - ${formatBookingDateShort(args.date)}`,
 						html: artifacts.emailHtml,
 						attachment: artifacts.pdf,
-					});
-
-					console.log("Sent booking invoice email", {
-						bookingId,
-						bookingEmail: args.email,
-						invoiceNumber: artifacts.data.invoice.number,
-						resendEmailId: resendEmail.id,
 					});
 				} catch (invoiceError) {
 					console.error("Booking invoice artifact generation or send failed", {
