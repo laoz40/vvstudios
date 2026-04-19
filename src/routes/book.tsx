@@ -1,6 +1,6 @@
 import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookingContactSection } from "#/features/booking-form/components/contact-section";
@@ -14,8 +14,11 @@ import {
 	bookingSchema,
 	INITIAL_FORM,
 	TIME_SECTIONS,
-	type ParsedBookingFormValues,
 } from "#/features/booking-form/lib/form-shared";
+import {
+	persistSubmittedBooking,
+	type SubmittedBooking,
+} from "#/features/booking-form/lib/submitted-booking";
 import { Button } from "#/components/ui/button";
 import { FieldError, FieldGroup } from "#/components/ui/field";
 import {
@@ -30,14 +33,6 @@ import {
 	type BusyPeriod,
 } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
-
-interface SubmittedBooking {
-	name: string;
-	date: string;
-	time: string;
-	duration: ParsedBookingFormValues["duration"];
-	service: ParsedBookingFormValues["service"];
-}
 
 interface BookingErrorWithData {
 	data?: {
@@ -56,6 +51,7 @@ export const Route = createFileRoute("/book")({
 });
 
 function BookingPage() {
+	const navigate = useNavigate();
 	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const today = startOfToday();
@@ -67,7 +63,6 @@ function BookingPage() {
 	>({});
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
-	const [submittedBooking, setSubmittedBooking] = useState<SubmittedBooking | null>(null);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,15 +89,18 @@ function BookingPage() {
 					notes: parsedValue.notes || undefined,
 				});
 
-				setSubmittedBooking({
+				const submittedBooking: SubmittedBooking = {
 					name: parsedValue.name,
 					date: parsedValue.date,
 					time: parsedValue.time,
 					duration: parsedValue.duration,
 					service: parsedValue.service,
-				});
+				};
+
+				persistSubmittedBooking(submittedBooking);
 				submittedFormApi.reset(INITIAL_FORM);
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
+				await navigate({ to: "/booking-complete" });
 			} catch (submissionError) {
 				setError(getBookingErrorMessage(submissionError));
 			} finally {
@@ -278,26 +276,6 @@ function BookingPage() {
 		selectedMonth,
 		visibleMonth,
 	]);
-
-	if (submittedBooking) {
-		return (
-			<main className="mx-auto flex max-w-3xl flex-col gap-4 py-8">
-				<h1 className="text-3xl font-semibold">Booking confirmed</h1>
-				<p>
-					Thank you, {submittedBooking.name}. Your booking for{" "}
-					<strong>{submittedBooking.service}</strong> on <strong>{submittedBooking.date}</strong> at{" "}
-					<strong>{submittedBooking.time}</strong> for <strong>{submittedBooking.duration}</strong>{" "}
-					has been received.
-				</p>
-				<Button
-					type="button"
-					className="w-fit"
-					onClick={() => setSubmittedBooking(null)}>
-					Create another booking
-				</Button>
-			</main>
-		);
-	}
 
 	return (
 		<main className="mx-auto flex max-w-4xl flex-col gap-8 py-8">
