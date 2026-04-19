@@ -13,11 +13,13 @@ import type {
 import { env } from "./env";
 import {
 	buildEventWindow,
+	formatBookingDateShort,
 	getAvailableTimeOptions,
 	getMonthAvailabilityRange,
 	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 } from "./lib/bookingTimeUtils";
+import { buildBookingCalendarEventRequestBody, sendBookingInvoiceEmail } from "./lib/email";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -60,61 +62,8 @@ interface MonthlyBusyWindowsResult {
 	timeZone: string;
 }
 
-interface ResendSendEmailSuccessResponse {
-	id: string;
-}
-
 function createBookingCalendarError(code: BookingCalendarErrorCode) {
 	return new ConvexError<BookingCalendarErrorData>({ code });
-}
-
-function formatBookingDateShort(date: string) {
-	const [year, month, day] = date.split("-");
-
-	if (!year || !month || !day) {
-		return date;
-	}
-
-	return `${day}/${month}/${year.slice(-2)}`;
-}
-
-async function sendBookingInvoiceEmail(args: {
-	to: string;
-	subject: string;
-	html: string;
-	attachment: {
-		content: Uint8Array;
-		contentType: string;
-		filename: string;
-	};
-}) {
-	const response = await fetch("https://api.resend.com/emails", {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			from: `VV Podcast Studio <${env.RESEND_FROM_EMAIL}>`,
-			to: [args.to],
-			subject: args.subject,
-			html: args.html,
-			attachments: [
-				{
-					filename: args.attachment.filename,
-					content: Buffer.from(args.attachment.content).toString("base64"),
-					contentType: args.attachment.contentType,
-				},
-			],
-		}),
-	});
-
-	if (!response.ok) {
-		const errorBody = await response.text();
-		throw new Error(`Resend request failed (${response.status}): ${errorBody}`);
-	}
-
-	return (await response.json()) as ResendSendEmailSuccessResponse;
 }
 
 function getGoogleCalendarClient() {
@@ -266,29 +215,16 @@ export const createBookingWithCalendarEvent = action({
 				const event = await calendar.events.insert({
 					calendarId,
 					sendUpdates: "all",
-					requestBody: {
-						summary: `${args.service} - ${args.name}`,
-						description: [
-							`Name: ${args.name}`,
-							`Phone: ${args.phone}`,
-							`Account Name: ${args.accountName}`,
-							args.abn ? `ABN: ${args.abn}` : undefined,
-							`Email: ${args.email}`,
-							`Service: ${args.service}`,
-							args.addons.length > 0 ? `Add-ons: ${args.addons.join(", ")}` : undefined,
-							args.notes ? `Notes: ${args.notes}` : undefined,
-						]
-							.filter(Boolean)
-							.join("\n"),
-						start: {
-							dateTime: startDateTime,
-						},
-						end: {
-							dateTime: endDateTime,
-						},
-						transparency: "opaque",
-						attendees: [{ email: args.email }, ...hostEmails.map((email) => ({ email }))],
-					},
+					requestBody: buildBookingCalendarEventRequestBody({
+						name: args.name,
+						duration: args.duration,
+						email: args.email,
+						service: args.service,
+						startDateTime,
+						endDateTime,
+						timeZone,
+						hostEmails,
+					}),
 				});
 
 				googleEventId = event.data.id ?? undefined;

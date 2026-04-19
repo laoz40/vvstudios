@@ -417,3 +417,32 @@ function formatTimeInTimeZone(date: Date, timeZone: string) {
 		timeZone,
 	}).format(date);
 }
+
+export function formatCalendarEventDate(dateTime: string, timeZone: string) {
+	return new Intl.DateTimeFormat("en-AU", {
+		weekday: "long",
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+		timeZone,
+	}).format(new Date(dateTime));
+}
+
+export function formatCalendarEventTime(dateTime: string, timeZone: string) {
+	return new Intl.DateTimeFormat("en-AU", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+		timeZone,
+	}).format(new Date(dateTime));
+}
+
+export function formatBookingDateShort(date: string) {
+	const [year, month, day] = date.split("-");
+
+	if (!year || !month || !day) {
+		return date;
+	}
+
+	return `${day}/${month}/${year.slice(-2)}`;
+}
