@@ -90,6 +90,33 @@ export function startOfToday() {
 	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
+export function getCurrentTimeInMinutes() {
+	const now = new Date();
+	return now.getHours() * 60 + now.getMinutes();
+}
+
+export function getAvailableTimesForDate({
+	busyPeriods,
+	currentTimeInMinutes,
+	dateValue,
+	duration,
+	todayDateValue,
+}: {
+	busyPeriods: BusyPeriod[];
+	currentTimeInMinutes: number;
+	dateValue: string;
+	duration: string;
+	todayDateValue: string;
+}) {
+	const availableTimes = getAvailableTimesForBusyPeriods({ busyPeriods, duration });
+
+	if (dateValue !== todayDateValue) {
+		return availableTimes;
+	}
+
+	return availableTimes.filter((time) => parseTimeToMinutes(time) >= currentTimeInMinutes);
+}
+
 export function toOptionId(value: string) {
 	return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 }

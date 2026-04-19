@@ -25,9 +25,9 @@ import { FieldError, FieldGroup } from "#/components/ui/field";
 import {
 	formatDateValue,
 	formatMonthKey,
-	getAvailableTimesForBusyPeriods,
+	getAvailableTimesForDate,
 	getCurrentMonthKey,
-	hasAvailableTimesForBusyPeriods,
+	getCurrentTimeInMinutes,
 	parseDateValue,
 	parseMonthKey,
 	startOfToday,
@@ -66,6 +66,7 @@ function BookingPage() {
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [currentTimeInMinutes, setCurrentTimeInMinutes] = useState(getCurrentTimeInMinutes);
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
@@ -175,6 +176,7 @@ function BookingPage() {
 		? null
 		: (monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ??
 			null);
+	const todayDateValue = formatDateValue(today);
 
 	const disabledDates = useMemo(() => {
 		return (date: Date) => {
@@ -184,21 +186,22 @@ function BookingPage() {
 
 			const monthKey = formatMonthKey(date);
 			const busyDays = monthlyBusyWindowsByMonth[monthKey];
-			if (!busyDays) {
-				return false;
-			}
-
-			const busyDay = busyDays.find((day) => day.date === formatDateValue(date));
-			if (!busyDay) {
-				return false;
-			}
-
-			return !hasAvailableTimesForBusyPeriods({
-				busyPeriods: busyDay.busyPeriods,
+			const busyDay = busyDays?.find((day) => day.date === formatDateValue(date));
+			const availableTimesForDate = getAvailableTimesForDate({
+				busyPeriods: busyDay?.busyPeriods ?? [],
+				currentTimeInMinutes,
+				dateValue: formatDateValue(date),
 				duration: formValues.duration,
+				todayDateValue,
 			});
+
+			if (!busyDays) {
+				return availableTimesForDate.length === 0;
+			}
+
+			return availableTimesForDate.length === 0;
 		};
-	}, [formValues.duration, monthlyBusyWindowsByMonth, today]);
+	}, [currentTimeInMinutes, formValues.duration, monthlyBusyWindowsByMonth, today, todayDateValue]);
 
 	const availableTimes = useMemo<string[]>(() => {
 		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
@@ -213,11 +216,15 @@ function BookingPage() {
 			return [];
 		}
 
-		return getAvailableTimesForBusyPeriods({
+		return getAvailableTimesForDate({
 			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+			currentTimeInMinutes,
+			dateValue: formValues.date,
 			duration: formValues.duration,
+			todayDateValue,
 		});
 	}, [
+		currentTimeInMinutes,
 		formValues.date,
 		formValues.duration,
 		isLoadingMonthAvailability,
@@ -226,6 +233,7 @@ function BookingPage() {
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedMonth,
+		todayDateValue,
 		visibleMonth,
 	]);
 
@@ -265,6 +273,16 @@ function BookingPage() {
 			}
 		});
 	};
+
+	useEffect(() => {
+		const interval = window.setInterval(() => {
+			setCurrentTimeInMinutes(getCurrentTimeInMinutes());
+		}, 60_000);
+
+		return () => {
+			window.clearInterval(interval);
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!formValues.date || isSelectedDateInPast || !isViewingSelectedMonth) {
