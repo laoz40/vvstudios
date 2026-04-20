@@ -189,7 +189,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
     reuseSavedBookingButton: "Reuse Last Booking Info",
     sessionDetailsTitle: "Customise Your Session",
     addOnsLegend: "SELECT ADD-ONS",
-    addOnsHelper: "Video & Audio Package includes up to 4 RODE microphones and 3 Sony cameras.",
+    addOnsHelper: "Each session includes three 4K Sony cameras, up to four RØDE PodMic microphones, and cinematic lighting already set up.",
     questionsLabel: "ANYTHING ELSE?",
     questionsPlaceholder: "Let us know if you have any special requests or questions.",
     questionsContactPrefix: "Available for call at",

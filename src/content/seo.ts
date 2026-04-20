@@ -3,7 +3,8 @@ export type SeoPageKey =
 	| "book"
 	| "finaliseBooking"
 	| "contact"
-	| "photos";
+	| "photos"
+	| "pricing";
 
 export type SeoPageEntry = {
 	title: string;
@@ -48,6 +49,13 @@ export const seoPages: Record<SeoPageKey, SeoPageEntry> = {
 		description:
 			"Browse photos of VV Podcast Studio in Macquarie Fields and see the podcast sets, lighting, cameras, and recording environment available for business owners and creators in South West Sydney.",
 		path: "/photos",
+		ogImage: "/android-chrome-512x512.png",
+	},
+	pricing: {
+		title: "Podcast Studio Pricing | VV Podcast Studio",
+		description:
+			"View VV Podcast Studio pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
+		path: "/pricing",
 		ogImage: "/android-chrome-512x512.png",
 	},
 };

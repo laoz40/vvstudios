@@ -17,6 +17,7 @@ export const navContent = {
 		navAriaLabel: "Primary navigation",
 		links: [
 			{ href: "/photos", label: "Photos" },
+			{ href: "/pricing", label: "Pricing" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
 		bookLink: bookSessionCta satisfies NavCta,
@@ -31,6 +32,7 @@ export const navContent = {
 		links: [
 			{ href: "/", label: "Home" },
 			{ href: "/photos", label: "Photos" },
+			{ href: "/pricing", label: "Pricing" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
 		bookLink: bookSessionCta satisfies NavCta,
