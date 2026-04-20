@@ -70,8 +70,8 @@ function getGoogleCalendarClient() {
 	const clientId = env.GOOGLE_CLIENT_ID;
 	const clientSecret = env.GOOGLE_CLIENT_SECRET;
 	const refreshToken = env.GOOGLE_REFRESH_TOKEN;
-	const calendarId = env.GOOGLE_CALENDAR_ID ?? "primary";
-	const timeZone = env.GOOGLE_CALENDAR_TIMEZONE ?? "Australia/Sydney";
+	const calendarId = env.GOOGLE_CALENDAR_ID;
+	const timeZone = env.GOOGLE_CALENDAR_TIMEZONE;
 
 	const oauth2Client = new google.auth.OAuth2({
 		clientId,
@@ -179,7 +179,7 @@ export const createBookingWithCalendarEvent = action({
 	handler: async (ctx, args): Promise<CreateBookingWithCalendarEventResult> => {
 		try {
 			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-			const hostEmails = (env.GOOGLE_CALENDAR_HOST_EMAILS ?? "")
+			const hostEmails = (env.GOOGLE_CALENDAR_HOST_EMAILS)
 				.split(",")
 				.map((email) => email.trim())
 				.filter(Boolean);
