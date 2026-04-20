@@ -16,6 +16,7 @@ export const env = createEnv({
 		VITE_APP_TITLE: z.string().min(1).optional(),
 		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
 		VITE_CONVEX_URL: z.string().min(1),
+		VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
 	},
 
 	/**

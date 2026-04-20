@@ -12,7 +12,6 @@ export const env = createEnv({
 		GOOGLE_CALENDAR_HOST_EMAILS: z.string().min(1),
 		RESEND_API_KEY: z.string().min(1),
 		RESEND_FROM_EMAIL: z.email().min(1),
-		STRIPE_PUBLISHABLE_KEY: z.string().min(1),
 		STRIPE_SECRET_KEY: z.string().min(1),
 	},
 	runtimeEnv: process.env,
