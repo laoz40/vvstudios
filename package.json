@@ -12,8 +12,8 @@
 		"test": "vitest run",
 		"format": "oxfmt .",
 		"lint": "oxlint .",
-		"email:dev": "bunx react-email dev --dir ./emails",
-		"pdf:sample": "bun run scripts/generate-booking-invoice-pdf.ts"
+		"email:preview": "bunx react-email dev --dir ./scripts",
+		"pdf:preview": "bun run scripts/preview-booking-invoice-pdf.ts"
 	},
 	"dependencies": {
 		"@clerk/clerk-react": "^5.61.3",
