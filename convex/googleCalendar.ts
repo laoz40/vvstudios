@@ -28,7 +28,8 @@ import { createBookingInvoiceArtifacts } from "../src/features/booking-invoice/l
 
 type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
-	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED";
+	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	| "GOOGLE_CALENDAR_CREATE_FAILED";
 
 type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
