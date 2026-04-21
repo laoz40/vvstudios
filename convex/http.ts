@@ -36,7 +36,6 @@ http.route({
 			});
 		}
 
-
 		if (event.type === "checkout.session.completed") {
 			const session = event.data.object as Stripe.Checkout.Session;
 
@@ -90,7 +89,7 @@ http.route({
 		if (event.type === "checkout.session.expired") {
 			const session = event.data.object as Stripe.Checkout.Session;
 
-			const result = await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
+			await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
 				stripeSessionId: session.id,
 			});
 
