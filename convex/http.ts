@@ -36,10 +36,6 @@ http.route({
 			});
 		}
 
-		console.log("Verified Stripe webhook event", {
-			type: event.type,
-			id: event.id,
-		});
 
 		if (event.type === "checkout.session.completed") {
 			const session = event.data.object as Stripe.Checkout.Session;
@@ -88,12 +84,6 @@ http.route({
 				bookingId: bookingId as Id<"bookings">,
 			});
 
-			console.log("Booking confirmation completed from Stripe webhook", {
-				eventId: event.id,
-				sessionId: session.id,
-				bookingId,
-			});
-
 			return new Response("confirmed", { status: 200 });
 		}
 
@@ -102,13 +92,6 @@ http.route({
 
 			const result = await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
 				stripeSessionId: session.id,
-			});
-
-			console.log("Handled expired checkout session", {
-				eventId: event.id,
-				sessionId: session.id,
-				bookingId: session.metadata?.bookingId ?? null,
-				result,
 			});
 
 			return new Response("expired", { status: 200 });
