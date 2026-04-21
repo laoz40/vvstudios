@@ -1,6 +1,6 @@
 import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
@@ -16,10 +16,6 @@ import {
 	INITIAL_FORM,
 	TIME_SECTIONS,
 } from "#/features/booking-form/lib/form-shared";
-import {
-	persistSubmittedBooking,
-	type SubmittedBooking,
-} from "#/features/booking-form/lib/submitted-booking";
 import { Button } from "#/components/ui/button";
 import { FieldError, FieldGroup } from "#/components/ui/field";
 import {
@@ -35,6 +31,7 @@ import {
 	type BusyPeriod,
 } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
+import { BookingPaymentModal } from "#/features/booking-form/components/PaymentModal";
 
 interface BookingErrorWithData {
 	data?: {
@@ -48,13 +45,19 @@ interface BusyDayWindow {
 	label: string;
 }
 
+interface EmbeddedCheckoutSession {
+	bookingId: string;
+	clientSecret: string;
+	stripeSessionId: string;
+}
+
 export const Route = createFileRoute("/book")({
 	component: BookingPage,
 });
 
 function BookingPage() {
-	const navigate = useNavigate();
-	const createBooking = useAction(api.googleCalendar.createBookingWithCalendarEvent);
+	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
+	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const today = startOfToday();
 	const lastBookableDate = getLastBookableDate(today);
@@ -83,7 +86,7 @@ function BookingPage() {
 			setIsSubmitting(true);
 
 			try {
-				await createBooking({
+				const session = await createEmbeddedCheckoutSession({
 					name: parsedValue.name,
 					phone: parsedValue.phone,
 					accountName: parsedValue.accountName,
@@ -97,23 +100,10 @@ function BookingPage() {
 					notes: parsedValue.notes || undefined,
 				});
 
-				const submittedBooking: SubmittedBooking = {
-					name: parsedValue.name,
-					phone: parsedValue.phone,
-					accountName: parsedValue.accountName,
-					abn: parsedValue.abn ?? "",
-					email: parsedValue.email,
-					date: parsedValue.date,
-					time: parsedValue.time,
-					duration: parsedValue.duration,
-					service: parsedValue.service,
-					addons: parsedValue.addons,
-				};
+				setCheckoutSession(session);
 
-				persistSubmittedBooking(submittedBooking);
 				submittedFormApi.reset(INITIAL_FORM);
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
-				await navigate({ to: "/booking-complete" });
 			} catch (submissionError) {
 				setError(getBookingErrorMessage(submissionError));
 			} finally {
@@ -330,6 +320,10 @@ function BookingPage() {
 		visibleMonth,
 	]);
 
+	const handlePaymentModalClose = () => {
+		setCheckoutSession(null);
+	};
+
 	return (
 		<main className="mx-auto flex max-w-4xl flex-col gap-8 py-8">
 			<div className="flex flex-col gap-2">
@@ -377,6 +371,13 @@ function BookingPage() {
 					</Button>
 				</form>
 			</bookingFormContext.Provider>
+
+			{checkoutSession ? (
+				<BookingPaymentModal
+					clientSecret={checkoutSession.clientSecret}
+					onClose={handlePaymentModalClose}
+				/>
+			) : null}
 		</main>
 	);
 }

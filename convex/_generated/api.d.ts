@@ -15,6 +15,7 @@ import type * as lib_bookingTimeUtils from "../lib/bookingTimeUtils.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
+import type * as stripe from "../stripe.js";
 
 import type {
   ApiFromModules,
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
+  stripe: typeof stripe;
 }>;
 
 /**

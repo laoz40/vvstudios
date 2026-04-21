@@ -179,8 +179,7 @@ export const createBookingWithCalendarEvent = action({
 	handler: async (ctx, args): Promise<CreateBookingWithCalendarEventResult> => {
 		try {
 			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-			const hostEmails = (env.GOOGLE_CALENDAR_HOST_EMAILS)
-				.split(",")
+			const hostEmails = env.GOOGLE_CALENDAR_HOST_EMAILS.split(",")
 				.map((email) => email.trim())
 				.filter(Boolean);
 			const busyWindows = await getBusyWindows({

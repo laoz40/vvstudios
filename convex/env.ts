@@ -13,6 +13,7 @@ export const env = createEnv({
 		RESEND_API_KEY: z.string().min(1),
 		RESEND_FROM_EMAIL: z.email().min(1),
 		STRIPE_SECRET_KEY: z.string().min(1),
+		STRIPE_CHECKOUT_RETURN_URL: z.string().min(1),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

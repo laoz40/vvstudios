@@ -100,7 +100,7 @@ function AdminDashboard() {
 								<td>{booking.service}</td>
 								<td>{booking.addons?.length ? booking.addons.join(", ") : "—"}</td>
 								<td>{booking.notes ?? "—"}</td>
-								<td>{new Date(booking.createdAt).toLocaleString()}</td>
+								<td>{new Date(booking.pendingPaymentCreatedAt).toLocaleString()}</td>
 							</tr>
 						))}
 					</tbody>
