@@ -79,7 +79,7 @@ function BookingPage() {
 			onBlur: bookingSchema,
 			onSubmit: bookingSchema,
 		},
-		onSubmit: async ({ value, formApi: submittedFormApi }) => {
+		onSubmit: async ({ value }) => {
 			const parsedValue = bookingSchema.parse(value);
 
 			setError("");
@@ -102,7 +102,6 @@ function BookingPage() {
 
 				setCheckoutSession(session);
 
-				submittedFormApi.reset(INITIAL_FORM);
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
 			} catch (submissionError) {
 				setError(getBookingErrorMessage(submissionError));
