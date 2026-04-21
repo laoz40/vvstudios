@@ -24,10 +24,12 @@ export default defineSchema({
 			v.literal("expired"),
 		),
 		pendingPaymentCreatedAt: v.number(),
-		paidAt: v.optional(v.number()),
+		paymentCompletedAt: v.optional(v.number()),
+		checkoutExpiredAt: v.optional(v.number()),
+		bookingConfirmationClaimedAt: v.optional(v.number()),
+		bookingConfirmationEventId: v.optional(v.string()),
 		bookingConfirmedAt: v.optional(v.number()),
-		expiredAt: v.optional(v.number()),
-		failureCode: v.optional(v.string()),
+		bookingFailureCode: v.optional(v.string()),
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),

@@ -11,6 +11,7 @@
 import type * as bookings from "../bookings.js";
 import type * as env from "../env.js";
 import type * as googleCalendar from "../googleCalendar.js";
+import type * as http from "../http.js";
 import type * as lib_bookingTimeUtils from "../lib/bookingTimeUtils.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   bookings: typeof bookings;
   env: typeof env;
   googleCalendar: typeof googleCalendar;
+  http: typeof http;
   "lib/bookingTimeUtils": typeof lib_bookingTimeUtils;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
