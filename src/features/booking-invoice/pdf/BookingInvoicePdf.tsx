@@ -50,7 +50,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 							<Text style={styles.infoValue}>{data.invoice.invoiceDateLabel}</Text>
 						</View>
 						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>Booking number:</Text>
+							<Text style={styles.infoLabel}>Invoice number:</Text>
 							<Text style={styles.infoValue}>{data.invoice.number}</Text>
 						</View>
 					</View>
