@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 
 export const createPendingBooking = internalMutation({
@@ -48,6 +49,46 @@ export const getBookings = query({
 			.withIndex("by_pendingPaymentCreatedAt")
 			.order("desc")
 			.take(100);
+	},
+});
+
+function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
+	return {
+		_id: booking._id,
+		status: booking.status,
+		bookingConfirmedAt: booking.bookingConfirmedAt,
+		bookingFailureCode: booking.bookingFailureCode,
+		checkoutExpiredAt: booking.checkoutExpiredAt,
+		paymentCompletedAt: booking.paymentCompletedAt,
+		name: booking.name,
+		phone: booking.phone,
+		accountName: booking.accountName,
+		abn: booking.abn,
+		email: booking.email,
+		date: booking.date,
+		time: booking.time,
+		duration: booking.duration,
+		service: booking.service,
+		addons: booking.addons,
+		notes: booking.notes,
+	};
+}
+
+export const getBookingStatusByStripeSessionId = query({
+	args: {
+		stripeSessionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.unique();
+
+		if (!booking) {
+			return null;
+		}
+
+		return buildPublicBookingStatusResponse(booking);
 	},
 });
 

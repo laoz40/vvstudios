@@ -56,7 +56,7 @@ export const createEmbeddedCheckoutSession = action({
 		const session = await stripe.checkout.sessions.create({
 			mode: "payment",
 			ui_mode: "embedded_page",
-			return_url: env.STRIPE_CHECKOUT_RETURN_URL,
+			return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
 			customer_email: args.email,
 			metadata: {
 				bookingId,
