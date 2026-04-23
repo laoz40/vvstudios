@@ -1,15 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "#/components/PlaceholderPage";
+import { PricingPage } from "#/components/pricing/PricingPage";
 
 export const Route = createFileRoute("/pricing")({
-	component: PricingPage,
+	head: () => ({
+		meta: [
+			{
+				title: "Podcast Studio Pricing | VV Podcast Studio",
+			},
+			{
+				name: "description",
+				content:
+					"View VV Podcast Studio pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
+			},
+		],
+	}),
+	component: RoutePricingPage,
 });
 
-function PricingPage() {
-	return (
-		<PlaceholderPage
-			title="Pricing page coming next."
-			body="This route is a temporary placeholder so the old Astro navigation can be ported over without changing the booking flow implementation."
-		/>
-	);
+function RoutePricingPage() {
+	return <PricingPage />;
 }
