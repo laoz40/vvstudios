@@ -39,7 +39,7 @@ export function LandingHero() {
 				</picture>
 			</div>
 
-			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/90 via-background/70 to-background/92" />
+			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/90 via-background/65 to-background/92" />
 
 			<div className="mx-auto grid w-full max-w-7xl gap-4 px-4 pb-16 pt-36 md:px-0 md:pb-52 md:pt-32">
 				<div className="flex max-w-xl flex-col gap-3 md:-ml-10 lg:-ml-16">
