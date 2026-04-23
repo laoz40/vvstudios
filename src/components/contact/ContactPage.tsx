@@ -274,8 +274,8 @@ function ContactCard() {
 				<Image
 					src={micImage}
 					alt={contactCardCopy.studioImageAlt}
-					width={micImage.width}
-					height={micImage.height}
+					width={1600}
+					height={1836}
 					layout="constrained"
 					className="contact-card__image h-auto w-full object-cover"
 				/>
@@ -295,7 +295,7 @@ function ContactCard() {
 								<dd className="min-w-0">
 									<a
 										href={item.href}
-										className="contact-link block text-base font-medium break-words md:text-lg">
+										className="contact-link block text-base font-medium wrap-break-word md:text-lg">
 										{item.value}
 									</a>
 								</dd>
