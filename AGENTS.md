@@ -4,6 +4,7 @@ Booking website for podcast studio.
 
 - bun
 - typescript
+- shadcn
 - t3env for env vars
 
 For Convex code, always read `convex/_generated/ai/guidelines.md` first for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
@@ -37,6 +38,7 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 - compose feature components instead of putting large UI trees or business logic in `page.tsx`
 - Prefer small, focused components with clear props
+- Always use shadcn/ui components by default, and unpic for images
 
 ### Naming Conventions
 
