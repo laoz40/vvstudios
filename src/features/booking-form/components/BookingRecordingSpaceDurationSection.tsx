@@ -238,7 +238,7 @@ export function BookingRecordingSpaceDurationSection() {
 							<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
 							<Dialog.Content className="bg-popover fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-2xl px-3 py-3 shadow-2xl outline-none sm:w-[calc(100%-2rem)] sm:px-4 sm:py-4">
 								<div className="flex items-center justify-between gap-3">
-									<Dialog.Title className="text-lg font-semibold text-white">
+									<Dialog.Title className="text-lg font-semibold text-foreground">
 										{sectionCopy.requestCallDialogTitle}
 									</Dialog.Title>
 									<Dialog.Close asChild>

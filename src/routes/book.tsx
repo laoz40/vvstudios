@@ -348,7 +348,7 @@ function BookingPage() {
 						});
 					}}
 					className="flex flex-col gap-8">
-					<FieldGroup>
+					<FieldGroup className="flex flex-col gap-8">
 						<BookingRecordingSpaceDurationSection />
 						<BookingDateTimeSection
 							availabilityError={availabilityError}
