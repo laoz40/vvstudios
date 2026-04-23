@@ -6,7 +6,9 @@
 - Keep language simple, concise. Explain clearly. Try to keep explanations short.
 
 ## Goal
+
 Add fixed $50 deposit payment step with Stripe Embedded Checkout:
+
 - clicking Create booking opens payment modal
 - booking confirmation only happens after Stripe payment completes successfully
 - user then redirected to /booking-complete
@@ -21,6 +23,7 @@ Add fixed $50 deposit payment step with Stripe Embedded Checkout:
 Everything else is UI or state display.
 
 ## Current state
+
 - Booking submission happens in `src/routes/book.tsx`
 - form submit creates a pending Convex booking record and Stripe Checkout session
 - Embedded Stripe Checkout opens in `BookingPaymentModal`
@@ -37,9 +40,11 @@ This removes split-brain and duplicate fulfillment paths.
 ## Implementation plan
 
 ### 1) Create one pending booking/payment record in Convex
+
 When the user submits the booking form:
 
 Create a single Convex record that stores:
+
 - booking form payload
 - slot/date/time/service details
 - `status: "pending_payment"`
@@ -48,13 +53,16 @@ Create a single Convex record that stores:
 - optional error fields for failure states
 
 Important:
+
 - do not create the Google Calendar event yet
 - this pending Convex record is the canonical source of truth
 
 ### 2) Create Stripe Checkout session in Convex
+
 Add Stripe session creation on the backend in Convex.
 
 Responsibilities:
+
 - accept validated booking payload or pending record id
 - create Stripe Checkout Session for fixed $50 deposit
 - use embedded Checkout mode
@@ -64,39 +72,49 @@ Responsibilities:
 - return the client secret needed by embedded checkout
 
 Why:
+
 - Stripe is only the payment processor
 - Convex owns booking/payment state
 
 ### 3) Refactor `src/routes/book.tsx` to UI-only payment start
+
 New submit flow:
+
 1. validate form
 2. call Convex to create pending record + Stripe session
 3. receive Stripe client secret / session bootstrap data
 
 Important:
+
 - no calendar calls here
 - no booking finalization here
 - prevent duplicate submits while session is being created
 
 ### 4) Add payment modal with embedded Stripe checkout
+
 Add a small focused payment component.
 
 Responsibilities:
+
 - load Stripe with `VITE_STRIPE_PUBLISHABLE_KEY`
 - render embedded checkout inside modal/dialog
 - show loading and error states cleanly
 - close safely if user abandons payment
 
 ### 5) Webhook is the only booking finalization path
+
 Implement Stripe webhook handling in `convex/http.ts`.
 
 Required event:
+
 - `checkout.session.completed`
 
 Optional event:
+
 - `checkout.session.expired`
 
 On `checkout.session.completed`:
+
 1. verify webhook signature
 2. extract `bookingId` from Stripe metadata
 3. load pending Convex record
@@ -108,21 +126,24 @@ On `checkout.session.completed`:
 If webhook is retried, later deliveries must become no-ops.
 
 ### 6) Use atomic idempotency in Convex
+
 Do not rely only on a plain read check like:
 
 ```ts
 if (status !== "pending_payment") {
-  return;
+	return;
 }
 ```
 
 Implementation must use an atomic Convex mutation that claims finalization once.
 
 Minimal safe rule:
+
 - only one transaction may move a record out of `pending_payment` for fulfillment
 - repeated webhook deliveries must return the already-processed result
 
 Recommended stored fields:
+
 - `stripeSessionId`
 - `stripePaymentIntentId` if available
 - `paidAt`
@@ -131,10 +152,12 @@ Recommended stored fields:
 - `failureMessage`
 
 ### 7) Booking conflict handling after payment
+
 This plan prevents duplicate fulfillment of the same payment.
 It does **not** fully eliminate slot conflicts between different users.
 
 If the slot becomes unavailable before finalization:
+
 - do not silently fail
 - mark record `failed`
 - store structured error reason
@@ -145,9 +168,11 @@ No reservation system yet.
 No retries yet.
 
 ### 8) Return page becomes read-only status UI
+
 Update `/booking-complete` to be a status page only.
 
 Responsibilities:
+
 - read returned `session_id` or internal booking reference
 - ask Convex for current payment/booking status
 - show:
@@ -158,12 +183,14 @@ Responsibilities:
   - invalid/missing reference state
 
 Important:
+
 - no Stripe verification logic here for finalization
 - no booking creation here
 - no fallback fulfillment path here
 - this route is display-only
 
 ### 9) Minimal state model
+
 Keep the state model small:
 
 ```text
@@ -174,11 +201,13 @@ expired
 ```
 
 Note:
+
 - implementation still needs an atomic finalization claim
 - if that is easier with an internal transitional flag or field, that is fine
 - keep the externally visible lifecycle simple
 
 ## Likely file touch list
+
 - `src/routes/book.tsx`
 - `src/routes/booking-complete.tsx`
 - new Stripe payment modal/component under booking feature code
@@ -187,6 +216,7 @@ Note:
 - `convex/schema.ts`
 
 ## Test checklist
+
 - valid booking opens Stripe modal
 - embedded checkout renders successfully
 - successful payment redirects to `/booking-complete`
@@ -202,6 +232,7 @@ Note:
 ## Completed
 
 ### Done
+
 - Updated `convex/schema.ts` to support booking payment lifecycle fields, Stripe references, confirmation claim fields, and Google Calendar references
 - Added pending booking creation in `convex/bookings.ts`
 - Added internal booking lookup and lifecycle mutations in `convex/bookings.ts`
