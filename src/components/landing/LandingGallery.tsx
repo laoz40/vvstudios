@@ -13,10 +13,6 @@ import { Button } from "#/components/ui/button";
 
 const galleryCopy = {
 	title: "A quick look at the space",
-	intro:
-		"These photos give you a proper look at the studio before you book. You can see the sets, the lighting, and the overall feel of the space, so you know what to expect when you walk in.",
-	closing:
-		"Like what you see? Book a session or take a free tour. The space is set up for podcasts, interviews, and branded content, with a clean, professional look on camera.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 } as const;
@@ -84,9 +80,6 @@ export function LandingGallery() {
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
 				<div className="max-w-3xl space-y-4">
 					<h2 className="text-2xl leading-none font-bold md:text-4xl">{galleryCopy.title}</h2>
-					<p className="text-muted-foreground text-sm leading-7 text-pretty sm:text-base">
-						{galleryCopy.intro}
-					</p>
 				</div>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -103,7 +96,7 @@ export function LandingGallery() {
 								<Image
 									src={image.src}
 									alt={image.alt}
-									layout="fullWidth"
+									layout="constrained"
 									width={image.width}
 									height={image.height}
 									className={imageClass}
@@ -113,12 +106,6 @@ export function LandingGallery() {
 						);
 					})}
 				</div>
-			</div>
-
-			<div className="mx-auto mt-6 max-w-6xl">
-				<p className="max-w-3xl text-sm leading-7 text-pretty text-muted-foreground sm:text-base">
-					{galleryCopy.closing}
-				</p>
 			</div>
 
 			<div className="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 md:mt-12">

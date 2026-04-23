@@ -56,8 +56,8 @@ export const Route = createFileRoute("/book")({
 });
 
 const pageCopy = {
-	title: "Pick a space and time",
-	lead: "Afterwards, you will be redirected to finalise your booking details.",
+	title: "Studio Hire Booking",
+	lead: "Simply select a space and time, then choose your addons.",
 } as const;
 
 function BookingPage() {
@@ -331,7 +331,7 @@ function BookingPage() {
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 pt-2 pb-12 sm:pt-8">
 			<div className="flex flex-col gap-2">
-				<h1 className="text-4xl font-extrabold text-primary">{pageCopy.title}</h1>
+				<h1 className="text-4xl font-extrabold">{pageCopy.title}</h1>
 				<p className="text-base text-muted-foreground">{pageCopy.lead}</p>
 			</div>
 

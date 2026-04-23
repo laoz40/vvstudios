@@ -18,8 +18,8 @@ import { toOptionId } from "#/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
 const sectionCopy = {
-	recordingSpaceLabel: "SELECT RECORDING SPACE",
-	durationLabel: "SELECT SESSION DURATION",
+	recordingSpaceLabel: "RECORDING SPACE *",
+	durationLabel: "SESSION DURATION *",
 	recurringPromptPrefix: "Need recurring sessions?",
 	recurringPromptAction: "Request a call",
 	recurringPromptSuffix: "to lock in your slot and secure a discounted rate.",
@@ -91,7 +91,7 @@ export function BookingRecordingSpaceDurationSection() {
 						data-field-name="service"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 						<FieldSet className="gap-1">
-							<FieldLegend className="mb-3 text-xs font-semibold tracking-widest text-primary uppercase">
+							<FieldLegend className="mb-3 text-sm! font-semibold tracking-widest text-primary uppercase">
 								{sectionCopy.recordingSpaceLabel}
 							</FieldLegend>
 							<RadioGroup
@@ -158,7 +158,7 @@ export function BookingRecordingSpaceDurationSection() {
 						data-field-name="duration"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 						<FieldSet className="gap-1">
-							<FieldLegend className="mb-3 text-xs font-semibold tracking-widest text-primary uppercase">
+							<FieldLegend className="mb-3 text-sm! font-semibold tracking-widest text-primary uppercase">
 								{sectionCopy.durationLabel}
 							</FieldLegend>
 							<RadioGroup

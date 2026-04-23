@@ -184,6 +184,7 @@ textarea {
 
 .accent-link {
 	color: var(--foreground);
+	text-decoration: underline;
 	text-decoration-color: color-mix(in srgb, var(--primary) 70%, transparent);
 	text-underline-offset: 0.22em;
 	transition:
@@ -193,7 +194,6 @@ textarea {
 
 .accent-link:hover {
 	color: var(--primary);
-	text-decoration: underline;
 }
 
 .accent-link:focus-visible {

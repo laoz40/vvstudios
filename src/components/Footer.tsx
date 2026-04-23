@@ -57,7 +57,7 @@ export function Footer() {
 									{item.label}
 								</span>
 								<a
-									className="accent-link text-sm font-medium"
+									className="accent-link text-sm"
 									href={item.href}>
 									{item.value}
 								</a>
