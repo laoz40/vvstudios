@@ -10,14 +10,18 @@ import { ADDON_OPTIONS, type BookingFormValues } from "#/features/booking-form/l
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import { toOptionId } from "#/lib/bookingdatetime";
 
-export function BookingAddonsSection() {
+export interface BookingAddonsSectionProps {
+	sectionHeadingClassName: string;
+}
+
+export function BookingAddonsSection({ sectionHeadingClassName }: BookingAddonsSectionProps) {
 	const formApi = useBookingFormContext();
 
 	return (
 		<formApi.Field name="addons">
 			{(field) => (
 				<FieldSet data-field-name="addons">
-					<FieldLegend variant="label">Add-ons</FieldLegend>
+					<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
 					<FieldDescription>
 						Optional extras for your session. Select any that you’d like to add.
 					</FieldDescription>

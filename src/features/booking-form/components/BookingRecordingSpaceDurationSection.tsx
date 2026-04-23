@@ -68,7 +68,13 @@ const durationOptions: DurationOption[] = [
 const pressableClass =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in";
 
-export function BookingRecordingSpaceDurationSection() {
+export interface BookingRecordingSpaceDurationSectionProps {
+	sectionHeadingClassName: string;
+}
+
+export function BookingRecordingSpaceDurationSection({
+	sectionHeadingClassName,
+}: BookingRecordingSpaceDurationSectionProps) {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
@@ -81,7 +87,7 @@ export function BookingRecordingSpaceDurationSection() {
 						data-field-name="service"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 						<FieldSet className="gap-1">
-							<FieldLegend className="mb-3 text-sm! font-semibold tracking-widest text-primary uppercase">
+							<FieldLegend className={sectionHeadingClassName}>
 								{sectionCopy.recordingSpaceLabel}
 							</FieldLegend>
 							<RadioGroup
@@ -148,7 +154,7 @@ export function BookingRecordingSpaceDurationSection() {
 						data-field-name="duration"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 						<FieldSet className="gap-1">
-							<FieldLegend className="mb-3 text-sm! font-semibold tracking-widest text-primary uppercase">
+							<FieldLegend className={sectionHeadingClassName}>
 								{sectionCopy.durationLabel}
 							</FieldLegend>
 							<RadioGroup

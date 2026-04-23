@@ -60,6 +60,8 @@ const pageCopy = {
 	lead: "Simply select a space and time, then choose your addons.",
 } as const;
 
+const sectionHeadingClassName = "text-sm! font-semibold tracking-widest text-primary uppercase";
+
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
@@ -349,7 +351,9 @@ function BookingPage() {
 					}}
 					className="flex flex-col gap-10">
 					<FieldGroup className="flex flex-col gap-10 md:gap-12">
-						<BookingRecordingSpaceDurationSection />
+						<BookingRecordingSpaceDurationSection
+							sectionHeadingClassName={sectionHeadingClassName}
+						/>
 						<BookingDateTimeSection
 							availabilityError={availabilityError}
 							availableTimeSections={availableTimeSections}
@@ -359,10 +363,11 @@ function BookingPage() {
 							isSelectedDateInPast={isSelectedDateInPast}
 							isViewingSelectedMonth={isViewingSelectedMonth}
 							selectedDate={selectedDate}
+							sectionHeadingClassName={sectionHeadingClassName}
 							setCalendarMonth={setCalendarMonth}
 						/>
-						<BookingAddonsSection />
-						<BookingContactSection />
+						<BookingAddonsSection sectionHeadingClassName={sectionHeadingClassName} />
+						<BookingContactSection sectionHeadingClassName={sectionHeadingClassName} />
 					</FieldGroup>
 
 					{error ? <FieldError>{error}</FieldError> : null}

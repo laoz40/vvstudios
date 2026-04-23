@@ -55,6 +55,7 @@ export interface BookingDateTimeSectionProps {
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
 	selectedDate: Date | undefined;
+	sectionHeadingClassName: string;
 	setCalendarMonth: (date: Date) => void;
 }
 
@@ -67,6 +68,7 @@ export function BookingDateTimeSection({
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
 	selectedDate,
+	sectionHeadingClassName,
 	setCalendarMonth,
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
@@ -115,9 +117,7 @@ export function BookingDateTimeSection({
 							<Field
 								data-field-name="date"
 								className="gap-3">
-								<FieldLabel className="text-sm! font-semibold tracking-widest text-primary uppercase">
-									{sectionCopy.dateLabel}
-								</FieldLabel>
+								<FieldLabel className={sectionHeadingClassName}>{sectionCopy.dateLabel}</FieldLabel>
 								<div className="bg-input/30 border-border overflow-hidden rounded-lg border">
 									<Calendar
 										className="w-full bg-transparent p-5 [--cell-size:--spacing(11)]"
@@ -155,7 +155,7 @@ export function BookingDateTimeSection({
 							<FieldSet
 								data-field-name="time"
 								className="min-w-0 gap-3">
-								<FieldLegend className="text-sm! font-semibold tracking-widest text-primary uppercase">
+								<FieldLegend className={sectionHeadingClassName}>
 									{sectionCopy.timeLabel}
 								</FieldLegend>
 								{availableTimeSections.length > 0 ? (

@@ -5,7 +5,28 @@ import { Textarea } from "#/components/ui/textarea";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import { toFieldErrorObjects } from "#/features/booking-form/lib/form-shared";
 
-export function BookingContactSection() {
+const sectionCopy = {
+	contactDetailsLegend: "CONTACT DETAILS",
+	fullNameLabel: "Full Name *",
+	fullNamePlaceholder: "Awesome Artist",
+	phoneLabel: "Contact Phone Number *",
+	phonePlaceholder: "0400 000 000",
+	billingInformationLegend: "BILLING INFORMATION",
+	accountNameLabel: "Account Name *",
+	accountNamePlaceholder: "Account Name",
+	abnLabel: "ABN",
+	abnPlaceholder: "00 000 000 000",
+	emailLabel: "Email (to receive your invoice) *",
+	emailPlaceholder: "billing@example.com",
+	notesLegend: "Anything else?",
+	notesPlaceholder: "Let us know if you have any special requests or questions.",
+} as const;
+
+export interface BookingContactSectionProps {
+	sectionHeadingClassName: string;
+}
+
+export function BookingContactSection({ sectionHeadingClassName }: BookingContactSectionProps) {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
@@ -13,18 +34,18 @@ export function BookingContactSection() {
 	return (
 		<>
 			<FieldSet>
-				<FieldLegend className="text-sm font-semibold uppercase tracking-wide text-primary">
-					Enter contact details
+				<FieldLegend className={sectionHeadingClassName}>
+					{sectionCopy.contactDetailsLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="name">
 						{(field) => (
 							<Field data-field-name="name">
-								<FieldLabel htmlFor="name">Full Name *</FieldLabel>
+								<FieldLabel htmlFor="name">{sectionCopy.fullNameLabel}</FieldLabel>
 								<Input
 									id="name"
 									type="text"
-									placeholder="Awesome Artist"
+									placeholder={sectionCopy.fullNamePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -39,11 +60,11 @@ export function BookingContactSection() {
 					<formApi.Field name="phone">
 						{(field) => (
 							<Field data-field-name="phone">
-								<FieldLabel htmlFor="phone">Contact Phone Number *</FieldLabel>
+								<FieldLabel htmlFor="phone">{sectionCopy.phoneLabel}</FieldLabel>
 								<Input
 									id="phone"
 									type="tel"
-									placeholder="0400 000 000"
+									placeholder={sectionCopy.phonePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -58,18 +79,18 @@ export function BookingContactSection() {
 			</FieldSet>
 
 			<FieldSet>
-				<FieldLegend className="text-sm font-semibold uppercase tracking-wide text-primary">
-					Enter billing information
+				<FieldLegend className={sectionHeadingClassName}>
+					{sectionCopy.billingInformationLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="accountName">
 						{(field) => (
 							<Field data-field-name="accountName">
-								<FieldLabel htmlFor="accountName">Account Name *</FieldLabel>
+								<FieldLabel htmlFor="accountName">{sectionCopy.accountNameLabel}</FieldLabel>
 								<Input
 									id="accountName"
 									type="text"
-									placeholder="Account Name"
+									placeholder={sectionCopy.accountNamePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -84,11 +105,11 @@ export function BookingContactSection() {
 					<formApi.Field name="abn">
 						{(field) => (
 							<Field data-field-name="abn">
-								<FieldLabel htmlFor="abn">ABN</FieldLabel>
+								<FieldLabel htmlFor="abn">{sectionCopy.abnLabel}</FieldLabel>
 								<Input
 									id="abn"
 									type="text"
-									placeholder="00 000 000 000"
+									placeholder={sectionCopy.abnPlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -105,11 +126,11 @@ export function BookingContactSection() {
 							<Field
 								data-field-name="email"
 								className="md:col-span-2">
-								<FieldLabel htmlFor="email">Email (to receive your invoice) *</FieldLabel>
+								<FieldLabel htmlFor="email">{sectionCopy.emailLabel}</FieldLabel>
 								<Input
 									id="email"
 									type="email"
-									placeholder="billing@example.com"
+									placeholder={sectionCopy.emailPlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -124,16 +145,14 @@ export function BookingContactSection() {
 			</FieldSet>
 
 			<FieldSet>
-				<FieldLegend className="text-sm font-semibold uppercase tracking-wide text-primary">
-					Anything else?
-				</FieldLegend>
+				<FieldLegend className={sectionHeadingClassName}>{sectionCopy.notesLegend}</FieldLegend>
 				<formApi.Field name="notes">
 					{(field) => (
 						<Field data-field-name="notes">
 							<Textarea
 								id="notes"
 								value={field.state.value}
-								placeholder="Let us know if you have any special requests or questions."
+								placeholder={sectionCopy.notesPlaceholder}
 								maxLength={200}
 								onChange={(event) => field.handleChange(event.target.value)}
 								onBlur={field.handleBlur}

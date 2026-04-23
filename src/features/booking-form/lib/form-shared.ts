@@ -72,7 +72,7 @@ export const bookingSchema = z.object({
 		.refine((value) => value !== "", "Duration is required."),
 	service: z
 		.union([z.literal(""), z.enum(SERVICES)])
-		.refine((value) => value !== "", "Service is required."),
+		.refine((value) => value !== "", "Recording space is required."),
 	addons: z.array(z.enum(ADDON_OPTIONS)),
 	notes: z.string().trim().max(200, "Please keep this under 200 characters."),
 });
