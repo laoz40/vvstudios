@@ -9,15 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PhotosRouteImport } from './routes/photos'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookingCompleteRouteImport } from './routes/booking-complete'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotosRoute = PhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingCompleteRoute = BookingCompleteRouteImport.update({
@@ -46,14 +64,20 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/photos': typeof PhotosRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/photos': typeof PhotosRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +85,42 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/photos': typeof PhotosRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/book' | '/booking-complete' | '/login'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/contact'
+    | '/login'
+    | '/photos'
+    | '/pricing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/book' | '/booking-complete' | '/login'
-  id: '__root__' | '/' | '/admin' | '/book' | '/booking-complete' | '/login'
+  to:
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/contact'
+    | '/login'
+    | '/photos'
+    | '/pricing'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/contact'
+    | '/login'
+    | '/photos'
+    | '/pricing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,16 +128,40 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   BookRoute: typeof BookRoute
   BookingCompleteRoute: typeof BookingCompleteRoute
+  ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
+  PhotosRoute: typeof PhotosRoute
+  PricingRoute: typeof PricingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photos': {
+      id: '/photos'
+      path: '/photos'
+      fullPath: '/photos'
+      preLoaderRoute: typeof PhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking-complete': {
@@ -124,7 +200,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   BookRoute: BookRoute,
   BookingCompleteRoute: BookingCompleteRoute,
+  ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
+  PhotosRoute: PhotosRoute,
+  PricingRoute: PricingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

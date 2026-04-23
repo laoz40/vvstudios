@@ -1,3 +1,5 @@
+@import "@fontsource-variable/gabarito";
+@import "@fontsource/squada-one";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -46,12 +48,11 @@
 	--sidebar-ring: #f5c400;
 
 	--font-sans: "Gabarito Variable", ui-sans-serif, sans-serif, system-ui;
-	--font-serif:
-		"Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times,
-		serif;
+	--font-serif: "Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-brand: "Squada One", ui-sans-serif, sans-serif, system-ui;
 	--font-mono:
-		"Squada One", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-		"Liberation Mono", "Courier New", monospace;
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+		monospace;
 
 	--radius: 0.75rem;
 	/* --radius: 0; */
@@ -65,16 +66,11 @@
 
 	--shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.08);
 	--shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.08);
-	--shadow-sm:
-		0 1px 2px 0px hsl(0 0% 0% / 0.14), 0 1px 1px -1px hsl(0 0% 0% / 0.14);
-	--shadow:
-		0 1px 3px 0px hsl(0 0% 0% / 0.16), 0 1px 2px -1px hsl(0 0% 0% / 0.16);
-	--shadow-md:
-		0 2px 4px 0px hsl(0 0% 0% / 0.18), 0 2px 3px -1px hsl(0 0% 0% / 0.18);
-	--shadow-lg:
-		0 4px 8px 0px hsl(0 0% 0% / 0.2), 0 3px 6px -2px hsl(0 0% 0% / 0.2);
-	--shadow-xl:
-		0 8px 14px 0px hsl(0 0% 0% / 0.22), 0 4px 8px -2px hsl(0 0% 0% / 0.22);
+	--shadow-sm: 0 1px 2px 0px hsl(0 0% 0% / 0.14), 0 1px 1px -1px hsl(0 0% 0% / 0.14);
+	--shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.16), 0 1px 2px -1px hsl(0 0% 0% / 0.16);
+	--shadow-md: 0 2px 4px 0px hsl(0 0% 0% / 0.18), 0 2px 3px -1px hsl(0 0% 0% / 0.18);
+	--shadow-lg: 0 4px 8px 0px hsl(0 0% 0% / 0.2), 0 3px 6px -2px hsl(0 0% 0% / 0.2);
+	--shadow-xl: 0 8px 14px 0px hsl(0 0% 0% / 0.22), 0 4px 8px -2px hsl(0 0% 0% / 0.22);
 	--shadow-2xl: 0 10px 20px 0px hsl(0 0% 0% / 0.28);
 
 	--tracking-normal: 0em;
@@ -151,6 +147,12 @@
 	}
 }
 
+@layer utilities {
+	.font-brand {
+		font-family: var(--font-brand);
+	}
+}
+
 html {
 	background-color: var(--background);
 }
@@ -159,7 +161,25 @@ body {
 	min-height: 100vh;
 	background-color: var(--background);
 	color: var(--foreground);
-	padding: 1rem 5rem 0;
+	padding: 1rem 1rem 0;
+}
+
+@media (min-width: 768px) {
+	body {
+		padding: 1rem 2rem 0;
+	}
+}
+
+@media (min-width: 1024px) {
+	body {
+		padding: 1rem 5rem 0;
+	}
+}
+
+@media (max-width: 767px) {
+	#site-shell {
+		overflow-x: clip;
+	}
 }
 
 button,
