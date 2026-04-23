@@ -38,6 +38,12 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - compose feature components instead of putting large UI trees or business logic in `page.tsx`
 - Prefer small, focused components with clear props
 
+### Naming Conventions
+
+- component files: `PascalCase.svelte`.
+- Utility functions/variables: `camelCase`.
+- Exported type names: `PascalCase`.
+
 ### TypeScript
 
 - Prefer explicit exported types for component props and utility contracts
