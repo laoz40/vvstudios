@@ -1,11 +1,9 @@
 import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { Footer } from "#/components/Footer";
-
-import { SiteNavbar } from "#/components/navigation/site-navbar";
+import { SiteNavbar } from "#/components/NavBar";
 import appCss from "../styles.css?url";
 import ClerkProvider from "../integrations/clerk/provider";
 import ConvexProvider from "../integrations/convex/provider";
-
 import type { QueryClient } from "@tanstack/react-query";
 
 interface MyRouterContext {
