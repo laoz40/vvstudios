@@ -25,7 +25,7 @@ const bookingAddOnDescriptions = Object.fromEntries(
 
 export const pricingPageContent = {
 	title: "Studio session pricing",
-	lead: "Pricing is based on session duration. You can choose either the table setup or open setup, with images available on the booking page.",
+	lead: "Pricing is based on session duration. You can choose either the table setup or armchair setup, with images available on the booking page.",
 	sessions: [
 		{
 			label: "1 Hour",

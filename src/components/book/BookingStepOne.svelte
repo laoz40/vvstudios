@@ -19,7 +19,7 @@
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
 	import tableImage from "../../assets/gallery/table-setup.webp?enhanced";
-	import couchImage from "../../assets/couch.jpg?enhanced";
+	import armchairSetupImage from "../../assets/open-setup.jpg?enhanced";
 
 	const pressableClass =
 		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
@@ -33,7 +33,6 @@
 	const studios: BookingStepOneStudioOption[] = bookingStepOneContent.studios;
 	const durations = bookingStepOneContent.durations;
 	const bookingUrls = bookingStepOneContent.bookingUrls;
-	const unavailableStudioId = "couch";
 	const recurringBookingUrl = bookingStepOneContent.recurringBookingUrl;
 	const BookingStepOneSchema = z.object({
 		studioId: z.string().min(1, "Please select a studio space."),
@@ -201,20 +200,16 @@
 				name="studio"
 				class="grid gap-4 md:grid-cols-2">
 				{#each studios as studio}
-					{@const isUnavailable = studio.id === unavailableStudioId}
 					<div>
 						<RadioGroupItem
 							id={`studio-${studio.id}`}
 							value={studio.id}
-							disabled={isUnavailable}
 							class="peer sr-only size-0" />
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
-								"border-border bg-input peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background block overflow-hidden rounded-lg border transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
 								pressableClass,
-								!isUnavailable && "hover:border-primary cursor-pointer",
-								isUnavailable && "cursor-not-allowed opacity-60 saturate-0",
 								selectedStudioId === studio.id && "border-primary",
 							)}>
 							<div class="relative h-56 w-full">
@@ -229,27 +224,24 @@
 										class="h-full w-full object-cover"
 										loading="lazy"
 										decoding="async" />
-								{:else if studio.imageSlot === "couch-image"}
+								{:else if studio.imageSlot === "armchair-image"}
 									<enhanced:img
-										src={couchImage}
+										src={armchairSetupImage}
 										alt={bookingStepOneContent.studios[1].alt}
 										class="h-full w-full object-cover"
 										loading="lazy"
 										decoding="async" />
 								{/if}
-								<div
-									class={cn(
-										"bg-background/90 absolute inset-x-0 bottom-0 px-4 py-2 backdrop-blur-xs transition duration-300!",
-										selectedStudioId === studio.id &&
-											!isUnavailable &&
-											"bg-[#393420]/90",
-									)}>
-									<p class="text-base font-semibold">{studio.name}</p>
-									<p
-										class="text-muted-foreground text-sm font-light text-pretty">
-										{studio.description}
-									</p>
-								</div>
+							</div>
+							<div
+								class={cn(
+									"bg-input/30 px-4 py-2 transition duration-300! group-hover:bg-primary/10",
+									selectedStudioId === studio.id && "bg-primary/10",
+								)}>
+								<p class="text-base font-semibold">{studio.name}</p>
+								<p class="text-muted-foreground text-sm font-light text-pretty">
+									{studio.description}
+								</p>
 							</div>
 						</label>
 					</div>

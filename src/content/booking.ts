@@ -9,9 +9,9 @@ import { requireEnv } from "../lib/requireEnv";
 const tableBookingUrl1 = requireEnv("PUBLIC_BOOKING_TABLE_1_URL");
 const tableBookingUrl2 = requireEnv("PUBLIC_BOOKING_TABLE_2_URL");
 const tableBookingUrl3 = requireEnv("PUBLIC_BOOKING_TABLE_3_URL");
-const couchBookingUrl1 = requireEnv("PUBLIC_BOOKING_COUCH_1_URL");
-const couchBookingUrl2 = requireEnv("PUBLIC_BOOKING_COUCH_2_URL");
-const couchBookingUrl3 = requireEnv("PUBLIC_BOOKING_COUCH_3_URL");
+const armchairBookingUrl1 = requireEnv("PUBLIC_BOOKING_ARMCHAIR_1_URL");
+const armchairBookingUrl2 = requireEnv("PUBLIC_BOOKING_ARMCHAIR_2_URL");
+const armchairBookingUrl3 = requireEnv("PUBLIC_BOOKING_ARMCHAIR_3_URL");
 const recurringBookingUrl = requireEnv("PUBLIC_BOOKING_RECURRING_URL");
 
 const scriptUrl = requireEnv("APP_SCRIPT_URL");
@@ -44,11 +44,11 @@ export const bookingStepOneContent: BookingStepOneContent = {
       alt: "Podcast table setup with microphones and studio lighting",
     },
     {
-      id: "couch",
-      name: "Couch Setup",
-      description: "This setup will be changing into something better!",
-      imageSlot: "couch-image",
-      alt: "Podcast couch setup with warm lamps and casual seating",
+      id: "armchair",
+      name: "Armchair Setup",
+      description: "For a more relaxed atmosphere",
+      imageSlot: "armchair-image",
+      alt: "Podcast armchair setup with warm lamps and casual seating",
     },
   ],
   durations: [
@@ -78,10 +78,10 @@ export const bookingStepOneContent: BookingStepOneContent = {
       "2": tableBookingUrl2,
       "3": tableBookingUrl3,
     },
-    couch: {
-      "1": couchBookingUrl1,
-      "2": couchBookingUrl2,
-      "3": couchBookingUrl3,
+    armchair: {
+      "1": armchairBookingUrl1,
+      "2": armchairBookingUrl2,
+      "3": armchairBookingUrl3,
     },
   },
   primaryButtonLabel: "PICK SESSION DATE",

@@ -14,7 +14,7 @@ export type BookingStepOneStudioOption = {
 	id: string;
 	name: string;
 	description: string;
-	imageSlot: "table-image" | "couch-image";
+	imageSlot: "table-image" | "armchair-image";
 	alt: string;
 };
 

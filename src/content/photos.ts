@@ -45,7 +45,7 @@ export const photosPageContent: PhotosPageContent = {
 		},
 		{
 			filename: "screen.jpg",
-			alt: "VV Podcast Studio gallery image showing the couch setup",
+			alt: "VV Podcast Studio gallery image showing the armchair setup",
 		},
 		{
 			filename: "trio-talking-at-table-setup.jpg",
