@@ -4,8 +4,8 @@ import { Separator } from "#/components/ui/separator";
 const footerContent = {
 	studioName: "VV Podcast Studio",
 	parentCompanyName: "Vertigo Visuals",
-	lead: "Studio hire and production support in South West Sydney.",
-	availability: "Available for bookings, tours, and production enquiries.",
+	lead: "The best studio in South West Sydney",
+	availability: "Available for studio hire and production support",
 	contactAriaLabel: "Contact details",
 } as const;
 
