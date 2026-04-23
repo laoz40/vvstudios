@@ -1,14 +1,10 @@
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
-import { Check, X } from "lucide-react";
-import { Dialog } from "radix-ui";
-import { useState } from "react";
+import { Check } from "lucide-react";
 import armchairSetupImage from "#/assets/armchair-setup.webp";
 import tableSetupImage from "#/assets/gallery/table-setup.webp";
-import { Button } from "#/components/ui/button";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { env } from "#/env";
 import {
 	toFieldErrorObjects,
 	type BookingFormValues,
@@ -20,11 +16,6 @@ import { cn } from "#/lib/utils";
 const sectionCopy = {
 	recordingSpaceLabel: "RECORDING SPACE *",
 	durationLabel: "SESSION DURATION *",
-	recurringPromptPrefix: "Need recurring sessions?",
-	recurringPromptAction: "Request a call",
-	recurringPromptSuffix: "to lock in your slot and secure a discounted rate.",
-	requestCallDialogTitle: "Request a call",
-	requestCallDialogClose: "Close",
 } as const;
 
 type DurationOption = {
@@ -81,7 +72,6 @@ export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
-	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
 
 	return (
 		<>
@@ -219,51 +209,6 @@ export function BookingRecordingSpaceDurationSection() {
 					</section>
 				)}
 			</formApi.Field>
-
-			<div className="flex flex-col gap-4">
-				<p className="text-sm text-muted-foreground">
-					{sectionCopy.recurringPromptPrefix}{" "}
-					<Dialog.Root
-						open={isRequestCallOpen}
-						onOpenChange={setIsRequestCallOpen}>
-						<Dialog.Trigger asChild>
-							<Button
-								type="button"
-								variant="link"
-								className="accent-link text-foreground p-0 font-medium">
-								{sectionCopy.recurringPromptAction}
-							</Button>
-						</Dialog.Trigger>
-						<Dialog.Portal>
-							<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
-							<Dialog.Content className="bg-popover fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-2xl px-3 py-3 shadow-2xl outline-none sm:w-[calc(100%-2rem)] sm:px-4 sm:py-4">
-								<div className="flex items-center justify-between gap-3">
-									<Dialog.Title className="text-lg font-semibold text-foreground">
-										{sectionCopy.requestCallDialogTitle}
-									</Dialog.Title>
-									<Dialog.Close asChild>
-										<Button
-											type="button"
-											variant="ghost"
-											size="icon-sm"
-											aria-label={sectionCopy.requestCallDialogClose}>
-											<X />
-										</Button>
-									</Dialog.Close>
-								</div>
-								<div className="overflow-hidden rounded-xl bg-white p-1">
-									<iframe
-										src={env.VITE_BOOKING_RECURRING_URL}
-										title={sectionCopy.requestCallDialogTitle}
-										className="block min-h-176 w-full border-0 bg-transparent"
-									/>
-								</div>
-							</Dialog.Content>
-						</Dialog.Portal>
-					</Dialog.Root>{" "}
-					{sectionCopy.recurringPromptSuffix}
-				</p>
-			</div>
 		</>
 	);
 }
