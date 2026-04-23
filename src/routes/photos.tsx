@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "#/components/site/placeholder-page";
+import { PlaceholderPage } from "#/components/PlaceholderPage";
 
 export const Route = createFileRoute("/photos")({
 	component: PhotosPage,

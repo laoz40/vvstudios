@@ -1,3 +1,4 @@
+import { PlaceholderPage } from "#/components/PlaceholderPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -5,5 +6,10 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-	return <main />;
+	return (
+		<PlaceholderPage
+			title="Home Page"
+			body="for now"
+		/>
+	);
 }

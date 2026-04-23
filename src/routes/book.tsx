@@ -55,6 +55,11 @@ export const Route = createFileRoute("/book")({
 	component: BookingPage,
 });
 
+const pageCopy = {
+	title: "Pick a space and time",
+	lead: "Afterwards, you will be redirected to finalise your booking details.",
+} as const;
+
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
@@ -324,10 +329,10 @@ function BookingPage() {
 	};
 
 	return (
-		<main className="mx-auto flex max-w-4xl flex-col gap-8 py-8">
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 pt-2 pb-12 sm:pt-8">
 			<div className="flex flex-col gap-2">
-				<h1 className="text-3xl font-semibold">Book</h1>
-				<p className="text-muted-foreground">Choose your service, date, and available time.</p>
+				<h1 className="text-4xl font-extrabold text-primary">{pageCopy.title}</h1>
+				<p className="text-base text-muted-foreground">{pageCopy.lead}</p>
 			</div>
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
