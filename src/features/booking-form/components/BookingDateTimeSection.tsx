@@ -179,7 +179,7 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm font-medium transition-colors",
+														"bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium transition-colors",
 														transitionClassName,
 														"disabled:cursor-not-allowed disabled:opacity-50",
 														isActive

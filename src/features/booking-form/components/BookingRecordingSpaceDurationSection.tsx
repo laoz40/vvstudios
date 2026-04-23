@@ -185,14 +185,14 @@ export function BookingRecordingSpaceDurationSection({
 														{option.badgeLabel}
 													</span>
 												) : null}
-												<p className="text-base font-semibold">{option.label}</p>
-												<div className="relative flex items-center justify-center gap-1 text-sm">
+												<p className="text-base font-semibold mt-0.5">{option.label}</p>
+												<div className="relative flex flex-col items-center justify-start text-sm h-7">
 													{hasDiscount ? (
 														<>
 															<p className="whitespace-nowrap text-primary">
 																{option.discountedPrice}
 															</p>
-															<p className="text-muted-foreground whitespace-nowrap line-through">
+															<p className="text-muted-foreground whitespace-nowrap line-through text-[10px] leading-2">
 																{option.originalPrice}
 															</p>
 														</>
