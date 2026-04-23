@@ -3,7 +3,7 @@ import { useStore } from "@tanstack/react-store";
 import { Check, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
-import openSetupImage from "#/assets/open-setup.webp";
+import armchairSetupImage from "#/assets/armchair-setup.webp";
 import tableSetupImage from "#/assets/gallery/table-setup.webp";
 import { Button } from "#/components/ui/button";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
@@ -47,7 +47,7 @@ const recordingSpaceOptions = [
 		value: "Open Setup" as const,
 		title: "Open Setup",
 		description: "For a more relaxed atmosphere",
-		image: openSetupImage,
+		image: armchairSetupImage,
 		imageAlt: "Podcast open setup with warm lamps and casual seating",
 	},
 ] as const;
