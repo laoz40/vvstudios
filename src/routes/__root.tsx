@@ -1,4 +1,5 @@
 import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { Footer } from "#/components/Footer";
 
 import { SiteNavbar } from "#/components/navigation/site-navbar";
 import appCss from "../styles.css?url";
@@ -51,6 +52,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							className="min-h-screen pt-24 md:pt-28">
 							{children}
 						</div>
+						<Footer />
 					</ConvexProvider>
 				</ClerkProvider>
 				<Scripts />

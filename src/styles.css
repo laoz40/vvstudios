@@ -187,3 +187,23 @@ input,
 textarea {
 	font: inherit;
 }
+
+.accent-link {
+	color: var(--foreground);
+	text-decoration-color: color-mix(in srgb, var(--primary) 70%, transparent);
+	text-underline-offset: 0.22em;
+	transition:
+		color 160ms ease,
+		text-decoration-color 160ms ease;
+}
+
+.accent-link:hover {
+	color: var(--primary);
+	text-decoration: underline;
+}
+
+.accent-link:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+	border-radius: 2px;
+}
