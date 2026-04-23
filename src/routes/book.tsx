@@ -61,6 +61,8 @@ const pageCopy = {
 } as const;
 
 const sectionHeadingClassName = "text-sm! font-semibold tracking-widest text-primary uppercase";
+const bookingOptionTransitionClassName =
+	"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in";
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
@@ -353,6 +355,7 @@ function BookingPage() {
 					<FieldGroup className="flex flex-col gap-10 md:gap-12">
 						<BookingRecordingSpaceDurationSection
 							sectionHeadingClassName={sectionHeadingClassName}
+							transitionClassName={bookingOptionTransitionClassName}
 						/>
 						<BookingDateTimeSection
 							availabilityError={availabilityError}
@@ -365,8 +368,12 @@ function BookingPage() {
 							selectedDate={selectedDate}
 							sectionHeadingClassName={sectionHeadingClassName}
 							setCalendarMonth={setCalendarMonth}
+							transitionClassName={bookingOptionTransitionClassName}
 						/>
-						<BookingAddonsSection sectionHeadingClassName={sectionHeadingClassName} />
+						<BookingAddonsSection
+							sectionHeadingClassName={sectionHeadingClassName}
+							transitionClassName={bookingOptionTransitionClassName}
+						/>
 						<BookingContactSection sectionHeadingClassName={sectionHeadingClassName} />
 					</FieldGroup>
 
@@ -374,9 +381,9 @@ function BookingPage() {
 
 					<Button
 						type="submit"
-						className="w-fit"
+						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider"
 						disabled={isSubmitting}>
-						{isSubmitting ? "Submitting..." : "Create booking"}
+						{isSubmitting ? "Submitting..." : "COMPLETE BOOKING"}
 					</Button>
 				</form>
 			</bookingFormContext.Provider>

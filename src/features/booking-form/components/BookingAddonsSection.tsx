@@ -11,9 +11,11 @@ import { Check, Clapperboard, Scissors, Smartphone } from "lucide-react";
 import { ADDON_OPTIONS, type BookingFormValues } from "#/features/booking-form/lib/form-shared";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import { toOptionId } from "#/lib/bookingdatetime";
+import { cn } from "#/lib/utils";
 
 const sectionTitle = "Add-ons";
-const sectionDescription = "Each session includes three 4K Sony cameras, up to four RODE PodMic microphones, and cinematic lighting already set up.";
+const sectionDescription =
+	"Each session includes three 4K Sony cameras, up to four RODE PodMic microphones, and cinematic lighting already set up.";
 
 const addonCardCopy = {
 	"4K UHD Recording": {
@@ -41,14 +43,24 @@ const addonCardCopy = {
 	}
 >;
 
-export function BookingAddonsSection() {
+export interface BookingAddonsSectionProps {
+	sectionHeadingClassName: string;
+	transitionClassName: string;
+}
+
+export function BookingAddonsSection({
+	sectionHeadingClassName,
+	transitionClassName,
+}: BookingAddonsSectionProps) {
 	const formApi = useBookingFormContext();
 
 	return (
 		<formApi.Field name="addons">
 			{(field) => (
-				<FieldSet data-field-name="addons">
-					<FieldLegend variant="label">{sectionTitle}</FieldLegend>
+				<FieldSet
+					data-field-name="addons"
+					className="mt-4">
+					<FieldLegend className={sectionHeadingClassName}>{sectionTitle}</FieldLegend>
 					<FieldDescription>{sectionDescription}</FieldDescription>
 					<div className="flex flex-col gap-4">
 						{ADDON_OPTIONS.map((addon) => {
@@ -61,7 +73,10 @@ export function BookingAddonsSection() {
 									key={addon}
 									htmlFor={`addon-${toOptionId(addon)}`}
 									data-state={isChecked ? "checked" : "unchecked"}
-									className="w-full cursor-pointer rounded-lg border border-border bg-input/30 transition-all hover:border-primary hover:bg-primary/10 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+									className={cn(
+										"w-full cursor-pointer rounded-lg border border-border bg-input/30 transition-all hover:border-primary hover:bg-primary/10 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10",
+										transitionClassName,
+									)}>
 									<Field
 										orientation="horizontal"
 										className="items-center justify-between gap-4 rounded-lg px-4 py-6">

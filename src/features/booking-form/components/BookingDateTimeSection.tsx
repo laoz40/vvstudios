@@ -57,6 +57,7 @@ export interface BookingDateTimeSectionProps {
 	selectedDate: Date | undefined;
 	sectionHeadingClassName: string;
 	setCalendarMonth: (date: Date) => void;
+	transitionClassName: string;
 }
 
 export function BookingDateTimeSection({
@@ -70,6 +71,7 @@ export function BookingDateTimeSection({
 	selectedDate,
 	sectionHeadingClassName,
 	setCalendarMonth,
+	transitionClassName,
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
 	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<string | null>(null);
@@ -159,7 +161,7 @@ export function BookingDateTimeSection({
 									{sectionCopy.timeLabel}
 								</FieldLegend>
 								{availableTimeSections.length > 0 ? (
-									<div className="flex flex-wrap gap-3">
+									<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
 										<p className="sr-only">{sectionCopy.timePeriodLabel}</p>
 										{availableTimeSections.map((section) => {
 											const isActive = activeTimeSection?.key === section.key;
@@ -177,7 +179,8 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"bg-input/30 border-border rounded-md border px-4 py-2 text-sm font-medium transition-colors",
+														"bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm font-medium transition-colors",
+														transitionClassName,
 														"disabled:cursor-not-allowed disabled:opacity-50",
 														isActive
 															? "border-primary bg-primary/10 text-foreground"
@@ -204,14 +207,14 @@ export function BookingDateTimeSection({
 									className="flex flex-col gap-6">
 									{activeTimeSection ? (
 										<div className="flex flex-col gap-4">
-											<p className="text-sm font-medium text-foreground/80">
-												{activeTimeSection.label}
-											</p>
-											<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+											<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 mt-6">
 												{activeTimeSection.times.map((time) => (
 													<FieldLabel
 														key={time}
-														className="bg-input/30 border-border w-full! cursor-pointer flex-row! rounded-lg border transition-colors hover:border-primary hover:bg-primary/10">
+														className={cn(
+															"bg-input/30 border-border w-full! cursor-pointer flex-row! rounded-lg border transition-colors hover:border-primary hover:bg-primary/10",
+															transitionClassName,
+														)}>
 														<Field
 															orientation="horizontal"
 															className={cn(

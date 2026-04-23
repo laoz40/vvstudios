@@ -9,7 +9,7 @@ const sectionCopy = {
 	contactDetailsLegend: "CONTACT DETAILS",
 	fullNameLabel: "Full Name *",
 	fullNamePlaceholder: "Awesome Artist",
-	phoneLabel: "Contact Phone Number *",
+	phoneLabel: "Mobile Number *",
 	phonePlaceholder: "0400 000 000",
 	billingInformationLegend: "BILLING INFORMATION",
 	accountNameLabel: "Account Name *",
@@ -123,9 +123,7 @@ export function BookingContactSection({ sectionHeadingClassName }: BookingContac
 
 					<formApi.Field name="email">
 						{(field) => (
-							<Field
-								data-field-name="email"
-								className="md:col-span-2">
+							<Field data-field-name="email">
 								<FieldLabel htmlFor="email">{sectionCopy.emailLabel}</FieldLabel>
 								<Input
 									id="email"

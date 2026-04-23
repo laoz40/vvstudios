@@ -65,15 +65,14 @@ const durationOptions: DurationOption[] = [
 	},
 ] as const;
 
-const pressableClass =
-	"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in";
-
 export interface BookingRecordingSpaceDurationSectionProps {
 	sectionHeadingClassName: string;
+	transitionClassName: string;
 }
 
 export function BookingRecordingSpaceDurationSection({
 	sectionHeadingClassName,
+	transitionClassName,
 }: BookingRecordingSpaceDurationSectionProps) {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
@@ -108,7 +107,7 @@ export function BookingRecordingSpaceDurationSection({
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
 												"border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
-												pressableClass,
+												transitionClassName,
 												field.state.value === option.value && "border-primary",
 											)}>
 											<div className="relative h-56 w-full">
@@ -178,7 +177,7 @@ export function BookingRecordingSpaceDurationSection({
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
 													"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
-													pressableClass,
+													transitionClassName,
 													field.state.value === option.value && "border-primary bg-primary/10",
 												)}>
 												{option.badgeLabel ? (
