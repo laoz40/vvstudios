@@ -79,9 +79,7 @@ export interface LandingGalleryProps {
 	withTopSpacing?: boolean;
 }
 
-export function LandingGallery({
-	withTopSpacing = true,
-}: LandingGalleryProps) {
+export function LandingGallery({ withTopSpacing = true }: LandingGalleryProps) {
 	return (
 		<section
 			className={cn(

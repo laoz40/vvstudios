@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "#/components/PlaceholderPage";
+import { ContactPage } from "#/components/contact/ContactPage";
 
 export const Route = createFileRoute("/contact")({
+	head: () => ({
+		meta: [
+			{
+				title: "Contact VV Podcast Studio | VV Podcast Studio",
+			},
+			{
+				name: "description",
+				content:
+					"Contact VV Podcast Studio to plan your next podcast or video session. Reach out for studio details, bookings, and production support in South West Sydney.",
+			},
+		],
+	}),
 	component: ContactPage,
 });
-
-function ContactPage() {
-	return (
-		<PlaceholderPage
-			title="Contact page coming next."
-			body="This route is a temporary placeholder so the old Astro navigation can be ported over without changing the booking flow implementation."
-		/>
-	);
-}
