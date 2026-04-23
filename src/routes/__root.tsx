@@ -1,5 +1,6 @@
 import { SignedOut } from "@clerk/clerk-react";
 import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { Footer } from "#/components/Footer";
 
 import appCss from "../styles.css?url";
 import ClerkProvider from "../integrations/clerk/provider";
@@ -45,14 +46,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ClerkProvider>
 					<ConvexProvider>
-						<nav>
-							<Link to="/book">Book</Link> | <Link to="/admin">Admin</Link> |{" "}
-							<SignedOut>
-								<Link to="/login">Login</Link>
-							</SignedOut>
-						</nav>
-						<hr />
-						{children}
+						<div className="flex min-h-screen flex-col">
+							<div className="flex-1">
+								<nav>
+									<Link to="/book">Book</Link> | <Link to="/admin">Admin</Link> |{" "}
+									<SignedOut>
+										<Link to="/login">Login</Link>
+									</SignedOut>
+								</nav>
+								<hr />
+								{children}
+							</div>
+							<Footer />
+						</div>
 					</ConvexProvider>
 				</ClerkProvider>
 				<Scripts />

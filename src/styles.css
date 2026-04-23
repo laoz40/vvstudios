@@ -46,12 +46,10 @@
 	--sidebar-ring: #f5c400;
 
 	--font-sans: "Gabarito Variable", ui-sans-serif, sans-serif, system-ui;
-	--font-serif:
-		"Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times,
-		serif;
+	--font-serif: "Gabarito Variable", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 	--font-mono:
-		"Squada One", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-		"Liberation Mono", "Courier New", monospace;
+		"Squada One", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
 
 	--radius: 0.75rem;
 	/* --radius: 0; */
@@ -65,16 +63,11 @@
 
 	--shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.08);
 	--shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.08);
-	--shadow-sm:
-		0 1px 2px 0px hsl(0 0% 0% / 0.14), 0 1px 1px -1px hsl(0 0% 0% / 0.14);
-	--shadow:
-		0 1px 3px 0px hsl(0 0% 0% / 0.16), 0 1px 2px -1px hsl(0 0% 0% / 0.16);
-	--shadow-md:
-		0 2px 4px 0px hsl(0 0% 0% / 0.18), 0 2px 3px -1px hsl(0 0% 0% / 0.18);
-	--shadow-lg:
-		0 4px 8px 0px hsl(0 0% 0% / 0.2), 0 3px 6px -2px hsl(0 0% 0% / 0.2);
-	--shadow-xl:
-		0 8px 14px 0px hsl(0 0% 0% / 0.22), 0 4px 8px -2px hsl(0 0% 0% / 0.22);
+	--shadow-sm: 0 1px 2px 0px hsl(0 0% 0% / 0.14), 0 1px 1px -1px hsl(0 0% 0% / 0.14);
+	--shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.16), 0 1px 2px -1px hsl(0 0% 0% / 0.16);
+	--shadow-md: 0 2px 4px 0px hsl(0 0% 0% / 0.18), 0 2px 3px -1px hsl(0 0% 0% / 0.18);
+	--shadow-lg: 0 4px 8px 0px hsl(0 0% 0% / 0.2), 0 3px 6px -2px hsl(0 0% 0% / 0.2);
+	--shadow-xl: 0 8px 14px 0px hsl(0 0% 0% / 0.22), 0 4px 8px -2px hsl(0 0% 0% / 0.22);
 	--shadow-2xl: 0 10px 20px 0px hsl(0 0% 0% / 0.28);
 
 	--tracking-normal: 0em;
@@ -166,4 +159,24 @@ button,
 input,
 textarea {
 	font: inherit;
+}
+
+.accent-link {
+	color: var(--foreground);
+	text-decoration-color: color-mix(in srgb, var(--primary) 70%, transparent);
+	text-underline-offset: 0.22em;
+	transition:
+		color 160ms ease,
+		text-decoration-color 160ms ease;
+}
+
+.accent-link:hover {
+	color: var(--primary);
+	text-decoration: underline;
+}
+
+.accent-link:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+	border-radius: 2px;
 }
