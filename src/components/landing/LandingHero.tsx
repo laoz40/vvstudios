@@ -19,11 +19,7 @@ export function LandingHero() {
 	return (
 		<section
 			aria-labelledby="landing-hero-title"
-			className="relative isolate flex min-h-screen items-end overflow-hidden md:items-center"
-			style={{
-				width: "100dvw",
-				marginInline: "calc(50% - 50dvw)",
-			}}>
+			className="relative isolate -mx-4 flex min-h-screen items-end overflow-hidden md:-mx-8 md:items-center lg:-mx-20">
 			<div
 				aria-hidden
 				className="absolute inset-0 -z-20">
@@ -75,10 +71,20 @@ export function LandingHero() {
 							{heroCopy.tourCta}
 						</Button>
 					</div>
+
+					<div className="mt-3 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
+						<MapPin className="text-primary" />
+						<Button
+							asChild
+							variant="link"
+							className="h-auto px-0 py-0 text-left whitespace-normal text-muted-foreground hover:text-foreground">
+							<a href={env.VITE_APP_STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
+						</Button>
+					</div>
 				</div>
 			</div>
 
-			<div className="absolute bottom-8 left-0 inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground md:right-8 md:left-auto md:px-0 md:text-base">
+			<div className="absolute right-8 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base">
 				<MapPin className="text-primary" />
 				<Button
 					asChild

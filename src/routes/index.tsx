@@ -1,4 +1,3 @@
-import { PlaceholderPage } from "#/components/PlaceholderPage";
 import { createFileRoute } from "@tanstack/react-router";
 import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";

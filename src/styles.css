@@ -176,12 +176,6 @@ body {
 	}
 }
 
-@media (max-width: 767px) {
-	#site-shell {
-		overflow-x: clip;
-	}
-}
-
 button,
 input,
 textarea {
