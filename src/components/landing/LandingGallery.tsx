@@ -10,6 +10,7 @@ import screenImage from "#/assets/gallery/screen.webp";
 import tableSetupImage from "#/assets/gallery/table-setup.webp";
 import trioTalkingAtTableSetupImage from "#/assets/gallery/trio-talking-at-table-setup.webp";
 import { Button } from "#/components/ui/button";
+import { cn } from "#/lib/utils";
 
 const galleryCopy = {
 	title: "A quick look at the space",
@@ -74,9 +75,19 @@ const galleryImages = [
 	},
 ] as const;
 
-export function LandingGallery() {
+export interface LandingGalleryProps {
+	withTopSpacing?: boolean;
+}
+
+export function LandingGallery({
+	withTopSpacing = true,
+}: LandingGalleryProps) {
 	return (
-		<section className="bg-background px-4 pt-16 pb-16 md:px-0 md:pt-20">
+		<section
+			className={cn(
+				"bg-background px-4 pb-16 md:px-0",
+				withTopSpacing ? "pt-16 md:pt-20" : "pt-0",
+			)}>
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
 				<div className="max-w-3xl space-y-4">
 					<h2 className="text-2xl leading-none font-bold md:text-4xl">{galleryCopy.title}</h2>
