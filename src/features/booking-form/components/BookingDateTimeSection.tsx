@@ -177,7 +177,7 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"bg-input/30 border-border rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+														"bg-input/30 border-border rounded-md border px-4 py-2 text-sm font-medium transition-colors",
 														"disabled:cursor-not-allowed disabled:opacity-50",
 														isActive
 															? "border-primary bg-primary/10 text-foreground"
