@@ -4,7 +4,10 @@ import HeroSection from "../components/landing/HeroSection.astro";
 import PhotosSection from "../components/photos/PhotosSection.astro";
 import Layout from "../layouts/Layout.astro";
 import { Separator } from "$lib/components/ui/separator/index.js";
-import { faqSectionContent } from "../content/landing";
+import {
+	faqSectionContent,
+	flattenContactFaqAnswer,
+} from "../content/landing";
 import { structuredDataBusiness } from "../content/structuredData";
 import { seoPages } from "../content/seo";
 import {
@@ -22,7 +25,7 @@ const homepageStructuredData = [
 	buildFaqSchema(
 		faqSectionContent.items.map((item) => ({
 			question: item.question,
-			answer: item.answer,
+			answer: flattenContactFaqAnswer(item.answerParts),
 		})),
 	),
 ];

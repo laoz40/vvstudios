@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FaqItemRow from "./FaqItemRow.svelte";
+	import ContactFaqItemRow from "../contact/ContactFaqItemRow.svelte";
 	import { faqSectionContent } from "../../content/landing";
 </script>
 
@@ -17,9 +17,7 @@
 
 		<div class="mt-4">
 			{#each faqSectionContent.items as item}
-				<FaqItemRow
-					question={item.question}
-					answer={item.answer} />
+				<ContactFaqItemRow {item} />
 			{/each}
 		</div>
 	</div>

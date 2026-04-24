@@ -1,3 +1,11 @@
+import {
+	contactEmail,
+	contactFaqItems,
+	contactPhone,
+	type ContactFaqAnswerPart,
+	type ContactFaqItem,
+} from "./contact";
+
 export type HeroContent = {
 	eyebrow: string;
 	title: string;
@@ -9,15 +17,25 @@ export type HeroContent = {
 	address: string;
 };
 
-export type FaqItem = {
-	question: string;
-	answer: string;
-};
-
 export type FaqSectionContent = {
 	title: string;
-	items: FaqItem[];
+	items: readonly ContactFaqItem[];
 };
+
+export const flattenContactFaqAnswer = (parts: readonly ContactFaqAnswerPart[]) =>
+	parts
+		.map((part) => {
+			switch (part.type) {
+				case "text":
+					return part.value;
+				case "email":
+					return contactEmail;
+				case "phone":
+					return contactPhone;
+			}
+		})
+		.join("")
+		.trim();
 
 export const heroContent: HeroContent = {
 	eyebrow: "From Vertigo Visuals",
@@ -32,27 +50,5 @@ export const heroContent: HeroContent = {
 
 export const faqSectionContent: FaqSectionContent = {
 	title: "Frequently Asked Questions",
-	items: [
-		{
-			question: "Do I need my own equipment?",
-			answer:
-				"No. The studio is fully set up with professional cameras, audio, and lighting. You can walk in and focus on your content.",
-		},
-		{
-			question: "I’ve never recorded before, is that a problem?",
-			answer:
-				"Not at all. The setup is handled for you, so you can get comfortable quickly and focus on delivering your content.",
-		},
-		{
-			question: "What’s included in a session?",
-			answer:
-				"Everything needed to record high-quality content is ready to go. If you need editing or specific outputs, that can be arranged as well.",
-		},
-		{
-			question:
-				"Can I use the space for content other than podcasts?",
-			answer:
-				"Yes. The studio is also used for interviews, marketing content, and branded video, depending on what you need to create.",
-		},
-	],
+	items: contactFaqItems,
 };
