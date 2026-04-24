@@ -154,7 +154,7 @@ export function BookingContactSection({ sectionHeadingClassName }: BookingContac
 								maxLength={200}
 								onChange={(event) => field.handleChange(event.target.value)}
 								onBlur={field.handleBlur}
-								rows={4}
+								rows={2}
 							/>
 							{field.state.meta.isBlurred || shouldShowFieldError ? (
 								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
