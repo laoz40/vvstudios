@@ -1,7 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import BookSessionButton from "../components/shared/BookSessionButton.astro";
-import { pricingPageContent } from "../content/pricing";
+import PricingSection from "../components/pricing/PricingSection.astro";
 import { seoPages } from "../content/seo";
 import { structuredDataBusiness } from "../content/structuredData";
 import { buildBreadcrumbSchema } from "../lib/seo/schema";
@@ -22,76 +21,5 @@ const pricingStructuredData = buildBreadcrumbSchema(
 	canonicalPath={seoPages.pricing.path}
 	ogImage={seoPages.pricing.ogImage}
 	structuredData={pricingStructuredData}>
-	<section class="px-4 pt-28 pb-16 md:pt-32 sm:pb-20">
-		<div class="mx-auto flex w-full max-w-6xl flex-col gap-12">
-			<div class="max-w-3xl space-y-4 pb-2">
-				<h1 class="text-2xl leading-none font-bold md:text-4xl">
-					{pricingPageContent.title}
-				</h1>
-				<p class="text-muted-foreground text-sm text-pretty leading-7 sm:text-base">
-					{pricingPageContent.lead}
-				</p>
-			</div>
-
-			<div class="grid gap-5 lg:grid-cols-3">
-				{pricingPageContent.sessions.map((session) => (
-					<article class="border-border bg-card flex h-full flex-col rounded-lg border p-6">
-						<div class="flex flex-1 flex-col gap-6">
-							<div class="space-y-3">
-								<div class="flex items-center justify-between gap-4">
-									<h2 class="text-foreground text-xl font-bold sm:text-2xl">{session.label}</h2>
-									{session.isMostPopular && (
-										<span class="bg-primary text-primary-foreground inline-flex items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide uppercase">
-											Most popular
-										</span>
-									)}
-								</div>
-								<p class="text-primary text-5xl leading-none font-bold sm:text-6xl">{session.price}</p>
-								<div class="min-h-6">
-									{session.savings && (
-										<div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-											<p class="text-muted-foreground">
-												<span class="line-through">{session.baseRatePrice}</span>
-												<span>standard rate</span>
-											</p>
-											<p class="text-primary font-semibold">{session.savings}</p>
-										</div>
-									)}
-								</div>
-							</div>
-
-							<p class="text-muted-foreground text-sm leading-relaxed sm:text-base">{session.description}</p>
-
-							<div class="mt-auto pt-2">
-								<BookSessionButton class="w-full justify-center" />
-							</div>
-						</div>
-					</article>
-				))}
-			</div>
-
-			<div class="space-y-4">
-				<section class="space-y-4">
-					<div class="max-w-3xl space-y-4">
-						<h2 class="text-2xl leading-none font-bold md:text-4xl">{pricingPageContent.addOnsTitle}</h2>
-						<p class="text-muted-foreground text-sm text-pretty leading-7 sm:text-base">
-							{pricingPageContent.addOnsLead}
-						</p>
-					</div>
-
-					<div class="grid gap-4 md:grid-cols-3">
-						{pricingPageContent.addOns.map((addOn) => (
-							<div class="border-border bg-card flex h-full flex-col gap-3 rounded-lg border p-5">
-								<div class="flex items-start justify-between gap-4">
-									<h3 class="text-lg font-semibold">{addOn.label}</h3>
-									<p class="text-primary text-lg font-semibold">{addOn.price}</p>
-								</div>
-								<p class="text-muted-foreground text-sm leading-relaxed sm:text-base">{addOn.description}</p>
-							</div>
-						))}
-					</div>
-				</section>
-			</div>
-		</div>
-	</section>
+	<PricingSection headingLevel="h1" />
 </Layout>

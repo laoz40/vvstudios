@@ -2,6 +2,7 @@
 import FaqSection from "../components/landing/FaqSection.svelte";
 import HeroSection from "../components/landing/HeroSection.astro";
 import PhotosSection from "../components/photos/PhotosSection.astro";
+import PricingSection from "../components/pricing/PricingSection.astro";
 import Layout from "../layouts/Layout.astro";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import {
@@ -40,9 +41,11 @@ const homepageStructuredData = [
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
 	</div>
-	<PhotosSection class="bg-background text-foreground pt-16 md:pt-20" />
-	<Separator class="mx-auto my-4 max-w-6xl" />
+	<PhotosSection class="bg-background text-foreground pt-16 pb-12 md:pt-20 md:pb-16" />
+	<Separator class="mx-auto max-w-6xl my-6" />
+	<PricingSection compact class="bg-background text-foreground pb-12 md:pb-16" />
+	<Separator class="mx-auto max-w-6xl my-6" />
 	<div class="bg-background text-foreground">
-		<FaqSection client:visible />
+		<FaqSection client:visible compact />
 	</div>
 </Layout>

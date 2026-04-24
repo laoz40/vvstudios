@@ -1,12 +1,18 @@
 <script lang="ts">
 	import ContactFaqItemRow from "../contact/ContactFaqItemRow.svelte";
 	import { faqSectionContent } from "../../content/landing";
+
+	export let compact = false;
+
+	const contentSpacingClass = compact
+		? "mx-auto max-w-6xl px-4 pt-8 pb-8 md:px-0 md:pt-12 md:pb-12"
+		: "mx-auto max-w-6xl px-4 pt-12 pb-8 md:px-0 md:pt-16 md:pb-12";
 </script>
 
 <section
 	class="bg-background w-full"
 	aria-labelledby="faq-title">
-	<div class="mx-auto max-w-6xl px-4 py-8 md:py-12 md:px-0">
+	<div class={contentSpacingClass}>
 		<div>
 			<h2
 				id="faq-title"
