@@ -71,10 +71,10 @@ const galleryImages = Object.entries(galleryModules)
 				{photosPageContent.introText}
 			</p>
 		</div>
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+		<div class="columns-1 gap-4 sm:columns-2 xl:columns-3">
 			{
 				galleryImages.map((image, index) => (
-					<figure class="border-border bg-card overflow-hidden rounded-lg border">
+					<figure class="border-border bg-card mb-4 break-inside-avoid overflow-hidden rounded-lg border">
 						<Image
 							src={image.src}
 							alt={image.alt}
@@ -82,17 +82,12 @@ const galleryImages = Object.entries(galleryModules)
 							sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
 							format="webp"
 							loading={index < 3 ? "eager" : "lazy"}
-							class="block h-full w-full object-cover"
+							class="block h-auto w-full"
 						/>
 					</figure>
 				))
 			}
 		</div>
-	</div>
-	<div class="mx-auto mt-6 max-w-6xl">
-		<p class="max-w-3xl text-sm text-pretty leading-7 text-muted-foreground sm:text-base">
-			{photosPageContent.closingText}
-		</p>
 	</div>
 	<div class="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
 		<BookSessionButton
