@@ -23,7 +23,7 @@ const HeadingTag = headingLevel;
 		compact ? "pt-8 md:pt-12" : "pt-28 md:pt-32",
 		className,
 	]}>
-	<div class="mx-auto flex w-full max-w-6xl flex-col gap-12">
+	<div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
 		<div class="max-w-3xl space-y-4 pb-2">
 			<HeadingTag class="text-2xl leading-none font-bold md:text-4xl">
 				{pricingPageContent.title}
@@ -35,18 +35,18 @@ const HeadingTag = headingLevel;
 
 		<div class="grid gap-5 lg:grid-cols-3">
 			{pricingPageContent.sessions.map((session) => (
-				<article class="border-border bg-card flex h-full flex-col rounded-lg border p-6">
-					<div class="flex flex-1 flex-col gap-6">
-						<div class="space-y-3">
+				<article class="border-border bg-card flex h-full flex-col rounded-lg border p-4 sm:p-6">
+					<div class="flex flex-1 flex-col gap-4">
+						<div class="space-y-2">
 							<div class="flex items-center justify-between gap-4">
-								<h2 class="text-foreground text-xl font-bold sm:text-2xl">{session.label}</h2>
+								<h2 class="text-foreground text-lg sm:text-lg">{session.label}</h2>
 								{session.isMostPopular && (
 									<span class="bg-primary text-primary-foreground inline-flex items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide uppercase">
 										Most popular
 									</span>
 								)}
 							</div>
-							<p class="text-primary text-5xl leading-none font-bold sm:text-6xl">{session.price}</p>
+							<p class="text-4xl leading-none sm:text-4xl">{session.price}</p>
 							<div class="min-h-6">
 								{session.savings && (
 									<div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -57,6 +57,9 @@ const HeadingTag = headingLevel;
 										<p class="text-primary font-semibold">{session.savings}</p>
 									</div>
 								)}
+								{!session.savings && (
+									<p class="text-muted-foreground text-sm">Standard rate</p>
+								)}
 							</div>
 						</div>
 
@@ -65,14 +68,14 @@ const HeadingTag = headingLevel;
 						</p>
 
 						<div class="mt-auto pt-2">
-							<BookSessionButton class="w-full justify-center" />
+							<BookSessionButton class="w-full justify-center font-medium text-base" />
 						</div>
 					</div>
 				</article>
 			))}
 		</div>
 
-		<div class="space-y-4">
+		<div class="space-y-4 mt-8">
 			<section class="space-y-4">
 				<div class="max-w-3xl space-y-4">
 					<h3 class="text-xl leading-none font-bold md:text-2xl">
@@ -87,8 +90,8 @@ const HeadingTag = headingLevel;
 					{pricingPageContent.addOns.map((addOn) => (
 						<div class="border-border bg-card flex h-full flex-col gap-3 rounded-lg border p-5">
 							<div class="flex items-start justify-between gap-4">
-								<h3 class="text-lg font-semibold">{addOn.label}</h3>
-								<p class="text-primary text-lg font-semibold">{addOn.price}</p>
+								<h3 class="text-base font-semibold">{addOn.label}</h3>
+								<p class="text-primary text-base font-semibold">{addOn.price}</p>
 							</div>
 							<p class="text-muted-foreground text-sm leading-relaxed sm:text-base">
 								{addOn.description}
