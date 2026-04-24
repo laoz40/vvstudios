@@ -18,7 +18,7 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 					<button
 						type="button"
 						onClick={onClose}
-						className="text-sm text-muted-foreground">
+						className="pressable text-sm text-muted-foreground">
 						Close
 					</button>
 				</div>

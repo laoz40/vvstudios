@@ -108,7 +108,7 @@ export function BookingRecordingSpaceDurationSection({
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
 												transitionClassName,
 												field.state.value === option.value && "border-primary",
 											)}>
@@ -181,7 +181,7 @@ export function BookingRecordingSpaceDurationSection({
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+													"pressable border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
 													field.state.value === option.value && "border-primary bg-primary/10",
 												)}>

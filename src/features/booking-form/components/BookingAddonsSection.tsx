@@ -74,7 +74,7 @@ export function BookingAddonsSection({
 									htmlFor={`addon-${toOptionId(addon)}`}
 									data-state={isChecked ? "checked" : "unchecked"}
 									className={cn(
-										"w-full cursor-pointer rounded-lg border border-border bg-input/30 transition-all hover:border-primary hover:bg-primary/10 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10",
+										"pressable w-full cursor-pointer rounded-lg border border-border bg-input/30 transition-all hover:border-primary hover:bg-primary/10 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10",
 										transitionClassName,
 									)}>
 									<Field
@@ -103,7 +103,10 @@ export function BookingAddonsSection({
 													<FieldTitle className="text-base">{addon}</FieldTitle>
 													{isChecked ? (
 														<span className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-															<Check className="size-3" strokeWidth={3} />
+															<Check
+																className="size-3"
+																strokeWidth={3}
+															/>
 														</span>
 													) : null}
 												</div>

@@ -112,7 +112,7 @@ function FaqRow({
 		<div className="border-b border-border last:border-b-0">
 			<button
 				type="button"
-				className="flex w-full items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6"
+				className="pressable flex w-full items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6"
 				aria-controls={contentId}
 				aria-expanded={isOpen}
 				onClick={onToggle}>

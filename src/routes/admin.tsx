@@ -36,7 +36,11 @@ function AdminPage() {
 					then run <code>proxy npx convex dev</code>.
 				</p>
 				<SignOutButton redirectUrl="/login">
-					<button type="button">Sign out</button>
+					<button
+						type="button"
+						className="pressable">
+						Sign out
+					</button>
 				</SignOutButton>
 			</main>
 		);
@@ -63,7 +67,11 @@ function AdminDashboard() {
 			<h1>Past bookings</h1>
 			<p>Signed in as {email ?? "Unknown user"}.</p>
 			<SignOutButton redirectUrl="/login">
-				<button type="button">Sign out</button>
+				<button
+					type="button"
+					className="pressable">
+					Sign out
+				</button>
 			</SignOutButton>
 
 			{bookings.length === 0 ? (

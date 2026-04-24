@@ -179,7 +179,7 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium transition-colors",
+														"pressable bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium transition-colors",
 														transitionClassName,
 														"disabled:cursor-not-allowed disabled:opacity-50",
 														isActive
@@ -212,7 +212,7 @@ export function BookingDateTimeSection({
 													<FieldLabel
 														key={time}
 														className={cn(
-															"bg-input/30 border-border w-full! cursor-pointer flex-row! rounded-lg border transition-colors hover:border-primary hover:bg-primary/10",
+															"pressable bg-input/30 border-border w-full! cursor-pointer flex-row! rounded-lg border transition-colors hover:border-primary hover:bg-primary/10",
 															transitionClassName,
 														)}>
 														<Field
