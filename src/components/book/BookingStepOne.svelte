@@ -19,7 +19,7 @@
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
 	import tableImage from "../../assets/gallery/table-setup.webp?enhanced";
-	import armchairSetupImage from "../../assets/open-setup.jpg?enhanced";
+	import armchairSetupImage from "../../assets/gallery/armchair-setup.jpg?enhanced";
 
 	const pressableClass =
 		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
