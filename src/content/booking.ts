@@ -138,7 +138,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
       label: "Clips Package",
       price: "+$79",
       description:
-        "Includes subtitles and vertical cropping so your clips are ready for social media.",
+        "Includes 10 clips with subtitles and vertical cropping to make them social media ready.",
     },
   ],
   scriptUrl,

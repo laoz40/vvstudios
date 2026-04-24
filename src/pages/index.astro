@@ -9,6 +9,7 @@ import {
 	faqSectionContent,
 	flattenContactFaqAnswer,
 } from "../content/landing";
+import { photosPageContent } from "../content/photos";
 import { structuredDataBusiness } from "../content/structuredData";
 import { seoPages } from "../content/seo";
 import {
@@ -41,7 +42,10 @@ const homepageStructuredData = [
 	<div class="from-background to-popover text-foreground bg-linear-to-b">
 		<HeroSection />
 	</div>
-	<PhotosSection class="bg-background text-foreground pt-16 pb-12 md:pt-20 md:pb-16" />
+	<PhotosSection
+		images={photosPageContent.homeGalleryImages}
+		class="bg-background text-foreground pt-16 pb-12 md:pt-20 md:pb-16"
+	/>
 	<Separator class="mx-auto max-w-6xl my-6" />
 	<PricingSection compact class="bg-background text-foreground pb-12 md:pb-16" />
 	<Separator class="mx-auto max-w-6xl my-6" />

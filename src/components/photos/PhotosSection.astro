@@ -3,12 +3,16 @@ import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
 import BookSessionButton from "../shared/BookSessionButton.astro";
 import FreeTourButton from "../shared/FreeTourButton.svelte";
-import { photosPageContent } from "../../content/photos";
+import {
+	photosPageContent,
+	type PhotoGalleryImage,
+} from "../../content/photos";
 import { cn } from "../../lib/utils";
 
 export type PhotosSectionProps = {
 	class?: string;
 	headingLevel?: "h1" | "h2";
+	images?: PhotoGalleryImage[];
 };
 
 type GalleryModule = {
@@ -24,6 +28,7 @@ type GalleryImage = {
 const {
 	class: className,
 	headingLevel = "h2",
+	images = photosPageContent.galleryImages,
 } = Astro.props satisfies PhotosSectionProps;
 
 const HeadingTag = headingLevel;
@@ -34,24 +39,20 @@ const galleryModules = import.meta.glob<GalleryModule>(
 );
 
 const galleryOrder = new Map(
-	photosPageContent.galleryImages.map((image, index) => [image.filename, index]),
+	images.map((image, index) => [image.filename, index]),
 );
 
-const galleryImages = Object.entries(galleryModules)
-	.map(([path, module]) => {
-		const filename = path.split("/").pop() ?? "Studio photo";
-		const galleryEntry = photosPageContent.galleryImages.find(
-			(image) => image.filename === filename,
-		);
+const galleryImages = images
+	.map((image) => {
+		const module = galleryModules[`../../assets/gallery/${image.filename}`];
 
 		return {
-			alt:
-				galleryEntry?.alt ??
-				`VV Podcast Studio gallery image for ${filename.replace(/\.[^.]+$/, "")}`,
-			filename,
-			src: module.default,
-		} satisfies GalleryImage;
+			alt: image.alt,
+			filename: image.filename,
+			src: module?.default,
+		};
 	})
+	.filter((image): image is GalleryImage => Boolean(image.src))
 	.sort((left, right) => {
 		const leftIndex = galleryOrder.get(left.filename) ?? Number.MAX_SAFE_INTEGER;
 		const rightIndex =

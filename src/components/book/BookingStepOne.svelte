@@ -18,7 +18,7 @@
 	import { seoPages } from "../../content/seo";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
 	import { cn } from "$lib/utils.js";
-	import tableImage from "../../assets/gallery/table-setup.webp?enhanced";
+	import tableImage from "../../assets/gallery/table-setup.jpg?enhanced";
 	import armchairSetupImage from "../../assets/gallery/armchair-setup.jpg?enhanced";
 
 	const pressableClass =
