@@ -1,7 +1,7 @@
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
 import { Check } from "lucide-react";
-import armchairSetupImage from "#/assets/armchair-setup.jpg";
+import armchairSetupImage from "#/assets/gallery/armchair-setup.jpg";
 import tableSetupImage from "#/assets/gallery/table-setup.jpg";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
@@ -23,6 +23,7 @@ type DurationOption = {
 	label: string;
 	originalPrice: string;
 	discountedPrice: string;
+	priceNote?: string;
 	badgeLabel?: string;
 };
 
@@ -49,6 +50,7 @@ const durationOptions: DurationOption[] = [
 		label: "1 Hour",
 		originalPrice: "$200",
 		discountedPrice: "$200",
+		priceNote: "Standard rate",
 	},
 	{
 		value: "2h" as const,
@@ -113,7 +115,10 @@ export function BookingRecordingSpaceDurationSection({
 											<div className="relative h-56 w-full">
 												{field.state.value === option.value ? (
 													<span className="bg-primary text-primary-foreground absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full shadow-lg">
-														<Check className="size-4" />
+														<Check
+															className="size-5"
+															strokeWidth={2.5}
+														/>
 													</span>
 												) : null}
 												<Image
@@ -186,20 +191,27 @@ export function BookingRecordingSpaceDurationSection({
 													</span>
 												) : null}
 												<p className="text-base font-semibold mt-0.5">{option.label}</p>
-												<div className="relative flex flex-col items-center justify-start text-sm h-7">
+												<div className="relative flex flex-col items-center justify-start text-sm h-12">
 													{hasDiscount ? (
 														<>
-															<p className="whitespace-nowrap text-primary">
+															<p className="whitespace-nowrap text-xl font-semibold text-primary">
 																{option.discountedPrice}
 															</p>
-															<p className="text-muted-foreground whitespace-nowrap line-through text-[10px] leading-2">
+															<p className="text-muted-foreground whitespace-nowrap line-through text-sm leading-4">
 																{option.originalPrice}
 															</p>
 														</>
 													) : (
-														<p className="whitespace-nowrap text-primary">
-															{option.discountedPrice}
-														</p>
+														<>
+															<p className="whitespace-nowrap text-xl font-semibold text-primary">
+																{option.discountedPrice}
+															</p>
+															{option.priceNote ? (
+																<p className="text-muted-foreground whitespace-nowrap text-sm leading-4">
+																	{option.priceNote}
+																</p>
+															) : null}
+														</>
 													)}
 												</div>
 											</label>
