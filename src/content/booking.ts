@@ -128,14 +128,14 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
     {
       value: "video-editing",
       icon: "scissors",
-      label: "Video Editing",
+      label: "Essential Edit",
       price: "+$99",
       description: "Professionally synchronised audio with clean cuts between camera angles.",
     },
     {
       value: "10-social-media-clips",
       icon: "smartphone",
-      label: "10 Social Media Clips",
+      label: "Clips Package",
       price: "+$79",
       description:
         "Includes subtitles and vertical cropping so your clips are ready for social media.",
@@ -189,7 +189,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
     reuseSavedBookingButton: "Reuse Last Booking Info",
     sessionDetailsTitle: "Customise Your Session",
     addOnsLegend: "SELECT ADD-ONS",
-    addOnsHelper: "Each session includes three 4K Sony cameras, up to four RØDE PodMic microphones, and cinematic lighting already set up.",
+    addOnsHelper: "Each session includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
     questionsLabel: "ANYTHING ELSE?",
     questionsPlaceholder: "Let us know if you have any special requests or questions.",
     questionsContactPrefix: "Available for call at",

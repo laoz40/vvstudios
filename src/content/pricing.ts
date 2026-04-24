@@ -50,7 +50,7 @@ export const pricingPageContent = {
 		},
 	] satisfies PricingSession[],
 	addOnsTitle: "Production add-ons",
-	addOnsLead: "Each session includes a fully prepared studio with three 4K Sony cameras, up to four RØDE PodMic microphones, and cinematic lighting already set up.",
+	addOnsLead: "Each session includes a fully prepared space with three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOns: [
 		{
 			label: "4K UHD recording",
@@ -58,14 +58,14 @@ export const pricingPageContent = {
 			description: bookingAddOnDescriptions["4K UHD Recording"],
 		},
 		{
-			label: "Video editing",
+			label: "Essential Edit",
 			price: "$99",
-			description: bookingAddOnDescriptions["Video Editing"],
+			description: bookingAddOnDescriptions["Essential Edit"],
 		},
 		{
-			label: "10 social media clips",
+			label: "Clips Package",
 			price: "$79",
-			description: bookingAddOnDescriptions["10 Social Media Clips"],
+			description: bookingAddOnDescriptions["Clips Package"],
 		},
 	] satisfies PricingAddOn[],
 };
