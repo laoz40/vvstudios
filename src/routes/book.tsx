@@ -62,7 +62,7 @@ const pageCopy = {
 
 const sectionHeadingClassName = "text-sm! font-semibold tracking-widest text-primary uppercase";
 const bookingOptionTransitionClassName =
-	"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in";
+	"transform-gpu transition-[transform,border-color,background-color,color] duration-300 ease-in";
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);

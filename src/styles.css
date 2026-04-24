@@ -153,19 +153,11 @@
 	}
 
 	.pressable {
-		transform-origin: center;
-		transition:
-			transform 120ms ease,
-			background-color 120ms ease,
-			border-color 120ms ease,
-			color 120ms ease,
-			opacity 120ms ease,
-			box-shadow 120ms ease;
 		will-change: transform;
 	}
 
 	.pressable:active:not(:disabled) {
-		transform: translateY(1px);
+		translate: 0 1px;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -174,7 +166,7 @@
 		}
 
 		.pressable:active:not(:disabled) {
-			transform: none;
+			translate: none;
 		}
 	}
 }
