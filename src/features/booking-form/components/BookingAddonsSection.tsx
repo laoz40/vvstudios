@@ -103,7 +103,7 @@ export function BookingAddonsSection({
 													<FieldTitle className="text-base">{addon}</FieldTitle>
 													{isChecked ? (
 														<span className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-															<Check className="size-3" />
+															<Check className="size-3" strokeWidth={3} />
 														</span>
 													) : null}
 												</div>
@@ -112,7 +112,7 @@ export function BookingAddonsSection({
 												</FieldDescription>
 											</FieldContent>
 										</div>
-										<span className="shrink-0 text-base font-semibold text-primary">
+										<span className="shrink-0 text-lg font-semibold text-primary">
 											{addonCopy.price}
 										</span>
 									</Field>
