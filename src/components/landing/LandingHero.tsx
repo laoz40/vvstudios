@@ -19,7 +19,7 @@ export function LandingHero() {
 	return (
 		<section
 			aria-labelledby="landing-hero-title"
-			className="relative isolate -mx-4 flex min-h-screen items-end overflow-hidden md:-mx-8 md:items-end lg:-mx-20">
+			className="relative isolate -mx-4 min-h-screen overflow-hidden md:-mx-8 lg:-mx-20">
 			<div
 				aria-hidden
 				className="absolute inset-0 -z-20">
@@ -31,7 +31,7 @@ export function LandingHero() {
 					<img
 						src={heroMobile}
 						alt={heroCopy.backgroundAlt}
-						className="h-full w-full object-cover"
+						className="h-full w-full object-cover brightness-65"
 						decoding="async"
 						fetchPriority="high"
 						loading="eager"
@@ -39,10 +39,10 @@ export function LandingHero() {
 				</picture>
 			</div>
 
-			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/90 via-background/65 to-background/92" />
+			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
-			<div className="mx-auto grid w-full max-w-7xl gap-4 px-4 pb-16 pt-36 md:px-0 md:pb-52 md:pt-32">
-				<div className="flex max-w-xl flex-col gap-3 md:-ml-10 lg:-ml-16">
+			<div className="absolute left-10 bottom-28 z-10 max-w-lg md:left-20 md:bottom-32 lg:left-24 xl:left-50 xl:bottom-60">
+				<div className="flex flex-col gap-2 md:max-w-xl">
 					<p className="text-primary text-sm font-semibold tracking-widest uppercase">
 						{heroCopy.eyebrow}
 					</p>
