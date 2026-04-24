@@ -1,7 +1,5 @@
 import {
-	contactEmail,
 	contactFaqItems,
-	contactPhone,
 	type ContactFaqAnswerPart,
 	type ContactFaqItem,
 } from "./contact";
@@ -24,16 +22,7 @@ export type FaqSectionContent = {
 
 export const flattenContactFaqAnswer = (parts: readonly ContactFaqAnswerPart[]) =>
 	parts
-		.map((part) => {
-			switch (part.type) {
-				case "text":
-					return part.value;
-				case "email":
-					return contactEmail;
-				case "phone":
-					return contactPhone;
-			}
-		})
+		.map((part) => [part.heading, part.value].filter(Boolean).join("\n"))
 		.join("")
 		.trim();
 

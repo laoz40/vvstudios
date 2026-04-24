@@ -7,10 +7,8 @@ import BookSessionButton from "../components/shared/BookSessionButton.astro";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import {
 	type ContactFaqAnswerPart,
-	contactEmail,
 	contactFaqItems,
 	contactItems,
-	contactPhone,
 	contactPageContent,
 	studioAddressHref,
 } from "../content/contact";
@@ -27,16 +25,7 @@ const flattenContactFaqAnswer = (
 	answerParts: readonly ContactFaqAnswerPart[],
 ) =>
 	answerParts
-		.map((part) => {
-			switch (part.type) {
-				case "text":
-					return part.value;
-				case "email":
-					return contactEmail;
-				case "phone":
-					return contactPhone;
-			}
-		})
+		.map((part) => [part.heading, part.value].filter(Boolean).join("\n"))
 		.join("")
 		.trim();
 
