@@ -15,7 +15,7 @@ import { cn } from "#/lib/utils";
 
 const sectionTitle = "Add-ons";
 const sectionDescription =
-	"Each session includes three 4K Sony cameras, up to four RODE PodMic microphones, and cinematic lighting already set up.";
+	"Each session includes three 4K Sony cameras, up to four RODE PodMics, and cinematic overhead lighting.";
 
 const addonCardCopy = {
 	"4K UHD Recording": {

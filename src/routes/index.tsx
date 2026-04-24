@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PricingSection } from "#/components/pricing/PricingSection";
 import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";
 import { LandingHero } from "#/components/landing/LandingHero";
@@ -25,6 +26,11 @@ function HomePage() {
 		<main className="-mt-28 md:-mt-32">
 			<LandingHero />
 			<LandingGallery />
+			<Separator className="mx-auto my-4 max-w-6xl" />
+			<PricingSection
+				compact
+				className="bg-background text-foreground"
+			/>
 			<Separator className="mx-auto my-4 max-w-6xl" />
 			<LandingFaq />
 		</main>

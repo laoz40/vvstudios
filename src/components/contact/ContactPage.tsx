@@ -1,35 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import micImage from "#/assets/mic.webp";
+import { FaqSection } from "#/components/faq/FaqSection";
 import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
 import { env } from "#/env";
-import { cn } from "#/lib/utils";
-
-type ContactItem = {
-	label: string;
-	value: string;
-	href: string;
-};
-
-type ContactFaqAnswerPart =
-	| {
-			type: "text";
-			value: string;
-	  }
-	| {
-			type: "email";
-	  }
-	| {
-			type: "phone";
-	  };
-
-type ContactFaqItem = {
-	question: string;
-	answerParts: readonly ContactFaqAnswerPart[];
-};
 
 const contactCardCopy = {
 	title: "Contact",
@@ -37,7 +13,7 @@ const contactCardCopy = {
 	studioImageAlt: "Studio microphone",
 } as const;
 
-const contactItems: readonly ContactItem[] = [
+const contactItems = [
 	{
 		label: "Phone",
 		value: env.VITE_APP_CONTACT_PHONE,
@@ -56,97 +32,6 @@ const contactItems: readonly ContactItem[] = [
 ] as const;
 
 const directContactItems = contactItems.filter((item) => item.label !== "Location");
-
-const faqSectionCopy = {
-	title: "Frequently Asked Questions",
-} as const;
-
-const contactFaqItems: readonly ContactFaqItem[] = [
-	{
-		question: "What’s included when I book a session?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"Each session includes a fully prepared studio with three 4K Sony cameras, up to four RØDE PodMic microphones, and cinematic lighting already set up.",
-			},
-		],
-	},
-	{
-		question: "Do I need any experience to record?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"No experience is required. The space is designed for people who aren’t used to being on camera. We guide the setup so you can feel comfortable and focus on delivering your content naturally.",
-			},
-		],
-	},
-	{
-		question: "Can I film content other than podcasts?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"Yes. The studio is suitable for podcasts, interviews, and business or marketing content. If you have a specific idea in mind, the setup can be adjusted to suit your shoot.",
-			},
-		],
-	},
-	{
-		question: "Do you offer editing and post-production?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"Yes. Editing can be arranged depending on what you need, from full video edits to short-form content. Let us know what you’re aiming to produce and we’ll handle the post-production accordingly.",
-			},
-		],
-	},
-	{
-		question: "Where are you located?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"The studio is based in Macquarie Fields, making it accessible for clients across Sydney. If you’re unsure about travel or access, feel free to reach out.",
-			},
-		],
-	},
-	{
-		question: "Can I view the studio before booking?",
-		answerParts: [
-			{
-				type: "text",
-				value:
-					"Yes. You can book a free tour to see the space, understand the setup, and make sure it suits what you’re looking to create.",
-			},
-		],
-	},
-	{
-		question: "How do I make an enquiry?",
-		answerParts: [
-			{
-				type: "text",
-				value: "You can get in touch via email using ",
-			},
-			{
-				type: "email",
-			},
-			{
-				type: "text",
-				value: " or phone using ",
-			},
-			{
-				type: "phone",
-			},
-			{
-				type: "text",
-				value:
-					" to discuss your requirements, check availability, and organise your session. We’ll guide you through the next steps based on what you need.",
-			},
-		],
-	},
-] as const;
 
 const contactActionCopy = {
 	bookCta: "Book session",
@@ -310,81 +195,9 @@ function ContactCard() {
 
 function ContactFaqSection() {
 	return (
-		<section
-			aria-labelledby="contact-faq-title"
-			className="mx-auto mt-16 w-full max-w-6xl">
-			<h2
-				id="contact-faq-title"
-				className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
-				{faqSectionCopy.title}
-			</h2>
-
-			<div className="mt-4">
-				{contactFaqItems.map((item) => (
-					<ContactFaqItemRow
-						key={item.question}
-						item={item}
-					/>
-				))}
-			</div>
-		</section>
-	);
-}
-
-function ContactFaqItemRow({ item }: { item: ContactFaqItem }) {
-	const [isOpen, setIsOpen] = useState(false);
-	const contentId = `contact-faq-${item.question.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
-
-	return (
-		<div className="border-b border-border last:border-b-0">
-			<button
-				type="button"
-				className="flex w-full items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6"
-				aria-controls={contentId}
-				aria-expanded={isOpen}
-				onClick={() => {
-					setIsOpen((current) => !current);
-				}}>
-				<span className="leading-snug">{item.question}</span>
-				<ChevronDown
-					aria-hidden
-					className={cn(
-						"mt-0.5 shrink-0 transition-transform duration-200 md:mt-0",
-						isOpen ? "rotate-180 text-foreground" : "text-muted-foreground",
-					)}
-				/>
-			</button>
-
-			<div
-				id={contentId}
-				hidden={!isOpen}
-				className="max-w-5xl pb-5 text-sm leading-7 text-pretty text-muted-foreground md:pb-6 md:text-base">
-				{item.answerParts.map((part, index) => {
-					if (part.type === "text") {
-						return <span key={`${item.question}-text-${index}`}>{part.value}</span>;
-					}
-
-					if (part.type === "email") {
-						return (
-							<a
-								key={`${item.question}-email-${index}`}
-								href={`mailto:${env.VITE_APP_CONTACT_EMAIL}`}
-								className="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary">
-								{env.VITE_APP_CONTACT_EMAIL}
-							</a>
-						);
-					}
-
-					return (
-						<a
-							key={`${item.question}-phone-${index}`}
-							href={`tel:${env.VITE_APP_CONTACT_PHONE}`}
-							className="text-foreground underline decoration-primary/65 underline-offset-4 transition-colors duration-150 hover:text-primary">
-							{env.VITE_APP_CONTACT_PHONE}
-						</a>
-					);
-				})}
-			</div>
-		</div>
+		<FaqSection
+			id="contact-faq-title"
+			className="mx-auto mt-16 w-full max-w-6xl"
+		/>
 	);
 }
