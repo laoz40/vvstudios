@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import behindTheScenesWideImage from "#/assets/gallery/behind-the-scenes-wide.webp";
-import behindTheScenesImage from "#/assets/gallery/behind-the-scenes.webp";
-import expressiveManImage from "#/assets/gallery/expressive-man.webp";
-import leonardoDicaprioImage from "#/assets/gallery/leonardo-dicaprio.webp";
-import manAndWomanTalkingImage from "#/assets/gallery/man-and-woman-talking.webp";
-import micSetupImage from "#/assets/gallery/mic-setup.webp";
-import screenImage from "#/assets/gallery/screen.webp";
-import tableSetupImage from "#/assets/gallery/table-setup.webp";
-import trioTalkingAtTableSetupImage from "#/assets/gallery/trio-talking-at-table-setup.webp";
+import behindTheScenesWideImage from "#/assets/gallery/behind-the-scenes-wide.jpg";
+import behindTheScenesImage from "#/assets/gallery/behind-the-scenes.jpg";
+import expressiveManImage from "#/assets/gallery/expressive-man.jpg";
+import leonardoDicaprioImage from "#/assets/gallery/leonardo-dicaprio.jpg";
+import manAndWomanTalkingImage from "#/assets/gallery/man-and-woman-talking.jpg";
+import micSetupImage from "#/assets/gallery/mic-setup.jpg";
+import screenImage from "#/assets/gallery/screen.jpg";
+import tableSetupImage from "#/assets/gallery/table-setup.jpg";
+import trioTalkingAtTableSetupImage from "#/assets/gallery/trio-talking-at-table-setup.jpg";
 import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 

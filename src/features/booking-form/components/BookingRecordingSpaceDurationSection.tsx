@@ -1,8 +1,8 @@
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
 import { Check } from "lucide-react";
-import armchairSetupImage from "#/assets/armchair-setup.webp";
-import tableSetupImage from "#/assets/gallery/table-setup.webp";
+import armchairSetupImage from "#/assets/armchair-setup.jpg";
+import tableSetupImage from "#/assets/gallery/table-setup.jpg";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import {
