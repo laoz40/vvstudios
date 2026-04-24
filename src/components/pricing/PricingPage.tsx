@@ -60,13 +60,13 @@ const addOns: PricingAddOn[] = [
 			"Upgrade your final video delivery from standard 1080p to 4K UHD for sharper footage and added flexibility in post-production.",
 	},
 	{
-		label: "Video editing",
+		label: "Essential Edit",
 		price: "$99",
 		description:
 			"Receive a polished final edit with multi-camera cuts, pacing adjustments, and a clean export ready to publish.",
 	},
 	{
-		label: "10 social media clips",
+		label: "Clips Package",
 		price: "$79",
 		description:
 			"Get ten short-form clips formatted for social media so you can promote your episode across Instagram, TikTok, and similar platforms.",

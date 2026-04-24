@@ -23,12 +23,12 @@ const addonCardCopy = {
 		icon: Clapperboard,
 		price: "+$49",
 	},
-	"Video Editing": {
+	"Essential Edit": {
 		description: "Professionally synchronised audio with clean cuts between camera angles.",
 		icon: Scissors,
 		price: "+$99",
 	},
-	"10 Social Media Clips": {
+	"Clips Package": {
 		description:
 			"Includes subtitles and vertical cropping so your clips are ready for social media.",
 		icon: Smartphone,

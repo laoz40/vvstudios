@@ -20,9 +20,9 @@ export const DURATION_PRICES: Record<BookingDuration, number> = {
 };
 
 export const ADDON_PRICES: Record<BookingAddon, number> = {
-	"10 Social Media Clips": 79,
 	"4K UHD Recording": 49,
-	"Video Editing": 99,
+	"Clips Package": 79,
+	"Essential Edit": 99,
 };
 
 export const BOOKING_INVOICE_BUSINESS = {
