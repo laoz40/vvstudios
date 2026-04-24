@@ -187,7 +187,7 @@ export const bookingStepTwoContent: BookingStepTwoContent = {
     confirmSessionDurationLabel: "CONFIRM SESSION DURATION",
     reuseSavedBookingText: "You can reuse your last saved booking information.",
     reuseSavedBookingButton: "Reuse Last Booking Info",
-    sessionDetailsTitle: "Customise Your Session",
+    sessionDetailsTitle: "Enhance Your Session",
     addOnsLegend: "SELECT ADD-ONS",
     addOnsHelper: "Each session includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
     questionsLabel: "ANYTHING ELSE?",
