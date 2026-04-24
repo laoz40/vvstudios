@@ -16,7 +16,7 @@ export const navContent = {
 	desktop: {
 		navAriaLabel: "Primary navigation",
 		links: [
-			{ href: "/photos", label: "Photos" },
+			{ href: "/photos", label: "Gallery" },
 			{ href: "/pricing", label: "Pricing" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
@@ -31,7 +31,7 @@ export const navContent = {
 		closeMenuSrText: "Close menu",
 		links: [
 			{ href: "/", label: "Home" },
-			{ href: "/photos", label: "Photos" },
+			{ href: "/photos", label: "Gallery" },
 			{ href: "/pricing", label: "Pricing" },
 			{ href: "/contact", label: "Contact" },
 		] satisfies NavLink[],
