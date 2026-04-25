@@ -24,6 +24,7 @@ export interface PhotosPageContent {
 	bookCta: string;
 	tourCta: string;
 	tourDialogLabel: string;
+	tourDialogDescription: string;
 	tourDialogCloseLabel: string;
 	tourIframeTitle: string;
 	galleryImages: PhotoGalleryImage[];
@@ -36,6 +37,7 @@ export const photosPageContent: PhotosPageContent = {
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",
+	tourDialogDescription: "See the studio booking flow and preview the space before you book.",
 	tourDialogCloseLabel: "Close",
 	tourIframeTitle: "Free studio tour booking",
 	galleryImages: [

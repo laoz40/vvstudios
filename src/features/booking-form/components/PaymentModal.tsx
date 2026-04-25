@@ -17,7 +17,7 @@ export interface BookingPaymentModalProps {
 export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentModalProps) {
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-			<div className="bg-popover text-popover-foreground ring-foreground/10 w-full max-w-3xl overflow-hidden rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 max-h-[calc(100vh-2rem)] sm:p-6">
+			<div className="bg-popover text-popover-foreground ring-foreground/10 relative w-full max-w-3xl overflow-hidden rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 max-h-[calc(100vh-2rem)] sm:p-6">
 				<div className="space-y-2 pr-10">
 					<h2 className="text-xl font-semibold">{dialogTitle}</h2>
 					<p className="text-muted-foreground text-sm leading-6">{dialogDescription}</p>

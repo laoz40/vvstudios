@@ -20,7 +20,7 @@ const terms = [
 	},
 	{
 		title: "3 - Cancellations & Rescheduling",
-		body: "Deposits are non-refundable. Bookings may be rescheduled with a minimum of 24 hours' notice. Late cancellations or no-shows will forfeit the deposit.",
+		body: "Deposits are non-refundable. Bookings may be rescheduled with a minimum of 24 hours notice. Late cancellations or no-shows will forfeit the deposit.",
 	},
 	{
 		title: "4 - Session Conduct & Surveillance",

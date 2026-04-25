@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import heroDesktop from "#/assets/bg/landing.webp";
 import heroMobile from "#/assets/bg/mobile.webp";
+import { FreeTourDialogButton } from "#/components/FreeTourDialog";
 import { Button } from "#/components/ui/button";
 import { env } from "#/env";
 
@@ -63,13 +64,10 @@ export function LandingHero() {
 							<Link to="/book">{heroCopy.bookCta}</Link>
 						</Button>
 
-						<Button
-							type="button"
-							variant="outline"
-							size="lg"
-							className="flex-1 border-2 border-border/80 bg-background/60 px-8 py-5 text-base font-semibold hover:bg-background/75 md:flex-none">
-							{heroCopy.tourCta}
-						</Button>
+						<FreeTourDialogButton
+							label={heroCopy.tourCta}
+							className="flex-1 border-2 border-border/80 bg-background/60 px-8 py-5 text-base font-semibold hover:bg-background/75 md:flex-none"
+						/>
 					</div>
 
 					<div className="mt-3 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">

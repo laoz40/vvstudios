@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { useEffect, useRef } from "react";
 import micImage from "#/assets/mic.webp";
+import { FreeTourDialogButton } from "#/components/FreeTourDialog";
 import { FaqSection } from "#/components/faq/FaqSection";
 import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
@@ -53,13 +54,10 @@ export function ContactPage() {
 					className="min-w-64 flex-1 border-2 border-primary px-4 py-5 text-base font-semibold sm:px-8">
 					<Link to="/book">{contactActionCopy.bookCta}</Link>
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					size="lg"
-					className="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8">
-					{contactActionCopy.tourCta}
-				</Button>
+				<FreeTourDialogButton
+					label={contactActionCopy.tourCta}
+					className="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"
+				/>
 			</div>
 		</section>
 	);
