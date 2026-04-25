@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as PhotosRouteImport } from './routes/photos'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookingCompleteRouteImport } from './routes/booking-complete'
 import { Route as BookRouteImport } from './routes/book'
@@ -23,14 +23,14 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PhotosRoute = PhotosRouteImport.update({
-  id: '/photos',
-  path: '/photos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -65,8 +65,8 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
   '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
-  '/photos': typeof PhotosRoute
   '/pricing': typeof PricingRoute
 }
 export interface FileRoutesByTo {
@@ -75,8 +75,8 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
   '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
-  '/photos': typeof PhotosRoute
   '/pricing': typeof PricingRoute
 }
 export interface FileRoutesById {
@@ -86,8 +86,8 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
   '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
-  '/photos': typeof PhotosRoute
   '/pricing': typeof PricingRoute
 }
 export interface FileRouteTypes {
@@ -98,8 +98,8 @@ export interface FileRouteTypes {
     | '/book'
     | '/booking-complete'
     | '/contact'
+    | '/gallery'
     | '/login'
-    | '/photos'
     | '/pricing'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,8 +108,8 @@ export interface FileRouteTypes {
     | '/book'
     | '/booking-complete'
     | '/contact'
+    | '/gallery'
     | '/login'
-    | '/photos'
     | '/pricing'
   id:
     | '__root__'
@@ -118,8 +118,8 @@ export interface FileRouteTypes {
     | '/book'
     | '/booking-complete'
     | '/contact'
+    | '/gallery'
     | '/login'
-    | '/photos'
     | '/pricing'
   fileRoutesById: FileRoutesById
 }
@@ -129,8 +129,8 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   BookingCompleteRoute: typeof BookingCompleteRoute
   ContactRoute: typeof ContactRoute
+  GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
-  PhotosRoute: typeof PhotosRoute
   PricingRoute: typeof PricingRoute
 }
 
@@ -143,18 +143,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/photos': {
-      id: '/photos'
-      path: '/photos'
-      fullPath: '/photos'
-      preLoaderRoute: typeof PhotosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -201,8 +201,8 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   BookingCompleteRoute: BookingCompleteRoute,
   ContactRoute: ContactRoute,
+  GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
-  PhotosRoute: PhotosRoute,
   PricingRoute: PricingRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotosSection } from "#/components/photos/PhotosSection";
 
-export const Route = createFileRoute("/photos")({
+export const Route = createFileRoute("/gallery")({
 	head: () => ({
 		meta: [
 			{
@@ -18,10 +18,5 @@ export const Route = createFileRoute("/photos")({
 });
 
 function PhotosPage() {
-	return (
-		<PhotosSection
-			headingLevel="h1"
-			className="!pt-0"
-		/>
-	);
+	return <PhotosSection headingLevel="h1" />;
 }
