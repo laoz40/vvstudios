@@ -43,6 +43,7 @@ const sectionCopy = {
 	recurringPromptAction: "Request a call",
 	recurringPromptSuffix: "to lock in your slot at a discounted rate.",
 	requestCallDialogTitle: "Request a call",
+	requestCallDialogDescription: "Book a quick call to discuss recurring sessions and availability.",
 	requestCallDialogClose: "Close",
 } as const;
 
@@ -258,37 +259,46 @@ export function BookingDateTimeSection({
 							</FieldSet>
 						)}
 					</formApi.Field>
-					<p className="mt-6 text-sm text-muted-foreground xl:mt-auto">
+					<div className="mt-6 text-sm text-muted-foreground xl:mt-auto">
 						{sectionCopy.recurringPromptPrefix}{" "}
 						<Dialog.Root
 							open={isRequestCallOpen}
 							onOpenChange={setIsRequestCallOpen}>
-							<Dialog.Trigger asChild>
-								<Button
-									type="button"
-									variant="link"
-									className="accent-link text-foreground p-0 font-medium">
-									{sectionCopy.recurringPromptAction}
-								</Button>
-							</Dialog.Trigger>
+							<Button
+								type="button"
+								variant="link"
+								className="accent-link text-foreground p-0 font-medium"
+								aria-haspopup="dialog"
+								aria-expanded={isRequestCallOpen}
+								onClick={() => {
+									setIsRequestCallOpen(true);
+								}}>
+								{sectionCopy.recurringPromptAction}
+							</Button>
 							<Dialog.Portal>
 								<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
-								<Dialog.Content className="bg-popover fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-2xl px-3 py-3 shadow-2xl outline-none sm:w-[calc(100%-2rem)] sm:px-4 sm:py-4">
-									<div className="flex items-center justify-between gap-3">
-										<Dialog.Title className="text-lg font-semibold text-foreground">
+								<Dialog.Content className="bg-popover text-popover-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl p-4 text-sm outline-none ring-1 max-h-[calc(100vh-2rem)] sm:w-[calc(100%-2rem)] sm:p-6">
+									<div className="space-y-2 pr-10">
+										<Dialog.Title className="text-xl font-semibold">
 											{sectionCopy.requestCallDialogTitle}
 										</Dialog.Title>
-										<Dialog.Close asChild>
-											<Button
-												type="button"
-												variant="ghost"
-												size="icon-sm"
-												aria-label={sectionCopy.requestCallDialogClose}>
-												<X />
-											</Button>
-										</Dialog.Close>
+										<Dialog.Description className="text-muted-foreground text-sm leading-6">
+											{sectionCopy.requestCallDialogDescription}
+										</Dialog.Description>
 									</div>
-									<div className="overflow-hidden rounded-xl bg-white p-1">
+
+									<Dialog.Close asChild>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon-sm"
+											className="absolute top-2 right-2"
+											aria-label={sectionCopy.requestCallDialogClose}>
+											<X />
+										</Button>
+									</Dialog.Close>
+
+									<div className="overflow-hidden rounded-xl border border-border bg-white">
 										<iframe
 											src={env.VITE_BOOKING_RECURRING_URL}
 											title={sectionCopy.requestCallDialogTitle}
@@ -299,7 +309,7 @@ export function BookingDateTimeSection({
 							</Dialog.Portal>
 						</Dialog.Root>{" "}
 						{sectionCopy.recurringPromptSuffix}
-					</p>
+					</div>
 				</div>
 			</div>
 		</section>
