@@ -7,6 +7,7 @@ import { BookingContactSection } from "#/features/booking-form/components/Bookin
 import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
 import { BookingRecordingSpaceDurationSection } from "#/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#/features/booking-form/components/BookingAddonsSection.tsx";
+import { TermsDialog } from "#/features/booking-form/components/TermsDialog";
 import {
 	bookingFormContext,
 	type BookingFormApi,
@@ -51,6 +52,8 @@ interface EmbeddedCheckoutSession {
 	stripeSessionId: string;
 }
 
+const termsDialogPendingError = new Error("terms-dialog-pending");
+
 export const Route = createFileRoute("/book")({
 	component: BookingPage,
 });
@@ -80,7 +83,9 @@ function BookingPage() {
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
+	const submitAfterTermsRef = useRef(false);
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
@@ -91,6 +96,12 @@ function BookingPage() {
 		onSubmit: async ({ value }) => {
 			const parsedValue = bookingSchema.parse(value);
 
+			if (!submitAfterTermsRef.current) {
+				setShowTermsDialog(true);
+				throw termsDialogPendingError;
+			}
+
+			submitAfterTermsRef.current = false;
 			setError("");
 			setIsSubmitting(true);
 
@@ -110,12 +121,14 @@ function BookingPage() {
 				});
 
 				setCheckoutSession(session);
+				setShowTermsDialog(false);
 
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
 			} catch (submissionError) {
 				setError(getBookingErrorMessage(submissionError));
 			} finally {
 				setIsSubmitting(false);
+				submitAfterTermsRef.current = false;
 			}
 		},
 	});
@@ -332,6 +345,11 @@ function BookingPage() {
 		setCheckoutSession(null);
 	};
 
+	const handleTermsConfirm = () => {
+		submitAfterTermsRef.current = true;
+		formRef.current?.requestSubmit();
+	};
+
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 pt-2 pb-12 sm:pt-8">
 			<div className="flex flex-col gap-2">
@@ -345,11 +363,19 @@ function BookingPage() {
 					onSubmit={(event) => {
 						event.preventDefault();
 						event.stopPropagation();
-						void formApi.handleSubmit().then(() => {
-							if (!formApi.state.isValid) {
-								scrollToFirstError();
-							}
-						});
+						void formApi
+							.handleSubmit()
+							.then(() => {
+								if (!formApi.state.isValid) {
+									submitAfterTermsRef.current = false;
+									scrollToFirstError();
+								}
+							})
+							.catch((submissionError) => {
+								if (submissionError !== termsDialogPendingError) {
+									console.error("Booking form submission failed", submissionError);
+								}
+							});
 					}}
 					className="flex flex-col gap-10">
 					<FieldGroup className="flex flex-col gap-10 md:gap-12">
@@ -383,10 +409,17 @@ function BookingPage() {
 						type="submit"
 						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider"
 						disabled={isSubmitting}>
-						{isSubmitting ? "Submitting..." : "COMPLETE BOOKING"}
+						COMPLETE BOOKING
 					</Button>
 				</form>
 			</bookingFormContext.Provider>
+
+			<TermsDialog
+				open={showTermsDialog}
+				isSubmitting={isSubmitting}
+				onConfirm={handleTermsConfirm}
+				onOpenChange={setShowTermsDialog}
+			/>
 
 			{checkoutSession ? (
 				<BookingPaymentModal
