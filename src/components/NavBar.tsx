@@ -20,13 +20,13 @@ const BOOK_LINK = { href: "/book", label: "Book session" } as const;
 const BACK_HOME_LINK = { href: "/", label: "Back to home" } as const;
 
 const DESKTOP_LINKS = [
-	{ href: "/photos", label: "Gallery" },
+	{ href: "/gallery", label: "Gallery" },
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/contact", label: "Contact" },
 ] as const;
 const MOBILE_LINKS = [
 	{ href: "/", label: "Home" },
-	{ href: "/photos", label: "Gallery" },
+	{ href: "/gallery", label: "Gallery" },
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/contact", label: "Contact" },
 ] as const;
