@@ -122,10 +122,7 @@ export function BookingDateTimeSection({
 								<FieldLabel className={sectionHeadingClassName}>{sectionCopy.dateLabel}</FieldLabel>
 								<div className="bg-input/30 border-border overflow-hidden rounded-lg border">
 									<Calendar
-										className="w-full bg-transparent p-5 [--cell-size:--spacing(11)]"
-										classNames={{
-											root: "w-full",
-										}}
+										className="bg-transparent p-5 [--cell-size:--spacing(12)]"
 										mode="single"
 										required
 										disabled={disabledDates}
