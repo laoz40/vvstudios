@@ -18,5 +18,10 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function RoutePricingPage() {
-	return <PricingSection headingLevel="h1" />;
+	return (
+		<PricingSection
+			headingLevel="h1"
+			className="!pt-0"
+		/>
+	);
 }
