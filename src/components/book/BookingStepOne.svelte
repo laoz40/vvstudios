@@ -368,7 +368,6 @@
 <Dialog bind:open={showPostBookingNotice}>
 	<DialogContent
 		overlayProps={{ class: "z-10001" }}
-		onInteractOutside={(event) => event.preventDefault()}
 		class="ring-red-500 z-10002 max-w-[calc(100%-1.5rem)] rounded-2xl px-6 py-4 shadow-2xl ring-2 sm:max-w-lg sm:px-8 sm:py-6"
 		showCloseButton={false}>
 		<DialogHeader class="gap-3">
