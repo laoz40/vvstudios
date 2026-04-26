@@ -18,5 +18,10 @@ export const Route = createFileRoute("/gallery")({
 });
 
 function PhotosPage() {
-	return <PhotosSection headingLevel="h1" />;
+	return (
+		<PhotosSection
+			headingLevel="h1"
+			className="!pt-0"
+		/>
+	);
 }

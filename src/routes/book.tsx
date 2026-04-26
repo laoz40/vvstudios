@@ -351,10 +351,12 @@ function BookingPage() {
 	};
 
 	return (
-		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 pt-2 pb-12 sm:pt-8">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-4xl font-extrabold">{pageCopy.title}</h1>
-				<p className="text-base text-muted-foreground">{pageCopy.lead}</p>
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 px-4 pb-12">
+			<div className="max-w-3xl space-y-4 pb-2">
+				<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
+				<p className="text-muted-foreground text-sm leading-7 text-pretty sm:text-base">
+					{pageCopy.lead}
+				</p>
 			</div>
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
