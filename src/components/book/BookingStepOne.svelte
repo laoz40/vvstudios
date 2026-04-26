@@ -382,6 +382,7 @@
 		<DialogFooter class="mt-2">
 			<Button
 				type="button"
+				variant="outline"
 				bind:ref={postBookingNoticeButtonEl}
 				onclick={dismissPostBookingNotice}
 				class={cn("rounded-lg w-full", pressableClass)}>
