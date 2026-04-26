@@ -36,8 +36,8 @@ const recordingSpaceOptions = [
 		imageAlt: "Podcast table setup with microphones and studio lighting",
 	},
 	{
-		value: "Open Setup" as const,
-		title: "Open Setup",
+		value: "Armchair Setup" as const,
+		title: "Armchair Setup",
 		description: "For a more relaxed atmosphere",
 		image: armchairSetupImage,
 		imageAlt: "Podcast open setup with warm lamps and casual seating",
@@ -112,7 +112,7 @@ export function BookingRecordingSpaceDurationSection({
 												transitionClassName,
 												field.state.value === option.value && "border-primary",
 											)}>
-											<div className="relative h-56 w-full">
+											<div className="relative aspect-720/448 w-full md:h-56">
 												{field.state.value === option.value ? (
 													<span className="bg-primary text-primary-foreground absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full shadow-lg">
 														<Check

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CircleIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 
 import { cn } from "#/lib/utils";
@@ -34,7 +34,7 @@ function RadioGroupItem({
 			<RadioGroupPrimitive.Indicator
 				data-slot="radio-group-indicator"
 				className="relative flex items-center justify-center">
-				<CircleIcon className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary" />
+				<CheckIcon className="size-3 stroke-[3] text-primary" />
 			</RadioGroupPrimitive.Indicator>
 		</RadioGroupPrimitive.Item>
 	);

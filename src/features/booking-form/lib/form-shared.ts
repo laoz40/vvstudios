@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SERVICES = ["Table Setup", "Open Setup"] as const;
+export const SERVICES = ["Table Setup", "Armchair Setup"] as const;
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 export const ADDON_OPTIONS = ["4K UHD Recording", "Essential Edit", "Clips Package"] as const;
 export const TIME_SECTIONS = [

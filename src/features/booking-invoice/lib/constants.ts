@@ -9,7 +9,7 @@ export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 export const BOOKING_DEPOSIT_AMOUNT = 50;
 
 export const SERVICE_LABELS: Record<BookingService, string> = {
-	"Open Setup": "Open Setup",
+	"Armchair Setup": "Armchair Setup",
 	"Table Setup": "Table Setup",
 };
 
