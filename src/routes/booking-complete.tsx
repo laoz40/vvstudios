@@ -123,9 +123,9 @@ function BookingResult({ booking, paymentReceived, title }: BookingResultProps) 
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1 className="text-xl font-semibold leading-tight text-balance md:text-6xl">{title}</h1>
+				<h1 className="text-3xl font-semibold leading-tight md:text-6xl">{title}</h1>
 				<p
-					className={`max-w-2xl text-lg ${paymentReceived ? "text-muted-foreground" : "text-red-500"}`}>
+					className={`max-w-2xl text-base ${paymentReceived ? "text-muted-foreground" : "text-red-500"}`}>
 					{paymentReceived
 						? "Your booking deposit payment was received."
 						: "Your booking deposit payment was not received."}
