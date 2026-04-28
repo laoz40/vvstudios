@@ -2,6 +2,7 @@ import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
@@ -80,6 +81,7 @@ function BookingPage() {
 	const lastBookableDate = getLastBookableDate(today);
 	const formRef = useRef<HTMLFormElement>(null);
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
+	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
@@ -95,6 +97,7 @@ function BookingPage() {
 		null,
 	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
+	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
 	const submitAfterTermsRef = useRef(false);
 
@@ -160,6 +163,7 @@ function BookingPage() {
 	});
 	const formValues = useStore(formApi.store, (state) => state.values);
 	const selectedDate = parseDateValue(formValues.date);
+	const isDateTimeIncomplete = !formValues.date || !formValues.time;
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
 	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
 	const visibleMonth = formatMonthKey(calendarMonth);
@@ -406,13 +410,7 @@ function BookingPage() {
 		formApi.setFieldValue("email", savedBookingInfo.email);
 		formApi.setFieldValue("notes", savedBookingInfo.notes);
 		setPreferredTimeSectionKey(savedBookingInfo.timeSectionKey || null);
-
-		requestAnimationFrame(() => {
-			dateTimeSectionRef.current?.scrollIntoView({
-				behavior: "smooth",
-				block: "start",
-			});
-		});
+		setShowScrollToCompleteBooking(true);
 	};
 
 	const handleSaveBookingInfoChange = (checked: boolean) => {
@@ -422,6 +420,17 @@ function BookingPage() {
 			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
 			setSavedBookingInfo(null);
 		}
+	};
+
+	const handleScrollToCompleteBooking = () => {
+		const scrollTarget = isDateTimeIncomplete
+			? dateTimeSectionRef.current
+			: completeBookingButtonRef.current;
+
+		scrollTarget?.scrollIntoView({
+			behavior: "smooth",
+			block: isDateTimeIncomplete ? "start" : "center",
+		});
 	};
 
 	return (
@@ -493,14 +502,29 @@ function BookingPage() {
 						</FieldContent>
 					</Field>
 
-					<Button
-						type="submit"
-						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider"
-						disabled={isSubmitting}>
-						COMPLETE BOOKING
-					</Button>
+					<div ref={completeBookingButtonRef}>
+						<Button
+							type="submit"
+							className="h-12 w-full rounded-lg text-base font-bold! tracking-wider"
+							disabled={isSubmitting}>
+							COMPLETE BOOKING
+						</Button>
+					</div>
 				</form>
 			</bookingFormContext.Provider>
+
+			{showScrollToCompleteBooking ? (
+				<Button
+					type="button"
+					size="icon"
+					aria-label={
+						isDateTimeIncomplete ? "Scroll to date and time section" : "Scroll to complete booking"
+					}
+					className="fixed right-4 bottom-16 z-50 rounded-full shadow-sm sm:right-6 sm:bottom-6"
+					onClick={handleScrollToCompleteBooking}>
+					<ChevronDown />
+				</Button>
+			) : null}
 
 			<TermsDialog
 				open={showTermsDialog}
