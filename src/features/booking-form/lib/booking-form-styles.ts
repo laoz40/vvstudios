@@ -18,7 +18,7 @@ export const footerSelectedClassName = "bg-primary/12 md:bg-primary/15";
 
 export const pillIdleClassName =
 	"border-foreground/15 bg-background/30 text-foreground/85 group-hover:text-primary";
-export const pillSelectedClassName = "border-primary bg-primary text-primary-foreground";
+export const pillSelectedClassName = "border-foreground/15 bg-primary text-primary-foreground";
 
 export function getCardStateClassName(isSelected: boolean) {
 	return cn(cardHoverClassName, isSelected && cardSelectedClassName);

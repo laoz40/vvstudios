@@ -34,7 +34,7 @@ function RadioGroupItem({
 			<RadioGroupPrimitive.Indicator
 				data-slot="radio-group-indicator"
 				className="relative flex items-center justify-center">
-				<CheckIcon className="size-3 stroke-[3] text-primary" />
+				<CheckIcon className="size-3 stroke-[3] text-current" />
 			</RadioGroupPrimitive.Indicator>
 		</RadioGroupPrimitive.Item>
 	);

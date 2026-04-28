@@ -209,17 +209,16 @@ export function BookingDateTimeSection({
 															)}>
 															<Field
 																orientation="horizontal"
-																className={cn(
-																	"h-14 w-full items-center justify-start rounded-lg px-3.5 py-2",
-																	"gap-2.5",
-																)}>
+																className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
 																<RadioGroupItem
 																	value={time}
 																	id={`time-${toOptionId(time)}`}
+																	className="absolute inset-0 z-10 size-full rounded-lg border-0 opacity-0"
 																/>
+
 																<FieldTitle
 																	className={cn(
-																		"whitespace-nowrap text-sm",
+																		"w-full justify-center whitespace-nowrap text-center text-sm",
 																		getTextStateClassName(isSelected),
 																	)}>
 																	{formatTimeValue(time)}

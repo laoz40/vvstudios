@@ -189,7 +189,9 @@ export function formatTimeValue(time: string) {
 		hour: "numeric",
 		hour12: true,
 		minute: "2-digit",
-	}).format(new Date(2000, 0, 1, hours, minutes));
+	})
+		.format(new Date(2000, 0, 1, hours, minutes))
+		.replace(/\s?(am|pm)$/i, "$1");
 }
 
 export function toOptionId(value: string) {
