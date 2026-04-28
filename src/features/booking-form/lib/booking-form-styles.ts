@@ -1,7 +1,7 @@
 import { cn } from "#/lib/utils";
 
 export const sectionHeadingClassName =
-	"text-sm! font-semibold tracking-widest text-primary uppercase";
+	"text-xs! md:text-sm! font-semibold tracking-widest text-primary uppercase";
 
 export const transitionClassName =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
