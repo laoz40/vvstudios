@@ -3,11 +3,13 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
 import { BookingRecordingSpaceDurationSection } from "#/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#/features/booking-form/components/BookingAddonsSection.tsx";
 import { TermsDialog } from "#/features/booking-form/components/TermsDialog";
+import { BookingSavedInfoBanner } from "#/features/booking-form/components/BookingSavedInfoBanner";
 import {
 	bookingFormContext,
 	type BookingFormApi,
@@ -17,8 +19,15 @@ import {
 	INITIAL_FORM,
 	TIME_SECTIONS,
 } from "#/features/booking-form/lib/form-shared";
+import {
+	parseSavedBookingInfo,
+	SAVED_BOOKING_INFO_STORAGE_KEY,
+	toSavedBookingInfo,
+	type SavedBookingInfo,
+} from "#/features/booking-form/lib/saved-booking-info";
 import { Button } from "#/components/ui/button";
-import { FieldError, FieldGroup } from "#/components/ui/field";
+import { Checkbox } from "#/components/ui/checkbox";
+import { Field, FieldContent, FieldError, FieldGroup } from "#/components/ui/field";
 import {
 	formatDateValue,
 	formatMonthKey,
@@ -69,6 +78,7 @@ function BookingPage() {
 	const today = startOfToday();
 	const lastBookableDate = getLastBookableDate(today);
 	const formRef = useRef<HTMLFormElement>(null);
+	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
@@ -80,6 +90,9 @@ function BookingPage() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
+	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<string | null>(null);
+	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
+	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
 	const submitAfterTermsRef = useRef(false);
 
 	const formApi = useForm({
@@ -115,6 +128,21 @@ function BookingPage() {
 					notes: parsedValue.notes || undefined,
 				});
 
+				if (shouldSaveBookingInfo) {
+					const nextSavedBookingInfo = toSavedBookingInfo(
+						parsedValue,
+						preferredTimeSectionKey ?? "",
+					);
+					window.localStorage.setItem(
+						SAVED_BOOKING_INFO_STORAGE_KEY,
+						JSON.stringify(nextSavedBookingInfo),
+					);
+					setSavedBookingInfo(nextSavedBookingInfo);
+				} else {
+					window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+					setSavedBookingInfo(null);
+				}
+
 				setCheckoutSession(session);
 				setShowTermsDialog(false);
 
@@ -134,6 +162,21 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
+
+	useEffect(() => {
+		const nextSavedBookingInfo = parseSavedBookingInfo(
+			window.localStorage.getItem(SAVED_BOOKING_INFO_STORAGE_KEY),
+		);
+
+		if (!nextSavedBookingInfo) {
+			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			return;
+		}
+
+		setSavedBookingInfo(nextSavedBookingInfo);
+		setShouldSaveBookingInfo(true);
+		setPreferredTimeSectionKey(nextSavedBookingInfo.timeSectionKey || null);
+	}, []);
 
 	useEffect(() => {
 		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
@@ -345,9 +388,43 @@ function BookingPage() {
 		formRef.current?.requestSubmit();
 	};
 
+	const handleReuseSavedBookingInfo = () => {
+		if (!savedBookingInfo) {
+			return;
+		}
+
+		formApi.setFieldValue("service", savedBookingInfo.service);
+		formApi.setFieldValue("duration", savedBookingInfo.duration);
+		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
+		formApi.setFieldValue("name", savedBookingInfo.name);
+		formApi.setFieldValue("phone", savedBookingInfo.phone);
+		formApi.setFieldValue("accountName", savedBookingInfo.accountName);
+		formApi.setFieldValue("abn", savedBookingInfo.abn);
+		formApi.setFieldValue("email", savedBookingInfo.email);
+		formApi.setFieldValue("notes", savedBookingInfo.notes);
+		setPreferredTimeSectionKey(savedBookingInfo.timeSectionKey || null);
+
+		requestAnimationFrame(() => {
+			dateTimeSectionRef.current?.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
+			});
+		});
+	};
+
+	const handleSaveBookingInfoChange = (checked: boolean) => {
+		setShouldSaveBookingInfo(checked);
+
+		if (!checked) {
+			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			setSavedBookingInfo(null);
+		}
+	};
+
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
 			<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
+			{savedBookingInfo ? <BookingSavedInfoBanner onReuse={handleReuseSavedBookingInfo} /> : null}
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
 				<form
@@ -372,22 +449,46 @@ function BookingPage() {
 					className="flex flex-col gap-10">
 					<FieldGroup className="flex flex-col gap-8 md:gap-12">
 						<BookingRecordingSpaceDurationSection />
-						<BookingDateTimeSection
-							availabilityError={availabilityError}
-							availableTimeSections={availableTimeSections}
-							calendarMonth={calendarMonth}
-							disabledDates={disabledDates}
-							isLoadingMonthAvailability={isLoadingMonthAvailability}
-							isSelectedDateInPast={isSelectedDateInPast}
-							isViewingSelectedMonth={isViewingSelectedMonth}
-							selectedDate={selectedDate}
-							setCalendarMonth={setCalendarMonth}
-						/>
+						<div
+							ref={dateTimeSectionRef}
+							className="scroll-mt-32 sm:scroll-mt-40">
+							<BookingDateTimeSection
+								availabilityError={availabilityError}
+								availableTimeSections={availableTimeSections}
+								calendarMonth={calendarMonth}
+								disabledDates={disabledDates}
+								isLoadingMonthAvailability={isLoadingMonthAvailability}
+								isSelectedDateInPast={isSelectedDateInPast}
+								isViewingSelectedMonth={isViewingSelectedMonth}
+								onPreferredTimeSectionChange={setPreferredTimeSectionKey}
+								preferredTimeSectionKey={preferredTimeSectionKey}
+								selectedDate={selectedDate}
+								setCalendarMonth={setCalendarMonth}
+							/>
+						</div>
 						<BookingAddonsSection />
 						<BookingContactSection />
 					</FieldGroup>
 
 					{error ? <FieldError>{error}</FieldError> : null}
+
+					<Field
+						orientation="horizontal"
+						className="items-center! gap-2">
+						<Checkbox
+							id="save-booking-info"
+							checked={shouldSaveBookingInfo}
+							className="size-5 rounded-full"
+							onCheckedChange={(checked) => handleSaveBookingInfoChange(checked === true)}
+						/>
+						<FieldContent className="justify-center gap-0">
+							<Label
+								htmlFor="save-booking-info"
+								className="cursor-pointer text-sm">
+								Save booking information on this device for next time
+							</Label>
+						</FieldContent>
+					</Field>
 
 					<Button
 						type="submit"

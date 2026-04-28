@@ -52,6 +52,8 @@ export interface BookingDateTimeSectionProps {
 	isLoadingMonthAvailability: boolean;
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
+	onPreferredTimeSectionChange?: (key: string | null) => void;
+	preferredTimeSectionKey?: string | null;
 	selectedDate: Date | undefined;
 	setCalendarMonth: (date: Date) => void;
 }
@@ -64,6 +66,8 @@ export function BookingDateTimeSection({
 	isLoadingMonthAvailability,
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
+	onPreferredTimeSectionChange,
+	preferredTimeSectionKey,
 	selectedDate,
 	setCalendarMonth,
 }: BookingDateTimeSectionProps) {
@@ -82,9 +86,13 @@ export function BookingDateTimeSection({
 	const firstAvailableTimeSection = availableTimeSections.find(
 		(section) => section.times.length > 0,
 	);
+	const preferredTimeSection = availableTimeSections.find(
+		(section) => section.key === preferredTimeSectionKey && section.times.length > 0,
+	);
 	const activeTimeSection =
 		availableTimeSections.find((section) => section.key === activeTimeSectionKey) ??
 		selectedTimeSection ??
+		preferredTimeSection ??
 		firstAvailableTimeSection ??
 		availableTimeSections[0];
 
@@ -99,9 +107,18 @@ export function BookingDateTimeSection({
 				return currentKey;
 			}
 
-			return selectedTimeSection?.key ?? firstAvailableTimeSection?.key ?? null;
+			return (
+				selectedTimeSection?.key ??
+				preferredTimeSection?.key ??
+				firstAvailableTimeSection?.key ??
+				null
+			);
 		});
-	}, [availableTimeSections, firstAvailableTimeSection, selectedTimeSection]);
+	}, [availableTimeSections, firstAvailableTimeSection, preferredTimeSection, selectedTimeSection]);
+
+	useEffect(() => {
+		onPreferredTimeSectionChange?.(activeTimeSection?.key ?? null);
+	}, [activeTimeSection?.key, onPreferredTimeSectionChange]);
 
 	return (
 		<section className="flex flex-col mt-0 gap-6 md:gap-8">
