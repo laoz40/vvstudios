@@ -34,7 +34,7 @@
 	const bookingUrls = bookingStepOneContent.bookingUrls;
 	const recurringBookingUrl = bookingStepOneContent.recurringBookingUrl;
 	const BookingStepOneSchema = z.object({
-		studioId: z.string().min(1, "Please select a studio space."),
+		studioId: z.string().min(1, "Please select a recording space."),
 		durationValue: z.string().min(1, "Please select a session duration."),
 	});
 
