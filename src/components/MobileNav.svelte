@@ -86,7 +86,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="fixed top-4 z-40 w-full px-4 md:hidden">
+<div class="fixed top-2 z-40 w-full px-4 md:hidden">
 	<div
 		bind:this={navMotionEl}
 		style={isHomePage
