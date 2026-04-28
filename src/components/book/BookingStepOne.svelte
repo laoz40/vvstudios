@@ -21,7 +21,7 @@
 	import armchairSetupImage from "../../assets/gallery/armchair-setup.jpg?enhanced";
 
 	const pressableClass =
-		"transition-[border-color,background-color,color,opacity,box-shadow] duration-200 ease-out active:opacity-90";
+		"transform-gpu transition-[transform,border-color,background-color,color,opacity,box-shadow] duration-200 ease-out active:scale-99 active:opacity-90";
 
 	let {
 		children: _children,
@@ -240,10 +240,10 @@
 								<span
 									class={cn(
 										"relative z-10",
-										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-0.5 md:py-2 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out",
+										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-0.5 md:py-2 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out shadow-md",
 										isSelected
 											? "border-primary bg-primary text-primary-foreground"
-											: "border-border bg-background/25 text-foreground group-hover:border-border group-hover:bg-background/35 group-hover:text-primary",
+											: "border-border bg-background/50 text-foreground group-hover:border-border group-hover:text-primary",
 									)}>
 									{isSelected ? "Selected" : "Select"}
 								</span>
@@ -297,7 +297,7 @@
 									{duration.badgeLabel}
 								</span>
 							{/if}
-							<div class="flex w-full items-end justify-between">
+							<div class="flex w-full items-center justify-between">
 								<p class="text-base font-semibold leading-none">{duration.label}</p>
 								<div class="flex items-end gap-1 text-right">
 									{#if hasDiscount}
