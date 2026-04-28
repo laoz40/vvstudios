@@ -82,7 +82,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						<SiteNavbar />
 						<div
 							id="site-shell"
-							className="min-h-screen pt-24 md:pt-28">
+							className="min-h-screen pt-18 md:pt-24">
 							{children}
 						</div>
 						<Footer />

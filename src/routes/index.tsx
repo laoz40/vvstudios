@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
 	return (
-		<main className="-mt-28 md:-mt-32">
+		<main className="-mt-18 md:-mt-28">
 			<LandingHero />
 			<LandingGallery />
 			<Separator className="mx-auto my-4 max-w-6xl" />

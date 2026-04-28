@@ -20,7 +20,7 @@ export function LandingHero() {
 	return (
 		<section
 			aria-labelledby="landing-hero-title"
-			className="relative isolate -mx-4 min-h-screen overflow-hidden md:-mx-8 lg:-mx-20">
+			className="relative isolate min-h-screen overflow-hidden md:-mx-4 lg:-mx-6">
 			<div
 				aria-hidden
 				className="absolute inset-0 -z-20">
@@ -42,7 +42,7 @@ export function LandingHero() {
 
 			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
-			<div className="absolute left-10 bottom-28 z-10 max-w-lg md:left-20 md:bottom-32 lg:left-24 xl:left-50 xl:bottom-60">
+			<div className="absolute inset-x-4 bottom-24 z-10 max-w-lg md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
 				<div className="flex flex-col gap-2 md:max-w-xl">
 					<p className="text-primary text-sm font-semibold tracking-widest uppercase">
 						{heroCopy.eyebrow}
@@ -70,7 +70,7 @@ export function LandingHero() {
 						/>
 					</div>
 
-					<div className="mt-3 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
+					<div className="mt-7 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
 						<MapPin className="text-primary" />
 						<Button
 							asChild
