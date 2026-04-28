@@ -1,4 +1,5 @@
 import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { SmoothScroll } from "#/components/SmoothScroll";
 import { Footer } from "#/components/Footer";
 import { SiteNavbar } from "#/components/NavBar";
 import appCss from "../styles.css?url";
@@ -79,6 +80,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ClerkProvider>
 					<ConvexProvider>
+						<SmoothScroll />
 						<SiteNavbar />
 						<div
 							id="site-shell"

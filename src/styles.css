@@ -175,6 +175,15 @@ html {
 	background-color: var(--background);
 }
 
+html.lenis,
+html.lenis body {
+	height: auto;
+}
+
+.lenis.lenis-stopped {
+	overflow: clip;
+}
+
 body {
 	min-height: 100vh;
 	background-color: var(--background);
