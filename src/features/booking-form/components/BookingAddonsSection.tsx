@@ -8,8 +8,13 @@ import {
 	FieldTitle,
 } from "#/components/ui/field";
 import { Check, Clapperboard, Scissors, Smartphone } from "lucide-react";
-import { ADDON_OPTIONS, type BookingFormValues } from "#/features/booking-form/lib/form-shared";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
+import {
+	getCardStateClassName,
+	sectionHeadingClassName,
+	transitionClassName,
+} from "#/features/booking-form/lib/booking-form-styles";
+import { ADDON_OPTIONS, type BookingFormValues } from "#/features/booking-form/lib/form-shared";
 import { toOptionId } from "#/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -43,15 +48,7 @@ const addonCardCopy = {
 	}
 >;
 
-export interface BookingAddonsSectionProps {
-	sectionHeadingClassName: string;
-	transitionClassName: string;
-}
-
-export function BookingAddonsSection({
-	sectionHeadingClassName,
-	transitionClassName,
-}: BookingAddonsSectionProps) {
+export function BookingAddonsSection() {
 	const formApi = useBookingFormContext();
 
 	return (
@@ -74,8 +71,9 @@ export function BookingAddonsSection({
 									htmlFor={`addon-${toOptionId(addon)}`}
 									data-state={isChecked ? "checked" : "unchecked"}
 									className={cn(
-										"pressable w-full cursor-pointer rounded-lg border border-border bg-input/30 transition-all hover:border-primary hover:bg-primary/10 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10",
+										"pressable w-full cursor-pointer rounded-lg border border-border bg-input/30",
 										transitionClassName,
+										getCardStateClassName(isChecked),
 									)}>
 									<Field
 										orientation="horizontal"

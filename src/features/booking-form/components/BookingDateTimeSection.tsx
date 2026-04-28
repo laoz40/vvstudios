@@ -15,6 +15,12 @@ import { env } from "#/env";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import {
+	getCardStateClassName,
+	getTextStateClassName,
+	sectionHeadingClassName,
+	transitionClassName,
+} from "#/features/booking-form/lib/booking-form-styles";
+import {
 	toFieldErrorObjects,
 	type AvailableTimeSection,
 	type BookingFormValues,
@@ -56,9 +62,7 @@ export interface BookingDateTimeSectionProps {
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
 	selectedDate: Date | undefined;
-	sectionHeadingClassName: string;
 	setCalendarMonth: (date: Date) => void;
-	transitionClassName: string;
 }
 
 export function BookingDateTimeSection({
@@ -70,9 +74,7 @@ export function BookingDateTimeSection({
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
 	selectedDate,
-	sectionHeadingClassName,
 	setCalendarMonth,
-	transitionClassName,
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
 	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export function BookingDateTimeSection({
 	}, [availableTimeSections, firstAvailableTimeSection, selectedTimeSection]);
 
 	return (
-		<section className="flex flex-col mt-8 gap-6 md:gap-8">
+		<section className="flex flex-col mt-0 md:mt-8 gap-6 md:gap-8">
 			<div className="grid max-w-6xl gap-6 xl:grid-cols-5 xl:items-start xl:gap-12">
 				<div className="xl:col-span-2">
 					<formApi.Field name="date">
@@ -177,12 +179,11 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"pressable bg-input/30 border-border h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium transition-colors",
+														"pressable border-border bg-input/30 h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium",
 														transitionClassName,
 														"disabled:cursor-not-allowed disabled:opacity-50",
-														isActive
-															? "border-primary bg-primary/10 text-foreground"
-															: "text-foreground/80 hover:border-primary hover:bg-primary/10",
+														getCardStateClassName(isActive),
+														getTextStateClassName(isActive),
 													)}>
 													{section.label}
 												</button>
@@ -205,30 +206,39 @@ export function BookingDateTimeSection({
 									className="flex flex-col gap-6">
 									{activeTimeSection ? (
 										<div className="flex flex-col gap-4">
-											<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 mt-6">
-												{activeTimeSection.times.map((time) => (
-													<FieldLabel
-														key={time}
-														className={cn(
-															"pressable bg-input/30 border-border w-full! cursor-pointer flex-row! rounded-lg border transition-colors hover:border-primary hover:bg-primary/10",
-															transitionClassName,
-														)}>
-														<Field
-															orientation="horizontal"
+											<div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+												{activeTimeSection.times.map((time) => {
+													const isSelected = field.state.value === time;
+
+													return (
+														<FieldLabel
+															key={time}
 															className={cn(
-																"h-14 w-full items-center justify-start rounded-lg px-3.5 py-2",
-																"gap-2.5",
+																"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border",
+																transitionClassName,
+																getCardStateClassName(isSelected),
 															)}>
-															<RadioGroupItem
-																value={time}
-																id={`time-${toOptionId(time)}`}
-															/>
-															<FieldTitle className="whitespace-nowrap text-sm">
-																{formatTimeValue(time)}
-															</FieldTitle>
-														</Field>
-													</FieldLabel>
-												))}
+															<Field
+																orientation="horizontal"
+																className={cn(
+																	"h-14 w-full items-center justify-start rounded-lg px-3.5 py-2",
+																	"gap-2.5",
+																)}>
+																<RadioGroupItem
+																	value={time}
+																	id={`time-${toOptionId(time)}`}
+																/>
+																<FieldTitle
+																	className={cn(
+																		"whitespace-nowrap text-sm",
+																		getTextStateClassName(isSelected),
+																	)}>
+																	{formatTimeValue(time)}
+																</FieldTitle>
+															</Field>
+														</FieldLabel>
+													);
+												})}
 											</div>
 										</div>
 									) : null}

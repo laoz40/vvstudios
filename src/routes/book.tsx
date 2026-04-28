@@ -62,10 +62,6 @@ const pageCopy = {
 	title: "Studio Hire Booking",
 } as const;
 
-const sectionHeadingClassName = "text-sm! font-semibold tracking-widest text-primary uppercase";
-const bookingOptionTransitionClassName =
-	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
-
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
@@ -350,10 +346,8 @@ function BookingPage() {
 	};
 
 	return (
-		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 px-4 pb-12">
-			<div className="max-w-3xl space-y-4">
-				<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
-			</div>
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-6 px-4 pb-12">
+			<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
 				<form
@@ -376,11 +370,8 @@ function BookingPage() {
 							});
 					}}
 					className="flex flex-col gap-10">
-					<FieldGroup className="flex flex-col gap-10 md:gap-12">
-						<BookingRecordingSpaceDurationSection
-							sectionHeadingClassName={sectionHeadingClassName}
-							transitionClassName={bookingOptionTransitionClassName}
-						/>
+					<FieldGroup className="flex flex-col gap-6 md:gap-12">
+						<BookingRecordingSpaceDurationSection />
 						<BookingDateTimeSection
 							availabilityError={availabilityError}
 							availableTimeSections={availableTimeSections}
@@ -390,15 +381,10 @@ function BookingPage() {
 							isSelectedDateInPast={isSelectedDateInPast}
 							isViewingSelectedMonth={isViewingSelectedMonth}
 							selectedDate={selectedDate}
-							sectionHeadingClassName={sectionHeadingClassName}
 							setCalendarMonth={setCalendarMonth}
-							transitionClassName={bookingOptionTransitionClassName}
 						/>
-						<BookingAddonsSection
-							sectionHeadingClassName={sectionHeadingClassName}
-							transitionClassName={bookingOptionTransitionClassName}
-						/>
-						<BookingContactSection sectionHeadingClassName={sectionHeadingClassName} />
+						<BookingAddonsSection />
+						<BookingContactSection />
 					</FieldGroup>
 
 					{error ? <FieldError>{error}</FieldError> : null}

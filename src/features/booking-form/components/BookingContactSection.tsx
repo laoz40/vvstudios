@@ -3,6 +3,7 @@ import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "#/componen
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
+import { sectionHeadingClassName } from "#/features/booking-form/lib/booking-form-styles";
 import { toFieldErrorObjects } from "#/features/booking-form/lib/form-shared";
 
 const sectionCopy = {
@@ -22,11 +23,7 @@ const sectionCopy = {
 	notesPlaceholder: "Let us know if you have any special requests or questions.",
 } as const;
 
-export interface BookingContactSectionProps {
-	sectionHeadingClassName: string;
-}
-
-export function BookingContactSection({ sectionHeadingClassName }: BookingContactSectionProps) {
+export function BookingContactSection() {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
