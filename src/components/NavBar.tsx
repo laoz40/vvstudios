@@ -47,7 +47,7 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 				width={36}
 				height={36}
 				layout="fixed"
-				priority
+				loading="eager"
 				className={cn("size-9 shrink-0", logoClassName)}
 			/>
 			<span className="font-brand text-xl font-medium tracking-wide">{BRAND_LABEL}</span>

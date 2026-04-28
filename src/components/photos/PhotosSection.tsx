@@ -37,7 +37,7 @@ export function PhotosSection({
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 					{images.map((image, index) => (
 						<figure
-							key={image.alt}
+							key={image.src}
 							className="border-border bg-card mb-4 break-inside-avoid overflow-hidden rounded-lg border">
 							<Image
 								src={image.src}
