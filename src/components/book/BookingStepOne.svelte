@@ -210,30 +210,33 @@
 							class={cn(
 								"booking-studio-card border-border bg-input/30 hover:border-primary/70 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-xl border shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 								pressableClass,
-								isSelected && "border-primary",
+								isSelected && "border-primary booking-option-surface",
 							)}>
 							<div class="aspect-video w-full overflow-hidden bg-input/30">
 								{#if studio.imageSlot === "table-image"}
 									<enhanced:img
 										src={tableImage}
 										alt={bookingStepOneContent.studios[0].alt}
-										class="h-full w-full object-cover"
+										class={cn(
+											"h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 group-active:scale-105",
+											isSelected && "scale-102",
+										)}
 										loading="lazy"
 										decoding="async" />
 								{:else if studio.imageSlot === "armchair-image"}
 									<enhanced:img
 										src={armchairSetupImage}
 										alt={bookingStepOneContent.studios[1].alt}
-										class="h-full w-full object-cover"
+										class={cn(
+											"h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 group-active:scale-105",
+											isSelected && "scale-102",
+										)}
 										loading="lazy"
 										decoding="async" />
 								{/if}
 							</div>
 							<div
-								class={cn(
-									"booking-studio-card-footer absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 overflow-hidden px-4 py-1 transition-colors duration-200 ease-out md:relative md:bottom-auto md:inset-x-auto md:py-2",
-									isSelected && "booking-option-surface",
-								)}>
+								class="booking-studio-card-footer absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 overflow-hidden px-4 py-1 transition-colors duration-200 ease-out md:relative md:bottom-auto md:inset-x-auto md:py-2">
 								<div class="relative z-10 min-w-0">
 									<p class="text-base font-semibold">{studio.name}</p>
 								</div>
@@ -410,8 +413,12 @@
 		z-index: 0;
 	}
 
-	:global(.booking-studio-card-footer.booking-option-surface::before) {
-		background-color: color-mix(in srgb, color-mix(in srgb, var(--background) 82%, var(--primary) 18%) 60%, transparent);
+	:global(.booking-studio-card.booking-option-surface .booking-studio-card-footer::before) {
+		background-color: color-mix(
+			in srgb,
+			color-mix(in srgb, var(--background) 82%, var(--primary) 18%) 58%,
+			transparent
+		);
 	}
 
 	@media (min-width: 768px) {
@@ -423,12 +430,23 @@
 			background-color: transparent;
 		}
 
-		:global(.booking-studio-card-footer.booking-option-surface::before) {
-			background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
+		:global(.booking-studio-card.booking-option-surface .booking-studio-card-footer::before) {
+			background-color: color-mix(
+				in srgb,
+				color-mix(in srgb, var(--background) 82%, var(--primary) 18%) 58%,
+				transparent
+			);
 		}
 	}
 
-	:global(.booking-studio-card:hover .booking-studio-card-footer::before),
+	:global(.booking-studio-card:hover .booking-studio-card-footer::before) {
+		background-color: color-mix(
+			in srgb,
+			color-mix(in srgb, var(--background) 82%, var(--primary) 18%) 58%,
+			transparent
+		);
+	}
+
 	:global(.booking-duration-card:hover) {
 		background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
 	}
