@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@tanstack/react-store";
-import { Button } from "#/components/ui/button";
 import { Calendar } from "#/components/ui/calendar";
 import {
 	Field,
@@ -11,7 +10,6 @@ import {
 	FieldSet,
 	FieldTitle,
 } from "#/components/ui/field";
-import { env } from "#/env";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import {
@@ -34,8 +32,6 @@ import {
 	toOptionId,
 } from "#/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
-import { X } from "lucide-react";
-import { Dialog } from "radix-ui";
 
 const sectionCopy = {
 	dateLabel: "SESSION DATE *",
@@ -45,12 +41,6 @@ const sectionCopy = {
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingTimesPrefix: "Loading times for",
 	noTimesAvailable: "No times available for this date.",
-	recurringPromptPrefix: "Need recurring sessions?",
-	recurringPromptAction: "Request a call",
-	recurringPromptSuffix: "to lock in your slot at a discounted rate.",
-	requestCallDialogTitle: "Request a call",
-	requestCallDialogDescription: "Book a quick call to discuss recurring sessions and availability.",
-	requestCallDialogClose: "Close",
 } as const;
 
 export interface BookingDateTimeSectionProps {
@@ -78,7 +68,6 @@ export function BookingDateTimeSection({
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
 	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<string | null>(null);
-	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
 	const formValues = useStore(formApi.store, (state) => state.values as BookingFormValues);
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
@@ -114,7 +103,7 @@ export function BookingDateTimeSection({
 	}, [availableTimeSections, firstAvailableTimeSection, selectedTimeSection]);
 
 	return (
-		<section className="flex flex-col mt-0 md:mt-8 gap-6 md:gap-8">
+		<section className="flex flex-col mt-0 gap-6 md:gap-8">
 			<div className="grid max-w-6xl gap-6 xl:grid-cols-5 xl:items-start xl:gap-12">
 				<div className="xl:col-span-2">
 					<formApi.Field name="date">
@@ -269,57 +258,6 @@ export function BookingDateTimeSection({
 							</FieldSet>
 						)}
 					</formApi.Field>
-					<div className="mt-6 text-sm text-muted-foreground xl:mt-auto">
-						{sectionCopy.recurringPromptPrefix}{" "}
-						<Dialog.Root
-							open={isRequestCallOpen}
-							onOpenChange={setIsRequestCallOpen}>
-							<Button
-								type="button"
-								variant="link"
-								className="accent-link text-foreground p-0 font-medium"
-								aria-haspopup="dialog"
-								aria-expanded={isRequestCallOpen}
-								onClick={() => {
-									setIsRequestCallOpen(true);
-								}}>
-								{sectionCopy.recurringPromptAction}
-							</Button>
-							<Dialog.Portal>
-								<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
-								<Dialog.Content className="bg-popover text-popover-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl p-4 text-sm outline-none ring-1 max-h-[calc(100vh-2rem)] sm:w-[calc(100%-2rem)] sm:p-6">
-									<div className="space-y-2 pr-10">
-										<Dialog.Title className="text-xl font-semibold">
-											{sectionCopy.requestCallDialogTitle}
-										</Dialog.Title>
-										<Dialog.Description className="text-muted-foreground text-sm leading-6">
-											{sectionCopy.requestCallDialogDescription}
-										</Dialog.Description>
-									</div>
-
-									<Dialog.Close asChild>
-										<Button
-											type="button"
-											variant="ghost"
-											size="icon-sm"
-											className="absolute top-2 right-2"
-											aria-label={sectionCopy.requestCallDialogClose}>
-											<X />
-										</Button>
-									</Dialog.Close>
-
-									<div className="overflow-hidden rounded-xl border border-border bg-white">
-										<iframe
-											src={env.VITE_BOOKING_RECURRING_URL}
-											title={sectionCopy.requestCallDialogTitle}
-											className="block min-h-176 w-full border-0 bg-transparent"
-										/>
-									</div>
-								</Dialog.Content>
-							</Dialog.Portal>
-						</Dialog.Root>{" "}
-						{sectionCopy.recurringPromptSuffix}
-					</div>
 				</div>
 			</div>
 		</section>

@@ -54,9 +54,7 @@ export function BookingAddonsSection() {
 	return (
 		<formApi.Field name="addons">
 			{(field) => (
-				<FieldSet
-					data-field-name="addons"
-					className="mt-4">
+				<FieldSet data-field-name="addons">
 					<FieldLegend className={sectionHeadingClassName}>{sectionTitle}</FieldLegend>
 					<FieldDescription>{sectionDescription}</FieldDescription>
 					<div className="flex flex-col gap-4">
