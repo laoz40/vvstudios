@@ -21,6 +21,8 @@ export const TIME_SECTIONS = [
 	},
 ] as const;
 
+export type TimeSectionKey = (typeof TIME_SECTIONS)[number]["key"];
+
 export const bookingSchema = z.object({
 	name: z
 		.string()
@@ -77,7 +79,7 @@ export type BookingFormValues = z.input<typeof bookingSchema>;
 export type ParsedBookingFormValues = z.output<typeof bookingSchema>;
 
 export interface AvailableTimeSection {
-	key: string;
+	key: TimeSectionKey;
 	label: string;
 	times: string[];
 }

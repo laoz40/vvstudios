@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import heroDesktop from "#/assets/bg/landing.webp";
 import heroMobile from "#/assets/bg/mobile.webp";
 import { FreeTourDialogButton } from "#/components/FreeTourDialog";
@@ -17,6 +18,8 @@ const heroCopy = {
 } as const;
 
 export function LandingHero() {
+	const shouldReduceMotion = useReducedMotion();
+
 	return (
 		<section
 			aria-labelledby="landing-hero-title"
@@ -43,7 +46,18 @@ export function LandingHero() {
 			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
 			<div className="absolute inset-x-4 bottom-24 z-10 max-w-lg md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
-				<div className="flex flex-col gap-2 md:max-w-xl">
+				<motion.div
+					className="flex flex-col gap-2 md:max-w-xl"
+					initial={{
+						opacity: shouldReduceMotion ? 1 : 0,
+						y: shouldReduceMotion ? 0 : 12,
+						filter: shouldReduceMotion ? "blur(0px)" : "blur(6px)",
+					}}
+					animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+					transition={{
+						duration: shouldReduceMotion ? 0 : 0.75,
+						ease: "easeOut",
+					}}>
 					<p className="text-primary text-sm font-semibold tracking-widest uppercase">
 						{heroCopy.eyebrow}
 					</p>
@@ -79,10 +93,21 @@ export function LandingHero() {
 							<a href={env.VITE_APP_STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 						</Button>
 					</div>
-				</div>
+				</motion.div>
 			</div>
 
-			<div className="absolute right-8 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base">
+			<motion.div
+				className="absolute right-8 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base"
+				initial={{
+					opacity: shouldReduceMotion ? 1 : 0,
+					filter: shouldReduceMotion ? "blur(0px)" : "blur(6px)",
+				}}
+				animate={{ opacity: 1, filter: "blur(0px)" }}
+				transition={{
+					duration: shouldReduceMotion ? 0 : 0.75,
+					delay: shouldReduceMotion ? 0 : 0.15,
+					ease: "easeOut",
+				}}>
 				<MapPin className="text-primary" />
 				<Button
 					asChild
@@ -90,7 +115,7 @@ export function LandingHero() {
 					className="px-0 text-muted-foreground hover:text-foreground">
 					<a href={env.VITE_APP_STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 				</Button>
-			</div>
+			</motion.div>
 		</section>
 	);
 }

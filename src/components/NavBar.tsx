@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Menu, X } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import logoYellow from "#/assets/vv-logo-yellow.svg";
 import { Button } from "#/components/ui/button";
@@ -15,6 +16,7 @@ const OPEN_NAV_ARIA_LABEL = "Open navigation menu";
 const CLOSE_NAV_ARIA_LABEL = "Close navigation menu";
 const OPEN_MENU_SR_TEXT = "Open menu";
 const CLOSE_MENU_SR_TEXT = "Close menu";
+const NAV_INTRO_DURATION = 0.75;
 
 const BOOK_LINK = { href: "/book", label: "Book session" } as const;
 const BACK_HOME_LINK = { href: "/", label: "Back to home" } as const;
@@ -102,13 +104,41 @@ function NavCta({
 
 function DesktopNavbar({ pathname }: { pathname: string }) {
 	const isBookPage = pathname === "/book";
+	const [shouldPlayIntro] = useState(() => pathname === "/");
+	const shouldReduceMotion = useReducedMotion();
+	const [blurEnabled, setBlurEnabled] = useState(() => !shouldPlayIntro || shouldReduceMotion);
+
+	useEffect(() => {
+		setBlurEnabled(!shouldPlayIntro || shouldReduceMotion);
+	}, [shouldPlayIntro, shouldReduceMotion]);
 
 	return (
 		<div className="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
-			<div>
+			<motion.div
+				initial={
+					shouldPlayIntro
+						? {
+								opacity: shouldReduceMotion ? 1 : 0,
+								y: shouldReduceMotion ? 0 : -32,
+							}
+						: false
+				}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{
+					duration: shouldReduceMotion ? 0 : NAV_INTRO_DURATION,
+					ease: "easeOut",
+				}}
+				onAnimationComplete={() => {
+					if (shouldPlayIntro) {
+						setBlurEnabled(true);
+					}
+				}}>
 				<nav
 					aria-label={PRIMARY_NAV_ARIA_LABEL}
-					className="rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg backdrop-blur-xs">
+					className={cn(
+						"rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg transition duration-700 ease-out",
+						blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none",
+					)}>
 					<div className="flex items-stretch justify-between gap-4">
 						<div className="flex h-full items-stretch justify-self-start">
 							<BrandLink />
@@ -141,7 +171,7 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 						</div>
 					</div>
 				</nav>
-			</div>
+			</motion.div>
 		</div>
 	);
 }
@@ -149,10 +179,17 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 function MobileNavbar({ pathname }: { pathname: string }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const isBookPage = pathname === "/book";
+	const [shouldPlayIntro] = useState(() => pathname === "/");
+	const shouldReduceMotion = useReducedMotion();
+	const [blurEnabled, setBlurEnabled] = useState(() => !shouldPlayIntro || shouldReduceMotion);
 
 	useEffect(() => {
 		setIsOpen(false);
 	}, [pathname]);
+
+	useEffect(() => {
+		setBlurEnabled(!shouldPlayIntro || shouldReduceMotion);
+	}, [shouldPlayIntro, shouldReduceMotion]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -188,10 +225,31 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 	return (
 		<>
 			<div className="fixed inset-x-0 top-2 z-40 px-4 md:hidden">
-				<div>
+				<motion.div
+					initial={
+						shouldPlayIntro
+							? {
+									opacity: shouldReduceMotion ? 1 : 0,
+									y: shouldReduceMotion ? 0 : -32,
+								}
+							: false
+					}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{
+						duration: shouldReduceMotion ? 0 : NAV_INTRO_DURATION,
+						ease: "easeOut",
+					}}
+					onAnimationComplete={() => {
+						if (shouldPlayIntro) {
+							setBlurEnabled(true);
+						}
+					}}>
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
-						className="mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs">
+						className={cn(
+							"mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg transition duration-700 ease-out",
+							blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none",
+						)}>
 						<div className="flex h-full items-center">
 							<BrandLink
 								className="font-bold"
@@ -213,7 +271,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 							<X className={cn("size-5", !isOpen && "hidden")} />
 						</Button>
 					</nav>
-				</div>
+				</motion.div>
 			</div>
 
 			{isOpen ? (

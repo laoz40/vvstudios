@@ -22,6 +22,7 @@ import {
 	toFieldErrorObjects,
 	type AvailableTimeSection,
 	type BookingFormValues,
+	type TimeSectionKey,
 } from "#/features/booking-form/lib/form-shared";
 import {
 	formatDateValue,
@@ -67,7 +68,7 @@ export function BookingDateTimeSection({
 	setCalendarMonth,
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
-	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<string | null>(null);
+	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<TimeSectionKey | null>(null);
 	const formValues = useStore(formApi.store, (state) => state.values as BookingFormValues);
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
