@@ -1,6 +1,5 @@
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
-import { Check } from "lucide-react";
 import armchairSetupImage from "#/assets/gallery/armchair-setup.jpg";
 import tableSetupImage from "#/assets/gallery/table-setup.jpg";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
@@ -31,14 +30,12 @@ const recordingSpaceOptions = [
 	{
 		value: "Table Setup" as const,
 		title: "Table Setup",
-		description: "For your serious discussions",
 		image: tableSetupImage,
 		imageAlt: "Podcast table setup with microphones and studio lighting",
 	},
 	{
 		value: "Armchair Setup" as const,
 		title: "Armchair Setup",
-		description: "For a more relaxed atmosphere",
 		image: armchairSetupImage,
 		imageAlt: "Podcast open setup with warm lamps and casual seating",
 	},
@@ -108,37 +105,43 @@ export function BookingRecordingSpaceDurationSection({
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
 												transitionClassName,
 												field.state.value === option.value && "border-primary",
 											)}>
-											<div className="relative aspect-720/448 w-full md:h-56">
-												{field.state.value === option.value ? (
-													<span className="bg-primary text-primary-foreground absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full shadow-lg">
-														<Check
-															className="size-5"
-															strokeWidth={2.5}
-														/>
-													</span>
-												) : null}
+											<div className="relative aspect-720/448 w-full overflow-hidden md:h-56">
 												<Image
 													src={option.image}
 													alt={option.imageAlt}
 													layout="constrained"
 													width={720}
 													height={448}
-													className="h-full w-full object-cover"
+													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+													style={
+														field.state.value === option.value
+															? { transform: "scale(1.02)" }
+															: undefined
+													}
 												/>
+												<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
 											</div>
 											<div
 												className={cn(
-													"bg-input/30 px-4 py-2 transition duration-300 group-hover:bg-primary/10",
-													field.state.value === option.value && "bg-primary/10",
+													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] transition duration-300 md:static md:bg-input/30 md:px-3 md:py-1.5 md:backdrop-blur-none",
+													field.state.value === option.value
+														? "bg-primary/12 md:bg-primary/15"
+														: "bg-background/25 group-hover:bg-primary/15 md:bg-input/30",
 												)}>
-												<p className="text-base font-semibold">{option.title}</p>
-												<p className="text-sm font-light text-muted-foreground">
-													{option.description}
-												</p>
+												<p className="text-base font-semibold text-foreground">{option.title}</p>
+												<span
+													className={cn(
+														"inline-flex items-center rounded-full border shadow-md px-2.5 py-0.5 text-[11px] font-medium tracking-wider transition duration-300 md:min-h-8 md:px-3 md:py-1",
+														field.state.value === option.value
+															? "border-primary bg-primary text-primary-foreground"
+															: "border-foreground/15 bg-background/30 text-foreground/85 group-hover:text-primary",
+													)}>
+													{field.state.value === option.value ? "SELECTED" : "SELECT"}
+												</span>
 											</div>
 										</label>
 									</div>
@@ -181,38 +184,25 @@ export function BookingRecordingSpaceDurationSection({
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"pressable border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+													"pressable border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 transition duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
 													field.state.value === option.value && "border-primary bg-primary/10",
 												)}>
 												{option.badgeLabel ? (
-													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-sm px-2 py-0.5 text-[10px] font-semibold shadow-lg">
+													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-bold leading-none">
 														{option.badgeLabel}
 													</span>
 												) : null}
-												<p className="text-base font-semibold mt-0.5">{option.label}</p>
-												<div className="relative flex flex-col items-center justify-start text-sm h-12">
+												<p className="text-base font-bold leading-none">{option.label}</p>
+												<div className="flex items-end gap-1 whitespace-nowrap">
 													{hasDiscount ? (
-														<>
-															<p className="whitespace-nowrap text-xl font-semibold text-primary">
-																{option.discountedPrice}
-															</p>
-															<p className="text-muted-foreground whitespace-nowrap line-through text-sm leading-4">
-																{option.originalPrice}
-															</p>
-														</>
-													) : (
-														<>
-															<p className="whitespace-nowrap text-xl font-semibold text-primary">
-																{option.discountedPrice}
-															</p>
-															{option.priceNote ? (
-																<p className="text-muted-foreground whitespace-nowrap text-sm leading-4">
-																	{option.priceNote}
-																</p>
-															) : null}
-														</>
-													)}
+														<p className="text-muted-foreground text-xs line-through leading-none">
+															{option.originalPrice}
+														</p>
+													) : null}
+													<p className="text-primary text-base font-bold leading-none">
+														{option.discountedPrice}
+													</p>
 												</div>
 											</label>
 										</div>

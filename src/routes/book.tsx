@@ -60,12 +60,11 @@ export const Route = createFileRoute("/book")({
 
 const pageCopy = {
 	title: "Studio Hire Booking",
-	lead: "Simply select a space and time, then choose your addons.",
 } as const;
 
 const sectionHeadingClassName = "text-sm! font-semibold tracking-widest text-primary uppercase";
 const bookingOptionTransitionClassName =
-	"transform-gpu transition-[transform,border-color,background-color,color] duration-300 ease-in";
+	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
@@ -352,11 +351,8 @@ function BookingPage() {
 
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-10 px-4 pb-12">
-			<div className="max-w-3xl space-y-4 pb-2">
+			<div className="max-w-3xl space-y-4">
 				<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
-				<p className="text-muted-foreground text-sm leading-7 text-pretty sm:text-base">
-					{pageCopy.lead}
-				</p>
 			</div>
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
