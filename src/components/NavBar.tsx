@@ -187,15 +187,15 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 
 	return (
 		<>
-			<div className="fixed inset-x-0 top-4 z-40 px-4 md:hidden">
+			<div className="fixed inset-x-0 top-2 z-40 px-4 md:hidden">
 				<div>
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
-						className="mx-auto flex h-16 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-4 shadow-lg backdrop-blur-xs">
+						className="mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs">
 						<div className="flex h-full items-center">
 							<BrandLink
 								className="font-bold"
-								logoClassName="size-5"
+								logoClassName="size-7"
 							/>
 						</div>
 
