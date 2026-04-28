@@ -121,15 +121,15 @@ export function BookingRecordingSpaceDurationSection() {
 												getCardStateClassName(field.state.value === option.value),
 												field.state.value === option.value && "md:bg-primary/5",
 											)}>
-											<div className="relative aspect-720/448 w-full overflow-hidden md:h-56">
+											<div className="relative w-full overflow-hidden">
 												<Image
 													src={option.image}
 													alt={option.imageAlt}
 													layout="constrained"
-													width={720}
-													height={448}
+													width={1885}
+													height={1060}
 													className={cn(
-														"h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+														"h-auto w-full transition-transform duration-300 group-hover:scale-105",
 														field.state.value === option.value && "scale-[1.02]",
 													)}
 												/>
@@ -198,18 +198,18 @@ export function BookingRecordingSpaceDurationSection() {
 													getCardStateClassName(field.state.value === option.value),
 												)}>
 												{option.badgeLabel ? (
-													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-bold leading-none">
+													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-semibold leading-none">
 														{option.badgeLabel}
 													</span>
 												) : null}
-												<p className="text-base font-bold leading-none">{option.label}</p>
+												<p className="text-base font-semibold leading-none">{option.label}</p>
 												<div className="flex items-end gap-1 whitespace-nowrap">
 													{hasDiscount ? (
 														<p className="text-muted-foreground text-xs line-through leading-none">
 															{option.originalPrice}
 														</p>
 													) : null}
-													<p className="text-primary text-base font-bold leading-none">
+													<p className="text-primary text-base font-semibold leading-none">
 														{option.discountedPrice}
 													</p>
 												</div>
