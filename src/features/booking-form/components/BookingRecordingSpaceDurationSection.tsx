@@ -104,9 +104,10 @@ export function BookingRecordingSpaceDurationSection() {
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
+												field.state.value === option.value && "md:bg-primary/5",
 											)}>
 											<div className="relative aspect-720/448 w-full overflow-hidden md:h-56">
 												<Image
@@ -124,14 +125,17 @@ export function BookingRecordingSpaceDurationSection() {
 											</div>
 											<div
 												className={cn(
-													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5",
+													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5 md:group-hover:bg-primary/10",
 													getFooterStateClassName(field.state.value === option.value),
+													field.state.value === option.value && "md:bg-primary/10",
 												)}>
 												<p className="text-base font-semibold text-foreground">{option.title}</p>
 												<span
 													className={cn(
 														"inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wider shadow-md md:min-h-8 md:px-3 md:py-1",
 														getPillStateClassName(field.state.value === option.value),
+														field.state.value === option.value &&
+															"md:border-primary/40 md:bg-background/85 md:text-primary",
 													)}>
 													{field.state.value === option.value ? "SELECTED" : "SELECT"}
 												</span>
