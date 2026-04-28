@@ -302,7 +302,7 @@
 								<div class="flex items-end gap-1 text-right">
 									{#if hasDiscount}
 										<p
-											class="text-muted-foreground text-sm leading-none line-through">
+											class="text-muted-foreground text-xs leading-none line-through">
 											{duration.originalPrice}
 										</p>
 									{/if}
