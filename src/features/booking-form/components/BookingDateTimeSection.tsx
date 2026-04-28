@@ -52,8 +52,8 @@ export interface BookingDateTimeSectionProps {
 	isLoadingMonthAvailability: boolean;
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
-	onPreferredTimeSectionChange?: (key: string | null) => void;
-	preferredTimeSectionKey?: string | null;
+	onPreferredTimeSectionChange?: (key: TimeSectionKey | null) => void;
+	preferredTimeSectionKey?: TimeSectionKey | null;
 	selectedDate: Date | undefined;
 	setCalendarMonth: (date: Date) => void;
 }

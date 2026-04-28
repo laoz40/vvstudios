@@ -18,6 +18,7 @@ import {
 	bookingSchema,
 	INITIAL_FORM,
 	TIME_SECTIONS,
+	type TimeSectionKey,
 } from "#/features/booking-form/lib/form-shared";
 import {
 	parseSavedBookingInfo,
@@ -90,7 +91,9 @@ function BookingPage() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
-	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<string | null>(null);
+	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<TimeSectionKey | null>(
+		null,
+	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
 	const submitAfterTermsRef = useRef(false);
