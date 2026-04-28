@@ -346,7 +346,7 @@ function BookingPage() {
 	};
 
 	return (
-		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-6 px-4 pb-12">
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
 			<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
@@ -370,7 +370,7 @@ function BookingPage() {
 							});
 					}}
 					className="flex flex-col gap-10">
-					<FieldGroup className="flex flex-col gap-6 md:gap-12">
+					<FieldGroup className="flex flex-col gap-8 md:gap-12">
 						<BookingRecordingSpaceDurationSection />
 						<BookingDateTimeSection
 							availabilityError={availabilityError}
