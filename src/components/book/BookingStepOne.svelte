@@ -208,7 +208,7 @@
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
-								"booking-studio-card border-border bg-input/30 hover:border-primary/70 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-xl border shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"booking-studio-card border-border bg-input/30 hover:border-primary/70 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-xl border shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 								pressableClass,
 								isSelected && "border-primary",
 							)}>
@@ -231,14 +231,15 @@
 							</div>
 							<div
 								class={cn(
-									"booking-studio-card-footer flex items-center justify-between gap-3 px-4 py-1.5 md:py-2 transition-colors duration-200 ease-out",
+									"booking-studio-card-footer absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 overflow-hidden px-4 py-1 transition-colors duration-200 ease-out md:relative md:bottom-auto md:inset-x-auto md:py-2",
 									isSelected && "booking-option-surface",
 								)}>
-								<div class="min-w-0">
+								<div class="relative z-10 min-w-0">
 									<p class="text-base font-semibold">{studio.name}</p>
 								</div>
 								<span
 									class={cn(
+										"relative z-10",
 										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-0.5 md:py-2 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out",
 										isSelected
 											? "border-primary bg-primary text-primary-foreground"
@@ -397,7 +398,37 @@
 		background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
 	}
 
-	:global(.booking-studio-card:hover .booking-studio-card-footer),
+	:global(.booking-studio-card-footer) {
+		backdrop-filter: blur(2px);
+	}
+
+	:global(.booking-studio-card-footer::before) {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background-color: color-mix(in srgb, var(--background) 58%, transparent);
+		z-index: 0;
+	}
+
+	:global(.booking-studio-card-footer.booking-option-surface::before) {
+		background-color: color-mix(in srgb, color-mix(in srgb, var(--background) 82%, var(--primary) 18%) 60%, transparent);
+	}
+
+	@media (min-width: 768px) {
+		:global(.booking-studio-card-footer) {
+			backdrop-filter: none;
+		}
+
+		:global(.booking-studio-card-footer::before) {
+			background-color: transparent;
+		}
+
+		:global(.booking-studio-card-footer.booking-option-surface::before) {
+			background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
+		}
+	}
+
+	:global(.booking-studio-card:hover .booking-studio-card-footer::before),
 	:global(.booking-duration-card:hover) {
 		background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
 	}
