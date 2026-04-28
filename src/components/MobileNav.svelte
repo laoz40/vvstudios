@@ -94,7 +94,7 @@
 			: undefined}>
 		<nav
 			aria-label={navContent.mobile.navAriaLabel}
-			class={`border-border/70 bg-background/30 flex h-16 flex-row items-center justify-between rounded-md border px-4 shadow-lg transition duration-700 ease-out ${
+			class={`border-border/70 bg-background/30 flex h-14 flex-row items-center justify-between rounded-md border px-2 shadow-lg transition duration-700 ease-out ${
 				blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none"
 			}`}>
 			<div class="flex h-full items-center">
@@ -107,7 +107,7 @@
 					<img
 						src={logoYellow}
 						alt=""
-						class="h-5 w-5 shrink-0"
+						class="size-7 md:size-5 shrink-0"
 						aria-hidden="true" />
 					{navContent.brandLabel}
 				</Button>
