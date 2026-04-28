@@ -1,10 +1,22 @@
 import { useStore } from "@tanstack/react-store";
-import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "#/components/ui/field";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldLegend,
+	FieldSet,
+} from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#/features/booking-form/lib/booking-form-styles";
 import { toFieldErrorObjects } from "#/features/booking-form/lib/form-shared";
+
+const fieldSetClassName = "gap-5 md:gap-6";
+const fieldStackClassName = "gap-1 md:gap-2";
+const fieldNoteClassName = "-mt-0.5 md:-mt-1";
+const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
 
 const sectionCopy = {
 	contactDetailsLegend: "CONTACT DETAILS",
@@ -17,7 +29,8 @@ const sectionCopy = {
 	accountNamePlaceholder: "Account Name",
 	abnLabel: "ABN",
 	abnPlaceholder: "00 000 000 000",
-	emailLabel: "Email (to receive your invoice) *",
+	emailLabel: "Email *",
+	emailNote: "To receive your booking invoice.",
 	emailPlaceholder: "billing@example.com",
 	notesLegend: "Anything else?",
 	notesPlaceholder: "Let us know if you have any special requests or questions.",
@@ -30,14 +43,16 @@ export function BookingContactSection() {
 
 	return (
 		<>
-			<FieldSet>
-				<FieldLegend className={sectionHeadingClassName}>
+			<FieldSet className={fieldSetClassName}>
+				<FieldLegend className={sectionLegendClassName}>
 					{sectionCopy.contactDetailsLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="name">
 						{(field) => (
-							<Field data-field-name="name">
+							<Field
+								className={fieldStackClassName}
+								data-field-name="name">
 								<FieldLabel htmlFor="name">{sectionCopy.fullNameLabel}</FieldLabel>
 								<Input
 									id="name"
@@ -56,7 +71,9 @@ export function BookingContactSection() {
 
 					<formApi.Field name="phone">
 						{(field) => (
-							<Field data-field-name="phone">
+							<Field
+								className={fieldStackClassName}
+								data-field-name="phone">
 								<FieldLabel htmlFor="phone">{sectionCopy.phoneLabel}</FieldLabel>
 								<Input
 									id="phone"
@@ -75,14 +92,16 @@ export function BookingContactSection() {
 				</div>
 			</FieldSet>
 
-			<FieldSet>
-				<FieldLegend className={sectionHeadingClassName}>
+			<FieldSet className={fieldSetClassName}>
+				<FieldLegend className={sectionLegendClassName}>
 					{sectionCopy.billingInformationLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="accountName">
 						{(field) => (
-							<Field data-field-name="accountName">
+							<Field
+								className={fieldStackClassName}
+								data-field-name="accountName">
 								<FieldLabel htmlFor="accountName">{sectionCopy.accountNameLabel}</FieldLabel>
 								<Input
 									id="accountName"
@@ -101,7 +120,9 @@ export function BookingContactSection() {
 
 					<formApi.Field name="abn">
 						{(field) => (
-							<Field data-field-name="abn">
+							<Field
+								className={fieldStackClassName}
+								data-field-name="abn">
 								<FieldLabel htmlFor="abn">{sectionCopy.abnLabel}</FieldLabel>
 								<Input
 									id="abn"
@@ -120,8 +141,13 @@ export function BookingContactSection() {
 
 					<formApi.Field name="email">
 						{(field) => (
-							<Field data-field-name="email">
+							<Field
+								className={fieldStackClassName}
+								data-field-name="email">
 								<FieldLabel htmlFor="email">{sectionCopy.emailLabel}</FieldLabel>
+								<FieldDescription className={fieldNoteClassName}>
+									{sectionCopy.emailNote}
+								</FieldDescription>
 								<Input
 									id="email"
 									type="email"
@@ -139,11 +165,13 @@ export function BookingContactSection() {
 				</div>
 			</FieldSet>
 
-			<FieldSet>
-				<FieldLegend className={sectionHeadingClassName}>{sectionCopy.notesLegend}</FieldLegend>
+			<FieldSet className={fieldSetClassName}>
+				<FieldLegend className={sectionLegendClassName}>{sectionCopy.notesLegend}</FieldLegend>
 				<formApi.Field name="notes">
 					{(field) => (
-						<Field data-field-name="notes">
+						<Field
+							className={fieldStackClassName}
+							data-field-name="notes">
 							<Textarea
 								id="notes"
 								value={field.state.value}
