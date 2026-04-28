@@ -13,7 +13,6 @@ export type BookingUrlMap = Record<string, Record<string, string>>;
 export type BookingStepOneStudioOption = {
 	id: string;
 	name: string;
-	description: string;
 	imageSlot: "table-image" | "armchair-image";
 	alt: string;
 };
@@ -21,6 +20,7 @@ export type BookingStepOneStudioOption = {
 export type BookingStepOneDurationOption = {
 	value: string;
 	label: string;
+	description: string;
 	originalPrice: string;
 	discountedPrice: string;
 	badgeLabel?: string;

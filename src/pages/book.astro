@@ -24,13 +24,10 @@ const bookStructuredData = buildBreadcrumbSchema(
 	structuredData={bookStructuredData}>
 	<div class="flex min-h-dvh flex-col gap-18 px-4 pt-24 pb-12 sm:pt-32">
 		<div class="text-foreground mx-auto w-full max-w-200">
-			<div class="mb-12 space-y-2">
-				<h1 class="text-primary text-4xl font-extrabold">
+			<div class="mb-6 md:mb-8">
+				<h1 class="text-foreground text-2xl font-extrabold md:text-4xl">
 					{bookingPageContent.stepOne.title}
 				</h1>
-				<p class="text-muted-foreground text-base">
-					{bookingPageContent.stepOne.lead}
-				</p>
 			</div>
 			<BookingStepOne client:only="svelte">
 				<div

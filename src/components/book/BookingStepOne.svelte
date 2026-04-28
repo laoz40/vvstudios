@@ -13,7 +13,6 @@
 	} from "$lib/components/ui/dialog";
 	import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
 	import IframeModal from "../shared/IframeModal.svelte";
-	import SelectedCheckBadge from "../shared/SelectedCheckBadge.svelte";
 	import { bookingStepOneContent } from "../../content/booking";
 	import { seoPages } from "../../content/seo";
 	import type { BookingStepOneStudioOption } from "../../content/bookingTypes";
@@ -22,7 +21,7 @@
 	import armchairSetupImage from "../../assets/gallery/armchair-setup.jpg?enhanced";
 
 	const pressableClass =
-		"transform-gpu transition-[transform,border-color,background-color,color] duration-500 ease-in active:scale-99";
+		"transition-[border-color,background-color,color,opacity,box-shadow] duration-200 ease-out active:opacity-90";
 
 	let {
 		children: _children,
@@ -186,7 +185,7 @@
 </script>
 
 <!-- Studio Selection -->
-<div class="space-y-10">
+<div class="space-y-7 md:space-y-10">
 	<section
 		bind:this={studioSectionEl}
 		class="scroll-mt-32 space-y-1 sm:scroll-mt-40">
@@ -200,6 +199,7 @@
 				name="studio"
 				class="grid gap-4 md:grid-cols-2">
 				{#each studios as studio}
+					{@const isSelected = selectedStudioId === studio.id}
 					<div>
 						<RadioGroupItem
 							id={`studio-${studio.id}`}
@@ -208,15 +208,11 @@
 						<label
 							for={`studio-${studio.id}`}
 							class={cn(
-								"border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-lg border transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 hover:border-primary",
+								"booking-studio-card border-border bg-input/30 hover:border-primary/70 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group block cursor-pointer overflow-hidden rounded-xl border shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 								pressableClass,
-								selectedStudioId === studio.id && "border-primary",
+								isSelected && "border-primary",
 							)}>
-							<div class="relative h-56 w-full">
-								{#if selectedStudioId === studio.id}
-									<SelectedCheckBadge
-										class="absolute top-3 right-3 z-10 transition duration-300!" />
-								{/if}
+							<div class="aspect-video w-full overflow-hidden bg-input/30">
 								{#if studio.imageSlot === "table-image"}
 									<enhanced:img
 										src={tableImage}
@@ -235,13 +231,21 @@
 							</div>
 							<div
 								class={cn(
-									"bg-input/30 px-4 py-2 transition duration-300! group-hover:bg-primary/10",
-									selectedStudioId === studio.id && "bg-primary/10",
+									"booking-studio-card-footer flex items-center justify-between gap-3 px-4 py-2 transition-colors duration-200 ease-out",
+									isSelected && "booking-option-surface",
 								)}>
-								<p class="text-base font-semibold">{studio.name}</p>
-								<p class="text-muted-foreground text-sm font-light text-pretty">
-									{studio.description}
-								</p>
+								<div class="min-w-0">
+									<p class="text-base font-semibold">{studio.name}</p>
+								</div>
+								<span
+									class={cn(
+										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out",
+										isSelected
+											? "border-primary bg-primary text-primary-foreground"
+											: "border-border bg-background/25 text-foreground group-hover:border-border group-hover:bg-background/35 group-hover:text-primary",
+									)}>
+									{isSelected ? "Selected" : "Select"}
+								</span>
 							</div>
 						</label>
 					</div>
@@ -273,6 +277,7 @@
 				{#each durations as duration}
 					{@const hasDiscount =
 						duration.originalPrice !== duration.discountedPrice}
+					{@const isSelected = selectedDurationValue === duration.value}
 					<div>
 						<RadioGroupItem
 							id={`duration-${duration.value}`}
@@ -281,33 +286,29 @@
 						<label
 							for={`duration-${duration.value}`}
 							class={cn(
-								"border-border bg-input/30 hover:border-primary hover:bg-primary/10 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border px-4 py-2 transition duration-300! peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+								"booking-duration-card border-border bg-input/30 hover:border-primary/70 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex gap-3 cursor-pointer flex-col items-start justify-between rounded-xl border px-4 py-6 shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 								pressableClass,
-								selectedDurationValue === duration.value &&
-									"border-primary bg-primary/10",
+								isSelected && "border-primary booking-option-surface",
 							)}>
 							{#if duration.badgeLabel}
 								<span
-									class="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-sm px-2 py-0.5 text-[10px] font-semibold shadow-lg">
+									class="bg-primary text-primary-foreground absolute top-0.5 right-10 translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase shadow-sm">
 									{duration.badgeLabel}
 								</span>
 							{/if}
-							<p class="text-base font-semibold">{duration.label}</p>
-							<div
-								class="relative flex items-center justify-center gap-1 text-sm">
-								{#if hasDiscount}
-									<p class="text-primary whitespace-nowrap">
+							<div class="flex w-full items-end justify-between">
+								<p class="text-base font-semibold leading-none">{duration.label}</p>
+								<div class="flex items-end gap-1 text-right">
+									{#if hasDiscount}
+										<p
+											class="text-muted-foreground text-sm leading-none line-through">
+											{duration.originalPrice}
+										</p>
+									{/if}
+									<p class="text-primary text-base font-semibold leading-none">
 										{duration.discountedPrice}
 									</p>
-									<p
-										class="text-muted-foreground whitespace-nowrap line-through">
-										{duration.originalPrice}
-									</p>
-								{:else}
-									<p class="text-primary whitespace-nowrap">
-										{duration.discountedPrice}
-									</p>
-								{/if}
+								</div>
 							</div>
 						</label>
 					</div>
@@ -329,7 +330,7 @@
 				type="button"
 				onclick={openBooking}
 				class={cn(
-					" h-12 w-full rounded-lg text-base font-bold tracking-wider",
+					"h-14 w-full rounded-xl text-base font-bold tracking-wider uppercase shadow-sm",
 					pressableClass,
 				)}>
 				{bookingStepOneContent.primaryButtonLabel}
@@ -392,6 +393,15 @@
 </Dialog>
 
 <style>
+	:global(.booking-option-surface) {
+		background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
+	}
+
+	:global(.booking-studio-card:hover .booking-studio-card-footer),
+	:global(.booking-duration-card:hover) {
+		background-color: color-mix(in srgb, var(--background) 88%, var(--primary) 12%);
+	}
+
 	.booking-cta-ready {
 		animation: booking-cta-ready 850ms cubic-bezier(0.34, 1.56, 0.64, 1);
 	}

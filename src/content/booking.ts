@@ -39,14 +39,12 @@ export const bookingStepOneContent: BookingStepOneContent = {
     {
       id: "table",
       name: "Table Setup",
-      description: "For your serious discussions",
       imageSlot: "table-image",
       alt: "Podcast table setup with microphones and studio lighting",
     },
     {
       id: "armchair",
       name: "Armchair Setup",
-      description: "For a more relaxed atmosphere",
       imageSlot: "armchair-image",
       alt: "Podcast armchair setup with warm lamps and casual seating",
     },
@@ -55,12 +53,14 @@ export const bookingStepOneContent: BookingStepOneContent = {
     {
       value: "1",
       label: "1 Hour",
+      description: "Quick focused recording window",
       originalPrice: "$200",
       discountedPrice: "$200",
     },
     {
       value: "2",
       label: "2 Hours",
+      description: "Balanced option for most projects",
       originalPrice: "$400",
       discountedPrice: "$299",
       badgeLabel: "MOST POPULAR",
@@ -68,6 +68,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
     {
       value: "3",
       label: "3 Hours",
+      description: "Extended time for deeper coverage",
       originalPrice: "$600",
       discountedPrice: "$399",
     },
@@ -84,7 +85,7 @@ export const bookingStepOneContent: BookingStepOneContent = {
       "3": armchairBookingUrl3,
     },
   },
-  primaryButtonLabel: "PICK SESSION DATE",
+  primaryButtonLabel: "CONTINUE",
   recurringPromptPrefix: "Need recurring sessions?",
   recurringPromptAction: "Request a call",
   recurringPromptSuffix: "to lock in your slot and secure a discounted rate.",
