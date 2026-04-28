@@ -69,7 +69,7 @@ export function BookingAddonsSection() {
 									htmlFor={`addon-${toOptionId(addon)}`}
 									data-state={isChecked ? "checked" : "unchecked"}
 									className={cn(
-										"pressable w-full cursor-pointer rounded-lg border border-border bg-input/30",
+										"pressable has-[:focus-visible]:border-primary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background w-full cursor-pointer rounded-lg border border-border bg-input/30",
 										transitionClassName,
 										getCardStateClassName(isChecked),
 									)}>

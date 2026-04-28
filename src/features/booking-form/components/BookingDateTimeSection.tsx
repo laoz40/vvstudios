@@ -168,7 +168,7 @@ export function BookingDateTimeSection({
 													}}
 													disabled={isDisabled}
 													className={cn(
-														"pressable border-border bg-input/30 h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium",
+														"pressable border-border bg-input/30 h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 														transitionClassName,
 														"disabled:cursor-not-allowed disabled:opacity-50",
 														getCardStateClassName(isActive),
@@ -198,33 +198,35 @@ export function BookingDateTimeSection({
 											<div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
 												{activeTimeSection.times.map((time) => {
 													const isSelected = field.state.value === time;
+													const timeOptionId = `time-${toOptionId(time)}`;
 
 													return (
-														<FieldLabel
-															key={time}
-															className={cn(
-																"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border",
-																transitionClassName,
-																getCardStateClassName(isSelected),
-															)}>
-															<Field
-																orientation="horizontal"
-																className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
-																<RadioGroupItem
-																	value={time}
-																	id={`time-${toOptionId(time)}`}
-																	className="absolute inset-0 z-10 size-full rounded-lg border-0 opacity-0"
-																/>
-
-																<FieldTitle
-																	className={cn(
-																		"w-full justify-center whitespace-nowrap text-center text-sm",
-																		getTextStateClassName(isSelected),
-																	)}>
-																	{formatTimeValue(time)}
-																</FieldTitle>
-															</Field>
-														</FieldLabel>
+														<div key={time}>
+															<RadioGroupItem
+																value={time}
+																id={timeOptionId}
+																className="peer sr-only size-0"
+															/>
+															<FieldLabel
+																htmlFor={timeOptionId}
+																className={cn(
+																	"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background w-full! cursor-pointer flex-row! rounded-lg border",
+																	transitionClassName,
+																	getCardStateClassName(isSelected),
+																)}>
+																<Field
+																	orientation="horizontal"
+																	className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
+																	<FieldTitle
+																		className={cn(
+																			"w-full justify-center whitespace-nowrap text-center text-sm",
+																			getTextStateClassName(isSelected),
+																		)}>
+																		{formatTimeValue(time)}
+																	</FieldTitle>
+																</Field>
+															</FieldLabel>
+														</div>
 													);
 												})}
 											</div>
