@@ -231,7 +231,7 @@
 							</div>
 							<div
 								class={cn(
-									"booking-studio-card-footer flex items-center justify-between gap-3 px-4 py-2 transition-colors duration-200 ease-out",
+									"booking-studio-card-footer flex items-center justify-between gap-3 px-4 py-1.5 md:py-2 transition-colors duration-200 ease-out",
 									isSelected && "booking-option-surface",
 								)}>
 								<div class="min-w-0">
@@ -239,7 +239,7 @@
 								</div>
 								<span
 									class={cn(
-										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out",
+										"inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-0.5 md:py-2 text-xs font-medium tracking-wide uppercase transition-colors duration-200 ease-out",
 										isSelected
 											? "border-primary bg-primary text-primary-foreground"
 											: "border-border bg-background/25 text-foreground group-hover:border-border group-hover:bg-background/35 group-hover:text-primary",
