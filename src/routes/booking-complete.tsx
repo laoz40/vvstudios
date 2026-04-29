@@ -5,12 +5,24 @@ import { Button } from "#/components/ui/button";
 import { formatTimeValue, parseDateValue } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
+const DEV_BOOKING_SCENARIOS = [
+	"confirmed",
+	"processing",
+	"expired",
+	"slot_taken",
+	"calendar_failed",
+] as const;
+
+type DevBookingScenario = (typeof DEV_BOOKING_SCENARIOS)[number];
+
 interface BookingCompleteSearch {
+	dev_scenario?: DevBookingScenario;
 	session_id?: string;
 }
 
 export const Route = createFileRoute("/booking-complete")({
 	validateSearch: (search): BookingCompleteSearch => ({
+		dev_scenario: parseDevBookingScenario(search.dev_scenario),
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
 				? search.session_id
@@ -20,18 +32,24 @@ export const Route = createFileRoute("/booking-complete")({
 });
 
 function BookingCompletePage() {
-	const { session_id: stripeSessionId } = Route.useSearch();
+	const { dev_scenario: devScenario, session_id: stripeSessionId } = Route.useSearch();
+	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const usableStripeSessionId =
 		stripeSessionId && stripeSessionId !== "{CHECKOUT_SESSION_ID}" ? stripeSessionId : null;
-	const booking = useQuery(
+	const liveBooking = useQuery(
 		api.bookings.getBookingStatusByStripeSessionId,
-		usableStripeSessionId ? { stripeSessionId: usableStripeSessionId } : "skip",
+		usableStripeSessionId && !activeDevScenario
+			? { stripeSessionId: usableStripeSessionId }
+			: "skip",
 	);
-	const isLoading = Boolean(usableStripeSessionId) && booking === undefined;
+	const booking = activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking;
+	const isLoading =
+		!activeDevScenario && Boolean(usableStripeSessionId) && liveBooking === undefined;
 
-	if (!stripeSessionId) {
+	if (!stripeSessionId && !activeDevScenario) {
 		return (
 			<BookingStatusLayout>
+				{import.meta.env.DEV ? <DevScenarioPanel /> : null}
 				<BookingResult
 					booking={null}
 					paymentReceived={false}
@@ -118,6 +136,72 @@ function BookingStatusLayout({
 				</div>
 			) : null}
 		</main>
+	);
+}
+
+function DevScenarioPanel() {
+	return (
+		<section className="rounded-xl border border-border bg-card p-6">
+			<div className="space-y-2">
+				<h2 className="text-lg font-semibold">Dev booking scenarios</h2>
+				<p className="text-sm text-muted-foreground">
+					Use these preview links to test the booking result states without Stripe or Google
+					Calendar.
+				</p>
+			</div>
+			<div className="mt-4 flex flex-wrap gap-3">
+				<Button
+					asChild
+					size="sm"
+					variant="outline">
+					<Link
+						to="/booking-complete"
+						search={{ dev_scenario: "processing" }}>
+						Processing
+					</Link>
+				</Button>
+				<Button
+					asChild
+					size="sm"
+					variant="outline">
+					<Link
+						to="/booking-complete"
+						search={{ dev_scenario: "confirmed" }}>
+						Confirmed
+					</Link>
+				</Button>
+				<Button
+					asChild
+					size="sm"
+					variant="outline">
+					<Link
+						to="/booking-complete"
+						search={{ dev_scenario: "expired" }}>
+						Expired
+					</Link>
+				</Button>
+				<Button
+					asChild
+					size="sm"
+					variant="outline">
+					<Link
+						to="/booking-complete"
+						search={{ dev_scenario: "slot_taken" }}>
+						Slot Taken
+					</Link>
+				</Button>
+				<Button
+					asChild
+					size="sm"
+					variant="outline">
+					<Link
+						to="/booking-complete"
+						search={{ dev_scenario: "calendar_failed" }}>
+						Calendar Failed
+					</Link>
+				</Button>
+			</div>
+		</section>
 	);
 }
 
@@ -247,6 +331,72 @@ function getBookingFailureContent(bookingFailureCode?: string) {
 		title: "Your payment was received, but your booking was not completed",
 		description:
 			"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+	};
+}
+
+function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
+	return typeof value === "string" && (DEV_BOOKING_SCENARIOS as readonly string[]).includes(value)
+		? (value as DevBookingScenario)
+		: undefined;
+}
+
+function buildDevBooking(devScenario: DevBookingScenario): BookingStatus {
+	const now = Date.now();
+	const baseBooking: BookingStatus = {
+		_id: "dev-booking" as BookingStatus["_id"],
+		abn: "",
+		accountName: "VV Studios",
+		addons: ["4K UHD Recording"],
+		bookingConfirmedAt: undefined,
+		bookingFailureCode: undefined,
+		checkoutExpiredAt: undefined,
+		date: "2026-05-12",
+		duration: "2h",
+		email: "test@example.com",
+		name: "Test Booker",
+		notes: "Dev-only booking scenario preview.",
+		paymentCompletedAt: undefined,
+		phone: "0400 000 000",
+		service: "Table Setup",
+		status: "pending_payment",
+		time: "10:00",
+	};
+
+	if (devScenario === "processing") {
+		return baseBooking;
+	}
+
+	if (devScenario === "confirmed") {
+		return {
+			...baseBooking,
+			bookingConfirmedAt: now,
+			paymentCompletedAt: now,
+			status: "confirmed",
+		};
+	}
+
+	if (devScenario === "expired") {
+		return {
+			...baseBooking,
+			checkoutExpiredAt: now,
+			status: "expired",
+		};
+	}
+
+	if (devScenario === "slot_taken") {
+		return {
+			...baseBooking,
+			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE",
+			paymentCompletedAt: now,
+			status: "failed",
+		};
+	}
+
+	return {
+		...baseBooking,
+		bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED",
+		paymentCompletedAt: now,
+		status: "failed",
 	};
 }
 
