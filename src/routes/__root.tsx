@@ -8,6 +8,7 @@ import {
 import { SmoothScroll } from "#/components/SmoothScroll";
 import { Footer } from "#/components/Footer";
 import { SiteNavbar } from "#/components/NavBar";
+import { Toaster } from "#/components/ui/sonner";
 import appCss from "../styles.css?url";
 import ClerkProvider from "../integrations/clerk/provider";
 import ConvexProvider from "../integrations/convex/provider";
@@ -101,6 +102,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							{children}
 						</div>
 						<Footer />
+						<Toaster />
 					</ConvexProvider>
 				</ClerkProvider>
 				<Scripts />

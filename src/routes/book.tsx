@@ -5,7 +5,9 @@ import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Id } from "../../convex/_generated/dataModel";
+import { BookDevErrorPanel, type BookDevErrorCode } from "#/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
@@ -31,7 +33,7 @@ import {
 } from "#/features/booking-form/lib/saved-booking-info";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
-import { Field, FieldContent, FieldError, FieldGroup } from "#/components/ui/field";
+import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
 import {
 	formatDateValue,
 	formatMonthKey,
@@ -104,7 +106,6 @@ function BookingPage() {
 	>({});
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
-	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
@@ -131,7 +132,6 @@ function BookingPage() {
 			}
 
 			submitAfterTermsRef.current = false;
-			setError("");
 			setIsSubmitting(true);
 
 			try {
@@ -169,7 +169,7 @@ function BookingPage() {
 
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
 			} catch (submissionError) {
-				setError(getBookingErrorMessage(submissionError));
+				toast.error(getBookingErrorMessage(submissionError));
 			} finally {
 				setIsSubmitting(false);
 				submitAfterTermsRef.current = false;
@@ -228,8 +228,9 @@ function BookingPage() {
 					return;
 				}
 
-				setAvailabilityError(getBookingErrorMessage(availabilityFetchError));
-				console.error("Could not load month availability", availabilityFetchError);
+				const errorMessage = getBookingErrorMessage(availabilityFetchError);
+				setAvailabilityError(errorMessage);
+				toast.error(errorMessage);
 			})
 			.finally(() => {
 				if (!isCancelled) {
@@ -460,9 +461,26 @@ function BookingPage() {
 		});
 	};
 
+	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
+		if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
+			const errorMessage = getBookingErrorMessage({ data: { code } });
+			setAvailabilityError(errorMessage);
+			toast.error(errorMessage);
+			return;
+		}
+
+		if (code === "UNKNOWN") {
+			toast.error(getBookingErrorMessage(new Error("Something went wrong.")));
+			return;
+		}
+
+		toast.error(getBookingErrorMessage({ data: { code } }));
+	};
+
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
 			<h1 className="text-2xl leading-none font-bold md:text-4xl">{pageCopy.title}</h1>
+			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
 			{savedBookingInfo ? <BookingSavedInfoBanner onReuse={handleReuseSavedBookingInfo} /> : null}
 
 			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
@@ -508,8 +526,6 @@ function BookingPage() {
 						<BookingAddonsSection />
 						<BookingContactSection />
 					</FieldGroup>
-
-					{error ? <FieldError>{error}</FieldError> : null}
 
 					<Field
 						orientation="horizontal"

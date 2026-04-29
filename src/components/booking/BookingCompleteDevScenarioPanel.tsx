@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
+import { FloatingDevMenu } from "#/components/booking/FloatingDevMenu";
 import { api } from "../../../convex/_generated/api";
 
 const DEV_SCENARIO_OPTIONS = [
@@ -25,30 +26,27 @@ export type BookingStatus = NonNullable<
 
 export function BookingCompleteDevScenarioPanel() {
 	return (
-		<section className="rounded-xl border border-border bg-card p-6">
-			<div className="space-y-2">
-				<h2 className="text-lg font-semibold">Dev booking scenarios</h2>
-				<p className="text-sm text-muted-foreground">
-					Use these preview links to test the booking result states without Stripe or Google
-					Calendar.
-				</p>
-			</div>
-			<div className="mt-4 flex flex-wrap gap-3">
-				{DEV_SCENARIO_OPTIONS.map((scenario) => (
+		<FloatingDevMenu
+			buttonLabel="Dev States"
+			title="Booking States">
+			{(closeMenu) =>
+				DEV_SCENARIO_OPTIONS.map((scenario) => (
 					<Button
 						asChild
 						key={scenario.value}
 						size="sm"
-						variant="outline">
+						variant="ghost"
+						className="justify-start">
 						<Link
 							to="/booking-complete"
-							search={{ dev_scenario: scenario.value }}>
+							search={{ dev_scenario: scenario.value }}
+							onClick={closeMenu}>
 							{scenario.label}
 						</Link>
 					</Button>
-				))}
-			</div>
-		</section>
+				))
+			}
+		</FloatingDevMenu>
 	);
 }
 
