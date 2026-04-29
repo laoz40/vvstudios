@@ -16,7 +16,7 @@ export const Route = createFileRoute("/booking-complete")({
 	component: BookingCompletePage,
 });
 
-function BookingCompletePage() {
+function BookingCompletePage(): ReactNode {
 	const { dev_scenario: devScenario, session_id: stripeSessionId } = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const usableStripeSessionId =
@@ -83,8 +83,7 @@ function BookingCompletePage() {
 		return <Navigate to="/booking-expired" />;
 	}
 
-	const paymentReceived = Boolean(booking.paymentCompletedAt) || booking.status === "confirmed";
-	const resultContent = getBookingResultContent({ booking, paymentReceived });
+	const resultContent = getBookingResultContent(booking);
 
 	return (
 		<BookingStatusLayout
@@ -97,15 +96,17 @@ function BookingCompletePage() {
 	);
 }
 
+interface BookingStatusLayoutProps {
+	children: ReactNode;
+	primaryAction?: "contact" | "new_booking";
+	showActions?: boolean;
+}
+
 function BookingStatusLayout({
 	children,
 	primaryAction = "new_booking",
 	showActions = true,
-}: {
-	children: ReactNode;
-	primaryAction?: "contact" | "new_booking";
-	showActions?: boolean;
-}) {
+}: BookingStatusLayoutProps): ReactNode {
 	return (
 		<main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			{children}
@@ -143,18 +144,15 @@ interface BookingResultProps {
 	content: BookingResultContent;
 }
 
-function BookingResult({ booking, content }: BookingResultProps) {
+function BookingResult({ booking, content }: BookingResultProps): ReactNode {
+	const titleClassName = content.isBookingCompletionFailure
+		? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
+		: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
+
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1
-					className={
-						content.isBookingCompletionFailure
-							? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
-							: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl"
-					}>
-					{content.title}
-				</h1>
+				<h1 className={titleClassName}>{content.title}</h1>
 				<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
 			</div>
 
@@ -163,21 +161,27 @@ function BookingResult({ booking, content }: BookingResultProps) {
 	);
 }
 
-function BookingProcessing() {
+function BookingProcessing(): ReactNode {
 	return (
 		<section className="flex flex-col items-center justify-center gap-4 py-20 text-center">
 			<div
 				className="size-10 animate-spin rounded-full border-2 border-muted border-t-primary"
 				aria-hidden="true"
 			/>
-			<h1 className="text-2xl font-semibold">Processing booking</h1>
-			<p className="text-sm text-muted-foreground">Checking your payment.</p>
+			<span className="text-2xl font-semibold">Processing your booking</span>
 		</section>
 	);
 }
 
-function SessionDetails({ booking }: { booking: BookingStatus }) {
+interface SessionDetailsProps {
+	booking: BookingStatus;
+}
+
+function SessionDetails({ booking }: SessionDetailsProps): ReactNode {
 	const isUnconfirmedBooking = booking.status === "failed";
+	const detailTone = isUnconfirmedBooking ? "destructive" : "default";
+	const dateValue = isUnconfirmedBooking ? "Unconfirmed" : formatBookingDate(booking.date);
+	const timeValue = isUnconfirmedBooking ? "Unconfirmed" : formatTimeValue(booking.time);
 
 	return (
 		<section className="border-t pt-5 sm:pt-6">
@@ -185,13 +189,13 @@ function SessionDetails({ booking }: { booking: BookingStatus }) {
 			<dl className="mt-4 grid gap-5 text-sm sm:grid-cols-2 sm:gap-4">
 				<BookingDetail
 					label="Date"
-					tone={isUnconfirmedBooking ? "destructive" : "default"}
-					value={isUnconfirmedBooking ? "Unconfirmed" : formatBookingDate(booking.date)}
+					tone={detailTone}
+					value={dateValue}
 				/>
 				<BookingDetail
 					label="Time"
-					tone={isUnconfirmedBooking ? "destructive" : "default"}
-					value={isUnconfirmedBooking ? "Unconfirmed" : formatTimeValue(booking.time)}
+					tone={detailTone}
+					value={timeValue}
 				/>
 				<BookingDetail
 					label="Duration"
@@ -216,13 +220,13 @@ interface BookingDetailProps {
 	value: string;
 }
 
-function BookingDetail({ label, tone = "default", value }: BookingDetailProps) {
+function BookingDetail({ label, tone = "default", value }: BookingDetailProps): ReactNode {
+	const valueClassName = tone === "destructive" ? "font-medium text-destructive" : "font-medium";
+
 	return (
 		<div className="flex flex-col gap-1">
 			<dt className="text-muted-foreground">{label}</dt>
-			<dd className={tone === "destructive" ? "font-medium text-destructive" : "font-medium"}>
-				{value}
-			</dd>
+			<dd className={valueClassName}>{value}</dd>
 		</div>
 	);
 }
@@ -233,55 +237,61 @@ interface BookingResultContent {
 	title: string;
 }
 
-function getBookingResultContent({
-	booking,
-	paymentReceived,
-}: {
-	booking: BookingStatus;
-	paymentReceived: boolean;
-}): BookingResultContent {
-	if (booking.status === "failed") {
-		return {
-			...getBookingFailureContent(booking.bookingFailureCode),
-			isBookingCompletionFailure: true,
-		};
+function getBookingResultContent(booking: BookingStatus): BookingResultContent {
+	switch (booking.status) {
+		case "failed": {
+			switch (booking.bookingFailureCode) {
+				case "BOOKING_TIME_UNAVAILABLE":
+					return {
+						title: "Your payment was received, but that time slot was just taken",
+						description:
+							"Another booking took that session time before we could confirm it. Please contact us so we can move your booking to another available time.",
+						isBookingCompletionFailure: true,
+					};
+
+				case "GOOGLE_CALENDAR_CREATE_FAILED":
+					return {
+						title: "Your payment was received, but your booking was not completed",
+						description:
+							"A problem related to Google meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+						isBookingCompletionFailure: true,
+					};
+
+				default:
+					return {
+						title: "Your payment was received, but your booking was not completed",
+						description:
+							"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+						isBookingCompletionFailure: true,
+					};
+			}
+		}
+
+		case "confirmed":
+			return {
+				title: `Congrats on booking, ${getFirstName(booking.name)}!`,
+				description: `Your invoice will be sent to ${booking.email}.`,
+				isBookingCompletionFailure: false,
+			};
+
+		case "pending_payment":
+			return {
+				title: "Processing booking",
+				description: "We’re still checking your payment.",
+				isBookingCompletionFailure: false,
+			};
+
+		case "expired":
+			return {
+				title: "This booking session has expired",
+				description: "Please return to the booking form to start a new checkout session.",
+				isBookingCompletionFailure: false,
+			};
+
+		default: {
+			const unhandledStatus: never = booking.status;
+
+			throw new Error(`Unhandled booking status: ${unhandledStatus}`);
+		}
 	}
-
-	if (paymentReceived && booking?.email) {
-		return {
-			title: `Congrats on booking, ${getFirstName(booking.name)}!`,
-			description: `Your invoice will be sent to ${booking.email}.`,
-			isBookingCompletionFailure: false,
-		};
-	}
-
-	return {
-		title: `Congrats on booking, ${getFirstName(booking.name)}!`,
-		description: "Your booking was unsuccessful.",
-		isBookingCompletionFailure: false,
-	};
-}
-
-function getBookingFailureContent(bookingFailureCode?: string) {
-	if (bookingFailureCode === "BOOKING_TIME_UNAVAILABLE") {
-		return {
-			title: "Your payment was received, but that time slot was just taken",
-			description:
-				"Another booking took that session time before we could confirm it. Please contact us so we can move your booking to another available time.",
-		};
-	}
-
-	if (bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED") {
-		return {
-			title: "Your payment was received, but your booking was not completed",
-			description:
-				"A problem related to Google meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
-		};
-	}
-
-	return {
-		title: "Your payment was received, but your booking was not completed",
-		description:
-			"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
-	};
 }
