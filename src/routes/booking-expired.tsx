@@ -7,10 +7,10 @@ export const Route = createFileRoute("/booking-expired")({
 
 function BookingExpiredPage() {
 	return (
-		<main className="mx-auto flex max-w-3xl flex-col gap-8 py-10">
+		<main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			<section className="flex flex-col gap-8">
 				<div className="space-y-4">
-					<h1 className="text-3xl font-semibold leading-tight md:text-4xl">
+					<h1 className="text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl">
 						Your payment session expired
 					</h1>
 					<p className="max-w-2xl text-base text-muted-foreground">
@@ -19,12 +19,15 @@ function BookingExpiredPage() {
 					</p>
 				</div>
 
-				<div className="flex flex-wrap gap-3">
-					<Button asChild>
+				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+					<Button
+						asChild
+						className="w-full sm:w-auto">
 						<Link to="/book">Try again</Link>
 					</Button>
 					<Button
 						asChild
+						className="w-full sm:w-auto"
 						variant="outline">
 						<Link to="/">Return home</Link>
 					</Button>

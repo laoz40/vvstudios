@@ -37,8 +37,9 @@ function BookingCompletePage() {
 				{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
 				<BookingResult
 					booking={null}
+					description="This page needs a valid booking session link. Try returning to the booking form to start a new checkout session."
 					paymentReceived={false}
-					title="Booking session not found"
+					title="No booking session was provided"
 				/>
 			</BookingStatusLayout>
 		);
@@ -57,8 +58,9 @@ function BookingCompletePage() {
 			<BookingStatusLayout>
 				<BookingResult
 					booking={null}
+					title="We couldn't find this booking"
+					description="The link may be invalid or no longer available."
 					paymentReceived={false}
-					title="There was an error with your booking"
 				/>
 			</BookingStatusLayout>
 		);
@@ -107,12 +109,14 @@ function BookingStatusLayout({
 	showActions?: boolean;
 }) {
 	return (
-		<main className="mx-auto flex max-w-3xl flex-col gap-8 py-10">
+		<main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			{children}
 
 			{showActions ? (
-				<div className="flex flex-wrap gap-3">
-					<Button asChild>
+				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+					<Button
+						asChild
+						className="w-full sm:w-auto">
 						{primaryAction === "contact" ? (
 							<a
 								href="/contact"
@@ -126,6 +130,7 @@ function BookingStatusLayout({
 					</Button>
 					<Button
 						asChild
+						className="w-full sm:w-auto"
 						variant="outline">
 						<Link to="/">Return home</Link>
 					</Button>
@@ -156,17 +161,19 @@ function BookingResult({
 				<h1
 					className={
 						isBookingCompletionFailure
-							? "text-3xl font-semibold leading-tight text-destructive md:text-4xl"
-							: "text-3xl font-semibold leading-tight md:text-4xl"
+							? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
+							: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl"
 					}>
 					{title}
 				</h1>
 				<p className="max-w-2xl text-base text-muted-foreground">
 					{isBookingCompletionFailure
 						? description
-						: paymentReceived
-							? "Your booking deposit payment was received."
-							: "Your booking was unsuccessful."}
+						: description
+							? description
+							: paymentReceived
+								? "Your booking deposit payment was received."
+								: "Your booking was unsuccessful."}
 				</p>
 			</div>
 
@@ -192,9 +199,9 @@ function SessionDetails({ booking }: { booking: BookingStatus }) {
 	const isUnconfirmedBooking = booking.status === "failed";
 
 	return (
-		<section className="border-t pt-6">
+		<section className="border-t pt-5 sm:pt-6">
 			<h2 className="text-lg font-semibold">Session Details</h2>
-			<dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+			<dl className="mt-4 grid gap-5 text-sm sm:grid-cols-2 sm:gap-4">
 				<BookingDetail
 					label="Date"
 					tone={isUnconfirmedBooking ? "destructive" : "default"}
