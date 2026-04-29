@@ -37,9 +37,12 @@ function BookingCompletePage() {
 				{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
 				<BookingResult
 					booking={null}
-					description="This page needs a valid booking session link. Try returning to the booking form to start a new checkout session."
-					paymentReceived={false}
-					title="No booking session was provided"
+					content={{
+						title: "No booking session was provided",
+						description:
+							"This page needs a valid booking session link. Try returning to the booking form to start a new checkout session.",
+						isBookingCompletionFailure: false,
+					}}
 				/>
 			</BookingStatusLayout>
 		);
@@ -58,9 +61,11 @@ function BookingCompletePage() {
 			<BookingStatusLayout>
 				<BookingResult
 					booking={null}
-					title="We couldn't find this booking"
-					description="The link may be invalid or no longer available."
-					paymentReceived={false}
+					content={{
+						title: "We couldn't find this booking",
+						description: "The link may be invalid or no longer available.",
+						isBookingCompletionFailure: false,
+					}}
 				/>
 			</BookingStatusLayout>
 		);
@@ -79,21 +84,14 @@ function BookingCompletePage() {
 	}
 
 	const paymentReceived = Boolean(booking.paymentCompletedAt) || booking.status === "confirmed";
-	const isBookingCompletionFailure = booking.status === "failed";
-	const bookingFailureContent = getBookingFailureContent(booking.bookingFailureCode);
+	const resultContent = getBookingResultContent({ booking, paymentReceived });
 
 	return (
-		<BookingStatusLayout primaryAction={isBookingCompletionFailure ? "contact" : "new_booking"}>
+		<BookingStatusLayout
+			primaryAction={resultContent.isBookingCompletionFailure ? "contact" : "new_booking"}>
 			<BookingResult
 				booking={booking}
-				description={isBookingCompletionFailure ? bookingFailureContent.description : undefined}
-				isBookingCompletionFailure={isBookingCompletionFailure}
-				paymentReceived={paymentReceived}
-				title={
-					booking.status === "confirmed"
-						? `Congrats on booking, ${getFirstName(booking.name)}!`
-						: bookingFailureContent.title
-				}
+				content={resultContent}
 			/>
 		</BookingStatusLayout>
 	);
@@ -142,39 +140,22 @@ function BookingStatusLayout({
 
 interface BookingResultProps {
 	booking: BookingStatus | null;
-	description?: string;
-	isBookingCompletionFailure?: boolean;
-	paymentReceived: boolean;
-	title: string;
+	content: BookingResultContent;
 }
 
-function BookingResult({
-	booking,
-	description,
-	isBookingCompletionFailure = false,
-	paymentReceived,
-	title,
-}: BookingResultProps) {
+function BookingResult({ booking, content }: BookingResultProps) {
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
 				<h1
 					className={
-						isBookingCompletionFailure
+						content.isBookingCompletionFailure
 							? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
 							: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl"
 					}>
-					{title}
+					{content.title}
 				</h1>
-				<p className="max-w-2xl text-base text-muted-foreground">
-					{isBookingCompletionFailure
-						? description
-						: description
-							? description
-							: paymentReceived
-								? "Your booking deposit payment was received."
-								: "Your booking was unsuccessful."}
-				</p>
+				<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
 			</div>
 
 			{booking ? <SessionDetails booking={booking} /> : null}
@@ -244,6 +225,41 @@ function BookingDetail({ label, tone = "default", value }: BookingDetailProps) {
 			</dd>
 		</div>
 	);
+}
+
+interface BookingResultContent {
+	description: string;
+	isBookingCompletionFailure: boolean;
+	title: string;
+}
+
+function getBookingResultContent({
+	booking,
+	paymentReceived,
+}: {
+	booking: BookingStatus;
+	paymentReceived: boolean;
+}): BookingResultContent {
+	if (booking.status === "failed") {
+		return {
+			...getBookingFailureContent(booking.bookingFailureCode),
+			isBookingCompletionFailure: true,
+		};
+	}
+
+	if (paymentReceived && booking?.email) {
+		return {
+			title: `Congrats on booking, ${getFirstName(booking.name)}!`,
+			description: `Your invoice will be sent to ${booking.email}.`,
+			isBookingCompletionFailure: false,
+		};
+	}
+
+	return {
+		title: `Congrats on booking, ${getFirstName(booking.name)}!`,
+		description: "Your booking was unsuccessful.",
+		isBookingCompletionFailure: false,
+	};
 }
 
 function getBookingFailureContent(bookingFailureCode?: string) {
