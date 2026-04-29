@@ -59,6 +59,7 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 		bookingConfirmedAt: booking.bookingConfirmedAt,
 		bookingFailureCode: booking.bookingFailureCode,
 		checkoutExpiredAt: booking.checkoutExpiredAt,
+		pendingPaymentCreatedAt: booking.pendingPaymentCreatedAt,
 		paymentCompletedAt: booking.paymentCompletedAt,
 		name: booking.name,
 		phone: booking.phone,

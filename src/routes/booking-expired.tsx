@@ -1,11 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
+import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
+import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/booking-expired")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		session_id:
+			typeof search.session_id === "string" && search.session_id.length > 0
+				? search.session_id
+				: undefined,
+	}),
 	component: BookingExpiredPage,
 });
 
 function BookingExpiredPage() {
+	const { session_id: stripeSessionId } = Route.useSearch();
+	const booking = useQuery(
+		api.bookings.getBookingStatusByStripeSessionId,
+		stripeSessionId ? { stripeSessionId } : "skip",
+	);
+	const supportReference = booking
+		? Number.isFinite(booking.pendingPaymentCreatedAt)
+			? formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt)
+			: null
+		: null;
+
 	return (
 		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			<section className="flex flex-col gap-8">
@@ -17,6 +37,12 @@ function BookingExpiredPage() {
 						The booking deposit wasn&apos;t completed in time, so this checkout session is no longer
 						available.
 					</p>
+					{supportReference ? (
+						<p className="text-sm text-muted-foreground">
+							Support reference:{" "}
+							<span className="font-medium text-foreground">{supportReference}</span>
+						</p>
+					) : null}
 				</div>
 
 				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

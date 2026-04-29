@@ -20,7 +20,7 @@ function formatCalendarDate(value: string) {
 	return format(new Date(`${value}T00:00:00`), "d MMMM yyyy");
 }
 
-function formatInvoiceNumber(
+export function formatBookingInvoiceNumber(
 	bookingId: BookingInvoiceBuilderInput["bookingId"],
 	invoiceDate: number,
 ) {
@@ -28,7 +28,7 @@ function formatInvoiceNumber(
 	const suffix = String(bookingId)
 		.replace(/[^a-zA-Z0-9]/g, "")
 		.toUpperCase()
-		.slice(0, 8);
+		.slice(0, 4);
 
 	return `VV-${datePart}-${suffix}`;
 }
@@ -109,7 +109,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			dueDateLabel,
 			invoiceDate: new Date(invoiceDate).toISOString(),
 			invoiceDateLabel,
-			number: formatInvoiceNumber(input.bookingId, invoiceDate),
+			number: formatBookingInvoiceNumber(input.bookingId, invoiceDate),
 			title: BOOKING_INVOICE_TITLE,
 		},
 		lineItems,

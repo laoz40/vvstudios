@@ -2,6 +2,8 @@ import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Button } from "#/components/ui/button";
+import { AdminDashboard } from "#/features/admin/components/AdminDashboard";
 
 export const Route = createFileRoute("/admin")({
 	component: AdminPage,
@@ -36,20 +38,16 @@ function AdminPage() {
 					then run <code>proxy npx convex dev</code>.
 				</p>
 				<SignOutButton redirectUrl="/login">
-					<button
-						type="button"
-						className="pressable">
-						Sign out
-					</button>
+					<Button type="button">Sign out</Button>
 				</SignOutButton>
 			</main>
 		);
 	}
 
-	return <AdminDashboard />;
+	return <AdminPageContent />;
 }
 
-function AdminDashboard() {
+function AdminPageContent() {
 	const bookings = useQuery(api.bookings.getBookings, {});
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
@@ -63,57 +61,18 @@ function AdminDashboard() {
 	}
 
 	return (
-		<main>
-			<h1>Past bookings</h1>
-			<p>Signed in as {email ?? "Unknown user"}.</p>
-			<SignOutButton redirectUrl="/login">
-				<button
-					type="button"
-					className="pressable">
-					Sign out
-				</button>
-			</SignOutButton>
-
-			{bookings.length === 0 ? (
-				<p>L business no bookings yet.</p>
-			) : (
-				<table>
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Phone</th>
-							<th>Account Name</th>
-							<th>ABN</th>
-							<th>Email</th>
-							<th>Date</th>
-							<th>Time</th>
-							<th>Duration</th>
-							<th>Service</th>
-							<th>Add-ons</th>
-							<th>Notes</th>
-							<th>Created at</th>
-						</tr>
-					</thead>
-					<tbody>
-						{bookings.map((booking) => (
-							<tr key={booking._id}>
-								<td>{booking.name}</td>
-								<td>{booking.phone ?? "—"}</td>
-								<td>{booking.accountName ?? "—"}</td>
-								<td>{booking.abn ?? "—"}</td>
-								<td>{booking.email}</td>
-								<td>{booking.date}</td>
-								<td>{booking.time ?? "—"}</td>
-								<td>{booking.duration ?? "—"}</td>
-								<td>{booking.service}</td>
-								<td>{booking.addons?.length ? booking.addons.join(", ") : "—"}</td>
-								<td>{booking.notes ?? "—"}</td>
-								<td>{new Date(booking.pendingPaymentCreatedAt).toLocaleString()}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			)}
-		</main>
+		<AdminDashboard
+			bookings={bookings}
+			email={email ?? null}
+			signOutControl={
+				<SignOutButton redirectUrl="/login">
+					<Button
+						type="button"
+						variant="outline">
+						Sign out
+					</Button>
+				</SignOutButton>
+			}
+		/>
 	);
 }

@@ -8,6 +8,7 @@ import {
 	parseBookingCompleteSearch,
 } from "#/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
+import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
 import { formatBookingDate, formatTimeValue, getFirstName } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
@@ -80,7 +81,12 @@ function BookingCompletePage(): ReactNode {
 	}
 
 	if (booking.status === "expired") {
-		return <Navigate to="/booking-expired" />;
+		return (
+			<Navigate
+				to="/booking-expired"
+				search={{ session_id: usableStripeSessionId ?? undefined }}
+			/>
+		);
 	}
 
 	const resultContent = getBookingResultContent(booking);
@@ -149,17 +155,30 @@ function BookingResult({ booking, content }: BookingResultProps): ReactNode {
 	const titleClassName = content.isBookingCompletionFailure
 		? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
 		: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
+	const supportReference = booking ? getSupportReference(booking) : null;
 
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
 				<h1 className={titleClassName}>{content.title}</h1>
 				<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
+				{supportReference ? (
+					<p className="text-xs text-muted-foreground/80">
+						Reference code:{" "}
+						<span className="font-medium text-muted-foreground">{supportReference}</span>
+					</p>
+				) : null}
 			</div>
 
 			{booking ? <SessionDetails booking={booking} /> : null}
 		</section>
 	);
+}
+
+function getSupportReference(booking: BookingStatus): string | null {
+	return Number.isFinite(booking.pendingPaymentCreatedAt)
+		? formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt)
+		: null;
 }
 
 function BookingProcessing(): ReactNode {

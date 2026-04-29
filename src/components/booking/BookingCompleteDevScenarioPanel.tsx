@@ -79,6 +79,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		email: "test@example.com",
 		name: "Test Booker",
 		notes: "Dev-only booking scenario preview.",
+		pendingPaymentCreatedAt: now,
 		paymentCompletedAt: undefined,
 		phone: "0400 000 000",
 		service: "Table Setup",

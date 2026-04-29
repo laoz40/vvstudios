@@ -146,7 +146,7 @@ function BookingPage() {
 					duration: parsedValue.duration,
 					service: parsedValue.service,
 					addons: parsedValue.addons,
-					notes: parsedValue.notes || undefined,
+					notes: parsedValue.notes,
 				});
 
 				if (shouldSaveBookingInfo) {

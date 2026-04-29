@@ -80,7 +80,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
-	const useStatusPageLayout = pathname === "/booking-complete" || pathname === "/booking-expired";
+	const useMinimalLayout =
+		pathname === "/admin" || pathname === "/booking-complete" || pathname === "/booking-expired";
 
 	return (
 		<html
@@ -93,15 +94,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<ClerkProvider>
 					<ConvexProvider>
 						<SmoothScroll />
-						{useStatusPageLayout ? null : <SiteNavbar />}
+						{useMinimalLayout ? null : <SiteNavbar />}
 						<div
 							id="site-shell"
 							className={
-								useStatusPageLayout ? "flex min-h-screen flex-col" : "min-h-screen pt-18 md:pt-24"
+								useMinimalLayout ? "flex min-h-screen flex-col" : "min-h-screen pt-18 md:pt-24"
 							}>
 							{children}
 						</div>
-						<Footer />
+						{useMinimalLayout ? null : <Footer />}
 						<Toaster />
 					</ConvexProvider>
 				</ClerkProvider>
