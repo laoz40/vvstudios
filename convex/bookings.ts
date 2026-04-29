@@ -284,3 +284,36 @@ export const markBookingCompletionFailed = internalMutation({
 		return null;
 	},
 });
+
+export const deletePendingBooking = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		stripeSessionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			return { ok: true as const, outcome: "not_found" as const };
+		}
+
+		if (booking.stripeSessionId !== args.stripeSessionId) {
+			return {
+				ok: false as const,
+				reason: "stripe_session_mismatch" as const,
+			};
+		}
+
+		if (booking.status !== "pending_payment") {
+			return {
+				ok: true as const,
+				outcome: "not_pending" as const,
+				status: booking.status,
+			};
+		}
+
+		await ctx.db.delete(args.bookingId);
+
+		return { ok: true as const, outcome: "deleted" as const };
+	},
+});

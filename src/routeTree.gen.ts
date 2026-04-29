@@ -13,6 +13,7 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BookingExpiredRouteImport } from './routes/booking-expired'
 import { Route as BookingCompleteRouteImport } from './routes/booking-complete'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -36,6 +37,11 @@ const GalleryRoute = GalleryRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingExpiredRoute = BookingExpiredRouteImport.update({
+  id: '/booking-expired',
+  path: '/booking-expired',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingCompleteRoute = BookingCompleteRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/booking-complete'
+    | '/booking-expired'
     | '/contact'
     | '/gallery'
     | '/login'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/booking-complete'
+    | '/booking-expired'
     | '/contact'
     | '/gallery'
     | '/login'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/booking-complete'
+    | '/booking-expired'
     | '/contact'
     | '/gallery'
     | '/login'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   BookRoute: typeof BookRoute
   BookingCompleteRoute: typeof BookingCompleteRoute
+  BookingExpiredRoute: typeof BookingExpiredRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking-expired': {
+      id: '/booking-expired'
+      path: '/booking-expired'
+      fullPath: '/booking-expired'
+      preLoaderRoute: typeof BookingExpiredRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking-complete': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   BookRoute: BookRoute,
   BookingCompleteRoute: BookingCompleteRoute,
+  BookingExpiredRoute: BookingExpiredRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,

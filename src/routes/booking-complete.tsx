@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { formatTimeValue, parseDateValue } from "#/lib/bookingdatetime";
@@ -35,7 +35,7 @@ function BookingCompletePage() {
 				<BookingResult
 					booking={null}
 					paymentReceived={false}
-					title="There is an error with your booking"
+					title="Booking session not found"
 				/>
 			</BookingStatusLayout>
 		);
@@ -69,17 +69,25 @@ function BookingCompletePage() {
 		);
 	}
 
+	if (booking.status === "expired") {
+		return <Navigate to="/booking-expired" />;
+	}
+
 	const paymentReceived = Boolean(booking.paymentCompletedAt) || booking.status === "confirmed";
+	const isBookingCompletionFailure = booking.status === "failed";
+	const bookingFailureContent = getBookingFailureContent(booking.bookingFailureCode);
 
 	return (
 		<BookingStatusLayout>
 			<BookingResult
 				booking={booking}
+				description={isBookingCompletionFailure ? bookingFailureContent.description : undefined}
+				isBookingCompletionFailure={isBookingCompletionFailure}
 				paymentReceived={paymentReceived}
 				title={
 					booking.status === "confirmed"
 						? `Congrats on booking, ${getFirstName(booking.name)}!`
-						: "There is an error with your booking"
+						: bookingFailureContent.title
 				}
 			/>
 		</BookingStatusLayout>
@@ -115,20 +123,29 @@ function BookingStatusLayout({
 
 interface BookingResultProps {
 	booking: BookingStatus | null;
+	description?: string;
+	isBookingCompletionFailure?: boolean;
 	paymentReceived: boolean;
 	title: string;
 }
 
-function BookingResult({ booking, paymentReceived, title }: BookingResultProps) {
+function BookingResult({
+	booking,
+	description,
+	isBookingCompletionFailure = false,
+	paymentReceived,
+	title,
+}: BookingResultProps) {
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1 className="text-3xl font-semibold leading-tight md:text-6xl">{title}</h1>
-				<p
-					className={`max-w-2xl text-base ${paymentReceived ? "text-muted-foreground" : "text-red-500"}`}>
-					{paymentReceived
-						? "Your booking deposit payment was received."
-						: "Your booking deposit payment was not received."}
+				<h1 className="text-3xl font-semibold leading-tight md:text-5xl">{title}</h1>
+				<p className="max-w-2xl text-base text-muted-foreground">
+					{isBookingCompletionFailure
+						? description
+						: paymentReceived
+							? "Your booking deposit payment was received."
+							: "Your booking was unsuccessful."}
 				</p>
 			</div>
 
@@ -207,6 +224,30 @@ function formatBookingDate(dateValue: string) {
 
 function getFirstName(name: string) {
 	return name.trim().split(/\s+/)[0] || name;
+}
+
+function getBookingFailureContent(bookingFailureCode?: string) {
+	if (bookingFailureCode === "BOOKING_TIME_UNAVAILABLE") {
+		return {
+			title: "Your payment was received, but that time slot was just taken",
+			description:
+				"Another booking took that session time before we could confirm it. Please contact us so we can move your booking to another available time.",
+		};
+	}
+
+	if (bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED") {
+		return {
+			title: "Your payment was received, but your booking was not completed",
+			description:
+				"A problem related to Google meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+		};
+	}
+
+	return {
+		title: "Your payment was received, but your booking was not completed",
+		description:
+			"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+	};
 }
 
 type BookingStatus = NonNullable<

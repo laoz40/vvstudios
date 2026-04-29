@@ -49,7 +49,7 @@ export function toSavedBookingInfo(
 		name: values.name,
 		phone: values.phone,
 		accountName: values.accountName,
-		abn: values.abn,
+		abn: values.abn ?? "",
 		email: values.email,
 		notes: values.notes,
 	};

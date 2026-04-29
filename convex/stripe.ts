@@ -13,6 +13,15 @@ interface CreateEmbeddedCheckoutSessionResult {
 	stripeSessionId: string;
 }
 
+interface CloseEmbeddedCheckoutSessionResult {
+	ok: true;
+	outcome: "already_complete" | "deleted" | "not_found" | "not_pending";
+}
+
+type DeletePendingBookingResult =
+	| { ok: true; outcome: "deleted" | "not_found" | "not_pending" }
+	| { ok: false; reason: "stripe_session_mismatch" };
+
 function getStripeClient() {
 	return new Stripe(env.STRIPE_SECRET_KEY, {
 		apiVersion: "2026-03-25.dahlia",
@@ -56,6 +65,7 @@ export const createEmbeddedCheckoutSession = action({
 		const session = await stripe.checkout.sessions.create({
 			mode: "payment",
 			ui_mode: "embedded_page",
+			payment_method_types: ["card"],
 			return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
 			customer_email: args.email,
 			metadata: {
@@ -83,5 +93,38 @@ export const createEmbeddedCheckoutSession = action({
 			clientSecret: session.client_secret,
 			stripeSessionId: session.id,
 		};
+	},
+});
+
+export const closeEmbeddedCheckoutSession = action({
+	args: {
+		bookingId: v.id("bookings"),
+		stripeSessionId: v.string(),
+	},
+	handler: async (ctx, args): Promise<CloseEmbeddedCheckoutSessionResult> => {
+		const stripe = getStripeClient();
+		const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
+
+		if (session.status === "complete") {
+			return { ok: true as const, outcome: "already_complete" as const };
+		}
+
+		if (session.status === "open") {
+			await stripe.checkout.sessions.expire(args.stripeSessionId);
+		}
+
+		const result: DeletePendingBookingResult = await ctx.runMutation(
+			internal.bookings.deletePendingBooking,
+			{
+				bookingId: args.bookingId,
+				stripeSessionId: args.stripeSessionId,
+			},
+		);
+
+		if (!result.ok) {
+			throw new Error(result.reason);
+		}
+
+		return { ok: true as const, outcome: result.outcome };
 	},
 });

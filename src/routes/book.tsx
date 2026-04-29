@@ -5,6 +5,7 @@ import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Id } from "../../convex/_generated/dataModel";
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
@@ -59,10 +60,17 @@ interface BusyDayWindow {
 }
 
 interface EmbeddedCheckoutSession {
-	bookingId: string;
+	bookingId: Id<"bookings">;
 	clientSecret: string;
 	stripeSessionId: string;
 }
+
+type CreateEmbeddedCheckoutSessionAction = ReturnType<
+	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
+>;
+type CloseEmbeddedCheckoutSessionAction = ReturnType<
+	typeof useAction<typeof api.stripe.closeEmbeddedCheckoutSession>
+>;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
 
@@ -75,7 +83,12 @@ const pageCopy = {
 } as const;
 
 function BookingPage() {
-	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
+	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
+		api.stripe.createEmbeddedCheckoutSession,
+	);
+	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
+		api.stripe.closeEmbeddedCheckoutSession,
+	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
 	const shouldReduceMotion = useReducedMotion();
@@ -389,7 +402,19 @@ function BookingPage() {
 	]);
 
 	const handlePaymentModalClose = () => {
+		const activeCheckoutSession = checkoutSession;
 		setCheckoutSession(null);
+
+		if (!activeCheckoutSession) {
+			return;
+		}
+
+		void closeEmbeddedCheckoutSession({
+			bookingId: activeCheckoutSession.bookingId,
+			stripeSessionId: activeCheckoutSession.stripeSessionId,
+		}).catch((closeCheckoutError) => {
+			console.error("Could not close embedded checkout session", closeCheckoutError);
+		});
 	};
 
 	const handleTermsConfirm = () => {
