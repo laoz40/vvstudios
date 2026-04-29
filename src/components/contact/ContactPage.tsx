@@ -76,9 +76,11 @@ function ContactCard() {
 		}
 
 		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-		const supportsHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+		const supportsCardHover = window.matchMedia(
+			"(min-width: 640px) and (hover: hover) and (pointer: fine)",
+		);
 
-		if (prefersReducedMotion.matches || !supportsHover.matches) {
+		if (prefersReducedMotion.matches || !supportsCardHover.matches) {
 			return;
 		}
 
