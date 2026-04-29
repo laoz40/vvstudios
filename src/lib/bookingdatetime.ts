@@ -118,6 +118,17 @@ export function parseDateValue(value: string) {
 	return new Date(year, month - 1, day);
 }
 
+export function formatBookingDate(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return dateValue;
+	}
+
+	return new Intl.DateTimeFormat("en-AU", {
+		dateStyle: "full",
+	}).format(date);
+}
+
 export function startOfMonth(date: Date) {
 	return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -192,6 +203,10 @@ export function formatTimeValue(time: string) {
 	})
 		.format(new Date(2000, 0, 1, hours, minutes))
 		.replace(/\s?(am|pm)$/i, "$1");
+}
+
+export function getFirstName(name: string) {
+	return name.trim().split(/\s+/)[0] || name;
 }
 
 export function toOptionId(value: string) {

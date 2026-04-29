@@ -10,7 +10,7 @@ function BookingExpiredPage() {
 		<main className="mx-auto flex max-w-3xl flex-col gap-8 py-10">
 			<section className="flex flex-col gap-8">
 				<div className="space-y-4">
-					<h1 className="text-3xl font-semibold leading-tight md:text-6xl">
+					<h1 className="text-3xl font-semibold leading-tight md:text-4xl">
 						Your payment session expired
 					</h1>
 					<p className="max-w-2xl text-base text-muted-foreground">

@@ -1,33 +1,18 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import {
+	type BookingStatus,
+	BookingCompleteDevScenarioPanel,
+	buildDevBooking,
+	parseBookingCompleteSearch,
+} from "#/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
-import { formatTimeValue, parseDateValue } from "#/lib/bookingdatetime";
+import { formatBookingDate, formatTimeValue, getFirstName } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
-const DEV_BOOKING_SCENARIOS = [
-	"confirmed",
-	"processing",
-	"expired",
-	"slot_taken",
-	"calendar_failed",
-] as const;
-
-type DevBookingScenario = (typeof DEV_BOOKING_SCENARIOS)[number];
-
-interface BookingCompleteSearch {
-	dev_scenario?: DevBookingScenario;
-	session_id?: string;
-}
-
 export const Route = createFileRoute("/booking-complete")({
-	validateSearch: (search): BookingCompleteSearch => ({
-		dev_scenario: parseDevBookingScenario(search.dev_scenario),
-		session_id:
-			typeof search.session_id === "string" && search.session_id.length > 0
-				? search.session_id
-				: undefined,
-	}),
+	validateSearch: parseBookingCompleteSearch,
 	component: BookingCompletePage,
 });
 
@@ -49,7 +34,7 @@ function BookingCompletePage() {
 	if (!stripeSessionId && !activeDevScenario) {
 		return (
 			<BookingStatusLayout>
-				{import.meta.env.DEV ? <DevScenarioPanel /> : null}
+				{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
 				<BookingResult
 					booking={null}
 					paymentReceived={false}
@@ -73,7 +58,7 @@ function BookingCompletePage() {
 				<BookingResult
 					booking={null}
 					paymentReceived={false}
-					title="There is an error with your booking"
+					title="There was an error with your booking"
 				/>
 			</BookingStatusLayout>
 		);
@@ -96,7 +81,7 @@ function BookingCompletePage() {
 	const bookingFailureContent = getBookingFailureContent(booking.bookingFailureCode);
 
 	return (
-		<BookingStatusLayout>
+		<BookingStatusLayout primaryAction={isBookingCompletionFailure ? "contact" : "new_booking"}>
 			<BookingResult
 				booking={booking}
 				description={isBookingCompletionFailure ? bookingFailureContent.description : undefined}
@@ -114,9 +99,11 @@ function BookingCompletePage() {
 
 function BookingStatusLayout({
 	children,
+	primaryAction = "new_booking",
 	showActions = true,
 }: {
 	children: ReactNode;
+	primaryAction?: "contact" | "new_booking";
 	showActions?: boolean;
 }) {
 	return (
@@ -126,7 +113,16 @@ function BookingStatusLayout({
 			{showActions ? (
 				<div className="flex flex-wrap gap-3">
 					<Button asChild>
-						<Link to="/book">Make a new booking</Link>
+						{primaryAction === "contact" ? (
+							<a
+								href="/contact"
+								rel="noreferrer"
+								target="_blank">
+								Contact us
+							</a>
+						) : (
+							<Link to="/book">Make a new booking</Link>
+						)}
 					</Button>
 					<Button
 						asChild
@@ -136,72 +132,6 @@ function BookingStatusLayout({
 				</div>
 			) : null}
 		</main>
-	);
-}
-
-function DevScenarioPanel() {
-	return (
-		<section className="rounded-xl border border-border bg-card p-6">
-			<div className="space-y-2">
-				<h2 className="text-lg font-semibold">Dev booking scenarios</h2>
-				<p className="text-sm text-muted-foreground">
-					Use these preview links to test the booking result states without Stripe or Google
-					Calendar.
-				</p>
-			</div>
-			<div className="mt-4 flex flex-wrap gap-3">
-				<Button
-					asChild
-					size="sm"
-					variant="outline">
-					<Link
-						to="/booking-complete"
-						search={{ dev_scenario: "processing" }}>
-						Processing
-					</Link>
-				</Button>
-				<Button
-					asChild
-					size="sm"
-					variant="outline">
-					<Link
-						to="/booking-complete"
-						search={{ dev_scenario: "confirmed" }}>
-						Confirmed
-					</Link>
-				</Button>
-				<Button
-					asChild
-					size="sm"
-					variant="outline">
-					<Link
-						to="/booking-complete"
-						search={{ dev_scenario: "expired" }}>
-						Expired
-					</Link>
-				</Button>
-				<Button
-					asChild
-					size="sm"
-					variant="outline">
-					<Link
-						to="/booking-complete"
-						search={{ dev_scenario: "slot_taken" }}>
-						Slot Taken
-					</Link>
-				</Button>
-				<Button
-					asChild
-					size="sm"
-					variant="outline">
-					<Link
-						to="/booking-complete"
-						search={{ dev_scenario: "calendar_failed" }}>
-						Calendar Failed
-					</Link>
-				</Button>
-			</div>
-		</section>
 	);
 }
 
@@ -223,7 +153,14 @@ function BookingResult({
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1 className="text-3xl font-semibold leading-tight md:text-5xl">{title}</h1>
+				<h1
+					className={
+						isBookingCompletionFailure
+							? "text-3xl font-semibold leading-tight text-destructive md:text-4xl"
+							: "text-3xl font-semibold leading-tight md:text-4xl"
+					}>
+					{title}
+				</h1>
 				<p className="max-w-2xl text-base text-muted-foreground">
 					{isBookingCompletionFailure
 						? description
@@ -252,24 +189,28 @@ function BookingProcessing() {
 }
 
 function SessionDetails({ booking }: { booking: BookingStatus }) {
+	const isUnconfirmedBooking = booking.status === "failed";
+
 	return (
 		<section className="border-t pt-6">
-			<h2 className="text-lg font-semibold">Session details</h2>
+			<h2 className="text-lg font-semibold">Session Details</h2>
 			<dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
 				<BookingDetail
-					label="Session date"
-					value={formatBookingDate(booking.date)}
+					label="Date"
+					tone={isUnconfirmedBooking ? "destructive" : "default"}
+					value={isUnconfirmedBooking ? "Unconfirmed" : formatBookingDate(booking.date)}
 				/>
 				<BookingDetail
 					label="Time"
-					value={formatTimeValue(booking.time)}
+					tone={isUnconfirmedBooking ? "destructive" : "default"}
+					value={isUnconfirmedBooking ? "Unconfirmed" : formatTimeValue(booking.time)}
 				/>
 				<BookingDetail
 					label="Duration"
 					value={booking.duration}
 				/>
 				<BookingDetail
-					label="Studio"
+					label="Recording Space"
 					value={booking.service}
 				/>
 				<BookingDetail
@@ -283,31 +224,19 @@ function SessionDetails({ booking }: { booking: BookingStatus }) {
 
 interface BookingDetailProps {
 	label: string;
+	tone?: "default" | "destructive";
 	value: string;
 }
 
-function BookingDetail({ label, value }: BookingDetailProps) {
+function BookingDetail({ label, tone = "default", value }: BookingDetailProps) {
 	return (
 		<div className="flex flex-col gap-1">
 			<dt className="text-muted-foreground">{label}</dt>
-			<dd className="font-medium">{value}</dd>
+			<dd className={tone === "destructive" ? "font-medium text-destructive" : "font-medium"}>
+				{value}
+			</dd>
 		</div>
 	);
-}
-
-function formatBookingDate(dateValue: string) {
-	const date = parseDateValue(dateValue);
-	if (!date) {
-		return dateValue;
-	}
-
-	return new Intl.DateTimeFormat("en-AU", {
-		dateStyle: "full",
-	}).format(date);
-}
-
-function getFirstName(name: string) {
-	return name.trim().split(/\s+/)[0] || name;
 }
 
 function getBookingFailureContent(bookingFailureCode?: string) {
@@ -333,73 +262,3 @@ function getBookingFailureContent(bookingFailureCode?: string) {
 			"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
 	};
 }
-
-function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
-	return typeof value === "string" && (DEV_BOOKING_SCENARIOS as readonly string[]).includes(value)
-		? (value as DevBookingScenario)
-		: undefined;
-}
-
-function buildDevBooking(devScenario: DevBookingScenario): BookingStatus {
-	const now = Date.now();
-	const baseBooking: BookingStatus = {
-		_id: "dev-booking" as BookingStatus["_id"],
-		abn: "",
-		accountName: "VV Studios",
-		addons: ["4K UHD Recording"],
-		bookingConfirmedAt: undefined,
-		bookingFailureCode: undefined,
-		checkoutExpiredAt: undefined,
-		date: "2026-05-12",
-		duration: "2h",
-		email: "test@example.com",
-		name: "Test Booker",
-		notes: "Dev-only booking scenario preview.",
-		paymentCompletedAt: undefined,
-		phone: "0400 000 000",
-		service: "Table Setup",
-		status: "pending_payment",
-		time: "10:00",
-	};
-
-	if (devScenario === "processing") {
-		return baseBooking;
-	}
-
-	if (devScenario === "confirmed") {
-		return {
-			...baseBooking,
-			bookingConfirmedAt: now,
-			paymentCompletedAt: now,
-			status: "confirmed",
-		};
-	}
-
-	if (devScenario === "expired") {
-		return {
-			...baseBooking,
-			checkoutExpiredAt: now,
-			status: "expired",
-		};
-	}
-
-	if (devScenario === "slot_taken") {
-		return {
-			...baseBooking,
-			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE",
-			paymentCompletedAt: now,
-			status: "failed",
-		};
-	}
-
-	return {
-		...baseBooking,
-		bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED",
-		paymentCompletedAt: now,
-		status: "failed",
-	};
-}
-
-type BookingStatus = NonNullable<
-	ReturnType<typeof useQuery<typeof api.bookings.getBookingStatusByStripeSessionId>>
->;
