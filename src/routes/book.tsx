@@ -600,6 +600,10 @@ function getBookingErrorMessage(error: unknown) {
 		return "That time was just taken. Please choose another available time.";
 	}
 
+	if (code === "BOOKING_INVALID_INPUT") {
+		return "Some booking details were invalid. Please review the form and try again.";
+	}
+
 	if (code === "GOOGLE_CALENDAR_AUTH_FAILED") {
 		return "Google Calendar authentication failed. Regenerate the refresh token and try again.";
 	}

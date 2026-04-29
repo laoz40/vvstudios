@@ -1,10 +1,11 @@
 "use node";
 
 import Stripe from "stripe";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
+import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
 import { env } from "./env";
 
 interface CreateEmbeddedCheckoutSessionResult {
@@ -17,6 +18,10 @@ interface CloseEmbeddedCheckoutSessionResult {
 	ok: true;
 	outcome: "already_complete" | "deleted" | "not_found" | "not_pending";
 }
+
+type BookingValidationErrorData = {
+	code: "BOOKING_INVALID_INPUT";
+};
 
 type DeletePendingBookingResult =
 	| { ok: true; outcome: "deleted" | "not_found" | "not_pending" }
@@ -43,22 +48,28 @@ export const createEmbeddedCheckoutSession = action({
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreateEmbeddedCheckoutSessionResult> => {
+		const parsedBooking = bookingSchema.safeParse(args);
+		if (!parsedBooking.success) {
+			throw new ConvexError<BookingValidationErrorData>({ code: "BOOKING_INVALID_INPUT" });
+		}
+
+		const booking = parsedBooking.data;
 		const stripe = getStripeClient();
 
 		const bookingId: Id<"bookings"> = await ctx.runMutation(
 			internal.bookings.createPendingBooking,
 			{
-				name: args.name,
-				phone: args.phone,
-				accountName: args.accountName,
-				abn: args.abn,
-				email: args.email,
-				date: args.date,
-				time: args.time,
-				duration: args.duration,
-				service: args.service,
-				addons: args.addons,
-				notes: args.notes,
+				name: booking.name,
+				phone: booking.phone,
+				accountName: booking.accountName,
+				abn: booking.abn,
+				email: booking.email,
+				date: booking.date,
+				time: booking.time,
+				duration: booking.duration,
+				service: booking.service,
+				addons: booking.addons,
+				notes: booking.notes || undefined,
 			},
 		);
 
@@ -67,7 +78,7 @@ export const createEmbeddedCheckoutSession = action({
 			ui_mode: "embedded_page",
 			payment_method_types: ["card"],
 			return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
-			customer_email: args.email,
+			customer_email: booking.email,
 			metadata: {
 				bookingId,
 			},
