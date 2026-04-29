@@ -1,4 +1,10 @@
-import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+	HeadContent,
+	Link,
+	Scripts,
+	createRootRouteWithContext,
+	useRouterState,
+} from "@tanstack/react-router";
 import { SmoothScroll } from "#/components/SmoothScroll";
 import { Footer } from "#/components/Footer";
 import { SiteNavbar } from "#/components/NavBar";
@@ -70,6 +76,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const pathname = useRouterState({
+		select: (state) => state.location.pathname,
+	});
+	const useStatusPageLayout = pathname === "/booking-complete" || pathname === "/booking-expired";
+
 	return (
 		<html
 			lang="en"
@@ -81,10 +92,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<ClerkProvider>
 					<ConvexProvider>
 						<SmoothScroll />
-						<SiteNavbar />
+						{useStatusPageLayout ? null : <SiteNavbar />}
 						<div
 							id="site-shell"
-							className="min-h-screen pt-18 md:pt-24">
+							className={
+								useStatusPageLayout ? "flex min-h-screen flex-col" : "min-h-screen pt-18 md:pt-24"
+							}>
 							{children}
 						</div>
 						<Footer />
