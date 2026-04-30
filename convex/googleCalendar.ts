@@ -4,11 +4,8 @@ import { ConvexError, v } from "convex/values";
 import { google } from "googleapis";
 import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
-import type {
-	BookingAddon,
-	BookingDuration,
-	BookingService,
-} from "../src/features/booking-invoice/lib/types";
+import type { Doc } from "./_generated/dataModel";
+import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
 import { env } from "./env";
 import {
 	buildEventWindow,
@@ -35,6 +32,16 @@ type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
 };
 
+type BookingInvoiceEmailErrorCode =
+	| "NOT_AUTHENTICATED"
+	| "BOOKING_NOT_FOUND"
+	| "INVALID_BOOKING_DATA"
+	| "INVOICE_SEND_FAILED";
+
+type BookingInvoiceEmailErrorData = {
+	code: BookingInvoiceEmailErrorCode;
+};
+
 interface AvailableBookingTimesResult {
 	timeZone: string;
 	times: string[];
@@ -52,6 +59,10 @@ interface MonthlyBusyWindowsResult {
 
 function createBookingCalendarError(code: BookingCalendarErrorCode) {
 	return new ConvexError<BookingCalendarErrorData>({ code });
+}
+
+function createBookingInvoiceEmailError(code: BookingInvoiceEmailErrorCode) {
+	return new ConvexError<BookingInvoiceEmailErrorData>({ code });
 }
 
 function getGoogleCalendarClient() {
@@ -72,6 +83,48 @@ function getGoogleCalendarClient() {
 		timeZone,
 		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
 	};
+}
+
+async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
+	const parsedBooking = bookingSchema.safeParse({
+		name: booking.name,
+		phone: booking.phone,
+		accountName: booking.accountName,
+		abn: booking.abn,
+		email: booking.email,
+		date: booking.date,
+		time: booking.time,
+		duration: booking.duration,
+		service: booking.service,
+		addons: booking.addons,
+		notes: booking.notes ?? "",
+	});
+
+	if (!parsedBooking.success) {
+		throw createBookingInvoiceEmailError("INVALID_BOOKING_DATA");
+	}
+
+	const artifacts = await createBookingInvoiceArtifacts({
+		bookingId: booking._id,
+		name: parsedBooking.data.name,
+		phone: parsedBooking.data.phone,
+		accountName: parsedBooking.data.accountName,
+		abn: parsedBooking.data.abn,
+		email: parsedBooking.data.email,
+		date: parsedBooking.data.date,
+		time: parsedBooking.data.time,
+		duration: parsedBooking.data.duration,
+		service: parsedBooking.data.service,
+		addons: parsedBooking.data.addons,
+		createdAt: Date.now(),
+	});
+
+	await sendBookingInvoiceEmail({
+		to: booking.email,
+		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
+		html: artifacts.emailHtml,
+		attachment: artifacts.pdf,
+	});
 }
 
 export const getMonthlyBusyWindows = action({
@@ -146,6 +199,43 @@ export const getAvailableBookingTimes = action({
 				...getGoogleCalendarErrorDetails(error),
 			});
 			throw createBookingCalendarError(code);
+		}
+	},
+});
+
+export const sendBookingInvoiceForBooking = action({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw createBookingInvoiceEmailError("NOT_AUTHENTICATED");
+		}
+
+		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
+			bookingId: args.bookingId,
+		});
+
+		if (!booking) {
+			throw createBookingInvoiceEmailError("BOOKING_NOT_FOUND");
+		}
+
+		try {
+			await sendBookingInvoiceForBookingRecord(booking);
+			return { ok: true as const };
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			console.error("Manual booking invoice send failed", {
+				bookingId: booking._id,
+				bookingEmail: booking.email,
+				error,
+			});
+			throw createBookingInvoiceEmailError("INVOICE_SEND_FAILED");
 		}
 	},
 });
@@ -231,27 +321,7 @@ export const completeClaimedBooking = internalAction({
 			});
 
 			try {
-				const artifacts = await createBookingInvoiceArtifacts({
-					bookingId: booking._id,
-					name: booking.name,
-					phone: booking.phone,
-					accountName: booking.accountName,
-					abn: booking.abn,
-					email: booking.email,
-					date: booking.date,
-					time: booking.time,
-					duration: booking.duration as BookingDuration,
-					service: booking.service as BookingService,
-					addons: booking.addons as BookingAddon[],
-					createdAt: Date.now(),
-				});
-
-				await sendBookingInvoiceEmail({
-					to: booking.email,
-					subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
-					html: artifacts.emailHtml,
-					attachment: artifacts.pdf,
-				});
+				await sendBookingInvoiceForBookingRecord(booking);
 			} catch (invoiceError) {
 				console.error("Booking invoice artifact generation or send failed", {
 					bookingId: booking._id,

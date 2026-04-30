@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
@@ -30,11 +30,13 @@ export type BookingActionsProps = {
 
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
+	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
@@ -175,6 +177,21 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
+	async function handleEmailInvoice() {
+		setIsEmailingInvoice(true);
+
+		try {
+			await sendBookingInvoiceForBooking({
+				bookingId: booking._id,
+			});
+			toast.success(`Invoice sent to ${booking.email}.`);
+		} catch (error) {
+			toast.error(getBookingInvoiceEmailErrorMessage(error));
+		} finally {
+			setIsEmailingInvoice(false);
+		}
+	}
+
 	return (
 		<>
 			<DropdownMenu modal={false}>
@@ -231,6 +248,17 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						) : null}
 					</DropdownMenuGroup>
 					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						disabled={isDownloadingInvoice}
+						onSelect={handleDownloadInvoice}>
+						{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						disabled={isEmailingInvoice}
+						onSelect={handleEmailInvoice}>
+						{isEmailingInvoice ? "Sending invoice..." : "Email invoice to customer"}
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
 					{canToggleStatus ? (
 						<>
 							<DropdownMenuItem
@@ -241,11 +269,6 @@ export function BookingActions({ booking }: BookingActionsProps) {
 							<DropdownMenuSeparator />
 						</>
 					) : null}
-					<DropdownMenuItem
-						disabled={isDownloadingInvoice}
-						onSelect={handleDownloadInvoice}>
-						{isDownloadingInvoice ? "Generating invoice..." : "Generate and download invoice"}
-					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="text-destructive focus:text-destructive"
 						onSelect={() => setIsEditDialogOpen(true)}>
@@ -331,5 +354,24 @@ function getBookingStatusMutationErrorMessage(error: unknown) {
 			return "Only confirmed and needs follow up bookings can be toggled here.";
 		default:
 			return "Unable to update booking status.";
+	}
+}
+
+function getBookingInvoiceEmailErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to send invoice email.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		case "INVALID_BOOKING_DATA":
+			return "This booking has invalid invoice data.";
+		default:
+			return "Unable to send invoice email.";
 	}
 }
