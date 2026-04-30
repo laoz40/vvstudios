@@ -87,13 +87,9 @@ export function ReminderEmail({
 					<Text style={paragraph}>
 						Payment is due at the end of your session. We look forward to seeing you.
 					</Text>
-					<Text style={signoff}>
-						Enjoy your day,
-						<br />
-						<strong>{signoffName}</strong>
-						<br />
-						<strong>{BOOKING_INVOICE_BUSINESS.locationLabel}</strong>
-					</Text>
+					<Text style={signoff}>Enjoy your day,</Text>
+					<Text style={signature}>{signoffName}</Text>
+					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.locationLabel}</Text>
 				</Container>
 			</Body>
 		</Html>
@@ -200,5 +196,13 @@ const signoff = {
 	color: "#fafafa",
 	fontSize: "15px",
 	lineHeight: "24px",
-	margin: "24px 0 0",
+	margin: "24px 0 4px",
+};
+
+const signature = {
+	color: "#fafafa",
+	fontSize: "15px",
+	fontWeight: "700",
+	lineHeight: "24px",
+	margin: "0",
 };
