@@ -129,6 +129,17 @@ export function formatBookingDate(dateValue: string) {
 	}).format(date);
 }
 
+const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "Australia/Sydney",
+});
+
+const bookingSydneyDateFormatter = new Intl.DateTimeFormat("en-AU", {
+	dateStyle: "medium",
+	timeZone: "Australia/Sydney",
+});
+
 export function startOfMonth(date: Date) {
 	return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -203,6 +214,38 @@ export function formatTimeValue(time: string) {
 	})
 		.format(new Date(2000, 0, 1, hours, minutes))
 		.replace(/\s?(am|pm)$/i, "$1");
+}
+
+export function formatBookingTimestamp(timestamp: number) {
+	return bookingSydneyDateTimeFormatter.format(timestamp);
+}
+
+export function formatBookingDateMedium(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return dateValue;
+	}
+
+	return bookingSydneyDateFormatter.format(date);
+}
+
+export function formatBookingTimeLabel(timeValue: string | undefined) {
+	if (!timeValue) {
+		return "Time TBD";
+	}
+
+	return formatTimeValue(timeValue).replace(/(am|pm)$/i, " $1");
+}
+
+export function getStartOfWeekTimestamp(now = new Date()) {
+	const startOfWeek = new Date(now);
+	const dayOfWeek = startOfWeek.getDay();
+	const daysSinceMonday = (dayOfWeek + 6) % 7;
+
+	startOfWeek.setHours(0, 0, 0, 0);
+	startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+
+	return startOfWeek.getTime();
 }
 
 export function getFirstName(name: string) {

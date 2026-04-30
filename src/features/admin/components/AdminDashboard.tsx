@@ -42,6 +42,12 @@ import {
 	TableRow,
 } from "#/components/ui/table";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
+import {
+	formatBookingDateMedium,
+	formatBookingTimestamp,
+	formatBookingTimeLabel,
+	getStartOfWeekTimestamp,
+} from "#/lib/bookingdatetime";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -50,17 +56,6 @@ export type AdminDashboardProps = {
 	email: string | null;
 	signOutControl: React.ReactNode;
 };
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
-	dateStyle: "medium",
-	timeStyle: "short",
-	timeZone: "Australia/Sydney",
-});
-
-const dateFormatter = new Intl.DateTimeFormat("en-AU", {
-	dateStyle: "medium",
-	timeZone: "Australia/Sydney",
-});
 
 const statusLabelMap: Record<BookingRecord["status"], string> = {
 	confirmed: "Confirmed",
@@ -85,52 +80,6 @@ const statusBadgeClassNameMap: Record<BookingRecord["status"], string | undefine
 	failed: undefined,
 	pending_payment: "bg-blue-600 text-white hover:bg-blue-600/90",
 };
-
-function formatCreatedAt(value: number) {
-	return dateTimeFormatter.format(value);
-}
-
-function getStartOfWeekTimestamp(now = new Date()) {
-	const startOfWeek = new Date(now);
-	const dayOfWeek = startOfWeek.getDay();
-	const daysSinceMonday = (dayOfWeek + 6) % 7;
-
-	startOfWeek.setHours(0, 0, 0, 0);
-	startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
-
-	return startOfWeek.getTime();
-}
-
-function formatSessionDate(value: string) {
-	const parsedDate = new Date(`${value}T00:00:00`);
-
-	if (Number.isNaN(parsedDate.getTime())) {
-		return value;
-	}
-
-	return dateFormatter.format(parsedDate);
-}
-
-function formatSessionTime(value: string | undefined) {
-	if (!value) {
-		return "Time TBD";
-	}
-
-	const parsedDate = new Date(`1970-01-01T${value}:00`);
-
-	if (Number.isNaN(parsedDate.getTime())) {
-		return value;
-	}
-
-	return new Intl.DateTimeFormat("en-AU", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-		timeZone: "Australia/Sydney",
-	})
-		.format(parsedDate)
-		.toLowerCase();
-}
 
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
@@ -216,9 +165,9 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 			accessorFn: (row) => `${row.date} ${row.time ?? ""}`,
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatSessionDate(row.original.date)}</p>
+					<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>
 					<p className="text-sm text-muted-foreground">
-						{formatSessionTime(row.original.time)}
+						{formatBookingTimeLabel(row.original.time)}
 						{row.original.duration ? ` · ${row.original.duration}` : ""}
 					</p>
 				</div>
@@ -281,7 +230,7 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 			),
 			cell: ({ row }) => (
 				<p className="min-w-44 font-medium whitespace-normal">
-					{formatCreatedAt(row.original.pendingPaymentCreatedAt)}
+					{formatBookingTimestamp(row.original.pendingPaymentCreatedAt)}
 				</p>
 			),
 		},
@@ -463,7 +412,7 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 						value={String(metrics.pending_payment)}
 						description="Awaiting Stripe completion"
 						variant="secondary"
-						className="bg-blue-600 text-white hover:bg-blue-600/90"
+						className="bg-cyan-600 text-white hover:bg-cyan-600/90"
 					/>
 					<AdminMetricCard
 						title="Confirmed"
@@ -528,7 +477,7 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 											colSpan={table.getVisibleLeafColumns().length}
 											className="h-24 text-center text-muted-foreground">
 											{bookings.length === 0
-												? "No bookings yet."
+												? "No bookings yet. L business."
 												: "No bookings match the current filters."}
 										</TableCell>
 									</TableRow>
