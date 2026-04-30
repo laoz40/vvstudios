@@ -7,7 +7,6 @@ import {
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingTimeUtils";
-import { getHostEmails } from "./emailFormatting";
 
 interface BuildBookingCalendarEventRequestBodyArgs {
 	name: string;
@@ -180,4 +179,10 @@ export async function sendBookingReminderEmailForBooking({
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
 		html,
 	});
+}
+
+export function getHostEmails() {
+	return env.GOOGLE_CALENDAR_HOST_EMAILS.split(",")
+		.map((email) => email.trim())
+		.filter(Boolean);
 }

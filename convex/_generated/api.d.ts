@@ -15,27 +15,29 @@ import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as lib_bookingTimeUtils from "../lib/bookingTimeUtils.js";
 import type * as lib_email from "../lib/email.js";
-import type * as lib_emailFormatting from "../lib/emailFormatting.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as reminders from "../reminders.js";
 import type * as stripe from "../stripe.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-	bookings: typeof bookings;
-	crons: typeof crons;
-	env: typeof env;
-	googleCalendar: typeof googleCalendar;
-	http: typeof http;
-	"lib/bookingTimeUtils": typeof lib_bookingTimeUtils;
-	"lib/email": typeof lib_email;
-	"lib/emailFormatting": typeof lib_emailFormatting;
-	"lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
-	"lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
-	reminders: typeof reminders;
-	stripe: typeof stripe;
+  bookings: typeof bookings;
+  crons: typeof crons;
+  env: typeof env;
+  googleCalendar: typeof googleCalendar;
+  http: typeof http;
+  "lib/bookingTimeUtils": typeof lib_bookingTimeUtils;
+  "lib/email": typeof lib_email;
+  "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
+  "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
+  reminders: typeof reminders;
+  stripe: typeof stripe;
 }>;
 
 /**
@@ -46,7 +48,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -56,6 +61,9 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {};

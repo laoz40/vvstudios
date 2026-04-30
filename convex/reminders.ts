@@ -1,7 +1,7 @@
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
-const REMINDER_WINDOW_START_MS = 12 * 60 * 60 * 1000;
+const REMINDER_WINDOW_START_MS = 0 * 60 * 60 * 1000;
 const REMINDER_WINDOW_END_MS = 25 * 60 * 60 * 1000;
 const REMINDER_BATCH_SIZE = 50;
 

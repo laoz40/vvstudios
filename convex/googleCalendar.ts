@@ -20,7 +20,7 @@ import {
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
-import { getHostEmails } from "./lib/emailFormatting";
+import { getHostEmails } from "./lib/email";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
