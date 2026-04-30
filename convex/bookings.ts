@@ -1,6 +1,6 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
 export const createPendingBooking = internalMutation({
 	args: {
@@ -51,6 +51,10 @@ export const getBookings = query({
 			.take(100);
 	},
 });
+
+type DeleteBookingErrorData = {
+	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
+};
 
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 	return {
@@ -316,5 +320,28 @@ export const deletePendingBooking = internalMutation({
 		await ctx.db.delete(args.bookingId);
 
 		return { ok: true as const, outcome: "deleted" as const };
+	},
+});
+
+export const deleteBooking = mutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<DeleteBookingErrorData>({ code: "NOT_AUTHENTICATED" });
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new ConvexError<DeleteBookingErrorData>({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		await ctx.db.delete(args.bookingId);
+
+		return { ok: true as const };
 	},
 });
