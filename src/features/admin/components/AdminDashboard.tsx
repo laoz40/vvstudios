@@ -10,23 +10,10 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { useMutation } from "convex/react";
-import { ArrowUpDown, MoreHorizontal, X } from "lucide-react";
-import { toast } from "sonner";
-
-import { api } from "../../../../convex/_generated/api";
+import { ArrowUpDown } from "lucide-react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
 import {
 	Card,
 	CardAction,
@@ -35,14 +22,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/components/ui/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import {
 	Table,
@@ -52,13 +31,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
-import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
 import {
 	formatBookingDateMedium,
 	formatBookingTimestamp,
 	formatBookingTimeLabel,
 	getStartOfWeekTimestamp,
 } from "#/lib/bookingdatetime";
+import { BookingActions } from "#/features/admin/components/BookingActions";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -95,19 +74,19 @@ const statusBadgeClassNameMap: Record<BookingRecord["status"], string | undefine
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
 		case "name":
-			return "w-44";
+			return "w-48";
 		case "status":
-			return "w-24";
+			return "w-20";
 		case "session":
-			return "w-32";
+			return "w-24";
 		case "service":
 			return "w-64";
 		case "contact":
-			return "w-44";
+			return "w-48";
 		case "notes":
 			return "w-56";
 		case "createdAt":
-			return "w-44";
+			return "w-24";
 		case "actions":
 			return "w-10";
 		default:
@@ -143,6 +122,7 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 			header: ({ column }) => (
 				<Button
 					variant="ghost"
+					className="px-0!"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 					Customer
 					<ArrowUpDown data-icon="inline-end" />
@@ -234,6 +214,7 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 			header: ({ column }) => (
 				<Button
 					variant="ghost"
+					className="px-0!"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 					Created
 					<ArrowUpDown data-icon="inline-end" />
@@ -251,226 +232,6 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 			cell: ({ row }) => <BookingActions booking={row.original} />,
 		},
 	];
-}
-
-function BookingActions({ booking }: { booking: BookingRecord }) {
-	const deleteBooking = useMutation(api.bookings.deleteBooking);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-	const [isDeleting, setIsDeleting] = React.useState(false);
-	const customerBookingId = formatBookingInvoiceNumber(
-		booking._id,
-		booking.pendingPaymentCreatedAt,
-	);
-
-	async function handleDeleteBooking() {
-		setIsDeleting(true);
-
-		try {
-			await deleteBooking({ bookingId: booking._id });
-			setIsDeleteDialogOpen(false);
-			toast.success("Booking deleted.");
-		} catch (error) {
-			toast.error(getDeleteBookingErrorMessage(error));
-		} finally {
-			setIsDeleting(false);
-		}
-	}
-
-	return (
-		<>
-			<DropdownMenu modal={false}>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						className="touch-manipulation">
-						<span className="sr-only">Open booking actions</span>
-						<MoreHorizontal />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					align="end"
-					className="w-48 touch-manipulation">
-					<DropdownMenuGroup>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.name)}>
-							Copy customer name
-						</DropdownMenuItem>
-						{booking.accountName ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.accountName)}>
-								Copy account name
-							</DropdownMenuItem>
-						) : null}
-						{booking.abn ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.abn ?? "")}>
-								Copy ABN
-							</DropdownMenuItem>
-						) : null}
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.email)}>
-							Copy email
-						</DropdownMenuItem>
-						{booking.phone ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.phone)}>
-								Copy phone
-							</DropdownMenuItem>
-						) : null}
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(String(booking._id))}>
-							Copy database ID
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(customerBookingId)}>
-							Copy booking ID
-						</DropdownMenuItem>
-					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuGroup>
-						<DropdownMenuItem asChild>
-							<a href={`mailto:${booking.email}`}>Email customer</a>
-						</DropdownMenuItem>
-						{booking.phone ? (
-							<DropdownMenuItem asChild>
-								<a href={`tel:${booking.phone}`}>Call customer</a>
-							</DropdownMenuItem>
-						) : null}
-					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="text-destructive focus:text-destructive"
-						onSelect={() => setIsDeleteDialogOpen(true)}>
-						Delete booking
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-
-			<DeleteBookingDialog
-				open={isDeleteDialogOpen}
-				bookingName={booking.name}
-				bookingId={customerBookingId}
-				sessionDate={booking.date}
-				sessionTime={booking.time}
-				onOpenChange={setIsDeleteDialogOpen}
-				onConfirm={handleDeleteBooking}
-				isDeleting={isDeleting}
-			/>
-		</>
-	);
-}
-
-function DeleteBookingDialog({
-	open,
-	bookingName,
-	bookingId,
-	sessionDate,
-	sessionTime,
-	onOpenChange,
-	onConfirm,
-	isDeleting,
-}: {
-	open: boolean;
-	bookingName: string;
-	bookingId: string;
-	sessionDate: string;
-	sessionTime: string;
-	onOpenChange: (open: boolean) => void;
-	onConfirm: () => Promise<void>;
-	isDeleting: boolean;
-}) {
-	return (
-		<Dialog
-			open={open}
-			onOpenChange={(nextOpen) => {
-				if (isDeleting && !nextOpen) {
-					return;
-				}
-
-				onOpenChange(nextOpen);
-			}}>
-			<DialogContent
-				className="sm:max-w-md"
-				onInteractOutside={(event) => {
-					if (isDeleting) {
-						event.preventDefault();
-					}
-				}}
-				onEscapeKeyDown={(event) => {
-					if (isDeleting) {
-						event.preventDefault();
-					}
-				}}>
-				<DialogClose asChild>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon-sm"
-						className="absolute top-2 right-2"
-						aria-label="Close delete booking dialog"
-						disabled={isDeleting}>
-						<X />
-					</Button>
-				</DialogClose>
-
-				<DialogHeader className="text-left">
-					<DialogTitle>Permanently delete booking?</DialogTitle>
-					<DialogDescription>
-						There is no turning back from this.
-					</DialogDescription>
-				</DialogHeader>
-
-				<div className="rounded-lg border bg-muted/40 p-4">
-					<dl className="grid gap-3 text-sm sm:grid-cols-2">
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Customer</dt>
-							<dd className="font-medium">{bookingName}</dd>
-						</div>
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Session</dt>
-							<dd className="font-medium">
-								{formatBookingDateMedium(sessionDate)} at {formatBookingTimeLabel(sessionTime)}
-							</dd>
-						</div>
-						<div className="grid gap-1 sm:col-span-2">
-							<dt className="text-muted-foreground">Booking ID</dt>
-							<dd className="font-medium">{bookingId}</dd>
-						</div>
-					</dl>
-				</div>
-
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={isDeleting}>
-						Cancel
-					</Button>
-					<Button
-						type="button"
-						variant="destructive"
-						onClick={() => {
-							void onConfirm();
-						}}
-						disabled={isDeleting}>
-						{isDeleting ? "Deleting..." : "Delete booking"}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function getDeleteBookingErrorMessage(error: unknown) {
-	if (typeof error !== "object" || error === null) {
-		return "Unable to delete booking.";
-	}
-
-	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
-
-	switch (code) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		default:
-			return "Unable to delete booking.";
-	}
 }
 
 function AdminMetricCard({
@@ -560,7 +321,9 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<div className="flex flex-col gap-2">
 						<Badge variant="outline">Admin</Badge>
-						<h1 className="text-4xl tracking-wide text-foreground font-medium">Bookings Dashboard</h1>
+						<h1 className="text-4xl tracking-wide text-foreground font-medium">
+							Bookings Dashboard
+						</h1>
 					</div>
 					<div className="flex flex-col items-start gap-3 md:items-end">
 						<p className="text-sm text-muted-foreground">Signed in as {email ?? "Unknown user"}.</p>

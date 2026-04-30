@@ -345,3 +345,47 @@ export const deleteBooking = mutation({
 		return { ok: true as const };
 	},
 });
+
+export const updateBooking = mutation({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		date: v.string(),
+		time: v.string(),
+		service: v.string(),
+		addons: v.array(v.string()),
+		notes: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<DeleteBookingErrorData>({ code: "NOT_AUTHENTICATED" });
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new ConvexError<DeleteBookingErrorData>({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			name: args.name,
+			phone: args.phone,
+			accountName: args.accountName,
+			abn: args.abn,
+			email: args.email,
+			date: args.date,
+			time: args.time,
+			service: args.service,
+			addons: args.addons,
+			notes: args.notes,
+		});
+
+		return { ok: true as const };
+	},
+});
