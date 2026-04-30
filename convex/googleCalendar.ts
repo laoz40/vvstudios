@@ -301,6 +301,7 @@ export const completeClaimedBooking = internalAction({
 				calendarId,
 				sendUpdates: "all",
 				requestBody: buildBookingCalendarEventRequestBody({
+					addons: booking.addons,
 					name: booking.name,
 					duration: booking.duration,
 					email: booking.email,

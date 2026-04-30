@@ -7,6 +7,7 @@ interface BuildBookingCalendarEventRequestBodyArgs {
 	name: string;
 	duration: string;
 	service: string;
+	addons: string[];
 	startDateTime: string;
 	endDateTime: string;
 	timeZone: string;
@@ -22,6 +23,7 @@ export function buildBookingCalendarEventRequestBody({
 	name,
 	duration,
 	service,
+	addons,
 	startDateTime,
 	endDateTime,
 	timeZone,
@@ -30,6 +32,7 @@ export function buildBookingCalendarEventRequestBody({
 }: BuildBookingCalendarEventRequestBodyArgs): calendar_v3.Schema$Event {
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
+	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
@@ -38,17 +41,15 @@ export function buildBookingCalendarEventRequestBody({
 		description: [
 			`Hello, ${name}!`,
 			"",
-			"Your booking has been confirmed!",
+			"Your studio hire booking has been confirmed!",
 			"",
-			`Studio Hire: ${service}`,
-			`With: ${BOOKING_INVOICE_BUSINESS.locationLabel}`,
-			`Duration: ${duration}`,
+			`Recording Space: ${service}`,
+			`Add-ons: ${addonsLine}`,
+			`Session Duration: ${duration}`,
+			"",
 			`Date: ${bookingDate}`,
 			`Time: ${bookingTime}`,
 			`Timezone: ${timeZone}`,
-			"",
-			"Location:",
-			BOOKING_INVOICE_BUSINESS.locationAddress,
 			"",
 			"Thanks,",
 			signoffName,
