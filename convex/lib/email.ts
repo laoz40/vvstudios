@@ -1,12 +1,13 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/features/booking-invoice/lib/constants";
+import { renderReminderEmail } from "#/features/reminder-email/render-reminder-email";
 import { env } from "../env";
 import {
 	formatBookingDateShort,
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingTimeUtils";
-import { escapeHtml, getHostEmails } from "./emailFormatting";
+import { getHostEmails } from "./emailFormatting";
 
 interface BuildBookingCalendarEventRequestBodyArgs {
 	name: string;
@@ -164,27 +165,19 @@ export async function sendBookingReminderEmailForBooking({
 	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await renderReminderEmail({
+		addonsLine,
+		bookingDate,
+		bookingTime,
+		duration,
+		name,
+		service,
+		signoffName,
+	});
 
 	await sendBookingReminderEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
-		html: [
-			`<p>Hello ${escapeHtml(name)},</p>`,
-			"<p>This is a reminder that your studio session is scheduled for tomorrow.</p>",
-			"<ul>",
-			`<li><strong>Session Date:</strong> ${escapeHtml(bookingDate)}</li>`,
-			`<li><strong>Session Time:</strong> ${escapeHtml(bookingTime)}</li>`,
-			"</ul>",
-			"<ul>",
-			`<li><strong>Recording Space:</strong> ${escapeHtml(service)}</li>`,
-			`<li><strong>Session Duration:</strong> ${escapeHtml(duration)}</li>`,
-			`<li><strong>Add-ons:</strong> ${escapeHtml(addonsLine)}</li>`,
-			"</ul>",
-			"<ul>",
-			`<li><strong>Location:</strong> ${escapeHtml(BOOKING_INVOICE_BUSINESS.locationAddress)}</li>`,
-			"</ul>",
-			"<p>Payment is due at the end of your session.</p>",
-			`<p>Thanks,<br>${escapeHtml(signoffName)}<br>${escapeHtml(BOOKING_INVOICE_BUSINESS.locationLabel)}</p>`,
-		].join(""),
+		html,
 	});
 }

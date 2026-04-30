@@ -59,7 +59,7 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
-		"@react-email/ui": "6.0.0",
+		"@react-email/ui": "6.0.5",
 		"@rolldown/plugin-babel": "^0.2.3",
 		"@tailwindcss/typography": "^0.5.16",
 		"@tanstack/devtools-vite": "latest",

@@ -24,6 +24,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
 	const paymentInstruction = data.notes.paymentNote.replace(` ${receiptNote}`, "");
 	const formattedSessionTime = formatTimeValue(data.booking.time);
+	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 
 	return (
 		<Html>
@@ -51,10 +52,12 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						<strong>{formattedSessionTime}</strong> has been booked. Your fully itemised invoice is
 						attached to this email.
 					</Text>
-					<Section style={summaryCard}>
-						<Text style={eyebrow}>Balance due</Text>
-						<Text style={amount}>{formatAud(data.amounts.totalDueAmount)}</Text>
-						<Text style={summaryDueLine}>Due: {data.invoice.dueDateLabel}</Text>
+					<Section style={section}>
+						<Text style={sectionTitle}>Balance due</Text>
+						<Section style={summaryCard}>
+							<Text style={amount}>{formatAud(data.amounts.totalDueAmount)}</Text>
+							<Text style={summaryDueLine}>Due: {data.invoice.dueDateLabel}</Text>
+						</Section>
 					</Section>
 					<Section style={section}>
 						<Text style={sectionTitle}>Payment methods</Text>
@@ -84,6 +87,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					</Section>
 					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
+						<Text style={paragraph}>{data.branding.locationAddress}</Text>
 						<Button
 							href={data.branding.locationUrl}
 							style={button}>
@@ -91,6 +95,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						</Button>
 					</Section>
 					<Text style={signoff}>Enjoy your day,</Text>
+					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{data.branding.businessName}</Text>
 				</Container>
 			</Body>
@@ -99,32 +104,33 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 }
 
 const body = {
-	backgroundColor: "#f6f7f9",
-	fontFamily: "Helvetica, Arial, sans-serif",
+	backgroundColor: "#1a1a1a",
+	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
 	padding: "16px 16px",
 };
 
 const container = {
-	backgroundColor: "#ffffff",
-	border: "1px solid #e5e7eb",
-	borderRadius: "16px",
+	backgroundColor: "#2d2d2d",
+	border: "1px solid #454545",
+	borderRadius: "12px",
 	margin: "0 auto",
 	maxWidth: "560px",
-	padding: "16px",
+	padding: "24px",
 };
 
 const invoiceNumber = {
-	color: "#6b7280",
+	color: "#d0d0d0",
 	fontSize: "12px",
 	margin: "0 0 16px",
 	textAlign: "right" as const,
 };
 
 const heading = {
-	color: "#111827",
-	fontSize: "16px",
-	fontWeight: "600",
+	color: "#fafafa",
+	fontSize: "22px",
+	fontWeight: "700",
+	lineHeight: "28px",
 	margin: "0 0 16px",
 };
 
@@ -134,30 +140,31 @@ const logo = {
 };
 
 const paragraph = {
-	color: "#374151",
+	color: "#fafafa",
 	fontSize: "15px",
 	lineHeight: "24px",
 	margin: "0 0 12px",
 };
 
 const summaryCard = {
-	backgroundColor: "#f9fafb",
-	border: "1px solid #e5e7eb",
+	backgroundColor: "#383838",
+	border: "1px solid #454545",
 	borderRadius: "12px",
-	margin: "24px 0",
+	margin: "0",
 	padding: "24px",
 	textAlign: "center" as const,
 };
 
 const detailLine = {
-	color: "#374151",
+	color: "#fafafa",
 	fontSize: "14px",
 	lineHeight: "16px",
 	margin: "0 0 8px",
 };
 
 const paymentCard = {
-	border: "1px solid #e5e7eb",
+	backgroundColor: "#383838",
+	border: "1px solid #454545",
 	borderRadius: "12px",
 	padding: "10px 20px",
 };
@@ -169,14 +176,14 @@ const paymentColumnLeft = {
 };
 
 const paymentColumnRight = {
-	borderLeft: "1px solid #e5e7eb",
+	borderLeft: "1px solid #454545",
 	paddingLeft: "16px",
 	verticalAlign: "top" as const,
 	width: "35%",
 };
 
 const paymentOptionTitle = {
-	color: "#111827",
+	color: "#fafafa",
 	fontSize: "14px",
 	fontWeight: "700",
 	margin: "0 0 12px",
@@ -188,40 +195,34 @@ const paymentNoticeCard = {
 };
 
 const noticeLine = {
-	color: "#374151",
+	color: "#fafafa",
 	fontSize: "15px",
 	lineHeight: "24px",
 	margin: "0 0 8px",
 };
 
 const noteText = {
-	color: "#6b7280",
+	color: "#d0d0d0",
 	fontSize: "13px",
 	fontStyle: "italic",
 	lineHeight: "20px",
 	margin: "0",
 };
 
-const eyebrow = {
-	color: "#6b7280",
-	fontSize: "12px",
-	letterSpacing: "0.08em",
-	margin: "0 0 8px",
-	textTransform: "uppercase" as const,
-};
-
 const amount = {
-	color: "#111827",
+	color: "#fafafa",
 	fontSize: "36px",
 	fontWeight: "700",
-	margin: "0 0 16px",
+	margin: "10px 0 16px",
+	textAlign: "center" as const,
 };
 
 const summaryDueLine = {
-	color: "#d90429",
+	color: "#ff8084",
 	fontSize: "14px",
 	fontWeight: "600",
 	margin: "0",
+	textAlign: "center" as const,
 };
 
 const section = {
@@ -229,17 +230,17 @@ const section = {
 };
 
 const sectionTitle = {
-	color: "#6d7481",
-	fontSize: "14px",
-	fontWeight: "700",
+	color: "#f5c400",
+	fontSize: "13px",
+	fontWeight: "600",
 	margin: "0 0 8px",
 	textTransform: "uppercase" as const,
 };
 
 const button = {
 	backgroundColor: "#f5c400",
-	borderRadius: "8px",
-	color: "#000",
+	borderRadius: "12px",
+	color: "#1a1a1a",
 	fontSize: "14px",
 	fontWeight: "600",
 	padding: "12px 18px",
@@ -247,13 +248,13 @@ const button = {
 };
 
 const signoff = {
-	color: "#374151",
+	color: "#fafafa",
 	fontSize: "15px",
 	margin: "24px 0 4px",
 };
 
 const signature = {
-	color: "#111827",
+	color: "#fafafa",
 	fontSize: "15px",
 	fontWeight: "700",
 	margin: "0",
