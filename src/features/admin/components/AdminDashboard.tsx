@@ -13,6 +13,7 @@ import {
 import { ArrowUpDown } from "lucide-react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
+import { Checkbox } from "#/components/ui/checkbox";
 import { Button } from "#/components/ui/button";
 import {
 	Card,
@@ -31,14 +32,16 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { Label } from "#/components/ui/label";
+import { BookingActions } from "#/features/admin/components/BookingActions";
 import {
 	formatBookingDateMedium,
 	formatBookingTimestamp,
 	formatBookingTimeLabel,
 	getBookingStartTimestamp,
 	getStartOfWeekTimestamp,
+	isUpcomingBooking,
 } from "#/lib/bookingdatetime";
-import { BookingActions } from "#/features/admin/components/BookingActions";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -279,9 +282,17 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 	const columns = React.useMemo(() => buildColumns(), []);
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+	const [showUpcomingOnly, setShowUpcomingOnly] = React.useState(true);
+	const filteredBookings = React.useMemo(
+		() =>
+			showUpcomingOnly
+				? bookings.filter((booking) => isUpcomingBooking(booking.date, booking.time))
+				: bookings,
+		[bookings, showUpcomingOnly],
+	);
 
 	const table = useReactTable({
-		data: bookings,
+		data: filteredBookings,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
@@ -369,13 +380,25 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 
 			<Card className="overflow-hidden">
 				<CardContent className="flex flex-col gap-4">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center">
+					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 						<Input
 							placeholder="Search bookings..."
 							value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
 							onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
 							className="w-full md:max-w-sm"
 						/>
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id="show-upcoming-only"
+								checked={showUpcomingOnly}
+								onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
+							/>
+							<Label
+								htmlFor="show-upcoming-only"
+								className="text-sm font-medium text-foreground">
+								Show only upcoming sessions
+							</Label>
+						</div>
 					</div>
 
 					<div className="overflow-hidden rounded-xl border">

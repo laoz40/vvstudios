@@ -3,6 +3,7 @@ export const DEFAULT_BOOKING_END_TIME = "22:00";
 export const BOOKING_LEAD_TIME_MINUTES = 12 * 60;
 export const BOOKING_EVENT_BUFFER_MINUTES = 30;
 export const BOOKING_MAX_DAYS_AHEAD = 60;
+const BOOKING_TIME_ZONE = "Australia/Sydney";
 
 export interface BookingDaySchedule {
 	endTime: string;
@@ -238,14 +239,16 @@ export function formatBookingTimeLabel(timeValue: string | undefined) {
 }
 
 export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
-	const date = parseDateValue(dateValue);
-	if (!date) {
+	const utcDate = getUtcDateForZonedDateTime(dateValue, timeValue, BOOKING_TIME_ZONE);
+	if (!utcDate) {
 		return 0;
 	}
 
-	const [hours, minutes] = timeValue.split(":").map(Number);
-	date.setHours(hours, minutes, 0, 0);
-	return date.getTime();
+	return utcDate.getTime();
+}
+
+export function isUpcomingBooking(dateValue: string, timeValue: string, now = Date.now()) {
+	return getBookingStartTimestamp(dateValue, timeValue) >= now;
 }
 
 export function getStartOfWeekTimestamp(now = new Date()) {
@@ -288,6 +291,89 @@ function getDurationMinutes(duration: string) {
 	if (duration === "2h") return 120;
 	if (duration === "3h") return 180;
 	return 60;
+}
+
+function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZone: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return null;
+	}
+
+	const [hours, minutes] = timeValue.split(":").map(Number);
+	const targetUtcMs = Date.UTC(
+		date.getFullYear(),
+		date.getMonth(),
+		date.getDate(),
+		hours,
+		minutes,
+		0,
+		0,
+	);
+
+	let guessUtcMs = targetUtcMs;
+
+	for (let iteration = 0; iteration < 3; iteration += 1) {
+		const zonedParts = getTimeZoneParts(new Date(guessUtcMs), timeZone);
+		const currentUtcMs = Date.UTC(
+			zonedParts.year,
+			zonedParts.month - 1,
+			zonedParts.day,
+			zonedParts.hours,
+			zonedParts.minutes,
+			0,
+			0,
+		);
+		const diffMs = targetUtcMs - currentUtcMs;
+
+		guessUtcMs += diffMs;
+
+		if (diffMs === 0) {
+			break;
+		}
+	}
+
+	return new Date(guessUtcMs);
+}
+
+const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getTimeZoneFormatter(timeZone: string) {
+	const cachedFormatter = timeZoneFormatterCache.get(timeZone);
+
+	if (cachedFormatter) {
+		return cachedFormatter;
+	}
+
+	const formatter = new Intl.DateTimeFormat("en-CA", {
+		day: "2-digit",
+		hour: "2-digit",
+		hour12: false,
+		hourCycle: "h23",
+		minute: "2-digit",
+		month: "2-digit",
+		second: "2-digit",
+		timeZone,
+		year: "numeric",
+	});
+
+	timeZoneFormatterCache.set(timeZone, formatter);
+
+	return formatter;
+}
+
+function getTimeZoneParts(date: Date, timeZone: string) {
+	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
+	const values = Object.fromEntries(
+		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
+	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
+
+	return {
+		day: values.day,
+		hours: values.hour === 24 ? 0 : values.hour,
+		minutes: values.minute,
+		month: values.month,
+		year: values.year,
+	};
 }
 
 function parseReadableTimeToMinutes(time: string) {
