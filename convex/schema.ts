@@ -11,6 +11,7 @@ export default defineSchema({
 		email: v.string(),
 		date: v.string(),
 		time: v.string(),
+		sessionStartAt: v.number(),
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
@@ -30,6 +31,9 @@ export default defineSchema({
 		bookingConfirmationEventId: v.optional(v.string()),
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
+		reminderEmailClaimedAt: v.optional(v.number()),
+		reminderEmailSentAt: v.optional(v.number()),
+		reminderEmailFailureCode: v.optional(v.string()),
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
@@ -40,5 +44,6 @@ export default defineSchema({
 		googleCalendarId: v.optional(v.string()),
 	})
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
-		.index("by_stripeSessionId", ["stripeSessionId"]),
+		.index("by_stripeSessionId", ["stripeSessionId"])
+		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"]),
 });

@@ -1,6 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { env } from "./env";
+import { getUtcDateForZonedDateTime } from "./lib/bookingTimeUtils";
+
+function getSessionStartAt(date: string, time: string) {
+	return getUtcDateForZonedDateTime(date, time, env.GOOGLE_CALENDAR_TIMEZONE).getTime();
+}
 
 export const createPendingBooking = internalMutation({
 	args: {
@@ -25,6 +31,7 @@ export const createPendingBooking = internalMutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
+			sessionStartAt: getSessionStartAt(args.date, args.time),
 			duration: args.duration,
 			service: args.service,
 			addons: args.addons,
@@ -107,6 +114,27 @@ export const getBookingByIdInternal = internalQuery({
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.bookingId);
+	},
+});
+
+export const listBookingsDueForReminderEmail = internalQuery({
+	args: {
+		windowStart: v.number(),
+		windowEnd: v.number(),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const bookings = await ctx.db
+			.query("bookings")
+			.withIndex("by_status_and_sessionStartAt", (query) =>
+				query
+					.eq("status", "confirmed")
+					.gte("sessionStartAt", args.windowStart)
+					.lt("sessionStartAt", args.windowEnd),
+			)
+			.take(args.limit ?? 50);
+
+		return bookings.filter((booking) => !booking.reminderEmailSentAt);
 	},
 });
 
@@ -294,6 +322,74 @@ export const markBookingCompletionFailed = internalMutation({
 	},
 });
 
+export const claimBookingReminderEmail = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		now: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking || booking.status !== "confirmed") {
+			return { ok: false as const, reason: "not_sendable" as const };
+		}
+
+		if (booking.reminderEmailSentAt || booking.reminderEmailClaimedAt) {
+			return { ok: false as const, reason: "already_claimed_or_sent" as const };
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			reminderEmailClaimedAt: args.now,
+			reminderEmailFailureCode: undefined,
+		});
+
+		return { ok: true as const, booking };
+	},
+});
+
+export const markBookingReminderEmailSent = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		now: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new Error("Booking not found");
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			reminderEmailClaimedAt: undefined,
+			reminderEmailSentAt: args.now,
+			reminderEmailFailureCode: undefined,
+		});
+
+		return null;
+	},
+});
+
+export const markBookingReminderEmailFailed = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		failureCode: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new Error("Booking not found");
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			reminderEmailClaimedAt: undefined,
+			reminderEmailFailureCode: args.failureCode,
+		});
+
+		return null;
+	},
+});
+
 export const deletePendingBooking = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -377,6 +473,8 @@ export const updateBooking = mutation({
 			throw new ConvexError<DeleteBookingErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
+		const dateOrTimeChanged = booking.date !== args.date || booking.time !== args.time;
+
 		await ctx.db.patch(args.bookingId, {
 			name: args.name,
 			phone: args.phone,
@@ -385,9 +483,17 @@ export const updateBooking = mutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
+			sessionStartAt: getSessionStartAt(args.date, args.time),
 			service: args.service,
 			addons: args.addons,
 			notes: args.notes,
+			...(dateOrTimeChanged
+				? {
+						reminderEmailClaimedAt: undefined,
+						reminderEmailSentAt: undefined,
+						reminderEmailFailureCode: undefined,
+					}
+				: {}),
 		});
 
 		return { ok: true as const };

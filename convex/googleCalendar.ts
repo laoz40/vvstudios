@@ -15,7 +15,12 @@ import {
 	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 } from "./lib/bookingTimeUtils";
-import { buildBookingCalendarEventRequestBody, sendBookingInvoiceEmail } from "./lib/email";
+import {
+	buildBookingCalendarEventRequestBody,
+	sendBookingInvoiceEmail,
+	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
+} from "./lib/email";
+import { getHostEmails } from "./lib/emailFormatting";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -124,6 +129,27 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
 		attachment: artifacts.pdf,
+	});
+}
+
+async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
+	const { timeZone } = getGoogleCalendarClient();
+	const { startDateTime } = buildEventWindow(
+		booking.date,
+		booking.time,
+		booking.duration,
+		timeZone,
+	);
+
+	await sendReminderEmailForBookingDetails({
+		name: booking.name,
+		email: booking.email,
+		date: booking.date,
+		startDateTime,
+		timeZone,
+		service: booking.service,
+		duration: booking.duration,
+		addons: booking.addons,
 	});
 }
 
@@ -240,6 +266,44 @@ export const sendBookingInvoiceForBooking = action({
 	},
 });
 
+export const sendBookingReminderEmailForBooking = internalAction({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		const now = Date.now();
+		const claim = await ctx.runMutation(internal.bookings.claimBookingReminderEmail, {
+			bookingId: args.bookingId,
+			now,
+		});
+
+		if (!claim.ok) {
+			return null;
+		}
+
+		try {
+			await sendBookingReminderEmailForBookingRecord(claim.booking);
+
+			await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
+				bookingId: args.bookingId,
+				now: Date.now(),
+			});
+		} catch (error) {
+			console.error("Booking reminder email send failed", {
+				bookingId: args.bookingId,
+				error,
+			});
+
+			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
+				bookingId: args.bookingId,
+				failureCode: "RESEND_SEND_FAILED",
+			});
+		}
+
+		return null;
+	},
+});
+
 export const completeClaimedBooking = internalAction({
 	args: {
 		bookingId: v.id("bookings"),
@@ -263,9 +327,7 @@ export const completeClaimedBooking = internalAction({
 
 		try {
 			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-			const hostEmails = env.GOOGLE_CALENDAR_HOST_EMAILS.split(",")
-				.map((email) => email.trim())
-				.filter(Boolean);
+			const hostEmails = getHostEmails();
 
 			const busyWindows = await getBusyWindows({
 				calendar,

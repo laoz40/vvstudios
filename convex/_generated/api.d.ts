@@ -9,13 +9,16 @@
  */
 
 import type * as bookings from "../bookings.js";
+import type * as crons from "../crons.js";
 import type * as env from "../env.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as lib_bookingTimeUtils from "../lib/bookingTimeUtils.js";
 import type * as lib_email from "../lib/email.js";
+import type * as lib_emailFormatting from "../lib/emailFormatting.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
+import type * as reminders from "../reminders.js";
 import type * as stripe from "../stripe.js";
 
 import type {
@@ -26,13 +29,16 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   bookings: typeof bookings;
+  crons: typeof crons;
   env: typeof env;
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   "lib/bookingTimeUtils": typeof lib_bookingTimeUtils;
   "lib/email": typeof lib_email;
+  "lib/emailFormatting": typeof lib_emailFormatting;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
+  reminders: typeof reminders;
   stripe: typeof stripe;
 }>;
 
