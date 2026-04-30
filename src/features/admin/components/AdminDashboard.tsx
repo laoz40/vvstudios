@@ -35,6 +35,7 @@ import {
 	formatBookingDateMedium,
 	formatBookingTimestamp,
 	formatBookingTimeLabel,
+	getBookingStartTimestamp,
 	getStartOfWeekTimestamp,
 } from "#/lib/bookingdatetime";
 import { BookingActions } from "#/features/admin/components/BookingActions";
@@ -152,8 +153,16 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 		},
 		{
 			id: "session",
-			header: "Session",
-			accessorFn: (row) => `${row.date} ${row.time ?? ""}`,
+			accessorFn: (row) => getBookingStartTimestamp(row.date, row.time),
+			header: ({ column }) => (
+				<Button
+					variant="ghost"
+					className="px-0!"
+					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					Session
+					<ArrowUpDown data-icon="inline-end" />
+				</Button>
+			),
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>

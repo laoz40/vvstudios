@@ -237,6 +237,17 @@ export function formatBookingTimeLabel(timeValue: string | undefined) {
 	return formatTimeValue(timeValue).replace(/(am|pm)$/i, " $1");
 }
 
+export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return 0;
+	}
+
+	const [hours, minutes] = timeValue.split(":").map(Number);
+	date.setHours(hours, minutes, 0, 0);
+	return date.getTime();
+}
+
 export function getStartOfWeekTimestamp(now = new Date()) {
 	const startOfWeek = new Date(now);
 	const dayOfWeek = startOfWeek.getDay();
