@@ -14,6 +14,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadBookingInvoicePdf } from "#/features/booking-invoice/pdf/download-booking-invoice-pdf";
 import { bookingSchema } from "#/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#/features/admin/components/BookingDeleteDialog";
 import {
@@ -35,6 +36,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
@@ -128,6 +130,51 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
+	async function handleDownloadInvoice() {
+		setIsDownloadingInvoice(true);
+
+		try {
+			const parsedBooking = bookingSchema.safeParse({
+				name: booking.name,
+				phone: booking.phone,
+				accountName: booking.accountName,
+				abn: booking.abn,
+				email: booking.email,
+				date: booking.date,
+				time: booking.time,
+				duration: booking.duration,
+				service: booking.service,
+				addons: booking.addons,
+				notes: booking.notes ?? "",
+			});
+
+			if (!parsedBooking.success) {
+				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
+				return;
+			}
+
+			await downloadBookingInvoicePdf({
+				bookingId: booking._id,
+				name: parsedBooking.data.name,
+				phone: parsedBooking.data.phone,
+				accountName: parsedBooking.data.accountName,
+				abn: parsedBooking.data.abn,
+				email: parsedBooking.data.email,
+				date: parsedBooking.data.date,
+				time: parsedBooking.data.time,
+				duration: parsedBooking.data.duration,
+				service: parsedBooking.data.service,
+				addons: parsedBooking.data.addons,
+				createdAt: booking.pendingPaymentCreatedAt,
+			});
+			toast.success("Invoice download started.");
+		} catch {
+			toast.error("Unable to generate invoice.");
+		} finally {
+			setIsDownloadingInvoice(false);
+		}
+	}
+
 	return (
 		<>
 			<DropdownMenu modal={false}>
@@ -194,6 +241,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 							<DropdownMenuSeparator />
 						</>
 					) : null}
+					<DropdownMenuItem
+						disabled={isDownloadingInvoice}
+						onSelect={handleDownloadInvoice}>
+						{isDownloadingInvoice ? "Generating invoice..." : "Generate and download invoice"}
+					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="text-destructive focus:text-destructive"
 						onSelect={() => setIsEditDialogOpen(true)}>

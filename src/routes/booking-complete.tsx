@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { toast } from "sonner";
 import {
 	type BookingStatus,
 	BookingCompleteDevScenarioPanel,
@@ -9,6 +10,8 @@ import {
 } from "#/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
+import { bookingSchema } from "#/features/booking-form/lib/form-shared";
+import { downloadBookingInvoicePdf } from "#/features/booking-invoice/pdf/download-booking-invoice-pdf";
 import { formatBookingDate, formatTimeValue, getFirstName } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 
@@ -152,16 +155,81 @@ interface BookingResultProps {
 }
 
 function BookingResult({ booking, content }: BookingResultProps): ReactNode {
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const titleClassName = content.isBookingCompletionFailure
 		? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
 		: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
 	const supportReference = booking ? getSupportReference(booking) : null;
+	const canDownloadInvoice = booking?.status === "confirmed";
+
+	async function handleDownloadInvoice() {
+		if (!booking || booking.status !== "confirmed") {
+			return;
+		}
+
+		setIsDownloadingInvoice(true);
+
+		try {
+			const parsedBooking = bookingSchema.safeParse({
+				name: booking.name,
+				phone: booking.phone,
+				accountName: booking.accountName,
+				abn: booking.abn,
+				email: booking.email,
+				date: booking.date,
+				time: booking.time,
+				duration: booking.duration,
+				service: booking.service,
+				addons: booking.addons,
+				notes: booking.notes ?? "",
+			});
+
+			if (!parsedBooking.success) {
+				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
+				return;
+			}
+
+			await downloadBookingInvoicePdf({
+				bookingId: booking._id,
+				name: parsedBooking.data.name,
+				phone: parsedBooking.data.phone,
+				accountName: parsedBooking.data.accountName,
+				abn: parsedBooking.data.abn,
+				email: parsedBooking.data.email,
+				date: parsedBooking.data.date,
+				time: parsedBooking.data.time,
+				duration: parsedBooking.data.duration,
+				service: parsedBooking.data.service,
+				addons: parsedBooking.data.addons,
+				createdAt: booking.pendingPaymentCreatedAt,
+			});
+			toast.success("Invoice download started.");
+		} catch {
+			toast.error("Unable to generate invoice.");
+		} finally {
+			setIsDownloadingInvoice(false);
+		}
+	}
 
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
 				<h1 className={titleClassName}>{content.title}</h1>
-				<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
+				{canDownloadInvoice ? (
+					<div className="flex max-w-2xl flex-wrap items-baseline gap-x-1 text-base text-muted-foreground">
+						<p>{content.description}</p>
+						<Button
+							type="button"
+							variant="link"
+							className="accent-link h-auto p-0 m-0 text-base text-foreground"
+							disabled={isDownloadingInvoice}
+							onClick={handleDownloadInvoice}>
+							{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
+						</Button>
+					</div>
+				) : (
+					<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
+				)}
 				{supportReference ? (
 					<p className="text-xs text-muted-foreground/80">
 						Reference code:{" "}

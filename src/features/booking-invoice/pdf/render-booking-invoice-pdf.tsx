@@ -1,7 +1,6 @@
-import { pdf } from "@react-pdf/renderer";
 import type { Readable } from "node:stream";
-import { BookingInvoicePdf } from "#/features/booking-invoice/pdf/BookingInvoicePdf";
 import type { BookingInvoiceData } from "#/features/booking-invoice/lib/types";
+import { createBookingInvoicePdfInstance } from "#/features/booking-invoice/pdf/create-booking-invoice-pdf-base";
 
 async function readStream(stream: Readable) {
 	const chunks: Uint8Array[] = [];
@@ -24,7 +23,7 @@ async function readStream(stream: Readable) {
 }
 
 export async function renderBookingInvoicePdf(data: BookingInvoiceData) {
-	const instance = pdf(<BookingInvoicePdf data={data} />);
+	const instance = createBookingInvoicePdfInstance(data);
 	const stream = (await instance.toBuffer()) as Readable;
 	return await readStream(stream);
 }
