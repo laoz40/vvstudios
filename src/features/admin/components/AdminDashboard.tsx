@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+	type Column,
 	type ColumnDef,
 	type ColumnFiltersState,
 	type SortingState,
@@ -10,7 +11,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -42,6 +43,7 @@ import {
 	getStartOfWeekTimestamp,
 	isUpcomingBooking,
 } from "#/lib/bookingdatetime";
+import { cn } from "#/lib/utils";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -119,19 +121,33 @@ function customerFilter(row: { original: BookingRecord }, value: unknown) {
 		.some((field) => field.toLowerCase().includes(query));
 }
 
+function renderSortableHeader(label: string, column: Column<BookingRecord>) {
+	const sortDirection = column.getIsSorted();
+	const SortIcon =
+		sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
+
+	return (
+		<Button
+			variant="ghost"
+			className={cn(
+				"px-0!",
+				sortDirection ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+			)}
+			onClick={() => column.toggleSorting(sortDirection === "asc")}>
+			<span>{label}</span>
+			<SortIcon
+				data-icon="inline-end"
+				className={cn(sortDirection ? "opacity-100" : "opacity-60")}
+			/>
+		</Button>
+	);
+}
+
 function buildColumns(): ColumnDef<BookingRecord>[] {
 	return [
 		{
 			accessorKey: "name",
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="px-0!"
-					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Customer
-					<ArrowUpDown data-icon="inline-end" />
-				</Button>
-			),
+			header: ({ column }) => renderSortableHeader("Customer", column),
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{row.original.name}</p>
@@ -157,15 +173,7 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 		{
 			id: "session",
 			accessorFn: (row) => getBookingStartTimestamp(row.date, row.time),
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="px-0!"
-					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Session
-					<ArrowUpDown data-icon="inline-end" />
-				</Button>
-			),
+			header: ({ column }) => renderSortableHeader("Session", column),
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>
@@ -223,15 +231,7 @@ function buildColumns(): ColumnDef<BookingRecord>[] {
 		{
 			id: "createdAt",
 			accessorFn: (row) => row.pendingPaymentCreatedAt,
-			header: ({ column }) => (
-				<Button
-					variant="ghost"
-					className="px-0!"
-					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Created
-					<ArrowUpDown data-icon="inline-end" />
-				</Button>
-			),
+			header: ({ column }) => renderSortableHeader("Created", column),
 			cell: ({ row }) => (
 				<p className="min-w-44 font-medium whitespace-normal">
 					{formatBookingTimestamp(row.original.pendingPaymentCreatedAt)}
@@ -313,7 +313,7 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 
 	const metrics = React.useMemo(() => {
 		const startOfWeekTimestamp = getStartOfWeekTimestamp();
-		const counts = bookings.reduce(
+		const counts = filteredBookings.reduce(
 			(accumulator, booking) => {
 				accumulator.total += 1;
 				accumulator[booking.status] += 1;
@@ -333,7 +333,7 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 		);
 
 		return counts;
-	}, [bookings]);
+	}, [filteredBookings]);
 
 	return (
 		<main className="flex flex-col gap-6 pb-8">
@@ -352,7 +352,7 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 				</div>
 				<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
 					<AdminMetricCard
-						title="Bookings made this week"
+						title="New bookings this week"
 						value={String(metrics.thisWeek)}
 					/>
 					<AdminMetricCard
