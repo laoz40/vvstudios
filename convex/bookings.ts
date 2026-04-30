@@ -56,6 +56,10 @@ type DeleteBookingErrorData = {
 	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
 };
 
+type UpdateBookingStatusErrorData = {
+	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
+};
+
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 	return {
 		_id: booking._id,
@@ -384,6 +388,38 @@ export const updateBooking = mutation({
 			service: args.service,
 			addons: args.addons,
 			notes: args.notes,
+		});
+
+		return { ok: true as const };
+	},
+});
+
+export const updateBookingStatus = mutation({
+	args: {
+		bookingId: v.id("bookings"),
+		status: v.union(v.literal("confirmed"), v.literal("failed")),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<UpdateBookingStatusErrorData>({ code: "NOT_AUTHENTICATED" });
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new ConvexError<UpdateBookingStatusErrorData>({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		if (booking.status !== "confirmed" && booking.status !== "failed") {
+			throw new ConvexError<UpdateBookingStatusErrorData>({
+				code: "INVALID_BOOKING_STATUS_TRANSITION",
+			});
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			status: args.status,
 		});
 
 		return { ok: true as const };

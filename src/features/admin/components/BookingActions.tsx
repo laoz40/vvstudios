@@ -30,14 +30,20 @@ export type BookingActionsProps = {
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
+	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
+	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
 		booking.pendingPaymentCreatedAt,
 	);
+	const canToggleStatus = booking.status === "confirmed" || booking.status === "failed";
+	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
+	const toggleStatusLabel =
+		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
 
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
@@ -47,7 +53,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			setIsDeleteDialogOpen(false);
 			toast.success("Booking deleted.");
 		} catch (error) {
-			toast.error(getDeleteBookingErrorMessage(error));
+			toast.success(getDeleteBookingErrorMessage(error));
 		} finally {
 			setIsDeleting(false);
 		}
@@ -98,6 +104,30 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
+	async function handleToggleStatus() {
+		if (!canToggleStatus) {
+			return;
+		}
+
+		setIsUpdatingStatus(true);
+
+		try {
+			await updateBookingStatus({
+				bookingId: booking._id,
+				status: nextStatus,
+			});
+			toast.success(
+				nextStatus === "confirmed"
+					? "Booking marked as confirmed."
+					: "Booking marked as needs follow up.",
+			);
+		} catch (error) {
+			toast.error(getBookingStatusMutationErrorMessage(error));
+		} finally {
+			setIsUpdatingStatus(false);
+		}
+	}
+
 	return (
 		<>
 			<DropdownMenu modal={false}>
@@ -112,7 +142,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					align="end"
-					className="w-48 touch-manipulation">
+					className="w-56 touch-manipulation">
 					<DropdownMenuGroup>
 						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.name)}>
 							Copy customer name
@@ -154,6 +184,16 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						) : null}
 					</DropdownMenuGroup>
 					<DropdownMenuSeparator />
+					{canToggleStatus ? (
+						<>
+							<DropdownMenuItem
+								disabled={isUpdatingStatus}
+								onSelect={handleToggleStatus}>
+								{toggleStatusLabel}
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
 					<DropdownMenuItem
 						className="text-destructive focus:text-destructive"
 						onSelect={() => setIsEditDialogOpen(true)}>
@@ -220,5 +260,24 @@ function getBookingMutationErrorMessage(error: unknown) {
 			return "That booking no longer exists.";
 		default:
 			return "Unable to save booking changes.";
+	}
+}
+
+function getBookingStatusMutationErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to update booking status.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		case "INVALID_BOOKING_STATUS_TRANSITION":
+			return "Only confirmed and needs follow up bookings can be toggled here.";
+		default:
+			return "Unable to update booking status.";
 	}
 }

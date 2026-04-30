@@ -56,7 +56,7 @@ export type AdminDashboardProps = {
 const statusLabelMap: Record<BookingRecord["status"], string> = {
 	confirmed: "Confirmed",
 	expired: "Expired",
-	failed: "Failed",
+	failed: "Needs follow up",
 	pending_payment: "Pending payment",
 };
 
