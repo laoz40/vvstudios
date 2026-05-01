@@ -12,7 +12,7 @@ type ContactFaqItem = {
 	answerParts: readonly ContactFaqAnswerPart[];
 };
 
-const faqSectionCopy = {
+export const faqSectionCopy = {
 	title: "Frequently Asked Questions",
 	items: [
 		{

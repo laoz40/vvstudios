@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PricingSection } from "#/components/pricing/PricingSection";
+import { faqSectionCopy } from "#/components/faq/FaqSection";
 import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";
 import { LandingHero } from "#/components/landing/LandingHero";
 import { Separator } from "#/components/ui/separator";
-import { buildLocalBusinessJsonLd, buildSeoHead, seoMetadata } from "#/lib/seo";
+import { buildFaqPageJsonLd, buildLocalBusinessJsonLd, buildSeoHead, seoMetadata } from "#/lib/seo";
 
 export const Route = createFileRoute("/")({
 	head: () => ({
@@ -13,6 +14,19 @@ export const Route = createFileRoute("/")({
 			{
 				type: "application/ld+json",
 				children: JSON.stringify(buildLocalBusinessJsonLd()),
+			},
+			{
+				type: "application/ld+json",
+				children: JSON.stringify(
+					buildFaqPageJsonLd(
+						faqSectionCopy.items.map((item) => ({
+							question: item.question,
+							answer: item.answerParts
+								.map((part) => `${part.heading ?? ""}${part.value}`)
+								.join("\n"),
+						})),
+					),
+				),
 			},
 		],
 	}),
