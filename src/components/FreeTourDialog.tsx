@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { photosPageContent } from "#/content/photos";
 import { env } from "#/env";
@@ -23,6 +23,7 @@ export function FreeTourDialogButton({ className, label }: FreeTourDialogButtonP
 					variant="outline"
 					size="lg"
 					className={className}>
+					<Search aria-hidden />
 					{label}
 				</Button>
 			</Dialog.Trigger>

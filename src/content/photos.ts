@@ -37,7 +37,7 @@ export const photosPageContent: PhotosPageContent = {
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",
-	tourDialogDescription: "See the studio booking flow and preview the space before you book.",
+	tourDialogDescription: "See the studio space before you book.",
 	tourDialogCloseLabel: "Close",
 	tourIframeTitle: "Free studio tour booking",
 	galleryImages: [

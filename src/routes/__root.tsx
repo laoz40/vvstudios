@@ -143,7 +143,10 @@ function NotFoundPage() {
 						size="lg">
 						<Link to="/book">
 							Book a session
-							<ArrowRight aria-hidden />
+							<ArrowRight
+								className="stroke-3"
+								aria-hidden
+							/>
 						</Link>
 					</Button>
 					<Button

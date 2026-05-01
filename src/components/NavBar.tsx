@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import logoYellow from "#/assets/vv-logo-yellow.svg";
@@ -97,7 +97,15 @@ function NavCta({
 			asChild
 			size="lg"
 			variant={variant === "primary" ? "default" : "secondary"}>
-			<Link to={href}>{label}</Link>
+			<Link to={href}>
+				{label}
+				{href === BOOK_LINK.href ? (
+					<ArrowRight
+						className="stroke-3"
+						aria-hidden
+					/>
+				) : null}
+			</Link>
 		</Button>
 	);
 }

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import heroDesktop from "#/assets/bg/landing.webp";
 import heroMobile from "#/assets/bg/mobile.webp";
@@ -75,7 +75,13 @@ export function LandingHero() {
 							asChild
 							size="lg"
 							className="flex-1 border-2 border-primary px-8 py-5 text-base font-semibold md:flex-none">
-							<Link to="/book">{heroCopy.bookCta}</Link>
+							<Link to="/book">
+								{heroCopy.bookCta}
+								<ArrowRight
+									className="translate-y-px stroke-3"
+									aria-hidden
+								/>
+							</Link>
 						</Button>
 
 						<FreeTourDialogButton

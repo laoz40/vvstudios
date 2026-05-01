@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { ArrowRight, Home, Phone } from "lucide-react";
 import { toast } from "sonner";
 import {
 	type BookingStatus,
@@ -131,17 +132,28 @@ function BookingStatusLayout({
 								href="/contact"
 								rel="noreferrer"
 								target="_blank">
+								<Phone className="stroke-2"
+									aria-hidden />
 								Contact us
 							</a>
 						) : (
-							<Link to="/book">Make a new booking</Link>
+							<Link to="/book">
+								Make a new booking
+								<ArrowRight
+									className="translate-y-px stroke-3"
+									aria-hidden
+								/>
+							</Link>
 						)}
 					</Button>
 					<Button
 						asChild
 						className="w-full sm:w-auto"
 						variant="outline">
-						<Link to="/">Return home</Link>
+						<Link to="/">
+							<Home aria-hidden />
+							Return home
+						</Link>
 					</Button>
 				</div>
 			) : null}

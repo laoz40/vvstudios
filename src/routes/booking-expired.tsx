@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import { Home, RotateCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
 import { api } from "../../convex/_generated/api";
@@ -59,13 +60,19 @@ function BookingExpiredPage() {
 					<Button
 						asChild
 						className="w-full sm:w-auto">
-						<Link to="/book">Try again</Link>
+						<Link to="/book">
+							<RotateCcw aria-hidden />
+							Try again
+						</Link>
 					</Button>
 					<Button
 						asChild
 						className="w-full sm:w-auto"
 						variant="outline">
-						<Link to="/">Return home</Link>
+						<Link to="/">
+							<Home aria-hidden />
+							Return home
+						</Link>
 					</Button>
 				</div>
 			</section>

@@ -21,7 +21,7 @@ function PhotosPage() {
 	return (
 		<PhotosSection
 			headingLevel="h1"
-			className="!pt-0"
+			className="pt-0!"
 		/>
 	);
 }
