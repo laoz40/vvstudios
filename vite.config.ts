@@ -10,7 +10,17 @@ const config = defineConfig({
 	plugins: [
 		devtools(),
 		tailwindcss(),
-		tanstackStart(),
+		tanstackStart({
+			prerender: {
+				enabled: true,
+				crawlLinks: false,
+				filter: ({ path }) => ["/", "/pricing", "/gallery", "/contact"].includes(path),
+			},
+			sitemap: {
+				enabled: true,
+				host: "https://vertigovisuals.com.au",
+			},
+		}),
 		viteReact(),
 		babel({ presets: [reactCompilerPreset()] }),
 	],
