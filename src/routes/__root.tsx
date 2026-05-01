@@ -155,7 +155,7 @@ function NotFoundPage() {
 						size="lg">
 						<Link to="/">
 							<Home aria-hidden />
-							Back home
+							Home
 						</Link>
 					</Button>
 				</div>
