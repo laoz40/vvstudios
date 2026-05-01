@@ -52,6 +52,7 @@ import { BookingPaymentModal } from "#/features/booking-form/components/PaymentM
 interface BookingErrorWithData {
 	data?: {
 		code?: string;
+		retryAfter?: number;
 	};
 }
 
@@ -65,6 +66,12 @@ interface EmbeddedCheckoutSession {
 	bookingId: Id<"bookings">;
 	clientSecret: string;
 	stripeSessionId: string;
+}
+
+interface BookingRateLimitedResult {
+	code: "BOOKING_RATE_LIMITED";
+	ok: false;
+	retryAfter: number;
 }
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
@@ -148,6 +155,11 @@ function BookingPage() {
 					addons: parsedValue.addons,
 					notes: parsedValue.notes,
 				});
+
+				if (!session.ok) {
+					toast.error(getBookingRateLimitMessage(session));
+					return;
+				}
 
 				if (shouldSaveBookingInfo) {
 					const nextSavedBookingInfo = toSavedBookingInfo(
@@ -607,6 +619,10 @@ function BookingPage() {
 	);
 }
 
+function getBookingRateLimitMessage(_result: BookingRateLimitedResult) {
+	return "Too many booking attempts. Please try again in one minute.";
+}
+
 function getBookingErrorMessage(error: unknown) {
 	const errorWithData =
 		typeof error === "object" && error !== null ? (error as BookingErrorWithData) : null;
@@ -618,6 +634,10 @@ function getBookingErrorMessage(error: unknown) {
 
 	if (code === "BOOKING_INVALID_INPUT") {
 		return "Some booking details were invalid. Please review the form and try again.";
+	}
+
+	if (code === "BOOKING_RATE_LIMITED") {
+		return "Too many booking attempts. Please try again in one minute.";
 	}
 
 	if (code === "GOOGLE_CALENDAR_AUTH_FAILED") {

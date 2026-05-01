@@ -1,5 +1,6 @@
 "use node";
 
+import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -8,11 +9,18 @@ import { action } from "./_generated/server";
 import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
 import { env } from "./env";
 
-interface CreateEmbeddedCheckoutSessionResult {
-	bookingId: Id<"bookings">;
-	clientSecret: string;
-	stripeSessionId: string;
-}
+type CreateEmbeddedCheckoutSessionResult =
+	| {
+			ok: true;
+			bookingId: Id<"bookings">;
+			clientSecret: string;
+			stripeSessionId: string;
+	  }
+	| {
+			ok: false;
+			code: "BOOKING_RATE_LIMITED";
+			retryAfter: number;
+	  };
 
 interface CloseEmbeddedCheckoutSessionResult {
 	ok: true;
@@ -31,6 +39,10 @@ function getStripeClient() {
 	return new Stripe(env.STRIPE_SECRET_KEY, {
 		apiVersion: "2026-03-25.dahlia",
 	});
+}
+
+function getBookingSubmitRateLimitKey(email: string) {
+	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
 }
 
 export const createEmbeddedCheckoutSession = action({
@@ -56,23 +68,26 @@ export const createEmbeddedCheckoutSession = action({
 		const booking = parsedBooking.data;
 		const stripe = getStripeClient();
 
-		const bookingId: Id<"bookings"> = await ctx.runMutation(
-			internal.bookings.createPendingBooking,
-			{
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: booking.duration,
-				service: booking.service,
-				addons: booking.addons,
-				notes: booking.notes || undefined,
-			},
-		);
+		const pendingBookingResult = await ctx.runMutation(internal.bookings.createPendingBooking, {
+			submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email),
+			name: booking.name,
+			phone: booking.phone,
+			accountName: booking.accountName,
+			abn: booking.abn,
+			email: booking.email,
+			date: booking.date,
+			time: booking.time,
+			duration: booking.duration,
+			service: booking.service,
+			addons: booking.addons,
+			notes: booking.notes || undefined,
+		});
 
+		if (!pendingBookingResult.ok) {
+			return pendingBookingResult;
+		}
+
+		const bookingId = pendingBookingResult.bookingId;
 		const session = await stripe.checkout.sessions.create({
 			mode: "payment",
 			ui_mode: "embedded_page",
@@ -100,6 +115,7 @@ export const createEmbeddedCheckoutSession = action({
 		});
 
 		return {
+			ok: true,
 			bookingId,
 			clientSecret: session.client_secret,
 			stripeSessionId: session.id,

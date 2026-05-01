@@ -3,13 +3,19 @@ import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
 import { getUtcDateForZonedDateTime } from "./lib/bookingTimeUtils";
+import { rateLimiter } from "./lib/rateLimits";
 
 function getSessionStartAt(date: string, time: string) {
 	return getUtcDateForZonedDateTime(date, time, env.GOOGLE_CALENDAR_TIMEZONE).getTime();
 }
 
+type CreatePendingBookingResult =
+	| { ok: true; bookingId: Doc<"bookings">["_id"] }
+	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };
+
 export const createPendingBooking = internalMutation({
 	args: {
+		submitRateLimitKey: v.string(),
 		name: v.string(),
 		phone: v.string(),
 		accountName: v.string(),
@@ -22,8 +28,29 @@ export const createPendingBooking = internalMutation({
 		addons: v.array(v.string()),
 		notes: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
-		return await ctx.db.insert("bookings", {
+	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
+		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
+		const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", {
+			key: args.submitRateLimitKey,
+		});
+
+		if (!globalRateLimitStatus.ok) {
+			return {
+				ok: false,
+				code: "BOOKING_RATE_LIMITED",
+				retryAfter: globalRateLimitStatus.retryAfter,
+			};
+		}
+
+		if (!rateLimitStatus.ok) {
+			return {
+				ok: false,
+				code: "BOOKING_RATE_LIMITED",
+				retryAfter: rateLimitStatus.retryAfter,
+			};
+		}
+
+		const bookingId = await ctx.db.insert("bookings", {
 			name: args.name,
 			phone: args.phone,
 			accountName: args.accountName,
@@ -39,6 +66,8 @@ export const createPendingBooking = internalMutation({
 			status: "pending_payment",
 			pendingPaymentCreatedAt: Date.now(),
 		});
+
+		return { ok: true, bookingId };
 	},
 });
 
