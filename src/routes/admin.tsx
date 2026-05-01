@@ -4,9 +4,10 @@ import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "#/components/ui/button";
 import { AdminDashboard } from "#/features/admin/components/AdminDashboard";
+import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/admin")({
-	head: () => ({ meta: [{ title: "Admin Dashboard | VV Podcast Studio" }] }),
+	head: () => buildNoIndexHead("Admin Dashboard | VV Podcast Studio"),
 	component: AdminPage,
 });
 

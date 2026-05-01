@@ -15,10 +15,11 @@ import { bookingSchema } from "#/features/booking-form/lib/form-shared";
 import { downloadBookingInvoicePdf } from "#/features/booking-invoice/pdf/download-booking-invoice-pdf";
 import { formatBookingDate, formatTimeValue, getFirstName } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
+import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
-	head: () => ({ meta: [{ title: "Booking Complete | VV Podcast Studio" }] }),
+	head: () => buildNoIndexHead("Booking Complete | VV Podcast Studio"),
 	component: BookingCompletePage,
 });
 

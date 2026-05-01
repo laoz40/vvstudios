@@ -4,10 +4,18 @@ import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";
 import { LandingHero } from "#/components/landing/LandingHero";
 import { Separator } from "#/components/ui/separator";
-import { buildSeoHead, seoMetadata } from "#/lib/seo";
+import { buildLocalBusinessJsonLd, buildSeoHead, seoMetadata } from "#/lib/seo";
 
 export const Route = createFileRoute("/")({
-	head: () => buildSeoHead(seoMetadata.home),
+	head: () => ({
+		...buildSeoHead(seoMetadata.home),
+		scripts: [
+			{
+				type: "application/ld+json",
+				children: JSON.stringify(buildLocalBusinessJsonLd()),
+			},
+		],
+	}),
 	component: HomePage,
 });
 

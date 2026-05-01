@@ -5,9 +5,10 @@ import { Home, RotateCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
 import { api } from "../../convex/_generated/api";
+import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-expired")({
-	head: () => ({ meta: [{ title: "Booking Session Expired | VV Podcast Studio" }] }),
+	head: () => buildNoIndexHead("Booking Session Expired | VV Podcast Studio"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
