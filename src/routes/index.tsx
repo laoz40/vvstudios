@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
 						faqSectionCopy.items.map((item) => ({
 							question: item.question,
 							answer: item.answerParts
-								.map((part) => `${part.heading ?? ""}${part.value}`)
+								.map((part) => `${"heading" in part ? part.heading : ""}${part.value}`)
 								.join("\n"),
 						})),
 					),
