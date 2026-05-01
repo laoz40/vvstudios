@@ -73,7 +73,6 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		addons: ["4K UHD Recording"],
 		bookingConfirmedAt: undefined,
 		bookingFailureCode: undefined,
-		checkoutExpiredAt: undefined,
 		date: "2026-05-12",
 		duration: "2h",
 		email: "test@example.com",
@@ -103,7 +102,6 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 	if (devScenario === "expired") {
 		return {
 			...baseBooking,
-			checkoutExpiredAt: now,
 			status: "expired",
 		};
 	}

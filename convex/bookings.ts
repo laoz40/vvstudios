@@ -102,7 +102,6 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 		status: booking.status,
 		bookingConfirmedAt: booking.bookingConfirmedAt,
 		bookingFailureCode: booking.bookingFailureCode,
-		checkoutExpiredAt: booking.checkoutExpiredAt,
 		pendingPaymentCreatedAt: booking.pendingPaymentCreatedAt,
 		paymentCompletedAt: booking.paymentCompletedAt,
 		name: booking.name,
@@ -207,10 +206,33 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 
 		await ctx.db.patch(booking._id, {
 			status: "expired",
-			checkoutExpiredAt: Date.now(),
 		});
 
 		return { ok: true as const, alreadyExpired: false as const };
+	},
+});
+
+export const deleteExpiredBookingByStripeSessionId = mutation({
+	args: {
+		stripeSessionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.unique();
+
+		if (!booking) {
+			return { ok: false as const, reason: "not_found" as const };
+		}
+
+		if (booking.status !== "expired") {
+			return { ok: false as const, reason: "invalid_status" as const };
+		}
+
+		await ctx.db.delete(booking._id);
+
+		return { ok: true as const };
 	},
 });
 

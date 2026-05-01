@@ -46,6 +46,9 @@ import {
 import { cn } from "#/lib/utils";
 
 type BookingRecord = Doc<"bookings">;
+type AdminBookingRecord = BookingRecord & {
+	status: Exclude<BookingRecord["status"], "expired">;
+};
 
 export type AdminDashboardProps = {
 	bookings: BookingRecord[];
@@ -53,26 +56,23 @@ export type AdminDashboardProps = {
 	signOutControl: React.ReactNode;
 };
 
-const statusLabelMap: Record<BookingRecord["status"], string> = {
+const statusLabelMap: Record<AdminBookingRecord["status"], string> = {
 	confirmed: "Confirmed",
-	expired: "Expired",
 	failed: "Needs follow up",
 	pending_payment: "Pending payment",
 };
 
 const statusBadgeVariantMap: Record<
-	BookingRecord["status"],
+	AdminBookingRecord["status"],
 	React.ComponentProps<typeof Badge>["variant"]
 > = {
 	confirmed: "default",
-	expired: "outline",
 	failed: "destructive",
 	pending_payment: "secondary",
 };
 
-const statusBadgeClassNameMap: Record<BookingRecord["status"], string | undefined> = {
+const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | undefined> = {
 	confirmed: "bg-green-600 text-white hover:bg-green-600/90",
-	expired: undefined,
 	failed: undefined,
 	pending_payment: "bg-blue-600 text-white hover:bg-blue-600/90",
 };
@@ -100,7 +100,11 @@ function getColumnClassName(columnId: string) {
 	}
 }
 
-function customerFilter(row: { original: BookingRecord }, value: unknown) {
+function isAdminBooking(booking: BookingRecord): booking is AdminBookingRecord {
+	return booking.status !== "expired";
+}
+
+function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 	const query = String(value ?? "")
 		.trim()
 		.toLowerCase();
@@ -121,7 +125,7 @@ function customerFilter(row: { original: BookingRecord }, value: unknown) {
 		.some((field) => field.toLowerCase().includes(query));
 }
 
-function renderSortableHeader(label: string, column: Column<BookingRecord>) {
+function renderSortableHeader(label: string, column: Column<AdminBookingRecord>) {
 	const sortDirection = column.getIsSorted();
 	const SortIcon =
 		sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
@@ -143,7 +147,7 @@ function renderSortableHeader(label: string, column: Column<BookingRecord>) {
 	);
 }
 
-function buildColumns(): ColumnDef<BookingRecord>[] {
+function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 	return [
 		{
 			accessorKey: "name",
@@ -283,13 +287,13 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 	const [showUpcomingOnly, setShowUpcomingOnly] = React.useState(true);
-	const filteredBookings = React.useMemo(
-		() =>
-			showUpcomingOnly
-				? bookings.filter((booking) => isUpcomingBooking(booking.date, booking.time))
-				: bookings,
-		[bookings, showUpcomingOnly],
-	);
+	const filteredBookings = React.useMemo(() => {
+		const adminBookings = bookings.filter(isAdminBooking);
+
+		return showUpcomingOnly
+			? adminBookings.filter((booking) => isUpcomingBooking(booking.date, booking.time))
+			: adminBookings;
+	}, [bookings, showUpcomingOnly]);
 
 	const table = useReactTable({
 		data: filteredBookings,
@@ -370,8 +374,8 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 						className="bg-green-600 text-white hover:bg-green-600/90"
 					/>
 					<AdminMetricCard
-						title="Failed or expired"
-						value={String(metrics.failed + metrics.expired)}
+						title="Failed"
+						value={String(metrics.failed)}
 						description="Needs follow-up"
 						variant="destructive"
 					/>

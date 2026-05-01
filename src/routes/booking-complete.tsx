@@ -256,7 +256,7 @@ function BookingProcessing(): ReactNode {
 				className="size-10 animate-spin rounded-full border-2 border-muted border-t-primary"
 				aria-hidden="true"
 			/>
-			<span className="text-2xl font-semibold">Processing your booking</span>
+			<span className="text-2xl font-semibold">Checking booking status</span>
 		</section>
 	);
 }

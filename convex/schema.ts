@@ -26,7 +26,6 @@ export default defineSchema({
 		),
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
-		checkoutExpiredAt: v.optional(v.number()),
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
 		bookingConfirmedAt: v.optional(v.number()),
