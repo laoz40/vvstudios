@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /booking-complete
+Disallow: /booking-expired
 
-Sitemap: https://vertigovisuals.com.au/sitemap-index.xml
+Sitemap: https://vertigovisuals.com.au/sitemap.xml
