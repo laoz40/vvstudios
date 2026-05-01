@@ -1,7 +1,7 @@
 import { SignIn, useAuth } from "@clerk/clerk-react";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card, CardContent, CardHeader } from "#/components/ui/card";
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
@@ -26,9 +26,7 @@ function LoginPage() {
 		<main className="login-page grid min-h-dvh place-items-center px-4 py-12">
 			<Card className="w-full max-w-sm gap-5 rounded-lg border-border bg-card shadow-sm">
 				<CardHeader className="gap-3 px-5">
-					<CardTitle asChild>
-						<h1 className="text-xl leading-tight">Administrator login</h1>
-					</CardTitle>
+					<h1 className="text-xl leading-tight font-semibold">Administrator login</h1>
 					<p className="text-sm leading-6 text-muted-foreground">
 						Authorised access only. If you want to create a booking, please go to the{" "}
 						<Link
