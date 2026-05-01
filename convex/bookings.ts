@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
@@ -72,8 +73,10 @@ export const createPendingBooking = internalMutation({
 });
 
 export const getBookings = query({
-	args: {},
-	handler: async (ctx) => {
+	args: {
+		paginationOpts: paginationOptsValidator,
+	},
+	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
 
 		if (!identity) {
@@ -84,7 +87,7 @@ export const getBookings = query({
 			.query("bookings")
 			.withIndex("by_pendingPaymentCreatedAt")
 			.order("desc")
-			.take(100);
+			.paginate(args.paginationOpts);
 	},
 });
 

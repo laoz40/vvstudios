@@ -1,6 +1,6 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "#/components/ui/button";
 import { AdminDashboard } from "#/features/admin/components/AdminDashboard";
@@ -48,11 +48,15 @@ function AdminPage() {
 }
 
 function AdminPageContent() {
-	const bookings = useQuery(api.bookings.getBookings, {});
+	const {
+		results: bookings,
+		status: bookingsStatus,
+		loadMore: loadMoreBookings,
+	} = usePaginatedQuery(api.bookings.getBookings, {}, { initialNumItems: 100 });
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	if (bookings === undefined) {
+	if (bookingsStatus === "LoadingFirstPage") {
 		return (
 			<main>
 				<p>Loading bookings...</p>
@@ -63,7 +67,10 @@ function AdminPageContent() {
 	return (
 		<AdminDashboard
 			bookings={bookings}
+			canLoadMoreBookings={bookingsStatus === "CanLoadMore"}
 			email={email ?? null}
+			isLoadingMoreBookings={bookingsStatus === "LoadingMore"}
+			loadMoreBookings={() => loadMoreBookings(100)}
 			signOutControl={
 				<SignOutButton redirectUrl="/login">
 					<Button

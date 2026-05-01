@@ -52,7 +52,10 @@ type AdminBookingRecord = BookingRecord & {
 
 export type AdminDashboardProps = {
 	bookings: BookingRecord[];
+	canLoadMoreBookings: boolean;
 	email: string | null;
+	isLoadingMoreBookings: boolean;
+	loadMoreBookings: () => void;
 	signOutControl: React.ReactNode;
 };
 
@@ -282,7 +285,14 @@ function AdminMetricCard({
 	);
 }
 
-export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboardProps) {
+export function AdminDashboard({
+	bookings,
+	canLoadMoreBookings,
+	email,
+	isLoadingMoreBookings,
+	loadMoreBookings,
+	signOutControl,
+}: AdminDashboardProps) {
 	const columns = React.useMemo(() => buildColumns(), []);
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -451,11 +461,23 @@ export function AdminDashboard({ bookings, email, signOutControl }: AdminDashboa
 					</div>
 
 					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<p className="text-sm text-muted-foreground">
-							Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length}{" "}
-							filtered bookings.
-						</p>
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
+							<p className="text-sm text-muted-foreground">
+								Showing {table.getFilteredRowModel().rows.length}{" "}
+								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
+								{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
+							</p>
+							{canLoadMoreBookings || isLoadingMoreBookings ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={loadMoreBookings}
+									disabled={isLoadingMoreBookings}>
+									{isLoadingMoreBookings ? "Loading..." : "Load more"}
+								</Button>
+							) : null}
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
 							<p className="text-sm text-muted-foreground">
 								Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
 							</p>
