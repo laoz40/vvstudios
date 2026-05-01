@@ -85,7 +85,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		select: (state) => state.location.pathname,
 	});
 	const useMinimalLayout =
-		pathname === "/admin" || pathname === "/booking-complete" || pathname === "/booking-expired";
+		pathname === "/admin" ||
+		pathname === "/login" ||
+		pathname === "/booking-complete" ||
+		pathname === "/booking-expired";
 
 	return (
 		<html

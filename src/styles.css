@@ -308,3 +308,69 @@ textarea {
 		transition: none;
 	}
 }
+
+/* clerk styling */
+
+.login-page .cl-rootBox,
+.login-page .cl-cardBox,
+.login-page .cl-card {
+	width: 100%;
+}
+
+.login-page .cl-cardBox,
+.login-page .cl-card,
+.login-page .cl-main {
+	border: 0 !important;
+	border-radius: var(--radius-sm) !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.login-page .cl-card {
+	gap: 1rem;
+	padding: 0;
+}
+
+.login-page .cl-header,
+.login-page .cl-footer,
+.login-page .cl-internal-1dauvpw {
+	display: none;
+}
+
+.login-page .cl-main {
+	gap: 1rem;
+}
+
+.login-page .cl-socialButtonsBlockButton,
+.login-page .cl-formFieldInput,
+.login-page .cl-formButtonPrimary {
+	height: 2.5rem;
+	border-radius: var(--radius-sm);
+}
+
+.login-page .cl-socialButtonsBlockButton {
+	border-color: var(--border);
+	background: var(--secondary);
+	color: var(--secondary-foreground);
+}
+
+.login-page .cl-formFieldInput {
+	border-color: var(--input);
+	background: var(--background);
+	color: var(--foreground);
+}
+
+.login-page .cl-formButtonPrimary {
+	background: var(--primary);
+	color: var(--primary-foreground);
+	box-shadow: none;
+}
+
+.login-page .cl-dividerLine {
+	background: var(--border);
+}
+
+.login-page .cl-dividerText,
+.login-page .cl-formFieldLabel {
+	color: var(--muted-foreground);
+}

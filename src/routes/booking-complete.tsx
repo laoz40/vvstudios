@@ -132,8 +132,10 @@ function BookingStatusLayout({
 								href="/contact"
 								rel="noreferrer"
 								target="_blank">
-								<Phone className="stroke-2"
-									aria-hidden />
+								<Phone
+									className="stroke-2"
+									aria-hidden
+								/>
 								Contact us
 							</a>
 						) : (
