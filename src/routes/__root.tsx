@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import {
 	HeadContent,
 	Link,
@@ -5,14 +6,17 @@ import {
 	createRootRouteWithContext,
 	useRouterState,
 } from "@tanstack/react-router";
+import { Image } from "@unpic/react";
+import { ArrowRight, Home } from "lucide-react";
+import logoYellow from "#/assets/vv-logo-yellow.svg";
 import { SmoothScroll } from "#/components/SmoothScroll";
 import { Footer } from "#/components/Footer";
 import { SiteNavbar } from "#/components/NavBar";
+import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import appCss from "../styles.css?url";
 import ClerkProvider from "../integrations/clerk/provider";
 import ConvexProvider from "../integrations/convex/provider";
-import type { QueryClient } from "@tanstack/react-query";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
@@ -114,12 +118,45 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function NotFoundPage() {
 	return (
-		<main>
-			<h1>Page not found</h1>
-			<p>The page you requested does not exist.</p>
-			<p>
-				Go back to <Link to="/book">booking</Link>.
-			</p>
+		<main className="px-6 py-16 text-center md:px-10 md:py-24">
+			<div className="mx-auto flex max-w-3xl flex-col items-center gap-8">
+				<Image
+					src={logoYellow}
+					alt="VV Podcast Studio"
+					width={72}
+					height={72}
+					layout="fixed"
+					loading="eager"
+					className="size-18 shrink-0"
+				/>
+
+				<div className="space-y-4">
+					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">404 Page not found</h1>
+					<p className="mx-auto max-w-xl text-base text-muted-foreground">
+						The page you’re looking for doesn’t exist or may have been moved.
+					</p>
+				</div>
+
+				<div className="flex flex-col gap-3 sm:flex-row">
+					<Button
+						asChild
+						size="lg">
+						<Link to="/book">
+							Book a session
+							<ArrowRight aria-hidden />
+						</Link>
+					</Button>
+					<Button
+						asChild
+						variant="outline"
+						size="lg">
+						<Link to="/">
+							<Home aria-hidden />
+							Back home
+						</Link>
+					</Button>
+				</div>
+			</div>
 		</main>
 	);
 }
