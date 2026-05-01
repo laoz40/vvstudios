@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@clerk/clerk-react": "^5.61.3",
+		"@convex-dev/rate-limiter": "^0.3.2",
 		"@convex-dev/react-query": "0.1.0",
 		"@fontsource-variable/gabarito": "^5.2.8",
 		"@fontsource/squada-one": "^5.2.8",
