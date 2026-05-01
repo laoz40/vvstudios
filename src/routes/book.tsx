@@ -48,6 +48,7 @@ import {
 } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 import { BookingPaymentModal } from "#/features/booking-form/components/PaymentModal";
+import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
 interface BookingErrorWithData {
 	data?: {
@@ -84,6 +85,7 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 const termsDialogPendingError = new Error("terms-dialog-pending");
 
 export const Route = createFileRoute("/book")({
+	head: () => buildSeoHead(seoMetadata.book),
 	component: BookingPage,
 });
 

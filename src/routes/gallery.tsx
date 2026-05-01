@@ -1,23 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotosSection } from "#/components/photos/PhotosSection";
+import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
 export const Route = createFileRoute("/gallery")({
-	head: () => ({
-		meta: [
-			{
-				title: "Podcast Studio Photos | VV Podcast Studio",
-			},
-			{
-				name: "description",
-				content:
-					"Browse photos of VV Podcast Studio in Macquarie Fields and see the podcast sets, lighting, cameras, and recording environment available for business owners and creators in South West Sydney.",
-			},
-		],
-	}),
-	component: PhotosPage,
+	head: () => buildSeoHead(seoMetadata.gallery),
+	component: GalleryPage,
 });
 
-function PhotosPage() {
+function GalleryPage() {
 	return (
 		<PhotosSection
 			headingLevel="h1"

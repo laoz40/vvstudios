@@ -4,20 +4,10 @@ import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";
 import { LandingHero } from "#/components/landing/LandingHero";
 import { Separator } from "#/components/ui/separator";
+import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
 export const Route = createFileRoute("/")({
-	head: () => ({
-		meta: [
-			{
-				title: "Podcast Studio Hire in South West Sydney | VV Podcast Studio",
-			},
-			{
-				name: "description",
-				content:
-					"Hire a professional podcast studio in South West Sydney. VV Podcast Studio helps business owners, creators, and entrepreneurs record polished podcast and video content in Macquarie Fields.",
-			},
-		],
-	}),
+	head: () => buildSeoHead(seoMetadata.home),
 	component: HomePage,
 });
 
