@@ -28,7 +28,12 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 
 	return (
 		<Html>
-			<Head />
+			<Head>
+				<meta
+					content="address=no"
+					name="format-detection"
+				/>
+			</Head>
 			<Preview>
 				Studio booking confirmed! Your invoice is ready with a balance due of{" "}
 				{formatAud(data.amounts.totalDueAmount)}.

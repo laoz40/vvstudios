@@ -33,7 +33,12 @@ export function ReminderEmail({
 }: ReminderEmailProps) {
 	return (
 		<Html>
-			<Head />
+			<Head>
+				<meta
+					content="address=no"
+					name="format-detection"
+				/>
+			</Head>
 			<Preview>Your studio session is scheduled for tomorrow at {bookingTime}.</Preview>
 			<Body style={body}>
 				<Container style={container}>
@@ -142,17 +147,17 @@ const summaryCard = {
 
 const primaryDetail = {
 	color: "#fafafa",
-	fontSize: "28px",
+	fontSize: "24px",
 	fontWeight: "700",
-	lineHeight: "32px",
+	lineHeight: "28px",
 	margin: "0 0 4px",
 };
 
 const secondaryDetail = {
 	color: "#f5c400",
-	fontSize: "28px",
+	fontSize: "24px",
 	fontWeight: "700",
-	lineHeight: "32px",
+	lineHeight: "28px",
 	margin: "0",
 };
 
