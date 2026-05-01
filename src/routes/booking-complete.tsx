@@ -18,6 +18,7 @@ import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
+	head: () => ({ meta: [{ title: "Booking Complete | VV Podcast Studio" }] }),
 	component: BookingCompletePage,
 });
 

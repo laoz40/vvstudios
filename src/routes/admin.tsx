@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { AdminDashboard } from "#/features/admin/components/AdminDashboard";
 
 export const Route = createFileRoute("/admin")({
+	head: () => ({ meta: [{ title: "Admin Dashboard | VV Podcast Studio" }] }),
 	component: AdminPage,
 });
 

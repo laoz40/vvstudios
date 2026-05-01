@@ -4,6 +4,7 @@ import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
 
 export const Route = createFileRoute("/login")({
+	head: () => ({ meta: [{ title: "Admin Login | VV Podcast Studio" }] }),
 	component: LoginPage,
 });
 

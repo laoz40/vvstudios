@@ -7,6 +7,7 @@ import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/booking-expired")({
+	head: () => ({ meta: [{ title: "Booking Session Expired | VV Podcast Studio" }] }),
 	validateSearch: (search: Record<string, unknown>) => ({
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
