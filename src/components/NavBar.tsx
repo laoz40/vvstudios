@@ -39,7 +39,7 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 			to="/"
 			aria-label={HOME_ARIA_LABEL}
 			className={cn(
-				"inline-flex h-full items-center gap-2 no-underline transition-opacity hover:opacity-90",
+				"inline-flex h-full items-center gap-2 rounded-md no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50",
 				className,
 			)}>
 			<Image
