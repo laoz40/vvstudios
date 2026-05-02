@@ -392,10 +392,7 @@ function getBookingResultContent(booking: BookingStatus): BookingResultContent {
 				isBookingCompletionFailure: false,
 			};
 
-		default: {
-			const unhandledStatus: never = booking.status;
-
-			throw new Error(`Unhandled booking status: ${unhandledStatus}`);
-		}
+		default:
+			throw new Error(`Unhandled booking status: ${booking.status}`);
 	}
 }

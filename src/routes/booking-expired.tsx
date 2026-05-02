@@ -1,6 +1,5 @@
-import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { Home, RotateCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
@@ -24,20 +23,11 @@ function BookingExpiredPage() {
 		api.bookings.getBookingStatusByStripeSessionId,
 		stripeSessionId ? { stripeSessionId } : "skip",
 	);
-	const deleteExpiredBooking = useMutation(api.bookings.deleteExpiredBookingByStripeSessionId);
 	const supportReference = booking
 		? Number.isFinite(booking.pendingPaymentCreatedAt)
 			? formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt)
 			: null
 		: null;
-
-	useEffect(() => {
-		if (!stripeSessionId || booking?.status !== "expired") {
-			return;
-		}
-
-		void deleteExpiredBooking({ stripeSessionId });
-	}, [booking?.status, deleteExpiredBooking, stripeSessionId]);
 
 	return (
 		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">

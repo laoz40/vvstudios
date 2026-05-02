@@ -23,6 +23,7 @@ export default defineSchema({
 			v.literal("confirmed"),
 			v.literal("failed"),
 			v.literal("expired"),
+			v.literal("abandoned"),
 		),
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
@@ -44,5 +45,6 @@ export default defineSchema({
 	})
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
-		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"]),
+		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
+		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"]),
 });

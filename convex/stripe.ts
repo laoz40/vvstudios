@@ -24,7 +24,7 @@ type CreateEmbeddedCheckoutSessionResult =
 
 interface CloseEmbeddedCheckoutSessionResult {
 	ok: true;
-	outcome: "already_complete" | "deleted" | "not_found" | "not_pending";
+	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 }
 
 type BookingValidationErrorData = {
@@ -32,7 +32,7 @@ type BookingValidationErrorData = {
 };
 
 type DeletePendingBookingResult =
-	| { ok: true; outcome: "deleted" | "not_found" | "not_pending" }
+	| { ok: true; outcome: "abandoned" | "not_found" | "not_pending" }
 	| { ok: false; reason: "stripe_session_mismatch" };
 
 function getStripeClient() {

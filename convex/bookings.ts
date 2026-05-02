@@ -99,6 +99,12 @@ type UpdateBookingStatusErrorData = {
 	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
 };
 
+type CleanupOldBookingsErrorData = {
+	code: "NOT_AUTHENTICATED";
+};
+
+const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 	return {
 		_id: booking._id,
@@ -215,27 +221,40 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 	},
 });
 
-export const deleteExpiredBookingByStripeSessionId = mutation({
-	args: {
-		stripeSessionId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const booking = await ctx.db
+export const cleanupOldPendingAndExpiredBookings = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<CleanupOldBookingsErrorData>({ code: "NOT_AUTHENTICATED" });
+		}
+
+		const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
+		let deletedCount = 0;
+
+		const pendingBookings = await ctx.db
 			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
-			.unique();
+			.withIndex("by_status_and_pendingPaymentCreatedAt", (query) =>
+				query.eq("status", "pending_payment").lt("pendingPaymentCreatedAt", pendingPaymentCutoff),
+			)
+			.take(50);
 
-		if (!booking) {
-			return { ok: false as const, reason: "not_found" as const };
+		const expiredOrAbandonedBookings = await Promise.all(
+			(["expired", "abandoned"] as const).map((status) =>
+				ctx.db
+					.query("bookings")
+					.withIndex("by_status_and_pendingPaymentCreatedAt", (query) => query.eq("status", status))
+					.take(50),
+			),
+		);
+
+		for (const booking of [...pendingBookings, ...expiredOrAbandonedBookings.flat()]) {
+			await ctx.db.delete(booking._id);
+			deletedCount += 1;
 		}
 
-		if (booking.status !== "expired") {
-			return { ok: false as const, reason: "invalid_status" as const };
-		}
-
-		await ctx.db.delete(booking._id);
-
-		return { ok: true as const };
+		return { ok: true as const, deletedCount, pendingPaymentCutoff };
 	},
 });
 
@@ -471,9 +490,11 @@ export const deletePendingBooking = internalMutation({
 			};
 		}
 
-		await ctx.db.delete(args.bookingId);
+		await ctx.db.patch(args.bookingId, {
+			status: "abandoned",
+		});
 
-		return { ok: true as const, outcome: "deleted" as const };
+		return { ok: true as const, outcome: "abandoned" as const };
 	},
 });
 
