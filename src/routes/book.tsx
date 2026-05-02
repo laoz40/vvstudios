@@ -69,11 +69,16 @@ interface EmbeddedCheckoutSession {
 	stripeSessionId: string;
 }
 
-interface BookingRateLimitedResult {
-	code: "BOOKING_RATE_LIMITED";
-	ok: false;
-	retryAfter: number;
-}
+type BookingSubmitFailureResult =
+	| {
+			code: "BOOKING_RATE_LIMITED";
+			ok: false;
+			retryAfter: number;
+	  }
+	| {
+			code: "BOOKING_EMAIL_DOMAIN_INVALID";
+			ok: false;
+	  };
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
@@ -172,7 +177,7 @@ function BookingPage() {
 				});
 
 				if (!session.ok) {
-					toast.error(getBookingRateLimitMessage(session));
+					toast.error(getBookingSubmitFailureMessage(session));
 					return;
 				}
 
@@ -647,7 +652,11 @@ function BookingPage() {
 	);
 }
 
-function getBookingRateLimitMessage(_result: BookingRateLimitedResult) {
+function getBookingSubmitFailureMessage(result: BookingSubmitFailureResult) {
+	if (result.code === "BOOKING_EMAIL_DOMAIN_INVALID") {
+		return "This email domain doesn't appear able to receive email. Please check for typos.";
+	}
+
 	return "Too many booking attempts. Please try again in one minute.";
 }
 

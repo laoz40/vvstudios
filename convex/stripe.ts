@@ -21,6 +21,10 @@ type CreateEmbeddedCheckoutSessionResult =
 			ok: false;
 			code: "BOOKING_RATE_LIMITED";
 			retryAfter: number;
+	  }
+	| {
+			ok: false;
+			code: "BOOKING_EMAIL_DOMAIN_INVALID";
 	  };
 
 interface CloseEmbeddedCheckoutSessionResult {
@@ -85,9 +89,7 @@ export const createEmbeddedCheckoutSession = action({
 		const isValidEmailDomain = await emailDomainCanReceiveMail(booking.email);
 
 		if (!isValidEmailDomain) {
-			throw new ConvexError<BookingValidationErrorData>({
-				code: "BOOKING_EMAIL_DOMAIN_INVALID",
-			});
+			return { ok: false, code: "BOOKING_EMAIL_DOMAIN_INVALID" };
 		}
 
 		const stripe = getStripeClient();
