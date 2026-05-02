@@ -664,6 +664,10 @@ function getBookingErrorMessage(error: unknown) {
 		return "Some booking details were invalid. Please review the form and try again.";
 	}
 
+	if (code === "BOOKING_EMAIL_DOMAIN_INVALID") {
+		return "This email domain doesn't appear able to receive email. Please check for typos.";
+	}
+
 	if (code === "BOOKING_RATE_LIMITED") {
 		return "Too many booking attempts. Please try again in one minute.";
 	}
