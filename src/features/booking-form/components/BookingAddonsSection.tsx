@@ -7,10 +7,11 @@ import {
 	FieldSet,
 	FieldTitle,
 } from "#/components/ui/field";
-import { Check, Clapperboard, Scissors, Smartphone } from "lucide-react";
+import { Clapperboard, Scissors, Smartphone } from "lucide-react";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
+	getPillStateClassName,
 	sectionHeadingClassName,
 	transitionClassName,
 } from "#/features/booking-form/lib/booking-form-styles";
@@ -95,25 +96,24 @@ export function BookingAddonsSection() {
 												<Icon className="size-8" />
 											</div>
 											<FieldContent className="min-w-0 gap-1">
-												<div className="flex items-center gap-2">
-													<FieldTitle className="text-base">{addon}</FieldTitle>
-													{isChecked ? (
-														<span className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-															<Check
-																className="size-3"
-																strokeWidth={3}
-															/>
-														</span>
-													) : null}
-												</div>
+												<FieldTitle className="text-base">{addon}</FieldTitle>
 												<FieldDescription className="text-pretty">
 													{addonCopy.description}
 												</FieldDescription>
 											</FieldContent>
 										</div>
-										<span className="shrink-0 text-lg font-semibold text-primary">
-											{addonCopy.price}
-										</span>
+										<div className="flex shrink-0 items-center gap-2">
+											{isChecked ? (
+												<span
+													className={cn(
+														"inline-flex h-8 min-w-20 items-center justify-center rounded-full border px-3 py-0 text-xs font-medium leading-0 tracking-wider shadow-md transition-all duration-200 ease-in",
+														getPillStateClassName(true),
+													)}>
+													SELECTED
+												</span>
+											) : null}
+											<span className="text-lg font-semibold text-primary">{addonCopy.price}</span>
+										</div>
 									</Field>
 								</FieldLabel>
 							);

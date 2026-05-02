@@ -144,7 +144,7 @@ export function BookingRecordingSpaceDurationSection() {
 												<p className="text-base font-semibold text-foreground">{option.title}</p>
 												<span
 													className={cn(
-														"inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wider shadow-md md:min-h-8 md:px-3 md:py-1",
+														"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
 														getPillStateClassName(field.state.value === option.value),
 													)}>
 													{field.state.value === option.value ? "SELECTED" : "SELECT"}
