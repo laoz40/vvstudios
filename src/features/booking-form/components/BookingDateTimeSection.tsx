@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useStore } from "@tanstack/react-store";
 import { Calendar } from "#/components/ui/calendar";
 import {
@@ -37,7 +36,6 @@ import { cn } from "#/lib/utils";
 const sectionCopy = {
 	dateLabel: "SESSION DATE *",
 	timeLabel: "SESSION TIME *",
-	timePeriodLabel: "Time of day",
 	selectDatePrompt: "Select a date to view times.",
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingTimesPrefix: "Loading times for",
@@ -67,62 +65,22 @@ export function BookingDateTimeSection({
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
 	onPreferredTimeSectionChange,
-	preferredTimeSectionKey,
 	selectedDate,
 	setCalendarMonth,
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
-	const [activeTimeSectionKey, setActiveTimeSectionKey] = useState<TimeSectionKey | null>(null);
 	const formValues = useStore(formApi.store, (state) => state.values as BookingFormValues);
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
-	const hasAvailableTimes = availableTimeSections.some((section) => section.times.length > 0);
+	const availableTimes = availableTimeSections.flatMap((section) => section.times);
+	const hasAvailableTimes = availableTimes.length > 0;
 	const selectedMonthName = formValues.date
 		? formatMonthName(parseDateValue(formValues.date) ?? new Date())
 		: undefined;
-	const selectedTimeSection = availableTimeSections.find((section) =>
-		section.times.includes(formValues.time),
-	);
-	const firstAvailableTimeSection = availableTimeSections.find(
-		(section) => section.times.length > 0,
-	);
-	const preferredTimeSection = availableTimeSections.find(
-		(section) => section.key === preferredTimeSectionKey && section.times.length > 0,
-	);
-	const activeTimeSection =
-		availableTimeSections.find((section) => section.key === activeTimeSectionKey) ??
-		selectedTimeSection ??
-		preferredTimeSection ??
-		firstAvailableTimeSection ??
-		availableTimeSections[0];
-
-	useEffect(() => {
-		setActiveTimeSectionKey((currentKey) => {
-			if (
-				currentKey &&
-				availableTimeSections.some(
-					(section) => section.key === currentKey && section.times.length > 0,
-				)
-			) {
-				return currentKey;
-			}
-
-			return (
-				selectedTimeSection?.key ??
-				preferredTimeSection?.key ??
-				firstAvailableTimeSection?.key ??
-				null
-			);
-		});
-	}, [availableTimeSections, firstAvailableTimeSection, preferredTimeSection, selectedTimeSection]);
-
-	useEffect(() => {
-		onPreferredTimeSectionChange?.(activeTimeSection?.key ?? null);
-	}, [activeTimeSection?.key, onPreferredTimeSectionChange]);
 
 	return (
 		<section className="flex flex-col mt-0 gap-6 md:gap-8">
-			<div className="grid max-w-6xl gap-6 xl:grid-cols-5 xl:items-start xl:gap-12">
+			<div className="grid max-w-7xl gap-6 xl:grid-cols-3 xl:items-start xl:gap-4">
 				<div className="xl:col-span-2">
 					<formApi.Field name="date">
 						{(field) => (
@@ -130,9 +88,24 @@ export function BookingDateTimeSection({
 								data-field-name="date"
 								className="gap-3">
 								<FieldLabel className={sectionHeadingClassName}>{sectionCopy.dateLabel}</FieldLabel>
-								<div className="bg-input/30 border-border overflow-hidden rounded-lg border">
+								<div className="bg-input/30 border-border flex overflow-hidden rounded-lg border xl:h-128">
 									<Calendar
-										className="bg-transparent p-5 [--cell-size:--spacing(12)]"
+										className="h-full bg-transparent p-5 xl:p-6 [--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
+										classNames={{
+											months: "relative flex h-full w-full flex-col gap-4 md:flex-row",
+											month: "flex h-full w-full min-w-0 flex-col gap-3",
+											nav: "absolute inset-x-5 top-0 flex items-center justify-between gap-1",
+											button_previous:
+												"inline-flex size-10 items-center justify-center rounded-md p-0 text-sm font-medium select-none outline-none hover:bg-accent hover:text-accent-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-disabled:opacity-50",
+											button_next:
+												"inline-flex size-10 items-center justify-center rounded-md p-0 text-sm font-medium select-none outline-none hover:bg-accent hover:text-accent-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-disabled:opacity-50",
+											month_caption: "flex h-10 w-full items-center justify-center px-10",
+											caption_label:
+												"font-medium select-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+											table:
+												"h-full w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1 md:border-spacing-y-1.5",
+											day_button: "xl:h-16 xl:text-lg!",
+										}}
 										mode="single"
 										required
 										disabled={disabledDates}
@@ -158,7 +131,7 @@ export function BookingDateTimeSection({
 					</formApi.Field>
 				</div>
 
-				<div className="flex h-full flex-col xl:col-span-3 xl:max-w-4xl">
+				<div className="flex h-full min-w-0 flex-col xl:max-w-sm">
 					<formApi.Field name="time">
 						{(field) => (
 							<FieldSet
@@ -167,90 +140,6 @@ export function BookingDateTimeSection({
 								<FieldLegend className={sectionHeadingClassName}>
 									{sectionCopy.timeLabel}
 								</FieldLegend>
-								{availableTimeSections.length > 0 ? (
-									<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-										<p className="sr-only">{sectionCopy.timePeriodLabel}</p>
-										{availableTimeSections.map((section) => {
-											const isActive = activeTimeSection?.key === section.key;
-											const isDisabled = section.times.length === 0;
-
-											return (
-												<button
-													key={section.key}
-													type="button"
-													onClick={() => {
-														setActiveTimeSectionKey(section.key);
-														if (!section.times.includes(formValues.time)) {
-															field.handleChange("" as BookingFormValues["time"]);
-														}
-													}}
-													disabled={isDisabled}
-													className={cn(
-														"pressable border-border bg-input/30 h-10 w-full rounded-md border px-4 py-2 text-sm! font-medium outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-														transitionClassName,
-														"disabled:cursor-not-allowed disabled:opacity-50",
-														getCardStateClassName(isActive),
-														getTextStateClassName(isActive),
-													)}>
-													{section.label}
-												</button>
-											);
-										})}
-									</div>
-								) : null}
-								<RadioGroup
-									value={field.state.value}
-									onValueChange={(value) => {
-										field.handleChange(value as BookingFormValues["time"]);
-										field.handleBlur();
-									}}
-									disabled={
-										!formValues.date ||
-										!isViewingSelectedMonth ||
-										isLoadingMonthAvailability ||
-										!hasAvailableTimes
-									}
-									className="flex flex-col gap-6">
-									{activeTimeSection ? (
-										<div className="flex flex-col gap-4">
-											<div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-												{activeTimeSection.times.map((time) => {
-													const isSelected = field.state.value === time;
-													const timeOptionId = `time-${toOptionId(time)}`;
-
-													return (
-														<div key={time}>
-															<RadioGroupItem
-																value={time}
-																id={timeOptionId}
-																className="peer sr-only size-0"
-															/>
-															<FieldLabel
-																htmlFor={timeOptionId}
-																className={cn(
-																	"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background w-full! cursor-pointer flex-row! rounded-lg border",
-																	transitionClassName,
-																	getCardStateClassName(isSelected),
-																)}>
-																<Field
-																	orientation="horizontal"
-																	className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
-																	<FieldTitle
-																		className={cn(
-																			"w-full justify-center whitespace-nowrap text-center text-sm",
-																			getTextStateClassName(isSelected),
-																		)}>
-																		{formatTimeValue(time)}
-																	</FieldTitle>
-																</Field>
-															</FieldLabel>
-														</div>
-													);
-												})}
-											</div>
-										</div>
-									) : null}
-								</RadioGroup>
 								{!formValues.date || !isViewingSelectedMonth ? (
 									<FieldDescription>{sectionCopy.selectDatePrompt}</FieldDescription>
 								) : null}
@@ -269,6 +158,64 @@ export function BookingDateTimeSection({
 								!hasAvailableTimes &&
 								!availabilityError ? (
 									<FieldDescription>{sectionCopy.noTimesAvailable}</FieldDescription>
+								) : null}
+								{hasAvailableTimes ? (
+									<div
+										data-lenis-prevent
+										className="-m-1 max-h-96 overflow-y-auto overscroll-contain p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background xl:h-128 xl:max-h-none xl:pr-1">
+										<RadioGroup
+											value={field.state.value}
+											onValueChange={(value) => {
+												field.handleChange(value as BookingFormValues["time"]);
+												onPreferredTimeSectionChange?.(
+													availableTimeSections.find((section) => section.times.includes(value))
+														?.key ?? null,
+												);
+												field.handleBlur();
+											}}
+											disabled={
+												!formValues.date || !isViewingSelectedMonth || isLoadingMonthAvailability
+											}
+											className="flex flex-col gap-6">
+											<div className="grid grid-cols-1 gap-3">
+												{availableTimes.map((time) => {
+													const isSelected = field.state.value === time;
+													const timeOptionId = `time-${toOptionId(time)}`;
+
+													return (
+														<div
+															key={time}
+															className="relative rounded-lg">
+															<RadioGroupItem
+																value={time}
+																id={timeOptionId}
+																className="peer sr-only size-0"
+															/>
+															<FieldLabel
+																htmlFor={timeOptionId}
+																className={cn(
+																	"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+																	transitionClassName,
+																	getCardStateClassName(isSelected),
+																)}>
+																<Field
+																	orientation="horizontal"
+																	className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
+																	<FieldTitle
+																		className={cn(
+																			"w-full justify-center whitespace-nowrap text-center text-base text-card-foreground font-semibold",
+																			getTextStateClassName(isSelected),
+																		)}>
+																		{formatTimeValue(time)}
+																	</FieldTitle>
+																</Field>
+															</FieldLabel>
+														</div>
+													);
+												})}
+											</div>
+										</RadioGroup>
+									</div>
 								) : null}
 								{availabilityError ? <FieldError>{availabilityError}</FieldError> : null}
 								{field.state.meta.isBlurred || shouldShowFieldError ? (
