@@ -7,7 +7,7 @@ import {
 	FieldSet,
 	FieldTitle,
 } from "#/components/ui/field";
-import { Clapperboard, Scissors, Smartphone } from "lucide-react";
+import { Video, Scissors, Smartphone } from "lucide-react";
 import { useBookingFormContext } from "#/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
@@ -26,7 +26,7 @@ const sectionDescription =
 const addonCardCopy = {
 	"4K UHD Recording": {
 		description: "Our highest quality recording, perfect for cropping without losing clarity.",
-		icon: Clapperboard,
+		icon: Video,
 		price: "+$49",
 	},
 	"Essential Edit": {
