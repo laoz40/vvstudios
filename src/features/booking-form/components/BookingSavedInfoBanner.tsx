@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 const sectionCopy = {
 	description: "You can reuse your last saved booking information.",
 	reuseAction: "Reuse Last Booking Info",
-	removeAction: "Delete Data",
+	removeAction: "Delete data?",
 } as const;
 
 export interface BookingSavedInfoBannerProps {
@@ -14,24 +14,23 @@ export interface BookingSavedInfoBannerProps {
 export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBannerProps) {
 	return (
 		<section className="flex flex-col gap-4 rounded-2xl border border-primary/80 bg-card/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-			<p className="text-sm text-muted-foreground">{sectionCopy.description}</p>
-			<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+			<p className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-foreground">
+				<span>{sectionCopy.description}</span>
 				<Button
 					type="button"
-					variant="ghost"
-					size="sm"
-					className="text-muted-foreground hover:text-foreground"
+					variant="link"
+					className="accent-link h-auto p-0 text-sm text-muted-foreground underline-offset-4"
 					onClick={onRemove}>
 					{sectionCopy.removeAction}
 				</Button>
-				<Button
-					type="button"
-					size="default"
-					className="w-full rounded-2xl px-6 text-sm! font-semibold sm:w-auto"
-					onClick={onReuse}>
-					{sectionCopy.reuseAction}
-				</Button>
-			</div>
+			</p>
+			<Button
+				type="button"
+				size="default"
+				className="w-full rounded-2xl px-6 text-sm! font-semibold sm:w-auto"
+				onClick={onReuse}>
+				{sectionCopy.reuseAction}
+			</Button>
 		</section>
 	);
 }
