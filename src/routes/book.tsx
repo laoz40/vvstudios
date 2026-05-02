@@ -93,6 +93,19 @@ const pageCopy = {
 	title: "Studio Hire Booking",
 } as const;
 
+function getBookableMonthKeys(startDate: Date, endDate: Date) {
+	const monthKeys: string[] = [];
+	const month = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+	const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+	while (month <= endMonth) {
+		monthKeys.push(formatMonthKey(month));
+		month.setMonth(month.getMonth() + 1);
+	}
+
+	return monthKeys;
+}
+
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
 		api.stripe.createEmbeddedCheckoutSession,
@@ -195,6 +208,14 @@ function BookingPage() {
 	const isDateTimeIncomplete = !formValues.date || !formValues.time;
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
 	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
+	const bookableStartDateValue = formatDateValue(today);
+	const bookableEndDateValue = formatDateValue(lastBookableDate);
+	const bookableMonthKeys = useMemo(() => {
+		const startDate = parseDateValue(bookableStartDateValue);
+		const endDate = parseDateValue(bookableEndDateValue);
+
+		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
+	}, [bookableStartDateValue, bookableEndDateValue]);
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
@@ -215,8 +236,10 @@ function BookingPage() {
 	}, []);
 
 	useEffect(() => {
-		const cachedBusyDays = monthlyBusyWindowsByMonth[visibleMonth];
-		if (cachedBusyDays) {
+		const uncachedMonthKeys = bookableMonthKeys.filter(
+			(month) => !monthlyBusyWindowsByMonth[month],
+		);
+		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
 			setIsLoadingMonthAvailability(false);
 			return;
@@ -226,15 +249,17 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void getMonthlyBusyWindows({ month: visibleMonth })
-			.then((result) => {
+		void Promise.all(uncachedMonthKeys.map((month) => getMonthlyBusyWindows({ month })))
+			.then((results) => {
 				if (isCancelled) {
 					return;
 				}
 
 				setMonthlyBusyWindowsByMonth((current) => ({
 					...current,
-					[result.month]: result.busyWindows,
+					...Object.fromEntries(
+						results.map((result) => [result.month, result.busyWindows] as const),
+					),
 				}));
 			})
 			.catch((availabilityFetchError) => {
@@ -255,7 +280,7 @@ function BookingPage() {
 		return () => {
 			isCancelled = true;
 		};
-	}, [formValues.date, getMonthlyBusyWindows, monthlyBusyWindowsByMonth, visibleMonth]);
+	}, [bookableMonthKeys, getMonthlyBusyWindows, monthlyBusyWindowsByMonth]);
 
 	const selectedBusyDay = !formValues.date
 		? null
@@ -296,11 +321,7 @@ function BookingPage() {
 			return [];
 		}
 
-		if (
-			selectedMonth === visibleMonth &&
-			isLoadingMonthAvailability &&
-			!monthlyBusyWindowsByMonth[selectedMonth]
-		) {
+		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
 			return [];
 		}
 
@@ -321,7 +342,6 @@ function BookingPage() {
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedMonth,
-		visibleMonth,
 	]);
 
 	const availableTimeSections = TIME_SECTIONS.map((section) => ({
@@ -384,11 +404,7 @@ function BookingPage() {
 			return;
 		}
 
-		if (
-			selectedMonth === visibleMonth &&
-			isLoadingMonthAvailability &&
-			!monthlyBusyWindowsByMonth[selectedMonth]
-		) {
+		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
 			return;
 		}
 
@@ -413,7 +429,6 @@ function BookingPage() {
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedMonth,
-		visibleMonth,
 	]);
 
 	const handlePaymentModalClose = () => {
