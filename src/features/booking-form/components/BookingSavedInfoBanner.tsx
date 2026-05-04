@@ -15,7 +15,7 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 	return (
 		<section className="flex flex-col gap-4 rounded-2xl border border-primary/80 bg-card/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 			<p className="text-sm text-foreground">
-				{sectionCopy.description} {" "}
+				{sectionCopy.description}{" "}
 				<Button
 					type="button"
 					variant="link"

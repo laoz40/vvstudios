@@ -1,28 +1,28 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 
-import { getAvailabilityRange, type BusyWindow } from "./bookingTimeUtils";
+import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./bookingTimeUtils";
 
-type GoogleCalendarLike = Pick<calendar_v3.Calendar, "freebusy">;
+type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
 interface GetBusyWindowsArgs {
 	calendar: GoogleCalendarLike;
-	calendarId: string;
+	calendarIds: string[];
 	date: string;
 	timeZone: string;
 }
 
 interface GetBusyWindowsInRangeArgs {
 	calendar: GoogleCalendarLike;
-	calendarId: string;
+	calendarIds: string[];
 	timeMax: string;
 	timeMin: string;
 	timeZone: string;
 }
 
-// load calendar availability for the date range and turn busy windows into booking blockers
+// load calendar events for the date range and turn all events into booking blockers
 export async function getBusyWindows({
 	calendar,
-	calendarId,
+	calendarIds,
 	date,
 	timeZone,
 }: GetBusyWindowsArgs): Promise<BusyWindow[]> {
@@ -30,7 +30,7 @@ export async function getBusyWindows({
 
 	return await getBusyWindowsInRange({
 		calendar,
-		calendarId,
+		calendarIds,
 		timeMax,
 		timeMin,
 		timeZone,
@@ -39,27 +39,42 @@ export async function getBusyWindows({
 
 export async function getBusyWindowsInRange({
 	calendar,
-	calendarId,
+	calendarIds,
 	timeMax,
 	timeMin,
 	timeZone,
 }: GetBusyWindowsInRangeArgs): Promise<BusyWindow[]> {
-	const response = await calendar.freebusy.query({
-		requestBody: {
-			items: [{ id: calendarId }],
-			timeMax,
-			timeMin,
-			timeZone,
-		},
-	});
+	const busyWindows: BusyWindow[] = [];
 
-	const busyWindows = response.data.calendars?.[calendarId]?.busy ?? [];
+	for (const calendarId of calendarIds) {
+		let pageToken: string | undefined;
 
-	return busyWindows.flatMap((window) => {
-		if (!window.start || !window.end) {
-			return [];
-		}
+		do {
+			const response = await calendar.events.list({
+				calendarId,
+				maxResults: 2500,
+				orderBy: "startTime",
+				pageToken,
+				singleEvents: true,
+				timeMax,
+				timeMin,
+				timeZone,
+			});
 
-		return [{ start: window.start, end: window.end }];
-	});
+			for (const event of response.data.items ?? []) {
+				const start = getEventDateTime(event.start, timeZone);
+				const end = getEventDateTime(event.end, timeZone);
+
+				if (!start || !end) {
+					continue;
+				}
+
+				busyWindows.push({ start, end });
+			}
+
+			pageToken = response.data.nextPageToken ?? undefined;
+		} while (pageToken);
+	}
+
+	return busyWindows;
 }

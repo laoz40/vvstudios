@@ -8,6 +8,7 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_REFRESH_TOKEN: z.string().min(1),
 		GOOGLE_CALENDAR_ID: z.string().min(1),
+		GOOGLE_CALENDAR_AVAILABILITY_IDS: z.string().min(1).optional(),
 		GOOGLE_CALENDAR_TIMEZONE: z.string().min(1),
 		GOOGLE_CALENDAR_HOST_EMAILS: z.string().min(1),
 		RESEND_API_KEY: z.string().min(1),

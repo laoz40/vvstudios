@@ -71,11 +71,19 @@ function createBookingInvoiceEmailError(code: BookingInvoiceEmailErrorCode) {
 	return new ConvexError<BookingInvoiceEmailErrorData>({ code });
 }
 
+function parseGoogleCalendarAvailabilityIds(calendarId: string) {
+	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
+		.split(",")
+		.map((id) => id.trim())
+		.filter(Boolean);
+}
+
 function getGoogleCalendarClient() {
 	const clientId = env.GOOGLE_CLIENT_ID;
 	const clientSecret = env.GOOGLE_CLIENT_SECRET;
 	const refreshToken = env.GOOGLE_REFRESH_TOKEN;
 	const calendarId = env.GOOGLE_CALENDAR_ID;
+	const calendarIds = parseGoogleCalendarAvailabilityIds(calendarId);
 	const timeZone = env.GOOGLE_CALENDAR_TIMEZONE;
 
 	const oauth2Client = new google.auth.OAuth2({
@@ -86,6 +94,7 @@ function getGoogleCalendarClient() {
 
 	return {
 		calendarId,
+		calendarIds,
 		timeZone,
 		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
 	};
@@ -174,11 +183,11 @@ export const getMonthlyBusyWindows = action({
 	},
 	handler: async (_ctx, args): Promise<MonthlyBusyWindowsResult> => {
 		try {
-			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
 			const { timeMin, timeMax } = getMonthAvailabilityRange(args.month, timeZone);
 			const busyWindows = await getBusyWindowsInRange({
 				calendar,
-				calendarId,
+				calendarIds,
 				timeMax,
 				timeMin,
 				timeZone,
@@ -211,10 +220,10 @@ export const getAvailableBookingTimes = action({
 	},
 	handler: async (_ctx, args): Promise<AvailableBookingTimesResult> => {
 		try {
-			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
 			const busyWindows = await getBusyWindows({
 				calendar,
-				calendarId,
+				calendarIds,
 				date: args.date,
 				timeZone,
 			});
@@ -341,12 +350,12 @@ export const completeClaimedBooking = internalAction({
 		}
 
 		try {
-			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
 			const hostEmails = getHostEmails();
 
 			const busyWindows = await getBusyWindows({
 				calendar,
-				calendarId,
+				calendarIds,
 				date: booking.date,
 				timeZone,
 			});
