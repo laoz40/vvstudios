@@ -179,6 +179,7 @@ export function BookingRecordingSpaceDurationSection() {
 								}}
 								className="grid gap-4 sm:grid-cols-3">
 								{durationOptions.map((option) => {
+									const isSelected = field.state.value === option.value;
 									const hasDiscount = option.originalPrice !== option.discountedPrice;
 
 									return (
@@ -193,14 +194,25 @@ export function BookingRecordingSpaceDurationSection() {
 												className={cn(
 													"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
-													getCardStateClassName(field.state.value === option.value),
+													getCardStateClassName(isSelected),
 												)}>
 												{option.badgeLabel ? (
 													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-semibold leading-none">
 														{option.badgeLabel}
 													</span>
 												) : null}
-												<p className="text-base font-semibold leading-none">{option.label}</p>
+												<p className="relative inline-flex w-fit whitespace-nowrap text-base font-semibold leading-none">
+													{option.label}
+													{isSelected ? (
+														<span
+															className={cn(
+																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+																getPillStateClassName(true),
+															)}>
+															SELECTED
+														</span>
+													) : null}
+												</p>
 												<div className="flex items-end gap-1 whitespace-nowrap">
 													{hasDiscount ? (
 														<p className="text-muted-foreground text-xs line-through leading-none">
