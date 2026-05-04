@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
-import armchairSetupImage from "#/assets/gallery/armchair-setup.jpg";
-import tableSetupImage from "#/assets/gallery/table-setup.jpg";
+import armchairSetupImage from "#/assets/gallery/armchair-setup.webp";
+import tableSetupImage from "#/assets/gallery/table-setup.webp";
 import { Button } from "#/components/ui/button";
 import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";

@@ -1,15 +1,15 @@
-import armchairSetupImage from "#/assets/gallery/armchair-setup.jpg";
-import armchairVerticalImage from "#/assets/gallery/armchair-vertical.jpg";
-import behindTheScenesWideImage from "#/assets/gallery/behind-the-scenes-wide.jpg";
-import behindTheScenesImage from "#/assets/gallery/behind-the-scenes.jpg";
-import expressiveManImage from "#/assets/gallery/expressive-man.jpg";
-import girlNotSadImage from "#/assets/gallery/girl-not-sad.jpg";
-import girlSingingImage from "#/assets/gallery/girl-singing.jpg";
-import leonardoDicaprioImage from "#/assets/gallery/leonardo-dicaprio.jpg";
-import micSetupImage from "#/assets/gallery/mic-setup.jpg";
-import screenImage from "#/assets/gallery/screen.jpg";
-import tableSetupImage from "#/assets/gallery/table-setup.jpg";
-import trioTalkingAtTableSetupImage from "#/assets/gallery/trio-talking-at-table-setup.jpg";
+import armchairSetupImage from "#/assets/gallery/armchair-setup.webp";
+import armchairVerticalImage from "#/assets/gallery/armchair-vertical.webp";
+import behindTheScenesWideImage from "#/assets/gallery/behind-the-scenes-wide.webp";
+import behindTheScenesImage from "#/assets/gallery/behind-the-scenes.webp";
+import expressiveManImage from "#/assets/gallery/expressive-man.webp";
+import girlNotSadImage from "#/assets/gallery/girl-not-sad.webp";
+import girlSingingImage from "#/assets/gallery/girl-singing.webp";
+import leonardoDicaprioImage from "#/assets/gallery/leonardo-dicaprio.webp";
+import micSetupImage from "#/assets/gallery/mic-setup.webp";
+import screenImage from "#/assets/gallery/screen.webp";
+import tableSetupImage from "#/assets/gallery/table-setup.webp";
+import trioTalkingAtTableSetupImage from "#/assets/gallery/trio-talking-at-table-setup.webp";
 
 export interface PhotoGalleryImage {
 	src: string;
@@ -50,20 +50,20 @@ export const photosPageContent: PhotosPageContent = {
 		{
 			src: expressiveManImage,
 			alt: "VV Podcast Studio gallery image of the studio lighting and desk area",
-			width: 4000,
-			height: 2149,
+			width: 2560,
+			height: 1375,
 		},
 		{
 			src: micSetupImage,
 			alt: "VV Podcast Studio gallery image of the equipment and camera setup",
-			width: 4000,
-			height: 6000,
+			width: 1280,
+			height: 1920,
 		},
 		{
 			src: leonardoDicaprioImage,
 			alt: "VV Podcast Studio gallery image of the main recording setup",
-			width: 3313,
-			height: 2485,
+			width: 2560,
+			height: 1920,
 		},
 		{
 			src: behindTheScenesWideImage,
@@ -98,8 +98,8 @@ export const photosPageContent: PhotosPageContent = {
 		{
 			src: screenImage,
 			alt: "VV Podcast Studio gallery image showing the screen setup",
-			width: 2595,
-			height: 1461,
+			width: 1920,
+			height: 1081,
 		},
 		{
 			src: armchairVerticalImage,
