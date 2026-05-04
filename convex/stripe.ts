@@ -125,7 +125,11 @@ export const createEmbeddedCheckoutSession = action({
 			},
 			line_items: [
 				{
-					price: "price_1TOJj136IpJeqJz3PPvcx7Uc",
+					price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID,
+					quantity: 1,
+				},
+				{
+					price: env.STRIPE_PROCESSING_FEE_PRICE_ID,
 					quantity: 1,
 				},
 			],
