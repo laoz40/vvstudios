@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import babel from "@rolldown/plugin-babel";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { nitro } from "nitro/vite"
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
@@ -20,6 +21,7 @@ const config = defineConfig({
 			},
 		}),
 		viteReact(),
+		nitro(),
 		babel({ presets: [reactCompilerPreset()] }),
 	],
 });
