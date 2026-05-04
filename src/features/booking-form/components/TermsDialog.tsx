@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Dialog } from "radix-ui";
@@ -42,6 +42,19 @@ export interface TermsDialogProps {
 export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: TermsDialogProps) {
 	const descriptionId = useId();
 
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+		};
+	}, [open]);
+
 	return (
 		<Dialog.Root
 			open={open}
@@ -57,6 +70,10 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 				<Dialog.Content
 					aria-describedby={descriptionId}
 					className="bg-popover text-popover-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl p-4 text-sm outline-none ring-1 max-h-[calc(100vh-2rem)] sm:max-w-2xl sm:p-6"
+					data-lenis-prevent
+					onWheel={(event) => {
+						event.stopPropagation();
+					}}
 					onInteractOutside={(event) => {
 						if (isSubmitting) {
 							event.preventDefault();
