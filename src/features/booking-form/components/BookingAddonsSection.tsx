@@ -76,7 +76,7 @@ export function BookingAddonsSection() {
 									)}>
 									<Field
 										orientation="horizontal"
-										className="items-center justify-between gap-4 rounded-lg px-4 py-6">
+										className="relative items-center justify-between gap-4 rounded-lg px-4 py-6">
 										<input
 											id={`addon-${toOptionId(addon)}`}
 											type="checkbox"
@@ -95,8 +95,19 @@ export function BookingAddonsSection() {
 											<div className="flex shrink-0 items-center justify-center text-primary">
 												<Icon className="size-8" />
 											</div>
-											<FieldContent className="min-w-0 gap-1">
-												<FieldTitle className="text-base">{addon}</FieldTitle>
+											<FieldContent className="min-w-0 gap-1 pr-12 sm:pr-0">
+												<FieldTitle className="relative inline-flex w-fit whitespace-nowrap text-base">
+													{addon}
+													{isChecked ? (
+														<span
+															className={cn(
+																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+																getPillStateClassName(true),
+															)}>
+															SELECTED
+														</span>
+													) : null}
+												</FieldTitle>
 												<FieldDescription className="text-pretty">
 													{addonCopy.description}
 												</FieldDescription>
@@ -106,13 +117,15 @@ export function BookingAddonsSection() {
 											{isChecked ? (
 												<span
 													className={cn(
-														"inline-flex h-8 min-w-20 items-center justify-center rounded-full border px-3 py-0 text-xs font-medium leading-0 tracking-wider shadow-md transition-all duration-200 ease-in",
+														"hidden items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:inline-flex md:min-h-8 md:px-3 md:py-1",
 														getPillStateClassName(true),
 													)}>
 													SELECTED
 												</span>
 											) : null}
-											<span className="text-lg font-semibold text-primary">{addonCopy.price}</span>
+											<span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-primary sm:static sm:translate-y-0">
+												{addonCopy.price}
+											</span>
 										</div>
 									</Field>
 								</FieldLabel>
