@@ -1,5 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/features/booking-invoice/lib/constants";
+import { renderHostBookingDetailsEmail } from "#/features/host-booking-details-email/render-host-booking-details-email";
 import { renderReminderEmail } from "#/features/reminder-email/render-reminder-email";
 import { env } from "../env";
 import {
@@ -33,6 +34,20 @@ interface SendBookingReminderEmailForBookingArgs {
 	service: string;
 	duration: string;
 	addons: string[];
+}
+
+interface SendBookingHostDetailsEmailArgs {
+	name: string;
+	email: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	date: string;
+	time: string;
+	service: string;
+	duration: string;
+	addons: string[];
+	notes?: string;
 }
 
 export function buildBookingCalendarEventRequestBody({
@@ -127,6 +142,14 @@ export async function sendBookingReminderEmail(args: {
 	subject: string;
 	html: string;
 }) {
+	return await sendEmail({
+		to: args.to,
+		subject: args.subject,
+		html: args.html,
+	});
+}
+
+async function sendEmail(args: { to: string[]; subject: string; html: string }) {
 	const response = await fetch("https://api.resend.com/emails", {
 		method: "POST",
 		headers: {
@@ -147,6 +170,35 @@ export async function sendBookingReminderEmail(args: {
 	}
 
 	return (await response.json()) as ResendSendEmailSuccessResponse;
+}
+
+export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEmailArgs) {
+	const hostEmails = getHostEmails();
+
+	if (hostEmails.length === 0) {
+		return null;
+	}
+
+	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
+	const html = await renderHostBookingDetailsEmail({
+		name: args.name,
+		email: args.email,
+		phone: args.phone,
+		accountName: args.accountName,
+		abn: args.abn,
+		date: formatBookingDateShort(args.date),
+		time: args.time,
+		service: args.service,
+		duration: args.duration,
+		addonsLine,
+		notes: args.notes,
+	});
+
+	return await sendEmail({
+		to: hostEmails,
+		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
+		html,
+	});
 }
 
 export async function sendBookingReminderEmailForBooking({

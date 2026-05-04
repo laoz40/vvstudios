@@ -17,6 +17,7 @@ import {
 } from "./lib/bookingTimeUtils";
 import {
 	buildBookingCalendarEventRequestBody,
+	sendBookingHostDetailsEmail,
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
@@ -129,6 +130,20 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
 		attachment: artifacts.pdf,
+	});
+
+	await sendBookingHostDetailsEmail({
+		name: parsedBooking.data.name,
+		email: parsedBooking.data.email,
+		phone: parsedBooking.data.phone,
+		accountName: parsedBooking.data.accountName,
+		abn: parsedBooking.data.abn,
+		date: parsedBooking.data.date,
+		time: parsedBooking.data.time,
+		service: parsedBooking.data.service,
+		duration: parsedBooking.data.duration,
+		addons: parsedBooking.data.addons,
+		notes: parsedBooking.data.notes,
 	});
 }
 
