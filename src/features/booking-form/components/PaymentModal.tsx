@@ -25,12 +25,12 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 
 	return (
 		<div
-			className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-0 sm:items-center"
+			className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-1 sm:p-0"
 			data-lenis-prevent
 			onWheel={(event) => {
 				event.stopPropagation();
 			}}>
-			<div className="relative w-full max-w-3xl text-sm sm:max-h-[85vh]">
+			<div className="relative max-h-[85vh] w-full max-w-3xl text-sm lg:max-w-5xl">
 				<Button
 					type="button"
 					variant="ghost"
@@ -41,8 +41,8 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 					<X className="size-5" />
 				</Button>
 
-				<div className="bg-popover text-popover-foreground min-h-dvh w-full overflow-x-hidden rounded-none shadow-2xl outline-none sm:min-h-0 sm:max-h-[85vh] sm:overflow-y-auto sm:rounded-xl">
-					<div className="w-full overflow-hidden bg-card [&>*]:w-full">
+				<div className="bg-popover text-popover-foreground isolate max-h-[85vh] w-full overflow-clip rounded-xl shadow-2xl outline-none">
+					<div className="max-h-[85vh] w-full overflow-y-auto overflow-x-hidden rounded-xl bg-card [&>*]:w-full">
 						<EmbeddedCheckoutProvider
 							stripe={stripePromise}
 							options={{ clientSecret }}>
