@@ -14,12 +14,12 @@ export interface BookingSavedInfoBannerProps {
 export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBannerProps) {
 	return (
 		<section className="flex flex-col gap-4 rounded-2xl border border-primary/80 bg-card/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-			<p className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-foreground">
-				<span>{sectionCopy.description}</span>
+			<p className="text-sm text-foreground">
+				{sectionCopy.description} {" "}
 				<Button
 					type="button"
 					variant="link"
-					className="accent-link h-auto p-0 text-sm text-muted-foreground underline-offset-4"
+					className="accent-link inline h-auto p-0 align-baseline text-sm text-muted-foreground underline-offset-4"
 					onClick={onRemove}>
 					{sectionCopy.removeAction}
 				</Button>
