@@ -95,6 +95,16 @@ export function buildFaqPageJsonLd(items: readonly FaqJsonLdItem[]) {
 	};
 }
 
+export function buildWebSiteJsonLd() {
+	return {
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		name: siteName,
+		alternateName: "Vertigo Visuals",
+		url: `${siteUrl}/`,
+	};
+}
+
 export function buildLocalBusinessJsonLd() {
 	return {
 		"@context": "https://schema.org",

@@ -37,6 +37,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				title: "VV Studios",
 			},
 			{
+				name: "application-name",
+				content: "VV Studios",
+			},
+			{
 				name: "theme-color",
 				content: "#1a1a1a",
 			},
