@@ -89,9 +89,13 @@ export function ReminderEmail({
 						</Button>
 					</Section>
 
-					<Text style={paragraph}>
-						Payment is due at the end of your session. We look forward to seeing you.
-					</Text>
+					<Section style={section}>
+						<Text style={sectionTitle}>Payment reminder</Text>
+						<Text style={paragraph}>
+							Please be advised that if your session has not yet been paid for, payment is
+							required before the conclusion of your appointment.
+						</Text>
+					</Section>
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.locationLabel}</Text>
