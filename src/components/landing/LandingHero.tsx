@@ -70,7 +70,7 @@ export function LandingHero() {
 						{heroCopy.lead}
 					</p>
 
-					<div className="mt-6 flex w-full flex-wrap gap-3 md:mt-12">
+					<div className="mt-2 flex w-full flex-wrap gap-3 md:mt-4">
 						<Button
 							asChild
 							size="lg"
