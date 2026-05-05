@@ -8,7 +8,7 @@ import {
 	formatBookingDateShort,
 	formatCalendarEventDate,
 	formatCalendarEventTime,
-} from "./bookingTimeUtils";
+} from "./bookingCalendarTime";
 
 interface BuildBookingCalendarEventRequestBodyArgs {
 	name: string;

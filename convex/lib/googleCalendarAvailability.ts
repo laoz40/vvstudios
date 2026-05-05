@@ -1,6 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 
-import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./bookingTimeUtils";
+import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./bookingCalendarTime";
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 

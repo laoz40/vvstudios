@@ -14,7 +14,7 @@ import {
 	getMonthAvailabilityRange,
 	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
-} from "./lib/bookingTimeUtils";
+} from "./lib/bookingCalendarTime";
 import {
 	buildBookingCalendarEventRequestBody,
 	sendBookingHostDetailsEmail,

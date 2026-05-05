@@ -92,8 +92,8 @@ export function ReminderEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Payment reminder</Text>
 						<Text style={paragraph}>
-							Please be advised that if your session has not yet been paid for, payment is
-							required before the conclusion of your appointment.
+							Please be advised that if your session has not yet been paid for, payment is required
+							before the conclusion of your appointment.
 						</Text>
 					</Section>
 					<Text style={signoff}>Enjoy your day,</Text>

@@ -13,11 +13,12 @@ import type * as crons from "../crons.js";
 import type * as env from "../env.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
-import type * as lib_bookingTimeUtils from "../lib/bookingTimeUtils.js";
+import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
+import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as reminders from "../reminders.js";
 import type * as stripe from "../stripe.js";
 
@@ -33,11 +34,12 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   googleCalendar: typeof googleCalendar;
   http: typeof http;
-  "lib/bookingTimeUtils": typeof lib_bookingTimeUtils;
+  "lib/bookingCalendarTime": typeof lib_bookingCalendarTime;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
   "lib/rateLimits": typeof lib_rateLimits;
+  "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   reminders: typeof reminders;
   stripe: typeof stripe;
 }>;

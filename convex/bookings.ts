@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
-import { getUtcDateForZonedDateTime } from "./lib/bookingTimeUtils";
+import { getUtcDateForZonedDateTime } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
 
 function getSessionStartAt(date: string, time: string) {
@@ -156,8 +156,8 @@ export const getBookingByIdInternal = internalQuery({
 
 export const listBookingsDueForReminderEmail = internalQuery({
 	args: {
-		windowStart: v.number(),
-		windowEnd: v.number(),
+		dayStart: v.number(),
+		dayEnd: v.number(),
 		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
@@ -166,8 +166,8 @@ export const listBookingsDueForReminderEmail = internalQuery({
 			.withIndex("by_status_and_sessionStartAt", (query) =>
 				query
 					.eq("status", "confirmed")
-					.gte("sessionStartAt", args.windowStart)
-					.lt("sessionStartAt", args.windowEnd),
+					.gte("sessionStartAt", args.dayStart)
+					.lt("sessionStartAt", args.dayEnd),
 			)
 			.take(args.limit ?? 50);
 
