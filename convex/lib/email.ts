@@ -38,6 +38,7 @@ interface SendBookingReminderEmailForBookingArgs {
 }
 
 interface SendBookingHostDetailsEmailArgs {
+	invoiceNumber: string;
 	name: string;
 	email: string;
 	phone: string;
@@ -182,6 +183,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
 	const html = await renderHostBookingDetailsEmail({
+		invoiceNumber: args.invoiceNumber,
 		name: args.name,
 		email: args.email,
 		phone: args.phone,

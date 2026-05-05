@@ -106,7 +106,6 @@ export function ReminderEmail({
 }
 
 const body = {
-	backgroundColor: "#1a1a1a",
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
 	padding: "16px 16px",

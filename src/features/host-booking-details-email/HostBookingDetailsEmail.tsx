@@ -4,10 +4,12 @@ import {
 	Head,
 	Heading,
 	Html,
+	Img,
 	Preview,
 	Section,
 	Text,
 } from "@react-email/components";
+import { BOOKING_INVOICE_BUSINESS } from "#/features/booking-invoice/lib/constants";
 
 const bookingQuotes = [
 	{
@@ -61,6 +63,7 @@ const bookingQuotes = [
 ] as const;
 
 export interface HostBookingDetailsEmailProps {
+	invoiceNumber: string;
 	name: string;
 	email: string;
 	phone: string;
@@ -75,6 +78,7 @@ export interface HostBookingDetailsEmailProps {
 }
 
 export function HostBookingDetailsEmail({
+	invoiceNumber,
 	name,
 	email,
 	phone,
@@ -100,6 +104,16 @@ export function HostBookingDetailsEmail({
 			<Preview>New studio booking confirmed for {name}.</Preview>
 			<Body style={body}>
 				<Container style={container}>
+					<Text style={invoiceNumberText}>Invoice #{invoiceNumber}</Text>
+					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
+						<Img
+							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+							height="100"
+							width="100"
+							src={BOOKING_INVOICE_BUSINESS.logoUrl}
+							style={logo}
+						/>
+					) : null}
 					<Heading style={heading}>New studio booking confirmed</Heading>
 
 					<Section style={section}>
@@ -162,7 +176,6 @@ export function HostBookingDetailsEmail({
 }
 
 const body = {
-	backgroundColor: "#1a1a1a",
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
 	padding: "16px 16px",
@@ -177,12 +190,24 @@ const container = {
 	padding: "24px",
 };
 
+const invoiceNumberText = {
+	color: "#d0d0d0",
+	fontSize: "12px",
+	margin: "0 0 16px",
+	textAlign: "right" as const,
+};
+
 const heading = {
 	color: "#fafafa",
 	fontSize: "22px",
 	fontWeight: "700",
 	lineHeight: "28px",
 	margin: "0 0 16px",
+};
+
+const logo = {
+	display: "block",
+	margin: "0 auto 16px",
 };
 
 const section = {

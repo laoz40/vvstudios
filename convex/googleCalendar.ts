@@ -142,6 +142,7 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 	});
 
 	await sendBookingHostDetailsEmail({
+		invoiceNumber: artifacts.data.invoice.number,
 		name: parsedBooking.data.name,
 		email: parsedBooking.data.email,
 		phone: parsedBooking.data.phone,
