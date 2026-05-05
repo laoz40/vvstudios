@@ -130,6 +130,20 @@ export function formatBookingDate(dateValue: string) {
 	}).format(date);
 }
 
+export function formatBookingDateSummary(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return dateValue;
+	}
+
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		weekday: "short",
+		year: "numeric",
+	}).format(date);
+}
+
 const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeStyle: "short",
@@ -238,6 +252,13 @@ export function formatBookingTimeLabel(timeValue: string | undefined) {
 	return formatTimeValue(timeValue).replace(/(am|pm)$/i, " $1");
 }
 
+export function formatBookingTimeRange(timeValue: string, duration: string) {
+	const startMinutes = parseTimeToMinutes(timeValue);
+	const endMinutes = startMinutes + getDurationMinutes(duration);
+
+	return `${formatTimeValue(timeValue)}–${formatTimeValue(formatMinutesToTime(endMinutes))}`;
+}
+
 export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
 	const utcDate = getUtcDateForZonedDateTime(dateValue, timeValue, BOOKING_TIME_ZONE);
 	if (!utcDate) {
@@ -284,6 +305,14 @@ function parseDateTimeValue(dateValue: string, timeValue: string) {
 function parseTimeToMinutes(time: string) {
 	const [hours, minutes] = time.split(":").map(Number);
 	return hours * 60 + minutes;
+}
+
+function formatMinutesToTime(totalMinutes: number) {
+	const normalizedMinutes = totalMinutes % (24 * 60);
+	const hours = Math.floor(normalizedMinutes / 60);
+	const minutes = normalizedMinutes % 60;
+
+	return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function getDurationMinutes(duration: string) {
