@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "#/components/ui/card";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/login")({
-	head: () => buildNoIndexHead("Admin Login | VV Podcast Studio"),
+	head: () => buildNoIndexHead("Admin Login | VV Studios"),
 	component: LoginPage,
 });
 

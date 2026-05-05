@@ -20,7 +20,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 						<VvPodcastLogo />
 					</View>
 					<View style={styles.headerRight}>
-						<Text style={styles.invoiceTitle}>VV Podcast Studio Hire Invoice</Text>
+						<Text style={styles.invoiceTitle}>VV Studios Hire Invoice</Text>
 						<Text style={styles.businessDetailStrong}>{data.branding.businessName}</Text>
 						<Text style={styles.businessDetail}>{data.branding.contactEmail}</Text>
 						<Text style={styles.businessDetail}>ABN: 97 592 829 541</Text>

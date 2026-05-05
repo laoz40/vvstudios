@@ -19,7 +19,7 @@ import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
-	head: () => buildNoIndexHead("Booking Complete | VV Podcast Studio"),
+	head: () => buildNoIndexHead("Booking Complete | VV Studios"),
 	component: BookingCompletePage,
 });
 

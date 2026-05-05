@@ -7,8 +7,8 @@ import logoYellow from "#/assets/vv-logo-yellow.svg";
 import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
-const BRAND_LABEL = "VV PODCAST STUDIO";
-const HOME_ARIA_LABEL = "VV Podcast Studio home";
+const BRAND_LABEL = "VV STUDIOS";
+const HOME_ARIA_LABEL = "VV Studios home";
 const PRIMARY_NAV_ARIA_LABEL = "Primary navigation";
 
 const MOBILE_NAV_ARIA_LABEL = "Navigation Menu";

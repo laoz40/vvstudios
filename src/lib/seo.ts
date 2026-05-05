@@ -1,5 +1,5 @@
 const siteUrl = "https://vertigovisuals.com.au";
-const siteName = "VV Podcast Studio";
+const siteName = "VV Studios";
 const defaultOgImage = "/android-chrome-512x512.png";
 
 type SeoMetadata = {
@@ -11,33 +11,33 @@ type SeoMetadata = {
 
 export const seoMetadata = {
 	home: {
-		title: "Podcast Studio Hire in South West Sydney | VV Podcast Studio",
+		title: "Podcast Studio Hire in South West Sydney | VV Studios",
 		description:
-			"Hire a professional podcast studio in South West Sydney. VV Podcast Studio helps business owners, creators, and entrepreneurs record polished podcast and video content in Sydney.",
+			"Hire a professional podcast studio in South West Sydney. VV Studios helps business owners, creators, and entrepreneurs record polished podcast and video content in Sydney.",
 		path: "/",
 	},
 	book: {
-		title: "Book a Podcast Studio Session | VV Podcast Studio",
+		title: "Book a Podcast Studio Session | VV Studios",
 		description:
 			"Book your podcast studio session in Sydney. Choose your recording space, session time, and select any add-ons to enhance your production.",
 		path: "/book",
 	},
 	contact: {
-		title: "Contact VV Podcast Studio | VV Podcast Studio",
+		title: "Contact VV Studios | VV Studios",
 		description:
-			"Contact VV Podcast Studio to plan your next podcast or video session. Reach out for studio details, bookings, and production support in Sydney.",
+			"Contact VV Studios to plan your next podcast or video session. Reach out for studio details, bookings, and production support in Sydney.",
 		path: "/contact",
 	},
 	gallery: {
-		title: "Podcast Studio Photos | VV Podcast Studio",
+		title: "Podcast Studio Photos | VV Studios",
 		description:
-			"Browse photos of VV Podcast Studio and see the podcast sets, lighting, cameras, and recording environment available for business owners and creators in South West Sydney.",
+			"Browse photos of VV Studios and see the podcast sets, lighting, cameras, and recording environment available for business owners and creators in South West Sydney.",
 		path: "/gallery",
 	},
 	pricing: {
-		title: "Podcast Studio Pricing | VV Podcast Studio",
+		title: "Podcast Studio Pricing | VV Studios",
 		description:
-			"View VV Podcast Studio pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
+			"View VV Studios pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
 		path: "/pricing",
 	},
 } as const satisfies Record<string, SeoMetadata>;

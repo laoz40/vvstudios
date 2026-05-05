@@ -2,7 +2,7 @@ import { env } from "#/env";
 import { Separator } from "#/components/ui/separator";
 
 const footerContent = {
-	studioName: "VV Podcast Studio",
+	studioName: "VV Studios",
 	parentCompanyName: "Vertigo Visuals",
 	lead: "The best studio in South West Sydney",
 	availability: "Available for studio hire and production support",

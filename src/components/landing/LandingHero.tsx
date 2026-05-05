@@ -14,7 +14,7 @@ const heroCopy = {
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
-	backgroundAlt: "VV Podcast Studio interior with lights and set pieces",
+	backgroundAlt: "VV Studios interior with lights and set pieces",
 } as const;
 
 export function LandingHero() {

@@ -115,7 +115,7 @@ export async function sendBookingInvoiceEmail(args: {
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({
-			from: `VV Podcast Studio <${env.RESEND_FROM_EMAIL}>`,
+			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
 			to: [args.to],
 			subject: args.subject,
 			html: args.html,
@@ -157,7 +157,7 @@ async function sendEmail(args: { to: string[]; subject: string; html: string }) 
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({
-			from: `VV Podcast Studio <${env.RESEND_FROM_EMAIL}>`,
+			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
 			to: args.to,
 			subject: args.subject,
 			html: args.html,

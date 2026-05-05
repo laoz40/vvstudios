@@ -30,7 +30,7 @@ export const BOOKING_INVOICE_BUSINESS = {
 	businessName: "Vertigo Visuals",
 	contactEmail: "contact@vertigovisuals.com.au",
 	locationAddress: "23 Fields Rd, Macquarie Fields NSW 2564",
-	locationLabel: "VV Podcast Studio",
+	locationLabel: "VV Studios",
 	locationUrl: "https://maps.app.goo.gl/pVx8fg9S4LhtKVjG7",
 	logoUrl: "https://vertigovisuals.com.au/vv-logo-yellow.png",
 	ownerName: "Joseph Gerges",

@@ -34,7 +34,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "VV Podcast Studio",
+				title: "VV Studios",
 			},
 			{
 				name: "theme-color",
@@ -125,7 +125,7 @@ function NotFoundPage() {
 			<div className="mx-auto flex max-w-3xl flex-col items-center gap-8">
 				<Image
 					src={logoYellow}
-					alt="VV Podcast Studio"
+					alt="VV Studios"
 					width={72}
 					height={72}
 					layout="fixed"

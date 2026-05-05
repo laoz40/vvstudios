@@ -7,7 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-expired")({
-	head: () => buildNoIndexHead("Booking Session Expired | VV Podcast Studio"),
+	head: () => buildNoIndexHead("Booking Session Expired | VV Studios"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
