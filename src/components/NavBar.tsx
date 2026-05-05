@@ -96,12 +96,13 @@ function NavCta({
 		<Button
 			asChild
 			size="lg"
-			variant={variant === "primary" ? "default" : "secondary"}>
+			variant={variant === "primary" ? "default" : "secondary"}
+			className={href === BOOK_LINK.href ? "gap-1.5" : undefined}>
 			<Link to={href}>
 				{label}
 				{href === BOOK_LINK.href ? (
 					<ArrowRight
-						className="stroke-3"
+						className="stroke-2"
 						aria-hidden
 					/>
 				) : null}

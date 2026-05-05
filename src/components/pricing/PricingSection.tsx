@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 import { Button } from "#/components/ui/button";
 
 type PricingSession = {
@@ -137,8 +138,14 @@ export function PricingSection({
 									<Button
 										asChild
 										size="lg"
-										className="w-full justify-center text-base font-medium">
-										<Link to="/book">{pricingPageCopy.bookSessionLabel}</Link>
+										className="w-full justify-center gap-1.5 text-base font-medium">
+										<Link to="/book">
+											{pricingPageCopy.bookSessionLabel}
+											<ArrowRight
+												className="translate-y-px stroke-3"
+												aria-hidden
+											/>
+										</Link>
 									</Button>
 								</div>
 							</div>

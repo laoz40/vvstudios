@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 import micImage from "#/assets/mic.webp";
 import { FreeTourDialogButton } from "#/components/FreeTourDialog";
@@ -51,12 +52,18 @@ export function ContactPage() {
 				<Button
 					asChild
 					size="lg"
-					className="min-w-64 flex-1 border-2 border-primary px-4 py-5 text-base font-semibold sm:px-8">
-					<Link to="/book">{contactActionCopy.bookCta}</Link>
+					className="min-w-64 flex-1 gap-1.5 border-2 border-primary px-4 py-5 text-base font-semibold sm:px-8">
+					<Link to="/book">
+						{contactActionCopy.bookCta}
+						<ArrowRight
+							className="translate-y-px stroke-3"
+							aria-hidden
+						/>
+					</Link>
 				</Button>
 				<FreeTourDialogButton
 					label={contactActionCopy.tourCta}
-					className="min-w-64 flex-1 border-2 px-4 py-5 text-base font-semibold sm:px-8"
+					className="min-w-64 flex-1 border-2 px-4 py-5 text-base font-medium! sm:px-8"
 				/>
 			</div>
 		</section>

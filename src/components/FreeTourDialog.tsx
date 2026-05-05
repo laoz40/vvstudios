@@ -23,7 +23,7 @@ export function FreeTourDialogButton({ className, label }: FreeTourDialogButtonP
 					variant="outline"
 					size="lg"
 					className={className}>
-					<Search aria-hidden />
+					<Search className="stroke-3" aria-hidden />
 					{label}
 				</Button>
 			</Dialog.Trigger>
