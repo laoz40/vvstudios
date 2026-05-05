@@ -439,6 +439,21 @@ export function formatCalendarEventTime(dateTime: string, timeZone: string) {
 	}).format(new Date(dateTime));
 }
 
+export function formatBookingDateLong(date: string) {
+	const [year, month, day] = date.split("-").map(Number);
+
+	if (!year || !month || !day) {
+		return date;
+	}
+
+	return new Intl.DateTimeFormat("en-AU", {
+		weekday: "long",
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+	}).format(new Date(year, month - 1, day));
+}
+
 export function formatBookingDateShort(date: string) {
 	const [year, month, day] = date.split("-");
 

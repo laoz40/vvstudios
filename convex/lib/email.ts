@@ -4,6 +4,7 @@ import { renderHostBookingDetailsEmail } from "#/features/host-booking-details-e
 import { renderReminderEmail } from "#/features/reminder-email/render-reminder-email";
 import { env } from "../env";
 import {
+	formatBookingDateLong,
 	formatBookingDateShort,
 	formatCalendarEventDate,
 	formatCalendarEventTime,
@@ -186,7 +187,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 		phone: args.phone,
 		accountName: args.accountName,
 		abn: args.abn,
-		date: formatBookingDateShort(args.date),
+		date: formatBookingDateLong(args.date),
 		time: args.time,
 		service: args.service,
 		duration: args.duration,
