@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { ArrowRight, Home, Phone } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -11,9 +11,7 @@ import {
 } from "#/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
 import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
-import { bookingSchema } from "#/features/booking-form/lib/form-shared";
-import { downloadBookingInvoicePdf } from "#/features/booking-invoice/pdf/download-booking-invoice-pdf";
-import { formatBookingDate, formatTimeValue, getFirstName } from "#/lib/bookingdatetime";
+import { formatBookingDate, formatTimeValue } from "#/lib/bookingdatetime";
 import { api } from "../../convex/_generated/api";
 import { buildNoIndexHead } from "#/lib/seo";
 
@@ -103,6 +101,7 @@ function BookingCompletePage(): ReactNode {
 			<BookingResult
 				booking={booking}
 				content={resultContent}
+				stripeSessionId={usableStripeSessionId}
 			/>
 		</BookingStatusLayout>
 	);
@@ -168,10 +167,23 @@ function BookingStatusLayout({
 interface BookingResultProps {
 	booking: BookingStatus | null;
 	content: BookingResultContent;
+	stripeSessionId?: string | null;
 }
 
-function BookingResult({ booking, content }: BookingResultProps): ReactNode {
+function downloadBlob(blob: Blob, filename: string) {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+
+	link.href = url;
+	link.download = filename;
+	link.click();
+
+	URL.revokeObjectURL(url);
+}
+
+function BookingResult({ booking, content, stripeSessionId }: BookingResultProps): ReactNode {
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
 	const titleClassName = content.isBookingCompletionFailure
 		? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
 		: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
@@ -179,49 +191,28 @@ function BookingResult({ booking, content }: BookingResultProps): ReactNode {
 	const canDownloadInvoice = booking?.status === "confirmed";
 
 	async function handleDownloadInvoice() {
-		if (!booking || booking.status !== "confirmed") {
+		if (!booking || booking.status !== "confirmed" || !stripeSessionId) {
 			return;
 		}
 
 		setIsDownloadingInvoice(true);
 
 		try {
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: booking.duration,
-				service: booking.service,
-				addons: booking.addons,
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: parsedBooking.data.service,
-				addons: parsedBooking.data.addons,
-				createdAt: booking.pendingPaymentCreatedAt,
-			});
+			const invoice = await getBookingInvoicePdf({ stripeSessionId });
+			const content = new Uint8Array(invoice.content);
+			const pdfBuffer = new ArrayBuffer(content.byteLength);
+			new Uint8Array(pdfBuffer).set(content);
+			downloadBlob(new Blob([pdfBuffer], { type: invoice.contentType }), invoice.filename);
 			toast.success("Invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "";
+			const isExpired = message.includes("INVOICE_DOWNLOAD_EXPIRED");
+
+			toast.error(
+				isExpired
+					? "Download link expired. Your invoice should be in your email — please check there."
+					: "Unable to generate invoice.",
+			);
 		} finally {
 			setIsDownloadingInvoice(false);
 		}
@@ -232,17 +223,17 @@ function BookingResult({ booking, content }: BookingResultProps): ReactNode {
 			<div className="space-y-4">
 				<h1 className={titleClassName}>{content.title}</h1>
 				{canDownloadInvoice ? (
-					<div className="flex max-w-2xl flex-wrap items-baseline gap-x-1 text-base text-muted-foreground">
-						<p>{content.description}</p>
-						<Button
+					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
+						{content.description}{" "}
+						<button
 							type="button"
-							variant="link"
-							className="accent-link h-auto p-0 m-0 text-base text-foreground"
+							className="accent-link inline bg-transparent p-0 text-base font-medium leading-normal text-foreground disabled:pointer-events-none disabled:opacity-50"
 							disabled={isDownloadingInvoice}
 							onClick={handleDownloadInvoice}>
-							{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
-						</Button>
-					</div>
+							{isDownloadingInvoice ? "generating invoice..." : "here"}
+						</button>
+						.
+					</p>
 				) : (
 					<p className="max-w-2xl text-base text-muted-foreground">{content.description}</p>
 				)}
@@ -373,8 +364,8 @@ function getBookingResultContent(booking: BookingStatus): BookingResultContent {
 
 		case "confirmed":
 			return {
-				title: `Congrats on booking, ${getFirstName(booking.name)}!`,
-				description: `Your invoice will be sent to ${booking.email}.`,
+				title: "Congrats, your booking is confirmed!",
+				description: "Your invoice has been emailed to you, or you can download it",
 				isBookingCompletionFailure: false,
 			};
 

@@ -13,6 +13,7 @@ import type * as crons from "../crons.js";
 import type * as env from "../env.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
+import type * as invoices from "../invoices.js";
 import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";

@@ -113,17 +113,11 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 		bookingFailureCode: booking.bookingFailureCode,
 		pendingPaymentCreatedAt: booking.pendingPaymentCreatedAt,
 		paymentCompletedAt: booking.paymentCompletedAt,
-		name: booking.name,
-		phone: booking.phone,
-		accountName: booking.accountName,
-		abn: booking.abn,
-		email: booking.email,
 		date: booking.date,
 		time: booking.time,
 		duration: booking.duration,
 		service: booking.service,
 		addons: booking.addons,
-		notes: booking.notes,
 	};
 }
 
@@ -151,6 +145,18 @@ export const getBookingByIdInternal = internalQuery({
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.bookingId);
+	},
+});
+
+export const getBookingByStripeSessionIdInternal = internalQuery({
+	args: {
+		stripeSessionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.unique();
 	},
 });
 
