@@ -14,7 +14,7 @@ const heroCopy = {
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
-	backgroundAlt: "VV Studios interior with lights and set pieces",
+	backgroundAlt: "Podcast studio hire Sydney interior with lights, sets and recording equipment",
 } as const;
 
 export function LandingHero() {

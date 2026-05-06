@@ -12,7 +12,7 @@ import { env } from "#/env";
 const contactCardCopy = {
 	title: "Contact",
 	contactInfoAriaLabel: "Contact information",
-	studioImageAlt: "Studio microphone",
+	studioImageAlt: "Podcast studio microphone setup at VV Studios Sydney",
 } as const;
 
 const contactItems = [

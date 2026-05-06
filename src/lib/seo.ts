@@ -11,9 +11,9 @@ type SeoMetadata = {
 
 export const seoMetadata = {
 	home: {
-		title: "Podcast Studio Hire in South West Sydney | VV Studios",
+		title: "Podcast Studio Hire Sydney | VV Studios",
 		description:
-			"Hire a professional podcast studio in South West Sydney. VV Studios helps business owners, creators, and entrepreneurs record polished podcast and video content in Sydney.",
+			"Podcast studio hire in Sydney for creators, businesses and entrepreneurs. Record polished video podcasts at VV Studios in South West Sydney. Book a session today.",
 		path: "/",
 	},
 	book: {

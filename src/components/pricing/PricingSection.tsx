@@ -107,7 +107,7 @@ export function PricingSection({
 							<div className="flex flex-1 flex-col gap-4">
 								<div className="space-y-2">
 									<div className="flex items-center justify-between gap-4">
-										<h2 className="text-foreground text-lg sm:text-lg">{session.label}</h2>
+										<h3 className="text-foreground text-lg sm:text-lg">{session.label}</h3>
 										{session.isMostPopular ? (
 											<span className="bg-primary text-primary-foreground inline-flex items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide uppercase">
 												Most popular
