@@ -9,6 +9,7 @@ const AFTERNOON_REMINDER_HOUR = 12;
 const EVENING_REMINDER_HOUR = 15;
 const AFTERNOON_START_HOUR = 12;
 const EVENING_START_HOUR = 16;
+const REMINDER_HOURS = [MORNING_REMINDER_HOUR, AFTERNOON_REMINDER_HOUR, EVENING_REMINDER_HOUR];
 
 const getReminderHourForBooking = (sessionStartAt: number) => {
 	const { hour } = getTimeZoneDateParts(new Date(sessionStartAt), SYDNEY_TIME_ZONE);
@@ -29,6 +30,11 @@ export const sendDueBookingReminderEmails = internalAction({
 	handler: async (ctx) => {
 		const nowDate = new Date();
 		const currentSydneyHour = getTimeZoneDateParts(nowDate, SYDNEY_TIME_ZONE).hour;
+
+		if (!REMINDER_HOURS.includes(currentSydneyHour)) {
+			return null;
+		}
+
 		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
 		const bookings = await ctx.runQuery(internal.bookings.listBookingsDueForReminderEmail, {
 			dayEnd,
