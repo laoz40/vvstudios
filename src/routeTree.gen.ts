@@ -8,233 +8,233 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as PricingRouteImport } from "./routes/pricing";
-import { Route as LoginRouteImport } from "./routes/login";
-import { Route as GalleryRouteImport } from "./routes/gallery";
-import { Route as ContactRouteImport } from "./routes/contact";
-import { Route as BookingExpiredRouteImport } from "./routes/booking-expired";
-import { Route as BookingCompleteRouteImport } from "./routes/booking-complete";
-import { Route as BookRouteImport } from "./routes/book";
-import { Route as AdminRouteImport } from "./routes/admin";
-import { Route as IndexRouteImport } from "./routes/index";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BookingExpiredRouteImport } from './routes/booking-expired'
+import { Route as BookingCompleteRouteImport } from './routes/booking-complete'
+import { Route as BookRouteImport } from './routes/book'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 
 const PricingRoute = PricingRouteImport.update({
-	id: "/pricing",
-	path: "/pricing",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
-	id: "/login",
-	path: "/login",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
-	id: "/gallery",
-	path: "/gallery",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
-	id: "/contact",
-	path: "/contact",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingExpiredRoute = BookingExpiredRouteImport.update({
-	id: "/booking-expired",
-	path: "/booking-expired",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/booking-expired',
+  path: '/booking-expired',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingCompleteRoute = BookingCompleteRouteImport.update({
-	id: "/booking-complete",
-	path: "/booking-complete",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/booking-complete',
+  path: '/booking-complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookRoute = BookRouteImport.update({
-	id: "/book",
-	path: "/book",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
-	id: "/admin",
-	path: "/admin",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
-	"/": typeof IndexRoute;
-	"/admin": typeof AdminRoute;
-	"/book": typeof BookRoute;
-	"/booking-complete": typeof BookingCompleteRoute;
-	"/booking-expired": typeof BookingExpiredRoute;
-	"/contact": typeof ContactRoute;
-	"/gallery": typeof GalleryRoute;
-	"/login": typeof LoginRoute;
-	"/pricing": typeof PricingRoute;
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/book': typeof BookRoute
+  '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRoutesByTo {
-	"/": typeof IndexRoute;
-	"/admin": typeof AdminRoute;
-	"/book": typeof BookRoute;
-	"/booking-complete": typeof BookingCompleteRoute;
-	"/booking-expired": typeof BookingExpiredRoute;
-	"/contact": typeof ContactRoute;
-	"/gallery": typeof GalleryRoute;
-	"/login": typeof LoginRoute;
-	"/pricing": typeof PricingRoute;
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/book': typeof BookRoute
+  '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRoutesById {
-	__root__: typeof rootRouteImport;
-	"/": typeof IndexRoute;
-	"/admin": typeof AdminRoute;
-	"/book": typeof BookRoute;
-	"/booking-complete": typeof BookingCompleteRoute;
-	"/booking-expired": typeof BookingExpiredRoute;
-	"/contact": typeof ContactRoute;
-	"/gallery": typeof GalleryRoute;
-	"/login": typeof LoginRoute;
-	"/pricing": typeof PricingRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/book': typeof BookRoute
+  '/booking-complete': typeof BookingCompleteRoute
+  '/booking-expired': typeof BookingExpiredRoute
+  '/contact': typeof ContactRoute
+  '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
 }
 export interface FileRouteTypes {
-	fileRoutesByFullPath: FileRoutesByFullPath;
-	fullPaths:
-		| "/"
-		| "/admin"
-		| "/book"
-		| "/booking-complete"
-		| "/booking-expired"
-		| "/contact"
-		| "/gallery"
-		| "/login"
-		| "/pricing";
-	fileRoutesByTo: FileRoutesByTo;
-	to:
-		| "/"
-		| "/admin"
-		| "/book"
-		| "/booking-complete"
-		| "/booking-expired"
-		| "/contact"
-		| "/gallery"
-		| "/login"
-		| "/pricing";
-	id:
-		| "__root__"
-		| "/"
-		| "/admin"
-		| "/book"
-		| "/booking-complete"
-		| "/booking-expired"
-		| "/contact"
-		| "/gallery"
-		| "/login"
-		| "/pricing";
-	fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/booking-expired'
+    | '/contact'
+    | '/gallery'
+    | '/login'
+    | '/pricing'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/booking-expired'
+    | '/contact'
+    | '/gallery'
+    | '/login'
+    | '/pricing'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/book'
+    | '/booking-complete'
+    | '/booking-expired'
+    | '/contact'
+    | '/gallery'
+    | '/login'
+    | '/pricing'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-	IndexRoute: typeof IndexRoute;
-	AdminRoute: typeof AdminRoute;
-	BookRoute: typeof BookRoute;
-	BookingCompleteRoute: typeof BookingCompleteRoute;
-	BookingExpiredRoute: typeof BookingExpiredRoute;
-	ContactRoute: typeof ContactRoute;
-	GalleryRoute: typeof GalleryRoute;
-	LoginRoute: typeof LoginRoute;
-	PricingRoute: typeof PricingRoute;
+  IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  BookRoute: typeof BookRoute
+  BookingCompleteRoute: typeof BookingCompleteRoute
+  BookingExpiredRoute: typeof BookingExpiredRoute
+  ContactRoute: typeof ContactRoute
+  GalleryRoute: typeof GalleryRoute
+  LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
 }
 
-declare module "@tanstack/react-router" {
-	interface FileRoutesByPath {
-		"/pricing": {
-			id: "/pricing";
-			path: "/pricing";
-			fullPath: "/pricing";
-			preLoaderRoute: typeof PricingRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/login": {
-			id: "/login";
-			path: "/login";
-			fullPath: "/login";
-			preLoaderRoute: typeof LoginRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/gallery": {
-			id: "/gallery";
-			path: "/gallery";
-			fullPath: "/gallery";
-			preLoaderRoute: typeof GalleryRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/contact": {
-			id: "/contact";
-			path: "/contact";
-			fullPath: "/contact";
-			preLoaderRoute: typeof ContactRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/booking-expired": {
-			id: "/booking-expired";
-			path: "/booking-expired";
-			fullPath: "/booking-expired";
-			preLoaderRoute: typeof BookingExpiredRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/booking-complete": {
-			id: "/booking-complete";
-			path: "/booking-complete";
-			fullPath: "/booking-complete";
-			preLoaderRoute: typeof BookingCompleteRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/book": {
-			id: "/book";
-			path: "/book";
-			fullPath: "/book";
-			preLoaderRoute: typeof BookRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/admin": {
-			id: "/admin";
-			path: "/admin";
-			fullPath: "/admin";
-			preLoaderRoute: typeof AdminRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/": {
-			id: "/";
-			path: "/";
-			fullPath: "/";
-			preLoaderRoute: typeof IndexRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-	}
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking-expired': {
+      id: '/booking-expired'
+      path: '/booking-expired'
+      fullPath: '/booking-expired'
+      preLoaderRoute: typeof BookingExpiredRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking-complete': {
+      id: '/booking-complete'
+      path: '/booking-complete'
+      fullPath: '/booking-complete'
+      preLoaderRoute: typeof BookingCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-	IndexRoute: IndexRoute,
-	AdminRoute: AdminRoute,
-	BookRoute: BookRoute,
-	BookingCompleteRoute: BookingCompleteRoute,
-	BookingExpiredRoute: BookingExpiredRoute,
-	ContactRoute: ContactRoute,
-	GalleryRoute: GalleryRoute,
-	LoginRoute: LoginRoute,
-	PricingRoute: PricingRoute,
-};
+  IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  BookRoute: BookRoute,
+  BookingCompleteRoute: BookingCompleteRoute,
+  BookingExpiredRoute: BookingExpiredRoute,
+  ContactRoute: ContactRoute,
+  GalleryRoute: GalleryRoute,
+  LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
+}
 export const routeTree = rootRouteImport
-	._addFileChildren(rootRouteChildren)
-	._addFileTypes<FileRouteTypes>();
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
-	interface Register {
-		ssr: true;
-		router: Awaited<ReturnType<typeof getRouter>>;
-	}
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
 }

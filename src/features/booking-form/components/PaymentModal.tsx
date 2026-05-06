@@ -39,7 +39,9 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 		const previousActiveElement =
 			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		const previousOverflow = document.body.style.overflow;
-		const siblings = [...document.body.children].filter((element) => element !== portalElement);
+		const siblings = Array.from(document.body.children).filter(
+			(element) => element !== portalElement,
+		);
 		const previousSiblingState = siblings.map((element) => ({
 			element: element as InertElement,
 			inert: (element as InertElement).inert,

@@ -226,7 +226,9 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 		}
 
 		const previousOverflow = document.body.style.overflow;
-		const siblings = [...document.body.children].filter((element) => element !== portalElement);
+		const siblings = Array.from(document.body.children).filter(
+			(element) => element !== portalElement,
+		);
 		const previousSiblingState = siblings.map((element) => ({
 			element: element as InertElement,
 			inert: (element as InertElement).inert,
