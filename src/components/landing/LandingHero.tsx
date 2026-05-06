@@ -35,6 +35,8 @@ export function LandingHero() {
 					<img
 						src={heroMobile}
 						alt={heroCopy.backgroundAlt}
+						width={900}
+						height={1350}
 						className="h-full w-full object-cover brightness-65"
 						decoding="async"
 						fetchPriority="high"
@@ -91,7 +93,10 @@ export function LandingHero() {
 					</div>
 
 					<div className="mt-7 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
-						<MapPin className="text-primary" />
+						<MapPin
+							className="text-primary"
+							aria-hidden
+						/>
 						<Button
 							asChild
 							variant="link"
@@ -114,7 +119,10 @@ export function LandingHero() {
 					delay: shouldReduceMotion ? 0 : 0.15,
 					ease: "easeOut",
 				}}>
-				<MapPin className="text-primary" />
+				<MapPin
+					className="text-primary"
+					aria-hidden
+				/>
 				<Button
 					asChild
 					variant="link"

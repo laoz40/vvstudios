@@ -56,7 +56,9 @@ export function BookingContactSection() {
 								<FieldLabel htmlFor="name">{sectionCopy.fullNameLabel}</FieldLabel>
 								<Input
 									id="name"
+									name="name"
 									type="text"
+									autoComplete="name"
 									placeholder={sectionCopy.fullNamePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
@@ -77,7 +79,10 @@ export function BookingContactSection() {
 								<FieldLabel htmlFor="phone">{sectionCopy.phoneLabel}</FieldLabel>
 								<Input
 									id="phone"
+									name="phone"
 									type="tel"
+									autoComplete="tel"
+									inputMode="tel"
 									placeholder={sectionCopy.phonePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
@@ -105,7 +110,9 @@ export function BookingContactSection() {
 								<FieldLabel htmlFor="accountName">{sectionCopy.accountNameLabel}</FieldLabel>
 								<Input
 									id="accountName"
+									name="accountName"
 									type="text"
+									autoComplete="organization"
 									placeholder={sectionCopy.accountNamePlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
@@ -126,7 +133,11 @@ export function BookingContactSection() {
 								<FieldLabel htmlFor="abn">{sectionCopy.abnLabel}</FieldLabel>
 								<Input
 									id="abn"
+									name="abn"
 									type="text"
+									autoComplete="off"
+									inputMode="numeric"
+									spellCheck={false}
 									placeholder={sectionCopy.abnPlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
@@ -150,7 +161,10 @@ export function BookingContactSection() {
 								</FieldDescription>
 								<Input
 									id="email"
+									name="email"
 									type="email"
+									autoComplete="email"
+									spellCheck={false}
 									placeholder={sectionCopy.emailPlaceholder}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
@@ -172,8 +186,11 @@ export function BookingContactSection() {
 						<Field
 							className={fieldStackClassName}
 							data-field-name="notes">
+							<FieldLabel htmlFor="notes">{sectionCopy.notesLegend}</FieldLabel>
 							<Textarea
 								id="notes"
+								name="notes"
+								autoComplete="off"
 								value={field.state.value}
 								placeholder={sectionCopy.notesPlaceholder}
 								maxLength={200}

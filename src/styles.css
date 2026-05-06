@@ -172,6 +172,7 @@
 }
 
 html {
+	color-scheme: dark;
 	background-color: var(--background);
 }
 
@@ -207,6 +208,7 @@ button,
 input,
 textarea {
 	font: inherit;
+	touch-action: manipulation;
 }
 
 /* accent link */

@@ -135,6 +135,8 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-name">Customer name</Label>
 							<Input
 								id="edit-booking-name"
+								name="name"
+								autoComplete="name"
 								value={draft.name}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, name: event.target.value }));
@@ -147,6 +149,8 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-account-name">Account name</Label>
 							<Input
 								id="edit-booking-account-name"
+								name="accountName"
+								autoComplete="organization"
 								value={draft.accountName}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, accountName: event.target.value }));
@@ -159,6 +163,9 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-abn">ABN</Label>
 							<Input
 								id="edit-booking-abn"
+								name="abn"
+								autoComplete="off"
+								spellCheck={false}
 								value={draft.abn}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, abn: event.target.value }));
@@ -172,7 +179,10 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-email">Email</Label>
 							<Input
 								id="edit-booking-email"
+								name="email"
 								type="email"
+								autoComplete="email"
+								spellCheck={false}
 								value={draft.email}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, email: event.target.value }));
@@ -185,7 +195,10 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-phone">Phone number</Label>
 							<Input
 								id="edit-booking-phone"
+								name="phone"
 								type="tel"
+								autoComplete="tel"
+								inputMode="tel"
 								value={draft.phone}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, phone: event.target.value }));
@@ -198,7 +211,9 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-date">Session date</Label>
 							<Input
 								id="edit-booking-date"
+								name="date"
 								type="date"
+								autoComplete="off"
 								value={draft.date}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, date: event.target.value }));
@@ -211,7 +226,9 @@ export function BookingEditDialog({
 							<Label htmlFor="edit-booking-time">Session time</Label>
 							<Input
 								id="edit-booking-time"
+								name="time"
 								type="time"
+								autoComplete="off"
 								value={draft.time}
 								onChange={(event) => {
 									setDraft((current) => ({ ...current, time: event.target.value }));
@@ -290,6 +307,8 @@ export function BookingEditDialog({
 						<Label htmlFor="edit-booking-notes">Notes</Label>
 						<Textarea
 							id="edit-booking-notes"
+							name="notes"
+							autoComplete="off"
 							value={draft.notes}
 							onChange={(event) => {
 								setDraft((current) => ({ ...current, notes: event.target.value }));
