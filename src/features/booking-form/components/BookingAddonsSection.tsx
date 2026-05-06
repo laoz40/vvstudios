@@ -20,8 +20,9 @@ import { toOptionId } from "#/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
 const sectionTitle = "Add-ons";
-const sectionDescription =
-	"Each session includes three 4K Sony cameras, up to four RODE PodMics, and cinematic overhead lighting.";
+const sectionDescription = "Choose add-ons to enhance your session.";
+const sectionFooterNote =
+	"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.";
 
 const addonCardCopy = {
 	"4K UHD Recording": {
@@ -131,6 +132,7 @@ export function BookingAddonsSection() {
 								</FieldLabel>
 							);
 						})}
+						<FieldDescription className="text-pretty italic">{sectionFooterNote}</FieldDescription>
 					</div>
 				</FieldSet>
 			)}
