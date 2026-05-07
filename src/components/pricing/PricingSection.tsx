@@ -103,16 +103,21 @@ export function PricingSection({
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
-							className="border-border bg-card flex h-full flex-col rounded-lg border p-4 sm:p-6">
+							className={[
+								"bg-card relative flex h-full flex-col rounded-lg border p-4 sm:p-6",
+								session.isMostPopular ? "border-primary" : "border-border",
+							]
+								.filter(Boolean)
+								.join(" ")}>
+							{session.isMostPopular ? (
+								<span className="bg-primary text-primary-foreground absolute top-0 left-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide whitespace-nowrap uppercase">
+									Most popular
+								</span>
+							) : null}
 							<div className="flex flex-1 flex-col gap-4">
 								<div className="space-y-2">
 									<div className="flex items-center justify-between gap-4">
 										<h3 className="text-foreground text-lg sm:text-lg">{session.label}</h3>
-										{session.isMostPopular ? (
-											<span className="bg-primary text-primary-foreground inline-flex items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide uppercase">
-												Most popular
-											</span>
-										) : null}
 									</div>
 									<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
 									<div className="min-h-6">
