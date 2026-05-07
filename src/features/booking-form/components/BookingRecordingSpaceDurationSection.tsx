@@ -116,10 +116,10 @@ export function BookingRecordingSpaceDurationSection() {
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
-												field.state.value === option.value && "md:bg-primary/5",
+												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
 											)}>
 											<div className="relative w-full overflow-hidden">
 												<Image
@@ -192,9 +192,10 @@ export function BookingRecordingSpaceDurationSection() {
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+													"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
 													getCardStateClassName(isSelected),
+													isSelected && "shadow-primary/20",
 												)}>
 												{option.badgeLabel ? (
 													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-semibold leading-none">

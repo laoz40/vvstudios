@@ -98,7 +98,7 @@ export function BookingDateTimeSection({
 								data-field-name="date"
 								className="gap-3">
 								<FieldLabel className={sectionHeadingClassName}>{sectionCopy.dateLabel}</FieldLabel>
-								<div className="bg-input/30 border-border flex overflow-hidden rounded-lg border xl:h-128">
+								<div className="border-border flex overflow-hidden rounded-lg border bg-input/30 shadow-lg shadow-background/25 xl:h-128">
 									<Calendar
 										className="h-full bg-transparent p-5 xl:p-6 [--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
 										classNames={{
@@ -204,9 +204,10 @@ export function BookingDateTimeSection({
 															<FieldLabel
 																htmlFor={timeOptionId}
 																className={cn(
-																	"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+																	"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 																	transitionClassName,
 																	getCardStateClassName(isSelected),
+																	isSelected && "shadow-primary/20",
 																)}>
 																<Field
 																	orientation="horizontal"

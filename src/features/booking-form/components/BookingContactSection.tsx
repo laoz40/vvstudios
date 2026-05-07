@@ -17,6 +17,7 @@ const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";
 const fieldNoteClassName = "-mt-0.5 md:-mt-1";
 const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
+const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 const sectionCopy = {
 	contactDetailsLegend: "CONTACT DETAILS",
@@ -60,6 +61,7 @@ export function BookingContactSection() {
 									type="text"
 									autoComplete="name"
 									placeholder={sectionCopy.fullNamePlaceholder}
+									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -84,6 +86,7 @@ export function BookingContactSection() {
 									autoComplete="tel"
 									inputMode="tel"
 									placeholder={sectionCopy.phonePlaceholder}
+									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -114,6 +117,7 @@ export function BookingContactSection() {
 									type="text"
 									autoComplete="organization"
 									placeholder={sectionCopy.accountNamePlaceholder}
+									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -139,6 +143,7 @@ export function BookingContactSection() {
 									inputMode="numeric"
 									spellCheck={false}
 									placeholder={sectionCopy.abnPlaceholder}
+									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -166,6 +171,7 @@ export function BookingContactSection() {
 									autoComplete="email"
 									spellCheck={false}
 									placeholder={sectionCopy.emailPlaceholder}
+									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
@@ -193,6 +199,7 @@ export function BookingContactSection() {
 								autoComplete="off"
 								value={field.state.value}
 								placeholder={sectionCopy.notesPlaceholder}
+								className={formControlShadowClassName}
 								maxLength={200}
 								onChange={(event) => field.handleChange(event.target.value)}
 								onBlur={field.handleBlur}
