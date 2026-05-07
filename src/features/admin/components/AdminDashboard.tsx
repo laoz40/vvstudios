@@ -552,7 +552,7 @@ export function AdminDashboard({
 											className="h-24 text-center text-muted-foreground">
 											{bookings.length === 0
 												? "No bookings yet. L business."
-												: "No bookings match the current filters."}
+												: "No bookings yet. L business."}
 										</TableCell>
 									</TableRow>
 								)}
