@@ -13,4 +13,14 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 		rate: 50,
 		period: 15 * MINUTE,
 	},
+	googleCalendarAvailability: {
+		kind: "fixed window",
+		rate: 8,
+		period: MINUTE,
+	},
+	googleCalendarAvailabilityGlobal: {
+		kind: "fixed window",
+		rate: 100,
+		period: 5 * MINUTE,
+	},
 });

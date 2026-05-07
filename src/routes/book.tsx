@@ -88,6 +88,19 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 >;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
+const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
+
+function getAvailabilityRateLimitKey() {
+	const existingKey = window.localStorage.getItem(availabilityRateLimitKeyStorageKey);
+
+	if (existingKey) {
+		return existingKey;
+	}
+
+	const nextKey = window.crypto.randomUUID();
+	window.localStorage.setItem(availabilityRateLimitKeyStorageKey, nextKey);
+	return nextKey;
+}
 
 export const Route = createFileRoute("/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -131,6 +144,7 @@ function BookingPage() {
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
 		Record<string, BusyDayWindow[]>
 	>({});
+	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState<string | null>(null);
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -224,6 +238,13 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
+	const isAvailabilityRateLimited =
+		availabilityError ===
+		getBookingErrorMessage({ data: { code: "GOOGLE_CALENDAR_RATE_LIMITED" } });
+
+	useEffect(() => {
+		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
+	}, []);
 
 	useEffect(() => {
 		const nextSavedBookingInfo = parseSavedBookingInfo(
@@ -241,6 +262,10 @@ function BookingPage() {
 	}, []);
 
 	useEffect(() => {
+		if (!availabilityRateLimitKey) {
+			return;
+		}
+
 		const uncachedMonthKeys = bookableMonthKeys.filter(
 			(month) => !monthlyBusyWindowsByMonth[month],
 		);
@@ -254,7 +279,11 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void Promise.all(uncachedMonthKeys.map((month) => getMonthlyBusyWindows({ month })))
+		void Promise.all(
+			uncachedMonthKeys.map((month) =>
+				getMonthlyBusyWindows({ month, rateLimitKey: availabilityRateLimitKey }),
+			),
+		)
 			.then((results) => {
 				if (isCancelled) {
 					return;
@@ -285,7 +314,12 @@ function BookingPage() {
 		return () => {
 			isCancelled = true;
 		};
-	}, [bookableMonthKeys, getMonthlyBusyWindows, monthlyBusyWindowsByMonth]);
+	}, [
+		availabilityRateLimitKey,
+		bookableMonthKeys,
+		getMonthlyBusyWindows,
+		monthlyBusyWindowsByMonth,
+	]);
 
 	const selectedBusyDay = !formValues.date
 		? null
@@ -308,13 +342,20 @@ function BookingPage() {
 				duration: formValues.duration,
 			});
 
-			if (!busyDays) {
-				return availableTimesForDate.length === 0;
+			if (!busyDays && isAvailabilityRateLimited) {
+				return true;
 			}
 
 			return availableTimesForDate.length === 0;
 		};
-	}, [currentTimestamp, formValues.duration, lastBookableDate, monthlyBusyWindowsByMonth, today]);
+	}, [
+		currentTimestamp,
+		formValues.duration,
+		isAvailabilityRateLimited,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
+		today,
+	]);
 
 	const availableTimes = useMemo<string[]>(() => {
 		if (
@@ -687,6 +728,10 @@ function getBookingErrorMessage(error: unknown) {
 
 	if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
 		return "Could not load availability right now. Check the Convex logs for the Google error details.";
+	}
+
+	if (code === "GOOGLE_CALENDAR_RATE_LIMITED") {
+		return "Availability was refreshed too many times. Please a minute and try again.";
 	}
 
 	return error instanceof Error ? error.message : "Something went wrong.";

@@ -27,12 +27,14 @@ import {
 	getGoogleCalendarErrorDetails,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
+import { rateLimiter } from "./lib/rateLimits";
 import { createBookingInvoiceArtifacts } from "../src/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
 type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-	| "GOOGLE_CALENDAR_CREATE_FAILED";
+	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_RATE_LIMITED";
 
 type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
@@ -181,9 +183,22 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 export const getMonthlyBusyWindows = action({
 	args: {
 		month: v.string(),
+		rateLimitKey: v.string(),
 	},
-	handler: async (_ctx, args): Promise<MonthlyBusyWindowsResult> => {
+	handler: async (ctx, args): Promise<MonthlyBusyWindowsResult> => {
 		try {
+			const globalRateLimitStatus = await rateLimiter.limit(
+				ctx,
+				"googleCalendarAvailabilityGlobal",
+			);
+			const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", {
+				key: args.rateLimitKey,
+			});
+
+			if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
+				throw createBookingCalendarError("GOOGLE_CALENDAR_RATE_LIMITED");
+			}
+
 			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
 			const { timeMin, timeMax } = getMonthAvailabilityRange(args.month, timeZone);
 			const busyWindows = await getBusyWindowsInRange({

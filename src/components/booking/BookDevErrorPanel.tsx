@@ -20,6 +20,10 @@ const DEV_ERROR_OPTIONS = [
 		value: "GOOGLE_CALENDAR_AVAILABILITY_FAILED",
 	},
 	{
+		label: "Availability Rate Limited",
+		value: "GOOGLE_CALENDAR_RATE_LIMITED",
+	},
+	{
 		label: "Unknown Error",
 		value: "UNKNOWN",
 	},

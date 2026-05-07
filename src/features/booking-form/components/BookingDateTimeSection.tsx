@@ -1,4 +1,5 @@
 import { useStore } from "@tanstack/react-store";
+import { LoaderCircle } from "lucide-react";
 import { Calendar } from "#/components/ui/calendar";
 import {
 	Field,
@@ -27,9 +28,7 @@ import {
 	formatBookingDateSummary,
 	formatBookingTimeRange,
 	formatDateValue,
-	formatMonthName,
 	formatTimeValue,
-	parseDateValue,
 	startOfMonth,
 	toOptionId,
 } from "#/lib/bookingdatetime";
@@ -40,7 +39,7 @@ const sectionCopy = {
 	timeLabel: "SESSION TIME *",
 	selectDatePrompt: "Select a date to view times.",
 	pastDatesUnavailable: "Past dates are unavailable.",
-	loadingTimesPrefix: "Loading times for",
+	loadingAvailability: "Loading availability...",
 	noTimesAvailable: "No times available for this date.",
 } as const;
 
@@ -76,9 +75,6 @@ export function BookingDateTimeSection({
 	const shouldShowFieldError = submissionAttempts > 0;
 	const availableTimes = availableTimeSections.flatMap((section) => section.times);
 	const hasAvailableTimes = availableTimes.length > 0;
-	const selectedMonthName = formValues.date
-		? formatMonthName(parseDateValue(formValues.date) ?? new Date())
-		: undefined;
 	const bookingDateSummary = formValues.date
 		? formatBookingDateSummary(formValues.date)
 		: "No selected date";
@@ -156,9 +152,10 @@ export function BookingDateTimeSection({
 								{formValues.date && isViewingSelectedMonth && isSelectedDateInPast ? (
 									<FieldDescription>{sectionCopy.pastDatesUnavailable}</FieldDescription>
 								) : null}
-								{selectedMonthName && isViewingSelectedMonth && isLoadingMonthAvailability ? (
-									<FieldDescription>
-										{sectionCopy.loadingTimesPrefix} {selectedMonthName}...
+								{formValues.date && isViewingSelectedMonth && isLoadingMonthAvailability ? (
+									<FieldDescription className="flex items-center gap-2">
+										<LoaderCircle className="size-4 animate-spin" />
+										{sectionCopy.loadingAvailability}
 									</FieldDescription>
 								) : null}
 								{!isLoadingMonthAvailability &&
