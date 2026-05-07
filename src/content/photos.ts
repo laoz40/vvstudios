@@ -30,7 +30,7 @@ export interface PhotosPageContent {
 }
 
 export const photosPageContent: PhotosPageContent = {
-	title: "A quick look at the space",
+	title: "What to expect at VV Studios",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",

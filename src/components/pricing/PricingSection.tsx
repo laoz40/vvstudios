@@ -19,10 +19,8 @@ type PricingAddOn = {
 
 const pricingPageCopy = {
 	title: "Studio session pricing",
-	lead: "Pricing is based on session duration. You can choose either the table setup or armchair setup.",
+	lead: "Each session includes a fully prepared studio for creators who want their content to look and sound proffesional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOnsTitle: "Production add-ons",
-	addOnsLead:
-		"Each session includes a fully prepared space with three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	bookSessionLabel: "Book session",
 } as const;
 
@@ -31,15 +29,15 @@ const pricingSessions: readonly PricingSession[] = [
 		label: "1 Hour",
 		price: "$200",
 		baseRatePrice: "$200",
-		description: "Quick focused recording window. Best for solo episodes or short interviews.",
+		description:
+			"Quick focused recording window. Best for solo episodes, voiceovers or short interviews.",
 	},
 	{
 		label: "2 Hours",
 		price: "$299",
 		baseRatePrice: "$400",
 		savings: "Save $101",
-		description:
-			"Balanced option for most projects. Great for interviews and longer conversations.",
+		description: "Balanced session for interviews, business podcasts and longer conversations.",
 		isMostPopular: true,
 	},
 	{
@@ -47,8 +45,7 @@ const pricingSessions: readonly PricingSession[] = [
 		price: "$399",
 		baseRatePrice: "$600",
 		savings: "Save $201",
-		description:
-			"Extended time for deeper coverage. Ideal for deeper sessions or content batching.",
+		description: "Extended time for deeper interviews, multiple guests or content batching.",
 	},
 ];
 
@@ -89,11 +86,11 @@ export function PricingSection({
 				.filter(Boolean)
 				.join(" ")}>
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-				<div className="max-w-3xl space-y-4 pb-2">
+				<div className="space-y-4 pb-2">
 					<HeadingTag className="text-2xl leading-none font-bold md:text-4xl">
 						{pricingPageCopy.title}
 					</HeadingTag>
-					<p className="text-muted-foreground text-sm text-pretty leading-7 sm:text-base">
+					<p className="text-muted-foreground text-base text-pretty leading-7 sm:text-base">
 						{pricingPageCopy.lead}
 					</p>
 				</div>
@@ -113,11 +110,8 @@ export function PricingSection({
 									Most popular
 								</span>
 							) : null}
-							<div className="flex flex-1 flex-col gap-2 sm:gap-4">
-								<div className="space-y-2">
-									<div className="flex items-center justify-between gap-4">
-										<h3 className="text-foreground text-base">{session.label}</h3>
-									</div>
+							<div className="flex flex-1 flex-col space-y-2">
+									<h3 className="text-foreground text-base font-semibold">{session.label}</h3>
 									<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
 									<div className="min-h-6">
 										{session.savings ? (
@@ -131,7 +125,6 @@ export function PricingSection({
 										) : (
 											<p className="text-muted-foreground text-xs">Standard rate</p>
 										)}
-									</div>
 								</div>
 
 								<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
@@ -163,9 +156,6 @@ export function PricingSection({
 							<h2 className="text-xl leading-none font-bold md:text-2xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>
-							<p className="text-muted-foreground text-sm mt-4 text-pretty leading-7 sm:text-base">
-								{pricingPageCopy.addOnsLead}
-							</p>
 						</div>
 
 						<div className="grid gap-10 md:grid-cols-3 md:gap-16">
