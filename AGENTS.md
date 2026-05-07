@@ -42,7 +42,7 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 ### Naming Conventions
 
-- component files: `PascalCase.svelte`.
+- component files: `PascalCase.tsx`.
 - Utility functions/variables: `camelCase`.
 - Exported type names: `PascalCase`.
 
