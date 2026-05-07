@@ -7,6 +7,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
+import { Analytics } from "@vercel/analytics/react";
 import { ArrowRight, Home } from "lucide-react";
 import logoYellow from "#/assets/vv-logo-yellow.svg";
 import { SmoothScroll } from "#/components/SmoothScroll";
@@ -117,6 +118,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						<Toaster />
 					</ConvexProvider>
 				</ClerkProvider>
+				<Analytics />
 				<Scripts />
 			</body>
 		</html>
