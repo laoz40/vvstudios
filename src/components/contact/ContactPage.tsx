@@ -93,7 +93,6 @@ function ContactCard() {
 
 		let frame = 0;
 		let nextTransform = "rotateX(0deg) rotateY(0deg)";
-		let nextShadow = "0 24px 36px rgba(15, 23, 42, 0.18)";
 		let nextGlareOpacity = "0";
 		let nextGlareBackground = "none";
 		const maxRotation = 5;
@@ -101,7 +100,6 @@ function ContactCard() {
 		const apply = () => {
 			frame = 0;
 			card.style.transform = nextTransform;
-			card.style.boxShadow = nextShadow;
 			glare.style.opacity = nextGlareOpacity;
 			glare.style.background = nextGlareBackground;
 		};
@@ -114,7 +112,6 @@ function ContactCard() {
 
 		const reset = () => {
 			nextTransform = "rotateX(0deg) rotateY(0deg)";
-			nextShadow = "0 24px 36px rgba(15, 23, 42, 0.18)";
 			nextGlareOpacity = "0";
 			nextGlareBackground = "none";
 			queueApply();
@@ -132,7 +129,6 @@ function ContactCard() {
 			const glareY = (y / rect.height) * 100;
 
 			nextTransform = `rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
-			nextShadow = `${(rotateY * 1.5).toFixed(2)}px ${(-rotateX * 2).toFixed(2)}px 34px rgba(15, 23, 42, 0.18)`;
 			nextGlareOpacity = "0.18";
 			nextGlareBackground = `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255, 255, 255, 0.32), transparent 58%)`;
 			queueApply();

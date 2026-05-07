@@ -29,9 +29,7 @@ export function PhotosSection({
 	return (
 		<section className={cn("px-4 pt-28 pb-16 md:pt-32", className)}>
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-				<div className="max-w-3xl space-y-4">
-					{heading}
-				</div>
+				<div className="max-w-3xl space-y-4">{heading}</div>
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 					{images.map((image, index) => (
 						<figure

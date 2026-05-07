@@ -36,8 +36,7 @@ const addonCardCopy = {
 		price: "+$99",
 	},
 	"Clips Package": {
-		description:
-			"10 clips with subtitles and vertical cropping ready for social media.",
+		description: "10 clips with subtitles and vertical cropping ready for social media.",
 		icon: Smartphone,
 		price: "+$79",
 	},

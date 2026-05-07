@@ -249,7 +249,7 @@ textarea {
 		transform 120ms ease-out,
 		box-shadow 180ms ease-out;
 	will-change: transform;
-	box-shadow: 0 24px 36px rgba(15, 23, 42, 0.18);
+	box-shadow: var(--shadow-2xl);
 }
 
 .contact-card__image {
@@ -294,7 +294,7 @@ textarea {
 @media (hover: none), (pointer: coarse) {
 	.contact-card {
 		transform: none !important;
-		box-shadow: 0 24px 36px rgba(15, 23, 42, 0.18);
+		box-shadow: var(--shadow-2xl);
 	}
 
 	.contact-card__glare {
