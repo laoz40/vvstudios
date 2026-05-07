@@ -142,7 +142,7 @@ export function PricingSection({
 									<Button
 										asChild
 										size="lg"
-										className="w-full justify-center gap-1.5 text-base font-medium">
+										className="w-full justify-center gap-1.5 text-base font-medium shadow-lg shadow-primary/45">
 										<Link to="/book">
 											{pricingPageCopy.bookSessionLabel}
 											<ArrowRight

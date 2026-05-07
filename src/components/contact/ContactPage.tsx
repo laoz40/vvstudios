@@ -52,7 +52,7 @@ export function ContactPage() {
 				<Button
 					asChild
 					size="lg"
-					className="min-w-64 flex-1 gap-1.5 border-2 border-primary px-4 py-5 text-base font-semibold sm:px-8">
+					className="h-auto min-w-64 flex-1 gap-1.5 px-4 py-3 text-base font-semibold shadow-lg shadow-primary/45 sm:px-8">
 					<Link to="/book">
 						{contactActionCopy.bookCta}
 						<ArrowRight
@@ -63,7 +63,7 @@ export function ContactPage() {
 				</Button>
 				<FreeTourDialogButton
 					label={contactActionCopy.tourCta}
-					className="min-w-64 flex-1 border-2 px-4 py-5 text-base font-medium! sm:px-8"
+					className="h-auto min-w-64 flex-1 border-0 px-4 py-3 text-base font-medium! shadow-md shadow-background/25 sm:px-8"
 				/>
 			</div>
 		</section>

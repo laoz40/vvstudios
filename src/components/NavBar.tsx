@@ -100,7 +100,7 @@ function NavCta({
 			asChild
 			size="lg"
 			variant={variant === "primary" ? "default" : "secondary"}
-			className={href === BOOK_LINK.href ? "gap-1.5" : undefined}>
+			className={href === BOOK_LINK.href ? "gap-1.5 shadow-lg shadow-primary/45" : undefined}>
 			<Link to={href}>
 				{label}
 				{href === BOOK_LINK.href ? (

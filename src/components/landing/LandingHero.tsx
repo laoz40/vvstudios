@@ -76,7 +76,7 @@ export function LandingHero() {
 						<Button
 							asChild
 							size="lg"
-							className="flex-1 gap-1.5 border-2 border-primary px-8 py-5 text-base font-medium md:flex-none">
+							className="h-auto flex-1 gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none">
 							<Link to="/book">
 								{heroCopy.bookCta}
 								<ArrowRight
@@ -88,7 +88,7 @@ export function LandingHero() {
 
 						<FreeTourDialogButton
 							label={heroCopy.tourCta}
-							className="flex-1 border-2 border-border/80 bg-background/60 px-8 py-5 text-base font-medium! hover:bg-background/75 md:flex-none"
+							className="h-auto flex-1 border-0 bg-background/60 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-background/75 md:flex-none"
 						/>
 					</div>
 
