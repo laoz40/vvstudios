@@ -67,7 +67,7 @@ const pricingAddOns: readonly PricingAddOn[] = [
 		label: "Clips Package",
 		price: "$79",
 		description:
-			"Includes 10 clips with subtitles and vertical cropping to make them social media ready.",
+			"10 clips with subtitles and vertical cropping ready for social media.",
 	},
 ];
 
