@@ -9,8 +9,8 @@ import { env } from "#/env";
 
 const heroCopy = {
 	eyebrow: "From Vertigo Visuals",
-	title: "The Best Studio in South West Sydney",
-	lead: "A space to focus on your business or craft. We take care of the production from setup to final product.",
+	title: "Hire The Top Studio in South West Sydney",
+	lead: "A space to focus on your business or craft. You bring the idea, and we'll make sure it's captured properly.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
@@ -23,7 +23,7 @@ export function LandingHero() {
 	return (
 		<section
 			aria-labelledby="landing-hero-title"
-			className="relative isolate min-h-screen overflow-hidden md:-mx-4 lg:-mx-6">
+			className="relative isolate min-h-svh overflow-hidden md:-mx-4 lg:-mx-6">
 			<div
 				aria-hidden
 				className="absolute inset-0 -z-20">
@@ -47,7 +47,7 @@ export function LandingHero() {
 
 			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
-			<div className="absolute inset-x-4 bottom-24 z-10 max-w-lg md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
+			<div className="absolute inset-x-4 bottom-6 z-10 max-w-xl sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
 				<motion.div
 					className="flex flex-col gap-2 md:max-w-xl"
 					initial={{
@@ -60,7 +60,7 @@ export function LandingHero() {
 						duration: shouldReduceMotion ? 0 : 0.75,
 						ease: "easeOut",
 					}}>
-					<p className="text-primary text-sm font-semibold tracking-widest uppercase">
+					<p className="text-primary text-xs font-semibold tracking-widest uppercase md:text-sm">
 						{heroCopy.eyebrow}
 					</p>
 					<h1
@@ -68,11 +68,11 @@ export function LandingHero() {
 						className="max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl">
 						{heroCopy.title}
 					</h1>
-					<p className="text-muted-foreground mt-4 max-w-sm text-base leading-relaxed text-pretty md:max-w-xl">
+					<p className="text-muted-foreground mt-1 text-sm leading-relaxed text-pretty md:text-base md:mt-4 md:max-w-lg">
 						{heroCopy.lead}
 					</p>
 
-					<div className="mt-2 flex w-full flex-wrap gap-3 md:mt-4">
+					<div className="mt-4 flex w-full flex-wrap gap-3 md:mt-4">
 						<Button
 							asChild
 							size="lg"
@@ -88,11 +88,11 @@ export function LandingHero() {
 
 						<FreeTourDialogButton
 							label={heroCopy.tourCta}
-							className="h-auto flex-1 border-0 bg-background/60 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-background/75 md:flex-none"
+							className="h-auto flex-1 border-0 bg-background/80 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 backdrop-blur-md hover:bg-background/90 md:flex-none"
 						/>
 					</div>
 
-					<div className="mt-7 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
+					<div className="mt-8 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
 						<MapPin
 							className="text-primary"
 							aria-hidden
