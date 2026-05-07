@@ -99,12 +99,12 @@ export function PricingSection({
 					</p>
 				</div>
 
-				<div className="grid gap-5 lg:grid-cols-3">
+				<div className="grid gap-7 sm:gap-5 lg:grid-cols-3">
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
 							className={[
-								"bg-card relative flex h-full flex-col rounded-lg border p-4 sm:p-6",
+								"bg-card relative flex h-full flex-col rounded-lg border p-4 sm:px-5 sm:py-6 shadow-xl",
 								session.isMostPopular ? "border-primary" : "border-border",
 							]
 								.filter(Boolean)
@@ -114,15 +114,15 @@ export function PricingSection({
 									Most popular
 								</span>
 							) : null}
-							<div className="flex flex-1 flex-col gap-4">
+							<div className="flex flex-1 flex-col gap-2 sm:gap-4">
 								<div className="space-y-2">
 									<div className="flex items-center justify-between gap-4">
-										<h3 className="text-foreground text-lg sm:text-lg">{session.label}</h3>
+										<h3 className="text-foreground text-base">{session.label}</h3>
 									</div>
 									<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
 									<div className="min-h-6">
 										{session.savings ? (
-											<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+											<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
 												<p className="text-muted-foreground">
 													<span className="line-through">{session.baseRatePrice}</span>
 													<span> standard rate</span>
@@ -130,7 +130,7 @@ export function PricingSection({
 												<p className="text-primary font-semibold">{session.savings}</p>
 											</div>
 										) : (
-											<p className="text-muted-foreground text-sm">Standard rate</p>
+											<p className="text-muted-foreground text-xs">Standard rate</p>
 										)}
 									</div>
 								</div>
@@ -139,7 +139,7 @@ export function PricingSection({
 									{session.description}
 								</p>
 
-								<div className="mt-auto pt-2">
+								<div className="mt-auto pt-6 sm:pt-8">
 									<Button
 										asChild
 										size="lg"
