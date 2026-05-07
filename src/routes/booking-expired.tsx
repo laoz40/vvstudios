@@ -51,7 +51,8 @@ function BookingExpiredPage() {
 				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					<Button
 						asChild
-						className="w-full sm:w-auto">
+						size="lg"
+						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto">
 						<Link to="/book">
 							<RotateCcw aria-hidden />
 							Try again
@@ -59,7 +60,8 @@ function BookingExpiredPage() {
 					</Button>
 					<Button
 						asChild
-						className="w-full sm:w-auto"
+						size="lg"
+						className="h-auto w-full border-0 bg-background/60 px-8 py-3 text-base font-medium shadow-md shadow-background/25 hover:bg-background/75 sm:w-auto"
 						variant="outline">
 						<Link to="/">
 							<Home aria-hidden />
