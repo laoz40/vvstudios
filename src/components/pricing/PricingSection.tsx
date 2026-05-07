@@ -154,24 +154,24 @@ export function PricingSection({
 				</div>
 
 				<div className="mt-8 space-y-4">
-					<section className="space-y-4">
-						<div className="max-w-3xl space-y-4">
+					<section className="space-y-12">
+						<div>
 							<h2 className="text-xl leading-none font-bold md:text-2xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>
-							<p className="text-muted-foreground text-sm text-pretty leading-7 sm:text-base">
+							<p className="text-muted-foreground text-sm mt-4 text-pretty leading-7 sm:text-base">
 								{pricingPageCopy.addOnsLead}
 							</p>
 						</div>
 
-						<div className="grid gap-4 md:grid-cols-3">
+						<div className="grid gap-10 md:grid-cols-3 md:gap-16">
 							{pricingAddOns.map((addOn) => (
 								<div
 									key={addOn.label}
-									className="border-border bg-card flex h-full flex-col gap-3 rounded-lg border p-5">
-									<div className="flex items-start justify-between gap-4">
-										<h3 className="text-base font-semibold">{addOn.label}</h3>
-										<p className="text-primary text-base font-semibold">{addOn.price}</p>
+									className="flex h-full w-full max-w-xs flex-col gap-3">
+									<div className="flex items-start justify-start gap-2">
+										<h3 className="text-base font-medium">{addOn.label}</h3>
+										<p className="text-primary text-base font-medium">{addOn.price}</p>
 									</div>
 									<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
 										{addOn.description}

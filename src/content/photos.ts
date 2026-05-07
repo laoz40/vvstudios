@@ -20,7 +20,6 @@ export interface PhotoGalleryImage {
 
 export interface PhotosPageContent {
 	title: string;
-	introText: string;
 	bookCta: string;
 	tourCta: string;
 	tourDialogLabel: string;
@@ -32,8 +31,6 @@ export interface PhotosPageContent {
 
 export const photosPageContent: PhotosPageContent = {
 	title: "A quick look at the space",
-	introText:
-		"These photos give you a proper look at the studio before you book. You can see the sets, the lighting, and the overall feel of the space, so you know what to expect when you walk in.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",

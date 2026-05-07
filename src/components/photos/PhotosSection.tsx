@@ -31,9 +31,6 @@ export function PhotosSection({
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
 				<div className="max-w-3xl space-y-4">
 					{heading}
-					<p className="text-muted-foreground text-sm leading-7 text-pretty sm:text-base">
-						{photosPageContent.introText}
-					</p>
 				</div>
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 					{images.map((image, index) => (
