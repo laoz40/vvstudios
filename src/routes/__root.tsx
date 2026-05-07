@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ArrowRight, Home } from "lucide-react";
 import logoYellow from "#/assets/vv-logo-yellow.svg";
 import { SmoothScroll } from "#/components/SmoothScroll";
@@ -119,6 +120,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 					</ConvexProvider>
 				</ClerkProvider>
 				<Analytics />
+				<SpeedInsights />
 				<Scripts />
 			</body>
 		</html>
