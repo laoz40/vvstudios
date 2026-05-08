@@ -560,7 +560,7 @@ function BookingPage() {
 
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
-			<h1 className="font-brand text-[2.5rem] leading-none md:text-6xl uppercase">
+			<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
 				{pageCopy.title}
 			</h1>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
