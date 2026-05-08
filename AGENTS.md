@@ -6,6 +6,7 @@ Booking website for podcast studio.
 - typescript
 - shadcn
 - t3env for env vars
+- bun
 
 For Convex code, always read `convex/_generated/ai/guidelines.md` first for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
 
@@ -15,7 +16,8 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Keep diffs small and task-focused
 - Preserve existing architectural style.
 - Before adding helper functions, check for lib files that have related logic
-- bun run format and lint once changes are complete
+- run format and lint once changes are complete
+- do not run build
 
 ## Behavior
 
