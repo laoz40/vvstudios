@@ -102,7 +102,7 @@ export function BookingAddonsSection() {
 													{isChecked ? (
 														<span
 															className={cn(
-																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
 																getPillStateClassName(true),
 															)}>
 															SELECTED
@@ -118,7 +118,7 @@ export function BookingAddonsSection() {
 											{isChecked ? (
 												<span
 													className={cn(
-														"hidden items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:inline-flex md:min-h-8 md:px-3 md:py-1",
+														"hidden items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:inline-flex md:min-h-8 md:px-3 md:py-1",
 														getPillStateClassName(true),
 													)}>
 													SELECTED

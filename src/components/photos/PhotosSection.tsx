@@ -12,7 +12,8 @@ export interface PhotosSectionProps {
 	images?: PhotoGalleryImage[];
 }
 
-const headingTagClassName = "text-2xl leading-none font-bold md:text-4xl";
+const headingTagClassName =
+	"font-brand text-[2.5rem] leading-none text-pretty tracking-tight uppercase md:text-6xl";
 
 export function PhotosSection({
 	className,
@@ -28,8 +29,8 @@ export function PhotosSection({
 
 	return (
 		<section className={cn("px-4 pt-28 pb-16 md:pt-32", className)}>
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-				<div className="max-w-3xl space-y-4">{heading}</div>
+			<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6">
+				<div className="max-w-3xl space-y-4 text-center">{heading}</div>
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 					{images.map((image, index) => (
 						<figure
@@ -48,11 +49,11 @@ export function PhotosSection({
 					))}
 				</div>
 			</div>
-			<div className="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
+			<div className="mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
 				<Button
 					asChild
 					size="lg"
-					className="h-auto min-w-64 flex-1 gap-1.5 px-4 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:px-8">
+					className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0">
 					<Link to="/book">
 						{photosPageContent.bookCta}
 						<ArrowRight
@@ -63,7 +64,7 @@ export function PhotosSection({
 				</Button>
 				<FreeTourDialogButton
 					label={photosPageContent.tourCta}
-					className="h-auto min-w-64 flex-1 border-0 px-4 py-3 text-base font-medium! shadow-md shadow-background/25 sm:px-8"
+					className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
 				/>
 			</div>
 		</section>

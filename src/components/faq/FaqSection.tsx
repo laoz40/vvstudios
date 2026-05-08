@@ -78,16 +78,18 @@ export function FaqSection({ id, className, containerClassName }: FaqSectionProp
 			aria-labelledby={id}
 			className={className}>
 			<div className={containerClassName}>
-				<h2
-					id={id}
-					className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
-					{faqSectionCopy.title}
-				</h2>
+				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+					<h2
+						id={id}
+						className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
+						{faqSectionCopy.title}
+					</h2>
+				</div>
 
 				<Accordion
 					type="single"
 					collapsible
-					className="mt-4">
+					className="mx-auto mt-10 max-w-4xl">
 					{faqSectionCopy.items.map((item) => (
 						<AccordionItem
 							key={item.question}

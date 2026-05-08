@@ -65,7 +65,8 @@ export function LandingHero() {
 					</p>
 					<h1
 						id="landing-hero-title"
-						className="max-w-sm text-4xl leading-tight font-bold tracking-tight text-balance md:max-w-xl md:text-6xl">
+						//className="text-4xl leading-tight font-bold tracking-tight text-balance md:text-6xl">
+						className="font-brand text-[2.75rem] leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-20">
 						{heroCopy.title}
 					</h1>
 					<p className="text-muted-foreground mt-1 text-sm leading-relaxed text-pretty md:text-base md:mt-4 md:max-w-lg">

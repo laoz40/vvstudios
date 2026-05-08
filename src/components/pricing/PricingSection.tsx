@@ -82,15 +82,15 @@ export function PricingSection({
 
 	return (
 		<section
-			className={["px-4 pb-16 sm:pb-20", compact ? "pt-8 md:pt-12" : "pt-28 md:pt-32", className]
+			className={["px-4 pb-16 sm:pb-20", compact ? "pt-16 md:pt-20" : "pt-28 md:pt-32", className]
 				.filter(Boolean)
 				.join(" ")}>
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-				<div className="space-y-4 pb-2">
-					<HeadingTag className="text-2xl leading-none font-bold md:text-4xl">
+			<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8">
+				<div className="flex max-w-4xl flex-col items-center gap-5 pb-2 text-center">
+					<HeadingTag className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
 						{pricingPageCopy.title}
 					</HeadingTag>
-					<p className="text-muted-foreground text-base text-pretty leading-7 sm:text-base">
+					<p className="text-muted-foreground text-base text-pretty leading-7 md:text-lg">
 						{pricingPageCopy.lead}
 					</p>
 				</div>
@@ -152,18 +152,18 @@ export function PricingSection({
 
 				<div className="mt-8 space-y-4">
 					<section className="space-y-12">
-						<div>
-							<h2 className="text-xl leading-none font-bold md:text-2xl">
+						<div className="text-center">
+							<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>
 						</div>
 
-						<div className="grid gap-10 md:grid-cols-3 md:gap-16">
+						<div className="grid gap-8 md:grid-cols-3 md:gap-18">
 							{pricingAddOns.map((addOn) => (
 								<div
 									key={addOn.label}
 									className="flex h-full w-full max-w-xs flex-col gap-3">
-									<div className="flex items-start justify-start gap-2">
+									<div className="flex items-start justify-between md:justify-start gap-2">
 										<h3 className="text-base font-medium">{addOn.label}</h3>
 										<p className="text-primary text-base font-medium">{addOn.price}</p>
 									</div>

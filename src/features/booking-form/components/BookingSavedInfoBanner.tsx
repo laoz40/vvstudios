@@ -13,7 +13,7 @@ export interface BookingSavedInfoBannerProps {
 
 export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBannerProps) {
 	return (
-		<section className="flex flex-col gap-4 rounded-2xl border border-primary/80 bg-card px-4 py-4 shadow-lg shadow-primary/20 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+		<section className="flex flex-col gap-4 rounded-lg border border-primary/80 bg-card px-4 py-4 shadow-lg shadow-primary/20 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 			<p className="text-sm text-foreground">
 				{sectionCopy.description}{" "}
 				<Button

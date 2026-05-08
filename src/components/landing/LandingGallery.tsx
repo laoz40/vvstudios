@@ -8,7 +8,7 @@ export function LandingGallery({ withTopSpacing = true }: LandingGalleryProps) {
 	return (
 		<PhotosSection
 			headingLevel="h2"
-			className={withTopSpacing ? "bg-background pt-16 md:pt-20" : "bg-background pt-0"}
+			className={withTopSpacing ? "bg-background py-16 md:py-20" : "bg-background pt-0"}
 		/>
 	);
 }

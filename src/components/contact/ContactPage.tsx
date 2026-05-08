@@ -6,7 +6,6 @@ import micImage from "#/assets/mic.webp";
 import { FreeTourDialogButton } from "#/components/FreeTourDialog";
 import { FaqSection } from "#/components/faq/FaqSection";
 import { Button } from "#/components/ui/button";
-import { Separator } from "#/components/ui/separator";
 import { env } from "#/env";
 
 const contactCardCopy = {
@@ -47,12 +46,11 @@ export function ContactPage() {
 				<ContactCard />
 			</div>
 			<ContactFaqSection />
-			<Separator className="mx-auto my-4 max-w-6xl" />
-			<div className="mx-auto mt-7 flex max-w-6xl flex-wrap gap-4 sm:gap-3 md:mt-12">
+			<div className="mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
 				<Button
 					asChild
 					size="lg"
-					className="h-auto min-w-64 flex-1 gap-1.5 px-4 py-3 text-base font-semibold shadow-lg shadow-primary/45 sm:px-8">
+					className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0">
 					<Link to="/book">
 						{contactActionCopy.bookCta}
 						<ArrowRight
@@ -63,7 +61,7 @@ export function ContactPage() {
 				</Button>
 				<FreeTourDialogButton
 					label={contactActionCopy.tourCta}
-					className="h-auto min-w-64 flex-1 border-0 px-4 py-3 text-base font-medium! shadow-md shadow-background/25 sm:px-8"
+					className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
 				/>
 			</div>
 		</section>
@@ -168,7 +166,9 @@ function ContactCard() {
 					className="contact-card__image h-auto w-full object-cover"
 				/>
 				<div className="contact-card__content absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
-					<h1 className="text-3xl font-bold tracking-tight md:text-4xl">{contactCardCopy.title}</h1>
+					<h1 className="font-brand text-4xl tracking-tight md:text-6xl uppercase">
+						{contactCardCopy.title}
+					</h1>
 
 					<dl
 						aria-label={contactCardCopy.contactInfoAriaLabel}

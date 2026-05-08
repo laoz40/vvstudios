@@ -116,7 +116,7 @@ export function BookingRecordingSpaceDurationSection() {
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-2xl border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
 												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
@@ -144,7 +144,7 @@ export function BookingRecordingSpaceDurationSection() {
 												<p className="text-base font-semibold text-foreground">{option.title}</p>
 												<span
 													className={cn(
-														"inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
+														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
 														getPillStateClassName(field.state.value === option.value),
 													)}>
 													{field.state.value === option.value ? "SELECTED" : "SELECT"}
@@ -207,7 +207,7 @@ export function BookingRecordingSpaceDurationSection() {
 													{isSelected ? (
 														<span
 															className={cn(
-																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
 																getPillStateClassName(true),
 															)}>
 															SELECTED
