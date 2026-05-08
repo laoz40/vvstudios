@@ -733,7 +733,7 @@ function getBookingErrorMessage(error: unknown) {
 	}
 
 	if (code === "GOOGLE_CALENDAR_RATE_LIMITED") {
-		return "Availability was refreshed too many times. Please a minute and try again.";
+		return "Calendar availability was refreshed too many times. Please wait a minute and try again.";
 	}
 
 	return error instanceof Error ? error.message : "Something went wrong.";
