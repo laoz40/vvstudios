@@ -19,7 +19,7 @@ type PricingAddOn = {
 
 const pricingPageCopy = {
 	title: "Studio session pricing",
-	lead: "Each session includes a fully prepared studio for creators who want their content to look and sound proffesional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
+	lead: "Each session comes with a fully prepared studio for creators who want their content to look and sound proffesional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOnsTitle: "Production add-ons",
 	bookSessionLabel: "Book session",
 } as const;
