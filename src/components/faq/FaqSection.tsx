@@ -15,7 +15,10 @@ type ContactFaqItem = {
 	answerParts: readonly ContactFaqAnswerPart[];
 };
 
-export const faqSectionCopy = {
+export const faqSectionCopy: {
+	readonly title: string;
+	readonly items: readonly ContactFaqItem[];
+} = {
 	title: "Frequently Asked Questions",
 	items: [
 		{
@@ -60,7 +63,7 @@ export const faqSectionCopy = {
 				},
 			],
 		},
-	] satisfies readonly ContactFaqItem[],
+	],
 } as const;
 
 export type FaqSectionProps = {
