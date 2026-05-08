@@ -1,9 +1,10 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "#convex/_generated/api";
 import { Button } from "#/components/ui/button";
-import { AdminDashboard } from "#/features/admin/components/AdminDashboard";
+import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard";
+import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/admin")({
@@ -24,7 +25,7 @@ function AdminPage() {
 	}
 
 	if (!userId) {
-		return <Navigate to="/login" />;
+		return <Navigate to={studioSite.routes.login} />;
 	}
 
 	if (!isConvexAuthenticated) {
@@ -39,7 +40,7 @@ function AdminPage() {
 					In Clerk, enable the Convex integration or create the <code>convex</code> JWT template,
 					then run <code>proxy npx convex dev</code>.
 				</p>
-				<SignOutButton redirectUrl="/login">
+				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<Button type="button">Sign out</Button>
 				</SignOutButton>
 			</main>
@@ -74,7 +75,7 @@ function AdminPageContent() {
 			isLoadingMoreBookings={bookingsStatus === "LoadingMore"}
 			loadMoreBookings={() => loadMoreBookings(100)}
 			signOutControl={
-				<SignOutButton redirectUrl="/login">
+				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<Button
 						type="button"
 						variant="outline">

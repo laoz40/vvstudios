@@ -1,4 +1,4 @@
-import { ReminderEmail } from "#/features/reminder-email/ReminderEmail";
+import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 
 const previewProps = {
 	addonsLine: "4K UHD Recording, Clips Package",

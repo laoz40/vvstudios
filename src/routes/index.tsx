@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PricingSection } from "#/components/pricing/PricingSection";
-import { faqSectionCopy } from "#/components/faq/FaqSection";
-import { LandingFaq } from "#/components/landing/LandingFaq";
-import { LandingGallery } from "#/components/landing/LandingGallery";
-import { LandingHero } from "#/components/landing/LandingHero";
-import { LandingTestimonials } from "#/components/landing/LandingTestimonials";
+import { faqSectionCopy, HomePage } from "#studio/pages/HomePage";
 import {
 	buildFaqPageJsonLd,
 	buildLocalBusinessJsonLd,
@@ -42,18 +37,3 @@ export const Route = createFileRoute("/")({
 	}),
 	component: HomePage,
 });
-
-function HomePage() {
-	return (
-		<main className="-mt-18 md:-mt-28">
-			<LandingHero />
-			<LandingTestimonials />
-			<LandingGallery />
-			<PricingSection
-				compact
-				className="bg-background text-foreground"
-			/>
-			<LandingFaq />
-		</main>
-	);
-}

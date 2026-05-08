@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Home, RotateCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
-import { api } from "../../convex/_generated/api";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { api } from "#convex/_generated/api";
+import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-expired")({
@@ -53,7 +54,7 @@ function BookingExpiredPage() {
 						asChild
 						size="lg"
 						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto">
-						<Link to="/book">
+						<Link to={studioSite.routes.book}>
 							<RotateCcw aria-hidden />
 							Try again
 						</Link>
@@ -63,7 +64,7 @@ function BookingExpiredPage() {
 						size="lg"
 						className="h-auto w-full border-0 bg-background/60 px-8 py-3 text-base font-medium shadow-md shadow-background/25 hover:bg-background/75 sm:w-auto"
 						variant="outline">
-						<Link to="/">
+						<Link to={studioSite.routes.home}>
 							<Home aria-hidden />
 							Return home
 						</Link>

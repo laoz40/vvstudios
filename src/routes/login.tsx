@@ -2,6 +2,7 @@ import { SignIn, useAuth } from "@clerk/clerk-react";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
+import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/login")({
@@ -21,7 +22,7 @@ function LoginPage() {
 	}
 
 	if (userId) {
-		return <Navigate to="/admin" />;
+		return <Navigate to={studioSite.routes.admin} />;
 	}
 
 	return (
@@ -33,7 +34,7 @@ function LoginPage() {
 						Authorised access only. If you want to create a booking, please go to the{" "}
 						<Link
 							className="accent-link"
-							to="/book">
+							to={studioSite.routes.book}>
 							booking page
 						</Link>
 						. No login is needed.
@@ -42,10 +43,10 @@ function LoginPage() {
 				<CardContent className="px-5 pb-5">
 					<SignIn
 						routing="hash"
-						forceRedirectUrl="/admin"
-						fallbackRedirectUrl="/admin"
-						signUpForceRedirectUrl="/admin"
-						signUpFallbackRedirectUrl="/admin"
+						forceRedirectUrl={studioSite.routes.admin}
+						fallbackRedirectUrl={studioSite.routes.admin}
+						signUpForceRedirectUrl={studioSite.routes.admin}
+						signUpFallbackRedirectUrl={studioSite.routes.admin}
 						appearance={{
 							variables: {
 								colorBackground: "#2d2d2d",

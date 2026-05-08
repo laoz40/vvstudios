@@ -1,5 +1,6 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { studioSite } from "./src/config/sites";
 import babel from "@rolldown/plugin-babel";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -16,7 +17,13 @@ const config = defineConfig({
 			prerender: {
 				enabled: true,
 				crawlLinks: false,
-				filter: ({ path }) => ["/", "/pricing", "/gallery", "/contact"].includes(path),
+				filter: ({ path }) =>
+					[
+						studioSite.routes.home,
+						studioSite.routes.pricing,
+						studioSite.routes.gallery,
+						studioSite.routes.contact,
+					].includes(path),
 			},
 			sitemap: {
 				enabled: true,

@@ -1,6 +1,6 @@
-import { BookingInvoiceEmail } from "#/features/booking-invoice/email/BookingInvoiceEmail";
-import { buildBookingInvoiceData } from "#/features/booking-invoice/lib/build-booking-invoice-data";
-import { SAMPLE_BOOKING_INVOICE_INPUT } from "#/features/booking-invoice/lib/sample-booking-invoice-input";
+import { BookingInvoiceEmail } from "#studio/features/booking-invoice/email/BookingInvoiceEmail";
+import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { SAMPLE_BOOKING_INVOICE_INPUT } from "#studio/features/booking-invoice/lib/sample-booking-invoice-input";
 
 const previewData = buildBookingInvoiceData(SAMPLE_BOOKING_INVOICE_INPUT);
 

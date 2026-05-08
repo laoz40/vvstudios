@@ -1,7 +1,7 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { BOOKING_INVOICE_BUSINESS } from "../../src/features/booking-invoice/lib/constants";
-import { renderHostBookingDetailsEmail } from "#/features/host-booking-details-email/render-host-booking-details-email";
-import { renderReminderEmail } from "#/features/reminder-email/render-reminder-email";
+import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
+import { renderHostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/render-host-booking-details-email";
+import { renderReminderEmail } from "../../src/sites/studio/features/reminder-email/render-reminder-email";
 import { env } from "../env";
 import {
 	formatBookingDateLong,

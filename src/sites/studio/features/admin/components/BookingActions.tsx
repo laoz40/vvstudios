@@ -1,0 +1,377 @@
+import * as React from "react";
+import { useAction, useMutation } from "convex/react";
+import { MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "#convex/_generated/api";
+import type { Doc } from "#convex/_generated/dataModel";
+import { Button } from "#/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadBookingInvoicePdf } from "#studio/features/booking-invoice/pdf/download-booking-invoice-pdf";
+import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
+import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
+import {
+	BookingEditDialog,
+	type BookingEditDraft,
+} from "#studio/features/admin/components/BookingEditDialog";
+
+type BookingRecord = Doc<"bookings">;
+
+export type BookingActionsProps = {
+	booking: BookingRecord;
+};
+
+export function BookingActions({ booking }: BookingActionsProps) {
+	const deleteBooking = useMutation(api.bookings.deleteBooking);
+	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
+	const updateBooking = useMutation(api.bookings.updateBooking);
+	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
+	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
+	const [isSaving, setIsSaving] = React.useState(false);
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
+	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+	const customerBookingId = formatBookingInvoiceNumber(
+		booking._id,
+		booking.pendingPaymentCreatedAt,
+	);
+	const canToggleStatus = booking.status === "confirmed" || booking.status === "failed";
+	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
+	const toggleStatusLabel =
+		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
+
+	async function handleDeleteBooking() {
+		setIsDeleting(true);
+
+		try {
+			await deleteBooking({ bookingId: booking._id });
+			setIsDeleteDialogOpen(false);
+			toast.success("Booking deleted.");
+		} catch (error) {
+			toast.success(getDeleteBookingErrorMessage(error));
+		} finally {
+			setIsDeleting(false);
+		}
+	}
+
+	async function handleEditBooking(values: BookingEditDraft) {
+		setIsSaving(true);
+
+		try {
+			const parsedValues = bookingSchema.safeParse({
+				name: values.name,
+				phone: values.phone,
+				accountName: values.accountName,
+				abn: values.abn,
+				email: values.email,
+				date: values.date,
+				time: values.time,
+				duration: booking.duration,
+				service: values.service,
+				addons: values.addons,
+				notes: values.notes,
+			});
+
+			if (!parsedValues.success) {
+				toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+				return;
+			}
+
+			await updateBooking({
+				bookingId: booking._id,
+				name: parsedValues.data.name,
+				phone: parsedValues.data.phone,
+				accountName: parsedValues.data.accountName,
+				abn: parsedValues.data.abn,
+				email: parsedValues.data.email,
+				date: parsedValues.data.date,
+				time: parsedValues.data.time,
+				service: parsedValues.data.service,
+				addons: parsedValues.data.addons,
+				notes: parsedValues.data.notes || undefined,
+			});
+			setIsEditDialogOpen(false);
+			toast.success("Booking updated.");
+		} catch (error) {
+			toast.error(getBookingMutationErrorMessage(error));
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
+	async function handleToggleStatus() {
+		if (!canToggleStatus) {
+			return;
+		}
+
+		setIsUpdatingStatus(true);
+
+		try {
+			await updateBookingStatus({
+				bookingId: booking._id,
+				status: nextStatus,
+			});
+			toast.success(
+				nextStatus === "confirmed"
+					? "Booking marked as confirmed."
+					: "Booking marked as needs follow up.",
+			);
+		} catch (error) {
+			toast.error(getBookingStatusMutationErrorMessage(error));
+		} finally {
+			setIsUpdatingStatus(false);
+		}
+	}
+
+	async function handleDownloadInvoice() {
+		setIsDownloadingInvoice(true);
+
+		try {
+			const parsedBooking = bookingSchema.safeParse({
+				name: booking.name,
+				phone: booking.phone,
+				accountName: booking.accountName,
+				abn: booking.abn,
+				email: booking.email,
+				date: booking.date,
+				time: booking.time,
+				duration: booking.duration,
+				service: booking.service,
+				addons: booking.addons,
+				notes: booking.notes ?? "",
+			});
+
+			if (!parsedBooking.success) {
+				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
+				return;
+			}
+
+			await downloadBookingInvoicePdf({
+				bookingId: booking._id,
+				name: parsedBooking.data.name,
+				phone: parsedBooking.data.phone,
+				accountName: parsedBooking.data.accountName,
+				abn: parsedBooking.data.abn,
+				email: parsedBooking.data.email,
+				date: parsedBooking.data.date,
+				time: parsedBooking.data.time,
+				duration: parsedBooking.data.duration,
+				service: parsedBooking.data.service,
+				addons: parsedBooking.data.addons,
+				createdAt: booking.pendingPaymentCreatedAt,
+			});
+			toast.success("Invoice download started.");
+		} catch {
+			toast.error("Unable to generate invoice.");
+		} finally {
+			setIsDownloadingInvoice(false);
+		}
+	}
+
+	async function handleEmailInvoice() {
+		setIsEmailingInvoice(true);
+
+		try {
+			await sendBookingInvoiceForBooking({
+				bookingId: booking._id,
+			});
+			toast.success(`Invoice sent to ${booking.email}.`);
+		} catch (error) {
+			toast.error(getBookingInvoiceEmailErrorMessage(error));
+		} finally {
+			setIsEmailingInvoice(false);
+		}
+	}
+
+	return (
+		<>
+			<DropdownMenu modal={false}>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						className="touch-manipulation">
+						<span className="sr-only">Open booking actions</span>
+						<MoreHorizontal />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align="end"
+					className="w-56 touch-manipulation">
+					<DropdownMenuGroup>
+						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.name)}>
+							Copy customer name
+						</DropdownMenuItem>
+						{booking.accountName ? (
+							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.accountName)}>
+								Copy account name
+							</DropdownMenuItem>
+						) : null}
+						{booking.abn ? (
+							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.abn ?? "")}>
+								Copy ABN
+							</DropdownMenuItem>
+						) : null}
+						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.email)}>
+							Copy email
+						</DropdownMenuItem>
+						{booking.phone ? (
+							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.phone)}>
+								Copy phone
+							</DropdownMenuItem>
+						) : null}
+						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(String(booking._id))}>
+							Copy database ID
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(customerBookingId)}>
+							Copy booking ID
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuGroup>
+						<DropdownMenuItem asChild>
+							<a href={`mailto:${booking.email}`}>Email customer</a>
+						</DropdownMenuItem>
+						{booking.phone ? (
+							<DropdownMenuItem asChild>
+								<a href={`tel:${booking.phone}`}>Call customer</a>
+							</DropdownMenuItem>
+						) : null}
+					</DropdownMenuGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						disabled={isDownloadingInvoice}
+						onSelect={handleDownloadInvoice}>
+						{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						disabled={isEmailingInvoice}
+						onSelect={handleEmailInvoice}>
+						{isEmailingInvoice ? "Sending invoice..." : "Email invoice to customer"}
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					{canToggleStatus ? (
+						<>
+							<DropdownMenuItem
+								disabled={isUpdatingStatus}
+								onSelect={handleToggleStatus}>
+								{toggleStatusLabel}
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					<DropdownMenuItem
+						className="text-destructive focus:text-destructive"
+						onSelect={() => setIsEditDialogOpen(true)}>
+						Edit booking
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="text-destructive focus:text-destructive"
+						onSelect={() => setIsDeleteDialogOpen(true)}>
+						Delete booking
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<BookingDeleteDialog
+				open={isDeleteDialogOpen}
+				bookingName={booking.name}
+				bookingId={customerBookingId}
+				sessionDate={booking.date}
+				sessionTime={booking.time}
+				onOpenChange={setIsDeleteDialogOpen}
+				onConfirm={handleDeleteBooking}
+				isDeleting={isDeleting}
+			/>
+			<BookingEditDialog
+				open={isEditDialogOpen}
+				booking={booking}
+				bookingId={customerBookingId}
+				onOpenChange={setIsEditDialogOpen}
+				onSave={handleEditBooking}
+				isSaving={isSaving}
+			/>
+		</>
+	);
+}
+
+function getDeleteBookingErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to delete booking.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		default:
+			return "Unable to delete booking.";
+	}
+}
+
+function getBookingMutationErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to save booking changes.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		default:
+			return "Unable to save booking changes.";
+	}
+}
+
+function getBookingStatusMutationErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to update booking status.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		case "INVALID_BOOKING_STATUS_TRANSITION":
+			return "Only confirmed and needs follow up bookings can be toggled here.";
+		default:
+			return "Unable to update booking status.";
+	}
+}
+
+function getBookingInvoiceEmailErrorMessage(error: unknown) {
+	if (typeof error !== "object" || error === null) {
+		return "Unable to send invoice email.";
+	}
+
+	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
+
+	switch (code) {
+		case "NOT_AUTHENTICATED":
+			return "You are not signed in.";
+		case "BOOKING_NOT_FOUND":
+			return "That booking no longer exists.";
+		case "INVALID_BOOKING_DATA":
+			return "This booking has invalid invoice data.";
+		default:
+			return "Unable to send invoice email.";
+	}
+}

@@ -3,8 +3,8 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
-import { createBookingInvoiceArtifacts } from "../src/features/booking-invoice/lib/create-booking-invoice-artifacts";
+import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
+import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
 type BookingInvoiceDownloadErrorData = {
 	code:

@@ -7,7 +7,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
+import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
 import { env } from "./env";
 
 type CreateEmbeddedCheckoutSessionResult =

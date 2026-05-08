@@ -7,6 +7,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"#/*": ["./src/*"],
+			"#convex/*": ["./convex/*"],
+			"#studio/*": ["./src/sites/studio/*"],
 			"@/*": ["./src/*"]
 		},
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],

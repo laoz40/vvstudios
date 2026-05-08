@@ -5,7 +5,7 @@ import { google } from "googleapis";
 import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { bookingSchema } from "../src/features/booking-form/lib/form-shared";
+import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
 import { env } from "./env";
 import {
 	buildEventWindow,
@@ -28,7 +28,7 @@ import {
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
-import { createBookingInvoiceArtifacts } from "../src/features/booking-invoice/lib/create-booking-invoice-artifacts";
+import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
 type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"

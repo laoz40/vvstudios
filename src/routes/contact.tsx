@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ContactPage } from "#/components/contact/ContactPage";
+import { ContactPage } from "#studio/components/contact/ContactPage";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
 export const Route = createFileRoute("/contact")({

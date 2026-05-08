@@ -6,31 +6,34 @@ import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Id } from "../../convex/_generated/dataModel";
-import { BookDevErrorPanel, type BookDevErrorCode } from "#/components/booking/BookDevErrorPanel";
+import type { Id } from "#convex/_generated/dataModel";
+import {
+	BookDevErrorPanel,
+	type BookDevErrorCode,
+} from "#studio/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
-import { BookingContactSection } from "#/features/booking-form/components/BookingContactSection";
-import { BookingDateTimeSection } from "#/features/booking-form/components/BookingDateTimeSection.tsx";
-import { BookingRecordingSpaceDurationSection } from "#/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
-import { BookingAddonsSection } from "#/features/booking-form/components/BookingAddonsSection.tsx";
-import { TermsDialog } from "#/features/booking-form/components/TermsDialog";
-import { BookingSavedInfoBanner } from "#/features/booking-form/components/BookingSavedInfoBanner";
+import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
+import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
+import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
+import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
+import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
+import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import {
 	bookingFormContext,
 	type BookingFormApi,
-} from "#/features/booking-form/lib/booking-form-context";
+} from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	bookingSchema,
 	INITIAL_FORM,
 	TIME_SECTIONS,
 	type TimeSectionKey,
-} from "#/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/form-shared";
 import {
 	parseSavedBookingInfo,
 	SAVED_BOOKING_INFO_STORAGE_KEY,
 	toSavedBookingInfo,
 	type SavedBookingInfo,
-} from "#/features/booking-form/lib/saved-booking-info";
+} from "#studio/features/booking-form/lib/saved-booking-info";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
@@ -45,9 +48,9 @@ import {
 	parseMonthKey,
 	startOfToday,
 	type BusyPeriod,
-} from "#/lib/bookingdatetime";
-import { api } from "../../convex/_generated/api";
-import { BookingPaymentModal } from "#/features/booking-form/components/PaymentModal";
+} from "#studio/lib/bookingdatetime";
+import { api } from "#convex/_generated/api";
+import { BookingPaymentModal } from "#studio/features/booking-form/components/PaymentModal";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
 interface BookingErrorWithData {

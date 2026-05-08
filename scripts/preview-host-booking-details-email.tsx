@@ -1,4 +1,4 @@
-import { HostBookingDetailsEmail } from "#/features/host-booking-details-email/HostBookingDetailsEmail";
+import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 
 const previewProps = {
 	invoiceNumber: "VV-260502-ABC123",

@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { buildBookingInvoiceData } from "#/features/booking-invoice/lib/build-booking-invoice-data";
-import { SAMPLE_BOOKING_INVOICE_INPUT } from "#/features/booking-invoice/lib/sample-booking-invoice-input";
-import { renderBookingInvoicePdf } from "#/features/booking-invoice/pdf/render-booking-invoice-pdf";
+import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { SAMPLE_BOOKING_INVOICE_INPUT } from "#studio/features/booking-invoice/lib/sample-booking-invoice-input";
+import { renderBookingInvoicePdf } from "#studio/features/booking-invoice/pdf/render-booking-invoice-pdf";
 
 const OUTPUT_PATH = resolve(process.cwd(), "tmp/booking-invoice-preview.pdf");
 

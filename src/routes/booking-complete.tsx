@@ -8,11 +8,12 @@ import {
 	BookingCompleteDevScenarioPanel,
 	buildDevBooking,
 	parseBookingCompleteSearch,
-} from "#/components/booking/BookingCompleteDevScenarioPanel";
+} from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
-import { formatBookingInvoiceNumber } from "#/features/booking-invoice/lib/build-booking-invoice-data";
-import { formatBookingDate, formatTimeValue } from "#/lib/bookingdatetime";
-import { api } from "../../convex/_generated/api";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { formatBookingDate, formatTimeValue } from "#studio/lib/bookingdatetime";
+import { api } from "#convex/_generated/api";
+import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/booking-complete")({
@@ -87,7 +88,7 @@ function BookingCompletePage(): ReactNode {
 	if (booking.status === "expired") {
 		return (
 			<Navigate
-				to="/booking-expired"
+				to={studioSite.routes.bookingExpired}
 				search={{ session_id: usableStripeSessionId ?? undefined }}
 			/>
 		);
@@ -131,7 +132,7 @@ function BookingStatusLayout({
 						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto">
 						{primaryAction === "contact" ? (
 							<a
-								href="/contact"
+								href={studioSite.routes.contact}
 								rel="noreferrer"
 								target="_blank">
 								<Phone
@@ -141,7 +142,7 @@ function BookingStatusLayout({
 								Contact us
 							</a>
 						) : (
-							<Link to="/book">
+							<Link to={studioSite.routes.book}>
 								Make a new booking
 								<ArrowRight
 									className="translate-y-px stroke-3"
@@ -155,7 +156,7 @@ function BookingStatusLayout({
 						size="lg"
 						className="h-auto w-full border-0 bg-background/60 px-8 py-3 text-base font-medium shadow-md shadow-background/25 hover:bg-background/75 sm:w-auto"
 						variant="outline">
-						<Link to="/">
+						<Link to={studioSite.routes.home}>
 							<Home aria-hidden />
 							Return home
 						</Link>

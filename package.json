@@ -3,7 +3,9 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#/*": "./src/*"
+		"#/*": "./src/*",
+		"#convex/*": "./convex/*",
+		"#studio/*": "./src/sites/studio/*"
 	},
 	"scripts": {
 		"dev": "vite dev --port 3000",

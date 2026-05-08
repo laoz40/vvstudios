@@ -10,13 +10,14 @@ import { Image } from "@unpic/react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ArrowRight, Home } from "lucide-react";
-import logoYellow from "#/assets/vv-logo-yellow.svg";
-import { SmoothScroll } from "#/components/SmoothScroll";
-import { Footer } from "#/components/Footer";
-import { SiteNavbar } from "#/components/NavBar";
+import logoYellow from "#studio/assets/vv-logo-yellow.svg";
+import { studioSite } from "#/config/sites";
+import { SmoothScroll } from "#studio/components/SmoothScroll";
+import { StudioLayout } from "#studio/StudioLayout";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import appCss from "../styles.css?url";
+import studioCss from "../sites/studio/styles.css?url";
 import ClerkProvider from "../integrations/clerk/provider";
 import ConvexProvider from "../integrations/convex/provider";
 
@@ -36,19 +37,19 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "VV Studios",
+				title: studioSite.name,
 			},
 			{
 				name: "application-name",
-				content: "VV Studios",
+				content: studioSite.applicationName,
 			},
 			{
 				name: "theme-color",
-				content: "#1a1a1a",
+				content: studioSite.themeColor,
 			},
 			{
 				name: "apple-mobile-web-app-title",
-				content: "VV Studios",
+				content: studioSite.appleMobileWebAppTitle,
 			},
 		],
 		links: [
@@ -57,29 +58,33 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				href: appCss,
 			},
 			{
+				rel: "stylesheet",
+				href: studioCss,
+			},
+			{
 				rel: "icon",
 				type: "image/png",
 				sizes: "32x32",
-				href: "/favicon-32x32.png",
+				href: studioSite.icons.icon32,
 			},
 			{
 				rel: "icon",
 				type: "image/png",
 				sizes: "16x16",
-				href: "/favicon-16x16.png",
+				href: studioSite.icons.icon16,
 			},
 			{
 				rel: "shortcut icon",
-				href: "/favicon.ico",
+				href: studioSite.icons.shortcut,
 			},
 			{
 				rel: "apple-touch-icon",
 				sizes: "180x180",
-				href: "/apple-touch-icon.png",
+				href: studioSite.icons.appleTouch,
 			},
 			{
 				rel: "manifest",
-				href: "/site.webmanifest",
+				href: studioSite.icons.manifest,
 			},
 		],
 	}),
@@ -90,12 +95,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
-	const useMinimalLayout =
-		pathname === "/admin" ||
-		pathname === "/login" ||
-		pathname === "/booking-complete" ||
-		pathname === "/booking-expired";
-
 	return (
 		<html
 			lang="en"
@@ -103,19 +102,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<head>
 				<HeadContent />
 			</head>
-			<body>
+			<body className="studio-site">
 				<ClerkProvider>
 					<ConvexProvider>
 						<SmoothScroll />
-						{useMinimalLayout ? null : <SiteNavbar />}
-						<div
-							id="site-shell"
-							className={
-								useMinimalLayout ? "flex min-h-screen flex-col" : "min-h-screen pt-18 md:pt-24"
-							}>
-							{children}
-						</div>
-						{useMinimalLayout ? null : <Footer />}
+						<StudioLayout pathname={pathname}>{children}</StudioLayout>
 						<Toaster />
 					</ConvexProvider>
 				</ClerkProvider>
@@ -152,7 +143,7 @@ function NotFoundPage() {
 					<Button
 						asChild
 						size="lg">
-						<Link to="/book">
+						<Link to={studioSite.routes.book}>
 							Book a session
 							<ArrowRight
 								className="stroke-3"
@@ -164,7 +155,7 @@ function NotFoundPage() {
 						asChild
 						variant="outline"
 						size="lg">
-						<Link to="/">
+						<Link to={studioSite.routes.home}>
 							<Home aria-hidden />
 							Home
 						</Link>
