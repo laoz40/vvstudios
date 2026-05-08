@@ -35,7 +35,7 @@ export function Footer() {
 	return (
 		<footer className="px-4 py-10 sm:py-12">
 			<Separator className="mb-10" />
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
 				<div className="flex flex-col gap-5 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
 					<div className="space-y-2">
 						<p className="text-foreground text-xl font-black tracking-wide">
