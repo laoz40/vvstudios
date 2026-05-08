@@ -4,7 +4,7 @@ import { faqSectionCopy } from "#/components/faq/FaqSection";
 import { LandingFaq } from "#/components/landing/LandingFaq";
 import { LandingGallery } from "#/components/landing/LandingGallery";
 import { LandingHero } from "#/components/landing/LandingHero";
-import { Separator } from "#/components/ui/separator";
+import { LandingTestimonials } from "#/components/landing/LandingTestimonials";
 import {
 	buildFaqPageJsonLd,
 	buildLocalBusinessJsonLd,
@@ -47,13 +47,12 @@ function HomePage() {
 	return (
 		<main className="-mt-18 md:-mt-28">
 			<LandingHero />
+			<LandingTestimonials />
 			<LandingGallery />
-			<Separator className="mx-auto my-4 max-w-6xl" />
 			<PricingSection
 				compact
 				className="bg-background text-foreground"
 			/>
-			<Separator className="mx-auto my-4 max-w-6xl" />
 			<LandingFaq />
 		</main>
 	);
