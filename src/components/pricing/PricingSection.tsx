@@ -111,20 +111,20 @@ export function PricingSection({
 								</span>
 							) : null}
 							<div className="flex flex-1 flex-col space-y-2">
-									<h3 className="text-foreground text-base font-semibold">{session.label}</h3>
-									<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
-									<div className="min-h-6">
-										{session.savings ? (
-											<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
-												<p className="text-muted-foreground">
-													<span className="line-through">{session.baseRatePrice}</span>
-													<span> standard rate</span>
-												</p>
-												<p className="text-primary font-semibold">{session.savings}</p>
-											</div>
-										) : (
-											<p className="text-muted-foreground text-xs">Standard rate</p>
-										)}
+								<h3 className="text-foreground text-base font-semibold">{session.label}</h3>
+								<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
+								<div className="min-h-6">
+									{session.savings ? (
+										<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+											<p className="text-muted-foreground">
+												<span className="line-through">{session.baseRatePrice}</span>
+												<span> standard rate</span>
+											</p>
+											<p className="text-primary font-semibold">{session.savings}</p>
+										</div>
+									) : (
+										<p className="text-muted-foreground text-xs">Standard rate</p>
+									)}
 								</div>
 
 								<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">

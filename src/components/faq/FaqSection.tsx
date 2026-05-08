@@ -1,6 +1,9 @@
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
-import { cn } from "#/lib/utils";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "#/components/ui/accordion";
 
 type ContactFaqAnswerPart = {
 	heading?: string;
@@ -67,8 +70,6 @@ export type FaqSectionProps = {
 };
 
 export function FaqSection({ id, className, containerClassName }: FaqSectionProps) {
-	const [openItemIndex, setOpenItemIndex] = useState<number | null>(null);
-
 	return (
 		<section
 			aria-labelledby={id}
@@ -80,65 +81,31 @@ export function FaqSection({ id, className, containerClassName }: FaqSectionProp
 					{faqSectionCopy.title}
 				</h2>
 
-				<div className="mt-4">
-					{faqSectionCopy.items.map((item, index) => (
-						<FaqRow
-							isOpen={openItemIndex === index}
-							onToggle={() => {
-								setOpenItemIndex((current) => (current === index ? null : index));
-							}}
+				<Accordion
+					type="single"
+					collapsible
+					className="mt-4">
+					{faqSectionCopy.items.map((item) => (
+						<AccordionItem
 							key={item.question}
-							item={item}
-						/>
+							value={item.question}>
+							<AccordionTrigger>{item.question}</AccordionTrigger>
+							<AccordionContent>
+								{item.answerParts.map((part) => (
+									<p
+										key={`${item.question}-${part.heading ?? part.value}`}
+										className={part.heading ? "first:mt-0 mt-4" : undefined}>
+										{part.heading ? (
+											<strong className="text-foreground">{part.heading} </strong>
+										) : null}
+										{part.value}
+									</p>
+								))}
+							</AccordionContent>
+						</AccordionItem>
 					))}
-				</div>
+				</Accordion>
 			</div>
 		</section>
-	);
-}
-
-function FaqRow({
-	item,
-	isOpen,
-	onToggle,
-}: {
-	item: ContactFaqItem;
-	isOpen: boolean;
-	onToggle: () => void;
-}) {
-	const contentId = `faq-${item.question.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
-
-	return (
-		<div className="border-b border-border last:border-b-0">
-			<button
-				type="button"
-				className="pressable flex w-full items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6"
-				aria-controls={contentId}
-				aria-expanded={isOpen}
-				onClick={onToggle}>
-				<span className="leading-snug">{item.question}</span>
-				<ChevronDown
-					aria-hidden
-					className={cn(
-						"mt-0.5 shrink-0 transition-transform duration-200 md:mt-0",
-						isOpen ? "rotate-180 text-foreground" : "text-muted-foreground",
-					)}
-				/>
-			</button>
-
-			<div
-				id={contentId}
-				hidden={!isOpen}
-				className="max-w-5xl pb-5 text-sm leading-7 text-pretty text-muted-foreground md:pb-6 md:text-base">
-				{item.answerParts.map((part) => (
-					<p
-						key={`${item.question}-${part.heading ?? part.value}`}
-						className={part.heading ? "first:mt-0 mt-4" : undefined}>
-						{part.heading ? <strong className="text-foreground">{part.heading} </strong> : null}
-						{part.value}
-					</p>
-				))}
-			</div>
-		</div>
 	);
 }
