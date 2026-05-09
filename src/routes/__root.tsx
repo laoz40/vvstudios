@@ -10,7 +10,7 @@ import { Image } from "@unpic/react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ArrowRight, Home } from "lucide-react";
-import logoYellow from "#studio/assets/vv-logo-yellow.svg";
+import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { studioSite } from "#/config/sites";
 import { SmoothScroll } from "#studio/components/SmoothScroll";
 import { StudioLayout } from "#studio/StudioLayout";
@@ -120,20 +120,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function NotFoundPage() {
 	return (
-		<main className="px-6 py-16 text-center md:px-10 md:py-24">
+		<main className="px-6 text-center md:px-10">
 			<div className="mx-auto flex max-w-3xl flex-col items-center gap-8">
 				<Image
-					src={logoYellow}
+					src={logoAnimatedYellow}
 					alt="VV Studios"
-					width={72}
-					height={72}
+					width={200}
+					height={200}
 					layout="fixed"
 					loading="eager"
-					className="size-18 shrink-0"
+					className="size-[50vh] shrink-0"
 				/>
 
 				<div className="space-y-4">
-					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">404 Page not found</h1>
+					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">Whoops! Page not found.</h1>
 					<p className="mx-auto max-w-xl text-base text-muted-foreground">
 						The page you’re looking for doesn’t exist or may have been moved.
 					</p>

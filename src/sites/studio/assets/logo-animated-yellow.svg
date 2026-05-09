@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" width="1000" height="1000" role="img" aria-labelledby="title desc">
+  <title id="title">Looping triangular vortex logo animation</title>
+  <desc id="desc">Nested triangular gold bands draw from the center to the outer ends, hold, then retract back to the center.</desc>
+
+  <defs>
+    <style>
+      :root { --gold: #f5c400; }
+
+      .band {
+        fill: var(--gold);
+        filter: drop-shadow(0 0 18px rgba(245, 196, 0, 0.22));
+      }
+    </style>
+
+    <!-- Original logo geometry. These polygons are unchanged. -->
+    <polygon id="strip-1" points="264,229 886,1287 934,1200 415,314 1875,314 1833,229" />
+    <polygon id="strip-2" points="227,287 180,364 886,1558 1334,787 1236,787 885,1388" />
+    <polygon id="strip-3" points="504,368 965,1150 1014,1066 655,454 1944,454 1901,368" />
+    <polygon id="strip-4" points="148,415 100,493 886,1830 1491,786 1394,786 886,1660" />
+    <polygon id="strip-5" points="1971,508 746,508 799,595 1821,595 1105,1830 1203,1830" />
+    <polygon id="strip-6" points="1731,647 829,647 880,733 1581,734 947,1830 1047,1830" />
+
+    <!--
+      Each mask draws a thick stroke over the original strip.
+      The dash grows from point A near the center to point B at the outside,
+      holds fully drawn, then shrinks back to point A. The paths extend only
+      past the outer ends so full-state coverage matches the original polygons
+      while avoiding endpoint flashes.
+    -->
+    <mask id="flow-1" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 951 1313 L 339.5 271.5 L 1940 271.5" fill="none" stroke="white" stroke-width="150" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+
+    <mask id="flow-2" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 1327 715 L 885.5 1473 L 160 252" fill="none" stroke="white" stroke-width="150" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+
+    <mask id="flow-3" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 1031 1179 L 579.5 411 L 1990 411" fill="none" stroke="white" stroke-width="140" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+
+    <mask id="flow-4" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 1485 713 L 886 1745 L 82 383" fill="none" stroke="white" stroke-width="145" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+
+    <mask id="flow-5" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 678 551.5 L 1896 551.5 L 1110 1906" fill="none" stroke="white" stroke-width="145" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+
+    <mask id="flow-6" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect width="2048" height="2048" fill="black" />
+      <path d="M 760 690 L 1656 690.5 L 956 1902" fill="none" stroke="white" stroke-width="140" stroke-linecap="butt" stroke-linejoin="miter" pathLength="1000" stroke-dasharray="0 1000" stroke-dashoffset="0">
+        <animate attributeName="stroke-dasharray" values="0 1000;1000 0;1000 0;0 1000;0 1000" keyTimes="0;0.28;0.64;0.92;1" dur="7.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.02;0.64;0.90;0.92;1" dur="7.2s" repeatCount="indefinite" />
+      </path>
+    </mask>
+  </defs>
+
+  <g class="band">
+    <use href="#strip-1" mask="url(#flow-1)" />
+    <use href="#strip-2" mask="url(#flow-2)" />
+    <use href="#strip-3" mask="url(#flow-3)" />
+    <use href="#strip-4" mask="url(#flow-4)" />
+    <use href="#strip-5" mask="url(#flow-5)" />
+    <use href="#strip-6" mask="url(#flow-6)" />
+  </g>
+</svg>
