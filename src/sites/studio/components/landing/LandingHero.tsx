@@ -11,7 +11,7 @@ import { env } from "#/env";
 const heroCopy = {
 	eyebrow: "From Vertigo Visuals",
 	title: "Hire The Top Studio in South West Sydney",
-	lead: "A space to focus on your business or craft. You bring the idea, and we'll make sure it's captured properly.",
+	lead: "A space to focus on your business or craft. You bring the idea, and we'll make it a reality.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
