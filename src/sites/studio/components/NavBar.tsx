@@ -25,15 +25,25 @@ type InertElement = HTMLElement & { inert: boolean };
 const BOOK_LINK = { href: studioSite.routes.book, label: "Book session" } as const;
 const BACK_HOME_LINK = { href: studioSite.routes.home, label: "Back to home" } as const;
 
-const DESKTOP_LINKS = [
+const CONTACT_FAQ_HASH = "contact-faq-title";
+
+type NavLinkItem = {
+	href: string;
+	hash?: string;
+	label: string;
+};
+
+const DESKTOP_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.gallery, label: "Gallery" },
 	{ href: studioSite.routes.pricing, label: "Pricing" },
+	{ href: studioSite.routes.contact, hash: CONTACT_FAQ_HASH, label: "FAQ" },
 	{ href: studioSite.routes.contact, label: "Contact" },
 ] as const;
-const MOBILE_LINKS = [
+const MOBILE_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.home, label: "Home" },
 	{ href: studioSite.routes.gallery, label: "Gallery" },
 	{ href: studioSite.routes.pricing, label: "Pricing" },
+	{ href: studioSite.routes.contact, hash: CONTACT_FAQ_HASH, label: "FAQ" },
 	{ href: studioSite.routes.contact, label: "Contact" },
 ] as const;
 
@@ -63,10 +73,12 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 
 function DesktopNavLink({
 	href,
+	hash,
 	label,
 	pathname,
 }: {
 	href: string;
+	hash?: string;
 	label: string;
 	pathname: string;
 }) {
@@ -79,7 +91,8 @@ function DesktopNavLink({
 				className="text-foreground decoration-current hover:text-foreground">
 				<Link
 					to={href}
-					aria-current={pathname === href ? "page" : undefined}>
+					hash={hash}
+					aria-current={pathname === href && !hash ? "page" : undefined}>
 					{label}
 				</Link>
 			</Button>
@@ -161,8 +174,9 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 							<ul className="flex items-center gap-3">
 								{DESKTOP_LINKS.map((link) => (
 									<DesktopNavLink
-										key={link.href}
+										key={`${link.href}-${link.label}`}
 										href={link.href}
+										hash={link.hash}
 										label={link.label}
 										pathname={pathname}
 									/>
@@ -358,19 +372,20 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 
 								<ul className="flex flex-col gap-1">
 									{MOBILE_LINKS.map((link) => (
-										<li key={link.href}>
+										<li key={`${link.href}-${link.label}`}>
 											<Button
 												asChild
 												variant="link"
 												className={cn(
 													"h-11 w-full justify-start px-3 text-base",
-													pathname === link.href
+													pathname === link.href && !link.hash
 														? "text-accent-foreground"
 														: "text-foreground hover:text-foreground",
 												)}>
 												<Link
 													to={link.href}
-													aria-current={pathname === link.href ? "page" : undefined}
+													hash={link.hash}
+													aria-current={pathname === link.href && !link.hash ? "page" : undefined}
 													onClick={() => {
 														setIsOpen(false);
 													}}>

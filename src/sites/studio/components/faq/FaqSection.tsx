@@ -81,7 +81,7 @@ export function FaqSection({ id, className, containerClassName }: FaqSectionProp
 				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
 					<h2
 						id={id}
-						className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
+						className="scroll-mt-20 font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:scroll-mt-28 md:text-6xl">
 						{faqSectionCopy.title}
 					</h2>
 				</div>
