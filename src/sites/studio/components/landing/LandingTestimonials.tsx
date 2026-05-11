@@ -3,7 +3,7 @@ import { ArrowRight, Star } from "lucide-react";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
-import { Card, CardContent, CardFooter, CardHeader } from "#/components/ui/card";
+import { Card, CardContent, CardFooter } from "#/components/ui/card";
 
 const testimonialCopy = {
 	title: "Trusted by creators in Sydney",
@@ -13,7 +13,7 @@ const testimonialCopy = {
 	reviews: [
 		{
 			quote:
-				"Really good facility. Professional setup with owner at the helm managing the recording and sound. Highly recommended",
+				"Really good facility. Professional setup with owner at the helm managing the recording and sound. Highly recommended!",
 			author: "Jeremy Yang",
 		},
 		{
@@ -27,12 +27,12 @@ const testimonialCopy = {
 function StarRating() {
 	return (
 		<div
-			className="flex gap-1 text-primary"
+			className="flex shrink-0 gap-1 text-primary"
 			aria-label="Five stars">
 			{Array.from({ length: 5 }).map((_, index) => (
 				<Star
 					key={index}
-					className="fill-current stroke-0"
+					className="size-4 fill-current stroke-0"
 					aria-hidden
 				/>
 			))}
@@ -62,16 +62,14 @@ export function LandingTestimonials() {
 						<Card
 							key={review.author}
 							className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
-							<CardHeader className="px-6">
-								<StarRating />
-							</CardHeader>
 							<CardContent className="px-6">
-								<blockquote className="text-base leading-8 text-pretty italic md:text-xl md:leading-9">
+								<blockquote className="text-base leading-8 text-pretty italic md:text-2xl md:leading-9">
 									“{review.quote}”
 								</blockquote>
 							</CardContent>
-							<CardFooter className="px-6 text-base font-medium text-muted-foreground">
-								- {review.author}
+							<CardFooter className="flex items-center gap-3 px-6 text-base font-medium text-muted-foreground">
+								<span>- {review.author}</span>
+								<StarRating />
 							</CardFooter>
 						</Card>
 					))}
