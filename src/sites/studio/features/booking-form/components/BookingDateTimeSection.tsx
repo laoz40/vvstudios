@@ -111,7 +111,8 @@ export function BookingDateTimeSection({
 											table:
 												"w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1",
 											day: "aspect-auto p-0.5 md:p-1",
-											day_button: "h-11 py-0 md:h-12 xl:h-14 xl:text-lg!",
+											day_button:
+												"h-11 py-0 md:h-12 data-[selected-single=true]:!bg-primary data-[selected-single=true]:!text-primary-foreground xl:h-14 xl:text-lg!",
 										}}
 										mode="single"
 										required

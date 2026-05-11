@@ -99,7 +99,8 @@ export function ReminderEmail({
 							<strong>Facilities:</strong> Bathroom is available on-site before we begin
 						</Text>
 						<Text style={detailLine}>
-							<strong>Refreshments:</strong> Bottled refrigerated water is provided, along with complimentary sweets
+							<strong>Refreshments:</strong> Bottled refrigerated water is provided, along with
+							complimentary sweets
 						</Text>
 					</Section>
 

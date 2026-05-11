@@ -115,7 +115,8 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 							<View style={styles.paymentNoteBlock}>
 								<Text style={styles.paymentNoteHeading}>Payment terms:</Text>
 								<Text style={styles.paymentMethodText}>
-									Settle remaining balance early via Bank Transfer or PayID, or pay in-studio (credit card fees apply).
+									Settle remaining balance early via Bank Transfer or PayID, or pay in-studio
+									(credit card fees apply).
 								</Text>
 							</View>
 							<Text style={styles.paymentHelperText}>

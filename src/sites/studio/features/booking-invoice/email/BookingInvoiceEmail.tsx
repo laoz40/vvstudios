@@ -67,9 +67,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					<Section style={section}>
 						<Text style={sectionTitle}>Payment</Text>
 						<Section style={paymentNoticeCard}>
-							<Text style={noticeLine}>
-								{paymentInstruction}
-							</Text>
+							<Text style={noticeLine}>{paymentInstruction}</Text>
 							<Text style={noteText}>*{receiptNote}</Text>
 						</Section>
 						<Section style={paymentCard}>
