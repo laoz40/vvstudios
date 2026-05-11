@@ -50,5 +50,5 @@ export const BOOKING_INVOICE_NOTES = {
 	cancellationPolicy:
 		"The $50 booking deposit is non-refundable if the session is cancelled within 48 hours of the scheduled start time.",
 	paymentNote:
-		"Balance due by end of the booking date. Settle early via Bank Transfer or PayID, or pay in-studio. If transferring on the day, please email the receipt.",
+		"Settle remaining balance early via Bank Transfer or PayID, or pay in-studio (credit card fees apply).",
 } as const;

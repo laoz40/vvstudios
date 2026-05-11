@@ -20,7 +20,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 						<VvPodcastLogo />
 					</View>
 					<View style={styles.headerRight}>
-						<Text style={styles.invoiceTitle}>VV Studios Hire Invoice</Text>
+						<Text style={styles.invoiceTitle}>VV Studios Booking Invoice</Text>
 						<Text style={styles.businessDetailStrong}>{data.branding.businessName}</Text>
 						<Text style={styles.businessDetail}>{data.branding.contactEmail}</Text>
 						<Text style={styles.businessDetail}>ABN: 97 592 829 541</Text>
@@ -46,12 +46,16 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 
 					<View style={styles.invoiceInfoColumn}>
 						<View style={styles.infoRow}>
+							<Text style={styles.infoLabel}>Invoice number:</Text>
+							<Text style={styles.infoValue}>{data.invoice.number}</Text>
+						</View>
+						<View style={styles.infoRow}>
 							<Text style={styles.infoLabel}>Invoice date:</Text>
 							<Text style={styles.infoValue}>{data.invoice.invoiceDateLabel}</Text>
 						</View>
 						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>Invoice number:</Text>
-							<Text style={styles.infoValue}>{data.invoice.number}</Text>
+							<Text style={styles.infoLabel}>Due date:</Text>
+							<Text style={styles.infoValue}>{data.invoice.dueDateLabel}</Text>
 						</View>
 					</View>
 				</View>
@@ -103,16 +107,15 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 						<Text style={styles.totalDueLabel}>Total due</Text>
 						<Text style={styles.totalDueValue}>{formatAud(data.amounts.totalDueAmount)}</Text>
 					</View>
-					<Text style={styles.dueDateText}>Due: End of day on {data.invoice.dueDateLabel}</Text>
 				</View>
 
 				<View style={styles.paymentSection}>
 					<View style={styles.paymentColumns}>
 						<View style={styles.paymentInstructionsGroup}>
 							<View style={styles.paymentNoteBlock}>
-								<Text style={styles.paymentNoteHeading}>Payment method:</Text>
+								<Text style={styles.paymentNoteHeading}>Payment terms:</Text>
 								<Text style={styles.paymentMethodText}>
-									Settle early via Bank Transfer / PayID, or pay in-studio.
+									Settle remaining balance early via Bank Transfer or PayID, or pay in-studio (credit card fees apply).
 								</Text>
 							</View>
 							<Text style={styles.paymentHelperText}>

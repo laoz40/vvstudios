@@ -85,6 +85,19 @@ export const faqSectionCopy: {
 				},
 			],
 		},
+		{
+			question: "How do I get the best results from my session?",
+			answerParts: [
+				{
+					value:
+						"Arrive with your topic locked in and a few key talking points ready. Clear preparation leads to stronger, more focused content.",
+				},
+				{
+					value:
+						"Bring any notes, scripts, or references you want to use so we can build the session around them.",
+				},
+			],
+		},
 	],
 } as const;
 

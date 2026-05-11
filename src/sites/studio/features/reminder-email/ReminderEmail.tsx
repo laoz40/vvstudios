@@ -62,6 +62,9 @@ export function ReminderEmail({
 							<Text style={primaryDetail}>{bookingDate}</Text>
 							<Text style={secondaryDetail}>{bookingTime}</Text>
 						</Section>
+						<Text style={arrivalReminder}>
+							Please arrive <strong>15 minutes early</strong> to maximise your recording time.
+						</Text>
 					</Section>
 
 					<Section style={section}>
@@ -80,6 +83,27 @@ export function ReminderEmail({
 					</Section>
 
 					<Section style={section}>
+						<Text style={sectionTitle}>Payment reminder</Text>
+						<Text style={paragraph}>
+							Please be advised that if your session has not yet been paid for, payment is required
+							before the conclusion of your appointment.
+						</Text>
+					</Section>
+
+					<Section style={section}>
+						<Text style={sectionTitle}>What to expect</Text>
+						<Text style={detailLine}>
+							<strong>Parking:</strong> Available in the driveway or directly across the road
+						</Text>
+						<Text style={detailLine}>
+							<strong>Facilities:</strong> Bathroom is available on-site before we begin
+						</Text>
+						<Text style={detailLine}>
+							<strong>Refreshments:</strong> Bottled refrigerated water is provided, along with complimentary sweets
+						</Text>
+					</Section>
+
+					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
 						<Text style={paragraph}>{BOOKING_INVOICE_BUSINESS.locationAddress}</Text>
 						<Button
@@ -88,17 +112,9 @@ export function ReminderEmail({
 							View directions
 						</Button>
 					</Section>
-
-					<Section style={section}>
-						<Text style={sectionTitle}>Payment reminder</Text>
-						<Text style={paragraph}>
-							Please be advised that if your session has not yet been paid for, payment is required
-							before the conclusion of your appointment.
-						</Text>
-					</Section>
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
-					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.locationLabel}</Text>
+					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
 				</Container>
 			</Body>
 		</Html>
@@ -162,6 +178,13 @@ const secondaryDetail = {
 	fontWeight: "700",
 	lineHeight: "28px",
 	margin: "0",
+};
+
+const arrivalReminder = {
+	color: "#fafafa",
+	fontSize: "14px",
+	lineHeight: "20px",
+	margin: "8px 0 0",
 };
 
 const section = {

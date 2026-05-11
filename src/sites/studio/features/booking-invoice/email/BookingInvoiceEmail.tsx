@@ -61,11 +61,17 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						<Text style={sectionTitle}>Balance due</Text>
 						<Section style={summaryCard}>
 							<Text style={amount}>{formatAud(data.amounts.totalDueAmount)}</Text>
-							<Text style={summaryDueLine}>Due: {data.invoice.dueDateLabel}</Text>
+							<Text style={summaryDueLine}>Finalise payment by {data.invoice.dueDateLabel}</Text>
 						</Section>
 					</Section>
 					<Section style={section}>
-						<Text style={sectionTitle}>Payment methods</Text>
+						<Text style={sectionTitle}>Payment</Text>
+						<Section style={paymentNoticeCard}>
+							<Text style={noticeLine}>
+								{paymentInstruction}
+							</Text>
+							<Text style={noteText}>*{receiptNote}</Text>
+						</Section>
 						<Section style={paymentCard}>
 							<Row>
 								<Column style={paymentColumnLeft}>
@@ -82,12 +88,6 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 									<Text style={detailLine}>{data.payment.payId}</Text>
 								</Column>
 							</Row>
-						</Section>
-						<Section style={paymentNoticeCard}>
-							<Text style={noticeLine}>
-								<strong>Payment:</strong> {paymentInstruction}
-							</Text>
-							<Text style={noteText}>*{receiptNote}</Text>
 						</Section>
 					</Section>
 					<Section style={section}>
@@ -195,7 +195,7 @@ const paymentOptionTitle = {
 
 const paymentNoticeCard = {
 	margin: "0 0",
-	padding: "18px 0px",
+	padding: "0px 0px 18px 0px",
 };
 
 const noticeLine = {

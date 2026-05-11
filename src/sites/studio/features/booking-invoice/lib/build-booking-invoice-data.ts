@@ -50,7 +50,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const lineItems: BookingInvoiceLineItem[] = [
 		{
 			amount: baseAmount,
-			description: `${input.service} podcast studio hire (${input.duration})`,
+			description: `${input.service} Podcast Studio Hire (${input.duration})`,
 			quantity: 1,
 			rate: baseAmount,
 		},
