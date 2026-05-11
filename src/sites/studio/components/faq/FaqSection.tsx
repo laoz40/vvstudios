@@ -63,6 +63,28 @@ export const faqSectionCopy: {
 				},
 			],
 		},
+		{
+			question: "How do I get the recorded content after the session?",
+			answerParts: [
+				{
+					value:
+						"After your session, all deliverables will be uploaded to your dedicated Google Drive folder and sent to you personally via email. You’ll receive a private link where you can access and download your files anytime. We recommend signing into your preferred Google account and starring the folder for easy future access.",
+				},
+				{
+					value:
+						"Please note: Files are typically stored and available for 7 days after delivery, after which they may be archived or removed as part of our storage cycle",
+				},
+			],
+		},
+		{
+			question: "How early should I arrive for my studio session?",
+			answerParts: [
+				{
+					value:
+						"We recommend arriving 15 minutes before your scheduled session time. This gives you time to settle in, get comfortable in the studio, and go through any final setup so your full booking time is dedicated to recording. Arriving early also helps ensure a smooth start to your session, especially if it’s your first time in the studio.",
+				},
+			],
+		},
 	],
 } as const;
 
@@ -99,7 +121,7 @@ export function FaqSection({ id, className, containerClassName }: FaqSectionProp
 								{item.answerParts.map((part) => (
 									<p
 										key={`${item.question}-${part.heading ?? part.value}`}
-										className={part.heading ? "first:mt-0 mt-4" : undefined}>
+										className="first:mt-0 mt-4">
 										{part.heading ? (
 											<strong className="text-foreground">{part.heading} </strong>
 										) : null}
