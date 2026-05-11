@@ -43,6 +43,12 @@ export const seoMetadata = {
 			"View VV Studios pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
 		path: studioSite.routes.pricing,
 	},
+	termsAndConditions: {
+		title: "Terms & Conditions | VV Studios",
+		description:
+			"Read the VV Studios terms and conditions for bookings, deposits, cancellations, conduct, delivery, and revisions.",
+		path: studioSite.routes.termsAndConditions,
+	},
 	privacyPolicy: {
 		title: "Privacy Policy | VV Studios",
 		description:

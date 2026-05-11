@@ -19,6 +19,7 @@ export const studioRoutes = {
 	login: withBasePath(studioBasePath, "/login"),
 	admin: withBasePath(studioBasePath, "/admin"),
 	pricing: withBasePath(studioBasePath, "/pricing"),
+	termsAndConditions: withBasePath(studioBasePath, "/terms-and-conditions"),
 	privacyPolicy: withBasePath(studioBasePath, "/privacy-policy"),
 } as const;
 

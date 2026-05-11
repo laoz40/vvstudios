@@ -47,13 +47,20 @@ export function Footer() {
 								{footerContent.lead}
 							</p>
 						</div>
-						<a
-							className="accent-link inline-flex self-center text-sm sm:self-start"
-							href={env.VITE_APP_INSTAGRAM_URL}
-							rel="noreferrer"
-							target="_blank">
-							Instagram
-						</a>
+						<ul className="flex flex-col gap-3 text-sm sm:items-start">
+							<li className="text-muted-foreground flex flex-col gap-1 sm:items-start">
+								<span className="text-primary text-xs font-semibold tracking-widest uppercase">
+									Socials
+								</span>
+								<a
+									className="accent-link text-sm"
+									href={env.VITE_APP_INSTAGRAM_URL}
+									rel="noreferrer"
+									target="_blank">
+									Instagram
+								</a>
+							</li>
+						</ul>
 					</div>
 
 					<ul
@@ -82,11 +89,18 @@ export function Footer() {
 						<p className="text-muted-foreground text-sm font-medium">
 							&copy; {currentYear} {footerContent.parentCompanyName}
 						</p>
-						<Link
-							className="accent-link text-sm"
-							to={studioSite.routes.privacyPolicy}>
-							Privacy Policy
-						</Link>
+						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+							<Link
+								className="accent-link text-sm"
+								to={studioSite.routes.termsAndConditions}>
+								Terms & Conditions
+							</Link>
+							<Link
+								className="accent-link text-sm"
+								to={studioSite.routes.privacyPolicy}>
+								Privacy Policy
+							</Link>
+						</div>
 					</div>
 				</div>
 			</div>

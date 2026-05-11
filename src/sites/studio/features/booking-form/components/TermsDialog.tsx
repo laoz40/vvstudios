@@ -9,7 +9,7 @@ const cancelButtonLabel = "Cancel";
 const confirmButtonLabel = "Agree & Book";
 const loadingLabel = "Preparing...";
 
-const terms = [
+export const terms = [
 	{
 		title: "1 - Payment",
 		body: "A non-refundable deposit is required to secure all bookings. The remaining balance must be paid before or on the day of the session. No video or audio files will be delivered until full payment is received.",
