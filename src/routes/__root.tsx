@@ -133,7 +133,9 @@ function NotFoundPage() {
 				/>
 
 				<div className="space-y-4">
-					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">Whoops! Page not found.</h1>
+					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
+						Whoops! Page not found.
+					</h1>
 					<p className="mx-auto max-w-xl text-base text-muted-foreground">
 						The page you’re looking for doesn’t exist or may have been moved.
 					</p>

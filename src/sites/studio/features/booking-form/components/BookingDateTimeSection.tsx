@@ -109,8 +109,9 @@ export function BookingDateTimeSection({
 											caption_label:
 												"font-medium select-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 											table:
-												"h-full w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1 md:border-spacing-y-1.5",
-											day_button: "xl:h-16 xl:text-lg!",
+												"w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1",
+											day: "aspect-auto p-0.5 md:p-1",
+											day_button: "h-11 py-0 md:h-12 xl:h-14 xl:text-lg!",
 										}}
 										mode="single"
 										required
