@@ -48,7 +48,7 @@ export function Footer() {
 							</p>
 						</div>
 						<a
-							className="accent-link inline-flex text-sm"
+							className="accent-link inline-flex self-center text-sm sm:self-start"
 							href={env.VITE_APP_INSTAGRAM_URL}
 							rel="noreferrer"
 							target="_blank">
