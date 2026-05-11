@@ -1,11 +1,12 @@
-import { env } from "#/env";
+import { Link } from "@tanstack/react-router";
 import { Separator } from "#/components/ui/separator";
+import { studioSite } from "#/config/sites";
+import { env } from "#/env";
 
 const footerContent = {
 	studioName: "VV Studios",
 	parentCompanyName: "Vertigo Visuals",
 	lead: "The best studio in South West Sydney",
-	availability: "Available for studio hire and production support",
 	contactAriaLabel: "Contact details",
 } as const;
 
@@ -36,14 +37,23 @@ export function Footer() {
 		<footer className="px-4 py-10 sm:py-12">
 			<Separator className="mb-10" />
 			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-				<div className="flex flex-col gap-5 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
-					<div className="space-y-2">
-						<p className="text-foreground text-xl font-black tracking-wide">
-							{footerContent.studioName}
-						</p>
-						<p className="text-muted-foreground max-w-md text-sm leading-relaxed">
-							{footerContent.lead}
-						</p>
+				<div className="flex flex-col gap-5 text-center sm:flex-row sm:items-stretch sm:justify-between sm:text-left">
+					<div className="flex flex-col justify-between gap-4">
+						<div className="space-y-2">
+							<p className="text-foreground text-xl font-black tracking-wide">
+								{footerContent.studioName}
+							</p>
+							<p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+								{footerContent.lead}
+							</p>
+						</div>
+						<a
+							className="accent-link inline-flex text-sm"
+							href={env.VITE_APP_INSTAGRAM_URL}
+							rel="noreferrer"
+							target="_blank">
+							Instagram
+						</a>
 					</div>
 
 					<ul
@@ -72,7 +82,11 @@ export function Footer() {
 						<p className="text-muted-foreground text-sm font-medium">
 							&copy; {currentYear} {footerContent.parentCompanyName}
 						</p>
-						<p className="text-muted-foreground text-sm">{footerContent.availability}</p>
+						<Link
+							className="accent-link text-sm"
+							to={studioSite.routes.privacyPolicy}>
+							Privacy Policy
+						</Link>
 					</div>
 				</div>
 			</div>

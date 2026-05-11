@@ -1,4 +1,5 @@
 import { studioSite } from "#/config/sites";
+import { env } from "#/env";
 
 const siteUrl = "https://vertigovisuals.com.au";
 const siteName = studioSite.name;
@@ -41,6 +42,12 @@ export const seoMetadata = {
 		description:
 			"View VV Studios pricing for 1, 2, and 3 hour podcast and video sessions, plus optional add-ons including 4K recording, editing, and social clips.",
 		path: studioSite.routes.pricing,
+	},
+	privacyPolicy: {
+		title: "Privacy Policy | VV Studios",
+		description:
+			"Read the VV Studios privacy policy to learn how booking, payment, website and contact information is collected and used.",
+		path: studioSite.routes.privacyPolicy,
 	},
 } as const satisfies Record<string, SeoMetadata>;
 
@@ -147,7 +154,7 @@ export function buildLocalBusinessJsonLd() {
 				closes: "21:00",
 			},
 		],
-		sameAs: [siteUrl, "https://www.instagram.com/vertigovisuals.au/"],
+		sameAs: [siteUrl, env.VITE_APP_INSTAGRAM_URL],
 		offers: [
 			{
 				"@type": "Offer",

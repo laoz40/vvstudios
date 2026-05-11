@@ -16,6 +16,7 @@ export const env = createEnv({
 		VITE_APP_TITLE: z.string().min(1).optional(),
 		VITE_APP_CONTACT_EMAIL: z.email().min(1),
 		VITE_APP_CONTACT_PHONE: z.string().min(1),
+		VITE_APP_INSTAGRAM_URL: z.url(),
 		VITE_BOOKING_RECURRING_URL: z.url(),
 		VITE_FREE_TOUR_URL: z.url(),
 		VITE_APP_STUDIO_ADDRESS: z.string().min(1),

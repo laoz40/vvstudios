@@ -19,6 +19,7 @@ export const studioRoutes = {
 	login: withBasePath(studioBasePath, "/login"),
 	admin: withBasePath(studioBasePath, "/admin"),
 	pricing: withBasePath(studioBasePath, "/pricing"),
+	privacyPolicy: withBasePath(studioBasePath, "/privacy-policy"),
 } as const;
 
 export const parentSite = {
