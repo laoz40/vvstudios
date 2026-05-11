@@ -61,17 +61,17 @@ export function LandingTestimonials() {
 					{testimonialCopy.reviews.map((review) => (
 						<Card
 							key={review.author}
-							className="h-full gap-6 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
+							className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
 							<CardHeader className="px-6">
 								<StarRating />
 							</CardHeader>
 							<CardContent className="px-6">
-								<blockquote className="text-xl leading-8 text-pretty md:text-2xl md:leading-9">
+								<blockquote className="text-base leading-8 text-pretty italic md:text-xl md:leading-9">
 									“{review.quote}”
 								</blockquote>
 							</CardContent>
 							<CardFooter className="px-6 text-base font-medium text-muted-foreground">
-								— {review.author}
+								- {review.author}
 							</CardFooter>
 						</Card>
 					))}
