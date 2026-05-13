@@ -29,8 +29,14 @@ import {
 	type TimeSectionKey,
 } from "#studio/features/booking-form/lib/form-shared";
 import {
-	parseSavedBookingInfo,
-	SAVED_BOOKING_INFO_STORAGE_KEY,
+	getBookingErrorMessage,
+	getBookingSubmitFailureMessage,
+} from "#studio/features/booking-form/lib/booking-errors";
+import {
+	getAvailabilityRateLimitKey,
+	getStoredSavedBookingInfo,
+	removeStoredSavedBookingInfo,
+	storeSavedBookingInfo,
 	toSavedBookingInfo,
 	type SavedBookingInfo,
 } from "#studio/features/booking-form/lib/saved-booking-info";
@@ -47,41 +53,25 @@ import {
 	parseDateValue,
 	parseMonthKey,
 	startOfToday,
-	type BusyPeriod,
 } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import { BookingPaymentModal } from "#studio/features/booking-form/components/PaymentModal";
+import {
+	getBookableMonthKeys,
+	getSelectedBusyDay,
+	getUncachedMonthKeys,
+	isAvailabilityRateLimitedMessage,
+	isBookingDateDisabled,
+	mergeMonthlyBusyWindows,
+	type BusyDayWindow,
+} from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
-
-interface BookingErrorWithData {
-	data?: {
-		code?: string;
-		retryAfter?: number;
-	};
-}
-
-interface BusyDayWindow {
-	busyPeriods: BusyPeriod[];
-	date: string;
-	label: string;
-}
 
 interface EmbeddedCheckoutSession {
 	bookingId: Id<"bookings">;
 	clientSecret: string;
 	stripeSessionId: string;
 }
-
-type BookingSubmitFailureResult =
-	| {
-			code: "BOOKING_RATE_LIMITED";
-			ok: false;
-			retryAfter: number;
-	  }
-	| {
-			code: "BOOKING_EMAIL_DOMAIN_INVALID";
-			ok: false;
-	  };
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
@@ -91,19 +81,6 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 >;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
-const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
-
-function getAvailabilityRateLimitKey() {
-	const existingKey = window.localStorage.getItem(availabilityRateLimitKeyStorageKey);
-
-	if (existingKey) {
-		return existingKey;
-	}
-
-	const nextKey = window.crypto.randomUUID();
-	window.localStorage.setItem(availabilityRateLimitKeyStorageKey, nextKey);
-	return nextKey;
-}
 
 export const Route = createFileRoute("/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -113,19 +90,6 @@ export const Route = createFileRoute("/book")({
 const pageCopy = {
 	title: "Studio Hire Booking",
 } as const;
-
-function getBookableMonthKeys(startDate: Date, endDate: Date) {
-	const monthKeys: string[] = [];
-	const month = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-	const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-
-	while (month <= endMonth) {
-		monthKeys.push(formatMonthKey(month));
-		month.setMonth(month.getMonth() + 1);
-	}
-
-	return monthKeys;
-}
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
@@ -203,13 +167,10 @@ function BookingPage() {
 						parsedValue,
 						preferredTimeSectionKey ?? "",
 					);
-					window.localStorage.setItem(
-						SAVED_BOOKING_INFO_STORAGE_KEY,
-						JSON.stringify(nextSavedBookingInfo),
-					);
+					storeSavedBookingInfo(nextSavedBookingInfo);
 					setSavedBookingInfo(nextSavedBookingInfo);
 				} else {
-					window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+					removeStoredSavedBookingInfo();
 					setSavedBookingInfo(null);
 				}
 
@@ -241,21 +202,19 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited =
-		availabilityError ===
-		getBookingErrorMessage({ data: { code: "GOOGLE_CALENDAR_RATE_LIMITED" } });
+	const isAvailabilityRateLimited = isAvailabilityRateLimitedMessage(availabilityError);
 
+	// load availability rate limit key
 	useEffect(() => {
 		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
 	}, []);
 
+	// load saved booking info
 	useEffect(() => {
-		const nextSavedBookingInfo = parseSavedBookingInfo(
-			window.localStorage.getItem(SAVED_BOOKING_INFO_STORAGE_KEY),
-		);
+		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
 		if (!nextSavedBookingInfo) {
-			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			removeStoredSavedBookingInfo();
 			return;
 		}
 
@@ -264,14 +223,13 @@ function BookingPage() {
 		setPreferredTimeSectionKey(nextSavedBookingInfo.timeSectionKey || null);
 	}, []);
 
+	// fetch calendar availability
 	useEffect(() => {
 		if (!availabilityRateLimitKey) {
 			return;
 		}
 
-		const uncachedMonthKeys = bookableMonthKeys.filter(
-			(month) => !monthlyBusyWindowsByMonth[month],
-		);
+		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
 			setIsLoadingMonthAvailability(false);
@@ -292,12 +250,7 @@ function BookingPage() {
 					return;
 				}
 
-				setMonthlyBusyWindowsByMonth((current) => ({
-					...current,
-					...Object.fromEntries(
-						results.map((result) => [result.month, result.busyWindows] as const),
-					),
-				}));
+				setMonthlyBusyWindowsByMonth((current) => mergeMonthlyBusyWindows(current, results));
 			})
 			.catch((availabilityFetchError) => {
 				if (isCancelled) {
@@ -324,33 +277,25 @@ function BookingPage() {
 		monthlyBusyWindowsByMonth,
 	]);
 
-	const selectedBusyDay = !formValues.date
-		? null
-		: (monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ??
-			null);
+	const selectedBusyDay = formValues.date
+		? getSelectedBusyDay({
+				date: formValues.date,
+				monthlyBusyWindowsByMonth,
+				selectedMonth,
+			})
+		: null;
 
 	const disabledDates = useMemo(() => {
-		return (date: Date) => {
-			if (date < today || date > lastBookableDate) {
-				return true;
-			}
-
-			const monthKey = formatMonthKey(date);
-			const busyDays = monthlyBusyWindowsByMonth[monthKey];
-			const busyDay = busyDays?.find((day) => day.date === formatDateValue(date));
-			const availableTimesForDate = getAvailableTimesForDate({
-				busyPeriods: busyDay?.busyPeriods ?? [],
+		return (date: Date) =>
+			isBookingDateDisabled({
 				currentTimestamp,
-				dateValue: formatDateValue(date),
+				date,
 				duration: formValues.duration,
+				isAvailabilityRateLimited,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				today,
 			});
-
-			if (!busyDays && isAvailabilityRateLimited) {
-				return true;
-			}
-
-			return availableTimesForDate.length === 0;
-		};
 	}, [
 		currentTimestamp,
 		formValues.duration,
@@ -430,6 +375,7 @@ function BookingPage() {
 		});
 	};
 
+	// keep time based availability fresh
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			setCurrentTimestamp(getCurrentTimestamp());
@@ -440,6 +386,7 @@ function BookingPage() {
 		};
 	}, []);
 
+	// clear invalid selected time
 	useEffect(() => {
 		if (
 			!formValues.date ||
@@ -492,7 +439,7 @@ function BookingPage() {
 			bookingId: activeCheckoutSession.bookingId,
 			stripeSessionId: activeCheckoutSession.stripeSessionId,
 		}).catch((closeCheckoutError) => {
-			console.error("Could not close embedded checkout session", closeCheckoutError);
+			toast.error(getBookingErrorMessage(closeCheckoutError));
 		});
 	};
 
@@ -520,7 +467,7 @@ function BookingPage() {
 	};
 
 	const handleRemoveSavedBookingInfo = () => {
-		window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+		removeStoredSavedBookingInfo();
 		setSavedBookingInfo(null);
 		setShouldSaveBookingInfo(false);
 	};
@@ -529,7 +476,7 @@ function BookingPage() {
 		setShouldSaveBookingInfo(checked);
 
 		if (!checked) {
-			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			removeStoredSavedBookingInfo();
 			setSavedBookingInfo(null);
 		}
 	};
@@ -590,7 +537,7 @@ function BookingPage() {
 							})
 							.catch((submissionError) => {
 								if (submissionError !== termsDialogPendingError) {
-									console.error("Booking form submission failed", submissionError);
+									toast.error(getBookingErrorMessage(submissionError));
 								}
 							});
 					}}
@@ -696,48 +643,4 @@ function BookingPage() {
 			) : null}
 		</main>
 	);
-}
-
-function getBookingSubmitFailureMessage(result: BookingSubmitFailureResult) {
-	if (result.code === "BOOKING_EMAIL_DOMAIN_INVALID") {
-		return "This email domain doesn't appear able to receive email. Please check for typos.";
-	}
-
-	return "Too many booking attempts. Please try again in one minute.";
-}
-
-function getBookingErrorMessage(error: unknown) {
-	const errorWithData =
-		typeof error === "object" && error !== null ? (error as BookingErrorWithData) : null;
-	const code = errorWithData?.data?.code;
-
-	if (code === "BOOKING_TIME_UNAVAILABLE") {
-		return "That time was just taken. Please choose another available time.";
-	}
-
-	if (code === "BOOKING_INVALID_INPUT") {
-		return "Some booking details were invalid. Please review the form and try again.";
-	}
-
-	if (code === "BOOKING_EMAIL_DOMAIN_INVALID") {
-		return "This email domain doesn't appear able to receive email. Please check for typos.";
-	}
-
-	if (code === "BOOKING_RATE_LIMITED") {
-		return "Too many booking attempts. Please try again in one minute.";
-	}
-
-	if (code === "GOOGLE_CALENDAR_AUTH_FAILED") {
-		return "Google Calendar authentication failed. Regenerate the refresh token and try again.";
-	}
-
-	if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
-		return "Could not load availability right now. Check the Convex logs for the Google error details.";
-	}
-
-	if (code === "GOOGLE_CALENDAR_RATE_LIMITED") {
-		return "Calendar availability was refreshed too many times. Please wait a minute and try again.";
-	}
-
-	return error instanceof Error ? error.message : "Something went wrong.";
 }
