@@ -3,6 +3,7 @@ import { studioSite } from "#/config/sites";
 import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
 import { api } from "#convex/_generated/api";
 
 const DEV_SCENARIO_OPTIONS = [
@@ -69,7 +70,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 	const now = Date.now();
 	const baseBooking: BookingStatus = {
 		_id: "dev-booking" as BookingStatus["_id"],
-		addons: ["4K UHD Recording"],
+		addons: [...ADDON_OPTIONS],
 		bookingConfirmedAt: undefined,
 		bookingFailureCode: undefined,
 		date: "2026-05-12",

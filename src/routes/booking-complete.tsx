@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
-import { ArrowRight, Home, Phone } from "lucide-react";
+import { ArrowRight, CircleCheck, CircleX, Home, Phone } from "lucide-react";
 import { toast } from "sonner";
 import {
 	type BookingStatus,
@@ -10,8 +10,16 @@ import {
 	parseBookingCompleteSearch,
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "#/components/ui/table";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { formatBookingDate, formatTimeValue } from "#studio/lib/bookingdatetime";
+import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
@@ -187,11 +195,11 @@ function downloadBlob(blob: Blob, filename: string) {
 function BookingResult({ booking, content, stripeSessionId }: BookingResultProps): ReactNode {
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
-	const titleClassName = content.isBookingCompletionFailure
-		? "text-2xl font-semibold leading-tight text-destructive sm:text-3xl md:text-4xl"
-		: "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
+	const titleClassName = "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
 	const supportReference = booking ? getSupportReference(booking) : null;
 	const canDownloadInvoice = booking?.status === "confirmed";
+	const showErrorIcon = content.isBookingCompletionFailure;
+	const showSuccessIcon = booking?.status === "confirmed";
 
 	async function handleDownloadInvoice() {
 		if (!booking || booking.status !== "confirmed" || !stripeSessionId) {
@@ -224,7 +232,21 @@ function BookingResult({ booking, content, stripeSessionId }: BookingResultProps
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1 className={titleClassName}>{content.title}</h1>
+				<h1 className={titleClassName}>
+					{showSuccessIcon ? (
+						<CircleCheck
+							className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
+							aria-hidden
+						/>
+					) : null}
+					{showErrorIcon ? (
+						<CircleX
+							className="mr-3 inline size-7 -translate-y-1 text-destructive sm:size-8 md:size-9"
+							aria-hidden
+						/>
+					) : null}
+					{content.title}
+				</h1>
 				{canDownloadInvoice ? (
 					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
 						{content.description}{" "}
@@ -279,26 +301,14 @@ function SessionDetails({ booking }: SessionDetailsProps): ReactNode {
 	const isUnconfirmedBooking = booking.status === "failed";
 	const detailTone = isUnconfirmedBooking ? "destructive" : "default";
 	const dateValue = isUnconfirmedBooking ? "Unconfirmed" : formatBookingDate(booking.date);
-	const timeValue = isUnconfirmedBooking ? "Unconfirmed" : formatTimeValue(booking.time);
+	const timeValue = isUnconfirmedBooking
+		? "Unconfirmed"
+		: formatBookingTimeRange(booking.time, booking.duration);
 
 	return (
 		<section className="border-t pt-5 sm:pt-6">
-			<h2 className="text-lg font-semibold">Session Details</h2>
+			<h2 className="text-lg font-semibold">Booking Details</h2>
 			<dl className="mt-4 grid gap-5 text-sm sm:grid-cols-2 sm:gap-4">
-				<BookingDetail
-					label="Date"
-					tone={detailTone}
-					value={dateValue}
-				/>
-				<BookingDetail
-					label="Time"
-					tone={detailTone}
-					value={timeValue}
-				/>
-				<BookingDetail
-					label="Duration"
-					value={booking.duration}
-				/>
 				<BookingDetail
 					label="Recording Space"
 					value={booking.service}
@@ -308,7 +318,53 @@ function SessionDetails({ booking }: SessionDetailsProps): ReactNode {
 					value={booking.addons.length > 0 ? booking.addons.join(", ") : "None"}
 				/>
 			</dl>
+			<BookingSessionTable
+				dateValue={dateValue}
+				durationValue={booking.duration}
+				timeValue={timeValue}
+				tone={detailTone}
+			/>
 		</section>
+	);
+}
+
+interface BookingSessionTableProps {
+	dateValue: string;
+	durationValue: string;
+	timeValue: string;
+	tone: "default" | "destructive";
+}
+
+function BookingSessionTable({
+	dateValue,
+	durationValue,
+	timeValue,
+	tone,
+}: BookingSessionTableProps): ReactNode {
+	const valueClassName = tone === "destructive" ? "font-medium text-destructive" : "font-medium";
+	const headerClassName = "text-muted-foreground/80 text-sm font-medium";
+
+	return (
+		<div className="mt-5 overflow-hidden rounded-lg bg-muted/60 ring-1 ring-border/70">
+			<Table>
+				<TableHeader>
+					<TableRow className="hover:bg-transparent">
+						<TableHead className={headerClassName}>Session</TableHead>
+						<TableHead className={headerClassName}>Date</TableHead>
+						<TableHead className={headerClassName}>Time</TableHead>
+						<TableHead className={headerClassName}>Duration</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					<TableRow className="border-0 hover:bg-background/40">
+						<TableCell className={valueClassName}>1</TableCell>
+						<TableCell className={valueClassName}>{dateValue}</TableCell>
+						<TableCell className={valueClassName}>{timeValue}</TableCell>
+						<TableCell className={valueClassName}>{durationValue}</TableCell>
+					</TableRow>
+				</TableBody>
+			</Table>
+		</div>
 	);
 }
 
@@ -341,25 +397,25 @@ function getBookingResultContent(booking: BookingStatus): BookingResultContent {
 			switch (booking.bookingFailureCode) {
 				case "BOOKING_TIME_UNAVAILABLE":
 					return {
-						title: "Your payment was received, but that time slot was just taken",
+						title: "We received your payment and need to adjust your booking time",
 						description:
-							"Another booking took that session time before we could confirm it. Please contact us so we can move your booking to another available time.",
+							"This time slot became unavailable while checkout was finishing. Please contact us and we’ll help move your booking to a time that works for you.",
 						isBookingCompletionFailure: true,
 					};
 
 				case "GOOGLE_CALENDAR_CREATE_FAILED":
 					return {
-						title: "Your payment was received, but your booking was not completed",
+						title: "We received your payment and need to confirm your booking manually",
 						description:
-							"A problem related to Google meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+							"Your payment went through, but the calendar event could not be created automatically. Please contact us and we’ll finalise the booking for you.",
 						isBookingCompletionFailure: true,
 					};
 
 				default:
 					return {
-						title: "Your payment was received, but your booking was not completed",
+						title: "We received your payment and need to confirm your booking manually",
 						description:
-							"A problem on our end meant we couldn't finish creating your booking. Please contact us so we can finalise the booking for you.",
+							"Your payment went through, but the booking could not be completed automatically. Please contact us and we’ll finalise it for you.",
 						isBookingCompletionFailure: true,
 					};
 			}
