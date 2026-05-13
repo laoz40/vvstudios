@@ -33,6 +33,7 @@ import {
 	getBookingSubmitFailureMessage,
 } from "#studio/features/booking-form/lib/booking-errors";
 import {
+	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
 	storeSavedBookingInfo,
@@ -80,19 +81,6 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 >;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
-const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
-
-function getAvailabilityRateLimitKey() {
-	const existingKey = window.localStorage.getItem(availabilityRateLimitKeyStorageKey);
-
-	if (existingKey) {
-		return existingKey;
-	}
-
-	const nextKey = window.crypto.randomUUID();
-	window.localStorage.setItem(availabilityRateLimitKeyStorageKey, nextKey);
-	return nextKey;
-}
 
 export const Route = createFileRoute("/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -216,10 +204,12 @@ function BookingPage() {
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
 	const isAvailabilityRateLimited = isAvailabilityRateLimitedMessage(availabilityError);
 
+	// load availability rate limit key
 	useEffect(() => {
 		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
 	}, []);
 
+	// load saved booking info
 	useEffect(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
@@ -233,6 +223,7 @@ function BookingPage() {
 		setPreferredTimeSectionKey(nextSavedBookingInfo.timeSectionKey || null);
 	}, []);
 
+	// fetch calendar availability
 	useEffect(() => {
 		if (!availabilityRateLimitKey) {
 			return;
@@ -384,6 +375,7 @@ function BookingPage() {
 		});
 	};
 
+	// keep time based availability fresh
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			setCurrentTimestamp(getCurrentTimestamp());
@@ -394,6 +386,7 @@ function BookingPage() {
 		};
 	}, []);
 
+	// clear invalid selected time
 	useEffect(() => {
 		if (
 			!formValues.date ||

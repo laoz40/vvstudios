@@ -8,6 +8,8 @@ import {
 
 export const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
 
+const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
+
 const timeSectionKeySchema = z.enum(["morning", "afternoon", "evening"]).or(z.literal(""));
 
 export const savedBookingInfoSchema = z.object({
@@ -87,4 +89,23 @@ export function removeStoredSavedBookingInfo() {
 	} catch {
 		// Ignore storage failures so booking can continue without persistence.
 	}
+}
+
+export function getAvailabilityRateLimitKey() {
+	const nextKey = window.crypto.randomUUID();
+
+	try {
+		const localStorage = getLocalStorage();
+		const existingKey = localStorage?.getItem(availabilityRateLimitKeyStorageKey);
+
+		if (existingKey) {
+			return existingKey;
+		}
+
+		localStorage?.setItem(availabilityRateLimitKeyStorageKey, nextKey);
+	} catch {
+		// Ignore storage failures so availability can still load without persistence.
+	}
+
+	return nextKey;
 }
