@@ -52,17 +52,19 @@ import {
 	parseDateValue,
 	parseMonthKey,
 	startOfToday,
-	type BusyPeriod,
 } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import { BookingPaymentModal } from "#studio/features/booking-form/components/PaymentModal";
+import {
+	getBookableMonthKeys,
+	getSelectedBusyDay,
+	getUncachedMonthKeys,
+	isAvailabilityRateLimitedMessage,
+	isBookingDateDisabled,
+	mergeMonthlyBusyWindows,
+	type BusyDayWindow,
+} from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
-
-interface BusyDayWindow {
-	busyPeriods: BusyPeriod[];
-	date: string;
-	label: string;
-}
 
 interface EmbeddedCheckoutSession {
 	bookingId: Id<"bookings">;
@@ -100,19 +102,6 @@ export const Route = createFileRoute("/book")({
 const pageCopy = {
 	title: "Studio Hire Booking",
 } as const;
-
-function getBookableMonthKeys(startDate: Date, endDate: Date) {
-	const monthKeys: string[] = [];
-	const month = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-	const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-
-	while (month <= endMonth) {
-		monthKeys.push(formatMonthKey(month));
-		month.setMonth(month.getMonth() + 1);
-	}
-
-	return monthKeys;
-}
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
@@ -225,9 +214,7 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited =
-		availabilityError ===
-		getBookingErrorMessage({ data: { code: "GOOGLE_CALENDAR_RATE_LIMITED" } });
+	const isAvailabilityRateLimited = isAvailabilityRateLimitedMessage(availabilityError);
 
 	useEffect(() => {
 		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
@@ -251,9 +238,7 @@ function BookingPage() {
 			return;
 		}
 
-		const uncachedMonthKeys = bookableMonthKeys.filter(
-			(month) => !monthlyBusyWindowsByMonth[month],
-		);
+		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
 			setIsLoadingMonthAvailability(false);
@@ -274,12 +259,7 @@ function BookingPage() {
 					return;
 				}
 
-				setMonthlyBusyWindowsByMonth((current) => ({
-					...current,
-					...Object.fromEntries(
-						results.map((result) => [result.month, result.busyWindows] as const),
-					),
-				}));
+				setMonthlyBusyWindowsByMonth((current) => mergeMonthlyBusyWindows(current, results));
 			})
 			.catch((availabilityFetchError) => {
 				if (isCancelled) {
@@ -306,33 +286,25 @@ function BookingPage() {
 		monthlyBusyWindowsByMonth,
 	]);
 
-	const selectedBusyDay = !formValues.date
-		? null
-		: (monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === formValues.date) ??
-			null);
+	const selectedBusyDay = formValues.date
+		? getSelectedBusyDay({
+				date: formValues.date,
+				monthlyBusyWindowsByMonth,
+				selectedMonth,
+			})
+		: null;
 
 	const disabledDates = useMemo(() => {
-		return (date: Date) => {
-			if (date < today || date > lastBookableDate) {
-				return true;
-			}
-
-			const monthKey = formatMonthKey(date);
-			const busyDays = monthlyBusyWindowsByMonth[monthKey];
-			const busyDay = busyDays?.find((day) => day.date === formatDateValue(date));
-			const availableTimesForDate = getAvailableTimesForDate({
-				busyPeriods: busyDay?.busyPeriods ?? [],
+		return (date: Date) =>
+			isBookingDateDisabled({
 				currentTimestamp,
-				dateValue: formatDateValue(date),
+				date,
 				duration: formValues.duration,
+				isAvailabilityRateLimited,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				today,
 			});
-
-			if (!busyDays && isAvailabilityRateLimited) {
-				return true;
-			}
-
-			return availableTimesForDate.length === 0;
-		};
 	}, [
 		currentTimestamp,
 		formValues.duration,
