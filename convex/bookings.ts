@@ -99,6 +99,10 @@ type UpdateBookingStatusErrorData = {
 	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
 };
 
+type UpdateBookingPaidRemainingBalanceErrorData = {
+	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
+};
+
 type CleanupOldBookingsErrorData = {
 	code: "NOT_AUTHENTICATED";
 };
@@ -640,6 +644,36 @@ export const updateBookingStatus = mutation({
 
 		await ctx.db.patch(args.bookingId, {
 			status: args.status,
+		});
+
+		return { ok: true as const };
+	},
+});
+
+export const updateBookingPaidRemainingBalance = mutation({
+	args: {
+		bookingId: v.id("bookings"),
+		paidRemainingBalance: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
+				code: "NOT_AUTHENTICATED",
+			});
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
+				code: "BOOKING_NOT_FOUND",
+			});
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			paidRemainingBalance: args.paidRemainingBalance,
 		});
 
 		return { ok: true as const };

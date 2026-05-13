@@ -111,6 +111,8 @@ function getColumnClassName(columnId: string) {
 			return "w-42";
 		case "notes":
 			return "w-56";
+		case "paidRemainingBalance":
+			return "w-8";
 		case "createdAt":
 			return "w-20";
 		case "actions":
@@ -268,6 +270,19 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 					{row.original.notes?.trim() || "No notes"}
 				</p>
 			),
+		},
+		{
+			accessorKey: "paidRemainingBalance",
+			header: "Paid",
+			cell: ({ row }) => {
+				const isPaid = row.original.paidRemainingBalance === true;
+
+				return (
+					<p className={isPaid ? "text-green-600" : "text-destructive"}>
+						{isPaid ? "Yes" : "No"}
+					</p>
+				);
+			},
 		},
 		{
 			id: "createdAt",

@@ -35,6 +35,7 @@ export default defineSchema({
 		reminderEmailClaimedAt: v.optional(v.number()),
 		reminderEmailSentAt: v.optional(v.number()),
 		reminderEmailFailureCode: v.optional(v.string()),
+		paidRemainingBalance: v.optional(v.boolean()),
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),

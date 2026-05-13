@@ -36,6 +36,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
+	const updateBookingPaidRemainingBalance = useMutation(
+		api.bookings.updateBookingPaidRemainingBalance,
+	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -43,6 +46,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
+	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = React.useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
@@ -52,6 +56,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
 	const toggleStatusLabel =
 		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
+	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const instagramHandle = booking.instagramHandle
 		? stripInstagramHandlePrefix(booking.instagramHandle)
 		: null;
@@ -112,6 +117,26 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			toast.error(getBookingMutationErrorMessage(error));
 		} finally {
 			setIsSaving(false);
+		}
+	}
+
+	async function handleTogglePaidRemainingBalance() {
+		setIsUpdatingPaidRemainingBalance(true);
+
+		try {
+			await updateBookingPaidRemainingBalance({
+				bookingId: booking._id,
+				paidRemainingBalance: !isPaidRemainingBalance,
+			});
+			toast.success(
+				!isPaidRemainingBalance
+					? "Remaining balance marked as paid."
+					: "Remaining balance marked as unpaid.",
+			);
+		} catch {
+			toast.error("Unable to update remaining balance payment status.");
+		} finally {
+			setIsUpdatingPaidRemainingBalance(false);
 		}
 	}
 
@@ -271,6 +296,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						{isEmailingInvoice ? "Sending invoice..." : "Email invoice to customer"}
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						disabled={isUpdatingPaidRemainingBalance}
+						onSelect={handleTogglePaidRemainingBalance}>
+						{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
+					</DropdownMenuItem>
 					{canToggleStatus ? (
 						<>
 							<DropdownMenuItem
