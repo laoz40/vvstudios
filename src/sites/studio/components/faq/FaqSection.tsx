@@ -31,6 +31,19 @@ export const faqSectionCopy: {
 			],
 		},
 		{
+			question: "Can I record remote podcasts here?",
+			answerParts: [
+				{
+					value:
+						"Yes! We use an industry-standard program Riverside.fm for remote podcast sessions, allowing you to professionally record guests from anywhere in the world while capturing studio-quality audio and video locally.",
+				},
+				{
+					value:
+						"You’ll be able to speak with your guest live from the studio, see them on-screen via webcam, and record using professional studio microphones and cameras with high-quality separate recordings for easier editing.",
+				},
+			],
+		},
+		{
 			question: "What’s included when I book a session?",
 			answerParts: [
 				{
@@ -45,6 +58,28 @@ export const faqSectionCopy: {
 				{
 					value:
 						"Yes, every session provides an experienced AV producer who will guide you through the recording process so you can focus on what you do best.",
+				},
+			],
+		},
+		{
+			question: "How do I get the best results from my session?",
+			answerParts: [
+				{
+					value:
+						"Arrive with your topic locked in and a few key talking points ready. Clear preparation leads to stronger, more focused content.",
+				},
+				{
+					value:
+						"Bring any notes, scripts, or references you want to use so we can build the session around them.",
+				},
+			],
+		},
+		{
+			question: "When should I arrive for my studio session?",
+			answerParts: [
+				{
+					value:
+						"We recommend arriving 15 minutes before your scheduled session time. This gives you time to settle in, get comfortable in the studio, and go through any final setup so your full booking time is dedicated to recording. Arriving early also helps ensure a smooth start to your session, especially if it’s your first time in the studio.",
 				},
 			],
 		},
@@ -73,28 +108,6 @@ export const faqSectionCopy: {
 				{
 					value:
 						"Please note: Files are typically stored and available for 7 days after delivery, after which they may be archived or removed as part of our storage cycle",
-				},
-			],
-		},
-		{
-			question: "How early should I arrive for my studio session?",
-			answerParts: [
-				{
-					value:
-						"We recommend arriving 15 minutes before your scheduled session time. This gives you time to settle in, get comfortable in the studio, and go through any final setup so your full booking time is dedicated to recording. Arriving early also helps ensure a smooth start to your session, especially if it’s your first time in the studio.",
-				},
-			],
-		},
-		{
-			question: "How do I get the best results from my session?",
-			answerParts: [
-				{
-					value:
-						"Arrive with your topic locked in and a few key talking points ready. Clear preparation leads to stronger, more focused content.",
-				},
-				{
-					value:
-						"Bring any notes, scripts, or references you want to use so we can build the session around them.",
 				},
 			],
 		},
