@@ -29,8 +29,9 @@ import {
 	type TimeSectionKey,
 } from "#studio/features/booking-form/lib/form-shared";
 import {
-	parseSavedBookingInfo,
-	SAVED_BOOKING_INFO_STORAGE_KEY,
+	getStoredSavedBookingInfo,
+	removeStoredSavedBookingInfo,
+	storeSavedBookingInfo,
 	toSavedBookingInfo,
 	type SavedBookingInfo,
 } from "#studio/features/booking-form/lib/saved-booking-info";
@@ -203,13 +204,10 @@ function BookingPage() {
 						parsedValue,
 						preferredTimeSectionKey ?? "",
 					);
-					window.localStorage.setItem(
-						SAVED_BOOKING_INFO_STORAGE_KEY,
-						JSON.stringify(nextSavedBookingInfo),
-					);
+					storeSavedBookingInfo(nextSavedBookingInfo);
 					setSavedBookingInfo(nextSavedBookingInfo);
 				} else {
-					window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+					removeStoredSavedBookingInfo();
 					setSavedBookingInfo(null);
 				}
 
@@ -250,12 +248,10 @@ function BookingPage() {
 	}, []);
 
 	useEffect(() => {
-		const nextSavedBookingInfo = parseSavedBookingInfo(
-			window.localStorage.getItem(SAVED_BOOKING_INFO_STORAGE_KEY),
-		);
+		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
 		if (!nextSavedBookingInfo) {
-			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			removeStoredSavedBookingInfo();
 			return;
 		}
 
@@ -520,7 +516,7 @@ function BookingPage() {
 	};
 
 	const handleRemoveSavedBookingInfo = () => {
-		window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+		removeStoredSavedBookingInfo();
 		setSavedBookingInfo(null);
 		setShouldSaveBookingInfo(false);
 	};
@@ -529,7 +525,7 @@ function BookingPage() {
 		setShouldSaveBookingInfo(checked);
 
 		if (!checked) {
-			window.localStorage.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+			removeStoredSavedBookingInfo();
 			setSavedBookingInfo(null);
 		}
 	};

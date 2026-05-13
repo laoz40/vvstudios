@@ -54,3 +54,37 @@ export function toSavedBookingInfo(
 		notes: values.notes,
 	};
 }
+
+function getLocalStorage() {
+	try {
+		return typeof window === "undefined" ? null : window.localStorage;
+	} catch {
+		return null;
+	}
+}
+
+export function getStoredSavedBookingInfo() {
+	try {
+		return parseSavedBookingInfo(
+			getLocalStorage()?.getItem(SAVED_BOOKING_INFO_STORAGE_KEY) ?? null,
+		);
+	} catch {
+		return null;
+	}
+}
+
+export function storeSavedBookingInfo(savedBookingInfo: SavedBookingInfo) {
+	try {
+		getLocalStorage()?.setItem(SAVED_BOOKING_INFO_STORAGE_KEY, JSON.stringify(savedBookingInfo));
+	} catch {
+		// Ignore storage failures so booking can continue without persistence.
+	}
+}
+
+export function removeStoredSavedBookingInfo() {
+	try {
+		getLocalStorage()?.removeItem(SAVED_BOOKING_INFO_STORAGE_KEY);
+	} catch {
+		// Ignore storage failures so booking can continue without persistence.
+	}
+}
