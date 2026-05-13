@@ -100,21 +100,21 @@ const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | und
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
 		case "name":
-			return "w-48";
+			return "w-42";
 		case "status":
-			return "w-20";
+			return "w-18";
 		case "session":
-			return "w-24";
+			return "w-16";
 		case "service":
-			return "w-64";
+			return "w-50";
 		case "contact":
-			return "w-48";
+			return "w-42";
 		case "notes":
 			return "w-56";
 		case "createdAt":
-			return "w-24";
+			return "w-20";
 		case "actions":
-			return "w-10";
+			return "w-6";
 		default:
 			return undefined;
 	}
@@ -131,6 +131,12 @@ function isStaleCleanupBooking(booking: BookingRecord, now = Date.now()) {
 	);
 }
 
+function formatInstagramHandle(instagramHandle: string) {
+	const trimmedHandle = instagramHandle.trim();
+
+	return trimmedHandle.startsWith("@") ? trimmedHandle : `@${trimmedHandle}`;
+}
+
 function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 	const query = String(value ?? "")
 		.trim()
@@ -145,10 +151,11 @@ function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 		row.original.email,
 		row.original.accountName,
 		row.original.phone,
+		row.original.instagramHandle,
 		row.original.service,
 		row.original.date,
 	]
-		.filter(Boolean)
+		.filter((field): field is string => Boolean(field))
 		.some((field) => field.toLowerCase().includes(query));
 }
 
@@ -240,12 +247,15 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 		{
 			id: "contact",
 			header: "Contact",
-			accessorFn: (row) => `${row.email} ${row.phone ?? ""}`,
+			accessorFn: (row) => `${row.email} ${row.phone ?? ""} ${row.instagramHandle ?? ""}`,
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="break-all font-medium">{row.original.email}</p>
 					<p className="text-sm text-muted-foreground">
-						{row.original.phone ?? "No phone provided"}
+						<span>{row.original.phone ?? "No phone provided"}</span>
+						{row.original.instagramHandle ? (
+							<span> · {formatInstagramHandle(row.original.instagramHandle)}</span>
+						) : null}
 					</p>
 				</div>
 			),

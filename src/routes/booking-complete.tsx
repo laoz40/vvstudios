@@ -95,7 +95,9 @@ function BookingCompletePage(): ReactNode {
 	const resultContent = getBookingResultContent(booking);
 
 	return (
-		<BookingStatusLayout bookingStatus={booking.status}>
+		<BookingStatusLayout
+			bookingStatus={booking.status}
+			stripeSessionId={usableStripeSessionId}>
 			<BookingResult
 				booking={booking}
 				content={resultContent}

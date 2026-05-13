@@ -16,6 +16,7 @@ export default defineSchema({
 		service: v.string(),
 		addons: v.array(v.string()),
 		notes: v.optional(v.string()),
+		instagramHandle: v.optional(v.string()),
 
 		// Booking/payment lifecycle
 		status: v.union(

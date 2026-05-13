@@ -24,6 +24,10 @@ import {
 
 type BookingRecord = Doc<"bookings">;
 
+function stripInstagramHandlePrefix(instagramHandle: string) {
+	return instagramHandle.trim().replace(/^@+/, "");
+}
+
 export type BookingActionsProps = {
 	booking: BookingRecord;
 };
@@ -48,6 +52,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
 	const toggleStatusLabel =
 		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
+	const instagramHandle = booking.instagramHandle
+		? stripInstagramHandlePrefix(booking.instagramHandle)
+		: null;
 
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
@@ -227,6 +234,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						{booking.phone ? (
 							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.phone)}>
 								Copy phone
+							</DropdownMenuItem>
+						) : null}
+						{instagramHandle ? (
+							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(instagramHandle)}>
+								Copy Instagram handle
 							</DropdownMenuItem>
 						) : null}
 						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(String(booking._id))}>

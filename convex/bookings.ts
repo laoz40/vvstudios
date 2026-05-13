@@ -103,6 +103,10 @@ type CleanupOldBookingsErrorData = {
 	code: "NOT_AUTHENTICATED";
 };
 
+type SaveBookingInstagramHandleErrorData = {
+	code: "BOOKING_NOT_FOUND" | "BOOKING_NOT_CONFIRMED";
+};
+
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
@@ -136,6 +140,35 @@ export const getBookingStatusByStripeSessionId = query({
 		}
 
 		return buildPublicBookingStatusResponse(booking);
+	},
+});
+
+export const saveBookingInstagramHandle = mutation({
+	args: {
+		stripeSessionId: v.string(),
+		instagramHandle: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const booking = await ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.unique();
+
+		if (!booking) {
+			throw new ConvexError<SaveBookingInstagramHandleErrorData>({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		if (booking.status !== "confirmed") {
+			throw new ConvexError<SaveBookingInstagramHandleErrorData>({
+				code: "BOOKING_NOT_CONFIRMED",
+			});
+		}
+
+		await ctx.db.patch(booking._id, {
+			instagramHandle: args.instagramHandle,
+		});
+
+		return { ok: true as const };
 	},
 });
 
