@@ -52,6 +52,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		booking._id,
 		booking.pendingPaymentCreatedAt,
 	);
+	const canTrackPaidRemainingBalance = booking.status === "confirmed";
 	const canToggleStatus = booking.status === "confirmed" || booking.status === "failed";
 	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
 	const toggleStatusLabel =
@@ -296,11 +297,13 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						{isEmailingInvoice ? "Sending invoice..." : "Email invoice to customer"}
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						disabled={isUpdatingPaidRemainingBalance}
-						onSelect={handleTogglePaidRemainingBalance}>
-						{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
-					</DropdownMenuItem>
+					{canTrackPaidRemainingBalance ? (
+						<DropdownMenuItem
+							disabled={isUpdatingPaidRemainingBalance}
+							onSelect={handleTogglePaidRemainingBalance}>
+							{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
+						</DropdownMenuItem>
+					) : null}
 					{canToggleStatus ? (
 						<>
 							<DropdownMenuItem

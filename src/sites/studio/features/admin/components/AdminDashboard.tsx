@@ -275,12 +275,14 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			accessorKey: "paidRemainingBalance",
 			header: "Paid",
 			cell: ({ row }) => {
+				if (row.original.status !== "confirmed") {
+					return <p className="text-muted-foreground">—</p>;
+				}
+
 				const isPaid = row.original.paidRemainingBalance === true;
 
 				return (
-					<p className={isPaid ? "text-green-600" : "text-destructive"}>
-						{isPaid ? "Yes" : "No"}
-					</p>
+					<p className={isPaid ? "text-green-600" : "text-destructive"}>{isPaid ? "Yes" : "No"}</p>
 				);
 			},
 		},
