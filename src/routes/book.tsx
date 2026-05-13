@@ -492,7 +492,7 @@ function BookingPage() {
 			bookingId: activeCheckoutSession.bookingId,
 			stripeSessionId: activeCheckoutSession.stripeSessionId,
 		}).catch((closeCheckoutError) => {
-			console.error("Could not close embedded checkout session", closeCheckoutError);
+			toast.error(getBookingErrorMessage(closeCheckoutError));
 		});
 	};
 
@@ -590,7 +590,7 @@ function BookingPage() {
 							})
 							.catch((submissionError) => {
 								if (submissionError !== termsDialogPendingError) {
-									console.error("Booking form submission failed", submissionError);
+									toast.error(getBookingErrorMessage(submissionError));
 								}
 							});
 					}}
