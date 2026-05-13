@@ -9,7 +9,6 @@ import {
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingResult } from "#studio/features/booking-complete/components/BookingResult";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
-import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
 import { getBookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
@@ -96,9 +95,7 @@ function BookingCompletePage(): ReactNode {
 	const resultContent = getBookingResultContent(booking);
 
 	return (
-		<BookingStatusLayout
-			afterActions={booking.status === "confirmed" ? <InstagramRepostPrompt /> : null}
-			primaryAction={resultContent.isBookingCompletionFailure ? "contact" : "new_booking"}>
+		<BookingStatusLayout bookingStatus={booking.status}>
 			<BookingResult
 				booking={booking}
 				content={resultContent}

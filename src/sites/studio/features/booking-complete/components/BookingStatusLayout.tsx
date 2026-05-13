@@ -1,30 +1,35 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Home, Phone } from "lucide-react";
-import { BookingCompleteDevScenarioPanel } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
+import {
+	type BookingStatus,
+	BookingCompleteDevScenarioPanel,
+} from "#studio/components/booking/BookingCompleteDevScenarioPanel";
+import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 
 export interface BookingStatusLayoutProps {
-	afterActions?: ReactNode;
+	bookingStatus?: BookingStatus["status"];
 	children: ReactNode;
-	primaryAction?: "contact" | "new_booking";
 	showActions?: boolean;
 }
 
 export function BookingStatusLayout({
-	afterActions,
+	bookingStatus,
 	children,
-	primaryAction = "new_booking",
 	showActions = true,
 }: BookingStatusLayoutProps): ReactNode {
+	const primaryAction = bookingStatus === "failed" ? "contact" : "new_booking";
+	const showInstagramPrompt = bookingStatus === "confirmed";
+
 	return (
 		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			{children}
 			{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
 
 			{showActions ? (
-				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+				<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					<Button
 						asChild
 						size="lg"
@@ -63,7 +68,11 @@ export function BookingStatusLayout({
 				</div>
 			) : null}
 
-			{afterActions ? <div className="mt-8 sm:mt-10">{afterActions}</div> : null}
+			{showInstagramPrompt ? (
+				<div className="mt-8 sm:mt-20">
+					<InstagramRepostPrompt />
+				</div>
+			) : null}
 		</main>
 	);
 }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type ReactNode, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -6,7 +6,7 @@ import { Input } from "#/components/ui/input";
 export function InstagramRepostPrompt(): ReactNode {
 	const [instagramHandle, setInstagramHandle] = useState("");
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+	function handleSubmit(event: SubmitEvent<HTMLFormElement>): void {
 		event.preventDefault();
 
 		if (!instagramHandle.trim()) {
