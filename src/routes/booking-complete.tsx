@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ArrowRight, CircleCheck, CircleX, Home, Phone } from "lucide-react";
@@ -10,6 +10,7 @@ import {
 	parseBookingCompleteSearch,
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -106,6 +107,7 @@ function BookingCompletePage(): ReactNode {
 
 	return (
 		<BookingStatusLayout
+			afterActions={booking.status === "confirmed" ? <InstagramRepostPrompt /> : null}
 			primaryAction={resultContent.isBookingCompletionFailure ? "contact" : "new_booking"}>
 			<BookingResult
 				booking={booking}
@@ -117,12 +119,14 @@ function BookingCompletePage(): ReactNode {
 }
 
 interface BookingStatusLayoutProps {
+	afterActions?: ReactNode;
 	children: ReactNode;
 	primaryAction?: "contact" | "new_booking";
 	showActions?: boolean;
 }
 
 function BookingStatusLayout({
+	afterActions,
 	children,
 	primaryAction = "new_booking",
 	showActions = true,
@@ -171,6 +175,8 @@ function BookingStatusLayout({
 					</Button>
 				</div>
 			) : null}
+
+			{afterActions ? <div className="mt-8 sm:mt-10">{afterActions}</div> : null}
 		</main>
 	);
 }
@@ -271,6 +277,50 @@ function BookingResult({ booking, content, stripeSessionId }: BookingResultProps
 			</div>
 
 			{booking ? <SessionDetails booking={booking} /> : null}
+		</section>
+	);
+}
+
+function InstagramRepostPrompt(): ReactNode {
+	const [instagramHandle, setInstagramHandle] = useState("");
+
+	function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+		event.preventDefault();
+
+		if (!instagramHandle.trim()) {
+			return;
+		}
+
+		toast.success("Thanks! We’ll keep an eye out for your post.");
+		setInstagramHandle("");
+	}
+
+	return (
+		<section className="rounded-lg border bg-background/60 p-4 shadow-sm">
+			<div className="flex flex-col gap-3">
+				<div className="flex flex-col gap-1">
+					<h2 className="text-base font-semibold">Posting your studio content on Instagram?</h2>
+					<p className="text-sm leading-normal text-muted-foreground">
+						Send us your Instagram handle. If you post content made at VV Studios, we can repost it
+						and help give your work free advertising.
+					</p>
+				</div>
+				<form
+					className="flex flex-col gap-2 sm:flex-row"
+					onSubmit={handleSubmit}>
+					<Input
+						aria-label="Instagram handle"
+						placeholder="@yourhandle"
+						value={instagramHandle}
+						onChange={(event) => setInstagramHandle(event.target.value)}
+					/>
+					<Button
+						type="submit"
+						className="sm:w-auto">
+						Submit
+					</Button>
+				</form>
+			</div>
 		</section>
 	);
 }
