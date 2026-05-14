@@ -18,7 +18,6 @@ interface BuildBookingCalendarEventRequestBodyArgs {
 	startDateTime: string;
 	endDateTime: string;
 	timeZone: string;
-	hostEmails: string[];
 	email: string;
 }
 
@@ -60,7 +59,6 @@ export function buildBookingCalendarEventRequestBody({
 	startDateTime,
 	endDateTime,
 	timeZone,
-	hostEmails,
 	email,
 }: BuildBookingCalendarEventRequestBodyArgs): calendar_v3.Schema$Event {
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
@@ -96,7 +94,7 @@ export function buildBookingCalendarEventRequestBody({
 			dateTime: endDateTime,
 		},
 		transparency: "opaque",
-		attendees: [{ email }, ...hostEmails.map((hostEmail) => ({ email: hostEmail }))],
+		attendees: [{ email }],
 	};
 }
 

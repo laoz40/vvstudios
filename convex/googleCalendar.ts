@@ -21,7 +21,6 @@ import {
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
-import { getHostEmails } from "./lib/email";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -367,7 +366,6 @@ export const completeClaimedBooking = internalAction({
 
 		try {
 			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
-			const hostEmails = getHostEmails();
 
 			const busyWindows = await getBusyWindows({
 				calendar,
@@ -411,7 +409,6 @@ export const completeClaimedBooking = internalAction({
 					startDateTime,
 					endDateTime,
 					timeZone,
-					hostEmails,
 				}),
 			});
 
