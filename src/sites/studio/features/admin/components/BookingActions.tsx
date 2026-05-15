@@ -30,6 +30,7 @@ import {
 	BookingEditDialog,
 	type BookingEditDraft,
 } from "#studio/features/admin/components/BookingEditDialog";
+import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -52,6 +53,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = React.useState(false);
+	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
@@ -291,6 +293,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						onSelect={() => setIsEmailInvoiceDialogOpen(true)}>
 						Email invoice to customer
 					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={() => setIsCustomInvoiceDialogOpen(true)}>
+						Custom invoice
+					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{canTrackPaidRemainingBalance ? (
 						<DropdownMenuItem
@@ -395,6 +400,12 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<CustomInvoiceDialog
+				open={isCustomInvoiceDialogOpen}
+				booking={booking}
+				onOpenChange={setIsCustomInvoiceDialogOpen}
+			/>
 
 			<BookingDeleteDialog
 				open={isDeleteDialogOpen}

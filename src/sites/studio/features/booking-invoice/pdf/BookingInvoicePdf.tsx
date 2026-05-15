@@ -9,6 +9,9 @@ export interface BookingInvoicePdfProps {
 
 export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 	const formattedSessionTime = formatTimeValue(data.booking.time);
+	const sessionSummary = data.booking.service
+		? `${data.booking.service} · ${data.booking.duration} · ${formattedSessionTime}`
+		: `Add-ons only · ${formattedSessionTime}`;
 
 	return (
 		<Document>
@@ -63,9 +66,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 				<View style={styles.sessionSummaryRow}>
 					<View style={styles.sessionSummaryItem}>
 						<Text style={styles.sessionSummaryLabel}>Session</Text>
-						<Text style={styles.sessionSummaryValue}>
-							{data.booking.service} · {data.booking.duration} · {formattedSessionTime}
-						</Text>
+						<Text style={styles.sessionSummaryValue}>{sessionSummary}</Text>
 					</View>
 					<View style={styles.sessionSummaryItemRight}>
 						<Text style={styles.sessionSummaryLabel}>Booking date</Text>
@@ -99,10 +100,12 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 						<Text style={styles.totalLabel}>Subtotal</Text>
 						<Text style={styles.totalValue}>{formatAud(data.amounts.subtotalAmount)}</Text>
 					</View>
-					<View style={styles.totalRow}>
-						<Text style={styles.totalLabel}>Deposit paid</Text>
-						<Text style={styles.totalValue}>-{formatAud(data.amounts.depositAmount)}</Text>
-					</View>
+					{data.amounts.depositAmount > 0 ? (
+						<View style={styles.totalRow}>
+							<Text style={styles.totalLabel}>Deposit paid</Text>
+							<Text style={styles.totalValue}>-{formatAud(data.amounts.depositAmount)}</Text>
+						</View>
+					) : null}
 					<View style={styles.totalDueRow}>
 						<Text style={styles.totalDueLabel}>Total due</Text>
 						<Text style={styles.totalDueValue}>{formatAud(data.amounts.totalDueAmount)}</Text>

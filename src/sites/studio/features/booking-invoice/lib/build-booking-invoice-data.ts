@@ -20,12 +20,9 @@ function formatCalendarDate(value: string) {
 	return format(new Date(`${value}T00:00:00`), "d MMMM yyyy");
 }
 
-export function formatBookingInvoiceNumber(
-	bookingId: BookingInvoiceBuilderInput["bookingId"],
-	invoiceDate: number,
-) {
+export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: number) {
 	const datePart = format(invoiceDate, "yyyyMMdd");
-	const suffix = String(bookingId)
+	const suffix = String(invoiceId)
 		.replace(/[^a-zA-Z0-9]/g, "")
 		.toUpperCase()
 		.slice(0, 4);
@@ -34,10 +31,11 @@ export function formatBookingInvoiceNumber(
 }
 
 export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): BookingInvoiceData {
-	const baseAmount = DURATION_PRICES[input.duration];
+	const baseAmount = input.service ? DURATION_PRICES[input.duration] : 0;
 	const addonsAmount = sumMoney(input.addons.map((addon) => ADDON_PRICES[addon]));
 	const subtotalAmount = baseAmount + addonsAmount;
-	const totalDueAmount = Math.max(subtotalAmount - BOOKING_DEPOSIT_AMOUNT, 0);
+	const depositAmount = input.includeDepositLineItem === false ? 0 : BOOKING_DEPOSIT_AMOUNT;
+	const totalDueAmount = Math.max(subtotalAmount - depositAmount, 0);
 	const bookingDateLabel = formatCalendarDate(input.date);
 	const invoiceDate = input.createdAt ?? Date.now();
 	const invoiceDateLabel = format(invoiceDate, "d MMMM yyyy");
@@ -48,24 +46,32 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			: "No add-ons selected";
 
 	const lineItems: BookingInvoiceLineItem[] = [
-		{
-			amount: baseAmount,
-			description: `${input.service} Podcast Studio Hire (${input.duration})`,
-			quantity: 1,
-			rate: baseAmount,
-		},
+		...(input.service
+			? [
+					{
+						amount: baseAmount,
+						description: `${input.service} Podcast Studio Hire (${input.duration})`,
+						quantity: 1,
+						rate: baseAmount,
+					},
+				]
+			: []),
 		...input.addons.map((addon) => ({
 			amount: ADDON_PRICES[addon],
 			description: addon,
 			quantity: 1,
 			rate: ADDON_PRICES[addon],
 		})),
-		{
-			amount: -BOOKING_DEPOSIT_AMOUNT,
-			description: "Deposit paid",
-			quantity: 1,
-			rate: -BOOKING_DEPOSIT_AMOUNT,
-		},
+		...(input.includeDepositLineItem === false
+			? []
+			: [
+					{
+						amount: -BOOKING_DEPOSIT_AMOUNT,
+						description: "Deposit paid",
+						quantity: 1,
+						rate: -BOOKING_DEPOSIT_AMOUNT,
+					},
+				]),
 	];
 
 	return {
@@ -73,7 +79,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			addonsAmount,
 			baseAmount,
 			currency: BOOKING_INVOICE_CURRENCY,
-			depositAmount: BOOKING_DEPOSIT_AMOUNT,
+			depositAmount,
 			subtotalAmount,
 			totalDueAmount,
 		},
@@ -109,7 +115,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			dueDateLabel,
 			invoiceDate: new Date(invoiceDate).toISOString(),
 			invoiceDateLabel,
-			number: formatBookingInvoiceNumber(input.bookingId, invoiceDate),
+			number: input.invoiceNumber ?? formatBookingInvoiceNumber(input.bookingId, invoiceDate),
 			title: BOOKING_INVOICE_TITLE,
 		},
 		lineItems,

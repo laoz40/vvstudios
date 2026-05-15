@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+	customInvoices: defineTable({
+		bookingId: v.id("bookings"),
+		invoiceNumber: v.string(),
+		service: v.optional(v.string()),
+		addons: v.array(v.string()),
+		includeDepositLineItem: v.boolean(),
+		createdAt: v.number(),
+		createdBy: v.optional(v.string()),
+	}).index("by_bookingId", ["bookingId"]),
+
 	bookings: defineTable({
 		// Booking form data
 		name: v.string(),

@@ -19,9 +19,11 @@ export interface BookingInvoiceBuilderInput {
 	date: string;
 	time: string;
 	duration: BookingDuration;
-	service: BookingService;
+	service?: BookingService;
 	addons: BookingAddon[];
 	createdAt?: number;
+	includeDepositLineItem?: boolean;
+	invoiceNumber?: string;
 }
 
 export interface BookingInvoiceMoneyAmounts {
@@ -48,7 +50,7 @@ export interface BookingInvoiceData {
 		bookingDate: string;
 		bookingDateLabel: string;
 		duration: BookingDuration;
-		service: BookingService;
+		service?: BookingService;
 		time: string;
 	};
 	branding: {

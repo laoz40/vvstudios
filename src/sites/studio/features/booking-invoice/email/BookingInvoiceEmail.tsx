@@ -25,6 +25,9 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const paymentInstruction = data.notes.paymentNote.replace(` ${receiptNote}`, "");
 	const formattedSessionTime = formatTimeValue(data.booking.time);
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
+	const bookingDescription = data.booking.service
+		? `Your ${data.booking.service.toLowerCase()} session`
+		: "Your invoice";
 
 	return (
 		<Html>
@@ -52,8 +55,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					) : null}
 					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
 					<Text style={paragraph}>
-						Your {data.booking.service.toLowerCase()} session on{" "}
-						<strong>{data.booking.bookingDateLabel}</strong> at{" "}
+						{bookingDescription} on <strong>{data.booking.bookingDateLabel}</strong> at{" "}
 						<strong>{formattedSessionTime}</strong> has been booked. Your fully itemised invoice is
 						attached to this email.
 					</Text>
