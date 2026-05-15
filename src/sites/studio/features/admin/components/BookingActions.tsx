@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import {
 	Dialog,
 	DialogClose,
@@ -31,6 +33,10 @@ import {
 	type BookingEditDraft,
 } from "#studio/features/admin/components/BookingEditDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
+import {
+	formatAudAmount,
+	getRemainingBalanceAmount,
+} from "#studio/features/admin/lib/remaining-balance";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -49,16 +55,22 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const updateBookingPaidRemainingBalance = useMutation(
 		api.bookings.updateBookingPaidRemainingBalance,
 	);
+	const updateBookingRemainingBalanceAmount = useMutation(
+		api.bookings.updateBookingRemainingBalanceAmount,
+	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = React.useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = React.useState(false);
+	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = React.useState(false);
+	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] =
+		React.useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
@@ -70,9 +82,19 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const toggleStatusLabel =
 		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
+	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
+	const [remainingBalanceDraft, setRemainingBalanceDraft] = React.useState(
+		String(remainingBalanceAmount),
+	);
 	const instagramHandle = booking.instagramHandle
 		? stripInstagramHandlePrefix(booking.instagramHandle)
 		: null;
+
+	React.useEffect(() => {
+		if (isRemainingBalanceDialogOpen) {
+			setRemainingBalanceDraft(String(remainingBalanceAmount));
+		}
+	}, [isRemainingBalanceDialogOpen, remainingBalanceAmount]);
 
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
@@ -150,6 +172,30 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			toast.error("Unable to update remaining balance payment status.");
 		} finally {
 			setIsUpdatingPaidRemainingBalance(false);
+		}
+	}
+
+	async function handleSetRemainingBalanceAmount() {
+		const parsedAmount = Number(remainingBalanceDraft);
+
+		if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+			toast.error("Enter a valid remaining balance.");
+			return;
+		}
+
+		setIsUpdatingRemainingBalanceAmount(true);
+
+		try {
+			await updateBookingRemainingBalanceAmount({
+				bookingId: booking._id,
+				remainingBalanceAmount: parsedAmount,
+			});
+			setIsRemainingBalanceDialogOpen(false);
+			toast.success("Remaining balance updated.");
+		} catch {
+			toast.error("Unable to update remaining balance.");
+		} finally {
+			setIsUpdatingRemainingBalanceAmount(false);
 		}
 	}
 
@@ -298,11 +344,16 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{canTrackPaidRemainingBalance ? (
-						<DropdownMenuItem
-							disabled={isUpdatingPaidRemainingBalance}
-							onSelect={handleTogglePaidRemainingBalance}>
-							{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
-						</DropdownMenuItem>
+						<>
+							<DropdownMenuItem
+								disabled={isUpdatingPaidRemainingBalance}
+								onSelect={handleTogglePaidRemainingBalance}>
+								{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
+							</DropdownMenuItem>
+							<DropdownMenuItem onSelect={() => setIsRemainingBalanceDialogOpen(true)}>
+								Set remaining balance
+							</DropdownMenuItem>
+						</>
 					) : null}
 					{canToggleStatus ? (
 						<>
@@ -406,6 +457,50 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				booking={booking}
 				onOpenChange={setIsCustomInvoiceDialogOpen}
 			/>
+
+			<Dialog
+				open={isRemainingBalanceDialogOpen}
+				onOpenChange={setIsRemainingBalanceDialogOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Set remaining balance</DialogTitle>
+						<DialogDescription>
+							This value shows in the Paid column until the balance is marked paid.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-2">
+						<Label htmlFor={`remaining-balance-${booking._id}`}>Remaining balance</Label>
+						<Input
+							id={`remaining-balance-${booking._id}`}
+							type="number"
+							min="0"
+							step="0.01"
+							value={remainingBalanceDraft}
+							onChange={(event) => setRemainingBalanceDraft(event.target.value)}
+						/>
+						<p className="text-sm text-muted-foreground">
+							Current default: {formatAudAmount(remainingBalanceAmount)}
+						</p>
+					</div>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setIsRemainingBalanceDialogOpen(false)}
+							disabled={isUpdatingRemainingBalanceAmount}>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							onClick={() => {
+								void handleSetRemainingBalanceAmount();
+							}}
+							disabled={isUpdatingRemainingBalanceAmount}>
+							{isUpdatingRemainingBalanceAmount ? "Saving..." : "Save balance"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<BookingDeleteDialog
 				open={isDeleteDialogOpen}

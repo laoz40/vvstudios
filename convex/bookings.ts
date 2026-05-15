@@ -679,3 +679,33 @@ export const updateBookingPaidRemainingBalance = mutation({
 		return { ok: true as const };
 	},
 });
+
+export const updateBookingRemainingBalanceAmount = mutation({
+	args: {
+		bookingId: v.id("bookings"),
+		remainingBalanceAmount: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
+				code: "NOT_AUTHENTICATED",
+			});
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
+				code: "BOOKING_NOT_FOUND",
+			});
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			remainingBalanceAmount: Math.max(args.remainingBalanceAmount, 0),
+		});
+
+		return { ok: true as const };
+	},
+});

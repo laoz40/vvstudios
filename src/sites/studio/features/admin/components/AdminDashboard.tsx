@@ -47,6 +47,10 @@ import {
 import { Label } from "#/components/ui/label";
 import { BookingActions } from "#studio/features/admin/components/BookingActions";
 import {
+	formatAudAmount,
+	getRemainingBalanceAmount,
+} from "#studio/features/admin/lib/remaining-balance";
+import {
 	formatBookingDateMedium,
 	formatBookingTimestamp,
 	formatBookingTimeLabel,
@@ -347,16 +351,19 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 		},
 		{
 			accessorKey: "paidRemainingBalance",
-			header: "Paid",
+			header: "Due",
 			cell: ({ row }) => {
 				if (row.original.status !== "confirmed") {
 					return <p className="text-muted-foreground">—</p>;
 				}
 
 				const isPaid = row.original.paidRemainingBalance === true;
+				const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(row.original));
 
 				return (
-					<p className={isPaid ? "text-green-600" : "text-destructive"}>{isPaid ? "Yes" : "No"}</p>
+					<p className={isPaid ? "text-green-600" : "text-destructive"}>
+						{isPaid ? "Paid" : remainingBalanceLabel}
+					</p>
 				);
 			},
 		},
