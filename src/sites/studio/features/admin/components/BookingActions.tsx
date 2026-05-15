@@ -1,10 +1,19 @@
 import * as React from "react";
 import { useAction, useMutation } from "convex/react";
-import { MoreHorizontal } from "lucide-react";
+import { LoaderCircle, MoreHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -42,6 +51,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
 	const [isSaving, setIsSaving] = React.useState(false);
@@ -217,6 +227,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			await sendBookingInvoiceForBooking({
 				bookingId: booking._id,
 			});
+			setIsEmailInvoiceDialogOpen(false);
 			toast.success(`Invoice sent to ${booking.email}.`);
 		} catch (error) {
 			toast.error(getBookingInvoiceEmailErrorMessage(error));
@@ -277,8 +288,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						disabled={isEmailingInvoice}
-						onSelect={handleEmailInvoice}>
-						{isEmailingInvoice ? "Sending invoice..." : "Email invoice to customer"}
+						onSelect={() => setIsEmailInvoiceDialogOpen(true)}>
+						Email invoice to customer
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{canTrackPaidRemainingBalance ? (
@@ -310,6 +321,80 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+
+			<Dialog
+				open={isEmailInvoiceDialogOpen}
+				onOpenChange={(nextOpen) => {
+					if (isEmailingInvoice && !nextOpen) {
+						return;
+					}
+
+					setIsEmailInvoiceDialogOpen(nextOpen);
+				}}>
+				<DialogContent
+					className="sm:max-w-lg"
+					onInteractOutside={(event) => {
+						if (isEmailingInvoice) {
+							event.preventDefault();
+						}
+					}}
+					onEscapeKeyDown={(event) => {
+						if (isEmailingInvoice) {
+							event.preventDefault();
+						}
+					}}>
+					<DialogClose asChild>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-sm"
+							className="absolute top-2 right-2"
+							aria-label="Close email invoice dialog"
+							disabled={isEmailingInvoice}>
+							<X />
+						</Button>
+					</DialogClose>
+
+					<DialogHeader className="text-left">
+						<DialogTitle>Email invoice to customer?</DialogTitle>
+						<DialogDescription>
+							Confirm before sending the invoice email to this customer.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="rounded-lg border bg-muted/40 p-4">
+						<dl className="grid gap-3 text-sm sm:grid-cols-2">
+							<div className="grid gap-1">
+								<dt className="text-muted-foreground">Customer</dt>
+								<dd className="font-medium">{booking.name}</dd>
+							</div>
+							<div className="grid gap-1">
+								<dt className="text-muted-foreground">Email</dt>
+								<dd className="break-all font-medium">{booking.email}</dd>
+							</div>
+						</dl>
+					</div>
+
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setIsEmailInvoiceDialogOpen(false)}
+							disabled={isEmailingInvoice}>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							onClick={() => {
+								void handleEmailInvoice();
+							}}
+							disabled={isEmailingInvoice}>
+							{isEmailingInvoice ? <LoaderCircle className="size-4 animate-spin" /> : null}
+							{isEmailingInvoice ? "Sending..." : "Email invoice"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<BookingDeleteDialog
 				open={isDeleteDialogOpen}
