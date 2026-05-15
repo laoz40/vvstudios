@@ -139,6 +139,36 @@ function formatInstagramHandle(instagramHandle: string) {
 	return trimmedHandle.startsWith("@") ? trimmedHandle : `@${trimmedHandle}`;
 }
 
+async function copyText(value: string, label: string) {
+	try {
+		await navigator.clipboard.writeText(value);
+		toast.success(`Copied ${label}.`);
+	} catch {
+		toast.error(`Unable to copy ${label}.`);
+	}
+}
+
+type CopyTextButtonProps = {
+	value: string;
+	label: string;
+	children: React.ReactNode;
+	className?: string;
+};
+
+function CopyTextButton({ value, label, children, className }: CopyTextButtonProps) {
+	return (
+		<button
+			type="button"
+			className={cn(
+				"cursor-grab rounded-sm text-left underline-offset-2 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+				className,
+			)}
+			onClick={() => void copyText(value, label)}>
+			{children}
+		</button>
+	);
+}
+
 function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 	const query = String(value ?? "")
 		.trim()
@@ -190,11 +220,34 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			header: ({ column }) => renderSortableHeader("Customer", column),
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{row.original.name}</p>
-					<p className="text-sm text-muted-foreground">
-						{row.original.accountName}
-						{row.original.abn ? ` · ABN ${row.original.abn}` : ""}
+					<p className="font-medium">
+						<CopyTextButton
+							value={row.original.name}
+							label="customer name">
+							{row.original.name}
+						</CopyTextButton>
 					</p>
+					{row.original.accountName || row.original.abn ? (
+						<p className="text-sm text-muted-foreground">
+							{row.original.accountName ? (
+								<CopyTextButton
+									value={row.original.accountName}
+									label="account name">
+									{row.original.accountName}
+								</CopyTextButton>
+							) : null}
+							{row.original.abn ? (
+								<>
+									{row.original.accountName ? " · " : ""}
+									<CopyTextButton
+										value={row.original.abn}
+										label="ABN">
+										{row.original.abn}
+									</CopyTextButton>
+								</>
+							) : null}
+						</p>
+					) : null}
 				</div>
 			),
 			filterFn: (row, _columnId, value) => customerFilter(row, value),
@@ -252,11 +305,32 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			accessorFn: (row) => `${row.email} ${row.phone ?? ""} ${row.instagramHandle ?? ""}`,
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="break-all font-medium">{row.original.email}</p>
+					<p className="break-all font-medium">
+						<CopyTextButton
+							value={row.original.email}
+							label="email">
+							{row.original.email}
+						</CopyTextButton>
+					</p>
 					<p className="text-sm text-muted-foreground">
-						<span>{row.original.phone ?? "No phone provided"}</span>
+						{row.original.phone ? (
+							<CopyTextButton
+								value={row.original.phone}
+								label="phone number">
+								{row.original.phone}
+							</CopyTextButton>
+						) : (
+							<span>No phone provided</span>
+						)}
 						{row.original.instagramHandle ? (
-							<span> · {formatInstagramHandle(row.original.instagramHandle)}</span>
+							<>
+								{" · "}
+								<CopyTextButton
+									value={formatInstagramHandle(row.original.instagramHandle)}
+									label="Instagram handle">
+									{formatInstagramHandle(row.original.instagramHandle)}
+								</CopyTextButton>
+							</>
 						) : null}
 					</p>
 				</div>

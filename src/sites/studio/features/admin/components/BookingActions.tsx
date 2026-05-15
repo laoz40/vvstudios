@@ -241,25 +241,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					align="end"
 					className="w-56 touch-manipulation">
 					<DropdownMenuGroup>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.name)}>
-							Copy customer name
-						</DropdownMenuItem>
-						{booking.accountName ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.accountName)}>
-								Copy account name
-							</DropdownMenuItem>
-						) : null}
 						{booking.abn ? (
 							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.abn ?? "")}>
 								Copy ABN
-							</DropdownMenuItem>
-						) : null}
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.email)}>
-							Copy email
-						</DropdownMenuItem>
-						{booking.phone ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.phone)}>
-								Copy phone
 							</DropdownMenuItem>
 						) : null}
 						{instagramHandle ? (
