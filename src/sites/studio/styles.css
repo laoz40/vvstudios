@@ -81,15 +81,27 @@
 	padding: 0;
 }
 
+.studio-site-admin {
+	background-color: var(--card);
+}
+
 @media (min-width: 768px) {
 	.studio-site {
 		padding: 1rem 1rem 0;
+	}
+
+	.studio-site-admin {
+		padding: 0;
 	}
 }
 
 @media (min-width: 1024px) {
 	.studio-site {
 		padding: 1rem 1.5rem 0;
+	}
+
+	.studio-site-admin {
+		padding: 0;
 	}
 }
 

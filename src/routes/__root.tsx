@@ -95,6 +95,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
+	const isAdminPage = pathname === studioSite.routes.admin;
+
 	return (
 		<html
 			lang="en"
@@ -102,7 +104,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<head>
 				<HeadContent />
 			</head>
-			<body className="studio-site">
+			<body className={isAdminPage ? "studio-site studio-site-admin" : "studio-site"}>
 				<ClerkProvider>
 					<ConvexProvider>
 						<SmoothScroll />
