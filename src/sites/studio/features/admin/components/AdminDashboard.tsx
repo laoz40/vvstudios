@@ -423,7 +423,7 @@ export function AdminDashboard({
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 	const [showUpcomingOnly, setShowUpcomingOnly] = React.useState(true);
-	const [hideStaleBookings, setHideStaleBookings] = React.useState(false);
+	const [showStaleBookings, setShowStaleBookings] = React.useState(false);
 	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = React.useState(false);
 	const [isCleaningUp, setIsCleaningUp] = React.useState(false);
 	const staleCleanupBookings = React.useMemo(
@@ -436,13 +436,13 @@ export function AdminDashboard({
 				return false;
 			}
 
-			if (hideStaleBookings && isStaleCleanupBooking(booking)) {
+			if (!showStaleBookings && isStaleCleanupBooking(booking)) {
 				return false;
 			}
 
 			return true;
 		});
-	}, [bookings, hideStaleBookings, showUpcomingOnly]);
+	}, [bookings, showStaleBookings, showUpcomingOnly]);
 
 	async function handleCleanupOldBookings() {
 		setIsCleaningUp(true);
@@ -452,8 +452,8 @@ export function AdminDashboard({
 			setIsCleanupDialogOpen(false);
 			toast.success(
 				result.deletedCount === 1
-					? "Deleted 1 stale booking."
-					: `Deleted ${result.deletedCount} stale bookings.`,
+					? "Deleted 1 incomplete booking."
+					: `Deleted ${result.deletedCount} incomplete bookings.`,
 			);
 		} catch {
 			toast.error("Unable to clean up old bookings.");
@@ -587,18 +587,18 @@ export function AdminDashboard({
 								onClick={() => setIsCleanupDialogOpen(true)}
 								disabled={isCleaningUp || staleCleanupBookings.length === 0}>
 								<Trash2 aria-hidden />
-								Clean up stale bookings
+								Clean up incomplete bookings
 							</Button>
 							<div className="flex items-center gap-2">
 								<Checkbox
-									id="hide-stale-bookings"
-									checked={hideStaleBookings}
-									onCheckedChange={(checked) => setHideStaleBookings(checked === true)}
+									id="show-stale-bookings"
+									checked={showStaleBookings}
+									onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
 								/>
 								<Label
-									htmlFor="hide-stale-bookings"
+									htmlFor="show-stale-bookings"
 									className="text-sm font-medium text-foreground">
-									Hide stale bookings
+									Show incomplete bookings
 								</Label>
 							</div>
 							<div className="flex items-center gap-2">
@@ -706,9 +706,9 @@ export function AdminDashboard({
 				onOpenChange={setIsCleanupDialogOpen}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Clean up stale bookings?</DialogTitle>
+						<DialogTitle>Clean up incomplete bookings?</DialogTitle>
 						<DialogDescription>
-							This will permanently delete stale booking records from the database.
+							This will permanently delete incomplete booking records from the database.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -732,7 +732,7 @@ export function AdminDashboard({
 							variant="destructive"
 							onClick={handleCleanupOldBookings}
 							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							{isCleaningUp ? "Deleting..." : "Delete stale bookings"}
+							{isCleaningUp ? "Deleting..." : "Delete incomplete bookings"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
