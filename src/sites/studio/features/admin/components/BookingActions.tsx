@@ -25,7 +25,6 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { downloadBookingInvoicePdf } from "#studio/features/booking-invoice/pdf/download-booking-invoice-pdf";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
@@ -227,6 +226,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsDownloadingInvoice(true);
 
 		try {
+			const { downloadBookingInvoicePdf } =
+				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
 			const parsedBooking = bookingSchema.safeParse({
 				name: booking.name,
 				phone: booking.phone,

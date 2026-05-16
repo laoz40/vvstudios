@@ -25,7 +25,6 @@ import type {
 	BookingDuration,
 	BookingService,
 } from "#studio/features/booking-invoice/lib/types";
-import { downloadBookingInvoicePdf } from "#studio/features/booking-invoice/pdf/download-booking-invoice-pdf";
 import {
 	ADDON_OPTIONS,
 	SERVICES,
@@ -112,6 +111,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setDownloadingInvoiceId(input._id);
 
 		try {
+			const { downloadBookingInvoicePdf } =
+				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
 			const parsedBooking = bookingSchema.safeParse({
 				name: booking.name,
 				phone: booking.phone,
@@ -159,6 +160,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setIsGenerating(true);
 
 		try {
+			const { downloadBookingInvoicePdf } =
+				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
 			const customInvoice = await createCustomInvoice({
 				bookingId: booking._id,
 				service: draft.service || undefined,
