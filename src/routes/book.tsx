@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
 import {
@@ -55,7 +55,6 @@ import {
 	startOfToday,
 } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
-import { BookingPaymentModal } from "#studio/features/booking-form/components/PaymentModal";
 import {
 	getBookableMonthKeys,
 	getSelectedBusyDay,
@@ -81,6 +80,11 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 >;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
+const loadBookingPaymentModal = () =>
+	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
+		default: module.BookingPaymentModal,
+	}));
+const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 export const Route = createFileRoute("/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -136,6 +140,7 @@ function BookingPage() {
 
 			if (!submitAfterTermsRef.current) {
 				setShowTermsDialog(true);
+				void loadBookingPaymentModal();
 				throw termsDialogPendingError;
 			}
 
@@ -208,6 +213,7 @@ function BookingPage() {
 	useEffect(() => {
 		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
 	}, []);
+
 
 	// load saved booking info
 	useEffect(() => {
@@ -636,10 +642,12 @@ function BookingPage() {
 			/>
 
 			{checkoutSession ? (
-				<BookingPaymentModal
-					clientSecret={checkoutSession.clientSecret}
-					onClose={handlePaymentModalClose}
-				/>
+				<Suspense fallback={null}>
+					<BookingPaymentModal
+						clientSecret={checkoutSession.clientSecret}
+						onClose={handlePaymentModalClose}
+					/>
+				</Suspense>
 			) : null}
 		</main>
 	);
