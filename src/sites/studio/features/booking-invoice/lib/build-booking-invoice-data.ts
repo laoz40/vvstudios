@@ -3,13 +3,11 @@ import {
 	ADDON_PRICES,
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,
-	BOOKING_INVOICE_CURRENCY,
 	BOOKING_INVOICE_NOTES,
 	BOOKING_INVOICE_PAYMENT,
 	BOOKING_INVOICE_TITLE,
-	DURATION_PRICES,
 } from "#studio/features/booking-invoice/lib/constants";
-import { sumMoney } from "#studio/features/booking-invoice/lib/money";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type {
 	BookingInvoiceBuilderInput,
 	BookingInvoiceData,
@@ -31,11 +29,12 @@ export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: numbe
 }
 
 export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): BookingInvoiceData {
-	const baseAmount = input.service ? DURATION_PRICES[input.duration] : 0;
-	const addonsAmount = sumMoney(input.addons.map((addon) => ADDON_PRICES[addon]));
-	const subtotalAmount = baseAmount + addonsAmount;
-	const depositAmount = input.includeDepositLineItem === false ? 0 : BOOKING_DEPOSIT_AMOUNT;
-	const totalDueAmount = Math.max(subtotalAmount - depositAmount, 0);
+	const amounts = calculateBookingInvoiceAmounts({
+		duration: input.duration,
+		addons: input.addons,
+		includeBaseAmount: Boolean(input.service),
+		includeDepositLineItem: input.includeDepositLineItem !== false,
+	});
 	const bookingDateLabel = formatCalendarDate(input.date);
 	const invoiceDate = input.createdAt ?? Date.now();
 	const invoiceDateLabel = format(invoiceDate, "d MMMM yyyy");
@@ -49,10 +48,10 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		...(input.service
 			? [
 					{
-						amount: baseAmount,
+						amount: amounts.baseAmount,
 						description: `${input.service} Podcast Studio Hire (${input.duration})`,
 						quantity: 1,
-						rate: baseAmount,
+						rate: amounts.baseAmount,
 					},
 				]
 			: []),
@@ -75,14 +74,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	];
 
 	return {
-		amounts: {
-			addonsAmount,
-			baseAmount,
-			currency: BOOKING_INVOICE_CURRENCY,
-			depositAmount,
-			subtotalAmount,
-			totalDueAmount,
-		},
+		amounts,
 		booking: {
 			addons: input.addons,
 			addonsSummary,
