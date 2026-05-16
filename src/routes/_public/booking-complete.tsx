@@ -14,7 +14,7 @@ import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/booking-complete")({
+export const Route = createFileRoute("/_public/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
 	head: () => buildNoIndexHead("Booking Complete | VV Studios"),
 	component: BookingCompletePage,

@@ -9,125 +9,138 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as GalleryRouteImport } from './routes/gallery'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as BookingExpiredRouteImport } from './routes/booking-expired'
-import { Route as BookingCompleteRouteImport } from './routes/booking-complete'
-import { Route as BookRouteImport } from './routes/book'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as PublicTermsAndConditionsRouteImport } from './routes/_public/terms-and-conditions'
+import { Route as PublicPrivacyPolicyRouteImport } from './routes/_public/privacy-policy'
+import { Route as PublicPricingRouteImport } from './routes/_public/pricing'
+import { Route as PublicGalleryRouteImport } from './routes/_public/gallery'
+import { Route as PublicContactRouteImport } from './routes/_public/contact'
+import { Route as PublicBookingExpiredRouteImport } from './routes/_public/booking-expired'
+import { Route as PublicBookingCompleteRouteImport } from './routes/_public/booking-complete'
+import { Route as PublicBookRouteImport } from './routes/_public/book'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 
-const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
-  id: '/terms-and-conditions',
-  path: '/terms-and-conditions',
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleryRoute = GalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookingExpiredRoute = BookingExpiredRouteImport.update({
-  id: '/booking-expired',
-  path: '/booking-expired',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookingCompleteRoute = BookingCompleteRouteImport.update({
-  id: '/booking-complete',
-  path: '/booking-complete',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookRoute = BookRouteImport.update({
-  id: '/book',
-  path: '/book',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
+const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicTermsAndConditionsRoute =
+  PublicTermsAndConditionsRouteImport.update({
+    id: '/terms-and-conditions',
+    path: '/terms-and-conditions',
+    getParentRoute: () => PublicRoute,
+  } as any)
+const PublicPrivacyPolicyRoute = PublicPrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPricingRoute = PublicPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicGalleryRoute = PublicGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicContactRoute = PublicContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicBookingExpiredRoute = PublicBookingExpiredRouteImport.update({
+  id: '/booking-expired',
+  path: '/booking-expired',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicBookingCompleteRoute = PublicBookingCompleteRouteImport.update({
+  id: '/booking-complete',
+  path: '/booking-complete',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicBookRoute = PublicBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAdminRoute = AuthAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/book': typeof BookRoute
-  '/booking-complete': typeof BookingCompleteRoute
-  '/booking-expired': typeof BookingExpiredRoute
-  '/contact': typeof ContactRoute
-  '/gallery': typeof GalleryRoute
-  '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/': typeof PublicIndexRoute
+  '/admin': typeof AuthAdminRoute
+  '/login': typeof AuthLoginRoute
+  '/book': typeof PublicBookRoute
+  '/booking-complete': typeof PublicBookingCompleteRoute
+  '/booking-expired': typeof PublicBookingExpiredRoute
+  '/contact': typeof PublicContactRoute
+  '/gallery': typeof PublicGalleryRoute
+  '/pricing': typeof PublicPricingRoute
+  '/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/book': typeof BookRoute
-  '/booking-complete': typeof BookingCompleteRoute
-  '/booking-expired': typeof BookingExpiredRoute
-  '/contact': typeof ContactRoute
-  '/gallery': typeof GalleryRoute
-  '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/': typeof PublicIndexRoute
+  '/admin': typeof AuthAdminRoute
+  '/login': typeof AuthLoginRoute
+  '/book': typeof PublicBookRoute
+  '/booking-complete': typeof PublicBookingCompleteRoute
+  '/booking-expired': typeof PublicBookingExpiredRoute
+  '/contact': typeof PublicContactRoute
+  '/gallery': typeof PublicGalleryRoute
+  '/pricing': typeof PublicPricingRoute
+  '/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/book': typeof BookRoute
-  '/booking-complete': typeof BookingCompleteRoute
-  '/booking-expired': typeof BookingExpiredRoute
-  '/contact': typeof ContactRoute
-  '/gallery': typeof GalleryRoute
-  '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_public/book': typeof PublicBookRoute
+  '/_public/booking-complete': typeof PublicBookingCompleteRoute
+  '/_public/booking-expired': typeof PublicBookingExpiredRoute
+  '/_public/contact': typeof PublicContactRoute
+  '/_public/gallery': typeof PublicGalleryRoute
+  '/_public/pricing': typeof PublicPricingRoute
+  '/_public/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/_public/': typeof PublicIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin'
+    | '/login'
     | '/book'
     | '/booking-complete'
     | '/booking-expired'
     | '/contact'
     | '/gallery'
-    | '/login'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-and-conditions'
@@ -135,138 +148,175 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/login'
     | '/book'
     | '/booking-complete'
     | '/booking-expired'
     | '/contact'
     | '/gallery'
-    | '/login'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-and-conditions'
   id:
     | '__root__'
-    | '/'
-    | '/admin'
-    | '/book'
-    | '/booking-complete'
-    | '/booking-expired'
-    | '/contact'
-    | '/gallery'
-    | '/login'
-    | '/pricing'
-    | '/privacy-policy'
-    | '/terms-and-conditions'
+    | '/_auth'
+    | '/_public'
+    | '/_auth/admin'
+    | '/_auth/login'
+    | '/_public/book'
+    | '/_public/booking-complete'
+    | '/_public/booking-expired'
+    | '/_public/contact'
+    | '/_public/gallery'
+    | '/_public/pricing'
+    | '/_public/privacy-policy'
+    | '/_public/terms-and-conditions'
+    | '/_public/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
-  BookRoute: typeof BookRoute
-  BookingCompleteRoute: typeof BookingCompleteRoute
-  BookingExpiredRoute: typeof BookingExpiredRoute
-  ContactRoute: typeof ContactRoute
-  GalleryRoute: typeof GalleryRoute
-  LoginRoute: typeof LoginRoute
-  PricingRoute: typeof PricingRoute
-  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms-and-conditions': {
-      id: '/terms-and-conditions'
-      path: '/terms-and-conditions'
-      fullPath: '/terms-and-conditions'
-      preLoaderRoute: typeof TermsAndConditionsRouteImport
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gallery': {
-      id: '/gallery'
-      path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/booking-expired': {
-      id: '/booking-expired'
-      path: '/booking-expired'
-      fullPath: '/booking-expired'
-      preLoaderRoute: typeof BookingExpiredRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/booking-complete': {
-      id: '/booking-complete'
-      path: '/booking-complete'
-      fullPath: '/booking-complete'
-      preLoaderRoute: typeof BookingCompleteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book': {
-      id: '/book'
-      path: '/book'
-      fullPath: '/book'
-      preLoaderRoute: typeof BookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_public/': {
+      id: '/_public/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/terms-and-conditions': {
+      id: '/_public/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof PublicTermsAndConditionsRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/privacy-policy': {
+      id: '/_public/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PublicPrivacyPolicyRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/pricing': {
+      id: '/_public/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PublicPricingRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/gallery': {
+      id: '/_public/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof PublicGalleryRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/contact': {
+      id: '/_public/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof PublicContactRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/booking-expired': {
+      id: '/_public/booking-expired'
+      path: '/booking-expired'
+      fullPath: '/booking-expired'
+      preLoaderRoute: typeof PublicBookingExpiredRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/booking-complete': {
+      id: '/_public/booking-complete'
+      path: '/booking-complete'
+      fullPath: '/booking-complete'
+      preLoaderRoute: typeof PublicBookingCompleteRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/book': {
+      id: '/_public/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof PublicBookRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/admin': {
+      id: '/_auth/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthAdminRouteImport
+      parentRoute: typeof AuthRoute
     }
   }
 }
 
+interface AuthRouteChildren {
+  AuthAdminRoute: typeof AuthAdminRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthAdminRoute: AuthAdminRoute,
+  AuthLoginRoute: AuthLoginRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface PublicRouteChildren {
+  PublicBookRoute: typeof PublicBookRoute
+  PublicBookingCompleteRoute: typeof PublicBookingCompleteRoute
+  PublicBookingExpiredRoute: typeof PublicBookingExpiredRoute
+  PublicContactRoute: typeof PublicContactRoute
+  PublicGalleryRoute: typeof PublicGalleryRoute
+  PublicPricingRoute: typeof PublicPricingRoute
+  PublicPrivacyPolicyRoute: typeof PublicPrivacyPolicyRoute
+  PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
+  PublicIndexRoute: typeof PublicIndexRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicBookRoute: PublicBookRoute,
+  PublicBookingCompleteRoute: PublicBookingCompleteRoute,
+  PublicBookingExpiredRoute: PublicBookingExpiredRoute,
+  PublicContactRoute: PublicContactRoute,
+  PublicGalleryRoute: PublicGalleryRoute,
+  PublicPricingRoute: PublicPricingRoute,
+  PublicPrivacyPolicyRoute: PublicPrivacyPolicyRoute,
+  PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
+  PublicIndexRoute: PublicIndexRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
-  BookRoute: BookRoute,
-  BookingCompleteRoute: BookingCompleteRoute,
-  BookingExpiredRoute: BookingExpiredRoute,
-  ContactRoute: ContactRoute,
-  GalleryRoute: GalleryRoute,
-  LoginRoute: LoginRoute,
-  PricingRoute: PricingRoute,
-  PrivacyPolicyRoute: PrivacyPolicyRoute,
-  TermsAndConditionsRoute: TermsAndConditionsRoute,
+  AuthRoute: AuthRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

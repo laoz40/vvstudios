@@ -14,14 +14,10 @@ import gabaritoLatinFont from "@fontsource-variable/gabarito/files/gabarito-lati
 import squadaOneFont from "@fontsource/squada-one/files/squada-one-latin-400-normal.woff2?url";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { studioSite } from "#/config/sites";
-import { SmoothScroll } from "#studio/components/SmoothScroll";
-import { StudioLayout } from "#studio/StudioLayout";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import appCss from "../styles.css?url";
 import studioCss from "../sites/studio/styles.css?url";
-import ClerkProvider from "../integrations/clerk/provider";
-import ConvexProvider from "../integrations/convex/provider";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
@@ -121,13 +117,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body className={isAdminPage ? "studio-site studio-site-admin" : "studio-site"}>
-				<ClerkProvider>
-					<ConvexProvider>
-						<SmoothScroll />
-						<StudioLayout pathname={pathname}>{children}</StudioLayout>
-						<Toaster />
-					</ConvexProvider>
-				</ClerkProvider>
+				{children}
+				<Toaster />
 				<Analytics />
 				<SpeedInsights />
 				<Scripts />

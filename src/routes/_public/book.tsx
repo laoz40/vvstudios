@@ -86,7 +86,7 @@ const loadBookingPaymentModal = () =>
 	}));
 const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
-export const Route = createFileRoute("/book")({
+export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
 	component: BookingPage,
 });

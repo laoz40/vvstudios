@@ -7,7 +7,7 @@ import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/_auth/admin")({
 	head: () => buildNoIndexHead("Admin Dashboard | VV Studios"),
 	component: AdminPage,
 });

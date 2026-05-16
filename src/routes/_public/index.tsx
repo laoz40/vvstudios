@@ -8,7 +8,7 @@ import {
 	seoMetadata,
 } from "#/lib/seo";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_public/")({
 	head: () => ({
 		...buildSeoHead(seoMetadata.home),
 		scripts: [
