@@ -10,6 +10,8 @@ import { Image } from "@unpic/react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ArrowRight, Home } from "lucide-react";
+import gabaritoLatinFont from "@fontsource-variable/gabarito/files/gabarito-latin-wght-normal.woff2?url";
+import squadaOneFont from "@fontsource/squada-one/files/squada-one-latin-400-normal.woff2?url";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { studioSite } from "#/config/sites";
 import { SmoothScroll } from "#studio/components/SmoothScroll";
@@ -53,6 +55,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 		links: [
+			{
+				rel: "preload",
+				href: squadaOneFont,
+				as: "font",
+				type: "font/woff2",
+				crossOrigin: "anonymous",
+			},
+			{
+				rel: "preload",
+				href: gabaritoLatinFont,
+				as: "font",
+				type: "font/woff2",
+				crossOrigin: "anonymous",
+			},
 			{
 				rel: "stylesheet",
 				href: appCss,

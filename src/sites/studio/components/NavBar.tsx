@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import { Image } from "@unpic/react";
 import { ArrowRight, Menu, X } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import logoYellow from "#studio/assets/vv-logo-yellow.svg";
 import { studioSite } from "#/config/sites";
@@ -18,8 +17,6 @@ const OPEN_NAV_ARIA_LABEL = "Open navigation menu";
 const CLOSE_NAV_ARIA_LABEL = "Close navigation menu";
 const OPEN_MENU_SR_TEXT = "Open menu";
 const CLOSE_MENU_SR_TEXT = "Close menu";
-const NAV_INTRO_DURATION = 0.75;
-
 type InertElement = HTMLElement & { inert: boolean };
 
 const BOOK_LINK = { href: studioSite.routes.book, label: "Book session" } as const;
@@ -130,40 +127,16 @@ function NavCta({
 
 function DesktopNavbar({ pathname }: { pathname: string }) {
 	const isBookPage = pathname === studioSite.routes.book;
-	const [shouldPlayIntro] = useState(() => pathname === studioSite.routes.home);
-	const shouldReduceMotion = useReducedMotion();
-	const [blurEnabled, setBlurEnabled] = useState(() => !shouldPlayIntro || shouldReduceMotion);
-
-	useEffect(() => {
-		setBlurEnabled(!shouldPlayIntro || shouldReduceMotion);
-	}, [shouldPlayIntro, shouldReduceMotion]);
+	const shouldPlayIntro = pathname === studioSite.routes.home;
 
 	return (
 		<div className="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
-			<motion.div
-				initial={
-					shouldPlayIntro
-						? {
-								opacity: shouldReduceMotion ? 1 : 0,
-								y: shouldReduceMotion ? 0 : -32,
-							}
-						: false
-				}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{
-					duration: shouldReduceMotion ? 0 : NAV_INTRO_DURATION,
-					ease: "easeOut",
-				}}
-				onAnimationComplete={() => {
-					if (shouldPlayIntro) {
-						setBlurEnabled(true);
-					}
-				}}>
+			<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 				<nav
 					aria-label={PRIMARY_NAV_ARIA_LABEL}
 					className={cn(
-						"rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg transition duration-700 ease-out",
-						blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none",
+						"rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg backdrop-blur-xs",
+						shouldPlayIntro && "site-nav-intro-surface",
 					)}>
 					<div className="flex items-stretch justify-between gap-4">
 						<div className="flex h-full items-stretch justify-self-start">
@@ -198,7 +171,7 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 						</div>
 					</div>
 				</nav>
-			</motion.div>
+			</div>
 		</div>
 	);
 }
@@ -207,17 +180,11 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [portalElement, setPortalElement] = useState<HTMLDivElement | null>(null);
 	const isBookPage = pathname === studioSite.routes.book;
-	const [shouldPlayIntro] = useState(() => pathname === studioSite.routes.home);
-	const shouldReduceMotion = useReducedMotion();
-	const [blurEnabled, setBlurEnabled] = useState(() => !shouldPlayIntro || shouldReduceMotion);
+	const shouldPlayIntro = pathname === studioSite.routes.home;
 
 	useEffect(() => {
 		setIsOpen(false);
 	}, [pathname]);
-
-	useEffect(() => {
-		setBlurEnabled(!shouldPlayIntro || shouldReduceMotion);
-	}, [shouldPlayIntro, shouldReduceMotion]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -290,30 +257,12 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 	return (
 		<>
 			<div className="fixed inset-x-0 top-2 z-40 px-4 md:hidden">
-				<motion.div
-					initial={
-						shouldPlayIntro
-							? {
-									opacity: shouldReduceMotion ? 1 : 0,
-									y: shouldReduceMotion ? 0 : -32,
-								}
-							: false
-					}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{
-						duration: shouldReduceMotion ? 0 : NAV_INTRO_DURATION,
-						ease: "easeOut",
-					}}
-					onAnimationComplete={() => {
-						if (shouldPlayIntro) {
-							setBlurEnabled(true);
-						}
-					}}>
+				<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
 						className={cn(
-							"mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg transition duration-700 ease-out",
-							blurEnabled ? "backdrop-blur-xs" : "backdrop-blur-none",
+							"mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs",
+							shouldPlayIntro && "site-nav-intro-surface",
 						)}>
 						<div className="flex h-full items-center">
 							<BrandLink
@@ -336,7 +285,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 							<X className={cn("size-5", !isOpen && "hidden")} />
 						</Button>
 					</nav>
-				</motion.div>
+				</div>
 			</div>
 
 			{isOpen && portalElement
