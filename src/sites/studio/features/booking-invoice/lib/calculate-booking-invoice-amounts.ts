@@ -28,7 +28,8 @@ export function calculateBookingInvoiceAmounts({
 	includeBaseAmount = true,
 	includeDepositLineItem = true,
 }: CalculateBookingInvoiceAmountsInput): BookingInvoiceMoneyAmounts {
-	const baseAmount = includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
+	const baseAmount =
+		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
 	const addonsAmount = sumMoney(
 		addons.map((addon) => (isBookingAddon(addon) ? ADDON_PRICES[addon] : 0)),
 	);

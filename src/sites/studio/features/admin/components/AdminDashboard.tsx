@@ -637,11 +637,11 @@ export function AdminDashboard({
 													"bg-muted/40 text-muted-foreground opacity-70",
 											)}>
 											{row.getVisibleCells().map((cell) => (
-											<TableCell
-												key={cell.id}
-												className={getColumnClassName(cell.column.id)}>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
+												<TableCell
+													key={cell.id}
+													className={getColumnClassName(cell.column.id)}>
+													{flexRender(cell.column.columnDef.cell, cell.getContext())}
+												</TableCell>
 											))}
 										</TableRow>
 									);

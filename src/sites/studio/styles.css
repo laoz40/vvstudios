@@ -127,6 +127,38 @@
 	border-radius: 2px;
 }
 
+/* landing hero reveal */
+
+.landing-hero-reveal {
+	animation: landing-hero-reveal 750ms ease-out both;
+	will-change: opacity, transform, filter;
+}
+
+.landing-hero-reveal--delayed {
+	animation-delay: 150ms;
+}
+
+@keyframes landing-hero-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem);
+		filter: blur(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.landing-hero-reveal {
+		animation: none;
+		will-change: auto;
+	}
+}
+
 /* contact card 3D tilt */
 
 .contact-card-scene {
