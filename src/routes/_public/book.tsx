@@ -3,7 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
@@ -104,7 +104,6 @@ function BookingPage() {
 	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
-	const shouldReduceMotion = useReducedMotion();
 	const today = startOfToday();
 	const lastBookableDate = getLastBookableDate(today);
 	const formRef = useRef<HTMLFormElement>(null);
@@ -600,39 +599,22 @@ function BookingPage() {
 				</form>
 			</bookingFormContext.Provider>
 
-			<AnimatePresence>
-				{showScrollToCompleteBooking ? (
-					<motion.div
-						key="scroll-to-booking-target"
-						initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 1, scale: 1.8 }}
-						animate={{ opacity: 1, scale: 1 }}
-						whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0.2 }
-								: {
-										type: "spring",
-										stiffness: 220,
-										damping: 8,
-										mass: 1,
-									}
+			{showScrollToCompleteBooking ? (
+				<div className="fixed right-4 bottom-16 z-50 animate-in fade-in zoom-in-150 duration-200 sm:right-6 sm:bottom-6 motion-reduce:zoom-in-100">
+					<Button
+						type="button"
+						size="icon-lg"
+						aria-label={
+							isDateTimeIncomplete
+								? "Scroll to date and time section"
+								: "Scroll to complete booking"
 						}
-						className="fixed right-4 bottom-16 z-50 sm:right-6 sm:bottom-6">
-						<Button
-							type="button"
-							size="icon-lg"
-							aria-label={
-								isDateTimeIncomplete
-									? "Scroll to date and time section"
-									: "Scroll to complete booking"
-							}
-							className="rounded-full shadow-md"
-							onClick={handleScrollToCompleteBooking}>
-							<ChevronDown className="size-6" />
-						</Button>
-					</motion.div>
-				) : null}
-			</AnimatePresence>
+						className="rounded-full shadow-md active:scale-95 motion-reduce:transition-none"
+						onClick={handleScrollToCompleteBooking}>
+						<ChevronDown className="size-6" />
+					</Button>
+				</div>
+			) : null}
 
 			<TermsDialog
 				open={showTermsDialog}
