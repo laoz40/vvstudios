@@ -535,7 +535,9 @@ export function AdminDashboard({
 			<section className="flex flex-col gap-5">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-10">
-						<h1 className="font-brand text-[10rem] leading-none font-medium uppercase text-foreground">
+						<h1
+							title="It would look better if the text were bigger. What do you think, Joseph?"
+							className="font-brand text-[10rem] leading-none font-medium uppercase text-foreground cursor-help">
 							Bookings Dashboard
 						</h1>
 						<div className="flex flex-wrap flex-col items-start gap-2">
