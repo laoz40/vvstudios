@@ -12,7 +12,7 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
@@ -144,24 +144,26 @@ async function copyText(value: string, label: string) {
 	}
 }
 
-type CopyTextButtonProps = {
+type CopyableTextProps = {
 	value: string;
 	label: string;
 	children: React.ReactNode;
-	className?: string;
 };
 
-function CopyTextButton({ value, label, children, className }: CopyTextButtonProps) {
+function CopyableText({ value, label, children }: CopyableTextProps) {
 	return (
-		<button
-			type="button"
-			className={cn(
-				"cursor-grab rounded-sm text-left underline-offset-2 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-				className,
-			)}
-			onClick={() => void copyText(value, label)}>
-			{children}
-		</button>
+		<span className="inline-flex items-center gap-1 align-baseline">
+			<span>{children}</span>
+			<Button
+				type="button"
+				size="icon-sm"
+				variant="ghost"
+				aria-label={`Copy ${label}`}
+				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:cursor-grab active:cursor-grabbing"
+				onClick={() => void copyText(value, label)}>
+				<Copy className="size-3" />
+			</Button>
+		</span>
 	);
 }
 
@@ -217,29 +219,29 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">
-						<CopyTextButton
+						<CopyableText
 							value={row.original.name}
 							label="customer name">
 							{row.original.name}
-						</CopyTextButton>
+						</CopyableText>
 					</p>
 					{row.original.accountName || row.original.abn ? (
 						<p className="text-sm text-muted-foreground">
 							{row.original.accountName ? (
-								<CopyTextButton
+								<CopyableText
 									value={row.original.accountName}
 									label="account name">
 									{row.original.accountName}
-								</CopyTextButton>
+								</CopyableText>
 							) : null}
 							{row.original.abn ? (
 								<>
 									{row.original.accountName ? " · " : ""}
-									<CopyTextButton
+									<CopyableText
 										value={row.original.abn}
 										label="ABN">
 										{row.original.abn}
-									</CopyTextButton>
+									</CopyableText>
 								</>
 							) : null}
 						</p>
@@ -302,30 +304,30 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			cell: ({ row }) => (
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="break-all font-medium">
-						<CopyTextButton
+						<CopyableText
 							value={row.original.email}
 							label="email">
 							{row.original.email}
-						</CopyTextButton>
+						</CopyableText>
 					</p>
 					<p className="text-sm text-muted-foreground">
 						{row.original.phone ? (
-							<CopyTextButton
+							<CopyableText
 								value={row.original.phone}
 								label="phone number">
 								{row.original.phone}
-							</CopyTextButton>
+							</CopyableText>
 						) : (
 							<span>No phone provided</span>
 						)}
 						{row.original.instagramHandle ? (
 							<>
 								{" · "}
-								<CopyTextButton
+								<CopyableText
 									value={formatInstagramHandle(row.original.instagramHandle)}
 									label="Instagram handle">
 									{formatInstagramHandle(row.original.instagramHandle)}
-								</CopyTextButton>
+								</CopyableText>
 							</>
 						) : null}
 					</p>
@@ -346,7 +348,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			header: "Due",
 			cell: ({ row }) => {
 				if (row.original.status !== "confirmed") {
-					return <p className="text-muted-foreground">—</p>;
+					return null;
 				}
 
 				const isPaid = row.original.paidRemainingBalance === true;
@@ -399,7 +401,7 @@ function AdminStatusMetric({
 	className?: string;
 }) {
 	return (
-		<div className="flex items-center gap-2">
+		<div className="flex items-center justify-between w-28">
 			<Badge
 				variant={variant ?? "outline"}
 				className={cn("text-sm", className)}>
@@ -420,10 +422,10 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
 	const columns = React.useMemo(() => buildColumns(), []);
-	const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
+	const [sorting, setSorting] = React.useState<SortingState>([{ id: "session", desc: false }]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 	const [showUpcomingOnly, setShowUpcomingOnly] = React.useState(true);
-	const [showStaleBookings, setShowStaleBookings] = React.useState(false);
+	const [showStaleBookings, setShowStaleBookings] = React.useState(true);
 	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = React.useState(false);
 	const [isCleaningUp, setIsCleaningUp] = React.useState(false);
 	const staleCleanupBookings = React.useMemo(
@@ -533,10 +535,10 @@ export function AdminDashboard({
 			<section className="flex flex-col gap-5">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-10">
-						<h1 className="font-brand text-9xl font-medium uppercase text-foreground">
+						<h1 className="font-brand text-[10rem] leading-none font-medium uppercase text-foreground">
 							Bookings Dashboard
 						</h1>
-						<div className="flex flex-wrap items-center gap-16">
+						<div className="flex flex-wrap flex-col items-start gap-2">
 							<AdminStatusMetric
 								label="Confirmed"
 								value={String(metrics.confirmed)}
@@ -544,7 +546,7 @@ export function AdminDashboard({
 								className="bg-green-600 text-foreground"
 							/>
 							<AdminStatusMetric
-								label="Pending payment"
+								label="Pending"
 								value={String(metrics.pending_payment)}
 								variant="secondary"
 								className="bg-cyan-600 text-foreground"
@@ -575,14 +577,6 @@ export function AdminDashboard({
 						<AdminMetricCard value={metrics.thisWeek} />
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setIsCleanupDialogOpen(true)}
-							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							<Trash2 aria-hidden />
-							Clean up incomplete bookings
-						</Button>
 						<div className="flex items-center gap-2">
 							<Checkbox
 								id="show-stale-bookings"
@@ -629,17 +623,27 @@ export function AdminDashboard({
 						</TableHeader>
 						<TableBody>
 							{table.getRowModel().rows.length > 0 ? (
-								table.getRowModel().rows.map((row) => (
-									<TableRow key={row.id}>
-										{row.getVisibleCells().map((cell) => (
+								table.getRowModel().rows.map((row) => {
+									const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
+
+									return (
+										<TableRow
+											key={row.id}
+											className={cn(
+												!showUpcomingOnly &&
+													isPastBooking &&
+													"bg-muted/40 text-muted-foreground opacity-70",
+											)}>
+											{row.getVisibleCells().map((cell) => (
 											<TableCell
 												key={cell.id}
 												className={getColumnClassName(cell.column.id)}>
 												{flexRender(cell.column.columnDef.cell, cell.getContext())}
 											</TableCell>
-										))}
-									</TableRow>
-								))
+											))}
+										</TableRow>
+									);
+								})
 							) : (
 								<TableRow>
 									<TableCell
@@ -656,12 +660,21 @@ export function AdminDashboard({
 				</div>
 
 				<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-					<div className="flex flex-wrap items-center gap-2">
+					<div className="flex flex-wrap items-center gap-6">
 						<p className="text-sm text-muted-foreground">
 							Showing {table.getFilteredRowModel().rows.length}{" "}
 							{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
 							{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
 						</p>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-sm!"
+							onClick={() => setIsCleanupDialogOpen(true)}
+							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
+							<Trash2 aria-hidden />
+							Clean up incomplete bookings
+						</Button>
 						{canLoadMoreBookings || isLoadingMoreBookings ? (
 							<Button
 								variant="outline"
