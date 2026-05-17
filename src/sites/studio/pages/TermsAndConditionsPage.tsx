@@ -6,15 +6,9 @@ export function TermsAndConditionsPage() {
 	return (
 		<main className="px-4 py-12 md:px-10 md:py-16">
 			<div className="mx-auto max-w-4xl space-y-10">
-				<header className="space-y-4">
-					<h1 className="text-center text-4xl font-brand font-black tracking-tight md:text-6xl uppercase">
-						Terms & Conditions
-					</h1>
-					<p className="text-muted-foreground text-base leading-relaxed md:text-lg">
-						Please review these terms before completing your booking with VV Studios.
-					</p>
-					<p className="text-muted-foreground text-sm">Last updated: {lastUpdated}</p>
-				</header>
+				<h1 className="text-center text-4xl font-brand font-black tracking-tight md:text-6xl uppercase">
+					Terms & Conditions
+				</h1>
 
 				<div className="space-y-8">
 					{terms.map((section) => (
@@ -26,6 +20,8 @@ export function TermsAndConditionsPage() {
 						</section>
 					))}
 				</div>
+
+				<p className="text-muted-foreground text-sm">Last updated: {lastUpdated}</p>
 			</div>
 		</main>
 	);
