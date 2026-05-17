@@ -13,9 +13,8 @@ export interface BusyDayWindow {
 	label: string;
 }
 
-export interface MonthlyBusyWindowsResult {
-	busyWindows: BusyDayWindow[];
-	month: string;
+export interface BookableRangeBusyWindowsResult {
+	busyWindowsByMonth: Record<string, BusyDayWindow[]>;
 }
 
 export function getBookableMonthKeys(startDate: Date, endDate: Date) {
@@ -38,13 +37,20 @@ export function getUncachedMonthKeys(
 	return bookableMonthKeys.filter((month) => !monthlyBusyWindowsByMonth[month]);
 }
 
-export function mergeMonthlyBusyWindows(
-	current: Record<string, BusyDayWindow[]>,
-	results: MonthlyBusyWindowsResult[],
-) {
+export function mergeBookableRangeBusyWindows({
+	bookableMonthKeys,
+	current,
+	result,
+}: {
+	bookableMonthKeys: string[];
+	current: Record<string, BusyDayWindow[]>;
+	result: BookableRangeBusyWindowsResult;
+}) {
 	return {
 		...current,
-		...Object.fromEntries(results.map((result) => [result.month, result.busyWindows] as const)),
+		...Object.fromEntries(
+			bookableMonthKeys.map((month) => [month, result.busyWindowsByMonth[month] ?? []] as const),
+		),
 	};
 }
 

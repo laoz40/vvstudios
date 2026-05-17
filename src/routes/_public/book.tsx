@@ -61,7 +61,7 @@ import {
 	getUncachedMonthKeys,
 	isAvailabilityRateLimitedMessage,
 	isBookingDateDisabled,
-	mergeMonthlyBusyWindows,
+	mergeBookableRangeBusyWindows,
 	type BusyDayWindow,
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
@@ -103,7 +103,7 @@ function BookingPage() {
 		api.stripe.closeEmbeddedCheckoutSession,
 	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
-	const getMonthlyBusyWindows = useAction(api.googleCalendar.getMonthlyBusyWindows);
+	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
 	const today = startOfToday();
 	const lastBookableDate = getLastBookableDate(today);
 	const formRef = useRef<HTMLFormElement>(null);
@@ -213,7 +213,6 @@ function BookingPage() {
 		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
 	}, []);
 
-
 	// load saved booking info
 	useEffect(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
@@ -245,17 +244,17 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void Promise.all(
-			uncachedMonthKeys.map((month) =>
-				getMonthlyBusyWindows({ month, rateLimitKey: availabilityRateLimitKey }),
-			),
-		)
-			.then((results) => {
+		void getBookableRangeBusyWindows({
+			rateLimitKey: availabilityRateLimitKey,
+		})
+			.then((result) => {
 				if (isCancelled) {
 					return;
 				}
 
-				setMonthlyBusyWindowsByMonth((current) => mergeMonthlyBusyWindows(current, results));
+				setMonthlyBusyWindowsByMonth((current) =>
+					mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result }),
+				);
 			})
 			.catch((availabilityFetchError) => {
 				if (isCancelled) {
@@ -278,7 +277,7 @@ function BookingPage() {
 	}, [
 		availabilityRateLimitKey,
 		bookableMonthKeys,
-		getMonthlyBusyWindows,
+		getBookableRangeBusyWindows,
 		monthlyBusyWindowsByMonth,
 	]);
 

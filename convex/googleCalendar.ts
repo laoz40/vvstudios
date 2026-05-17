@@ -6,12 +6,17 @@ import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
+import {
+	formatDateValue,
+	getLastBookableDate,
+	startOfToday,
+} from "../src/sites/studio/lib/bookingdatetime";
 import { env } from "./env";
 import {
 	buildEventWindow,
 	formatBookingDateShort,
 	getAvailableTimeOptions,
-	getMonthAvailabilityRange,
+	getDateAvailabilityRange,
 	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 } from "./lib/bookingCalendarTime";
@@ -54,13 +59,14 @@ interface AvailableBookingTimesResult {
 	times: string[];
 }
 
-interface MonthlyBusyWindowsResult {
-	busyWindows: Array<{
-		busyPeriods: Array<{ end: string; start: string }>;
-		date: string;
-		label: string;
-	}>;
-	month: string;
+interface BusyDayWindowResult {
+	busyPeriods: Array<{ end: string; start: string }>;
+	date: string;
+	label: string;
+}
+
+interface BookableRangeBusyWindowsResult {
+	busyWindowsByMonth: Record<string, BusyDayWindowResult[]>;
 	timeZone: string;
 }
 
@@ -179,12 +185,11 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 	});
 }
 
-export const getMonthlyBusyWindows = action({
+export const getBookableRangeBusyWindows = action({
 	args: {
-		month: v.string(),
 		rateLimitKey: v.string(),
 	},
-	handler: async (ctx, args): Promise<MonthlyBusyWindowsResult> => {
+	handler: async (ctx, args): Promise<BookableRangeBusyWindowsResult> => {
 		try {
 			const globalRateLimitStatus = await rateLimiter.limit(
 				ctx,
@@ -199,7 +204,9 @@ export const getMonthlyBusyWindows = action({
 			}
 
 			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
-			const { timeMin, timeMax } = getMonthAvailabilityRange(args.month, timeZone);
+			const startDate = formatDateValue(startOfToday());
+			const endDate = formatDateValue(getLastBookableDate());
+			const { timeMin, timeMax } = getDateAvailabilityRange(startDate, endDate, timeZone);
 			const busyWindows = await getBusyWindowsInRange({
 				calendar,
 				calendarIds,
@@ -208,19 +215,21 @@ export const getMonthlyBusyWindows = action({
 				timeZone,
 			});
 
-			return {
-				busyWindows: groupBusyWindowsByDay(busyWindows, timeZone),
-				month: args.month,
-				timeZone,
-			};
+			const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
+
+			for (const busyDay of groupBusyWindowsByDay(busyWindows, timeZone)) {
+				const month = busyDay.date.slice(0, 7);
+				busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
+			}
+
+			return { busyWindowsByMonth, timeZone };
 		} catch (error) {
 			if (error instanceof ConvexError) {
 				throw error;
 			}
 
 			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-			console.error("Google Calendar month availability lookup failed", {
-				month: args.month,
+			console.error("Google Calendar range availability lookup failed", {
 				...getGoogleCalendarErrorDetails(error),
 			});
 			throw createBookingCalendarError(code);

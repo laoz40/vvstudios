@@ -66,16 +66,6 @@ function parseDate(date: string): DateParts {
 	return { year, month, day };
 }
 
-function parseMonth(month: string): Pick<DateParts, "year" | "month"> {
-	const [year, monthNumber] = month.split("-").map(Number);
-
-	if (!year || !monthNumber) {
-		throw createBookingTimeUtilsError("BOOKING_INVALID_MONTH");
-	}
-
-	return { year, month: monthNumber };
-}
-
 function parseTime(time: string): TimeParts {
 	const [hours, minutes] = time.split(":").map(Number);
 
@@ -245,17 +235,10 @@ export function getAvailabilityRange(date: string) {
 	};
 }
 
-export function getMonthAvailabilityRange(month: string, timeZone: string) {
-	const { year, month: monthNumber } = parseMonth(month);
-	const startOfMonth = `${year}-${String(monthNumber).padStart(2, "0")}-01`;
-	const startOfNextMonth =
-		monthNumber === 12
-			? `${year + 1}-01-01`
-			: `${year}-${String(monthNumber + 1).padStart(2, "0")}-01`;
-
+export function getDateAvailabilityRange(startDate: string, endDate: string, timeZone: string) {
 	return {
-		timeMax: getUtcDateForZonedDateTime(startOfNextMonth, "00:00", timeZone).toISOString(),
-		timeMin: getUtcDateForZonedDateTime(startOfMonth, "00:00", timeZone).toISOString(),
+		timeMax: getUtcDateForZonedDateTime(getNextDate(endDate), "00:00", timeZone).toISOString(),
+		timeMin: getUtcDateForZonedDateTime(startDate, "00:00", timeZone).toISOString(),
 	};
 }
 
