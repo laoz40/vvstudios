@@ -42,6 +42,7 @@ import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
 } from "#studio/features/admin/lib/remaining-balance";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
 	formatBookingDateMedium,
 	formatBookingTimestamp,
@@ -176,7 +177,14 @@ function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 		return true;
 	}
 
+	const invoiceNumber = formatBookingInvoiceNumber(
+		row.original._id,
+		row.original.pendingPaymentCreatedAt,
+	);
+
 	return [
+		row.original._id,
+		invoiceNumber,
 		row.original.name,
 		row.original.email,
 		row.original.accountName,

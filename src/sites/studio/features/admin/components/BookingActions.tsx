@@ -39,10 +39,6 @@ import {
 
 type BookingRecord = Doc<"bookings">;
 
-function stripInstagramHandlePrefix(instagramHandle: string) {
-	return instagramHandle.trim().replace(/^@+/, "");
-}
-
 export type BookingActionsProps = {
 	booking: BookingRecord;
 };
@@ -85,9 +81,6 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = React.useState(
 		String(remainingBalanceAmount),
 	);
-	const instagramHandle = booking.instagramHandle
-		? stripInstagramHandlePrefix(booking.instagramHandle)
-		: null;
 
 	React.useEffect(() => {
 		if (isRemainingBalanceDialogOpen) {
@@ -301,21 +294,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					align="end"
 					className="w-56 touch-manipulation">
 					<DropdownMenuGroup>
-						{booking.abn ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(booking.abn ?? "")}>
-								Copy ABN
-							</DropdownMenuItem>
-						) : null}
-						{instagramHandle ? (
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(instagramHandle)}>
-								Copy Instagram handle
-							</DropdownMenuItem>
-						) : null}
+						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(customerBookingId)}>
+							Copy invoice number
+						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(String(booking._id))}>
 							Copy database ID
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(customerBookingId)}>
-							Copy booking ID
 						</DropdownMenuItem>
 					</DropdownMenuGroup>
 					<DropdownMenuSeparator />
