@@ -89,7 +89,7 @@ const statusBadgeVariantMap: Record<
 const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | undefined> = {
 	abandoned: "bg-muted text-muted-foreground",
 	confirmed: "bg-green-600 text-foreground",
-	expired: "bg-orange-600 text-foreground",
+	expired: "bg-muted text-muted-foreground",
 	failed: undefined,
 	pending_payment: "bg-blue-600 text-foreground",
 };
