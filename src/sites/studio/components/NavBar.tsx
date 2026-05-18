@@ -134,10 +134,7 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 			<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 				<nav
 					aria-label={PRIMARY_NAV_ARIA_LABEL}
-					className={cn(
-						"rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg backdrop-blur-xs",
-						shouldPlayIntro && "site-nav-intro-surface",
-					)}>
+					className="rounded-md border border-border/70 bg-background/30 px-4 py-3 shadow-lg backdrop-blur-xs">
 					<div className="flex items-stretch justify-between gap-4">
 						<div className="flex h-full items-stretch justify-self-start">
 							<BrandLink />
@@ -260,10 +257,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 				<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
-						className={cn(
-							"mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs",
-							shouldPlayIntro && "site-nav-intro-surface",
-						)}>
+						className="mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs">
 						<div className="flex h-full items-center">
 							<BrandLink
 								className="font-bold"
