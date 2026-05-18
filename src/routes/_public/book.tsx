@@ -548,6 +548,7 @@ function BookingPage() {
 					className="flex flex-col gap-10">
 					<FieldGroup className="flex flex-col gap-8 md:gap-12">
 						<BookingRecordingSpaceDurationSection />
+						<BookingAddonsSection />
 						<div
 							ref={dateTimeSectionRef}
 							className="scroll-mt-32 sm:scroll-mt-40">
@@ -565,7 +566,6 @@ function BookingPage() {
 								setCalendarMonth={setCalendarMonth}
 							/>
 						</div>
-						<BookingAddonsSection />
 						<BookingContactSection />
 					</FieldGroup>
 

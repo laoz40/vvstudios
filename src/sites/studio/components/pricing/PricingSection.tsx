@@ -52,6 +52,11 @@ const pricingSessions: readonly PricingSession[] = [
 
 const pricingAddOns: readonly PricingAddOn[] = [
 	{
+		label: "Remote Podcast",
+		price: "$59",
+		description: "Record with guests anywhere in the world using professional equipment.",
+	},
+	{
 		label: "4K UHD recording",
 		price: "$49",
 		description: "Our highest quality recording, perfect for cropping without losing clarity.",
@@ -159,7 +164,7 @@ export function PricingSection({
 							</h2>
 						</div>
 
-						<div className="grid gap-8 md:grid-cols-3 md:gap-18">
+						<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 md:gap-18">
 							{pricingAddOns.map((addOn) => (
 								<div
 									key={addOn.label}

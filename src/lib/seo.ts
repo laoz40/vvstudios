@@ -198,6 +198,12 @@ export function buildLocalBusinessJsonLd() {
 				price: "79",
 				priceCurrency: "AUD",
 			},
+			{
+				"@type": "Offer",
+				name: "Remote podcast add-on",
+				price: "59",
+				priceCurrency: "AUD",
+			},
 		],
 	};
 }

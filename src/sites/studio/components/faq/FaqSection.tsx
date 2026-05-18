@@ -96,6 +96,11 @@ export const faqSectionCopy: {
 					value:
 						"10 curated clips (15-60s), selected for engagement potential, delivered in vertical format with subtitles for social media.",
 				},
+				{
+					heading: "Remote Podcast ($59) - ",
+					value:
+						"Record high-quality podcast sessions with guests anywhere in the world using professional audio and video recording technology.",
+				},
 			],
 		},
 		{

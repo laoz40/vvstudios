@@ -23,6 +23,7 @@ export const ADDON_PRICES: Record<BookingAddon, number> = {
 	"4K UHD Recording": 49,
 	"Clips Package": 79,
 	"Essential Edit": 99,
+	"Remote Podcast": 59,
 };
 
 export const BOOKING_INVOICE_BUSINESS = {
@@ -48,7 +49,7 @@ export const BOOKING_INVOICE_PAYMENT = {
 
 export const BOOKING_INVOICE_NOTES = {
 	cancellationPolicy:
-		"The $50 booking deposit is non-refundable if the session is cancelled within 48 hours of the scheduled start time.",
+		"The booking deposit is non-refundable. Bookings may be rescheduled with a minimum of 24 hours notice. Late cancellations or no-shows will forfeit the deposit.",
 	paymentNote:
 		"Settle remaining balance early via Bank Transfer or PayID, or pay in-studio (credit card fees apply).",
 } as const;

@@ -7,7 +7,7 @@ import {
 	FieldSet,
 	FieldTitle,
 } from "#/components/ui/field";
-import { Video, Scissors, Smartphone } from "lucide-react";
+import { Video, Scissors, Smartphone, Globe } from "lucide-react";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
@@ -29,12 +29,12 @@ const sectionFooterNote =
 
 const addonCardCopy = {
 	"4K UHD Recording": {
-		description: "Our highest quality recording, perfect for cropping without losing clarity.",
+		description: "Highest quality recording, perfect for cropping without losing clarity.",
 		icon: Video,
 		price: "+$49",
 	},
 	"Essential Edit": {
-		description: "Professionally synchronised audio with clean cuts between camera angles.",
+		description: "Professionally synchronised audio; clean cuts between camera angles.",
 		icon: Scissors,
 		price: "+$99",
 	},
@@ -42,6 +42,11 @@ const addonCardCopy = {
 		description: "10 clips with subtitles and vertical cropping ready for social media.",
 		icon: Smartphone,
 		price: "+$79",
+	},
+	"Remote Podcast": {
+		description: "Record with guests globally using professional equipment.",
+		icon: Globe,
+		price: "+$59",
 	},
 } as const satisfies Record<
 	(typeof ADDON_OPTIONS)[number],

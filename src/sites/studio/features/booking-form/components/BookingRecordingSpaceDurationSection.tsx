@@ -90,78 +90,6 @@ export function BookingRecordingSpaceDurationSection() {
 
 	return (
 		<>
-			<formApi.Field name="service">
-				{(field) => (
-					<section
-						data-field-name="service"
-						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
-						<FieldSet className="gap-1">
-							<FieldLegend className={sectionHeadingClassName}>
-								{sectionCopy.recordingSpaceLabel}
-							</FieldLegend>
-							<RadioGroup
-								value={field.state.value}
-								onValueChange={(value) => {
-									field.handleChange(value as BookingFormValues["service"]);
-									field.handleBlur();
-								}}
-								className="grid gap-4 md:grid-cols-2">
-								{recordingSpaceOptions.map((option) => (
-									<div key={option.value}>
-										<RadioGroupItem
-											value={option.value}
-											id={`service-${toOptionId(option.value)}`}
-											className="peer sr-only size-0"
-										/>
-										<label
-											htmlFor={`service-${toOptionId(option.value)}`}
-											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
-												transitionClassName,
-												getCardStateClassName(field.state.value === option.value),
-												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
-											)}>
-											<div className="relative w-full overflow-hidden">
-												<Image
-													src={option.image}
-													alt={option.imageAlt}
-													layout="constrained"
-													width={1885}
-													height={1060}
-													className={cn(
-														"h-auto w-full transition-transform duration-300 group-hover:scale-105",
-														field.state.value === option.value && "scale-[1.02]",
-													)}
-												/>
-												<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
-											</div>
-											<div
-												className={cn(
-													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5 md:group-hover:bg-primary/10",
-													getFooterStateClassName(field.state.value === option.value),
-													field.state.value === option.value && "md:bg-primary/10",
-												)}>
-												<p className="text-base font-semibold text-foreground">{option.title}</p>
-												<span
-													className={cn(
-														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
-														getPillStateClassName(field.state.value === option.value),
-													)}>
-													{field.state.value === option.value ? "SELECTED" : "SELECT"}
-												</span>
-											</div>
-										</label>
-									</div>
-								))}
-							</RadioGroup>
-							{field.state.meta.isBlurred || shouldShowFieldError ? (
-								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
-							) : null}
-						</FieldSet>
-					</section>
-				)}
-			</formApi.Field>
-
 			<formApi.Field name="duration">
 				{(field) => (
 					<section
@@ -284,6 +212,78 @@ export function BookingRecordingSpaceDurationSection() {
 							</Dialog.Root>{" "}
 							{sectionCopy.recurringPromptSuffix}
 						</div>
+					</section>
+				)}
+			</formApi.Field>
+
+			<formApi.Field name="service">
+				{(field) => (
+					<section
+						data-field-name="service"
+						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
+						<FieldSet className="gap-1">
+							<FieldLegend className={sectionHeadingClassName}>
+								{sectionCopy.recordingSpaceLabel}
+							</FieldLegend>
+							<RadioGroup
+								value={field.state.value}
+								onValueChange={(value) => {
+									field.handleChange(value as BookingFormValues["service"]);
+									field.handleBlur();
+								}}
+								className="grid gap-4 md:grid-cols-2">
+								{recordingSpaceOptions.map((option) => (
+									<div key={option.value}>
+										<RadioGroupItem
+											value={option.value}
+											id={`service-${toOptionId(option.value)}`}
+											className="peer sr-only size-0"
+										/>
+										<label
+											htmlFor={`service-${toOptionId(option.value)}`}
+											className={cn(
+												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
+												transitionClassName,
+												getCardStateClassName(field.state.value === option.value),
+												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
+											)}>
+											<div className="relative w-full overflow-hidden">
+												<Image
+													src={option.image}
+													alt={option.imageAlt}
+													layout="constrained"
+													width={1885}
+													height={1060}
+													className={cn(
+														"h-auto w-full transition-transform duration-300 group-hover:scale-105",
+														field.state.value === option.value && "scale-[1.02]",
+													)}
+												/>
+												<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
+											</div>
+											<div
+												className={cn(
+													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5 md:group-hover:bg-primary/10",
+													getFooterStateClassName(field.state.value === option.value),
+													field.state.value === option.value && "md:bg-primary/10",
+												)}>
+												<p className="text-base font-semibold text-foreground">{option.title}</p>
+												<span
+													className={cn(
+														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
+														getPillStateClassName(field.state.value === option.value),
+													)}>
+													{field.state.value === option.value ? "SELECTED" : "SELECT"}
+												</span>
+											</div>
+										</label>
+									</div>
+								))}
+							</RadioGroup>
+							{field.state.meta.isBlurred || shouldShowFieldError ? (
+								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+							) : null}
+						</FieldSet>
 					</section>
 				)}
 			</formApi.Field>
