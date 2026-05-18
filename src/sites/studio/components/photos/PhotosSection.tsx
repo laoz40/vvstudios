@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { ArrowRight } from "lucide-react";
@@ -11,6 +12,7 @@ export interface PhotosSectionProps {
 	className?: string;
 	headingLevel?: "h1" | "h2";
 	images?: PhotoGalleryImage[];
+	mobileImages?: PhotoGalleryImage[];
 }
 
 const headingTagClassName =
@@ -20,7 +22,21 @@ export function PhotosSection({
 	className,
 	headingLevel = "h2",
 	images = photosPageContent.galleryImages,
+	mobileImages,
 }: PhotosSectionProps) {
+	const [isMobile, setIsMobile] = useState(false);
+
+	useEffect(() => {
+		const mediaQuery = window.matchMedia("(max-width: 767px)");
+		const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+
+		updateIsMobile();
+		mediaQuery.addEventListener("change", updateIsMobile);
+
+		return () => mediaQuery.removeEventListener("change", updateIsMobile);
+	}, []);
+
+	const galleryImages = isMobile && mobileImages ? mobileImages : images;
 	const heading =
 		headingLevel === "h1" ? (
 			<h1 className={headingTagClassName}>{photosPageContent.title}</h1>
@@ -33,7 +49,7 @@ export function PhotosSection({
 			<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6">
 				<div className="max-w-3xl space-y-4 text-center">{heading}</div>
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
-					{images.map((image, index) => (
+					{galleryImages.map((image, index) => (
 						<figure
 							key={image.src}
 							className="mb-4 break-inside-avoid overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25">
