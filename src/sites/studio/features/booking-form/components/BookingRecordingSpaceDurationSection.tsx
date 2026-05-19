@@ -82,9 +82,66 @@ const durationOptions: DurationOption[] = [
 	},
 ] as const;
 
+export function BookingRecurringSessionsPrompt() {
+	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
+
+	return (
+		<div className="text-center text-sm text-muted-foreground">
+			{sectionCopy.recurringPromptPrefix}{" "}
+			<Dialog.Root
+				open={isRequestCallOpen}
+				onOpenChange={setIsRequestCallOpen}>
+				<Button
+					type="button"
+					variant="link"
+					className="accent-link text-foreground p-0 font-medium"
+					aria-haspopup="dialog"
+					aria-expanded={isRequestCallOpen}
+					onClick={() => {
+						setIsRequestCallOpen(true);
+					}}>
+					{sectionCopy.recurringPromptAction}
+				</Button>
+				<Dialog.Portal>
+					<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
+					<Dialog.Content className="bg-popover text-popover-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl p-4 text-sm outline-none ring-1 max-h-[calc(100vh-2rem)] sm:w-[calc(100%-2rem)] sm:p-6">
+						<div className="space-y-2 pr-10">
+							<Dialog.Title className="text-xl font-semibold">
+								{sectionCopy.requestCallDialogTitle}
+							</Dialog.Title>
+							<Dialog.Description className="text-muted-foreground text-sm leading-6">
+								{sectionCopy.requestCallDialogDescription}
+							</Dialog.Description>
+						</div>
+
+						<Dialog.Close asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								className="absolute top-2 right-2"
+								aria-label={sectionCopy.requestCallDialogClose}>
+								<X />
+							</Button>
+						</Dialog.Close>
+
+						<div className="overflow-hidden rounded-xl border border-border bg-white">
+							<iframe
+								src={env.VITE_BOOKING_RECURRING_URL}
+								title={sectionCopy.requestCallDialogTitle}
+								className="block min-h-176 w-full border-0 bg-transparent"
+							/>
+						</div>
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>{" "}
+			{sectionCopy.recurringPromptSuffix}
+		</div>
+	);
+}
+
 export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
-	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
@@ -161,57 +218,6 @@ export function BookingRecordingSpaceDurationSection() {
 								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
 							) : null}
 						</FieldSet>
-						<div className="mt-6 text-sm text-muted-foreground">
-							{sectionCopy.recurringPromptPrefix}{" "}
-							<Dialog.Root
-								open={isRequestCallOpen}
-								onOpenChange={setIsRequestCallOpen}>
-								<Button
-									type="button"
-									variant="link"
-									className="accent-link text-foreground p-0 font-medium"
-									aria-haspopup="dialog"
-									aria-expanded={isRequestCallOpen}
-									onClick={() => {
-										setIsRequestCallOpen(true);
-									}}>
-									{sectionCopy.recurringPromptAction}
-								</Button>
-								<Dialog.Portal>
-									<Dialog.Overlay className="fixed inset-0 z-50 bg-black/80" />
-									<Dialog.Content className="bg-popover text-popover-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl p-4 text-sm outline-none ring-1 max-h-[calc(100vh-2rem)] sm:w-[calc(100%-2rem)] sm:p-6">
-										<div className="space-y-2 pr-10">
-											<Dialog.Title className="text-xl font-semibold">
-												{sectionCopy.requestCallDialogTitle}
-											</Dialog.Title>
-											<Dialog.Description className="text-muted-foreground text-sm leading-6">
-												{sectionCopy.requestCallDialogDescription}
-											</Dialog.Description>
-										</div>
-
-										<Dialog.Close asChild>
-											<Button
-												type="button"
-												variant="ghost"
-												size="icon-sm"
-												className="absolute top-2 right-2"
-												aria-label={sectionCopy.requestCallDialogClose}>
-												<X />
-											</Button>
-										</Dialog.Close>
-
-										<div className="overflow-hidden rounded-xl border border-border bg-white">
-											<iframe
-												src={env.VITE_BOOKING_RECURRING_URL}
-												title={sectionCopy.requestCallDialogTitle}
-												className="block min-h-176 w-full border-0 bg-transparent"
-											/>
-										</div>
-									</Dialog.Content>
-								</Dialog.Portal>
-							</Dialog.Root>{" "}
-							{sectionCopy.recurringPromptSuffix}
-						</div>
 					</section>
 				)}
 			</formApi.Field>

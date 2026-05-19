@@ -14,7 +14,10 @@ import {
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
-import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
+import {
+	BookingRecordingSpaceDurationSection,
+	BookingRecurringSessionsPrompt,
+} from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
@@ -514,9 +517,12 @@ function BookingPage() {
 
 	return (
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
-			<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
-				{pageCopy.title}
-			</h1>
+			<div className="space-y-3">
+				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
+					{pageCopy.title}
+				</h1>
+				<BookingRecurringSessionsPrompt />
+			</div>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
 			{savedBookingInfo ? (
 				<BookingSavedInfoBanner
