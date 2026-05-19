@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "@tanstack/react-store";
 import { LoaderCircle } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import { Calendar } from "#/components/ui/calendar";
 import {
 	Field,
@@ -11,6 +13,7 @@ import {
 	FieldTitle,
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { Modal } from "#studio/components/Modal";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
@@ -41,6 +44,14 @@ const sectionCopy = {
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingAvailability: "Loading availability...",
 	noTimesAvailable: "No times available for this date.",
+	missingDurationTitle: "Select a duration",
+	missingDurationDescription:
+		"You selected a date and time, but still need to choose a session duration before booking.",
+	missingDurationAction: "Got it",
+	modalCloseLabel: "Close dialog",
+	sessionSummaryTitle: "Session selected",
+	sessionSummaryDescription: "Review your selected session time before continuing.",
+	sessionSummaryAction: "Confirm",
 } as const;
 
 export interface BookingDateTimeSectionProps {
@@ -83,6 +94,43 @@ export function BookingDateTimeSection({
 			? formatBookingTimeRange(formValues.time, formValues.duration)
 			: "No selected duration"
 		: "No selected time";
+	const [isMissingDurationDialogOpen, setIsMissingDurationDialogOpen] = useState(false);
+	const [isSessionSummaryDialogOpen, setIsSessionSummaryDialogOpen] = useState(false);
+	const lastMissingDurationSelectionRef = useRef<string | null>(null);
+	const lastSessionSummarySelectionRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (!formValues.date || !formValues.time || formValues.duration) {
+			lastMissingDurationSelectionRef.current = null;
+			return;
+		}
+
+		const selectionKey = `${formValues.date}-${formValues.time}`;
+
+		if (lastMissingDurationSelectionRef.current === selectionKey) {
+			return;
+		}
+
+		lastMissingDurationSelectionRef.current = selectionKey;
+		setIsMissingDurationDialogOpen(true);
+	}, [formValues.date, formValues.duration, formValues.time]);
+
+	useEffect(() => {
+		if (!formValues.date || !formValues.time || !formValues.duration) {
+			lastSessionSummarySelectionRef.current = null;
+			return;
+		}
+
+		const selectionKey = `${formValues.date}-${formValues.time}-${formValues.duration}`;
+
+		if (lastSessionSummarySelectionRef.current === selectionKey) {
+			return;
+		}
+
+		lastSessionSummarySelectionRef.current = selectionKey;
+		setIsMissingDurationDialogOpen(false);
+		setIsSessionSummaryDialogOpen(true);
+	}, [formValues.date, formValues.duration, formValues.time]);
 
 	return (
 		<section className="flex flex-col mt-0 gap-6 md:gap-8">
@@ -246,6 +294,42 @@ export function BookingDateTimeSection({
 					Time: <span className="text-foreground font-medium">{bookingTimeSummary}</span>
 				</p>
 			</div>
+			<Modal
+				open={isMissingDurationDialogOpen}
+				onOpenChange={setIsMissingDurationDialogOpen}
+				title={sectionCopy.missingDurationTitle}
+				description={sectionCopy.missingDurationDescription}
+				closeLabel={sectionCopy.modalCloseLabel}
+				footer={
+					<Button
+						type="button"
+						onClick={() => setIsMissingDurationDialogOpen(false)}>
+						{sectionCopy.missingDurationAction}
+					</Button>
+				}
+			/>
+			<Modal
+				open={isSessionSummaryDialogOpen}
+				onOpenChange={setIsSessionSummaryDialogOpen}
+				title={sectionCopy.sessionSummaryTitle}
+				description={sectionCopy.sessionSummaryDescription}
+				closeLabel={sectionCopy.modalCloseLabel}
+				footer={
+					<Button
+						type="button"
+						onClick={() => setIsSessionSummaryDialogOpen(false)}>
+						{sectionCopy.sessionSummaryAction}
+					</Button>
+				}>
+				<div className="grid gap-3 rounded-lg border bg-card p-4 text-center">
+					<p className="text-foreground text-2xl font-semibold leading-tight">
+						{bookingDateSummary}
+					</p>
+					<p className="text-foreground text-2xl font-semibold leading-tight">
+						{bookingTimeSummary}
+					</p>
+				</div>
+			</Modal>
 		</section>
 	);
 }

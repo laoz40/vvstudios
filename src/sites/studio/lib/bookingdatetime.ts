@@ -256,7 +256,7 @@ export function formatBookingTimeRange(timeValue: string, duration: string) {
 	const startMinutes = parseTimeToMinutes(timeValue);
 	const endMinutes = startMinutes + getDurationMinutes(duration);
 
-	return `${formatTimeValue(timeValue)}–${formatTimeValue(formatMinutesToTime(endMinutes))}`;
+	return `${formatTimeValue(timeValue)} – ${formatTimeValue(formatMinutesToTime(endMinutes))}`;
 }
 
 export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
