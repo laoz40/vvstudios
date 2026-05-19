@@ -143,6 +143,12 @@ body {
 	padding: 0;
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 150ms;
+	animation-timing-function: ease;
+}
+
 button,
 input,
 textarea {

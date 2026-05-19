@@ -127,6 +127,17 @@
 	border-radius: 2px;
 }
 
+/* nav */
+
+.site-navbar {
+	view-transition-name: none;
+}
+
+.site-nav-cta {
+	min-width: 9rem;
+	justify-content: center;
+}
+
 /* nav intro */
 
 .site-nav-intro {

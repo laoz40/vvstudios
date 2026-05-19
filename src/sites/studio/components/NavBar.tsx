@@ -111,7 +111,10 @@ function NavCta({
 			asChild
 			size="lg"
 			variant={variant === "primary" ? "default" : "secondary"}
-			className={href === BOOK_LINK.href ? "gap-1.5 shadow-lg shadow-primary/45" : undefined}>
+			className={cn(
+				"site-nav-cta",
+				href === BOOK_LINK.href && "gap-1.5 shadow-lg shadow-primary/45",
+			)}>
 			<Link to={href}>
 				{label}
 				{href === BOOK_LINK.href ? (
@@ -130,7 +133,7 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 	const shouldPlayIntro = pathname === studioSite.routes.home;
 
 	return (
-		<div className="fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
+		<div className="site-navbar fixed top-4 left-1/2 z-40 hidden w-full max-w-7xl -translate-x-1/2 px-4 md:block">
 			<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 				<nav
 					aria-label={PRIMARY_NAV_ARIA_LABEL}
@@ -253,7 +256,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 
 	return (
 		<>
-			<div className="fixed inset-x-0 top-2 z-40 px-4 md:hidden">
+			<div className="site-navbar fixed inset-x-0 top-2 z-40 px-4 md:hidden">
 				<div className={cn(shouldPlayIntro && "site-nav-intro")}>
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
