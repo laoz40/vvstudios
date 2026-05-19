@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import Lenis from "lenis";
 
 function getScrollMarginTop(element: HTMLElement) {
@@ -10,12 +10,10 @@ function getScrollMarginTop(element: HTMLElement) {
 }
 
 export function SmoothScroll() {
+	const router = useRouter();
 	const lenisRef = useRef<Lenis | null>(null);
-	const location = useRouterState({
-		select: (state) => ({
-			hash: state.location.hash,
-			pathname: state.location.pathname,
-		}),
+	const hash = useRouterState({
+		select: (state) => state.location.hash,
 	});
 
 	useEffect(() => {
@@ -37,11 +35,44 @@ export function SmoothScroll() {
 	}, []);
 
 	useEffect(() => {
+		const unsubscribeBeforeNavigate = router.subscribe("onBeforeNavigate", (event) => {
+			const lenis = lenisRef.current;
+
+			if (!event.pathChanged || event.toLocation.hash) {
+				return;
+			}
+
+			lenis?.stop();
+		});
+
+		const unsubscribeBeforeRouteMount = router.subscribe("onBeforeRouteMount", (event) => {
+			const lenis = lenisRef.current;
+
+			if (!event.pathChanged || event.toLocation.hash) {
+				return;
+			}
+
+			if (lenis) {
+				lenis.scrollTo(0, { immediate: true, force: true });
+				lenis.start();
+				return;
+			}
+
+			window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+		});
+
+		return () => {
+			unsubscribeBeforeNavigate();
+			unsubscribeBeforeRouteMount();
+		};
+	}, [router]);
+
+	useEffect(() => {
 		const lenis = lenisRef.current;
 
-		if (location.hash) {
+		if (hash) {
 			requestAnimationFrame(() => {
-				const target = document.getElementById(location.hash);
+				const target = document.getElementById(hash);
 
 				if (!target) {
 					return;
@@ -59,16 +90,7 @@ export function SmoothScroll() {
 			});
 			return;
 		}
-
-		if (lenis) {
-			lenis.stop();
-			lenis.scrollTo(0, { immediate: true, force: true });
-			lenis.start();
-			return;
-		}
-
-		window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-	}, [location.hash, location.pathname]);
+	}, [hash]);
 
 	return null;
 }
