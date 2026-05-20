@@ -97,10 +97,10 @@ const statusBadgeVariantMap: Record<
 
 const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | undefined> = {
 	abandoned: "bg-muted text-muted-foreground",
-	confirmed: "bg-green-600 text-foreground",
+	confirmed: "bg-green text-foreground",
 	expired: "bg-muted text-muted-foreground",
 	failed: undefined,
-	pending_payment: "bg-cyan-600 text-foreground",
+	pending_payment: "bg-blue text-foreground",
 };
 
 function getColumnClassName(columnId: string) {
@@ -372,7 +372,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 				const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(row.original));
 
 				return (
-					<p className={isPaid ? "text-green-500" : "text-destructive"}>
+					<p className={isPaid ? "text-green" : "text-destructive"}>
 						{isPaid ? "Paid" : remainingBalanceLabel}
 					</p>
 				);
@@ -574,13 +574,13 @@ export function AdminDashboard({
 								label="Confirmed"
 								value={String(metrics.confirmed)}
 								variant="default"
-								className="bg-green-600 text-foreground"
+								className="bg-green text-foreground"
 							/>
 							<AdminStatusMetric
 								label="Pending"
 								value={String(metrics.pending_payment)}
 								variant="secondary"
-								className="bg-cyan-600 text-foreground"
+								className="bg-blue text-foreground"
 							/>
 							<AdminStatusMetric
 								label="Failed"

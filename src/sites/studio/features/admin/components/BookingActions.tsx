@@ -1,21 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAction, useMutation } from "convex/react";
-import { LoaderCircle, MoreHorizontal, X } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -32,13 +21,18 @@ import {
 	type BookingEditDraft,
 } from "#studio/features/admin/components/BookingEditDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
+import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
+import { RemainingBalanceDialog } from "#studio/features/admin/components/RemainingBalanceDialog";
+import {
+	getBookingInvoiceEmailErrorMessage,
+	getBookingMutationErrorMessage,
+	getBookingStatusMutationErrorMessage,
+	getDeleteBookingErrorMessage,
+} from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import { FIRST_TIME_DELIVERABLES_INTRO_MESSAGE } from "#studio/features/deliverables-email/lib/intro-messages";
-import {
-	formatAudAmount,
-	getRemainingBalanceAmount,
-} from "#studio/features/admin/lib/remaining-balance";
+import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -107,7 +101,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			setIsDeleteDialogOpen(false);
 			toast.success("Booking deleted.");
 		} catch (error) {
-			toast.success(getDeleteBookingErrorMessage(error));
+			toast.error(getDeleteBookingErrorMessage(error));
 		} finally {
 			setIsDeleting(false);
 		}
@@ -366,7 +360,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					{canTrackPaidRemainingBalance ? (
 						<>
 							<DropdownMenuItem
-								className={isPaidRemainingBalance ? "" : "text-green-500"}
+								className={isPaidRemainingBalance ? "" : "text-green"}
 								disabled={isUpdatingPaidRemainingBalance}
 								onSelect={handleTogglePaidRemainingBalance}>
 								{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
@@ -379,7 +373,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					{canToggleStatus ? (
 						<>
 							<DropdownMenuItem
-								className={booking.status === "confirmed" ? "" : "text-green-500"}
+								className={booking.status === "confirmed" ? "" : "text-green"}
 								disabled={isUpdatingStatus}
 								onSelect={handleToggleStatus}>
 								{toggleStatusLabel}
@@ -400,79 +394,16 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			<Dialog
+			<EmailInvoiceDialog
 				open={isEmailInvoiceDialogOpen}
-				onOpenChange={(nextOpen) => {
-					if (isEmailingInvoice && !nextOpen) {
-						return;
-					}
-
-					setIsEmailInvoiceDialogOpen(nextOpen);
-				}}>
-				<DialogContent
-					className="sm:max-w-lg"
-					onInteractOutside={(event) => {
-						if (isEmailingInvoice) {
-							event.preventDefault();
-						}
-					}}
-					onEscapeKeyDown={(event) => {
-						if (isEmailingInvoice) {
-							event.preventDefault();
-						}
-					}}>
-					<DialogClose asChild>
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon-sm"
-							className="absolute top-2 right-2"
-							aria-label="Close email invoice dialog"
-							disabled={isEmailingInvoice}>
-							<X />
-						</Button>
-					</DialogClose>
-
-					<DialogHeader className="text-left">
-						<DialogTitle>Email invoice to customer?</DialogTitle>
-						<DialogDescription>
-							Confirm before sending the invoice email to this customer.
-						</DialogDescription>
-					</DialogHeader>
-
-					<div className="rounded-lg border bg-muted/40 p-4">
-						<dl className="grid gap-3 text-sm sm:grid-cols-2">
-							<div className="grid gap-1">
-								<dt className="text-muted-foreground">Customer</dt>
-								<dd className="font-medium">{booking.name}</dd>
-							</div>
-							<div className="grid gap-1">
-								<dt className="text-muted-foreground">Email</dt>
-								<dd className="break-all font-medium">{booking.email}</dd>
-							</div>
-						</dl>
-					</div>
-
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => setIsEmailInvoiceDialogOpen(false)}
-							disabled={isEmailingInvoice}>
-							Cancel
-						</Button>
-						<Button
-							type="button"
-							onClick={() => {
-								void handleEmailInvoice();
-							}}
-							disabled={isEmailingInvoice}>
-							{isEmailingInvoice ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isEmailingInvoice ? "Sending..." : "Email invoice"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				bookingName={booking.name}
+				bookingEmail={booking.email}
+				isSending={isEmailingInvoice}
+				onOpenChange={setIsEmailInvoiceDialogOpen}
+				onSend={() => {
+					void handleEmailInvoice();
+				}}
+			/>
 
 			<DeliverablesEmailDialog
 				open={isDeliverablesEmailDialogOpen}
@@ -496,49 +427,18 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				onOpenChange={setIsCustomInvoiceDialogOpen}
 			/>
 
-			<Dialog
+			<RemainingBalanceDialog
 				open={isRemainingBalanceDialogOpen}
-				onOpenChange={setIsRemainingBalanceDialogOpen}>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>Set remaining balance</DialogTitle>
-						<DialogDescription>
-							This value shows in the Paid column until the balance is marked paid.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-2">
-						<Label htmlFor={`remaining-balance-${booking._id}`}>Remaining balance</Label>
-						<Input
-							id={`remaining-balance-${booking._id}`}
-							type="number"
-							min="0"
-							step="0.01"
-							value={remainingBalanceDraft}
-							onChange={(event) => setRemainingBalanceDraft(event.target.value)}
-						/>
-						<p className="text-sm text-muted-foreground">
-							Current default: {formatAudAmount(remainingBalanceAmount)}
-						</p>
-					</div>
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => setIsRemainingBalanceDialogOpen(false)}
-							disabled={isUpdatingRemainingBalanceAmount}>
-							Cancel
-						</Button>
-						<Button
-							type="button"
-							onClick={() => {
-								void handleSetRemainingBalanceAmount();
-							}}
-							disabled={isUpdatingRemainingBalanceAmount}>
-							{isUpdatingRemainingBalanceAmount ? "Saving..." : "Save balance"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				bookingId={booking._id}
+				value={remainingBalanceDraft}
+				defaultAmount={remainingBalanceAmount}
+				isSaving={isUpdatingRemainingBalanceAmount}
+				onOpenChange={setIsRemainingBalanceDialogOpen}
+				onValueChange={setRemainingBalanceDraft}
+				onSave={() => {
+					void handleSetRemainingBalanceAmount();
+				}}
+			/>
 
 			<BookingDeleteDialog
 				open={isDeleteDialogOpen}
@@ -560,76 +460,4 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			/>
 		</>
 	);
-}
-
-function getDeleteBookingErrorMessage(error: unknown) {
-	if (typeof error !== "object" || error === null) {
-		return "Unable to delete booking.";
-	}
-
-	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
-
-	switch (code) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		default:
-			return "Unable to delete booking.";
-	}
-}
-
-function getBookingMutationErrorMessage(error: unknown) {
-	if (typeof error !== "object" || error === null) {
-		return "Unable to save booking changes.";
-	}
-
-	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
-
-	switch (code) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		default:
-			return "Unable to save booking changes.";
-	}
-}
-
-function getBookingStatusMutationErrorMessage(error: unknown) {
-	if (typeof error !== "object" || error === null) {
-		return "Unable to update booking status.";
-	}
-
-	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
-
-	switch (code) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		case "INVALID_BOOKING_STATUS_TRANSITION":
-			return "Only confirmed and needs follow up bookings can be toggled here.";
-		default:
-			return "Unable to update booking status.";
-	}
-}
-
-function getBookingInvoiceEmailErrorMessage(error: unknown) {
-	if (typeof error !== "object" || error === null) {
-		return "Unable to send invoice email.";
-	}
-
-	const code = "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
-
-	switch (code) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		case "INVALID_BOOKING_DATA":
-			return "This booking has invalid invoice data.";
-		default:
-			return "Unable to send invoice email.";
-	}
 }
