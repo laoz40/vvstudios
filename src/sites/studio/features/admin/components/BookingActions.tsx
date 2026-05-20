@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { LoaderCircle, MoreHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
@@ -54,19 +54,18 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		api.bookings.updateBookingRemainingBalanceAmount,
 	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
-	const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = React.useState(false);
-	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = React.useState(false);
-	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = React.useState(false);
-	const [isDeleting, setIsDeleting] = React.useState(false);
-	const [isEmailingInvoice, setIsEmailingInvoice] = React.useState(false);
-	const [isSaving, setIsSaving] = React.useState(false);
-	const [isDownloadingInvoice, setIsDownloadingInvoice] = React.useState(false);
-	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = React.useState(false);
-	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] =
-		React.useState(false);
-	const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
+	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
+	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
+	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] = useState(false);
+	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
 		booking.pendingPaymentCreatedAt,
@@ -78,11 +77,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
-	const [remainingBalanceDraft, setRemainingBalanceDraft] = React.useState(
+	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
 		String(remainingBalanceAmount),
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (isRemainingBalanceDialogOpen) {
 			setRemainingBalanceDraft(String(remainingBalanceAmount));
 		}

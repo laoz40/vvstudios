@@ -1,5 +1,5 @@
+import { useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { type ReactNode, useState } from "react";
 import { Button } from "#/components/ui/button";
 
 interface FloatingDevMenuProps {

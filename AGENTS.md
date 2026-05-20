@@ -76,4 +76,3 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 - Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
-

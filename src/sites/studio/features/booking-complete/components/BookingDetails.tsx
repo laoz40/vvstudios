@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import {
 	Table,

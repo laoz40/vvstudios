@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import {

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -55,11 +55,11 @@ function TimeSelect({ value, onChange }: TimeSelectProps) {
 export function AdminAvailabilitySettings() {
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const updateBookingSettings = useMutation(api.bookingSettings.update);
-	const [draft, setDraft] = React.useState<BookingSettings>(DEFAULT_BOOKING_AVAILABILITY_SETTINGS);
-	const [isOpen, setIsOpen] = React.useState(false);
-	const [isSaving, setIsSaving] = React.useState(false);
+	const [draft, setDraft] = useState<BookingSettings>(DEFAULT_BOOKING_AVAILABILITY_SETTINGS);
+	const [isOpen, setIsOpen] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (bookingSettings) {
 			setDraft(toBookingSettingsDraft(bookingSettings));
 		}

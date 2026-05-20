@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Button } from "#/components/ui/button";
 import {
@@ -74,9 +74,9 @@ export function BookingEditDialog({
 	onSave,
 	isSaving,
 }: BookingEditDialogProps) {
-	const [draft, setDraft] = React.useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
+	const [draft, setDraft] = useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (open) {
 			setDraft(buildBookingEditDraft(booking));
 		}

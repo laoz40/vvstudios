@@ -1,7 +1,7 @@
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useRef } from "react";
 import micImage from "#studio/assets/mic.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { FaqSection } from "#studio/components/faq/FaqSection";

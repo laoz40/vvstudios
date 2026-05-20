@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { studioSite } from "#/config/sites";
 import { Footer } from "#studio/components/Footer";
 import { SiteNavbar } from "#studio/components/NavBar";

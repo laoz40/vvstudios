@@ -1,3 +1,4 @@
+import { type ComponentProps, type ComponentType } from "react";
 import {
 	FieldContent,
 	Field,
@@ -52,7 +53,7 @@ const addonCardCopy = {
 	(typeof ADDON_OPTIONS)[number],
 	{
 		description: string;
-		icon: React.ComponentType<React.ComponentProps<"svg">>;
+		icon: ComponentType<ComponentProps<"svg">>;
 		price: string;
 	}
 >;

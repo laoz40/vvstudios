@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
@@ -86,15 +86,15 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const customInvoices = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
 		bookingId: booking._id,
 	});
-	const [draft, setDraft] = React.useState<CustomInvoiceDraft>({
+	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		addons: [],
 		includeDepositLineItem: false,
 	});
-	const [isGenerating, setIsGenerating] = React.useState(false);
-	const [downloadingInvoiceId, setDownloadingInvoiceId] = React.useState<string | null>(null);
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (open) {
 			setDraft({ service: "", addons: [], includeDepositLineItem: false });
 		}
