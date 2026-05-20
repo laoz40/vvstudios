@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import {
 	type Column,
 	type ColumnDef,
@@ -39,6 +39,14 @@ import {
 import { Label } from "#/components/ui/label";
 import { BookingActions } from "#studio/features/admin/components/BookingActions";
 import {
+	readStoredAdminDashboardSorting,
+	readStoredShowStaleBookings,
+	readStoredShowUpcomingOnly,
+	storeAdminDashboardSorting,
+	storeShowStaleBookings,
+	storeShowUpcomingOnly,
+} from "#studio/features/admin/lib/admin-dashboard-preferences";
+import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
 } from "#studio/features/admin/lib/remaining-balance";
@@ -65,7 +73,7 @@ export type AdminDashboardProps = {
 	email: string | null;
 	isLoadingMoreBookings: boolean;
 	loadMoreBookings: () => void;
-	signOutControl: React.ReactNode;
+	signOutControl: ReactNode;
 };
 
 const statusLabelMap: Record<AdminBookingRecord["status"], string> = {
@@ -78,7 +86,7 @@ const statusLabelMap: Record<AdminBookingRecord["status"], string> = {
 
 const statusBadgeVariantMap: Record<
 	AdminBookingRecord["status"],
-	React.ComponentProps<typeof Badge>["variant"]
+	ComponentProps<typeof Badge>["variant"]
 > = {
 	abandoned: "outline",
 	confirmed: "default",
@@ -149,7 +157,7 @@ async function copyText(value: string, label: string) {
 type CopyableTextProps = {
 	value: string;
 	label: string;
-	children: React.ReactNode;
+	children: ReactNode;
 };
 
 function CopyableText({ value, label, children }: CopyableTextProps) {
@@ -406,7 +414,7 @@ function AdminStatusMetric({
 }: {
 	label: string;
 	value: string;
-	variant?: React.ComponentProps<typeof Badge>["variant"];
+	variant?: ComponentProps<typeof Badge>["variant"];
 	className?: string;
 }) {
 	return (
@@ -430,18 +438,30 @@ export function AdminDashboard({
 	signOutControl,
 }: AdminDashboardProps) {
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
-	const columns = React.useMemo(() => buildColumns(), []);
-	const [sorting, setSorting] = React.useState<SortingState>([{ id: "session", desc: false }]);
-	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-	const [showUpcomingOnly, setShowUpcomingOnly] = React.useState(true);
-	const [showStaleBookings, setShowStaleBookings] = React.useState(true);
-	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = React.useState(false);
-	const [isCleaningUp, setIsCleaningUp] = React.useState(false);
-	const staleCleanupBookings = React.useMemo(
+	const columns = useMemo(() => buildColumns(), []);
+	const [sorting, setSorting] = useState<SortingState>(() => readStoredAdminDashboardSorting());
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
+	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
+	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
+	const [isCleaningUp, setIsCleaningUp] = useState(false);
+	const staleCleanupBookings = useMemo(
 		() => bookings.filter((booking) => isStaleCleanupBooking(booking)),
 		[bookings],
 	);
-	const filteredBookings = React.useMemo(() => {
+	useEffect(() => {
+		storeAdminDashboardSorting(sorting);
+	}, [sorting]);
+
+	useEffect(() => {
+		storeShowUpcomingOnly(showUpcomingOnly);
+	}, [showUpcomingOnly]);
+
+	useEffect(() => {
+		storeShowStaleBookings(showStaleBookings);
+	}, [showStaleBookings]);
+
+	const filteredBookings = useMemo(() => {
 		return bookings.filter((booking) => {
 			if (showUpcomingOnly && !isUpcomingBooking(booking.date, booking.time)) {
 				return false;
@@ -493,7 +513,7 @@ export function AdminDashboard({
 		},
 	});
 
-	const metrics = React.useMemo(() => {
+	const metrics = useMemo(() => {
 		const startOfWeekTimestamp = getStartOfWeekTimestamp();
 		const counts = filteredBookings.reduce(
 			(accumulator, booking) => {
@@ -521,7 +541,7 @@ export function AdminDashboard({
 		return counts;
 	}, [filteredBookings]);
 
-	const staleCounts = React.useMemo(
+	const staleCounts = useMemo(
 		() =>
 			staleCleanupBookings.reduce(
 				(accumulator, booking) => {
