@@ -25,9 +25,9 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 			closeLabel={closeButtonLabel}
 			hideHeader
 			initialFocus="content"
-			size="5xl"
-			className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0 lg:max-w-6xl"
-			bodyClassName="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overflow-x-hidden rounded-xl bg-card [-webkit-overflow-scrolling:touch] [&>*]:w-full">
+			size="6xl"
+			className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0"
+			bodyClassName="overflow-y-auto overflow-x-hidden rounded-xl [-webkit-overflow-scrolling:touch] [&>*]:w-full">
 			<EmbeddedCheckoutProvider
 				stripe={stripePromise}
 				options={{ clientSecret }}>
