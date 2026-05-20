@@ -32,6 +32,9 @@ import {
 	type BookingEditDraft,
 } from "#studio/features/admin/components/BookingEditDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
+import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
+import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
+import { FIRST_TIME_DELIVERABLES_INTRO_MESSAGE } from "#studio/features/deliverables-email/lib/intro-messages";
 import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
@@ -45,6 +48,9 @@ export type BookingActionsProps = {
 
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
+	const sendBookingDeliverablesEmailForBooking = useAction(
+		api.googleCalendar.sendBookingDeliverablesEmailForBooking,
+	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
 	const updateBookingPaidRemainingBalance = useMutation(
@@ -58,8 +64,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
+	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
@@ -77,6 +85,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
+	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
+	const [deliverablesIntroMessageDraft, setDeliverablesIntroMessageDraft] = useState(
+		FIRST_TIME_DELIVERABLES_INTRO_MESSAGE,
+	);
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
 		String(remainingBalanceAmount),
 	);
@@ -277,6 +289,25 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
+	async function handleEmailDeliverables() {
+		setIsEmailingDeliverables(true);
+
+		try {
+			await sendBookingDeliverablesEmailForBooking({
+				bookingId: booking._id,
+				driveLink: deliverablesDriveLinkDraft,
+				introMessage: deliverablesIntroMessageDraft,
+			});
+			setDeliverablesDriveLinkDraft("");
+			setIsDeliverablesEmailDialogOpen(false);
+			toast.success(`Deliverables email sent to ${booking.email}.`);
+		} catch (error) {
+			toast.error(getBookingDeliverablesEmailErrorMessage(error));
+		} finally {
+			setIsEmailingDeliverables(false);
+		}
+	}
+
 	return (
 		<>
 			<DropdownMenu modal={false}>
@@ -323,12 +354,19 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						Email invoice to customer
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => setIsCustomInvoiceDialogOpen(true)}>
-						Custom invoice
+						Create custom invoice
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="text-primary"
+						disabled={isEmailingDeliverables}
+						onSelect={() => setIsDeliverablesEmailDialogOpen(true)}>
+						Send deliverables email
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{canTrackPaidRemainingBalance ? (
 						<>
 							<DropdownMenuItem
+								className={isPaidRemainingBalance ? "" : "text-green-500"}
 								disabled={isUpdatingPaidRemainingBalance}
 								onSelect={handleTogglePaidRemainingBalance}>
 								{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
@@ -341,6 +379,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					{canToggleStatus ? (
 						<>
 							<DropdownMenuItem
+								className={booking.status === "confirmed" ? "" : "text-green-500"}
 								disabled={isUpdatingStatus}
 								onSelect={handleToggleStatus}>
 								{toggleStatusLabel}
@@ -434,6 +473,22 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<DeliverablesEmailDialog
+				open={isDeliverablesEmailDialogOpen}
+				bookingEmail={booking.email}
+				bookingId={booking._id}
+				bookingName={booking.name}
+				driveLink={deliverablesDriveLinkDraft}
+				introMessage={deliverablesIntroMessageDraft}
+				isSending={isEmailingDeliverables}
+				onDriveLinkChange={setDeliverablesDriveLinkDraft}
+				onIntroMessageChange={setDeliverablesIntroMessageDraft}
+				onOpenChange={setIsDeliverablesEmailDialogOpen}
+				onSend={() => {
+					void handleEmailDeliverables();
+				}}
+			/>
 
 			<CustomInvoiceDialog
 				open={isCustomInvoiceDialogOpen}

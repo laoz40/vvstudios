@@ -1,5 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
+import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
 import { renderHostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/render-host-booking-details-email";
 import { renderReminderEmail } from "../../src/sites/studio/features/reminder-email/render-reminder-email";
 import { env } from "../env";
@@ -49,6 +50,13 @@ interface SendBookingHostDetailsEmailArgs {
 	duration: string;
 	addons: string[];
 	notes?: string;
+}
+
+interface SendBookingDeliverablesEmailArgs {
+	driveLink: string;
+	email: string;
+	introMessage: string;
+	name: string;
 }
 
 export function buildBookingCalendarEventRequestBody({
@@ -198,6 +206,28 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 	return await sendEmail({
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
+		html,
+	});
+}
+
+export async function sendBookingDeliverablesEmailForBooking({
+	driveLink,
+	email,
+	introMessage,
+	name,
+}: SendBookingDeliverablesEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await renderDeliverablesEmail({
+		driveLink,
+		introMessage,
+		name,
+		signoffName,
+	});
+
+	return await sendEmail({
+		to: [email],
+		subject: "Your VV Studios Deliverables Folder",
 		html,
 	});
 }

@@ -251,6 +251,19 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					<DialogTitle>Create custom invoice</DialogTitle>
 				</DialogHeader>
 
+				<div className="rounded-lg border bg-muted/40 p-4">
+					<dl className="grid gap-3 text-sm sm:grid-cols-2">
+						<div className="grid gap-1">
+							<dt className="text-muted-foreground">Customer</dt>
+							<dd className="font-medium">{booking.name}</dd>
+						</div>
+						<div className="grid gap-1">
+							<dt className="text-muted-foreground">Email</dt>
+							<dd className="break-all font-medium">{booking.email}</dd>
+						</div>
+					</dl>
+				</div>
+
 				<form
 					className="grid gap-6"
 					onSubmit={(event) => {
@@ -390,7 +403,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 							type="submit"
 							disabled={isGenerating}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isGenerating ? "Generating..." : "Generate invoice"}
+							{isGenerating ? "Downloading..." : "Download"}
 						</Button>
 					</DialogFooter>
 				</form>

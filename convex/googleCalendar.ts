@@ -23,6 +23,7 @@ import {
 } from "./lib/bookingCalendarTime";
 import {
 	buildBookingCalendarEventRequestBody,
+	sendBookingDeliverablesEmailForBooking as sendDeliverablesEmailForBookingDetails,
 	sendBookingHostDetailsEmail,
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
@@ -32,6 +33,7 @@ import {
 	getGoogleCalendarErrorDetails,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
+import { parseGoogleDriveLink } from "./lib/googleDriveLinks";
 import { rateLimiter } from "./lib/rateLimits";
 import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
@@ -49,6 +51,7 @@ type BookingInvoiceEmailErrorCode =
 	| "NOT_AUTHENTICATED"
 	| "BOOKING_NOT_FOUND"
 	| "INVALID_BOOKING_DATA"
+	| "INVALID_DRIVE_LINK"
 	| "INVOICE_SEND_FAILED";
 
 type BookingInvoiceEmailErrorData = {
@@ -162,6 +165,25 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 		duration: parsedBooking.data.duration,
 		addons: parsedBooking.data.addons,
 		notes: parsedBooking.data.notes,
+	});
+}
+
+async function sendBookingDeliverablesEmailForBookingRecord(
+	booking: Doc<"bookings">,
+	driveLink: string,
+	introMessage: string,
+) {
+	const parsedDriveLink = parseGoogleDriveLink(driveLink);
+
+	if (!parsedDriveLink) {
+		throw createBookingInvoiceEmailError("INVALID_DRIVE_LINK");
+	}
+
+	await sendDeliverablesEmailForBookingDetails({
+		driveLink: parsedDriveLink,
+		email: booking.email,
+		introMessage: introMessage.trim(),
+		name: booking.name,
 	});
 }
 
@@ -310,6 +332,53 @@ export const sendBookingInvoiceForBooking = action({
 			}
 
 			console.error("Manual booking invoice send failed", {
+				bookingId: booking._id,
+				bookingEmail: booking.email,
+				error,
+			});
+			throw createBookingInvoiceEmailError("INVOICE_SEND_FAILED");
+		}
+	},
+});
+
+export const sendBookingDeliverablesEmailForBooking = action({
+	args: {
+		bookingId: v.id("bookings"),
+		driveLink: v.string(),
+		introMessage: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+
+		if (!identity) {
+			throw createBookingInvoiceEmailError("NOT_AUTHENTICATED");
+		}
+
+		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
+			bookingId: args.bookingId,
+		});
+
+		if (!booking) {
+			throw createBookingInvoiceEmailError("BOOKING_NOT_FOUND");
+		}
+
+		if (!args.introMessage.trim()) {
+			throw createBookingInvoiceEmailError("INVALID_BOOKING_DATA");
+		}
+
+		try {
+			await sendBookingDeliverablesEmailForBookingRecord(
+				booking,
+				args.driveLink,
+				args.introMessage,
+			);
+			return { ok: true as const };
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			console.error("Manual booking deliverables email send failed", {
 				bookingId: booking._id,
 				bookingEmail: booking.email,
 				error,

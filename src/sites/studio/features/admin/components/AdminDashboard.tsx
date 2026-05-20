@@ -100,7 +100,7 @@ const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | und
 	confirmed: "bg-green-600 text-foreground",
 	expired: "bg-muted text-muted-foreground",
 	failed: undefined,
-	pending_payment: "bg-blue-600 text-foreground",
+	pending_payment: "bg-cyan-600 text-foreground",
 };
 
 function getColumnClassName(columnId: string) {
@@ -372,7 +372,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 				const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(row.original));
 
 				return (
-					<p className={isPaid ? "text-green-600" : "text-destructive"}>
+					<p className={isPaid ? "text-green-500" : "text-destructive"}>
 						{isPaid ? "Paid" : remainingBalanceLabel}
 					</p>
 				);
