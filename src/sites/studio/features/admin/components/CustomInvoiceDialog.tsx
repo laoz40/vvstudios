@@ -14,6 +14,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
 	ADDON_PRICES,
@@ -38,6 +39,7 @@ type BookingRecord = Doc<"bookings">;
 type CustomInvoiceDraft = {
 	service: BookingService | "";
 	addons: BookingFormValues["addons"];
+	dueDate: string;
 	includeDepositLineItem: boolean;
 };
 
@@ -89,22 +91,26 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		addons: [],
+		dueDate: booking.date,
 		includeDepositLineItem: false,
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+	const hasInvoiceSelection =
+		Boolean(draft.service) || draft.addons.length > 0 || draft.includeDepositLineItem;
 
 	useEffect(() => {
 		if (open) {
-			setDraft({ service: "", addons: [], includeDepositLineItem: false });
+			setDraft({ service: "", addons: [], dueDate: booking.date, includeDepositLineItem: false });
 		}
-	}, [open]);
+	}, [booking.date, open]);
 
 	async function downloadCustomInvoice(input: {
 		_id: string;
 		invoiceNumber: string;
 		service?: string;
 		addons: string[];
+		dueDate?: string;
 		includeDepositLineItem: boolean;
 		createdAt: number;
 	}) {
@@ -140,6 +146,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				abn: parsedBooking.data.abn,
 				email: parsedBooking.data.email,
 				date: parsedBooking.data.date,
+				dueDate: input.dueDate ?? parsedBooking.data.date,
 				time: parsedBooking.data.time,
 				duration: parsedBooking.data.duration,
 				service: isBookingService(input.service) ? input.service : undefined,
@@ -157,6 +164,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	}
 
 	async function handleGenerateCustomInvoice() {
+		if (!hasInvoiceSelection) {
+			return;
+		}
+
 		setIsGenerating(true);
 
 		try {
@@ -164,6 +175,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
 			const customInvoice = await createCustomInvoice({
 				bookingId: booking._id,
+				dueDate: draft.dueDate,
 				service: draft.service || undefined,
 				addons: draft.addons,
 				includeDepositLineItem: draft.includeDepositLineItem,
@@ -196,6 +208,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				abn: parsedBooking.data.abn,
 				email: parsedBooking.data.email,
 				date: parsedBooking.data.date,
+				dueDate: draft.dueDate,
 				time: parsedBooking.data.time,
 				duration: parsedBooking.data.duration,
 				service: draft.service || undefined,
@@ -270,6 +283,19 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						event.preventDefault();
 						void handleGenerateCustomInvoice();
 					}}>
+					<section className="grid gap-3">
+						<Label htmlFor="custom-invoice-due-date">Due date</Label>
+						<Input
+							id="custom-invoice-due-date"
+							type="date"
+							value={draft.dueDate}
+							disabled={isGenerating}
+							required
+							onChange={(event) => {
+								setDraft((current) => ({ ...current, dueDate: event.target.value }));
+							}}
+						/>
+					</section>
 					{customInvoices && customInvoices.length > 0 ? (
 						<section className="grid gap-3">
 							<Label>Previous custom invoices</Label>
@@ -401,7 +427,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						</Button>
 						<Button
 							type="submit"
-							disabled={isGenerating}>
+							disabled={isGenerating || !hasInvoiceSelection}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isGenerating ? "Downloading..." : "Download"}
 						</Button>

@@ -15,6 +15,7 @@ export default defineSchema({
 	customInvoices: defineTable({
 		bookingId: v.id("bookings"),
 		invoiceNumber: v.string(),
+		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
 		addons: v.array(v.string()),
 		includeDepositLineItem: v.boolean(),

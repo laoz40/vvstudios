@@ -17,6 +17,7 @@ export interface BookingInvoiceBuilderInput {
 	abn?: string;
 	email: string;
 	date: string;
+	dueDate?: string;
 	time: string;
 	duration: BookingDuration;
 	service?: BookingService;

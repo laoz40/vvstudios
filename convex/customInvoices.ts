@@ -9,6 +9,7 @@ type CustomInvoiceErrorData = {
 export const createCustomInvoice = mutation({
 	args: {
 		bookingId: v.id("bookings"),
+		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
 		addons: v.array(v.string()),
 		includeDepositLineItem: v.boolean(),
@@ -30,6 +31,7 @@ export const createCustomInvoice = mutation({
 		const customInvoiceId = await ctx.db.insert("customInvoices", {
 			bookingId: args.bookingId,
 			invoiceNumber: "pending",
+			dueDate: args.dueDate,
 			service: args.service,
 			addons: args.addons,
 			includeDepositLineItem: args.includeDepositLineItem,

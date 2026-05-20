@@ -36,9 +36,10 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		includeDepositLineItem: input.includeDepositLineItem !== false,
 	});
 	const bookingDateLabel = formatCalendarDate(input.date);
+	const dueDate = input.dueDate ?? input.date;
 	const invoiceDate = input.createdAt ?? Date.now();
 	const invoiceDateLabel = format(invoiceDate, "d MMMM yyyy");
-	const dueDateLabel = bookingDateLabel;
+	const dueDateLabel = formatCalendarDate(dueDate);
 	const addonsSummary =
 		input.addons.length > 0
 			? input.addons.map((addon) => `${addon} (${ADDON_PRICES[addon].toFixed(2)})`).join(", ")
@@ -103,7 +104,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			phone: input.phone,
 		},
 		invoice: {
-			dueDate: input.date,
+			dueDate,
 			dueDateLabel,
 			invoiceDate: new Date(invoiceDate).toISOString(),
 			invoiceDateLabel,
