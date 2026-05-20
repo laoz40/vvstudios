@@ -41,13 +41,10 @@ const sectionCopy = {
 	dateLabel: "SESSION DATE *",
 	timeLabel: "SESSION TIME *",
 	selectDatePrompt: "Select a date to view times.",
+	selectDurationPrompt: "Select a duration to view times.",
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingAvailability: "Loading availability...",
 	noTimesAvailable: "No times available for this date.",
-	missingDurationTitle: "Select a duration",
-	missingDurationDescription:
-		"You selected a date and time, but still need to choose a session duration before booking.",
-	missingDurationAction: "Got it",
 	modalCloseLabel: "Close dialog",
 	sessionSummaryTitle: "Session selected",
 	sessionSummaryDescription: "Review your selected session time before continuing.",
@@ -94,26 +91,8 @@ export function BookingDateTimeSection({
 			? formatBookingTimeRange(formValues.time, formValues.duration)
 			: "No selected duration"
 		: "No selected time";
-	const [isMissingDurationDialogOpen, setIsMissingDurationDialogOpen] = useState(false);
 	const [isSessionSummaryDialogOpen, setIsSessionSummaryDialogOpen] = useState(false);
-	const lastMissingDurationSelectionRef = useRef<string | null>(null);
 	const lastSessionSummarySelectionRef = useRef<string | null>(null);
-
-	useEffect(() => {
-		if (!formValues.date || !formValues.time || formValues.duration) {
-			lastMissingDurationSelectionRef.current = null;
-			return;
-		}
-
-		const selectionKey = `${formValues.date}-${formValues.time}`;
-
-		if (lastMissingDurationSelectionRef.current === selectionKey) {
-			return;
-		}
-
-		lastMissingDurationSelectionRef.current = selectionKey;
-		setIsMissingDurationDialogOpen(true);
-	}, [formValues.date, formValues.duration, formValues.time]);
 
 	useEffect(() => {
 		if (!formValues.date || !formValues.time || !formValues.duration) {
@@ -128,7 +107,6 @@ export function BookingDateTimeSection({
 		}
 
 		lastSessionSummarySelectionRef.current = selectionKey;
-		setIsMissingDurationDialogOpen(false);
 		setIsSessionSummaryDialogOpen(true);
 	}, [formValues.date, formValues.duration, formValues.time]);
 
@@ -198,17 +176,28 @@ export function BookingDateTimeSection({
 								</FieldLegend>
 								{!formValues.date || !isViewingSelectedMonth ? (
 									<FieldDescription>{sectionCopy.selectDatePrompt}</FieldDescription>
+								) : !formValues.duration ? (
+									<FieldDescription className="text-destructive">
+										{sectionCopy.selectDurationPrompt}
+									</FieldDescription>
 								) : null}
-								{formValues.date && isViewingSelectedMonth && isSelectedDateInPast ? (
+								{formValues.duration &&
+								formValues.date &&
+								isViewingSelectedMonth &&
+								isSelectedDateInPast ? (
 									<FieldDescription>{sectionCopy.pastDatesUnavailable}</FieldDescription>
 								) : null}
-								{formValues.date && isViewingSelectedMonth && isLoadingMonthAvailability ? (
+								{formValues.duration &&
+								formValues.date &&
+								isViewingSelectedMonth &&
+								isLoadingMonthAvailability ? (
 									<FieldDescription className="flex items-center gap-2">
 										<LoaderCircle className="size-4 animate-spin" />
 										{sectionCopy.loadingAvailability}
 									</FieldDescription>
 								) : null}
 								{!isLoadingMonthAvailability &&
+								formValues.duration &&
 								formValues.date &&
 								isViewingSelectedMonth &&
 								!isSelectedDateInPast &&
@@ -231,7 +220,10 @@ export function BookingDateTimeSection({
 												field.handleBlur();
 											}}
 											disabled={
-												!formValues.date || !isViewingSelectedMonth || isLoadingMonthAvailability
+												!formValues.duration ||
+												!formValues.date ||
+												!isViewingSelectedMonth ||
+												isLoadingMonthAvailability
 											}
 											className="flex flex-col gap-6">
 											<div className="grid grid-cols-1 gap-3">
@@ -294,20 +286,6 @@ export function BookingDateTimeSection({
 					Time: <span className="text-foreground font-medium">{bookingTimeSummary}</span>
 				</p>
 			</div>
-			<Modal
-				open={isMissingDurationDialogOpen}
-				onOpenChange={setIsMissingDurationDialogOpen}
-				title={sectionCopy.missingDurationTitle}
-				description={sectionCopy.missingDurationDescription}
-				closeLabel={sectionCopy.modalCloseLabel}
-				footer={
-					<Button
-						type="button"
-						onClick={() => setIsMissingDurationDialogOpen(false)}>
-						{sectionCopy.missingDurationAction}
-					</Button>
-				}
-			/>
 			<Modal
 				open={isSessionSummaryDialogOpen}
 				onOpenChange={setIsSessionSummaryDialogOpen}

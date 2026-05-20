@@ -320,6 +320,7 @@ function BookingPage() {
 	const availableTimes = useMemo<string[]>(() => {
 		if (
 			!formValues.date ||
+			!formValues.duration ||
 			isSelectedDateInPast ||
 			isSelectedDateTooFarInFuture ||
 			!isViewingSelectedMonth
