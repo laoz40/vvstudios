@@ -52,7 +52,7 @@ export async function getBusyWindowsInRange({
 		do {
 			const response = await calendar.events.list({
 				calendarId,
-				maxResults: 2500,
+				maxResults: 500,
 				orderBy: "startTime",
 				pageToken,
 				singleEvents: true,
