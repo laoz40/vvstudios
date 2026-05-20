@@ -35,10 +35,29 @@ type BookingTimeUtilsErrorData = {
 	code: BookingTimeUtilsErrorCode;
 };
 
+export type BookingAvailabilitySettings = {
+	eventBufferMinutes: number;
+	leadTimeMinutes: number;
+	maxDaysAhead: number;
+	weekSchedule: Array<{ endTime: string; startTime: string }>;
+};
+
+type BookingAvailabilityValidationErrorData = {
+	code:
+		| "BOOKING_INVALID_DATE"
+		| "BOOKING_OUTSIDE_OPENING_HOURS"
+		| "BOOKING_TOO_FAR_AHEAD"
+		| "BOOKING_TOO_SOON";
+};
+
 const BOOKING_EVENT_BUFFER_MINUTES = 30;
 
 function createBookingTimeUtilsError(code: BookingTimeUtilsErrorCode) {
 	return new ConvexError<BookingTimeUtilsErrorData>({ code });
+}
+
+function createBookingAvailabilityError(code: BookingAvailabilityValidationErrorData["code"]) {
+	return new ConvexError<BookingAvailabilityValidationErrorData>({ code });
 }
 
 // make every 30 minute time slot for one day
@@ -177,6 +196,7 @@ interface GetAvailableTimeOptionsArgs {
 	busyWindows: BusyWindow[];
 	date: string;
 	duration: string;
+	eventBufferMinutes?: number;
 	timeZone: string;
 }
 
@@ -184,6 +204,7 @@ export function getAvailableTimeOptions({
 	busyWindows,
 	date,
 	duration,
+	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	timeZone,
 }: GetAvailableTimeOptionsArgs) {
 	return TIME_OPTIONS.filter((time) =>
@@ -191,6 +212,7 @@ export function getAvailableTimeOptions({
 			busyWindows,
 			date,
 			duration,
+			eventBufferMinutes,
 			time,
 			timeZone,
 		}),
@@ -202,6 +224,7 @@ interface IsTimeSlotAvailableArgs {
 	busyWindows: BusyWindow[];
 	date: string;
 	duration: string;
+	eventBufferMinutes?: number;
 	time: string;
 	timeZone: string;
 }
@@ -210,6 +233,7 @@ export function isTimeSlotAvailable({
 	busyWindows,
 	date,
 	duration,
+	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	time,
 	timeZone,
 }: IsTimeSlotAvailableArgs) {
@@ -218,8 +242,8 @@ export function isTimeSlotAvailable({
 	const endMs = Date.parse(endDateTime);
 
 	return !busyWindows.some((window) => {
-		const busyStartMs = Date.parse(window.start) - BOOKING_EVENT_BUFFER_MINUTES * 60 * 1000;
-		const busyEndMs = Date.parse(window.end) + BOOKING_EVENT_BUFFER_MINUTES * 60 * 1000;
+		const busyStartMs = Date.parse(window.start) - eventBufferMinutes * 60 * 1000;
+		const busyEndMs = Date.parse(window.end) + eventBufferMinutes * 60 * 1000;
 
 		return startMs < busyEndMs && endMs > busyStartMs;
 	});
@@ -228,6 +252,79 @@ export function isTimeSlotAvailable({
 // wider search range for google calendar
 // this helps catch events that start the night before or end the next day
 // and still block time on the selected date
+function parseDateValue(value: string) {
+	const [year, month, day] = value.split("-").map(Number);
+	if (!year || !month || !day) {
+		throw createBookingAvailabilityError("BOOKING_INVALID_DATE");
+	}
+
+	return new Date(year, month - 1, day);
+}
+
+function parseTimeToMinutes(time: string) {
+	const [hours, minutes] = time.split(":").map(Number);
+	return hours * 60 + minutes;
+}
+
+function startOfToday(now = new Date()) {
+	return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function addDays(date: Date, days: number) {
+	const result = new Date(date);
+	result.setDate(result.getDate() + days);
+	return result;
+}
+
+export function assertBookingMeetsAvailabilitySettings({
+	date,
+	duration,
+	now = Date.now(),
+	settings,
+	time,
+	timeZone,
+}: {
+	date: string;
+	duration: string;
+	now?: number;
+	settings: BookingAvailabilitySettings;
+	time: string;
+	timeZone: string;
+}) {
+	const bookingDate = parseDateValue(date);
+	const today = startOfToday(new Date(now));
+	const lastBookableDate = addDays(today, settings.maxDaysAhead);
+
+	if (bookingDate < today) {
+		throw createBookingAvailabilityError("BOOKING_TOO_SOON");
+	}
+
+	if (bookingDate > lastBookableDate) {
+		throw createBookingAvailabilityError("BOOKING_TOO_FAR_AHEAD");
+	}
+
+	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
+	if (!daySchedule) {
+		throw createBookingAvailabilityError("BOOKING_OUTSIDE_OPENING_HOURS");
+	}
+
+	const startMinutes = parseTimeToMinutes(time);
+	const endMinutes = startMinutes + parseDurationMinutes(duration);
+	const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
+	const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
+
+	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
+		throw createBookingAvailabilityError("BOOKING_OUTSIDE_OPENING_HOURS");
+	}
+
+	const bookingStartAt = getUtcDateForZonedDateTime(date, time, timeZone).getTime();
+	const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
+
+	if (bookingStartAt < earliestStartAt) {
+		throw createBookingAvailabilityError("BOOKING_TOO_SOON");
+	}
+}
+
 export function getAvailabilityRange(date: string) {
 	return {
 		timeMin: getUtcDateForBufferedQuery(getPreviousDate(date), "00:00").toISOString(),

@@ -1,9 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
-import { getUtcDateForZonedDateTime } from "./lib/bookingCalendarTime";
+import {
+	assertBookingMeetsAvailabilitySettings,
+	getUtcDateForZonedDateTime,
+} from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
 
 function getSessionStartAt(date: string, time: string) {
@@ -30,6 +34,15 @@ export const createPendingBooking = internalMutation({
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		assertBookingMeetsAvailabilitySettings({
+			date: args.date,
+			duration: args.duration,
+			settings,
+			time: args.time,
+			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		});
+
 		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
 		const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", {
 			key: args.submitRateLimitKey,

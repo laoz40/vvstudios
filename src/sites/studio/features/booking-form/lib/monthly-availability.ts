@@ -2,6 +2,7 @@ import {
 	formatDateValue,
 	formatMonthKey,
 	getAvailableTimesForDate,
+	type BookingAvailabilitySettings,
 	type BusyPeriod,
 } from "#studio/lib/bookingdatetime";
 import { getBookingErrorMessage } from "#studio/features/booking-form/lib/booking-errors";
@@ -79,6 +80,7 @@ export function isBookingDateDisabled({
 	isAvailabilityRateLimited,
 	lastBookableDate,
 	monthlyBusyWindowsByMonth,
+	settings,
 	today,
 }: {
 	currentTimestamp: number;
@@ -87,6 +89,7 @@ export function isBookingDateDisabled({
 	isAvailabilityRateLimited: boolean;
 	lastBookableDate: Date;
 	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
+	settings: BookingAvailabilitySettings;
 	today: Date;
 }) {
 	if (date < today || date > lastBookableDate) {
@@ -102,6 +105,7 @@ export function isBookingDateDisabled({
 		currentTimestamp,
 		dateValue,
 		duration,
+		settings,
 	});
 
 	if (!busyDays && isAvailabilityRateLimited) {

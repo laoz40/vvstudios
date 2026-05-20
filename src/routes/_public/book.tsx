@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { ChevronDown } from "lucide-react";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -49,6 +49,7 @@ import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
 import {
 	formatDateValue,
 	formatMonthKey,
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	getAvailableTimesForDate,
 	getCurrentMonthKey,
 	getCurrentTimestamp,
@@ -107,8 +108,10 @@ function BookingPage() {
 	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	const today = startOfToday();
-	const lastBookableDate = getLastBookableDate(today);
+	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
 	const formRef = useRef<HTMLFormElement>(null);
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
@@ -301,6 +304,7 @@ function BookingPage() {
 				isAvailabilityRateLimited,
 				lastBookableDate,
 				monthlyBusyWindowsByMonth,
+				settings: availabilitySettings,
 				today,
 			});
 	}, [
@@ -309,6 +313,7 @@ function BookingPage() {
 		isAvailabilityRateLimited,
 		lastBookableDate,
 		monthlyBusyWindowsByMonth,
+		availabilitySettings,
 		today,
 	]);
 
@@ -331,11 +336,13 @@ function BookingPage() {
 			currentTimestamp,
 			dateValue: formValues.date,
 			duration: formValues.duration,
+			settings: availabilitySettings,
 		});
 	}, [
 		currentTimestamp,
 		formValues.date,
 		formValues.duration,
+		availabilitySettings,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
 		isSelectedDateTooFarInFuture,

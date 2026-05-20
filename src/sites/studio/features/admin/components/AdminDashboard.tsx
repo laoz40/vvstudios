@@ -51,6 +51,7 @@ import {
 	getStartOfWeekTimestamp,
 	isUpcomingBooking,
 } from "#studio/lib/bookingdatetime";
+import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import { cn } from "#/lib/utils";
 
 type BookingRecord = Doc<"bookings">;
@@ -570,7 +571,10 @@ export function AdminDashboard({
 					</div>
 					<div className="flex flex-col items-start gap-3 md:items-end">
 						<p className="text-sm text-muted-foreground">Signed in as {email ?? "Unknown user"}.</p>
-						{signOutControl}
+						<div className="flex flex-wrap items-center gap-2">
+							<AdminAvailabilitySettings />
+							{signOutControl}
+						</div>
 					</div>
 				</div>
 			</section>

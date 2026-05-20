@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+	bookingSettings: defineTable({
+		key: v.string(),
+		leadTimeMinutes: v.number(),
+		eventBufferMinutes: v.number(),
+		maxDaysAhead: v.number(),
+		weekSchedule: v.array(v.object({ startTime: v.string(), endTime: v.string() })),
+		updatedAt: v.number(),
+		updatedBy: v.optional(v.string()),
+	}).index("by_key", ["key"]),
+
 	customInvoices: defineTable({
 		bookingId: v.id("bookings"),
 		invoiceNumber: v.string(),

@@ -15,7 +15,14 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Do not add new dependencies unless needed for task
 - Keep diffs small and task-focused
 - Preserve existing architectural style.
+
 - Before adding helper functions, check for lib files that have related logic
+- Move reusable helper functions, formatting, validation, constants, and mappers into the nearest appropriate `lib` file instead of keeping them inside main component, route, or Convex function files
+- Keep main Convex files focused on Convex API/database logic; put reusable business rules and validation in `convex/lib/*`
+- Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
+- When a component grows into a distinct feature area, extract it into its own component file
+- Keep feature component helpers in the feature `lib` directory when they are not purely presentational
+
 - run format and lint once changes are complete
 - do not run build
 
@@ -39,7 +46,9 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 ### Components and pages
 
 - compose feature components instead of putting large UI trees or business logic in `page.tsx`
+- Extract major or self-contained UI sections into separate component files instead of growing a single large component file
 - Prefer small, focused components with clear props
+- Keep components mostly presentational; move reusable transforms, constants, validation, and formatting to feature `lib` files
 - Always use shadcn/ui components by default, and unpic for images
 
 ### Naming Conventions
@@ -56,21 +65,15 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 ### Error handling
 
 - Prefer typed error flows with narrow `code` values
-- Use `neverthrow` for fallible app logic and handle results exhaustively
 - For Convex, throw `ConvexError` with structured `data.code` values and handle exact codes
 - Re-throw known `ConvexError`s and map unknown server errors to safe app error codes
+- Map codes by layer:
+  - helper -> error code
+  - route -> HTTP response/status
+  - UI -> toast/message
 
 ### Tailwind
 
 - Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
 
-### Error handling
-
-- Map codes by layer:
-  - helper -> error code
-  - route -> HTTP response/status
-  - UI -> toast/message
-
-- For Convex, throw `ConvexError` with structured `data.code` values and handle exact codes
-- Re-throw known `ConvexError`s and map unknown server errors to safe app error codes

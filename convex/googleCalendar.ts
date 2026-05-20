@@ -2,7 +2,7 @@
 
 import { ConvexError, v } from "convex/values";
 import { google } from "googleapis";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
@@ -13,6 +13,7 @@ import {
 } from "../src/sites/studio/lib/bookingdatetime";
 import { env } from "./env";
 import {
+	assertBookingMeetsAvailabilitySettings,
 	buildEventWindow,
 	formatBookingDateShort,
 	getAvailableTimeOptions,
@@ -203,9 +204,11 @@ export const getBookableRangeBusyWindows = action({
 				throw createBookingCalendarError("GOOGLE_CALENDAR_RATE_LIMITED");
 			}
 
+			const settings = await ctx.runQuery(api.bookingSettings.get, {});
 			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
-			const startDate = formatDateValue(startOfToday());
-			const endDate = formatDateValue(getLastBookableDate());
+			const today = startOfToday();
+			const startDate = formatDateValue(today);
+			const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
 			const { timeMin, timeMax } = getDateAvailabilityRange(startDate, endDate, timeZone);
 			const busyWindows = await getBusyWindowsInRange({
 				calendar,
@@ -242,8 +245,9 @@ export const getAvailableBookingTimes = action({
 		date: v.string(),
 		duration: v.string(),
 	},
-	handler: async (_ctx, args): Promise<AvailableBookingTimesResult> => {
+	handler: async (ctx, args): Promise<AvailableBookingTimesResult> => {
 		try {
+			const settings = await ctx.runQuery(api.bookingSettings.get, {});
 			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
 			const busyWindows = await getBusyWindows({
 				calendar,
@@ -255,6 +259,7 @@ export const getAvailableBookingTimes = action({
 				busyWindows,
 				date: args.date,
 				duration: args.duration,
+				eventBufferMinutes: settings.eventBufferMinutes,
 				timeZone,
 			});
 
@@ -374,7 +379,24 @@ export const completeClaimedBooking = internalAction({
 		}
 
 		try {
+			const settings = await ctx.runQuery(api.bookingSettings.get, {});
 			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
+
+			try {
+				assertBookingMeetsAvailabilitySettings({
+					date: booking.date,
+					duration: booking.duration,
+					settings,
+					time: booking.time,
+					timeZone,
+				});
+			} catch {
+				await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
+					bookingId: booking._id,
+					failureCode: "BOOKING_TIME_UNAVAILABLE",
+				});
+				return null;
+			}
 
 			const busyWindows = await getBusyWindows({
 				calendar,
@@ -388,6 +410,7 @@ export const completeClaimedBooking = internalAction({
 					busyWindows,
 					date: booking.date,
 					duration: booking.duration,
+					eventBufferMinutes: settings.eventBufferMinutes,
 					time: booking.time,
 					timeZone,
 				})

@@ -1,24 +1,24 @@
-export const DEFAULT_BOOKING_START_TIME = "08:00";
-export const DEFAULT_BOOKING_END_TIME = "22:00";
-export const BOOKING_LEAD_TIME_MINUTES = 12 * 60;
-export const BOOKING_EVENT_BUFFER_MINUTES = 30;
-export const BOOKING_MAX_DAYS_AHEAD = 60;
+export {
+	BOOKING_EVENT_BUFFER_MINUTES,
+	BOOKING_LEAD_TIME_MINUTES,
+	BOOKING_MAX_DAYS_AHEAD,
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	DEFAULT_BOOKING_END_TIME,
+	DEFAULT_BOOKING_START_TIME,
+	DEFAULT_BOOKING_WEEK_SCHEDULE,
+	type BookingAvailabilitySettings,
+	type BookingDaySchedule,
+} from "#studio/lib/bookingAvailabilitySettings";
+import {
+	BOOKING_EVENT_BUFFER_MINUTES,
+	BOOKING_MAX_DAYS_AHEAD,
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	DEFAULT_BOOKING_END_TIME,
+	DEFAULT_BOOKING_START_TIME,
+	type BookingAvailabilitySettings,
+} from "#studio/lib/bookingAvailabilitySettings";
+
 const BOOKING_TIME_ZONE = "Australia/Sydney";
-
-export interface BookingDaySchedule {
-	endTime: string;
-	startTime: string;
-}
-
-export const DEFAULT_BOOKING_WEEK_SCHEDULE: Record<number, BookingDaySchedule> = {
-	0: { startTime: "10:00", endTime: "21:00" }, // Sunday
-	1: { startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	2: { startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	3: { startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	4: { startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	5: { startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	6: { startTime: DEFAULT_BOOKING_START_TIME, endTime: "21:00" },
-};
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 	const hours = String(Math.floor(index / 2)).padStart(2, "0");
@@ -40,11 +40,13 @@ export function getCurrentMonthKey() {
 export function getAvailableTimesForBusyPeriods({
 	busyPeriods,
 	duration,
+	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	endTime = DEFAULT_BOOKING_END_TIME,
 	startTime = DEFAULT_BOOKING_START_TIME,
 }: {
 	busyPeriods: BusyPeriod[];
 	duration: string;
+	eventBufferMinutes?: number;
 	endTime?: string;
 	startTime?: string;
 }) {
@@ -52,14 +54,8 @@ export function getAvailableTimesForBusyPeriods({
 	const dayStartMinutes = parseTimeToMinutes(startTime);
 	const dayEndMinutes = parseTimeToMinutes(endTime);
 	const busyRanges = busyPeriods.map((period) => ({
-		endMinutes: Math.min(
-			24 * 60,
-			parseReadableTimeToMinutes(period.end) + BOOKING_EVENT_BUFFER_MINUTES,
-		),
-		startMinutes: Math.max(
-			0,
-			parseReadableTimeToMinutes(period.start) - BOOKING_EVENT_BUFFER_MINUTES,
-		),
+		endMinutes: Math.min(24 * 60, parseReadableTimeToMinutes(period.end) + eventBufferMinutes),
+		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes),
 	}));
 
 	return TIME_OPTIONS.filter((time) => {
@@ -170,8 +166,8 @@ export function addDays(date: Date, days: number) {
 	return result;
 }
 
-export function getLastBookableDate(today = startOfToday()) {
-	return addDays(today, BOOKING_MAX_DAYS_AHEAD);
+export function getLastBookableDate(today = startOfToday(), maxDaysAhead = BOOKING_MAX_DAYS_AHEAD) {
+	return addDays(today, maxDaysAhead);
 }
 
 export function getCurrentTimestamp() {
@@ -183,20 +179,20 @@ export function getAvailableTimesForDate({
 	currentTimestamp,
 	dateValue,
 	duration,
-	weekSchedule = DEFAULT_BOOKING_WEEK_SCHEDULE,
+	settings = DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 }: {
 	busyPeriods: BusyPeriod[];
 	currentTimestamp: number;
 	dateValue: string;
 	duration: string;
-	weekSchedule?: Record<number, BookingDaySchedule>;
+	settings?: BookingAvailabilitySettings;
 }) {
 	const bookingDate = parseDateValue(dateValue);
 	if (!bookingDate) {
 		return [];
 	}
 
-	const daySchedule = weekSchedule[bookingDate.getDay()];
+	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
 	if (!daySchedule) {
 		return [];
 	}
@@ -204,10 +200,11 @@ export function getAvailableTimesForDate({
 	const availableTimes = getAvailableTimesForBusyPeriods({
 		busyPeriods,
 		duration,
+		eventBufferMinutes: settings.eventBufferMinutes,
 		endTime: daySchedule.endTime,
 		startTime: daySchedule.startTime,
 	});
-	const earliestStartTimestamp = currentTimestamp + BOOKING_LEAD_TIME_MINUTES * 60 * 1000;
+	const earliestStartTimestamp = currentTimestamp + settings.leadTimeMinutes * 60 * 1000;
 
 	return availableTimes.filter((time) => {
 		const bookingStart = parseDateTimeValue(dateValue, time);
