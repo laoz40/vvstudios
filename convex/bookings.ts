@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { calculateBookingInvoiceAmounts } from "../src/sites/studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
@@ -587,6 +588,7 @@ export const updateBooking = mutation({
 		email: v.string(),
 		date: v.string(),
 		time: v.string(),
+		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
 		notes: v.optional(v.string()),
@@ -614,6 +616,11 @@ export const updateBooking = mutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
+			duration: args.duration,
+			remainingBalanceAmount: calculateBookingInvoiceAmounts({
+				duration: args.duration,
+				addons: args.addons,
+			}).totalDueAmount,
 			sessionStartAt: getSessionStartAt(args.date, args.time),
 			service: args.service,
 			addons: args.addons,

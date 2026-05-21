@@ -17,6 +17,7 @@ import { Textarea } from "#/components/ui/textarea";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	ADDON_OPTIONS,
+	DURATION_OPTIONS,
 	SERVICES,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
@@ -30,6 +31,7 @@ export type BookingEditDraft = {
 	addons: BookingFormValues["addons"];
 	abn: string;
 	date: string;
+	duration: BookingFormValues["duration"];
 	email: string;
 	name: string;
 	notes: string;
@@ -58,6 +60,7 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		abn: booking.abn ?? "",
 		date: booking.date,
 		time: booking.time,
+		duration: booking.duration as BookingFormValues["duration"],
 		service: booking.service,
 		addons: booking.addons.filter(isAddonOption),
 		email: booking.email,
@@ -93,7 +96,7 @@ export function BookingEditDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="overflow-y-auto sm:max-w-4xl"
+				className="flex max-h-dvh flex-col overflow-hidden sm:max-w-4xl"
 				onInteractOutside={(event) => {
 					if (isSaving) {
 						event.preventDefault();
@@ -125,7 +128,8 @@ export function BookingEditDialog({
 				</DialogHeader>
 
 				<form
-					className="grid gap-6"
+					className="flex min-h-0 flex-col gap-6 overflow-y-auto overscroll-contain pr-4"
+					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();
 						void onSave(draft);
@@ -237,6 +241,37 @@ export function BookingEditDialog({
 								disabled={isSaving}
 							/>
 						</div>
+					</section>
+
+					<section className="grid gap-3">
+						<Label>Session duration</Label>
+						<RadioGroup
+							value={draft.duration}
+							onValueChange={(value) => {
+								setDraft((current) => ({
+									...current,
+									duration: value as BookingFormValues["duration"],
+								}));
+							}}
+							className="grid gap-3 sm:grid-cols-3">
+							{DURATION_OPTIONS.map((duration) => {
+								const optionId = `edit-duration-${toOptionId(duration)}`;
+
+								return (
+									<label
+										key={duration}
+										htmlFor={optionId}
+										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										<RadioGroupItem
+											id={optionId}
+											value={duration}
+											disabled={isSaving}
+										/>
+										<span className="font-medium">{duration}</span>
+									</label>
+								);
+							})}
+						</RadioGroup>
 					</section>
 
 					<section className="grid gap-3">

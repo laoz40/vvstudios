@@ -28,6 +28,7 @@ import type {
 } from "#studio/features/booking-invoice/lib/types";
 import {
 	ADDON_OPTIONS,
+	DURATION_OPTIONS,
 	SERVICES,
 	bookingSchema,
 	type BookingFormValues,
@@ -38,6 +39,7 @@ type BookingRecord = Doc<"bookings">;
 
 type CustomInvoiceDraft = {
 	service: BookingService | "";
+	duration: BookingFormValues["duration"];
 	addons: BookingFormValues["addons"];
 	dueDate: string;
 	includeDepositLineItem: boolean;
@@ -90,6 +92,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	});
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
+		duration: booking.duration as BookingFormValues["duration"],
 		addons: [],
 		dueDate: booking.date,
 		includeDepositLineItem: false,
@@ -101,9 +104,15 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 	useEffect(() => {
 		if (open) {
-			setDraft({ service: "", addons: [], dueDate: booking.date, includeDepositLineItem: false });
+			setDraft({
+				service: "",
+				duration: booking.duration as BookingFormValues["duration"],
+				addons: [],
+				dueDate: booking.date,
+				includeDepositLineItem: false,
+			});
 		}
-	}, [booking.date, open]);
+	}, [booking.date, booking.duration, open]);
 
 	async function downloadCustomInvoice(input: {
 		_id: string;
@@ -113,6 +122,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		dueDate?: string;
 		includeDepositLineItem: boolean;
 		createdAt: number;
+		duration?: string;
 	}) {
 		setDownloadingInvoiceId(input._id);
 
@@ -127,7 +137,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				email: booking.email,
 				date: booking.date,
 				time: booking.time,
-				duration: booking.duration,
+				duration: input.duration ?? booking.duration,
 				service: booking.service,
 				addons: input.addons,
 				notes: booking.notes ?? "",
@@ -177,6 +187,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
 				service: draft.service || undefined,
+				duration: draft.duration,
 				addons: draft.addons,
 				includeDepositLineItem: draft.includeDepositLineItem,
 			});
@@ -189,7 +200,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				email: booking.email,
 				date: booking.date,
 				time: booking.time,
-				duration: booking.duration,
+				duration: draft.duration,
 				service: booking.service,
 				addons: draft.addons,
 				notes: booking.notes ?? "",
@@ -238,6 +249,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			}}>
 			<DialogContent
 				className="overflow-y-auto sm:max-w-4xl"
+				data-lenis-prevent
 				onInteractOutside={(event) => {
 					if (isGenerating) {
 						event.preventDefault();
@@ -279,6 +291,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 				<form
 					className="grid gap-6"
+					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();
 						void handleGenerateCustomInvoice();
@@ -314,7 +327,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 													{formatInvoiceTotal({
 														service: invoice.service,
 														addons: invoice.addons,
-														duration: booking.duration,
+														duration: invoice.duration ?? booking.duration,
 														includeDepositLineItem: invoice.includeDepositLineItem,
 													})}
 												</span>
@@ -333,6 +346,37 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 							</div>
 						</section>
 					) : null}
+
+					<section className="grid gap-3">
+						<Label>Session duration</Label>
+						<div className="grid gap-3 sm:grid-cols-3">
+							{DURATION_OPTIONS.map((duration) => {
+								const optionId = `custom-invoice-duration-${toOptionId(duration)}`;
+								const isChecked = draft.duration === duration;
+
+								return (
+									<label
+										key={duration}
+										htmlFor={optionId}
+										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										<Checkbox
+											id={optionId}
+											checked={isChecked}
+											disabled={isGenerating}
+											onCheckedChange={(checked) => {
+												if (checked !== true) {
+													return;
+												}
+
+												setDraft((current) => ({ ...current, duration }));
+											}}
+										/>
+										<span className="font-medium">{duration}</span>
+									</label>
+								);
+							})}
+						</div>
+					</section>
 
 					<section className="grid gap-3">
 						<Label>Service</Label>
