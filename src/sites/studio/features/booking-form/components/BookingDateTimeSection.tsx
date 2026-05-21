@@ -47,7 +47,7 @@ const sectionCopy = {
 	noTimesAvailable: "No times available for this date.",
 	modalCloseLabel: "Close dialog",
 	sessionSummaryTitle: "Session selected",
-	sessionSummaryDescription: "Review your selected session time before continuing.",
+	sessionSummaryDescription: "Review selected session time before continuing.",
 	sessionSummaryAction: "Confirm",
 } as const;
 
