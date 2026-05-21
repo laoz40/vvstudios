@@ -208,7 +208,7 @@ export function BookingDateTimeSection({
 								{hasAvailableTimes ? (
 									<div
 										data-lenis-prevent
-										className="-m-1 -mr-2 max-h-96 overflow-y-auto overscroll-contain p-1 pr-2 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background xl:h-128 xl:max-h-none xl:-mr-3 xl:pr-3">
+										className="-m-1 -mr-2 max-h-76 overflow-y-auto overscroll-contain p-1 pr-2 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background xl:h-128 xl:max-h-none xl:-mr-3 xl:pr-3">
 										<RadioGroup
 											value={field.state.value}
 											onValueChange={(value) => {
