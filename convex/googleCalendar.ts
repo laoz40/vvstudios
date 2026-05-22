@@ -74,14 +74,6 @@ interface BookableRangeBusyWindowsResult {
 	timeZone: string;
 }
 
-function createBookingCalendarError(code: BookingCalendarErrorCode) {
-	return new ConvexError<BookingCalendarErrorData>({ code });
-}
-
-function createBookingInvoiceEmailError(code: BookingInvoiceEmailErrorCode) {
-	return new ConvexError<BookingInvoiceEmailErrorData>({ code });
-}
-
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
 		.split(",")
@@ -127,7 +119,7 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 	});
 
 	if (!parsedBooking.success) {
-		throw createBookingInvoiceEmailError("INVALID_BOOKING_DATA");
+		throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVALID_BOOKING_DATA" });
 	}
 
 	const artifacts = await createBookingInvoiceArtifacts({
@@ -176,7 +168,7 @@ async function sendBookingDeliverablesEmailForBookingRecord(
 	const parsedDriveLink = parseGoogleDriveLink(driveLink);
 
 	if (!parsedDriveLink) {
-		throw createBookingInvoiceEmailError("INVALID_DRIVE_LINK");
+		throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVALID_DRIVE_LINK" });
 	}
 
 	await sendDeliverablesEmailForBookingDetails({
@@ -223,7 +215,7 @@ export const getBookableRangeBusyWindows = action({
 			});
 
 			if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
-				throw createBookingCalendarError("GOOGLE_CALENDAR_RATE_LIMITED");
+				throw new ConvexError<BookingCalendarErrorData>({ code: "GOOGLE_CALENDAR_RATE_LIMITED" });
 			}
 
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
@@ -257,7 +249,7 @@ export const getBookableRangeBusyWindows = action({
 			console.error("Google Calendar range availability lookup failed", {
 				...getGoogleCalendarErrorDetails(error),
 			});
-			throw createBookingCalendarError(code);
+			throw new ConvexError<BookingCalendarErrorData>({ code });
 		}
 	},
 });
@@ -299,7 +291,7 @@ export const getAvailableBookingTimes = action({
 				date: args.date,
 				...getGoogleCalendarErrorDetails(error),
 			});
-			throw createBookingCalendarError(code);
+			throw new ConvexError<BookingCalendarErrorData>({ code });
 		}
 	},
 });
@@ -312,7 +304,7 @@ export const sendBookingInvoiceForBooking = action({
 		const identity = await ctx.auth.getUserIdentity();
 
 		if (!identity) {
-			throw createBookingInvoiceEmailError("NOT_AUTHENTICATED");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "NOT_AUTHENTICATED" });
 		}
 
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
@@ -320,7 +312,7 @@ export const sendBookingInvoiceForBooking = action({
 		});
 
 		if (!booking) {
-			throw createBookingInvoiceEmailError("BOOKING_NOT_FOUND");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
 		try {
@@ -336,7 +328,7 @@ export const sendBookingInvoiceForBooking = action({
 				bookingEmail: booking.email,
 				error,
 			});
-			throw createBookingInvoiceEmailError("INVOICE_SEND_FAILED");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVOICE_SEND_FAILED" });
 		}
 	},
 });
@@ -351,7 +343,7 @@ export const sendBookingDeliverablesEmailForBooking = action({
 		const identity = await ctx.auth.getUserIdentity();
 
 		if (!identity) {
-			throw createBookingInvoiceEmailError("NOT_AUTHENTICATED");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "NOT_AUTHENTICATED" });
 		}
 
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
@@ -359,11 +351,11 @@ export const sendBookingDeliverablesEmailForBooking = action({
 		});
 
 		if (!booking) {
-			throw createBookingInvoiceEmailError("BOOKING_NOT_FOUND");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
 		if (!args.introMessage.trim()) {
-			throw createBookingInvoiceEmailError("INVALID_BOOKING_DATA");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVALID_BOOKING_DATA" });
 		}
 
 		try {
@@ -383,7 +375,7 @@ export const sendBookingDeliverablesEmailForBooking = action({
 				bookingEmail: booking.email,
 				error,
 			});
-			throw createBookingInvoiceEmailError("INVOICE_SEND_FAILED");
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVOICE_SEND_FAILED" });
 		}
 	},
 });

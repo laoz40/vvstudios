@@ -59,6 +59,15 @@ interface SendBookingDeliverablesEmailArgs {
 	name: string;
 }
 
+function escapeHtml(value: string) {
+	return value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
+}
+
 export function buildBookingCalendarEventRequestBody({
 	name,
 	duration,
@@ -207,6 +216,18 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
 		html,
+	});
+}
+
+export async function sendFeedbackEmailForMessage(message: string) {
+	return await sendEmail({
+		to: [env.RESEND_FROM_EMAIL],
+		subject: "New VV Studios website feedback",
+		html: [
+			"<p>You received new website feedback from the VV Studios website.</p>",
+			"<p><strong>Message:</strong></p>",
+			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`,
+		].join(""),
 	});
 }
 

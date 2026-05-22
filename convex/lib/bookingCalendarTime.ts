@@ -52,14 +52,6 @@ type BookingAvailabilityValidationErrorData = {
 
 const BOOKING_EVENT_BUFFER_MINUTES = 30;
 
-function createBookingTimeUtilsError(code: BookingTimeUtilsErrorCode) {
-	return new ConvexError<BookingTimeUtilsErrorData>({ code });
-}
-
-function createBookingAvailabilityError(code: BookingAvailabilityValidationErrorData["code"]) {
-	return new ConvexError<BookingAvailabilityValidationErrorData>({ code });
-}
-
 // make every 30 minute time slot for one day
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 	const hours = String(Math.floor(index / 2)).padStart(2, "0");
@@ -72,14 +64,14 @@ export function parseDurationMinutes(duration: string) {
 	if (duration === "1h") return 60;
 	if (duration === "2h") return 120;
 	if (duration === "3h") return 180;
-	throw createBookingTimeUtilsError("BOOKING_INVALID_DURATION");
+	throw new ConvexError<BookingTimeUtilsErrorData>({ code: "BOOKING_INVALID_DURATION" });
 }
 
 function parseDate(date: string): DateParts {
 	const [year, month, day] = date.split("-").map(Number);
 
 	if (!year || !month || !day) {
-		throw createBookingTimeUtilsError("BOOKING_INVALID_DATE");
+		throw new ConvexError<BookingTimeUtilsErrorData>({ code: "BOOKING_INVALID_DATE" });
 	}
 
 	return { year, month, day };
@@ -89,7 +81,7 @@ function parseTime(time: string): TimeParts {
 	const [hours, minutes] = time.split(":").map(Number);
 
 	if (hours === undefined || minutes === undefined) {
-		throw createBookingTimeUtilsError("BOOKING_INVALID_TIME");
+		throw new ConvexError<BookingTimeUtilsErrorData>({ code: "BOOKING_INVALID_TIME" });
 	}
 
 	return { hours, minutes };
@@ -255,7 +247,7 @@ export function isTimeSlotAvailable({
 function parseDateValue(value: string) {
 	const [year, month, day] = value.split("-").map(Number);
 	if (!year || !month || !day) {
-		throw createBookingAvailabilityError("BOOKING_INVALID_DATE");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({ code: "BOOKING_INVALID_DATE" });
 	}
 
 	return new Date(year, month - 1, day);
@@ -296,16 +288,20 @@ export function assertBookingMeetsAvailabilitySettings({
 	const lastBookableDate = addDays(today, settings.maxDaysAhead);
 
 	if (bookingDate < today) {
-		throw createBookingAvailabilityError("BOOKING_TOO_SOON");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({ code: "BOOKING_TOO_SOON" });
 	}
 
 	if (bookingDate > lastBookableDate) {
-		throw createBookingAvailabilityError("BOOKING_TOO_FAR_AHEAD");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({
+			code: "BOOKING_TOO_FAR_AHEAD",
+		});
 	}
 
 	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
 	if (!daySchedule) {
-		throw createBookingAvailabilityError("BOOKING_OUTSIDE_OPENING_HOURS");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({
+			code: "BOOKING_OUTSIDE_OPENING_HOURS",
+		});
 	}
 
 	const startMinutes = parseTimeToMinutes(time);
@@ -314,14 +310,16 @@ export function assertBookingMeetsAvailabilitySettings({
 	const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
 
 	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
-		throw createBookingAvailabilityError("BOOKING_OUTSIDE_OPENING_HOURS");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({
+			code: "BOOKING_OUTSIDE_OPENING_HOURS",
+		});
 	}
 
 	const bookingStartAt = getUtcDateForZonedDateTime(date, time, timeZone).getTime();
 	const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
 
 	if (bookingStartAt < earliestStartAt) {
-		throw createBookingAvailabilityError("BOOKING_TOO_SOON");
+		throw new ConvexError<BookingAvailabilityValidationErrorData>({ code: "BOOKING_TOO_SOON" });
 	}
 }
 

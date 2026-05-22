@@ -16,10 +16,6 @@ type BookingInvoiceDownloadErrorData = {
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
 
-function createBookingInvoiceDownloadError(code: BookingInvoiceDownloadErrorData["code"]) {
-	return new ConvexError<BookingInvoiceDownloadErrorData>({ code });
-}
-
 export const getBookingInvoicePdfByStripeSessionId = action({
 	args: {
 		stripeSessionId: v.string(),
@@ -30,11 +26,11 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 		});
 
 		if (!booking) {
-			throw createBookingInvoiceDownloadError("BOOKING_NOT_FOUND");
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
 		if (booking.status !== "confirmed") {
-			throw createBookingInvoiceDownloadError("BOOKING_NOT_CONFIRMED");
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_CONFIRMED" });
 		}
 
 		const invoiceDownloadStartedAt =
@@ -44,7 +40,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			!invoiceDownloadStartedAt ||
 			Date.now() - invoiceDownloadStartedAt > INVOICE_DOWNLOAD_EXPIRY_MS
 		) {
-			throw createBookingInvoiceDownloadError("INVOICE_DOWNLOAD_EXPIRED");
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
 		}
 
 		const parsedBooking = bookingSchema.safeParse({
@@ -62,7 +58,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 		});
 
 		if (!parsedBooking.success) {
-			throw createBookingInvoiceDownloadError("INVALID_BOOKING_DATA");
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVALID_BOOKING_DATA" });
 		}
 
 		const artifacts = await createBookingInvoiceArtifacts({

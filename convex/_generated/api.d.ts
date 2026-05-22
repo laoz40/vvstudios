@@ -13,6 +13,7 @@ import type * as bookings from "../bookings.js";
 import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as env from "../env.js";
+import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   customInvoices: typeof customInvoices;
   env: typeof env;
+  feedback: typeof feedback;
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
