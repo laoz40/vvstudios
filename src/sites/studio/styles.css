@@ -341,3 +341,11 @@
 .login-page .cl-formFieldLabel {
 	color: var(--muted-foreground);
 }
+
+@media (max-width: 767px) {
+	.landing-hero-mobile-background {
+		background-image: var(--landing-hero-mobile-background);
+		background-position: center;
+		background-size: cover;
+	}
+}

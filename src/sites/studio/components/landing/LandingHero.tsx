@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, MapPin } from "lucide-react";
+import heroVideoMp4 from "#studio/assets/bg/landing.mp4";
+import heroVideoWebm from "#studio/assets/bg/landing.webm";
 import heroDesktop from "#studio/assets/bg/landing.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
@@ -14,8 +17,11 @@ const heroCopy = {
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
-	backgroundAlt: "Podcast studio hire Sydney interior with lights, sets and recording equipment",
 } as const;
+
+const mobileBackgroundStyle = {
+	"--landing-hero-mobile-background": `url(${heroMobile})`,
+} as CSSProperties;
 
 export function LandingHero() {
 	return (
@@ -25,22 +31,29 @@ export function LandingHero() {
 			<div
 				aria-hidden
 				className="absolute inset-0 -z-20">
-				<picture>
+				<div
+					className="landing-hero-mobile-background h-full w-full brightness-65 md:hidden"
+					style={mobileBackgroundStyle}
+				/>
+				<video
+					className="hidden h-full w-full object-cover brightness-65 md:block"
+					autoPlay
+					loop
+					muted
+					playsInline
+					poster={heroDesktop}
+					preload="metadata">
 					<source
 						media="(min-width: 768px)"
-						srcSet={heroDesktop}
+						src={heroVideoWebm}
+						type="video/webm"
 					/>
-					<img
-						src={heroMobile}
-						alt={heroCopy.backgroundAlt}
-						width={900}
-						height={1350}
-						className="h-full w-full object-cover brightness-65"
-						decoding="async"
-						fetchPriority="high"
-						loading="eager"
+					<source
+						media="(min-width: 768px)"
+						src={heroVideoMp4}
+						type="video/mp4"
 					/>
-				</picture>
+				</video>
 			</div>
 
 			<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
@@ -52,7 +65,6 @@ export function LandingHero() {
 					</p>
 					<h1
 						id="landing-hero-title"
-						//className="text-4xl leading-tight font-bold tracking-tight text-balance md:text-6xl">
 						className="font-brand text-[2.75rem] leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-20">
 						{heroCopy.title}
 					</h1>
