@@ -38,13 +38,15 @@ export function FreeTourDialogButton({ className, label }: FreeTourDialogButtonP
 				initialFocus="content"
 				size="6xl"
 				className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-				<div className="overflow-hidden rounded-xl border border-border bg-white">
-					<iframe
-						src={env.VITE_FREE_TOUR_URL}
-						title={photosPageContent.tourIframeTitle}
-						className="block min-h-176 w-full border-0 bg-transparent"
-					/>
-				</div>
+				{isOpen ? (
+					<div className="overflow-hidden rounded-xl border border-border bg-white">
+						<iframe
+							src={env.VITE_FREE_TOUR_URL}
+							title={photosPageContent.tourIframeTitle}
+							className="block min-h-176 w-full border-0 bg-transparent"
+						/>
+					</div>
+				) : null}
 			</Modal>
 		</>
 	);
