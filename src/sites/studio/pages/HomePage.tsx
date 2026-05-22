@@ -11,13 +11,15 @@ export function HomePage() {
 	return (
 		<main className="-mt-18 md:-mt-28">
 			<LandingHero />
-			<LandingTestimonials />
-			<LandingGallery />
-			<PricingSection
-				compact
-				className="bg-background text-foreground"
-			/>
-			<LandingFaq />
+			<div className="landing-full-bleed landing-page-content-overlap relative z-10 bg-background">
+				<LandingTestimonials />
+				<LandingGallery />
+				<PricingSection
+					compact
+					className="bg-background text-foreground"
+				/>
+				<LandingFaq />
+			</div>
 		</main>
 	);
 }

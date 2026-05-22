@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Star } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
@@ -41,11 +42,18 @@ function StarRating() {
 }
 
 export function LandingTestimonials() {
+	const prefersReducedMotion = useReducedMotion();
+
 	return (
 		<section
 			aria-labelledby="landing-testimonials-title"
-			className="px-4 py-16 md:py-20">
-			<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 text-center">
+			className="px-4 pt-28 pb-16 md:pt-40 md:pb-20">
+			<motion.div
+				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 text-center"
+				initial={prefersReducedMotion ? false : { opacity: 0, y: 72 }}
+				whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+				viewport={{ amount: 0.3 }}
+				transition={{ duration: 1.5, ease: "easeOut" }}>
 				<div className="flex max-w-4xl flex-col items-center gap-5">
 					<h2
 						id="landing-testimonials-title"
@@ -93,7 +101,7 @@ export function LandingTestimonials() {
 						className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
 					/>
 				</div>
-			</div>
+			</motion.div>
 		</section>
 	);
 }

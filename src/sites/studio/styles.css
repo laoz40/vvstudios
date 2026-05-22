@@ -168,6 +168,20 @@
 
 /* landing hero reveal */
 
+.landing-full-bleed {
+	width: 100vw;
+	margin-right: calc(50% - 50vw);
+	margin-left: calc(50% - 50vw);
+}
+
+.landing-hero-scroll-space {
+	min-height: 200svh;
+}
+
+.landing-page-content-overlap {
+	margin-top: -100svh;
+}
+
 .landing-hero-reveal {
 	animation: landing-hero-reveal 750ms ease-out both;
 	will-change: opacity, transform, filter;
