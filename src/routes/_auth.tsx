@@ -1,27 +1,20 @@
-import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
+import { Suspense, lazy } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 
-import ClerkProvider from "#/integrations/clerk/provider";
-import ConvexProvider from "#/integrations/convex/provider";
-import { SmoothScroll } from "#studio/components/SmoothScroll";
-import { StudioLayout } from "#studio/StudioLayout";
+const AuthRouteLayout = lazy(() =>
+	import("#studio/features/auth/components/AuthRouteLayout").then((module) => ({
+		default: module.AuthRouteLayout,
+	})),
+);
 
 export const Route = createFileRoute("/_auth")({
 	component: AuthLayout,
 });
 
 function AuthLayout() {
-	const pathname = useRouterState({
-		select: (state) => state.location.pathname,
-	});
-
 	return (
-		<ClerkProvider>
-			<ConvexProvider>
-				<SmoothScroll />
-				<StudioLayout pathname={pathname}>
-					<Outlet />
-				</StudioLayout>
-			</ConvexProvider>
-		</ClerkProvider>
+		<Suspense fallback={null}>
+			<AuthRouteLayout />
+		</Suspense>
 	);
 }
