@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Separator } from "#/components/ui/separator";
 import { studioSite } from "#/config/sites";
 import { env } from "#/env";
+import { GiveFeedbackDialog } from "#studio/components/GiveFeedbackDialog";
 
 const footerContent = {
 	studioName: "VV Studios",
@@ -90,6 +91,7 @@ export function Footer() {
 							&copy; {currentYear} {footerContent.parentCompanyName}
 						</p>
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+							<GiveFeedbackDialog />
 							<Link
 								className="accent-link text-sm"
 								to={studioSite.routes.termsAndConditions}>
