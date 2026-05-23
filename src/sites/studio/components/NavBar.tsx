@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { createPortal } from "react-dom";
 import { Image } from "@unpic/react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import logoYellow from "#studio/assets/vv-logo-yellow.svg";
 import { studioSite } from "#/config/sites";
 import { Button } from "#/components/ui/button";
+import { Sheet, SheetClose, SheetContent, SheetTitle } from "#/components/ui/sheet";
 import { cn } from "#/lib/utils";
 
 const BRAND_LABEL = "VV STUDIOS";
@@ -17,7 +17,6 @@ const OPEN_NAV_ARIA_LABEL = "Open navigation menu";
 const CLOSE_NAV_ARIA_LABEL = "Close navigation menu";
 const OPEN_MENU_SR_TEXT = "Open menu";
 const CLOSE_MENU_SR_TEXT = "Close menu";
-type InertElement = HTMLElement & { inert: boolean };
 
 const BOOK_LINK = { href: studioSite.routes.book, label: "Book session" } as const;
 const BACK_HOME_LINK = { href: studioSite.routes.home, label: "Back to home" } as const;
@@ -178,77 +177,8 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 
 function MobileNavbar({ pathname }: { pathname: string }) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [portalElement, setPortalElement] = useState<HTMLDivElement | null>(null);
 	const isBookPage = pathname === studioSite.routes.book;
 	const shouldPlayIntro = pathname === studioSite.routes.home;
-
-	useEffect(() => {
-		if (!isOpen) {
-			setPortalElement(null);
-			return;
-		}
-
-		const element = document.createElement("div");
-		element.dataset.mobileNavRoot = "true";
-		document.body.append(element);
-		setPortalElement(element);
-
-		return () => {
-			element.remove();
-		};
-	}, [isOpen]);
-
-	useEffect(() => {
-		if (!isOpen || !portalElement) {
-			return;
-		}
-
-		const previousOverflow = document.body.style.overflow;
-		const siblings = Array.from(document.body.children).filter(
-			(element) => element !== portalElement,
-		);
-		const previousSiblingState = siblings.map((element) => ({
-			element: element as InertElement,
-			inert: (element as InertElement).inert,
-			ariaHidden: element.getAttribute("aria-hidden"),
-		}));
-
-		document.body.style.overflow = "hidden";
-		for (const { element } of previousSiblingState) {
-			element.inert = true;
-			element.setAttribute("aria-hidden", "true");
-		}
-
-		return () => {
-			document.body.style.overflow = previousOverflow;
-			for (const { element, inert, ariaHidden } of previousSiblingState) {
-				element.inert = inert;
-				if (ariaHidden === null) {
-					element.removeAttribute("aria-hidden");
-				} else {
-					element.setAttribute("aria-hidden", ariaHidden);
-				}
-			}
-		};
-	}, [isOpen, portalElement]);
-
-	useEffect(() => {
-		if (!isOpen) {
-			return;
-		}
-
-		const handleKeydown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				setIsOpen(false);
-			}
-		};
-
-		window.addEventListener("keydown", handleKeydown);
-
-		return () => {
-			window.removeEventListener("keydown", handleKeydown);
-		};
-	}, [isOpen]);
 
 	return (
 		<>
@@ -257,12 +187,10 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 					<nav
 						aria-label={MOBILE_NAV_ARIA_LABEL}
 						className="mx-auto flex h-12 w-full max-w-7xl flex-row items-center justify-between rounded-md border border-border/70 bg-background/30 px-3 shadow-lg backdrop-blur-xs">
-						<div className="flex h-full items-center">
-							<BrandLink
-								className="font-bold"
-								logoClassName="size-7"
-							/>
-						</div>
+						<BrandLink
+							className="font-bold"
+							logoClassName="size-7"
+						/>
 
 						<Button
 							aria-label={isOpen ? CLOSE_NAV_ARIA_LABEL : OPEN_NAV_ARIA_LABEL}
@@ -281,82 +209,71 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 				</div>
 			</div>
 
-			{isOpen && portalElement
-				? createPortal(
-						<>
-							<button
-								type="button"
-								className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
-								onClick={() => {
-									setIsOpen(false);
-								}}
+			<Sheet
+				open={isOpen}
+				onOpenChange={setIsOpen}>
+				<SheetContent
+					side="right"
+					className="w-72 max-w-[90vw] border-border bg-background p-5"
+					showCloseButton={false}>
+					<SheetTitle className="sr-only">Mobile navigation</SheetTitle>
+					<div className="mb-5 flex items-center justify-between border-b pb-4">
+						<p className="font-brand text-lg font-semibold tracking-wide text-muted-foreground">
+							{BRAND_LABEL}
+						</p>
+
+						<SheetClose asChild>
+							<Button
 								aria-label={CLOSE_NAV_ARIA_LABEL}
-							/>
+								size="icon-lg"
+								variant="ghost">
+								<X className="size-5" />
+							</Button>
+						</SheetClose>
+					</div>
 
-							<div
-								id="mobile-nav-panel"
-								className="fixed top-0 right-0 z-50 flex h-screen w-72 max-w-[90vw] flex-col overscroll-contain border-l border-border bg-background p-5 shadow-xl md:hidden">
-								<div className="mb-5 flex items-center justify-between border-b pb-4">
-									<p className="font-brand text-lg font-semibold tracking-wide text-muted-foreground">
-										{BRAND_LABEL}
-									</p>
-
-									<Button
-										aria-label={CLOSE_NAV_ARIA_LABEL}
-										size="icon-lg"
-										variant="ghost"
+					<ul className="flex flex-col gap-1">
+						{MOBILE_LINKS.map((link) => (
+							<li key={`${link.href}-${link.label}`}>
+								<Button
+									asChild
+									variant="link"
+									className={cn(
+										"h-11 w-full justify-start px-3 text-base",
+										pathname === link.href && !link.hash
+											? "text-accent-foreground"
+											: "text-foreground hover:text-foreground",
+									)}>
+									<Link
+										to={link.href}
+										hash={link.hash}
+										aria-current={pathname === link.href && !link.hash ? "page" : undefined}
 										onClick={() => {
 											setIsOpen(false);
 										}}>
-										<X className="size-5" />
-									</Button>
-								</div>
+										{link.label}
+									</Link>
+								</Button>
+							</li>
+						))}
 
-								<ul className="flex flex-col gap-1">
-									{MOBILE_LINKS.map((link) => (
-										<li key={`${link.href}-${link.label}`}>
-											<Button
-												asChild
-												variant="link"
-												className={cn(
-													"h-11 w-full justify-start px-3 text-base",
-													pathname === link.href && !link.hash
-														? "text-accent-foreground"
-														: "text-foreground hover:text-foreground",
-												)}>
-												<Link
-													to={link.href}
-													hash={link.hash}
-													aria-current={pathname === link.href && !link.hash ? "page" : undefined}
-													onClick={() => {
-														setIsOpen(false);
-													}}>
-													{link.label}
-												</Link>
-											</Button>
-										</li>
-									))}
-
-									<li className="mt-3 border-t pt-4">
-										{isBookPage ? (
-											<NavCta
-												href={BACK_HOME_LINK.href}
-												label={BACK_HOME_LINK.label}
-												variant="secondary"
-											/>
-										) : (
-											<NavCta
-												href={BOOK_LINK.href}
-												label={BOOK_LINK.label}
-											/>
-										)}
-									</li>
-								</ul>
-							</div>
-						</>,
-						portalElement,
-					)
-				: null}
+						<li className="mt-3 border-t pt-4">
+							{isBookPage ? (
+								<NavCta
+									href={BACK_HOME_LINK.href}
+									label={BACK_HOME_LINK.label}
+									variant="secondary"
+								/>
+							) : (
+								<NavCta
+									href={BOOK_LINK.href}
+									label={BOOK_LINK.label}
+								/>
+							)}
+						</li>
+					</ul>
+				</SheetContent>
+			</Sheet>
 		</>
 	);
 }
