@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Star } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
+import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 const testimonialCopy = {
 	title: "Trusted by creators in Sydney",
@@ -42,7 +43,7 @@ function StarRating() {
 }
 
 export function LandingTestimonials() {
-	const prefersReducedMotion = useReducedMotion();
+	const fadeInAnimation = useFadeInAnimation(true);
 
 	return (
 		<section
@@ -50,10 +51,7 @@ export function LandingTestimonials() {
 			className="px-4 pt-28 pb-16 md:pt-40 md:pb-20">
 			<motion.div
 				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 text-center"
-				initial={prefersReducedMotion ? false : { opacity: 0, y: 72 }}
-				whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-				viewport={{ amount: 0.3 }}
-				transition={{ duration: 1.5, ease: "easeOut" }}>
+				{...fadeInAnimation}>
 				<div className="flex max-w-4xl flex-col items-center gap-5">
 					<h2
 						id="landing-testimonials-title"

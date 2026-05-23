@@ -1,9 +1,11 @@
+import { motion } from "motion/react";
 import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
 } from "#/components/ui/accordion";
+import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type ContactFaqAnswerPart = {
 	heading?: string;
@@ -123,14 +125,19 @@ export type FaqSectionProps = {
 	id: string;
 	className?: string;
 	containerClassName?: string;
+	fadeIn?: boolean;
 };
 
-export function FaqSection({ id, className, containerClassName }: FaqSectionProps) {
+export function FaqSection({ id, className, containerClassName, fadeIn = false }: FaqSectionProps) {
+	const fadeInAnimation = useFadeInAnimation(fadeIn);
+
 	return (
 		<section
 			aria-labelledby={id}
 			className={className}>
-			<div className={containerClassName}>
+			<motion.div
+				className={containerClassName}
+				{...fadeInAnimation}>
 				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
 					<h2
 						id={id}
@@ -163,7 +170,7 @@ export function FaqSection({ id, className, containerClassName }: FaqSectionProp
 						</AccordionItem>
 					))}
 				</Accordion>
-			</div>
+			</motion.div>
 		</section>
 	);
 }

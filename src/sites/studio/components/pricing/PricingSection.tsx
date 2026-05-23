@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
+import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type PricingSession = {
 	label: string;
@@ -77,21 +79,26 @@ export type PricingSectionProps = {
 	headingLevel?: "h1" | "h2";
 	className?: string;
 	compact?: boolean;
+	fadeIn?: boolean;
 };
 
 export function PricingSection({
 	headingLevel = "h2",
 	className,
 	compact = false,
+	fadeIn = false,
 }: PricingSectionProps) {
 	const HeadingTag = headingLevel;
+	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	return (
 		<section
 			className={["px-4 pb-16 sm:pb-20", compact ? "pt-16 md:pt-20" : "pt-28 md:pt-32", className]
 				.filter(Boolean)
 				.join(" ")}>
-			<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8">
+			<motion.div
+				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
+				{...fadeInAnimation}>
 				<div className="flex max-w-4xl flex-col items-center gap-5 pb-2 text-center">
 					<HeadingTag className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
 						{pricingPageCopy.title}
@@ -181,7 +188,7 @@ export function PricingSection({
 						</div>
 					</section>
 				</div>
-			</div>
+			</motion.div>
 		</section>
 	);
 }

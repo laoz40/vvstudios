@@ -10,6 +10,7 @@ export function LandingGallery({ withTopSpacing = true }: LandingGalleryProps) {
 		<PhotosSection
 			headingLevel="h2"
 			mobileImages={landingMobileGalleryImages}
+			fadeIn
 			className={withTopSpacing ? "bg-background py-16 md:py-20" : "bg-background pt-0"}
 		/>
 	);

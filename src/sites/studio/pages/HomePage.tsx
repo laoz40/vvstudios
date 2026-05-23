@@ -16,6 +16,7 @@ export function HomePage() {
 				<LandingGallery />
 				<PricingSection
 					compact
+					fadeIn
 					className="bg-background text-foreground"
 				/>
 				<LandingFaq />
