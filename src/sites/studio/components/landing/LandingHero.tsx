@@ -108,7 +108,7 @@ export function LandingHero() {
 
 								<FreeTourDialogButton
 									label={heroCopy.tourCta}
-									className="h-auto flex-1 border-0 bg-card/90 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 backdrop-blur-md md:flex-none"
+									className="h-auto flex-1 border-0 bg-card/50! px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-accent/80! md:flex-none"
 								/>
 							</div>
 

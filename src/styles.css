@@ -97,6 +97,10 @@
 	--shadow-2xl: var(--shadow-2xl);
 }
 
+@utility darker-bg-* {
+	background-color: oklch(from --value(--color-*) calc(l - 0.08) c h);
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

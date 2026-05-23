@@ -17,7 +17,7 @@ export function FreeTourDialogButton({ className, label }: FreeTourDialogButtonP
 		<>
 			<Button
 				type="button"
-				variant="outline"
+				variant="secondary"
 				size="lg"
 				className={className}
 				aria-haspopup="dialog"
