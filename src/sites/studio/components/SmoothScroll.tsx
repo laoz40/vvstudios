@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import Lenis from "lenis";
+import type LenisInstance from "lenis";
+
+const MOBILE_SCROLL_MEDIA_QUERY = "(max-width: 767.98px)";
 
 function getScrollMarginTop(element: HTMLElement) {
 	const scrollMarginTop = window.getComputedStyle(element).scrollMarginTop;
@@ -11,25 +13,37 @@ function getScrollMarginTop(element: HTMLElement) {
 
 export function SmoothScroll() {
 	const router = useRouter();
-	const lenisRef = useRef<Lenis | null>(null);
+	const lenisRef = useRef<LenisInstance | null>(null);
 	const hash = useRouterState({
 		select: (state) => state.location.hash,
 	});
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const mobileScroll = window.matchMedia(MOBILE_SCROLL_MEDIA_QUERY);
+
+		if (prefersReducedMotion.matches || mobileScroll.matches) {
 			return;
 		}
 
-		const lenis = new Lenis({
-			autoRaf: true,
-			anchors: true,
+		let isMounted = true;
+		let lenis: LenisInstance | null = null;
+
+		void import("lenis").then(({ default: Lenis }) => {
+			if (!isMounted) {
+				return;
+			}
+
+			lenis = new Lenis({
+				autoRaf: true,
+				anchors: true,
+			});
+			lenisRef.current = lenis;
 		});
 
-		lenisRef.current = lenis;
-
 		return () => {
-			lenis.destroy();
+			isMounted = false;
+			lenis?.destroy();
 			lenisRef.current = null;
 		};
 	}, []);
