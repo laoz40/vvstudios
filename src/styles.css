@@ -97,6 +97,7 @@
 	--shadow-2xl: var(--shadow-2xl);
 }
 
+/* darker background utility */
 @utility darker-bg-* {
 	background-color: oklch(from --value(--color-*) calc(l - 0.08) c h);
 }
@@ -105,6 +106,8 @@
 	* {
 		@apply border-border outline-ring/50;
 	}
+
+	/* button cursor */
 	button:not(:disabled),
 	[role="button"]:not(:disabled) {
 		cursor: pointer;
@@ -112,10 +115,12 @@
 }
 
 @layer utilities {
+	/* squada one font */
 	.font-brand {
 		font-family: var(--font-brand);
 	}
 
+	/* pressable button class */
 	.pressable {
 		will-change: transform;
 	}
@@ -149,15 +154,17 @@ body {
 	padding: 0;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-	animation-duration: 150ms;
-	animation-timing-function: ease;
-}
-
 button,
 input,
 textarea {
 	font: inherit;
 	touch-action: manipulation;
+}
+
+/* view transitions */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 150ms;
+	animation-timing-function: ease;
 }

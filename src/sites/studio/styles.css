@@ -167,6 +167,7 @@
 }
 
 /* landing hero reveal */
+/* using css so it can load instantly, rather than waiting for the javascript to load */
 
 .studio-site {
 	/* Prevent Chromium from showing a horizontal scrollbar when full-bleed sections use viewport units. */
@@ -360,6 +361,8 @@
 .login-page .cl-formFieldLabel {
 	color: var(--muted-foreground);
 }
+
+/* mobile hero background */
 
 @media (max-width: 767px) {
 	.landing-hero-mobile-background {

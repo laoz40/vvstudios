@@ -48,7 +48,6 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 	return (
 		<Link
 			to={studioSite.routes.home}
-			reloadDocument
 			aria-label={HOME_ARIA_LABEL}
 			className={cn(
 				"inline-flex h-full items-center gap-2 rounded-md no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -90,7 +89,6 @@ function DesktopNavLink({
 				<Link
 					to={href}
 					hash={hash}
-					reloadDocument
 					aria-current={pathname === href && !hash ? "page" : undefined}>
 					{label}
 				</Link>
@@ -117,9 +115,7 @@ function NavCta({
 				"site-nav-cta",
 				href === BOOK_LINK.href && "gap-1.5 shadow-lg shadow-primary/45",
 			)}>
-			<Link
-				to={href}
-				reloadDocument>
+			<Link to={href}>
 				{label}
 				{href === BOOK_LINK.href ? (
 					<ArrowRight
@@ -185,10 +181,6 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 	const [portalElement, setPortalElement] = useState<HTMLDivElement | null>(null);
 	const isBookPage = pathname === studioSite.routes.book;
 	const shouldPlayIntro = pathname === studioSite.routes.home;
-
-	useEffect(() => {
-		setIsOpen(false);
-	}, [pathname]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -335,7 +327,6 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 												<Link
 													to={link.href}
 													hash={link.hash}
-													reloadDocument
 													aria-current={pathname === link.href && !link.hash ? "page" : undefined}
 													onClick={() => {
 														setIsOpen(false);
