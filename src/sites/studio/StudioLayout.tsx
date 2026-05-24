@@ -1,6 +1,8 @@
 import { type ReactNode } from "react";
 import { studioSite } from "#/config/sites";
+import footerRevealImage from "#studio/assets/bg/landing-full.webp";
 import { Footer } from "#studio/components/Footer";
+import { FooterImageReveal } from "#studio/components/FooterImageReveal";
 import { SiteNavbar } from "#studio/components/NavBar";
 
 export type StudioLayoutProps = {
@@ -17,13 +19,25 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 
 	return (
 		<>
+			{useMinimalLayout ? null : (
+				<div
+					aria-hidden
+					className="footer-image-reveal__image brightness-75"
+					style={{ backgroundImage: `url(${footerRevealImage})` }}
+				/>
+			)}
 			{useMinimalLayout ? null : <SiteNavbar />}
 			<div
 				id="site-shell"
-				className={useMinimalLayout ? "flex min-h-screen flex-col" : "min-h-screen pt-18 md:pt-24"}>
+				className={
+					useMinimalLayout
+						? "flex min-h-screen flex-col"
+						: "relative z-10 min-h-screen bg-background pt-18 md:pt-24"
+				}>
 				{children}
 			</div>
 			{useMinimalLayout ? null : <Footer />}
+			{useMinimalLayout ? null : <FooterImageReveal />}
 		</>
 	);
 }

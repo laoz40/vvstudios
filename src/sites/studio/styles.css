@@ -212,6 +212,48 @@
 	}
 }
 
+/* footer image reveal */
+
+.footer-image-reveal__image {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background-position: bottom center;
+	background-size: 100% auto;
+	background-repeat: no-repeat;
+}
+
+.footer-image-reveal {
+	position: relative;
+	z-index: 5;
+	height: min(60svh, 39.2476vw);
+}
+
+.footer-image-reveal__cta {
+	position: fixed;
+	top: calc(100svh - (min(60svh, 39.2476vw) / 2) + 6rem);
+	left: 50%;
+	z-index: 6;
+	translate: -50% -50%;
+	transform-origin: center;
+}
+
+@media (max-width: 767px) {
+	.footer-image-reveal__image {
+		background-position: center bottom;
+		background-size: 240% auto;
+	}
+
+	.footer-image-reveal {
+		height: min(42svh, 94.1938vw);
+	}
+
+	.footer-image-reveal__cta {
+		top: calc(100svh - (min(42svh, 94.1938vw) / 2) - 6rem);
+	}
+}
+
 /* contact card 3D tilt */
 
 .contact-card-scene {
