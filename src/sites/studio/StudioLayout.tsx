@@ -20,8 +20,8 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const prefersReducedMotion = useReducedMotion();
 	const { scrollYProgress } = useScroll();
-	const footerImageY = useTransform(scrollYProgress, [0.75, 1], [-80, 0]);
-	const footerImageScale = useTransform(scrollYProgress, [0.75, 1], [1.15, 1.15]);
+	const footerImageY = useTransform(scrollYProgress, [0.75, 1], [120, -30]);
+	const footerImageScale = useTransform(scrollYProgress, [0.75, 1], [1.2, 1.2]);
 
 	return (
 		<>
