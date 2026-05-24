@@ -221,7 +221,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 
 export async function sendFeedbackEmailForMessage(message: string) {
 	return await sendEmail({
-		to: [env.RESEND_FROM_EMAIL],
+		to: [env.VITE_APP_CONTACT_EMAIL],
 		subject: "New VV Studios website feedback",
 		html: [
 			"<p>You received new website feedback from the VV Studios website.</p>",
