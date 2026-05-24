@@ -16,8 +16,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 		target: revealRef,
 		offset: ["start end", "end end"],
 	});
-	const opacity = useTransform(scrollYProgress, [0, 1], [0.3, 1]);
-	const scale = useTransform(scrollYProgress, [0, 1], [0.3, 1]);
+	const scale = useTransform(scrollYProgress, [0, 1], [0.2, 1]);
 
 	return (
 		<div
@@ -27,7 +26,6 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 				<motion.div
 					className="footer-image-reveal__cta"
 					style={{
-						opacity: prefersReducedMotion ? 1 : opacity,
 						scale: prefersReducedMotion ? 1 : scale,
 					}}>
 					<Button

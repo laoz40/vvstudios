@@ -31,6 +31,7 @@ export function LandingHero() {
 		target: heroRef,
 		offset: ["start start", "center start"],
 	});
+	const heroVideoY = useTransform(scrollYProgress, [0, 1], [0, -300]);
 	const heroTextOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
 	const heroTextY = useTransform(scrollYProgress, [0, 0.4], [0, -180]);
 	const heroTextBlur = useTransform(scrollYProgress, [0, 0.4], ["blur(0px)", "blur(10px)"]);
@@ -41,9 +42,12 @@ export function LandingHero() {
 			aria-labelledby="landing-hero-title"
 			className="landing-hero-scroll-space relative isolate w-full">
 			<div className="sticky top-0 isolate h-svh overflow-hidden">
-				<div
+				<motion.div
 					aria-hidden
-					className="absolute inset-0 -z-20">
+					className="absolute inset-0 -z-20"
+					style={{
+						y: prefersReducedMotion ? 0 : heroVideoY,
+					}}>
 					<div
 						className="landing-hero-mobile-background h-full w-full brightness-65 md:hidden"
 						style={mobileBackgroundStyle}
@@ -67,7 +71,7 @@ export function LandingHero() {
 							type="video/mp4"
 						/>
 					</video>
-				</div>
+				</motion.div>
 
 				<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
