@@ -8,6 +8,6 @@ export function useFadeInAnimation(enabled = false) {
 		initial: shouldFadeIn ? { opacity: 0 } : false,
 		whileInView: shouldFadeIn ? { opacity: 1 } : undefined,
 		viewport: { amount: 0.05, once: true },
-		transition: { duration: 1.2, ease: "easeOut" },
+		transition: { duration: 1.2, ease: "easeOut" as const },
 	};
 }
