@@ -30,8 +30,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					}}>
 					<Button
 						asChild
-						size="lg"
-						className="h-auto gap-1.5 px-12! py-3 text-base shadow-lg md:px-12 md:py-4">
+						className="h-auto gap-1.5 px-8! py-3 text-base shadow-lg">
 						<Link to={studioSite.routes.book}>
 							Book session
 							<ArrowRight
