@@ -35,8 +35,7 @@ const currentYear = new Date().toLocaleDateString(undefined, {
 
 export function Footer() {
 	return (
-		<footer className="px-4 py-10 sm:py-12">
-			<Separator className="mb-10" />
+		<footer className="bg-neutral-900 px-4 py-10 sm:py-12">
 			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
 				<div className="flex flex-col gap-5 text-center sm:flex-row sm:items-stretch sm:justify-between sm:text-left">
 					<div className="flex flex-col justify-between gap-4">

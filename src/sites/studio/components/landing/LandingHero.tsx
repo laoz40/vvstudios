@@ -39,7 +39,7 @@ export function LandingHero() {
 		<section
 			ref={heroRef}
 			aria-labelledby="landing-hero-title"
-			className="landing-full-bleed landing-hero-scroll-space relative isolate">
+			className="landing-hero-scroll-space relative isolate w-full">
 			<div className="sticky top-0 isolate h-svh overflow-hidden">
 				<div
 					aria-hidden

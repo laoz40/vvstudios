@@ -11,7 +11,7 @@ export function HomePage() {
 	return (
 		<main className="-mt-18 md:-mt-28">
 			<LandingHero />
-			<div className="landing-full-bleed landing-page-content-overlap relative z-10 bg-background">
+			<div className="landing-page-content-overlap relative z-10 bg-background">
 				<LandingTestimonials />
 				<LandingGallery />
 				<PricingSection
