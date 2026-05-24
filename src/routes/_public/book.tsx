@@ -131,6 +131,7 @@ function BookingPage() {
 	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
+	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
 	const submitAfterTermsRef = useRef(false);
 
@@ -231,6 +232,31 @@ function BookingPage() {
 		setSavedBookingInfo(nextSavedBookingInfo);
 		setShouldSaveBookingInfo(true);
 		setPreferredTimeSectionKey(nextSavedBookingInfo.timeSectionKey || null);
+	}, []);
+
+	// hide complete booking shortcut once its target is visible
+	useEffect(() => {
+		const updateHasReachedCompleteBooking = () => {
+			const completeBookingButton = completeBookingButtonRef.current;
+
+			if (!completeBookingButton) {
+				setHasReachedCompleteBooking(false);
+				return;
+			}
+
+			setHasReachedCompleteBooking(
+				completeBookingButton.getBoundingClientRect().top <= window.innerHeight,
+			);
+		};
+
+		updateHasReachedCompleteBooking();
+		window.addEventListener("scroll", updateHasReachedCompleteBooking, { passive: true });
+		window.addEventListener("resize", updateHasReachedCompleteBooking);
+
+		return () => {
+			window.removeEventListener("scroll", updateHasReachedCompleteBooking);
+			window.removeEventListener("resize", updateHasReachedCompleteBooking);
+		};
 	}, []);
 
 	// fetch calendar availability
@@ -612,7 +638,7 @@ function BookingPage() {
 				</form>
 			</bookingFormContext.Provider>
 
-			{showScrollToCompleteBooking ? (
+			{showScrollToCompleteBooking && !hasReachedCompleteBooking ? (
 				<div className="fixed right-4 bottom-16 z-50 animate-in fade-in zoom-in-150 duration-200 sm:right-6 sm:bottom-6 motion-reduce:zoom-in-100">
 					<Button
 						type="button"

@@ -16,6 +16,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 		pathname === studioSite.routes.login ||
 		pathname === studioSite.routes.bookingComplete ||
 		pathname === studioSite.routes.bookingExpired;
+	const showFooterRevealCta = pathname !== studioSite.routes.book;
 
 	return (
 		<>
@@ -37,7 +38,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 				{children}
 			</div>
 			{useMinimalLayout ? null : <Footer />}
-			{useMinimalLayout ? null : <FooterImageReveal />}
+			{useMinimalLayout ? null : <FooterImageReveal showCta={showFooterRevealCta} />}
 		</>
 	);
 }
