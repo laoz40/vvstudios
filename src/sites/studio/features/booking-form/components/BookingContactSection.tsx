@@ -22,7 +22,7 @@ const formControlShadowClassName = "shadow-lg shadow-background/25";
 const sectionCopy = {
 	contactDetailsLegend: "CONTACT DETAILS",
 	fullNameLabel: "Full Name *",
-	fullNamePlaceholder: "Awesome Artist",
+	fullNamePlaceholder: "Awesome Person",
 	phoneLabel: "Mobile Number *",
 	phonePlaceholder: "0400 000 000",
 	billingInformationLegend: "BILLING INFORMATION",
