@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from "#/config/contact";
 import type {
 	BookingAddon,
 	BookingDuration,
@@ -41,7 +42,7 @@ function getEnvironmentVariable(name: string) {
 export const BOOKING_INVOICE_BUSINESS = {
 	abn: "97 592 829 541",
 	businessName: "Vertigo Visuals",
-	contactEmail: getEnvironmentVariable("VITE_APP_CONTACT_EMAIL"),
+	contactEmail: CONTACT_EMAIL,
 	contactPhone: getEnvironmentVariable("VITE_APP_CONTACT_PHONE"),
 	locationAddress: getEnvironmentVariable("VITE_APP_STUDIO_ADDRESS"),
 	locationLabel: "VV Studios",

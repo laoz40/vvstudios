@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Separator } from "#/components/ui/separator";
 import { studioSite } from "#/config/sites";
+import { CONTACT_EMAIL } from "#/config/contact";
 import { env } from "#/env";
 import { GiveFeedbackDialog } from "#studio/components/GiveFeedbackDialog";
 
@@ -19,8 +20,8 @@ const footerContactItems = [
 	},
 	{
 		label: "Email",
-		value: env.VITE_APP_CONTACT_EMAIL,
-		href: `mailto:${env.VITE_APP_CONTACT_EMAIL}`,
+		value: CONTACT_EMAIL,
+		href: `mailto:${CONTACT_EMAIL}`,
 	},
 	{
 		label: "Location",

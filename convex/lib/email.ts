@@ -1,4 +1,5 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
+import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
 import { renderHostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/render-host-booking-details-email";
@@ -221,7 +222,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 
 export async function sendFeedbackEmailForMessage(message: string) {
 	return await sendEmail({
-		to: [env.VITE_APP_CONTACT_EMAIL],
+		to: [CONTACT_EMAIL],
 		subject: "New VV Studios website feedback",
 		html: [
 			"<p>You received new website feedback from the VV Studios website.</p>",

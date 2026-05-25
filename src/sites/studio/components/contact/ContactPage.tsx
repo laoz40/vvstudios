@@ -6,6 +6,7 @@ import micImage from "#studio/assets/mic.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { FaqSection } from "#studio/components/faq/FaqSection";
 import { Button } from "#/components/ui/button";
+import { CONTACT_EMAIL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
 import { env } from "#/env";
 
@@ -23,8 +24,8 @@ const contactItems = [
 	},
 	{
 		label: "Email",
-		value: env.VITE_APP_CONTACT_EMAIL,
-		href: `mailto:${env.VITE_APP_CONTACT_EMAIL}`,
+		value: CONTACT_EMAIL,
+		href: `mailto:${CONTACT_EMAIL}`,
 	},
 	{
 		label: "Location",

@@ -13,7 +13,6 @@ export const env = createEnv({
 		GOOGLE_CALENDAR_HOST_EMAILS: z.string().min(1),
 		RESEND_API_KEY: z.string().min(1),
 		RESEND_FROM_EMAIL: z.email().min(1),
-		VITE_APP_CONTACT_EMAIL: z.email().min(1),
 		VITE_APP_CONTACT_PHONE: z.string().min(1),
 		VITE_APP_STUDIO_ADDRESS: z.string().min(1),
 		VITE_APP_STUDIO_ADDRESS_URL: z.url(),
