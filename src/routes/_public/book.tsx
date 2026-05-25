@@ -630,7 +630,7 @@ function BookingPage() {
 					<div ref={completeBookingButtonRef}>
 						<Button
 							type="submit"
-							className="h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
+							className="mb-20 h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
 							disabled={isSubmitting}>
 							COMPLETE BOOKING
 						</Button>

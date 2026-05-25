@@ -4,7 +4,7 @@ import { useStore } from "@tanstack/react-store";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { Button } from "#/components/ui/button";
-import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
+import { FieldDescription, FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { env } from "#/env";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
@@ -32,6 +32,8 @@ const sectionCopy = {
 	requestCallDialogTitle: "Request a call",
 	requestCallDialogDescription: "Book a quick call to discuss recurring sessions and availability.",
 	requestCallDialogClose: "Close",
+	recordingSpaceNote:
+		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 } as const;
 
 type DurationOption = {
@@ -47,12 +49,14 @@ const recordingSpaceOptions = [
 	{
 		value: "Table Setup" as const,
 		title: "Table Setup",
+		capacity: "up to 4 people",
 		image: tableSetupImage,
 		imageAlt: "Podcast table setup with microphones and studio lighting",
 	},
 	{
 		value: "Armchair Setup" as const,
 		title: "Armchair Setup",
+		capacity: "up to 2 people",
 		image: armchairSetupImage,
 		imageAlt: "Podcast open setup with warm lamps and casual seating",
 	},
@@ -253,7 +257,12 @@ export function BookingRecordingSpaceDurationSection() {
 													getFooterStateClassName(field.state.value === option.value),
 													field.state.value === option.value && "md:bg-primary/10",
 												)}>
-												<p className="text-base font-semibold text-foreground">{option.title}</p>
+												<p className="text-base font-semibold text-foreground">
+													{option.title}{" "}
+													<span className="text-muted-foreground font-light">
+														({option.capacity})
+													</span>
+												</p>
 												<span
 													className={cn(
 														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
@@ -266,6 +275,9 @@ export function BookingRecordingSpaceDurationSection() {
 									</div>
 								))}
 							</RadioGroup>
+							<FieldDescription className="text-pretty italic mt-2!">
+								{sectionCopy.recordingSpaceNote}
+							</FieldDescription>
 							{field.state.meta.isBlurred || shouldShowFieldError ? (
 								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
 							) : null}
