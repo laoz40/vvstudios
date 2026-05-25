@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Separator } from "#/components/ui/separator";
 import { studioSite } from "#/config/sites";
-import { CONTACT_EMAIL } from "#/config/contact";
-import { env } from "#/env";
+import {
+	CONTACT_EMAIL,
+	CONTACT_PHONE,
+	INSTAGRAM_URL,
+	STUDIO_ADDRESS,
+	STUDIO_ADDRESS_URL,
+} from "#/config/contact";
 import { GiveFeedbackDialog } from "#studio/components/GiveFeedbackDialog";
 
 const footerContent = {
@@ -15,8 +20,8 @@ const footerContent = {
 const footerContactItems = [
 	{
 		label: "Phone",
-		value: env.VITE_APP_CONTACT_PHONE,
-		href: `tel:${env.VITE_APP_CONTACT_PHONE}`,
+		value: CONTACT_PHONE,
+		href: `tel:${CONTACT_PHONE}`,
 	},
 	{
 		label: "Email",
@@ -25,8 +30,8 @@ const footerContactItems = [
 	},
 	{
 		label: "Location",
-		value: env.VITE_APP_STUDIO_ADDRESS,
-		href: env.VITE_APP_STUDIO_ADDRESS_URL,
+		value: STUDIO_ADDRESS,
+		href: STUDIO_ADDRESS_URL,
 	},
 ] as const;
 
@@ -55,7 +60,7 @@ export function Footer() {
 								</span>
 								<a
 									className="accent-link text-sm"
-									href={env.VITE_APP_INSTAGRAM_URL}
+									href={INSTAGRAM_URL}
 									rel="noreferrer"
 									target="_blank">
 									Instagram

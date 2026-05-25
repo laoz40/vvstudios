@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL } from "#/config/contact";
+import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
 import type {
 	BookingAddon,
 	BookingDuration,
@@ -27,26 +27,14 @@ export const ADDON_PRICES: Record<BookingAddon, number> = {
 	"Remote Podcast": 59,
 };
 
-function getEnvironmentVariable(name: string) {
-	const runtimeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-		.process?.env;
-	const value = runtimeEnv?.[name];
-
-	if (!value) {
-		throw new Error(`Missing environment variable: ${name}`);
-	}
-
-	return value;
-}
-
 export const BOOKING_INVOICE_BUSINESS = {
 	abn: "97 592 829 541",
 	businessName: "Vertigo Visuals",
 	contactEmail: CONTACT_EMAIL,
-	contactPhone: getEnvironmentVariable("VITE_APP_CONTACT_PHONE"),
-	locationAddress: getEnvironmentVariable("VITE_APP_STUDIO_ADDRESS"),
+	contactPhone: CONTACT_PHONE,
+	locationAddress: STUDIO_ADDRESS,
 	locationLabel: "VV Studios",
-	locationUrl: getEnvironmentVariable("VITE_APP_STUDIO_ADDRESS_URL"),
+	locationUrl: STUDIO_ADDRESS_URL,
 	logoUrl: "https://vertigovisuals.com.au/icons/studio/android-chrome-192x192.png",
 	ownerName: "Joseph Gerges",
 	websiteLabel: "vertigovisuals.com.au",
@@ -57,7 +45,7 @@ export const BOOKING_INVOICE_PAYMENT = {
 	accountNumber: "432849833",
 	bankTransferLabel: "Bank Transfer",
 	bsb: "082-124",
-	payId: getEnvironmentVariable("VITE_APP_CONTACT_PHONE"),
+	payId: CONTACT_PHONE,
 	payIdLabel: "PayID",
 } as const;
 

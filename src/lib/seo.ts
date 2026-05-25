@@ -1,5 +1,5 @@
+import { INSTAGRAM_URL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
-import { env } from "#/env";
 
 const siteUrl = "https://vertigovisuals.com.au";
 const siteName = studioSite.name;
@@ -160,7 +160,7 @@ export function buildLocalBusinessJsonLd() {
 				closes: "21:00",
 			},
 		],
-		sameAs: [siteUrl, env.VITE_APP_INSTAGRAM_URL],
+		sameAs: [siteUrl, INSTAGRAM_URL],
 		offers: [
 			{
 				"@type": "Offer",

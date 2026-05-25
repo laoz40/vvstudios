@@ -6,9 +6,8 @@ import micImage from "#studio/assets/mic.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { FaqSection } from "#studio/components/faq/FaqSection";
 import { Button } from "#/components/ui/button";
-import { CONTACT_EMAIL } from "#/config/contact";
+import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
-import { env } from "#/env";
 
 const contactCardCopy = {
 	title: "Contact",
@@ -19,8 +18,8 @@ const contactCardCopy = {
 const contactItems = [
 	{
 		label: "Phone",
-		value: env.VITE_APP_CONTACT_PHONE,
-		href: `tel:${env.VITE_APP_CONTACT_PHONE}`,
+		value: CONTACT_PHONE,
+		href: `tel:${CONTACT_PHONE}`,
 	},
 	{
 		label: "Email",
@@ -29,8 +28,8 @@ const contactItems = [
 	},
 	{
 		label: "Location",
-		value: env.VITE_APP_STUDIO_ADDRESS,
-		href: env.VITE_APP_STUDIO_ADDRESS_URL,
+		value: STUDIO_ADDRESS,
+		href: STUDIO_ADDRESS_URL,
 	},
 ] as const;
 

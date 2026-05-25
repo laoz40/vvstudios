@@ -8,8 +8,8 @@ import heroPoster from "#studio/assets/bg/landing-poster.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { Button } from "#/components/ui/button";
+import { STUDIO_ADDRESS_URL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
-import { env } from "#/env";
 
 const heroCopy = {
 	eyebrow: "From Vertigo Visuals",
@@ -125,7 +125,7 @@ export function LandingHero() {
 									asChild
 									variant="link"
 									className="h-auto px-0 py-0 text-left whitespace-normal text-muted-foreground hover:text-foreground">
-									<a href={env.VITE_APP_STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
+									<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 								</Button>
 							</div>
 						</div>
@@ -140,7 +140,7 @@ export function LandingHero() {
 							asChild
 							variant="link"
 							className="px-0 text-muted-foreground hover:text-foreground">
-							<a href={env.VITE_APP_STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
+							<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 						</Button>
 					</div>
 				</motion.div>
