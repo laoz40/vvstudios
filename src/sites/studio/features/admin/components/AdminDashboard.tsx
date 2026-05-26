@@ -51,7 +51,6 @@ import {
 	editStatusBadgeVariantMap,
 	editStatusLabelMap,
 	getBookingEditStatus,
-	hasEditableDeliverables,
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	formatAudAmount,
@@ -391,7 +390,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			id: "editStatus",
 			header: "Deliverables",
 			cell: ({ row }) => {
-				if (!hasEditableDeliverables(row.original)) {
+				if (row.original.status !== "confirmed") {
 					return null;
 				}
 

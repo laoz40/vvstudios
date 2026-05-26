@@ -44,10 +44,3 @@ export const editStatusBadgeVariantMap: Record<
 export function getBookingEditStatus(booking: BookingRecord): BookingEditStatus {
 	return booking.editStatus ?? "to_edit";
 }
-
-export function hasEditableDeliverables(booking: Pick<BookingRecord, "addons" | "status">) {
-	return (
-		booking.status === "confirmed" &&
-		(booking.addons.includes("Essential Edit") || booking.addons.includes("Clips Package"))
-	);
-}

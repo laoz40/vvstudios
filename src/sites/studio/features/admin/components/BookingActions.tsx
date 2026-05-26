@@ -34,7 +34,6 @@ import {
 	editStatusDotClassNameMap,
 	editStatusLabelMap,
 	getBookingEditStatus,
-	hasEditableDeliverables,
 	type BookingEditStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
@@ -122,7 +121,6 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
-	const canTrackEditStatus = hasEditableDeliverables(booking);
 	const editStatus = getBookingEditStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
@@ -404,7 +402,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						<>
 							<DropdownMenuSeparator />
 							<DropdownMenuLabel className="text-muted-foreground text-sm">
-								Payment
+								Payment status
 							</DropdownMenuLabel>
 							<div className="flex items-center gap-2 px-2 pb-2">
 								<StatusCircleButton
@@ -429,10 +427,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						</>
 					) : null}
 					<DropdownMenuSeparator />
-					{canTrackEditStatus ? (
+					{isConfirmedBooking ? (
 						<>
 							<DropdownMenuLabel className="text-muted-foreground text-sm">
-								Edit status
+								Deliverables status
 							</DropdownMenuLabel>
 							<div className="flex items-center gap-2 px-2 pb-2">
 								{EDIT_STATUS_OPTIONS.map((option) => (
@@ -457,7 +455,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								className="text-green"
 								disabled={isEmailingDeliverables}
 								onSelect={() => setIsDeliverablesEmailDialogOpen(true)}>
-								Send deliverables email
+								Deliver deliverables email
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
