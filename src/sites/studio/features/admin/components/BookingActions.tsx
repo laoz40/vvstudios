@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import { useAction, useMutation } from "convex/react";
-import { MoreHorizontal } from "lucide-react";
+import { Mail, MoreHorizontal, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
+import { cn } from "#/lib/utils";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -24,6 +29,14 @@ import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInv
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { RemainingBalanceDialog } from "#studio/features/admin/components/RemainingBalanceDialog";
+import {
+	EDIT_STATUS_OPTIONS,
+	editStatusDotClassNameMap,
+	editStatusLabelMap,
+	getBookingEditStatus,
+	hasEditableDeliverables,
+	type BookingEditStatus,
+} from "#studio/features/admin/lib/booking-edit-status";
 import {
 	getBookingInvoiceEmailErrorMessage,
 	getBookingMutationErrorMessage,
@@ -40,6 +53,37 @@ export type BookingActionsProps = {
 	booking: BookingRecord;
 };
 
+type StatusCircleButtonProps = {
+	ariaLabel: string;
+	className: string;
+	disabled?: boolean;
+	isSelected: boolean;
+	onClick: () => void;
+};
+
+function StatusCircleButton({
+	ariaLabel,
+	className,
+	disabled,
+	isSelected,
+	onClick,
+}: StatusCircleButtonProps) {
+	return (
+		<button
+			type="button"
+			aria-label={ariaLabel}
+			title={ariaLabel}
+			disabled={disabled}
+			className={cn(
+				"size-5 rounded-full border border-transparent disabled:opacity-50",
+				className,
+				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover",
+			)}
+			onClick={onClick}
+		/>
+	);
+}
+
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
 	const sendBookingDeliverablesEmailForBooking = useAction(
@@ -47,6 +91,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
+	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
 	const updateBookingPaidRemainingBalance = useMutation(
 		api.bookings.updateBookingPaidRemainingBalance,
 	);
@@ -65,6 +110,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const [isUpdatingEditStatus, setIsUpdatingEditStatus] = useState(false);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] = useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -72,11 +118,12 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		booking._id,
 		booking.pendingPaymentCreatedAt,
 	);
-	const canTrackPaidRemainingBalance = booking.status === "confirmed";
-	const canToggleStatus = booking.status === "confirmed" || booking.status === "failed";
-	const nextStatus = booking.status === "confirmed" ? "failed" : "confirmed";
-	const toggleStatusLabel =
-		booking.status === "confirmed" ? "Mark as needs follow up" : "Mark as confirmed";
+	const isConfirmedBooking = booking.status === "confirmed";
+	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
+	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
+	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
+	const canTrackEditStatus = hasEditableDeliverables(booking);
+	const editStatus = getBookingEditStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
@@ -152,16 +199,32 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
-	async function handleTogglePaidRemainingBalance() {
+	async function handleUpdateEditStatus(nextEditStatus: BookingEditStatus) {
+		setIsUpdatingEditStatus(true);
+
+		try {
+			await updateBookingEditStatus({
+				bookingId: booking._id,
+				editStatus: nextEditStatus,
+			});
+			toast.success(`Edit status changed to ${editStatusLabelMap[nextEditStatus].toLowerCase()}.`);
+		} catch {
+			toast.error("Unable to update edit status.");
+		} finally {
+			setIsUpdatingEditStatus(false);
+		}
+	}
+
+	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
 		try {
 			await updateBookingPaidRemainingBalance({
 				bookingId: booking._id,
-				paidRemainingBalance: !isPaidRemainingBalance,
+				paidRemainingBalance,
 			});
 			toast.success(
-				!isPaidRemainingBalance
+				paidRemainingBalance
 					? "Remaining balance marked as paid."
 					: "Remaining balance marked as unpaid.",
 			);
@@ -318,69 +381,138 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					align="end"
 					className="w-56 touch-manipulation">
 					<DropdownMenuGroup>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(customerBookingId)}>
-							Copy invoice number
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => navigator.clipboard.writeText(String(booking._id))}>
-							Copy database ID
-						</DropdownMenuItem>
+						<div className="flex items-center gap-2 px-2 py-1">
+							<a
+								href={`mailto:${booking.email}`}
+								aria-label="Email customer"
+								title="Email customer"
+								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+								<Mail className="size-5" />
+							</a>
+							{booking.phone ? (
+								<a
+									href={`tel:${booking.phone}`}
+									aria-label="Call customer"
+									title="Call customer"
+									className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+									<Phone className="size-5" />
+								</a>
+							) : null}
+						</div>
 					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuGroup>
-						<DropdownMenuItem asChild>
-							<a href={`mailto:${booking.email}`}>Email customer</a>
-						</DropdownMenuItem>
-						{booking.phone ? (
-							<DropdownMenuItem asChild>
-								<a href={`tel:${booking.phone}`}>Call customer</a>
-							</DropdownMenuItem>
-						) : null}
-					</DropdownMenuGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						disabled={isDownloadingInvoice}
-						onSelect={handleDownloadInvoice}>
-						{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						disabled={isEmailingInvoice}
-						onSelect={() => setIsEmailInvoiceDialogOpen(true)}>
-						Email invoice to customer
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={() => setIsCustomInvoiceDialogOpen(true)}>
-						Create custom invoice
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						className="text-primary"
-						disabled={isEmailingDeliverables}
-						onSelect={() => setIsDeliverablesEmailDialogOpen(true)}>
-						Send deliverables email
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					{canTrackPaidRemainingBalance ? (
+					{isConfirmedBooking ? (
 						<>
-							<DropdownMenuItem
-								className={isPaidRemainingBalance ? "" : "text-green"}
-								disabled={isUpdatingPaidRemainingBalance}
-								onSelect={handleTogglePaidRemainingBalance}>
-								{isPaidRemainingBalance ? "Mark balance unpaid" : "Mark balance paid"}
-							</DropdownMenuItem>
-							<DropdownMenuItem onSelect={() => setIsRemainingBalanceDialogOpen(true)}>
-								Set remaining balance
-							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="text-muted-foreground text-sm">
+								Payment
+							</DropdownMenuLabel>
+							<div className="flex items-center gap-2 px-2 pb-2">
+								<StatusCircleButton
+									ariaLabel="Mark balance unpaid"
+									className="bg-destructive"
+									disabled={isUpdatingPaidRemainingBalance}
+									isSelected={!isPaidRemainingBalance}
+									onClick={() => {
+										void handleSetPaidRemainingBalance(false);
+									}}
+								/>
+								<StatusCircleButton
+									ariaLabel="Mark balance paid"
+									className="bg-green"
+									disabled={isUpdatingPaidRemainingBalance}
+									isSelected={isPaidRemainingBalance}
+									onClick={() => {
+										void handleSetPaidRemainingBalance(true);
+									}}
+								/>
+							</div>
 						</>
 					) : null}
-					{canToggleStatus ? (
+					<DropdownMenuSeparator />
+					{canTrackEditStatus ? (
+						<>
+							<DropdownMenuLabel className="text-muted-foreground text-sm">
+								Edit status
+							</DropdownMenuLabel>
+							<div className="flex items-center gap-2 px-2 pb-2">
+								{EDIT_STATUS_OPTIONS.map((option) => (
+									<StatusCircleButton
+										key={option}
+										ariaLabel={editStatusLabelMap[option]}
+										className={editStatusDotClassNameMap[option]}
+										disabled={isUpdatingEditStatus}
+										isSelected={editStatus === option}
+										onClick={() => {
+											void handleUpdateEditStatus(option);
+										}}
+									/>
+								))}
+							</div>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					{isConfirmedBooking ? (
 						<>
 							<DropdownMenuItem
-								className={booking.status === "confirmed" ? "" : "text-green"}
-								disabled={isUpdatingStatus}
-								onSelect={handleToggleStatus}>
-								{toggleStatusLabel}
+								className="text-green"
+								disabled={isEmailingDeliverables}
+								onSelect={() => setIsDeliverablesEmailDialogOpen(true)}>
+								Send deliverables email
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
 					) : null}
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger>Other</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className="w-56 touch-manipulation">
+							{isConfirmedBooking ? (
+								<>
+									<DropdownMenuItem
+										onClick={() => navigator.clipboard.writeText(customerBookingId)}>
+										Copy invoice number
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => navigator.clipboard.writeText(String(booking._id))}>
+										Copy database ID
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										disabled={isDownloadingInvoice}
+										onSelect={handleDownloadInvoice}>
+										{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										disabled={isEmailingInvoice}
+										onSelect={() => setIsEmailInvoiceDialogOpen(true)}>
+										Email invoice to customer
+									</DropdownMenuItem>
+									<DropdownMenuItem onSelect={() => setIsCustomInvoiceDialogOpen(true)}>
+										Create custom invoice
+									</DropdownMenuItem>
+									<DropdownMenuItem onSelect={() => setIsRemainingBalanceDialogOpen(true)}>
+										Set remaining balance
+									</DropdownMenuItem>
+								</>
+							) : (
+								<DropdownMenuItem
+									onClick={() => navigator.clipboard.writeText(String(booking._id))}>
+									Copy database ID
+								</DropdownMenuItem>
+							)}
+							{canToggleStatus ? (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className={isConfirmedBooking ? "text-destructive" : "text-green"}
+										disabled={isUpdatingStatus}
+										onSelect={handleToggleStatus}>
+										{toggleStatusLabel}
+									</DropdownMenuItem>
+								</>
+							) : null}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="text-destructive focus:text-destructive"
 						onSelect={() => setIsEditDialogOpen(true)}>

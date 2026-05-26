@@ -47,6 +47,13 @@ import {
 	storeShowUpcomingOnly,
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import {
+	editStatusBadgeClassNameMap,
+	editStatusBadgeVariantMap,
+	editStatusLabelMap,
+	getBookingEditStatus,
+	hasEditableDeliverables,
+} from "#studio/features/admin/lib/booking-edit-status";
+import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
 } from "#studio/features/admin/lib/remaining-balance";
@@ -97,28 +104,30 @@ const statusBadgeVariantMap: Record<
 
 const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | undefined> = {
 	abandoned: "bg-muted text-muted-foreground",
-	confirmed: "bg-green text-foreground",
+	confirmed: "bg-green text-primary-foreground",
 	expired: "bg-muted text-muted-foreground",
-	failed: undefined,
-	pending_payment: "bg-blue text-foreground",
+	failed: "bg-destructive text-primary-foreground",
+	pending_payment: "bg-primary text-primary-foreground",
 };
 
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
 		case "name":
-			return "w-42";
+			return "w-36";
 		case "status":
-			return "w-18";
+			return "w-16";
 		case "session":
 			return "w-16";
 		case "service":
-			return "w-50";
+			return "w-44";
 		case "contact":
-			return "w-42";
+			return "w-36";
 		case "notes":
 			return "w-56";
 		case "paidRemainingBalance":
 			return "w-8";
+		case "editStatus":
+			return "w-16";
 		case "createdAt":
 			return "w-20";
 		case "actions":
@@ -379,6 +388,25 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			},
 		},
 		{
+			id: "editStatus",
+			header: "Deliverables",
+			cell: ({ row }) => {
+				if (!hasEditableDeliverables(row.original)) {
+					return null;
+				}
+
+				const editStatus = getBookingEditStatus(row.original);
+
+				return (
+					<Badge
+						variant={editStatusBadgeVariantMap[editStatus]}
+						className={editStatusBadgeClassNameMap[editStatus]}>
+						{editStatusLabelMap[editStatus]}
+					</Badge>
+				);
+			},
+		},
+		{
 			id: "createdAt",
 			accessorFn: (row) => row.pendingPaymentCreatedAt,
 			header: ({ column }) => renderSortableHeader("Created", column),
@@ -574,18 +602,19 @@ export function AdminDashboard({
 								label="Confirmed"
 								value={String(metrics.confirmed)}
 								variant="default"
-								className="bg-green text-foreground"
+								className="bg-green text-primary-foreground"
 							/>
 							<AdminStatusMetric
 								label="Pending"
 								value={String(metrics.pending_payment)}
 								variant="secondary"
-								className="bg-blue text-foreground"
+								className="bg-primary text-primary-foreground"
 							/>
 							<AdminStatusMetric
 								label="Failed"
 								value={String(metrics.failed)}
 								variant="destructive"
+								className="bg-destructive text-primary-foreground"
 							/>
 						</div>
 					</div>

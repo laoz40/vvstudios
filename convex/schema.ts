@@ -59,6 +59,9 @@ export default defineSchema({
 		reminderEmailFailureCode: v.optional(v.string()),
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
+		editStatus: v.optional(
+			v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed")),
+		),
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
