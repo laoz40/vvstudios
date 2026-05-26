@@ -532,6 +532,38 @@ export function formatBookingDateLong(date: string) {
 	}).format(new Date(year, month - 1, day));
 }
 
+export function formatBookingDateWithoutYear(date: string) {
+	const [, month, day] = date.split("-").map(Number);
+
+	if (!month || !day) {
+		return date;
+	}
+
+	const suffix = getOrdinalSuffix(day);
+	const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long" }).format(
+		new Date(2000, month - 1, day),
+	);
+
+	return `${day}${suffix} ${monthLabel}`;
+}
+
+function getOrdinalSuffix(day: number) {
+	if (day >= 11 && day <= 13) {
+		return "th";
+	}
+
+	switch (day % 10) {
+		case 1:
+			return "st";
+		case 2:
+			return "nd";
+		case 3:
+			return "rd";
+		default:
+			return "th";
+	}
+}
+
 export function formatBookingDateShort(date: string) {
 	const [year, month, day] = date.split("-");
 

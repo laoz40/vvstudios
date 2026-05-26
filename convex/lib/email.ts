@@ -2,12 +2,14 @@ import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
+import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
 import { renderHostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/render-host-booking-details-email";
 import { renderReminderEmail } from "../../src/sites/studio/features/reminder-email/render-reminder-email";
 import { env } from "../env";
 import {
 	formatBookingDateLong,
 	formatBookingDateShort,
+	formatBookingDateWithoutYear,
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingCalendarTime";
@@ -54,9 +56,10 @@ interface SendBookingHostDetailsEmailArgs {
 }
 
 interface SendBookingDeliverablesEmailArgs {
+	date: string;
 	driveLink: string;
 	email: string;
-	introMessage: string;
+	emailVariant: DeliverablesEmailVariant;
 	name: string;
 }
 
@@ -233,16 +236,18 @@ export async function sendFeedbackEmailForMessage(message: string) {
 }
 
 export async function sendBookingDeliverablesEmailForBooking({
+	date,
 	driveLink,
 	email,
-	introMessage,
+	emailVariant,
 	name,
 }: SendBookingDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 	const html = await renderDeliverablesEmail({
+		bookingDate: formatBookingDateWithoutYear(date),
 		driveLink,
-		introMessage,
+		emailVariant,
 		name,
 		signoffName,
 	});

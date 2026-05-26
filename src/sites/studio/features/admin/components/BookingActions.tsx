@@ -31,7 +31,7 @@ import {
 	getDeleteBookingErrorMessage,
 } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
-import { FIRST_TIME_DELIVERABLES_INTRO_MESSAGE } from "#studio/features/deliverables-email/lib/intro-messages";
+import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 
 type BookingRecord = Doc<"bookings">;
@@ -43,7 +43,7 @@ export type BookingActionsProps = {
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
 	const sendBookingDeliverablesEmailForBooking = useAction(
-		api.googleCalendar.sendBookingDeliverablesEmailForBooking,
+		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking,
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useMutation(api.bookings.updateBooking);
@@ -80,9 +80,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
-	const [deliverablesIntroMessageDraft, setDeliverablesIntroMessageDraft] = useState(
-		FIRST_TIME_DELIVERABLES_INTRO_MESSAGE,
-	);
+	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
+		useState<DeliverablesEmailVariant>("first-time");
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
 		String(remainingBalanceAmount),
 	);
@@ -291,7 +290,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			await sendBookingDeliverablesEmailForBooking({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
-				introMessage: deliverablesIntroMessageDraft,
+				emailVariant: deliverablesEmailVariantDraft,
 			});
 			setDeliverablesDriveLinkDraft("");
 			setIsDeliverablesEmailDialogOpen(false);
@@ -412,10 +411,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				bookingId={booking._id}
 				bookingName={booking.name}
 				driveLink={deliverablesDriveLinkDraft}
-				introMessage={deliverablesIntroMessageDraft}
+				emailVariant={deliverablesEmailVariantDraft}
 				isSending={isEmailingDeliverables}
 				onDriveLinkChange={setDeliverablesDriveLinkDraft}
-				onIntroMessageChange={setDeliverablesIntroMessageDraft}
+				onEmailVariantChange={setDeliverablesEmailVariantDraft}
 				onOpenChange={setIsDeliverablesEmailDialogOpen}
 				onSend={() => {
 					void handleEmailDeliverables();

@@ -1,4 +1,3 @@
-import { Activity, useState } from "react";
 import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
@@ -12,23 +11,18 @@ import {
 import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { Textarea } from "#/components/ui/textarea";
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	FIRST_TIME_DELIVERABLES_INTRO_MESSAGE,
-	REPEAT_CUSTOMER_DELIVERABLES_INTRO_MESSAGE,
-	type DeliverablesIntroMessageOption,
-} from "#studio/features/deliverables-email/lib/intro-messages";
+import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
 export type DeliverablesEmailDialogProps = {
 	bookingEmail: string;
 	bookingId: Doc<"bookings">["_id"];
 	bookingName: string;
 	driveLink: string;
-	introMessage: string;
+	emailVariant: DeliverablesEmailVariant;
 	isSending: boolean;
 	onDriveLinkChange: (driveLink: string) => void;
-	onIntroMessageChange: (introMessage: string) => void;
+	onEmailVariantChange: (emailVariant: DeliverablesEmailVariant) => void;
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
@@ -39,37 +33,14 @@ export function DeliverablesEmailDialog({
 	bookingId,
 	bookingName,
 	driveLink,
-	introMessage,
+	emailVariant,
 	isSending,
 	onDriveLinkChange,
-	onIntroMessageChange,
+	onEmailVariantChange,
 	onOpenChange,
 	onSend,
 	open,
 }: DeliverablesEmailDialogProps) {
-	const [selectedIntroOption, setSelectedIntroOption] = useState<DeliverablesIntroMessageOption>(
-		() => getIntroMessageOption(introMessage),
-	);
-	const [customIntroMessage, setCustomIntroMessage] = useState(
-		selectedIntroOption === "custom" ? introMessage : "",
-	);
-
-	function handleIntroOptionChange(option: DeliverablesIntroMessageOption) {
-		setSelectedIntroOption(option);
-
-		if (option === "first-time") {
-			onIntroMessageChange(FIRST_TIME_DELIVERABLES_INTRO_MESSAGE);
-			return;
-		}
-
-		if (option === "repeat-customer") {
-			onIntroMessageChange(REPEAT_CUSTOMER_DELIVERABLES_INTRO_MESSAGE);
-			return;
-		}
-
-		onIntroMessageChange(customIntroMessage);
-	}
-
 	return (
 		<Dialog
 			open={open}
@@ -123,42 +94,21 @@ export function DeliverablesEmailDialog({
 
 				<FieldGroup>
 					<Field>
-						<FieldLabel>Intro message</FieldLabel>
+						<FieldLabel>Customer type</FieldLabel>
 						<RadioGroup
-							value={selectedIntroOption}
-							onValueChange={(value) =>
-								handleIntroOptionChange(value as DeliverablesIntroMessageOption)
-							}
+							value={emailVariant}
+							onValueChange={(value) => onEmailVariantChange(value as DeliverablesEmailVariant)}
 							className="gap-2"
 							disabled={isSending}>
 							<FieldLabel className="w-full rounded-md border p-3">
 								<RadioGroupItem value="first-time" />
-								<span className="text-sm font-normal leading-5">
-									{FIRST_TIME_DELIVERABLES_INTRO_MESSAGE}
-								</span>
+								<span className="text-sm font-medium leading-5">First time customer</span>
 							</FieldLabel>
 							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="repeat-customer" />
-								<span className="text-sm font-normal leading-5">
-									{REPEAT_CUSTOMER_DELIVERABLES_INTRO_MESSAGE}
-								</span>
-							</FieldLabel>
-							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="custom" />
-								<span className="text-sm font-normal leading-5">Custom message</span>
+								<RadioGroupItem value="recurring" />
+								<span className="text-sm font-medium leading-5">Recurring customer</span>
 							</FieldLabel>
 						</RadioGroup>
-						<Activity mode={selectedIntroOption === "custom" ? "visible" : "hidden"}>
-							<Textarea
-								placeholder="Write the opening message for this customer..."
-								value={customIntroMessage}
-								onChange={(event) => {
-									setCustomIntroMessage(event.target.value);
-									onIntroMessageChange(event.target.value);
-								}}
-								disabled={isSending}
-							/>
-						</Activity>
 					</Field>
 
 					<Field>
@@ -187,7 +137,7 @@ export function DeliverablesEmailDialog({
 					<Button
 						type="button"
 						onClick={onSend}
-						disabled={isSending || !driveLink.trim() || !introMessage.trim()}>
+						disabled={isSending || !driveLink.trim()}>
 						{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isSending ? "Sending..." : "Send email"}
 					</Button>
@@ -195,16 +145,4 @@ export function DeliverablesEmailDialog({
 			</DialogContent>
 		</Dialog>
 	);
-}
-
-function getIntroMessageOption(introMessage: string): DeliverablesIntroMessageOption {
-	if (introMessage === FIRST_TIME_DELIVERABLES_INTRO_MESSAGE) {
-		return "first-time";
-	}
-
-	if (introMessage === REPEAT_CUSTOMER_DELIVERABLES_INTRO_MESSAGE) {
-		return "repeat-customer";
-	}
-
-	return "custom";
 }
