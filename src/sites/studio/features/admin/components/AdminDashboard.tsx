@@ -694,14 +694,18 @@ export function AdminDashboard({
 										<TableRow
 											key={row.id}
 											className={cn(
-												!showUpcomingOnly &&
-													isPastBooking &&
-													"bg-muted/40 text-muted-foreground opacity-70",
+												!showUpcomingOnly && isPastBooking && "bg-muted/40 text-muted-foreground",
 											)}>
 											{row.getVisibleCells().map((cell) => (
 												<TableCell
 													key={cell.id}
-													className={getColumnClassName(cell.column.id)}>
+													className={cn(
+														getColumnClassName(cell.column.id),
+														!showUpcomingOnly &&
+															isPastBooking &&
+															cell.column.id !== "editStatus" &&
+															"opacity-70",
+													)}>
 													{flexRender(cell.column.columnDef.cell, cell.getContext())}
 												</TableCell>
 											))}
