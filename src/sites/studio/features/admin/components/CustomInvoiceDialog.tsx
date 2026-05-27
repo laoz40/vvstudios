@@ -59,9 +59,21 @@ function isBookingService(value: string | undefined): value is BookingService {
 	return Boolean(value);
 }
 
+function getInvoiceDeliverableCount(input: {
+	addons: BookingFormValues["addons"];
+	bookingDeliverableCount?: string;
+	deliverableCount?: string;
+}) {
+	const deliverableCount =
+		toDeliverableCountOption(input.deliverableCount) ||
+		toDeliverableCountOption(input.bookingDeliverableCount);
+
+	return hasEditingAddon(input.addons) ? deliverableCount || "1" : "";
+}
+
 function formatInvoiceTotal(input: {
 	service?: string;
-	addons: string[];
+	addons: BookingFormValues["addons"];
 	duration: string;
 	includeDepositLineItem: boolean;
 	deliverableCount?: string;
@@ -125,6 +137,12 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		duration?: string;
 		deliverableCount?: string;
 	}) {
+		const deliverableCount = getInvoiceDeliverableCount({
+			addons: input.addons as BookingFormValues["addons"],
+			bookingDeliverableCount: booking.deliverableCount,
+			deliverableCount: input.deliverableCount,
+		});
+
 		setDownloadingInvoiceId(input._id);
 
 		try {
@@ -141,7 +159,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration ?? booking.duration,
 				service: booking.service,
 				addons: input.addons,
-				deliverableCount: input.deliverableCount ?? booking.deliverableCount ?? "",
+				deliverableCount,
 				notes: booking.notes ?? "",
 			});
 
@@ -181,21 +199,17 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
+		const deliverableCount = getInvoiceDeliverableCount({
+			addons: draft.addons,
+			bookingDeliverableCount: booking.deliverableCount,
+			deliverableCount: draft.deliverableCount,
+		});
+
 		setIsGenerating(true);
 
 		try {
 			const { downloadBookingInvoicePdf } =
 				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const customInvoice = await createCustomInvoice({
-				bookingId: booking._id,
-				dueDate: draft.dueDate,
-				service: draft.service || undefined,
-				duration: draft.duration,
-				addons: draft.addons,
-				deliverableCount: draft.deliverableCount || undefined,
-				includeDepositLineItem: draft.includeDepositLineItem,
-			});
-
 			const parsedBooking = bookingSchema.safeParse({
 				name: booking.name,
 				phone: booking.phone,
@@ -207,7 +221,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: draft.duration,
 				service: booking.service,
 				addons: draft.addons,
-				deliverableCount: draft.deliverableCount ?? "",
+				deliverableCount,
 				notes: booking.notes ?? "",
 			});
 
@@ -215,6 +229,16 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
 				return;
 			}
+
+			const customInvoice = await createCustomInvoice({
+				bookingId: booking._id,
+				dueDate: draft.dueDate,
+				service: draft.service || undefined,
+				duration: draft.duration,
+				addons: draft.addons,
+				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+				includeDepositLineItem: draft.includeDepositLineItem,
+			});
 
 			await downloadBookingInvoicePdf({
 				bookingId: booking._id,
@@ -332,7 +356,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 													{" · "}
 													{formatInvoiceTotal({
 														service: invoice.service,
-														addons: invoice.addons,
+														addons: invoice.addons as BookingFormValues["addons"],
 														duration: invoice.duration ?? booking.duration,
 														includeDepositLineItem: invoice.includeDepositLineItem,
 														deliverableCount: invoice.deliverableCount ?? booking.deliverableCount,

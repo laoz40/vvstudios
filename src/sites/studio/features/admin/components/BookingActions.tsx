@@ -302,6 +302,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: booking.duration,
 				service: booking.service,
 				addons: booking.addons,
+				deliverableCount: booking.deliverableCount ?? "",
 				notes: booking.notes ?? "",
 			});
 
@@ -322,6 +323,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: parsedBooking.data.duration,
 				service: parsedBooking.data.service,
 				addons: parsedBooking.data.addons,
+				deliverableCount: parsedBooking.data.deliverableCount || undefined,
 				createdAt: booking.pendingPaymentCreatedAt,
 			});
 			toast.success("Invoice download started.");
