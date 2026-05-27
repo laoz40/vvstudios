@@ -37,8 +37,7 @@ export function BookingSummary({ values }: BookingSummaryProps) {
 	return (
 		<Accordion
 			type="single"
-			collapsible
-			defaultValue="booking-summary">
+			collapsible>
 			<AccordionItem value="booking-summary">
 				<AccordionTrigger className="py-3 text-sm justify-start gap-2">
 					<span className="text-base font-bold">BOOKING SUMMARY</span>
