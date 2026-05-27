@@ -39,6 +39,9 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 			{useMinimalLayout ? null : <SiteNavbar />}
 			<div
 				id="site-shell"
+				// Top padding keeps regular pages below the fixed navbar. The home page
+				// intentionally cancels this with a matching negative margin so the video
+				// can sit behind the navbar.
 				className={
 					useMinimalLayout
 						? "flex min-h-screen flex-col"

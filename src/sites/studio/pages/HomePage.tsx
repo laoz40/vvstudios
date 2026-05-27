@@ -9,7 +9,8 @@ export { faqSectionCopy };
 
 export function HomePage() {
 	return (
-		<main className="-mt-18 md:-mt-28">
+		// Cancels StudioLayout's top padding so the landing hero starts behind the navbar.
+		<main className="-mt-18 md:-mt-24">
 			<LandingHero />
 			<div className="landing-page-content-overlap relative z-10 bg-background">
 				<LandingTestimonials />
