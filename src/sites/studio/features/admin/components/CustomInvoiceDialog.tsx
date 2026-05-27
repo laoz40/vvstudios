@@ -17,20 +17,19 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
-	ADDON_PRICES,
 	BOOKING_DEPOSIT_AMOUNT,
 	DURATION_PRICES,
 } from "#studio/features/booking-invoice/lib/constants";
-import type {
-	BookingAddon,
-	BookingDuration,
-	BookingService,
-} from "#studio/features/booking-invoice/lib/types";
+import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
 import {
 	ADDON_OPTIONS,
+	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
 	bookingSchema,
+	hasEditingAddon,
+	toDeliverableCountOption,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -41,6 +40,7 @@ type CustomInvoiceDraft = {
 	service: BookingService | "";
 	duration: BookingFormValues["duration"];
 	addons: BookingFormValues["addons"];
+	deliverableCount: BookingFormValues["deliverableCount"];
 	dueDate: string;
 	includeDepositLineItem: boolean;
 };
@@ -50,10 +50,6 @@ export type CustomInvoiceDialogProps = {
 	booking: BookingRecord;
 	onOpenChange: (open: boolean) => void;
 };
-
-function isBookingAddon(value: string): value is BookingAddon {
-	return value in ADDON_PRICES;
-}
 
 function isBookingDuration(value: string): value is BookingDuration {
 	return value in DURATION_PRICES;
@@ -68,13 +64,14 @@ function formatInvoiceTotal(input: {
 	addons: string[];
 	duration: string;
 	includeDepositLineItem: boolean;
+	deliverableCount?: string;
 }) {
 	const serviceAmount =
 		isBookingService(input.service) && isBookingDuration(input.duration)
 			? DURATION_PRICES[input.duration]
 			: 0;
 	const addonsAmount = input.addons.reduce(
-		(total, addon) => total + (isBookingAddon(addon) ? ADDON_PRICES[addon] : 0),
+		(total, addon) => total + getAddonAmount(addon, input.deliverableCount),
 		0,
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
@@ -94,6 +91,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		service: "",
 		duration: booking.duration as BookingFormValues["duration"],
 		addons: [],
+		deliverableCount: toDeliverableCountOption(booking.deliverableCount),
 		dueDate: booking.date,
 		includeDepositLineItem: false,
 	});
@@ -101,6 +99,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 	const hasInvoiceSelection =
 		Boolean(draft.service) || draft.addons.length > 0 || draft.includeDepositLineItem;
+	const showDeliverableCount = hasEditingAddon(draft.addons);
 
 	useEffect(() => {
 		if (open) {
@@ -108,11 +107,12 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				service: "",
 				duration: booking.duration as BookingFormValues["duration"],
 				addons: [],
+				deliverableCount: toDeliverableCountOption(booking.deliverableCount),
 				dueDate: booking.date,
 				includeDepositLineItem: false,
 			});
 		}
-	}, [booking.date, booking.duration, open]);
+	}, [booking.date, booking.deliverableCount, booking.duration, open]);
 
 	async function downloadCustomInvoice(input: {
 		_id: string;
@@ -123,6 +123,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		includeDepositLineItem: boolean;
 		createdAt: number;
 		duration?: string;
+		deliverableCount?: string;
 	}) {
 		setDownloadingInvoiceId(input._id);
 
@@ -140,6 +141,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration ?? booking.duration,
 				service: booking.service,
 				addons: input.addons,
+				deliverableCount: input.deliverableCount ?? booking.deliverableCount ?? "",
 				notes: booking.notes ?? "",
 			});
 
@@ -161,6 +163,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: parsedBooking.data.duration,
 				service: isBookingService(input.service) ? input.service : undefined,
 				addons: parsedBooking.data.addons,
+				deliverableCount: parsedBooking.data.deliverableCount || undefined,
 				createdAt: input.createdAt,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
@@ -189,6 +192,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				service: draft.service || undefined,
 				duration: draft.duration,
 				addons: draft.addons,
+				deliverableCount: draft.deliverableCount || undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 			});
 
@@ -203,6 +207,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: draft.duration,
 				service: booking.service,
 				addons: draft.addons,
+				deliverableCount: draft.deliverableCount ?? "",
 				notes: booking.notes ?? "",
 			});
 
@@ -224,6 +229,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: parsedBooking.data.duration,
 				service: draft.service || undefined,
 				addons: parsedBooking.data.addons,
+				deliverableCount: parsedBooking.data.deliverableCount || undefined,
 				createdAt: customInvoice.createdAt,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
@@ -329,6 +335,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														addons: invoice.addons,
 														duration: invoice.duration ?? booking.duration,
 														includeDepositLineItem: invoice.includeDepositLineItem,
+														deliverableCount: invoice.deliverableCount ?? booking.deliverableCount,
 													})}
 												</span>
 											</div>
@@ -430,7 +437,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														? [...current.addons, addon]
 														: current.addons.filter((value) => value !== addon);
 
-													return { ...current, addons: nextAddons };
+													return {
+														...current,
+														addons: nextAddons,
+														deliverableCount: hasEditingAddon(nextAddons)
+															? current.deliverableCount
+															: "",
+													};
 												});
 											}}
 										/>
@@ -440,6 +453,39 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 							})}
 						</div>
 					</section>
+
+					{showDeliverableCount ? (
+						<section className="grid gap-3">
+							<Label>Number of deliverables</Label>
+							<div className="grid gap-3 sm:grid-cols-4">
+								{DELIVERABLE_COUNT_OPTIONS.map((count) => {
+									const optionId = `custom-invoice-deliverable-count-${count}`;
+									const isChecked = draft.deliverableCount === count;
+
+									return (
+										<label
+											key={count}
+											htmlFor={optionId}
+											className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+											<Checkbox
+												id={optionId}
+												checked={isChecked}
+												disabled={isGenerating}
+												onCheckedChange={(checked) => {
+													if (checked !== true) {
+														return;
+													}
+
+													setDraft((current) => ({ ...current, deliverableCount: count }));
+												}}
+											/>
+											<span className="font-medium">{count}</span>
+										</label>
+									);
+								})}
+							</div>
+						</section>
+					) : null}
 
 					<section className="grid gap-3">
 						<Label>Deposit</Label>

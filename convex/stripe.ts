@@ -77,6 +77,7 @@ export const createEmbeddedCheckoutSession = action({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
+		deliverableCount: v.optional(v.string()),
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreateEmbeddedCheckoutSessionResult> => {
@@ -106,6 +107,7 @@ export const createEmbeddedCheckoutSession = action({
 			duration: booking.duration,
 			service: booking.service,
 			addons: booking.addons,
+			deliverableCount: booking.deliverableCount || undefined,
 			notes: booking.notes || undefined,
 		});
 

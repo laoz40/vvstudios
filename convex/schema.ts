@@ -19,6 +19,7 @@ export default defineSchema({
 		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
+		deliverableCount: v.optional(v.string()),
 		includeDepositLineItem: v.boolean(),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string()),
@@ -37,6 +38,7 @@ export default defineSchema({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
+		deliverableCount: v.optional(v.string()),
 		notes: v.optional(v.string()),
 		instagramHandle: v.optional(v.string()),
 

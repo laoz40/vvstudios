@@ -34,6 +34,10 @@ export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {
 					label="Add-ons"
 					value={booking.addons.length > 0 ? booking.addons.join(", ") : "None"}
 				/>
+				<BookingDetail
+					label="Deliverables"
+					value={booking.deliverableCount ?? "Not specified"}
+				/>
 			</dl>
 			<BookingSessionTable
 				dateValue={dateValue}

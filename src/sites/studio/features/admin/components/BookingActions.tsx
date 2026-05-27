@@ -168,6 +168,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: values.duration,
 				service: values.service,
 				addons: values.addons,
+				deliverableCount: values.deliverableCount,
 				notes: values.notes,
 			});
 
@@ -188,6 +189,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: parsedValues.data.duration,
 				service: parsedValues.data.service,
 				addons: parsedValues.data.addons,
+				deliverableCount: parsedValues.data.deliverableCount || undefined,
 				notes: parsedValues.data.notes || undefined,
 			});
 			setIsEditDialogOpen(false);

@@ -54,6 +54,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			duration: booking.duration,
 			service: booking.service,
 			addons: booking.addons,
+			deliverableCount: booking.deliverableCount ?? "",
 			notes: booking.notes ?? "",
 		});
 
@@ -73,6 +74,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			duration: parsedBooking.data.duration,
 			service: parsedBooking.data.service,
 			addons: parsedBooking.data.addons,
+			deliverableCount: parsedBooking.data.deliverableCount || undefined,
 			createdAt: booking.pendingPaymentCreatedAt,
 		});
 

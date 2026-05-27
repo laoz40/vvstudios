@@ -7,7 +7,11 @@ import {
 	BOOKING_INVOICE_PAYMENT,
 	BOOKING_INVOICE_TITLE,
 } from "#studio/features/booking-invoice/lib/constants";
-import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import {
+	calculateBookingInvoiceAmounts,
+	getAddonAmount,
+	getAddonQuantity,
+} from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type {
 	BookingInvoiceBuilderInput,
 	BookingInvoiceData,
@@ -32,6 +36,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const amounts = calculateBookingInvoiceAmounts({
 		duration: input.duration,
 		addons: input.addons,
+		deliverableCount: input.deliverableCount,
 		includeBaseAmount: Boolean(input.service),
 		includeDepositLineItem: input.includeDepositLineItem !== false,
 	});
@@ -42,7 +47,14 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const dueDateLabel = formatCalendarDate(dueDate);
 	const addonsSummary =
 		input.addons.length > 0
-			? input.addons.map((addon) => `${addon} (${ADDON_PRICES[addon].toFixed(2)})`).join(", ")
+			? input.addons
+					.map((addon) => {
+						const quantity = getAddonQuantity(addon, input.deliverableCount);
+						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
+
+						return `${addon}${quantityLabel} (${getAddonAmount(addon, input.deliverableCount).toFixed(2)})`;
+					})
+					.join(", ")
 			: "No add-ons selected";
 
 	const lineItems: BookingInvoiceLineItem[] = [
@@ -57,9 +69,9 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 				]
 			: []),
 		...input.addons.map((addon) => ({
-			amount: ADDON_PRICES[addon],
+			amount: getAddonAmount(addon, input.deliverableCount),
 			description: addon,
-			quantity: 1,
+			quantity: getAddonQuantity(addon, input.deliverableCount),
 			rate: ADDON_PRICES[addon],
 		})),
 		...(input.includeDepositLineItem === false

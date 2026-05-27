@@ -13,6 +13,7 @@ export const createCustomInvoice = mutation({
 		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
+		deliverableCount: v.optional(v.string()),
 		includeDepositLineItem: v.boolean(),
 	},
 	handler: async (ctx, args) => {
@@ -36,6 +37,7 @@ export const createCustomInvoice = mutation({
 			service: args.service,
 			duration: args.duration,
 			addons: args.addons,
+			deliverableCount: args.deliverableCount,
 			includeDepositLineItem: args.includeDepositLineItem,
 			createdAt,
 			createdBy: identity.email,

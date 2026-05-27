@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
 	ADDON_OPTIONS,
+	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
 	type BookingFormValues,
@@ -17,6 +18,7 @@ export const savedBookingInfoSchema = z.object({
 	duration: z.union([z.literal(""), z.enum(DURATION_OPTIONS)]),
 	timeSectionKey: timeSectionKeySchema,
 	addons: z.array(z.enum(ADDON_OPTIONS)),
+	deliverableCount: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).default(""),
 	name: z.string(),
 	phone: z.string(),
 	accountName: z.string(),
@@ -48,6 +50,7 @@ export function toSavedBookingInfo(
 		duration: values.duration,
 		timeSectionKey,
 		addons: [...values.addons],
+		deliverableCount: values.deliverableCount ?? "",
 		name: values.name,
 		phone: values.phone,
 		accountName: values.accountName,

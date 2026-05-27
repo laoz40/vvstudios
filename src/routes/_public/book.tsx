@@ -165,6 +165,7 @@ function BookingPage() {
 					duration: parsedValue.duration,
 					service: parsedValue.service,
 					addons: parsedValue.addons,
+					deliverableCount: parsedValue.deliverableCount || undefined,
 					notes: parsedValue.notes,
 				});
 
@@ -497,6 +498,7 @@ function BookingPage() {
 		formApi.setFieldValue("service", savedBookingInfo.service);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
 		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
+		formApi.setFieldValue("deliverableCount", savedBookingInfo.deliverableCount);
 		formApi.setFieldValue("name", savedBookingInfo.name);
 		formApi.setFieldValue("phone", savedBookingInfo.phone);
 		formApi.setFieldValue("accountName", savedBookingInfo.accountName);
@@ -615,7 +617,7 @@ function BookingPage() {
 						<Checkbox
 							id="save-booking-info"
 							checked={shouldSaveBookingInfo}
-							className="size-5 rounded-full"
+							className="size-5 rounded-full data-[state=checked]:border-transparent"
 							onCheckedChange={(checked) => handleSaveBookingInfoChange(checked === true)}
 						/>
 						<FieldContent className="justify-center gap-0">

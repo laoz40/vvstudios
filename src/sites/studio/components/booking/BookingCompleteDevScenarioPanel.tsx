@@ -74,6 +74,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		bookingConfirmedAt: undefined,
 		bookingFailureCode: undefined,
 		date: "2026-05-12",
+		deliverableCount: "2",
 		duration: "2h",
 		pendingPaymentCreatedAt: now,
 		paymentCompletedAt: undefined,

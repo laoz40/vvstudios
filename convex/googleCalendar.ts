@@ -112,6 +112,7 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 		duration: booking.duration,
 		service: booking.service,
 		addons: booking.addons,
+		deliverableCount: booking.deliverableCount ?? "",
 		notes: booking.notes ?? "",
 	});
 
@@ -131,6 +132,7 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 		duration: parsedBooking.data.duration,
 		service: parsedBooking.data.service,
 		addons: parsedBooking.data.addons,
+		deliverableCount: parsedBooking.data.deliverableCount || undefined,
 		createdAt: Date.now(),
 	});
 

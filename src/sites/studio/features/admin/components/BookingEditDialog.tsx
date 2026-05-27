@@ -17,8 +17,11 @@ import { Textarea } from "#/components/ui/textarea";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	ADDON_OPTIONS,
+	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
+	hasEditingAddon,
+	toDeliverableCountOption,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -31,6 +34,7 @@ export type BookingEditDraft = {
 	addons: BookingFormValues["addons"];
 	abn: string;
 	date: string;
+	deliverableCount: BookingFormValues["deliverableCount"];
 	duration: BookingFormValues["duration"];
 	email: string;
 	name: string;
@@ -59,6 +63,7 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		accountName: booking.accountName,
 		abn: booking.abn ?? "",
 		date: booking.date,
+		deliverableCount: toDeliverableCountOption(booking.deliverableCount),
 		time: booking.time,
 		duration: booking.duration as BookingFormValues["duration"],
 		service: booking.service,
@@ -78,6 +83,7 @@ export function BookingEditDialog({
 	isSaving,
 }: BookingEditDialogProps) {
 	const [draft, setDraft] = useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
+	const showDeliverableCount = hasEditingAddon(draft.addons);
 
 	useEffect(() => {
 		if (open) {
@@ -327,7 +333,13 @@ export function BookingEditDialog({
 														? [...current.addons, addon]
 														: current.addons.filter((value) => value !== addon);
 
-													return { ...current, addons: nextAddons };
+													return {
+														...current,
+														addons: nextAddons,
+														deliverableCount: hasEditingAddon(nextAddons)
+															? current.deliverableCount
+															: "",
+													};
 												});
 											}}
 										/>
@@ -337,6 +349,39 @@ export function BookingEditDialog({
 							})}
 						</div>
 					</section>
+
+					{showDeliverableCount ? (
+						<section className="grid gap-3">
+							<Label>Number of deliverables</Label>
+							<RadioGroup
+								value={draft.deliverableCount ?? ""}
+								onValueChange={(value) => {
+									setDraft((current) => ({
+										...current,
+										deliverableCount: value as BookingFormValues["deliverableCount"],
+									}));
+								}}
+								className="grid gap-3 sm:grid-cols-4">
+								{DELIVERABLE_COUNT_OPTIONS.map((count) => {
+									const optionId = `edit-deliverable-count-${count}`;
+
+									return (
+										<label
+											key={count}
+											htmlFor={optionId}
+											className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+											<RadioGroupItem
+												id={optionId}
+												value={count}
+												disabled={isSaving}
+											/>
+											<span className="font-medium">{count}</span>
+										</label>
+									);
+								})}
+							</RadioGroup>
+						</section>
+					) : null}
 
 					<div className="grid gap-2">
 						<Label htmlFor="edit-booking-notes">Notes</Label>
