@@ -9,9 +9,9 @@ export type BookingEditStatus = (typeof EDIT_STATUS_OPTIONS)[number];
 type BookingRecord = Doc<"bookings">;
 
 export const editStatusLabelMap: Record<BookingEditStatus, string> = {
-	to_edit: "To edit",
+	to_edit: "Not Sent",
 	editing: "Editing",
-	completed: "Completed",
+	completed: "Sent",
 };
 
 export const editStatusBadgeClassNameMap: Record<BookingEditStatus, string> = {

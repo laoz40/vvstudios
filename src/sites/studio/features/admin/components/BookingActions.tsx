@@ -45,6 +45,7 @@ import {
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
+import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -118,6 +119,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		booking.pendingPaymentCreatedAt,
 	);
 	const isConfirmedBooking = booking.status === "confirmed";
+	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
@@ -427,7 +429,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 						</>
 					) : null}
 					<DropdownMenuSeparator />
-					{isConfirmedBooking ? (
+					{isConfirmedBooking && isPastBooking ? (
 						<>
 							<DropdownMenuLabel className="text-muted-foreground text-sm">
 								Deliverables status
@@ -447,10 +449,6 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								))}
 							</div>
 							<DropdownMenuSeparator />
-						</>
-					) : null}
-					{isConfirmedBooking ? (
-						<>
 							<DropdownMenuItem
 								className="text-green"
 								disabled={isEmailingDeliverables}

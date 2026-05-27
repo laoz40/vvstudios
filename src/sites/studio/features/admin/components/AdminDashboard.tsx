@@ -390,7 +390,9 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			id: "editStatus",
 			header: "Deliverables",
 			cell: ({ row }) => {
-				if (row.original.status !== "confirmed") {
+				const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
+
+				if (row.original.status !== "confirmed" || !isPastBooking) {
 					return null;
 				}
 
