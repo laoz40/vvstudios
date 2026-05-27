@@ -21,6 +21,7 @@ import {
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
+import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
 	bookingFormContext,
 	type BookingFormApi,
@@ -629,7 +630,10 @@ function BookingPage() {
 						</FieldContent>
 					</Field>
 
-					<div ref={completeBookingButtonRef}>
+					<div
+						ref={completeBookingButtonRef}
+						className="space-y-4">
+						<BookingSummary values={formValues} />
 						<Button
 							type="submit"
 							className="mb-20 h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"

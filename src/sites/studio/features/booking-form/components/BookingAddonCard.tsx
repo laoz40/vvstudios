@@ -13,6 +13,10 @@ import {
 	transitionClassName,
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
+import {
+	ADDON_PRICES,
+	formatBookingPrice,
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { Globe, Scissors, Smartphone, Video } from "lucide-react";
 
@@ -22,29 +26,24 @@ const addonCardCopy = {
 	"4K UHD Recording": {
 		description: "Highest quality recording, perfect for cropping without losing clarity.",
 		icon: Video,
-		price: "+$49",
 	},
 	"Essential Edit": {
 		description: "Professionally synchronised audio; clean cuts between camera angles.",
 		icon: Scissors,
-		price: "+$99",
 	},
 	"Clips Package": {
-		description: "10 clips with subtitles and vertical cropping ready for social media.",
+		description: "10 edited clips with subtitles and vertical cropping for social media.",
 		icon: Smartphone,
-		price: "+$79",
 	},
 	"Remote Podcast": {
 		description: "Record with guests globally using professional equipment.",
 		icon: Globe,
-		price: "+$59",
 	},
 } as const satisfies Record<
 	BookingAddon,
 	{
 		description: string;
 		icon: ComponentType<ComponentProps<"svg">>;
-		price: string;
 	}
 >;
 
@@ -110,7 +109,7 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 						</span>
 					) : null}
 					<span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-primary sm:static sm:translate-y-0">
-						{addonCopy.price}
+						+{formatBookingPrice(ADDON_PRICES[addon])}
 					</span>
 				</div>
 			</Field>

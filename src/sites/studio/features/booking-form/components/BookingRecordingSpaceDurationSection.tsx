@@ -19,6 +19,10 @@ import {
 	toFieldErrorObjects,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
+import {
+	DURATION_PRICES,
+	formatBookingPrice,
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 import { Modal } from "#studio/components/Modal";
@@ -67,21 +71,21 @@ const durationOptions: DurationOption[] = [
 		value: "1h" as const,
 		label: "1 Hour",
 		originalPrice: "$200",
-		discountedPrice: "$200",
+		discountedPrice: formatBookingPrice(DURATION_PRICES["1h"]),
 		priceNote: "Standard rate",
 	},
 	{
 		value: "2h" as const,
 		label: "2 Hours",
 		originalPrice: "$400",
-		discountedPrice: "$299",
+		discountedPrice: formatBookingPrice(DURATION_PRICES["2h"]),
 		badgeLabel: "MOST POPULAR",
 	},
 	{
 		value: "3h" as const,
 		label: "3 Hours",
 		originalPrice: "$600",
-		discountedPrice: "$399",
+		discountedPrice: formatBookingPrice(DURATION_PRICES["3h"]),
 	},
 ] as const;
 

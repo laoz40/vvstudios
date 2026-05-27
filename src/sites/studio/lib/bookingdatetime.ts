@@ -140,6 +140,21 @@ export function formatBookingDateSummary(dateValue: string) {
 	}).format(date);
 }
 
+export function formatBookingDateDots(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return "";
+	}
+
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	})
+		.format(date)
+		.replaceAll("/", ".");
+}
+
 const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeStyle: "short",
