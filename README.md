@@ -1,5 +1,4 @@
 # VV Studios Website
 
-[vertigovisuals.au](http://vertigovisuals.au)
+[vertigovisuals.au](https://vertigovisuals.au)
 
-<!-- testing coderabbit -->
