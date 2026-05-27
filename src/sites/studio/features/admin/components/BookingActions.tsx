@@ -359,6 +359,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				driveLink: deliverablesDriveLinkDraft,
 				emailVariant: deliverablesEmailVariantDraft,
 			});
+			await updateBookingEditStatus({
+				bookingId: booking._id,
+				editStatus: "completed",
+			});
 			setDeliverablesDriveLinkDraft("");
 			setIsDeliverablesEmailDialogOpen(false);
 			toast.success(`Deliverables email sent to ${booking.email}.`);
