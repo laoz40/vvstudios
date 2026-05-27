@@ -16,7 +16,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 		target: revealRef,
 		offset: ["start end", "end end"],
 	});
-	const scale = useTransform(scrollYProgress, [0, 1], [0.2, 1]);
+	const scale = useTransform(scrollYProgress, [0, 1], [0.5, 1]);
 
 	return (
 		<div
@@ -30,11 +30,12 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					}}>
 					<Button
 						asChild
-						className="h-auto gap-1.5 px-8! py-3 text-base shadow-lg">
+						variant="outline"
+						className="bg-accent/80 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg md:bg-accent/40">
 						<Link to={studioSite.routes.book}>
 							Book session
 							<ArrowRight
-								className="translate-y-px stroke-3"
+								className="translate-y-px stroke-3 size-4"
 								aria-hidden
 							/>
 						</Link>
