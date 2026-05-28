@@ -33,7 +33,7 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - If multiple valid options exist, ask user to choose instead of silently deciding
 - one focused question at a time
 - Only proceed without asking when request clear and action low-risk easily reversible
-- be as concise as possible, to conserve token usage
+- be concise
 
 ## Code Style Guidelines
 
@@ -61,6 +61,7 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 - Prefer explicit exported types for component props and utility contracts
 - Avoid `any`
+- Do not use nested ternaries and patterns that make it harder to read the code
 
 ### Error handling
 
