@@ -104,20 +104,22 @@ export const getBookings = query({
 	},
 });
 
+type AdminAuthErrorCode = "NOT_AUTHENTICATED" | "NOT_AUTHORIZED";
+
 type DeleteBookingErrorData = {
-	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
+	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
 };
 
 type UpdateBookingStatusErrorData = {
-	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
+	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
 };
 
 type UpdateBookingPaidRemainingBalanceErrorData = {
-	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
+	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
 };
 
 type UpdateBookingEditStatusErrorData = {
-	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
+	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
 };
 
 type SaveBookingInstagramHandleErrorData = {
