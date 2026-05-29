@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
 import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/auth";
 
 type CustomInvoiceErrorData = {
 	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
@@ -17,11 +18,7 @@ export const createCustomInvoice = mutation({
 		includeDepositLineItem: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<CustomInvoiceErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		const identity = await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -55,11 +52,7 @@ export const listCustomInvoicesForBooking = query({
 		bookingId: v.id("bookings"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<CustomInvoiceErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		return await ctx.db
 			.query("customInvoices")

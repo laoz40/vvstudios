@@ -12,6 +12,7 @@ import {
 	startOfToday,
 } from "../src/sites/studio/lib/bookingdatetime";
 import { env } from "./env";
+import { requireAdmin } from "./lib/auth";
 import {
 	assertBookingMeetsAvailabilitySettings,
 	buildEventWindow,
@@ -281,11 +282,7 @@ export const sendBookingInvoiceForBooking = action({
 		bookingId: v.id("bookings"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
 			bookingId: args.bookingId,

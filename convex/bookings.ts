@@ -5,6 +5,7 @@ import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
+import { requireAdmin } from "./lib/auth";
 import {
 	assertBookingMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
@@ -93,11 +94,7 @@ export const getBookings = query({
 		paginationOpts: paginationOptsValidator,
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
+		await requireAdmin(ctx);
 
 		return await ctx.db
 			.query("bookings")
@@ -121,10 +118,6 @@ type UpdateBookingPaidRemainingBalanceErrorData = {
 
 type UpdateBookingEditStatusErrorData = {
 	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
-};
-
-type CleanupOldBookingsErrorData = {
-	code: "NOT_AUTHENTICATED";
 };
 
 type SaveBookingInstagramHandleErrorData = {
@@ -288,11 +281,7 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 export const cleanupOldPendingAndExpiredBookings = mutation({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<CleanupOldBookingsErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
 		let deletedCount = 0;
@@ -567,11 +556,7 @@ export const deleteBooking = mutation({
 		bookingId: v.id("bookings"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<DeleteBookingErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -602,11 +587,7 @@ export const updateBooking = mutation({
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<DeleteBookingErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -654,11 +635,7 @@ export const updateBookingStatus = mutation({
 		status: v.union(v.literal("confirmed"), v.literal("failed")),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<UpdateBookingStatusErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -686,13 +663,7 @@ export const updateBookingPaidRemainingBalance = mutation({
 		paidRemainingBalance: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
-				code: "NOT_AUTHENTICATED",
-			});
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -716,13 +687,7 @@ export const updateBookingEditStatus = mutation({
 		editStatus: v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed")),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<UpdateBookingEditStatusErrorData>({
-				code: "NOT_AUTHENTICATED",
-			});
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 
@@ -746,13 +711,7 @@ export const updateBookingRemainingBalanceAmount = mutation({
 		remainingBalanceAmount: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
-				code: "NOT_AUTHENTICATED",
-			});
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.db.get(args.bookingId);
 

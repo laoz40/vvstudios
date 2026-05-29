@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/auth";
 import {
-	assertAuthenticated,
 	bookingSettingsArgs,
 	DEFAULT_BOOKING_SETTINGS,
 	validateBookingSettings,
@@ -20,8 +20,7 @@ export const get = query({
 export const update = mutation({
 	args: bookingSettingsArgs,
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		assertAuthenticated(identity);
+		const identity = await requireAdmin(ctx);
 		validateBookingSettings(args);
 
 		const existing = await ctx.db

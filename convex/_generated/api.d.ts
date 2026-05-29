@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as bookings from "../bookings.js";
 import type * as crons from "../crons.js";
@@ -18,6 +19,7 @@ import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
+import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_email from "../lib/email.js";
@@ -36,6 +38,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   bookingSettings: typeof bookingSettings;
   bookings: typeof bookings;
   crons: typeof crons;
@@ -46,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
+  "lib/auth": typeof lib_auth;
   "lib/bookingCalendarTime": typeof lib_bookingCalendarTime;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/email": typeof lib_email;
