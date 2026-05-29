@@ -4,7 +4,7 @@ export function PricingPage() {
 	return (
 		<PricingSection
 			headingLevel="h1"
-			className="!pt-0"
+			className="pt-0!"
 		/>
 	);
 }
