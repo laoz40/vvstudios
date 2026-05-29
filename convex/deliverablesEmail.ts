@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { requireAdmin } from "./lib/auth";
 import { sendBookingDeliverablesEmailForBooking as sendDeliverablesEmailForBookingDetails } from "./lib/email";
 import { parseGoogleDriveLink } from "./lib/googleDriveLinks";
 
@@ -44,11 +45,7 @@ export const sendBookingDeliverablesEmailForBooking = action({
 		emailVariant: v.union(v.literal("first-time"), v.literal("recurring")),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError<BookingDeliverablesEmailErrorData>({ code: "NOT_AUTHENTICATED" });
-		}
+		await requireAdmin(ctx);
 
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
 			bookingId: args.bookingId,

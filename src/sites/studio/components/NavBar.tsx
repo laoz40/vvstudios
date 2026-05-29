@@ -7,6 +7,7 @@ import { studioSite } from "#/config/sites";
 import { Button } from "#/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "#/components/ui/sheet";
 import { cn } from "#/lib/utils";
+import { AdminNavButton } from "#studio/components/AdminNavButton";
 
 const BRAND_LABEL = "VV STUDIOS";
 const HOME_ARIA_LABEL = "VV Studios home";
@@ -153,6 +154,7 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 										pathname={pathname}
 									/>
 								))}
+								<AdminNavButton media="desktop" />
 							</ul>
 
 							{isBookPage ? (
@@ -217,7 +219,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 					className="w-72 max-w-[90vw] border-border bg-background p-5"
 					showCloseButton={false}>
 					<SheetTitle className="sr-only">Mobile navigation</SheetTitle>
-					<div className="mb-5 flex items-center justify-between border-b pb-4">
+					<div className="flex items-center justify-between border-b pb-4">
 						<p className="font-brand text-lg font-semibold tracking-wide text-muted-foreground">
 							{BRAND_LABEL}
 						</p>
@@ -257,7 +259,12 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 							</li>
 						))}
 
-						<li className="mt-3 border-t pt-4">
+						<AdminNavButton
+							media="mobile"
+							onNavigate={() => setIsOpen(false)}
+						/>
+
+						<li className="mt-1 border-t pt-6">
 							{isBookPage ? (
 								<NavCta
 									href={BACK_HOME_LINK.href}
