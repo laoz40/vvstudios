@@ -115,7 +115,7 @@ export function BookingRecurringSessionsPrompt() {
 				initialFocus="content"
 				size="6xl"
 				className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-				<div className="overflow-hidden rounded-xl border border-border bg-white">
+				<div className="overflow-hidden rounded-xl border bg-white">
 					<iframe
 						src={env.VITE_BOOKING_RECURRING_URL}
 						title={sectionCopy.requestCallDialogTitle}
@@ -165,7 +165,7 @@ export function BookingRecordingSpaceDurationSection() {
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"pressable border-border bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+													"pressable bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
 													getCardStateClassName(isSelected),
 													isSelected && "shadow-primary/20",
@@ -236,7 +236,7 @@ export function BookingRecordingSpaceDurationSection() {
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable border-border peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
+												"pressable peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
 												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",

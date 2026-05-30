@@ -99,7 +99,7 @@
 
 /* darker background utility */
 @utility darker-bg-* {
-	background-color: oklch(from --value(--color-*) calc(l - 0.08) c h);
+	background-color: oklch(from --value(--color-*) calc(l * 0.9) c h);
 }
 
 @layer base {
