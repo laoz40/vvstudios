@@ -132,7 +132,7 @@ export function BookingAddonsSection() {
 				open={isCompatibilityDialogOpen}
 				onOpenChange={setIsCompatibilityDialogOpen}
 				title="4K isn't available for remote podcasts"
-				description="Remote Podcast uses our studio setup for your side of a Riverside.fm call, which doesn't support 4K recording."
+				description="Remote Podcast runs through Riverside.fm using our studio setup, which doesn't support our 4K recording addon."
 				closeLabel="Close"
 				footer={
 					<Button

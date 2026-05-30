@@ -172,7 +172,7 @@ export function Modal({
 						)}>
 						<div
 							className={cn(
-								"flex flex-col gap-2 pr-8 text-center sm:text-left",
+								"flex flex-col gap-2 text-left",
 								hideHeader && "sr-only",
 							)}>
 							<h2
