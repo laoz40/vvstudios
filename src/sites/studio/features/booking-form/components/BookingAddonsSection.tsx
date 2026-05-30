@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "@tanstack/react-store";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "#/components/ui/button";
 import {
 	Field,
@@ -81,49 +82,59 @@ export function BookingAddonsSection() {
 									/>
 								))}
 							</div>
-							{showDeliverableCount ? (
-								<formApi.Field name="deliverableCount">
-									{(deliverableCountField) => (
-										<Field className="gap-3 pt-2">
-											<div className="space-y-2">
-												<div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-													<FieldTitle className="text-base">Number of deliverables:</FieldTitle>
-													<RadioGroup
-														value={deliverableCountField.state.value}
-														onValueChange={(value) => {
-															deliverableCountField.handleChange(
-																value as BookingFormValues["deliverableCount"],
-															);
-															deliverableCountField.handleBlur();
-														}}
-														className="flex flex-wrap gap-x-5 gap-y-3">
-														{DELIVERABLE_COUNT_OPTIONS.map((count) => (
-															<FieldLabel
-																key={count}
-																className="flex cursor-pointer items-center gap-2 text-sm font-medium has-data-[state=checked]:bg-transparent dark:has-data-[state=checked]:bg-transparent">
-																<RadioGroupItem
-																	value={count}
-																	className="size-5 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-																/>
-																<span>{count}</span>
-															</FieldLabel>
-														))}
-													</RadioGroup>
-												</div>
-												<FieldDescription className="italic">
-													Editing add-ons are charged per deliverable (e.g. each episode recorded in
-													your session).
-												</FieldDescription>
-											</div>
-											{deliverableCountField.state.meta.isBlurred || shouldShowFieldError ? (
-												<FieldError
-													errors={toFieldErrorObjects(deliverableCountField.state.meta.errors)}
-												/>
-											) : null}
-										</Field>
-									)}
-								</formApi.Field>
-							) : null}
+							<AnimatePresence initial={false}>
+								{showDeliverableCount ? (
+									<motion.div
+										key="deliverable-count"
+										initial={{ height: 0, opacity: 0, y: -8 }}
+										animate={{ height: "auto", opacity: 1, y: 0 }}
+										exit={{ height: 0, opacity: 0, y: -8 }}
+										transition={{ duration: 0.2, ease: "easeOut" }}
+										className="overflow-hidden">
+										<formApi.Field name="deliverableCount">
+											{(deliverableCountField) => (
+												<Field className="gap-3 pt-2">
+													<div className="space-y-2">
+														<div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+															<FieldTitle className="text-base">Number of deliverables:</FieldTitle>
+															<RadioGroup
+																value={deliverableCountField.state.value}
+																onValueChange={(value) => {
+																	deliverableCountField.handleChange(
+																		value as BookingFormValues["deliverableCount"],
+																	);
+																	deliverableCountField.handleBlur();
+																}}
+																className="flex flex-wrap gap-x-5 gap-y-3">
+																{DELIVERABLE_COUNT_OPTIONS.map((count) => (
+																	<FieldLabel
+																		key={count}
+																		className="flex cursor-pointer items-center gap-2 text-sm font-medium has-data-[state=checked]:bg-transparent dark:has-data-[state=checked]:bg-transparent">
+																		<RadioGroupItem
+																			value={count}
+																			className="size-5 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+																		/>
+																		<span>{count}</span>
+																	</FieldLabel>
+																))}
+															</RadioGroup>
+														</div>
+														<FieldDescription className="italic">
+															Editing add-ons are charged per deliverable (e.g. each episode
+															recorded in your session).
+														</FieldDescription>
+													</div>
+													{deliverableCountField.state.meta.isBlurred || shouldShowFieldError ? (
+														<FieldError
+															errors={toFieldErrorObjects(deliverableCountField.state.meta.errors)}
+														/>
+													) : null}
+												</Field>
+											)}
+										</formApi.Field>
+									</motion.div>
+								) : null}
+							</AnimatePresence>
 						</FieldSet>
 					);
 				}}
