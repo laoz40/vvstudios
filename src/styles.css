@@ -107,6 +107,10 @@
 		@apply border-border outline-ring/50;
 	}
 
+	html {
+		scrollbar-gutter: stable;
+	}
+
 	/* button cursor */
 	button:not(:disabled),
 	[role="button"]:not(:disabled) {
