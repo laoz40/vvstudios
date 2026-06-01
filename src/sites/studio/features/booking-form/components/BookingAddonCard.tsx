@@ -12,15 +12,13 @@ import {
 	getPillStateClassName,
 	transitionClassName,
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
 import {
 	ADDON_PRICES,
 	formatBookingPrice,
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { Globe, Scissors, Smartphone, Video } from "lucide-react";
-
-export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 
 const addonCardCopy = {
 	"4K UHD Recording": {
