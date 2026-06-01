@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Checkbox } from "#/components/ui/checkbox";
 import { Button } from "#/components/ui/button";
+import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -311,44 +311,18 @@ export function BookingEditDialog({
 						</RadioGroup>
 					</section>
 
-					<section className="grid gap-3">
-						<Label>Add-ons</Label>
-						<div className="grid gap-3">
-							{ADDON_OPTIONS.map((addon) => {
-								const optionId = `edit-addon-${toOptionId(addon)}`;
-								const isChecked = draft.addons.includes(addon);
-
-								return (
-									<label
-										key={addon}
-										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
-										<Checkbox
-											id={optionId}
-											checked={isChecked}
-											disabled={isSaving}
-											onCheckedChange={(checked) => {
-												setDraft((current) => {
-													const nextAddons = checked
-														? [...current.addons, addon]
-														: current.addons.filter((value) => value !== addon);
-
-													return {
-														...current,
-														addons: nextAddons,
-														deliverableCount: hasEditingAddon(nextAddons)
-															? current.deliverableCount
-															: "",
-													};
-												});
-											}}
-										/>
-										<span className="font-medium">{addon}</span>
-									</label>
-								);
-							})}
-						</div>
-					</section>
+					<AdminAddonOptions
+						addons={draft.addons}
+						deliverableCount={draft.deliverableCount}
+						disabled={isSaving}
+						idPrefix="edit-addon"
+						onChange={(nextValues) => {
+							setDraft((current) => ({
+								...current,
+								...nextValues,
+							}));
+						}}
+					/>
 
 					{showDeliverableCount ? (
 						<section className="grid gap-3">

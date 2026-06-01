@@ -6,6 +6,7 @@ import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
+import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -23,7 +24,6 @@ import {
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
 import {
-	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
@@ -439,44 +439,18 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						</div>
 					</section>
 
-					<section className="grid gap-3">
-						<Label>Add-ons</Label>
-						<div className="grid gap-3">
-							{ADDON_OPTIONS.map((addon) => {
-								const optionId = `custom-invoice-addon-${toOptionId(addon)}`;
-								const isChecked = draft.addons.includes(addon);
-
-								return (
-									<label
-										key={addon}
-										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
-										<Checkbox
-											id={optionId}
-											checked={isChecked}
-											disabled={isGenerating}
-											onCheckedChange={(checked) => {
-												setDraft((current) => {
-													const nextAddons = checked
-														? [...current.addons, addon]
-														: current.addons.filter((value) => value !== addon);
-
-													return {
-														...current,
-														addons: nextAddons,
-														deliverableCount: hasEditingAddon(nextAddons)
-															? current.deliverableCount
-															: "",
-													};
-												});
-											}}
-										/>
-										<span className="font-medium">{addon}</span>
-									</label>
-								);
-							})}
-						</div>
-					</section>
+					<AdminAddonOptions
+						addons={draft.addons}
+						deliverableCount={draft.deliverableCount}
+						disabled={isGenerating}
+						idPrefix="custom-invoice-addon"
+						onChange={(nextValues) => {
+							setDraft((current) => ({
+								...current,
+								...nextValues,
+							}));
+						}}
+					/>
 
 					{showDeliverableCount ? (
 						<section className="grid gap-3">
