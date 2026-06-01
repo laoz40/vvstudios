@@ -5,7 +5,6 @@ import { google } from "googleapis";
 import { api, internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
 import {
 	formatDateValue,
 	getLastBookableDate,
@@ -13,6 +12,7 @@ import {
 } from "../src/sites/studio/lib/bookingdatetime";
 import { env } from "./env";
 import { requireAdmin } from "./lib/auth";
+import { createBookingInvoiceArtifactsForBooking } from "./lib/bookingInvoiceArtifacts";
 import {
 	assertBookingMeetsAvailabilitySettings,
 	buildEventWindow,
@@ -34,7 +34,6 @@ import {
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
-import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
 
 type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
@@ -102,40 +101,10 @@ function getGoogleCalendarClient() {
 }
 
 async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
-	const parsedBooking = bookingSchema.safeParse({
-		name: booking.name,
-		phone: booking.phone,
-		accountName: booking.accountName,
-		abn: booking.abn,
-		email: booking.email,
-		date: booking.date,
-		time: booking.time,
-		duration: booking.duration,
-		service: booking.service,
-		addons: booking.addons,
-		deliverableCount: booking.deliverableCount ?? "",
-		notes: booking.notes ?? "",
-	});
-
-	if (!parsedBooking.success) {
-		throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVALID_BOOKING_DATA" });
-	}
-
-	const artifacts = await createBookingInvoiceArtifacts({
-		bookingId: booking._id,
-		name: parsedBooking.data.name,
-		phone: parsedBooking.data.phone,
-		accountName: parsedBooking.data.accountName,
-		abn: parsedBooking.data.abn,
-		email: parsedBooking.data.email,
-		date: parsedBooking.data.date,
-		time: parsedBooking.data.time,
-		duration: parsedBooking.data.duration,
-		service: parsedBooking.data.service,
-		addons: parsedBooking.data.addons,
-		deliverableCount: parsedBooking.data.deliverableCount || undefined,
-		createdAt: Date.now(),
-	});
+	const { artifacts, booking: parsedBooking } = await createBookingInvoiceArtifactsForBooking(
+		booking,
+		Date.now(),
+	);
 
 	await sendBookingInvoiceEmail({
 		to: booking.email,
@@ -146,17 +115,17 @@ async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 
 	await sendBookingHostDetailsEmail({
 		invoiceNumber: artifacts.data.invoice.number,
-		name: parsedBooking.data.name,
-		email: parsedBooking.data.email,
-		phone: parsedBooking.data.phone,
-		accountName: parsedBooking.data.accountName,
-		abn: parsedBooking.data.abn,
-		date: parsedBooking.data.date,
-		time: parsedBooking.data.time,
-		service: parsedBooking.data.service,
-		duration: parsedBooking.data.duration,
-		addons: parsedBooking.data.addons,
-		notes: parsedBooking.data.notes,
+		name: parsedBooking.name,
+		email: parsedBooking.email,
+		phone: parsedBooking.phone,
+		accountName: parsedBooking.accountName,
+		abn: parsedBooking.abn,
+		date: parsedBooking.date,
+		time: parsedBooking.time,
+		service: parsedBooking.service,
+		duration: parsedBooking.duration,
+		addons: parsedBooking.addons,
+		notes: parsedBooking.notes,
 	});
 }
 

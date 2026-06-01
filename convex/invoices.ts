@@ -3,8 +3,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
-import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
+import { createBookingInvoiceArtifactsForBooking } from "./lib/bookingInvoiceArtifacts";
 
 type BookingInvoiceDownloadErrorData = {
 	code:
@@ -43,40 +42,10 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
 		}
 
-		const parsedBooking = bookingSchema.safeParse({
-			name: booking.name,
-			phone: booking.phone,
-			accountName: booking.accountName,
-			abn: booking.abn,
-			email: booking.email,
-			date: booking.date,
-			time: booking.time,
-			duration: booking.duration,
-			service: booking.service,
-			addons: booking.addons,
-			deliverableCount: booking.deliverableCount ?? "",
-			notes: booking.notes ?? "",
-		});
-
-		if (!parsedBooking.success) {
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVALID_BOOKING_DATA" });
-		}
-
-		const artifacts = await createBookingInvoiceArtifacts({
-			bookingId: booking._id,
-			name: parsedBooking.data.name,
-			phone: parsedBooking.data.phone,
-			accountName: parsedBooking.data.accountName,
-			abn: parsedBooking.data.abn,
-			email: parsedBooking.data.email,
-			date: parsedBooking.data.date,
-			time: parsedBooking.data.time,
-			duration: parsedBooking.data.duration,
-			service: parsedBooking.data.service,
-			addons: parsedBooking.data.addons,
-			deliverableCount: parsedBooking.data.deliverableCount || undefined,
-			createdAt: booking.pendingPaymentCreatedAt,
-		});
+		const { artifacts } = await createBookingInvoiceArtifactsForBooking(
+			booking,
+			booking.pendingPaymentCreatedAt,
+		);
 
 		return {
 			content: artifacts.pdf.content.buffer.slice(
