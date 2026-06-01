@@ -7,13 +7,13 @@ import {
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
 
-export const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
+const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
 
 const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
 
 const timeSectionKeySchema = z.enum(["morning", "afternoon", "evening"]).or(z.literal(""));
 
-export const savedBookingInfoSchema = z.object({
+const savedBookingInfoSchema = z.object({
 	service: z.union([z.literal(""), z.enum(SERVICES)]),
 	duration: z.union([z.literal(""), z.enum(DURATION_OPTIONS)]),
 	timeSectionKey: timeSectionKeySchema,
@@ -29,7 +29,7 @@ export const savedBookingInfoSchema = z.object({
 
 export type SavedBookingInfo = z.infer<typeof savedBookingInfoSchema>;
 
-export function parseSavedBookingInfo(rawValue: string | null) {
+function parseSavedBookingInfo(rawValue: string | null) {
 	if (!rawValue) {
 		return null;
 	}

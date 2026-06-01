@@ -9,7 +9,7 @@ function withBasePath(basePath: string, path: string) {
 	return `${basePath}${path}`;
 }
 
-export const studioRoutes = {
+const studioRoutes = {
 	home: withBasePath(studioBasePath, "/"),
 	book: withBasePath(studioBasePath, "/book"),
 	bookingComplete: withBasePath(studioBasePath, "/booking-complete"),

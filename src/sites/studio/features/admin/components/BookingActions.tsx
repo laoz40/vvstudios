@@ -31,10 +31,10 @@ import { DeliverablesEmailDialog } from "#studio/features/admin/components/Deliv
 import { RemainingBalanceDialog } from "#studio/features/admin/components/RemainingBalanceDialog";
 import {
 	EDIT_STATUS_OPTIONS,
-	editStatusDotClassNameMap,
-	editStatusLabelMap,
-	getBookingEditStatus,
-	type BookingEditStatus,
+	deliverableStatusDotClassNameMap,
+	deliverableStatusLabelMap,
+	getDeliverableStatus,
+	type DeliverableStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	getBookingInvoiceEmailErrorMessage,
@@ -123,7 +123,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
-	const editStatus = getBookingEditStatus(booking);
+	const deliverableStatus = getDeliverableStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
@@ -201,7 +201,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
-	async function handleUpdateEditStatus(nextEditStatus: BookingEditStatus) {
+	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
 		setIsUpdatingEditStatus(true);
 
 		try {
@@ -209,7 +209,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				bookingId: booking._id,
 				editStatus: nextEditStatus,
 			});
-			toast.success(`Edit status changed to ${editStatusLabelMap[nextEditStatus].toLowerCase()}.`);
+			toast.success(
+				`Edit status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
+			);
 		} catch {
 			toast.error("Unable to update edit status.");
 		} finally {
@@ -446,10 +448,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								{EDIT_STATUS_OPTIONS.map((option) => (
 									<StatusCircleButton
 										key={option}
-										ariaLabel={editStatusLabelMap[option]}
-										className={editStatusDotClassNameMap[option]}
+										ariaLabel={deliverableStatusLabelMap[option]}
+										className={deliverableStatusDotClassNameMap[option]}
 										disabled={isUpdatingEditStatus}
-										isSelected={editStatus === option}
+										isSelected={deliverableStatus === option}
 										onClick={() => {
 											void handleUpdateEditStatus(option);
 										}}

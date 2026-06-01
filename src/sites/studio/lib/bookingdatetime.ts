@@ -1,14 +1,8 @@
 export {
-	BOOKING_EVENT_BUFFER_MINUTES,
-	BOOKING_LEAD_TIME_MINUTES,
-	BOOKING_MAX_DAYS_AHEAD,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	DEFAULT_BOOKING_END_TIME,
-	DEFAULT_BOOKING_START_TIME,
-	DEFAULT_BOOKING_WEEK_SCHEDULE,
 	type BookingAvailabilitySettings,
-	type BookingDaySchedule,
 } from "#studio/lib/bookingAvailabilitySettings";
+
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
 	BOOKING_MAX_DAYS_AHEAD,
@@ -37,7 +31,7 @@ export function getCurrentMonthKey() {
 	return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function getAvailableTimesForBusyPeriods({
+function getAvailableTimesForBusyPeriods({
 	busyPeriods,
 	duration,
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
@@ -72,16 +66,6 @@ export function getAvailableTimesForBusyPeriods({
 	});
 }
 
-export function hasAvailableTimesForBusyPeriods({
-	busyPeriods,
-	duration,
-}: {
-	busyPeriods: BusyPeriod[];
-	duration: string;
-}) {
-	return getAvailableTimesForBusyPeriods({ busyPeriods, duration }).length > 0;
-}
-
 export function formatMonthKey(date: Date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -90,10 +74,6 @@ export function parseMonthKey(monthKey: string) {
 	const [year, month] = monthKey.split("-").map(Number);
 
 	return new Date(year, month - 1, 1);
-}
-
-export function formatMonthName(date: Date) {
-	return date.toLocaleString("default", { month: "long" });
 }
 
 export function formatDateValue(date: Date) {
@@ -175,7 +155,7 @@ export function startOfToday() {
 	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
-export function addDays(date: Date, days: number) {
+function addDays(date: Date, days: number) {
 	const result = new Date(date);
 	result.setDate(result.getDate() + days);
 	return result;
@@ -293,10 +273,6 @@ export function getStartOfWeekTimestamp(now = new Date()) {
 	startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
 
 	return startOfWeek.getTime();
-}
-
-export function getFirstName(name: string) {
-	return name.trim().split(/\s+/)[0] || name;
 }
 
 export function toOptionId(value: string) {

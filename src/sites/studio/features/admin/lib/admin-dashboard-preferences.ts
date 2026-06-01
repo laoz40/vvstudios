@@ -6,9 +6,9 @@ const ADMIN_DASHBOARD_STORAGE_KEYS = {
 	showUpcomingOnly: "vvstudios.adminDashboard.showUpcomingOnly",
 } as const;
 
-export const DEFAULT_ADMIN_DASHBOARD_SORTING: SortingState = [{ id: "session", desc: false }];
-export const DEFAULT_SHOW_STALE_BOOKINGS = true;
-export const DEFAULT_SHOW_UPCOMING_ONLY = true;
+const DEFAULT_ADMIN_DASHBOARD_SORTING: SortingState = [{ id: "session", desc: false }];
+const DEFAULT_SHOW_STALE_BOOKINGS = true;
+const DEFAULT_SHOW_UPCOMING_ONLY = true;
 
 const sortableColumnIds = new Set(["name", "session", "createdAt"]);
 
