@@ -1,5 +1,9 @@
 import { ConvexError } from "convex/values";
 import {
+	BOOKING_EVENT_BUFFER_MINUTES,
+	BOOKING_TIME_OPTIONS,
+} from "../../src/sites/studio/lib/bookingAvailabilitySettings";
+import {
 	getTimeZoneDateKey,
 	getUtcDateForZonedParts,
 } from "../../src/sites/studio/lib/zonedDateTime";
@@ -53,16 +57,6 @@ type BookingAvailabilityValidationErrorData = {
 		| "BOOKING_TOO_FAR_AHEAD"
 		| "BOOKING_TOO_SOON";
 };
-
-const BOOKING_EVENT_BUFFER_MINUTES = 30;
-
-// make every 30 minute time slot for one day
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hours = String(Math.floor(index / 2)).padStart(2, "0");
-	const minutes = index % 2 === 0 ? "00" : "30";
-
-	return `${hours}:${minutes}`;
-});
 
 export function parseDurationMinutes(duration: string) {
 	if (duration === "1h") return 60;
@@ -132,7 +126,7 @@ export function getAvailableTimeOptions({
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	timeZone,
 }: GetAvailableTimeOptionsArgs) {
-	return TIME_OPTIONS.filter((time) =>
+	return BOOKING_TIME_OPTIONS.filter((time) =>
 		isTimeSlotAvailable({
 			busyWindows,
 			date,

@@ -1,11 +1,13 @@
 export {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	BOOKING_TIME_OPTIONS,
 	type BookingAvailabilitySettings,
 } from "#studio/lib/bookingAvailabilitySettings";
 
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
 	BOOKING_MAX_DAYS_AHEAD,
+	BOOKING_TIME_OPTIONS,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	DEFAULT_BOOKING_END_TIME,
 	DEFAULT_BOOKING_START_TIME,
@@ -14,13 +16,6 @@ import {
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
-
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hours = String(Math.floor(index / 2)).padStart(2, "0");
-	const minutes = index % 2 === 0 ? "00" : "30";
-
-	return `${hours}:${minutes}`;
-});
 
 export interface BusyPeriod {
 	end: string;
@@ -53,7 +48,7 @@ function getAvailableTimesForBusyPeriods({
 		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes),
 	}));
 
-	return TIME_OPTIONS.filter((time) => {
+	return BOOKING_TIME_OPTIONS.filter((time) => {
 		const startMinutes = parseTimeToMinutes(time);
 		const endMinutes = startMinutes + durationMinutes;
 
