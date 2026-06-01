@@ -11,6 +11,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
@@ -79,18 +80,10 @@ export function DeliverablesEmailDialog({
 					<DialogTitle>Send Deliverables Email</DialogTitle>
 				</DialogHeader>
 
-				<div className="rounded-lg border bg-muted/40 p-4">
-					<dl className="grid gap-3 text-sm sm:grid-cols-2">
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Customer</dt>
-							<dd className="font-medium">{bookingName}</dd>
-						</div>
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Email</dt>
-							<dd className="break-all font-medium">{bookingEmail}</dd>
-						</div>
-					</dl>
-				</div>
+				<BookingCustomerSummary
+					bookingName={bookingName}
+					bookingEmail={bookingEmail}
+				/>
 
 				<FieldGroup>
 					<Field>

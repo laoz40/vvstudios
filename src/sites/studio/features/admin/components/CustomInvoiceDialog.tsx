@@ -7,6 +7,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
+import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
 import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import {
 	Dialog,
@@ -258,18 +259,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					<DialogTitle>Create custom invoice</DialogTitle>
 				</DialogHeader>
 
-				<div className="rounded-lg border bg-muted/40 p-4">
-					<dl className="grid gap-3 text-sm sm:grid-cols-2">
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Customer</dt>
-							<dd className="font-medium">{booking.name}</dd>
-						</div>
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Email</dt>
-							<dd className="break-all font-medium">{booking.email}</dd>
-						</div>
-					</dl>
-				</div>
+				<BookingCustomerSummary
+					bookingName={booking.name}
+					bookingEmail={booking.email}
+				/>
 
 				<form
 					className="grid gap-6"
