@@ -1,5 +1,7 @@
 import type { UserIdentity } from "convex/server";
 import { ConvexError } from "convex/values";
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
 
 export const ADMIN_ROLE = "admin";
 
@@ -15,6 +17,10 @@ type PublicMetadata = {
 
 type AuthErrorData = {
 	code: "NOT_AUTHENTICATED" | "NOT_AUTHORIZED";
+};
+
+type BookingNotFoundErrorData = {
+	code: "BOOKING_NOT_FOUND";
 };
 
 function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
@@ -43,4 +49,14 @@ export async function requireAdmin(ctx: AuthContext) {
 	}
 
 	return identity;
+}
+
+export async function requireBookingInDb(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	const booking = await ctx.db.get(bookingId);
+
+	if (!booking) {
+		throw new ConvexError<BookingNotFoundErrorData>({ code: "BOOKING_NOT_FOUND" });
+	}
+
+	return booking;
 }
