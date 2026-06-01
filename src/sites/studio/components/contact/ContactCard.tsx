@@ -1,13 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { ArrowRight } from "lucide-react";
 import micImage from "#studio/assets/mic.webp";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
-import { FaqSection } from "#studio/components/faq/FaqSection";
-import { Button } from "#/components/ui/button";
-import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
-import { studioSite } from "#/config/sites";
+import { CONTACT_EMAIL, CONTACT_PHONE } from "#/config/contact";
 
 const contactCardCopy = {
 	title: "Contact",
@@ -15,7 +9,7 @@ const contactCardCopy = {
 	studioImageAlt: "Podcast studio microphone setup at VV Studios Sydney",
 } as const;
 
-const contactItems = [
+const directContactItems = [
 	{
 		label: "Phone",
 		value: CONTACT_PHONE,
@@ -26,50 +20,9 @@ const contactItems = [
 		value: CONTACT_EMAIL,
 		href: `mailto:${CONTACT_EMAIL}`,
 	},
-	{
-		label: "Location",
-		value: STUDIO_ADDRESS,
-		href: STUDIO_ADDRESS_URL,
-	},
 ] as const;
 
-const directContactItems = contactItems.filter((item) => item.label !== "Location");
-
-const contactActionCopy = {
-	bookCta: "Book session",
-	tourCta: "Take free tour",
-} as const;
-
-export function ContactPage() {
-	return (
-		<section className="px-4 pb-12 sm:pb-16">
-			<div className="mx-auto w-full max-w-2xl">
-				<ContactCard />
-			</div>
-			<ContactFaqSection />
-			<div className="mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
-				<Button
-					asChild
-					size="lg"
-					className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0">
-					<Link to={studioSite.routes.book}>
-						{contactActionCopy.bookCta}
-						<ArrowRight
-							className="translate-y-px stroke-3"
-							aria-hidden
-						/>
-					</Link>
-				</Button>
-				<FreeTourDialogButton
-					label={contactActionCopy.tourCta}
-					className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
-				/>
-			</div>
-		</section>
-	);
-}
-
-function ContactCard() {
+export function ContactCard() {
 	const cardRef = useRef<HTMLDivElement | null>(null);
 	const glareRef = useRef<HTMLDivElement | null>(null);
 
@@ -194,14 +147,5 @@ function ContactCard() {
 				</div>
 			</div>
 		</div>
-	);
-}
-
-function ContactFaqSection() {
-	return (
-		<FaqSection
-			id="contact-faq-title"
-			className="mx-auto mt-16 w-full max-w-6xl"
-		/>
 	);
 }

@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { faqSectionCopy, HomePage } from "#studio/pages/HomePage";
+import { faqSectionCopy } from "#studio/components/faq/FaqSection";
+import { LandingFaq } from "#studio/components/landing/LandingFaq";
+import { LandingGallery } from "#studio/components/landing/LandingGallery";
+import { LandingHero } from "#studio/components/landing/LandingHero";
+import { LandingTestimonials } from "#studio/components/landing/LandingTestimonials";
+import { PricingSection } from "#studio/components/pricing/PricingSection";
 import {
 	buildFaqPageJsonLd,
 	buildLocalBusinessJsonLd,
@@ -35,5 +40,24 @@ export const Route = createFileRoute("/_public/")({
 			},
 		],
 	}),
-	component: HomePage,
+	component: HomeRoute,
 });
+
+function HomeRoute() {
+	return (
+		// Cancels StudioLayout's top padding so the landing hero starts behind the navbar.
+		<main className="-mt-18 md:-mt-24">
+			<LandingHero />
+			<div className="landing-page-content-overlap relative z-10 bg-background">
+				<LandingTestimonials />
+				<LandingGallery />
+				<PricingSection
+					compact
+					fadeIn
+					className="bg-background text-foreground"
+				/>
+				<LandingFaq />
+			</div>
+		</main>
+	);
+}

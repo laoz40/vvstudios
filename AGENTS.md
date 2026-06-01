@@ -50,6 +50,8 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Prefer small, focused components with clear props
 - Keep components mostly presentational; move reusable transforms, constants, validation, and formatting to feature `lib` files
 - Always use shadcn/ui components by default, and unpic for images
+- Avoid thin pass-through route/page/component files; inline small route-only UI and wrappers unless they are reused, stateful, substantial, or represent a clear domain concept.
+- Avoid tiny helper files/functions for one-off logic; inline them unless they remove meaningful duplication, are reused, or isolate a clear business rule.
 
 ### Naming Conventions
 
