@@ -3,7 +3,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { createBookingInvoiceArtifactsForBooking } from "./lib/bookingInvoiceArtifacts";
+import { createBookingInvoiceEmailArtifactsForBooking, renderBookingInvoicePdfInNode } from "./lib/bookingInvoiceArtifacts";
 
 type BookingInvoiceDownloadErrorData = {
 	code:
@@ -42,15 +42,16 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
 		}
 
-		const { artifacts } = await createBookingInvoiceArtifactsForBooking(
+		const { artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
 			booking,
 			booking.pendingPaymentCreatedAt,
 		);
+		const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 
 		return {
-			content: artifacts.pdf.content.buffer.slice(
-				artifacts.pdf.content.byteOffset,
-				artifacts.pdf.content.byteOffset + artifacts.pdf.content.byteLength,
+			content: pdfContent.buffer.slice(
+				pdfContent.byteOffset,
+				pdfContent.byteOffset + pdfContent.byteLength,
 			),
 			contentType: artifacts.pdf.contentType,
 			filename: artifacts.pdf.filename,

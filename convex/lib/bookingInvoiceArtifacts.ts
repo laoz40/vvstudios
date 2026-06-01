@@ -1,13 +1,19 @@
 import { ConvexError } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { bookingSchema } from "../../src/sites/studio/features/booking-form/lib/form-shared";
-import { createBookingInvoiceArtifacts } from "../../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
+import { buildBookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
+import type { BookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/types";
 
 type InvalidBookingDataError = {
 	code: "INVALID_BOOKING_DATA";
 };
 
-export async function createBookingInvoiceArtifactsForBooking(
+function createPdfFilename(invoiceNumber: string) {
+	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
+}
+
+export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
 ) {
@@ -30,7 +36,7 @@ export async function createBookingInvoiceArtifactsForBooking(
 		throw new ConvexError<InvalidBookingDataError>({ code: "INVALID_BOOKING_DATA" });
 	}
 
-	const artifacts = await createBookingInvoiceArtifacts({
+	const data = buildBookingInvoiceData({
 		bookingId: booking._id,
 		name: parsedBooking.data.name,
 		phone: parsedBooking.data.phone,
@@ -45,6 +51,25 @@ export async function createBookingInvoiceArtifactsForBooking(
 		deliverableCount: parsedBooking.data.deliverableCount || undefined,
 		createdAt,
 	});
+	const emailHtml = await renderBookingInvoiceEmail(data);
 
-	return { artifacts, booking: parsedBooking.data };
+	return {
+		artifacts: {
+			data,
+			emailHtml,
+			pdf: {
+				contentType: "application/pdf",
+				filename: createPdfFilename(data.invoice.number),
+			},
+		},
+		booking: parsedBooking.data,
+	};
+}
+
+export async function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
+	const { renderBookingInvoicePdf } = await import(
+		"../../src/sites/studio/features/booking-invoice/pdf/render-booking-invoice-pdf"
+	);
+
+	return await renderBookingInvoicePdf(data);
 }

@@ -12,7 +12,10 @@ import {
 } from "../src/sites/studio/lib/bookingdatetime";
 import { env } from "./env";
 import { requireAdmin } from "./lib/auth";
-import { createBookingInvoiceArtifactsForBooking } from "./lib/bookingInvoiceArtifacts";
+import {
+ 	createBookingInvoiceEmailArtifactsForBooking,
+ 	renderBookingInvoicePdfInNode,
+} from "./lib/bookingInvoiceArtifacts";
 import {
 	assertBookingMeetsAvailabilitySettings,
 	buildEventWindow,
@@ -101,16 +104,17 @@ function getGoogleCalendarClient() {
 }
 
 async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
-	const { artifacts, booking: parsedBooking } = await createBookingInvoiceArtifactsForBooking(
+	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		Date.now(),
 	);
+	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 
 	await sendBookingInvoiceEmail({
 		to: booking.email,
 		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
-		attachment: artifacts.pdf,
+		attachment: { ...artifacts.pdf, content: pdfContent },
 	});
 
 	await sendBookingHostDetailsEmail({
