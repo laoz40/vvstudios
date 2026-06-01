@@ -13,8 +13,8 @@ import {
 import { env } from "./env";
 import { requireAdmin } from "./lib/auth";
 import {
- 	createBookingInvoiceEmailArtifactsForBooking,
- 	renderBookingInvoicePdfInNode,
+	createBookingInvoiceEmailArtifactsForBooking,
+	renderBookingInvoicePdfInNode,
 } from "./lib/bookingInvoiceArtifacts";
 import {
 	assertBookingMeetsAvailabilitySettings,

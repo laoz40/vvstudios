@@ -67,9 +67,8 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 }
 
 export async function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
-	const { renderBookingInvoicePdf } = await import(
-		"../../src/sites/studio/features/booking-invoice/pdf/render-booking-invoice-pdf"
-	);
+	const { renderBookingInvoicePdf } =
+		await import("../../src/sites/studio/features/booking-invoice/pdf/render-booking-invoice-pdf");
 
 	return await renderBookingInvoicePdf(data);
 }

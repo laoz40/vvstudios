@@ -1,4 +1,8 @@
 import { ConvexError } from "convex/values";
+import {
+	getTimeZoneDateKey,
+	getUtcDateForZonedParts,
+} from "../../src/sites/studio/lib/zonedDateTime";
 
 export interface BusyWindow {
 	start: string;
@@ -87,89 +91,18 @@ function parseTime(time: string): TimeParts {
 	return { hours, minutes };
 }
 
-// keep one formatter per timezone so we can reuse it
-const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
-
-// make a formatter that shows a date in the chosen timezone
-function getTimeZoneFormatter(timeZone: string) {
-	const cachedFormatter = timeZoneFormatterCache.get(timeZone);
-
-	if (cachedFormatter) {
-		return cachedFormatter;
-	}
-
-	const formatter = new Intl.DateTimeFormat("en-CA", {
-		hour: "2-digit",
-		hour12: false,
-		hourCycle: "h23",
-		minute: "2-digit",
-		month: "2-digit",
-		second: "2-digit",
-		timeZone,
-		year: "numeric",
-		day: "2-digit",
-	});
-
-	timeZoneFormatterCache.set(timeZone, formatter);
-
-	return formatter;
-}
-
-// break a date into year month day hour and minute for that timezone
-interface TimeZoneParts extends DateParts, TimeParts {}
-
-function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
-	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
-	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
-	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
-
-	return {
-		day: values.day,
-		hours: values.hour === 24 ? 0 : values.hour,
-		minutes: values.minute,
-		month: values.month,
-		year: values.year,
-	};
-}
-
 // turn a local date and time in a timezone into a real utc date
 export function getUtcDateForZonedDateTime(date: string, time: string, timeZone: string) {
 	const dateParts = parseDate(date);
 	const timeParts = parseTime(time);
-	const targetUtcMs = Date.UTC(
-		dateParts.year,
-		dateParts.month - 1,
-		dateParts.day,
-		timeParts.hours,
-		timeParts.minutes,
-		0,
-		0,
-	);
-
-	let guessUtcMs = targetUtcMs;
-
-	for (let iteration = 0; iteration < 3; iteration += 1) {
-		const zonedParts = getTimeZoneParts(new Date(guessUtcMs), timeZone);
-		const currentUtcMs = Date.UTC(
-			zonedParts.year,
-			zonedParts.month - 1,
-			zonedParts.day,
-			zonedParts.hours,
-			zonedParts.minutes,
-			0,
-			0,
-		);
-		const diffMs = targetUtcMs - currentUtcMs;
-
-		guessUtcMs += diffMs;
-
-		if (diffMs === 0) {
-			break;
-		}
-	}
-
-	return new Date(guessUtcMs);
+	return getUtcDateForZonedParts({
+		day: dateParts.day,
+		hours: timeParts.hours,
+		minutes: timeParts.minutes,
+		month: dateParts.month,
+		timeZone,
+		year: dateParts.year,
+	});
 }
 
 export function buildEventWindow(date: string, time: string, duration: string, timeZone: string) {
@@ -452,12 +385,7 @@ function getNextDate(date: string) {
 }
 
 function getLocalDateKey(date: Date, timeZone: string) {
-	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
-	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
-	) as Record<"day" | "month" | "year", number>;
-
-	return `${values.year}-${String(values.month).padStart(2, "0")}-${String(values.day).padStart(2, "0")}`;
+	return getTimeZoneDateKey(date, timeZone);
 }
 
 function getOrCreateDayBucket(
