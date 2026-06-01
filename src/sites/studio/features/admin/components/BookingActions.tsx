@@ -19,6 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
@@ -291,43 +292,15 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsDownloadingInvoice(true);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: booking.duration,
-				service: booking.service,
-				addons: booking.addons,
-				deliverableCount: booking.deliverableCount ?? "",
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: parsedBooking.data.service,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
 				createdAt: booking.pendingPaymentCreatedAt,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			toast.success("Invoice download started.");
 		} catch {
 			toast.error("Unable to generate invoice.");

@@ -7,6 +7,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
+import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import {
 	Dialog,
 	DialogClose,
@@ -27,7 +28,6 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
-	bookingSchema,
 	hasEditingAddon,
 	toDeliverableCountOption,
 	type BookingFormValues,
@@ -146,46 +146,22 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setDownloadingInvoiceId(input._id);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: input.duration ?? booking.duration,
-				service: booking.service,
-				addons: input.addons,
-				deliverableCount,
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				dueDate: input.dueDate ?? parsedBooking.data.date,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: isBookingService(input.service) ? input.service : undefined,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
+				addons: input.addons as BookingFormValues["addons"],
 				createdAt: input.createdAt,
+				deliverableCount,
+				dueDate: input.dueDate,
+				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
+				service: isBookingService(input.service) ? input.service : undefined,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			toast.success("Custom invoice download started.");
 		} catch {
 			toast.error("Unable to generate invoice.");
@@ -208,56 +184,32 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setIsGenerating(true);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: draft.duration,
-				service: booking.service,
-				addons: draft.addons,
-				deliverableCount,
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
 			const customInvoice = await createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
 				service: draft.service || undefined,
 				duration: draft.duration,
 				addons: draft.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+				deliverableCount: deliverableCount || undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 			});
 
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				dueDate: draft.dueDate,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: draft.service || undefined,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
+				addons: draft.addons,
 				createdAt: customInvoice.createdAt,
+				deliverableCount,
+				dueDate: draft.dueDate,
+				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
+				service: draft.service || undefined,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			onOpenChange(false);
 			toast.success("Custom invoice download started.");
 		} catch {
