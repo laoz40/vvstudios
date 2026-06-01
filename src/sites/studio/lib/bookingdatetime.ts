@@ -308,6 +308,8 @@ function getDurationMinutes(duration: string) {
 	if (duration === "1h") return 60;
 	if (duration === "2h") return 120;
 	if (duration === "3h") return 180;
+	// Fall back to 1 hour so the calendar can still render date availability before a duration is selected.
+	// The form validation still requires a real duration before showing accurate times or submitting.
 	return 60;
 }
 
