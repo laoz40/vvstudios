@@ -87,5 +87,18 @@ export function getUtcDateForZonedParts({
 		}
 	}
 
-	return new Date(guessUtcMs);
+	const resolvedDate = new Date(guessUtcMs);
+	const resolvedParts = getTimeZoneParts(resolvedDate, timeZone);
+
+	if (
+		resolvedParts.year !== year ||
+		resolvedParts.month !== month ||
+		resolvedParts.day !== day ||
+		resolvedParts.hours !== hours ||
+		resolvedParts.minutes !== minutes
+	) {
+		throw new RangeError(`Invalid local time for time zone: ${timeZone}`);
+	}
+
+	return resolvedDate;
 }
