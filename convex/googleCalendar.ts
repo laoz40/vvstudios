@@ -106,7 +106,7 @@ function getGoogleCalendarClient() {
 async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
 	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
-		Date.now(),
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
 	);
 	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 
