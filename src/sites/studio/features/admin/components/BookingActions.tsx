@@ -211,7 +211,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				editStatus: nextEditStatus,
 			});
 			toast.success(
-				`Edit status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
+				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
 			);
 		} catch {
 			toast.error("Unable to update edit status.");
