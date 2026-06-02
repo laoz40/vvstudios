@@ -13,7 +13,8 @@ type BookingInvoiceDownloadErrorData = {
 		| "BOOKING_NOT_FOUND"
 		| "BOOKING_NOT_CONFIRMED"
 		| "INVOICE_DOWNLOAD_EXPIRED"
-		| "INVALID_BOOKING_DATA";
+		| "INVALID_BOOKING_DATA"
+		| "INVOICE_DOWNLOAD_FAILED";
 };
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
@@ -45,11 +46,26 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
 		}
 
-		const { artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
-			booking,
-			booking.pendingPaymentCreatedAt,
-		);
-		const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+		let artifacts: Awaited<
+			ReturnType<typeof createBookingInvoiceEmailArtifactsForBooking>
+		>["artifacts"];
+		let pdfContent: Awaited<ReturnType<typeof renderBookingInvoicePdfInNode>>;
+
+		try {
+			({ artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
+				booking,
+				booking.pendingPaymentCreatedAt,
+			));
+			pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({
+				code: "INVOICE_DOWNLOAD_FAILED",
+			});
+		}
 
 		return {
 			content: pdfContent.buffer.slice(
