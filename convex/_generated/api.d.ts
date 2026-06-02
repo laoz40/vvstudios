@@ -21,6 +21,7 @@ import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
+import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   "lib/auth": typeof lib_auth;
   "lib/bookingCalendarTime": typeof lib_bookingCalendarTime;
+  "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;

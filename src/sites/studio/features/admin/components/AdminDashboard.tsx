@@ -47,10 +47,13 @@ import {
 	storeShowUpcomingOnly,
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import {
-	editStatusBadgeClassNameMap,
-	editStatusBadgeVariantMap,
-	editStatusLabelMap,
-	getBookingEditStatus,
+	bookingStatusBadgeClassNameMap,
+	bookingStatusBadgeVariantMap,
+	bookingStatusLabelMap,
+	deliverableStatusBadgeClassNameMap,
+	deliverableStatusBadgeVariantMap,
+	deliverableStatusLabelMap,
+	getDeliverableStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	formatAudAmount,
@@ -80,33 +83,6 @@ export type AdminDashboardProps = {
 	isLoadingMoreBookings: boolean;
 	loadMoreBookings: () => void;
 	signOutControl: ReactNode;
-};
-
-const statusLabelMap: Record<AdminBookingRecord["status"], string> = {
-	abandoned: "Abandoned",
-	confirmed: "Confirmed",
-	expired: "Expired",
-	failed: "Needs follow up",
-	pending_payment: "Pending payment",
-};
-
-const statusBadgeVariantMap: Record<
-	AdminBookingRecord["status"],
-	ComponentProps<typeof Badge>["variant"]
-> = {
-	abandoned: "outline",
-	confirmed: "default",
-	expired: "outline",
-	failed: "destructive",
-	pending_payment: "secondary",
-};
-
-const statusBadgeClassNameMap: Record<AdminBookingRecord["status"], string | undefined> = {
-	abandoned: "bg-muted text-muted-foreground",
-	confirmed: "bg-green text-primary-foreground",
-	expired: "bg-muted text-muted-foreground",
-	failed: "bg-destructive text-primary-foreground",
-	pending_payment: "bg-primary text-primary-foreground",
 };
 
 function getColumnClassName(columnId: string) {
@@ -280,9 +256,9 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			header: "Status",
 			cell: ({ row }) => (
 				<Badge
-					variant={statusBadgeVariantMap[row.original.status]}
-					className={statusBadgeClassNameMap[row.original.status]}>
-					{statusLabelMap[row.original.status]}
+					variant={bookingStatusBadgeVariantMap[row.original.status]}
+					className={bookingStatusBadgeClassNameMap[row.original.status]}>
+					{bookingStatusLabelMap[row.original.status]}
 				</Badge>
 			),
 		},
@@ -396,13 +372,13 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 					return null;
 				}
 
-				const editStatus = getBookingEditStatus(row.original);
+				const deliverableStatus = getDeliverableStatus(row.original);
 
 				return (
 					<Badge
-						variant={editStatusBadgeVariantMap[editStatus]}
-						className={editStatusBadgeClassNameMap[editStatus]}>
-						{editStatusLabelMap[editStatus]}
+						variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+						className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+						{deliverableStatusLabelMap[deliverableStatus]}
 					</Badge>
 				);
 			},

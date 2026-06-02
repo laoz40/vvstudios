@@ -3,15 +3,18 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
-import { createBookingInvoiceArtifacts } from "../src/sites/studio/features/booking-invoice/lib/create-booking-invoice-artifacts";
+import {
+	createBookingInvoiceEmailArtifactsForBooking,
+	renderBookingInvoicePdfInNode,
+} from "./lib/bookingInvoiceArtifacts";
 
 type BookingInvoiceDownloadErrorData = {
 	code:
 		| "BOOKING_NOT_FOUND"
 		| "BOOKING_NOT_CONFIRMED"
 		| "INVOICE_DOWNLOAD_EXPIRED"
-		| "INVALID_BOOKING_DATA";
+		| "INVALID_BOOKING_DATA"
+		| "INVOICE_DOWNLOAD_FAILED";
 };
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
@@ -43,45 +46,31 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
 		}
 
-		const parsedBooking = bookingSchema.safeParse({
-			name: booking.name,
-			phone: booking.phone,
-			accountName: booking.accountName,
-			abn: booking.abn,
-			email: booking.email,
-			date: booking.date,
-			time: booking.time,
-			duration: booking.duration,
-			service: booking.service,
-			addons: booking.addons,
-			deliverableCount: booking.deliverableCount ?? "",
-			notes: booking.notes ?? "",
-		});
+		let artifacts: Awaited<
+			ReturnType<typeof createBookingInvoiceEmailArtifactsForBooking>
+		>["artifacts"];
+		let pdfContent: Awaited<ReturnType<typeof renderBookingInvoicePdfInNode>>;
 
-		if (!parsedBooking.success) {
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVALID_BOOKING_DATA" });
+		try {
+			({ artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
+				booking,
+				booking.pendingPaymentCreatedAt,
+			));
+			pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({
+				code: "INVOICE_DOWNLOAD_FAILED",
+			});
 		}
 
-		const artifacts = await createBookingInvoiceArtifacts({
-			bookingId: booking._id,
-			name: parsedBooking.data.name,
-			phone: parsedBooking.data.phone,
-			accountName: parsedBooking.data.accountName,
-			abn: parsedBooking.data.abn,
-			email: parsedBooking.data.email,
-			date: parsedBooking.data.date,
-			time: parsedBooking.data.time,
-			duration: parsedBooking.data.duration,
-			service: parsedBooking.data.service,
-			addons: parsedBooking.data.addons,
-			deliverableCount: parsedBooking.data.deliverableCount || undefined,
-			createdAt: booking.pendingPaymentCreatedAt,
-		});
-
 		return {
-			content: artifacts.pdf.content.buffer.slice(
-				artifacts.pdf.content.byteOffset,
-				artifacts.pdf.content.byteOffset + artifacts.pdf.content.byteLength,
+			content: pdfContent.buffer.slice(
+				pdfContent.byteOffset,
+				pdfContent.byteOffset + pdfContent.byteLength,
 			),
 			contentType: artifacts.pdf.contentType,
 			filename: artifacts.pdf.filename,

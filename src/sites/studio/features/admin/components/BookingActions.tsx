@@ -19,6 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
@@ -31,10 +32,10 @@ import { DeliverablesEmailDialog } from "#studio/features/admin/components/Deliv
 import { RemainingBalanceDialog } from "#studio/features/admin/components/RemainingBalanceDialog";
 import {
 	EDIT_STATUS_OPTIONS,
-	editStatusDotClassNameMap,
-	editStatusLabelMap,
-	getBookingEditStatus,
-	type BookingEditStatus,
+	deliverableStatusDotClassNameMap,
+	deliverableStatusLabelMap,
+	getDeliverableStatus,
+	type DeliverableStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	getBookingInvoiceEmailErrorMessage,
@@ -123,7 +124,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
-	const editStatus = getBookingEditStatus(booking);
+	const deliverableStatus = getDeliverableStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
@@ -201,7 +202,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
-	async function handleUpdateEditStatus(nextEditStatus: BookingEditStatus) {
+	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
 		setIsUpdatingEditStatus(true);
 
 		try {
@@ -209,7 +210,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				bookingId: booking._id,
 				editStatus: nextEditStatus,
 			});
-			toast.success(`Edit status changed to ${editStatusLabelMap[nextEditStatus].toLowerCase()}.`);
+			toast.success(
+				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
+			);
 		} catch {
 			toast.error("Unable to update edit status.");
 		} finally {
@@ -289,43 +292,15 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsDownloadingInvoice(true);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: booking.duration,
-				service: booking.service,
-				addons: booking.addons,
-				deliverableCount: booking.deliverableCount ?? "",
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: parsedBooking.data.service,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
 				createdAt: booking.pendingPaymentCreatedAt,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			toast.success("Invoice download started.");
 		} catch {
 			toast.error("Unable to generate invoice.");
@@ -446,10 +421,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								{EDIT_STATUS_OPTIONS.map((option) => (
 									<StatusCircleButton
 										key={option}
-										ariaLabel={editStatusLabelMap[option]}
-										className={editStatusDotClassNameMap[option]}
+										ariaLabel={deliverableStatusLabelMap[option]}
+										className={deliverableStatusDotClassNameMap[option]}
 										disabled={isUpdatingEditStatus}
-										isSelected={editStatus === option}
+										isSelected={deliverableStatus === option}
 										onClick={() => {
 											void handleUpdateEditStatus(option);
 										}}

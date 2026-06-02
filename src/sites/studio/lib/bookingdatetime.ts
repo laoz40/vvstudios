@@ -1,31 +1,21 @@
 export {
-	BOOKING_EVENT_BUFFER_MINUTES,
-	BOOKING_LEAD_TIME_MINUTES,
-	BOOKING_MAX_DAYS_AHEAD,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	DEFAULT_BOOKING_END_TIME,
-	DEFAULT_BOOKING_START_TIME,
-	DEFAULT_BOOKING_WEEK_SCHEDULE,
+	BOOKING_TIME_OPTIONS,
 	type BookingAvailabilitySettings,
-	type BookingDaySchedule,
 } from "#studio/lib/bookingAvailabilitySettings";
+
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
 	BOOKING_MAX_DAYS_AHEAD,
+	BOOKING_TIME_OPTIONS,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	DEFAULT_BOOKING_END_TIME,
 	DEFAULT_BOOKING_START_TIME,
 	type BookingAvailabilitySettings,
 } from "#studio/lib/bookingAvailabilitySettings";
+import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
-
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hours = String(Math.floor(index / 2)).padStart(2, "0");
-	const minutes = index % 2 === 0 ? "00" : "30";
-
-	return `${hours}:${minutes}`;
-});
 
 export interface BusyPeriod {
 	end: string;
@@ -37,7 +27,7 @@ export function getCurrentMonthKey() {
 	return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function getAvailableTimesForBusyPeriods({
+function getAvailableTimesForBusyPeriods({
 	busyPeriods,
 	duration,
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
@@ -58,7 +48,7 @@ export function getAvailableTimesForBusyPeriods({
 		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes),
 	}));
 
-	return TIME_OPTIONS.filter((time) => {
+	return BOOKING_TIME_OPTIONS.filter((time) => {
 		const startMinutes = parseTimeToMinutes(time);
 		const endMinutes = startMinutes + durationMinutes;
 
@@ -72,16 +62,6 @@ export function getAvailableTimesForBusyPeriods({
 	});
 }
 
-export function hasAvailableTimesForBusyPeriods({
-	busyPeriods,
-	duration,
-}: {
-	busyPeriods: BusyPeriod[];
-	duration: string;
-}) {
-	return getAvailableTimesForBusyPeriods({ busyPeriods, duration }).length > 0;
-}
-
 export function formatMonthKey(date: Date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -90,10 +70,6 @@ export function parseMonthKey(monthKey: string) {
 	const [year, month] = monthKey.split("-").map(Number);
 
 	return new Date(year, month - 1, 1);
-}
-
-export function formatMonthName(date: Date) {
-	return date.toLocaleString("default", { month: "long" });
 }
 
 export function formatDateValue(date: Date) {
@@ -175,7 +151,7 @@ export function startOfToday() {
 	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
-export function addDays(date: Date, days: number) {
+function addDays(date: Date, days: number) {
 	const result = new Date(date);
 	result.setDate(result.getDate() + days);
 	return result;
@@ -295,10 +271,6 @@ export function getStartOfWeekTimestamp(now = new Date()) {
 	return startOfWeek.getTime();
 }
 
-export function getFirstName(name: string) {
-	return name.trim().split(/\s+/)[0] || name;
-}
-
 export function toOptionId(value: string) {
 	return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 }
@@ -331,6 +303,8 @@ function getDurationMinutes(duration: string) {
 	if (duration === "1h") return 60;
 	if (duration === "2h") return 120;
 	if (duration === "3h") return 180;
+	// Fall back to 1 hour so the calendar can still render date availability before a duration is selected.
+	// The form validation still requires a real duration before showing accurate times or submitting.
 	return 60;
 }
 
@@ -341,80 +315,14 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 	}
 
 	const [hours, minutes] = timeValue.split(":").map(Number);
-	const targetUtcMs = Date.UTC(
-		date.getFullYear(),
-		date.getMonth(),
-		date.getDate(),
+	return getUtcDateForZonedParts({
+		day: date.getDate(),
 		hours,
 		minutes,
-		0,
-		0,
-	);
-
-	let guessUtcMs = targetUtcMs;
-
-	for (let iteration = 0; iteration < 3; iteration += 1) {
-		const zonedParts = getTimeZoneParts(new Date(guessUtcMs), timeZone);
-		const currentUtcMs = Date.UTC(
-			zonedParts.year,
-			zonedParts.month - 1,
-			zonedParts.day,
-			zonedParts.hours,
-			zonedParts.minutes,
-			0,
-			0,
-		);
-		const diffMs = targetUtcMs - currentUtcMs;
-
-		guessUtcMs += diffMs;
-
-		if (diffMs === 0) {
-			break;
-		}
-	}
-
-	return new Date(guessUtcMs);
-}
-
-const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
-
-function getTimeZoneFormatter(timeZone: string) {
-	const cachedFormatter = timeZoneFormatterCache.get(timeZone);
-
-	if (cachedFormatter) {
-		return cachedFormatter;
-	}
-
-	const formatter = new Intl.DateTimeFormat("en-CA", {
-		day: "2-digit",
-		hour: "2-digit",
-		hour12: false,
-		hourCycle: "h23",
-		minute: "2-digit",
-		month: "2-digit",
-		second: "2-digit",
+		month: date.getMonth() + 1,
 		timeZone,
-		year: "numeric",
+		year: date.getFullYear(),
 	});
-
-	timeZoneFormatterCache.set(timeZone, formatter);
-
-	return formatter;
-}
-
-function getTimeZoneParts(date: Date, timeZone: string) {
-	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
-	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
-	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
-
-	return {
-		day: values.day,
-		hours: values.hour === 24 ? 0 : values.hour,
-		minutes: values.minute,
-		month: values.month,
-		year: values.year,
-	};
 }
 
 function parseReadableTimeToMinutes(time: string) {

@@ -1,18 +1,10 @@
 import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
-import type {
-	BookingAddon,
-	BookingDuration,
-	BookingService,
-} from "#studio/features/booking-invoice/lib/types";
+import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingDuration } from "#studio/features/booking-invoice/lib/types";
 
 export const BOOKING_INVOICE_TITLE = "Tax Invoice";
 export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 export const BOOKING_DEPOSIT_AMOUNT = 50;
-
-export const SERVICE_LABELS: Record<BookingService, string> = {
-	"Armchair Setup": "Armchair Setup",
-	"Table Setup": "Table Setup",
-};
 
 export const DURATION_PRICES: Record<BookingDuration, number> = {
 	"1h": 200,

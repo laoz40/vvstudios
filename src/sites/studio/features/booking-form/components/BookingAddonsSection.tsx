@@ -13,10 +13,7 @@ import {
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Modal } from "#studio/components/Modal";
-import {
-	BookingAddonCard,
-	type BookingAddon,
-} from "#studio/features/booking-form/components/BookingAddonCard";
+import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
@@ -24,6 +21,7 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	hasEditingAddon,
 	toFieldErrorObjects,
+	type BookingAddon,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
 

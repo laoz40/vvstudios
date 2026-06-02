@@ -6,7 +6,7 @@ export type RemainingBalanceBooking = {
 	remainingBalanceAmount?: number;
 };
 
-export function getDefaultRemainingBalanceAmount(booking: RemainingBalanceBooking) {
+function getDefaultRemainingBalanceAmount(booking: RemainingBalanceBooking) {
 	return calculateBookingInvoiceAmounts(booking).totalDueAmount;
 }
 

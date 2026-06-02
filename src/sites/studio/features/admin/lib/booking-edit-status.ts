@@ -4,36 +4,58 @@ import type { Badge } from "#/components/ui/badge";
 
 export const EDIT_STATUS_OPTIONS = ["to_edit", "editing", "completed"] as const;
 
-export type BookingEditStatus = (typeof EDIT_STATUS_OPTIONS)[number];
+export type DeliverableStatus = (typeof EDIT_STATUS_OPTIONS)[number];
 
 type BookingRecord = Doc<"bookings">;
+type BookingStatus = BookingRecord["status"];
 
-export const editStatusLabelMap: Record<BookingEditStatus, string> = {
+export const bookingStatusLabelMap: Record<BookingStatus, string> = {
+	abandoned: "Abandoned",
+	confirmed: "Confirmed",
+	expired: "Expired",
+	failed: "Needs follow up",
+	pending_payment: "Pending payment",
+};
+
+export const bookingStatusBadgeVariantMap: Record<
+	BookingStatus,
+	ComponentProps<typeof Badge>["variant"]
+> = {
+	abandoned: "outline",
+	confirmed: "default",
+	expired: "outline",
+	failed: "destructive",
+	pending_payment: "secondary",
+};
+
+export const bookingStatusBadgeClassNameMap: Record<BookingStatus, string | undefined> = {
+	abandoned: "bg-muted text-muted-foreground",
+	confirmed: "bg-green text-primary-foreground",
+	expired: "bg-muted text-muted-foreground",
+	failed: "bg-destructive text-primary-foreground",
+	pending_payment: "bg-primary text-primary-foreground",
+};
+
+export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
 	to_edit: "Not Sent",
 	editing: "Editing",
 	completed: "Sent",
 };
 
-export const editStatusBadgeClassNameMap: Record<BookingEditStatus, string> = {
+export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
 	completed: "bg-green text-primary-foreground",
 };
 
-export const editStatusDotClassNameMap: Record<BookingEditStatus, string> = {
+export const deliverableStatusDotClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive",
 	editing: "bg-primary",
 	completed: "bg-green",
 };
 
-export const editStatusTextClassNameMap: Record<BookingEditStatus, string> = {
-	to_edit: "text-destructive",
-	editing: "text-primary",
-	completed: "text-green",
-};
-
-export const editStatusBadgeVariantMap: Record<
-	BookingEditStatus,
+export const deliverableStatusBadgeVariantMap: Record<
+	DeliverableStatus,
 	ComponentProps<typeof Badge>["variant"]
 > = {
 	to_edit: "destructive",
@@ -41,6 +63,6 @@ export const editStatusBadgeVariantMap: Record<
 	completed: "default",
 };
 
-export function getBookingEditStatus(booking: BookingRecord): BookingEditStatus {
+export function getDeliverableStatus(booking: BookingRecord): DeliverableStatus {
 	return booking.editStatus ?? "to_edit";
 }

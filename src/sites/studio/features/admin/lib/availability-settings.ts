@@ -1,12 +1,11 @@
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingdatetime";
+import {
+	BOOKING_TIME_OPTIONS,
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+} from "#studio/lib/bookingdatetime";
 
 export const bookingDayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export const bookingTimeOptions = Array.from({ length: 48 }, (_, index) => {
-	const hours = String(Math.floor(index / 2)).padStart(2, "0");
-	const minutes = index % 2 === 0 ? "00" : "30";
-	return `${hours}:${minutes}`;
-});
+export const bookingTimeOptions = BOOKING_TIME_OPTIONS;
 
 export type BookingSettings = typeof DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 export type NumberSettingKey = "eventBufferMinutes" | "leadTimeMinutes" | "maxDaysAhead";

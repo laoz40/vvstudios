@@ -6,6 +6,9 @@ import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
+import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
+import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import {
 	Dialog,
 	DialogClose,
@@ -23,11 +26,9 @@ import {
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
 import {
-	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
-	bookingSchema,
 	hasEditingAddon,
 	toDeliverableCountOption,
 	type BookingFormValues,
@@ -146,46 +147,22 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setDownloadingInvoiceId(input._id);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: input.duration ?? booking.duration,
-				service: booking.service,
-				addons: input.addons,
-				deliverableCount,
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				dueDate: input.dueDate ?? parsedBooking.data.date,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: isBookingService(input.service) ? input.service : undefined,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
+				addons: input.addons as BookingFormValues["addons"],
 				createdAt: input.createdAt,
+				deliverableCount,
+				dueDate: input.dueDate,
+				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
+				service: isBookingService(input.service) ? input.service : undefined,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			toast.success("Custom invoice download started.");
 		} catch {
 			toast.error("Unable to generate invoice.");
@@ -208,56 +185,32 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		setIsGenerating(true);
 
 		try {
-			const { downloadBookingInvoicePdf } =
-				await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-			const parsedBooking = bookingSchema.safeParse({
-				name: booking.name,
-				phone: booking.phone,
-				accountName: booking.accountName,
-				abn: booking.abn,
-				email: booking.email,
-				date: booking.date,
-				time: booking.time,
-				duration: draft.duration,
-				service: booking.service,
-				addons: draft.addons,
-				deliverableCount,
-				notes: booking.notes ?? "",
-			});
-
-			if (!parsedBooking.success) {
-				toast.error(parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.");
-				return;
-			}
-
 			const customInvoice = await createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
 				service: draft.service || undefined,
 				duration: draft.duration,
 				addons: draft.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+				deliverableCount: deliverableCount || undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 			});
 
-			await downloadBookingInvoicePdf({
-				bookingId: booking._id,
-				name: parsedBooking.data.name,
-				phone: parsedBooking.data.phone,
-				accountName: parsedBooking.data.accountName,
-				abn: parsedBooking.data.abn,
-				email: parsedBooking.data.email,
-				date: parsedBooking.data.date,
-				dueDate: draft.dueDate,
-				time: parsedBooking.data.time,
-				duration: parsedBooking.data.duration,
-				service: draft.service || undefined,
-				addons: parsedBooking.data.addons,
-				deliverableCount: parsedBooking.data.deliverableCount || undefined,
+			const result = await downloadAdminBookingInvoice({
+				booking,
+				addons: draft.addons,
 				createdAt: customInvoice.createdAt,
+				deliverableCount,
+				dueDate: draft.dueDate,
+				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
+				service: draft.service || undefined,
 			});
+
+			if (!result.success) {
+				toast.error(result.message);
+				return;
+			}
 			onOpenChange(false);
 			toast.success("Custom invoice download started.");
 		} catch {
@@ -306,18 +259,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					<DialogTitle>Create custom invoice</DialogTitle>
 				</DialogHeader>
 
-				<div className="rounded-lg border bg-muted/40 p-4">
-					<dl className="grid gap-3 text-sm sm:grid-cols-2">
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Customer</dt>
-							<dd className="font-medium">{booking.name}</dd>
-						</div>
-						<div className="grid gap-1">
-							<dt className="text-muted-foreground">Email</dt>
-							<dd className="break-all font-medium">{booking.email}</dd>
-						</div>
-					</dl>
-				</div>
+				<BookingCustomerSummary
+					bookingName={booking.name}
+					bookingEmail={booking.email}
+				/>
 
 				<form
 					className="grid gap-6"
@@ -439,44 +384,18 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						</div>
 					</section>
 
-					<section className="grid gap-3">
-						<Label>Add-ons</Label>
-						<div className="grid gap-3">
-							{ADDON_OPTIONS.map((addon) => {
-								const optionId = `custom-invoice-addon-${toOptionId(addon)}`;
-								const isChecked = draft.addons.includes(addon);
-
-								return (
-									<label
-										key={addon}
-										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
-										<Checkbox
-											id={optionId}
-											checked={isChecked}
-											disabled={isGenerating}
-											onCheckedChange={(checked) => {
-												setDraft((current) => {
-													const nextAddons = checked
-														? [...current.addons, addon]
-														: current.addons.filter((value) => value !== addon);
-
-													return {
-														...current,
-														addons: nextAddons,
-														deliverableCount: hasEditingAddon(nextAddons)
-															? current.deliverableCount
-															: "",
-													};
-												});
-											}}
-										/>
-										<span className="font-medium">{addon}</span>
-									</label>
-								);
-							})}
-						</div>
-					</section>
+					<AdminAddonOptions
+						addons={draft.addons}
+						deliverableCount={draft.deliverableCount}
+						disabled={isGenerating}
+						idPrefix="custom-invoice-addon"
+						onChange={(nextValues) => {
+							setDraft((current) => ({
+								...current,
+								...nextValues,
+							}));
+						}}
+					/>
 
 					{showDeliverableCount ? (
 						<section className="grid gap-3">

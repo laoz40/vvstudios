@@ -5,7 +5,7 @@ import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
-import { requireAdmin } from "./lib/auth";
+import { requireAdmin, requireBookingInDb } from "./lib/auth";
 import {
 	assertBookingMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
@@ -106,20 +106,8 @@ export const getBookings = query({
 
 type AdminAuthErrorCode = "NOT_AUTHENTICATED" | "NOT_AUTHORIZED";
 
-type DeleteBookingErrorData = {
-	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
-};
-
 type UpdateBookingStatusErrorData = {
 	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
-};
-
-type UpdateBookingPaidRemainingBalanceErrorData = {
-	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
-};
-
-type UpdateBookingEditStatusErrorData = {
-	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND";
 };
 
 type SaveBookingInstagramHandleErrorData = {
@@ -411,11 +399,7 @@ export const markBookingCompleted = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			status: "confirmed",
@@ -435,11 +419,7 @@ export const markBookingCompletionFailed = internalMutation({
 		failureCode: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			status: "failed",
@@ -481,11 +461,7 @@ export const markBookingReminderEmailSent = internalMutation({
 		now: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			reminderEmailClaimedAt: undefined,
@@ -503,11 +479,7 @@ export const markBookingReminderEmailFailed = internalMutation({
 		failureCode: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			reminderEmailClaimedAt: undefined,
@@ -559,12 +531,7 @@ export const deleteBooking = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<DeleteBookingErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.delete(args.bookingId);
 
@@ -590,12 +557,7 @@ export const updateBooking = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<DeleteBookingErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
+		const booking = await requireBookingInDb(ctx, args.bookingId);
 
 		const dateOrTimeChanged = booking.date !== args.date || booking.time !== args.time;
 
@@ -638,12 +600,7 @@ export const updateBookingStatus = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<UpdateBookingStatusErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
+		const booking = await requireBookingInDb(ctx, args.bookingId);
 
 		if (booking.status !== "confirmed" && booking.status !== "failed") {
 			throw new ConvexError<UpdateBookingStatusErrorData>({
@@ -666,14 +623,7 @@ export const updateBookingPaidRemainingBalance = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
-				code: "BOOKING_NOT_FOUND",
-			});
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			paidRemainingBalance: args.paidRemainingBalance,
@@ -690,14 +640,7 @@ export const updateBookingEditStatus = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<UpdateBookingEditStatusErrorData>({
-				code: "BOOKING_NOT_FOUND",
-			});
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			editStatus: args.editStatus,
@@ -714,14 +657,7 @@ export const updateBookingRemainingBalanceAmount = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			throw new ConvexError<UpdateBookingPaidRemainingBalanceErrorData>({
-				code: "BOOKING_NOT_FOUND",
-			});
-		}
+		await requireBookingInDb(ctx, args.bookingId);
 
 		await ctx.db.patch(args.bookingId, {
 			remainingBalanceAmount: Math.max(args.remainingBalanceAmount, 0),

@@ -57,7 +57,7 @@ export const seoMetadata = {
 	},
 } as const satisfies Record<string, SeoMetadata>;
 
-export function buildAbsoluteUrl(path: string) {
+function buildAbsoluteUrl(path: string) {
 	return new URL(path, siteUrl).toString();
 }
 
