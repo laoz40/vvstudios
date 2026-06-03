@@ -19,8 +19,6 @@ export default defineSchema({
 		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
-		// Legacy field kept only until old custom invoice records are migrated.
-		deliverableCount: v.optional(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		includeDepositLineItem: v.boolean(),
@@ -41,8 +39,6 @@ export default defineSchema({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		// Legacy field kept only until old booking records are migrated.
-		deliverableCount: v.optional(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
