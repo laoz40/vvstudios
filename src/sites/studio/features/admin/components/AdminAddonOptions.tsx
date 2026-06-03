@@ -1,26 +1,26 @@
 import { Checkbox } from "#/components/ui/checkbox";
 import { Label } from "#/components/ui/label";
-import {
-	ADDON_OPTIONS,
-	hasEditingAddon,
-	type BookingFormValues,
-} from "#studio/features/booking-form/lib/form-shared";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type AdminAddonOptionsProps = {
 	addons: BookingFormValues["addons"];
-	deliverableCount: BookingFormValues["deliverableCount"];
+	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	disabled: boolean;
 	idPrefix: string;
 	onChange: (nextValues: {
 		addons: BookingFormValues["addons"];
-		deliverableCount: BookingFormValues["deliverableCount"];
+		essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+		clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	}) => void;
 };
 
 export function AdminAddonOptions({
 	addons,
-	deliverableCount,
+	essentialEditQuantity,
+	clipsPackageQuantity,
 	disabled,
 	idPrefix,
 	onChange,
@@ -49,7 +49,12 @@ export function AdminAddonOptions({
 
 									onChange({
 										addons: nextAddons,
-										deliverableCount: hasEditingAddon(nextAddons) ? deliverableCount : "",
+										essentialEditQuantity: nextAddons.includes("Essential Edit")
+											? essentialEditQuantity
+											: "",
+										clipsPackageQuantity: nextAddons.includes("Clips Package")
+											? clipsPackageQuantity
+											: "",
 									});
 								}}
 							/>

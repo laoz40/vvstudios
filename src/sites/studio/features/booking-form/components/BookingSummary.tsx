@@ -20,7 +20,13 @@ import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/booki
 export interface BookingSummaryProps {
 	values: Pick<
 		BookingFormValues,
-		"addons" | "date" | "deliverableCount" | "duration" | "service" | "time"
+		| "addons"
+		| "clipsPackageQuantity"
+		| "date"
+		| "duration"
+		| "essentialEditQuantity"
+		| "service"
+		| "time"
 	>;
 }
 
@@ -54,7 +60,7 @@ export function BookingSummary({ values }: BookingSummaryProps) {
 							</div>
 						) : null}
 						{values.addons.map((addon) => {
-							const quantity = getEditingAddonQuantity(addon, values.deliverableCount);
+							const quantity = getEditingAddonQuantity(addon, values);
 							const isEditingAddon = EDITING_ADDONS.includes(
 								addon as (typeof EDITING_ADDONS)[number],
 							);

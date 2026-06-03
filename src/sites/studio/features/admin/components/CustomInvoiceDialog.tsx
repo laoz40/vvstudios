@@ -29,7 +29,6 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
-	hasEditingAddon,
 	toDeliverableCountOption,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
@@ -41,7 +40,8 @@ type CustomInvoiceDraft = {
 	service: BookingService | "";
 	duration: BookingFormValues["duration"];
 	addons: BookingFormValues["addons"];
-	deliverableCount: BookingFormValues["deliverableCount"];
+	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	dueDate: string;
 	includeDepositLineItem: boolean;
 };
@@ -60,31 +60,20 @@ function isBookingService(value: string | undefined): value is BookingService {
 	return Boolean(value);
 }
 
-function getInvoiceDeliverableCount(input: {
-	addons: BookingFormValues["addons"];
-	bookingDeliverableCount?: string;
-	deliverableCount?: string;
-}) {
-	const deliverableCount =
-		toDeliverableCountOption(input.deliverableCount) ||
-		toDeliverableCountOption(input.bookingDeliverableCount);
-
-	return hasEditingAddon(input.addons) ? deliverableCount || "1" : "";
-}
-
 function formatInvoiceTotal(input: {
 	service?: string;
 	addons: BookingFormValues["addons"];
 	duration: string;
 	includeDepositLineItem: boolean;
-	deliverableCount?: string;
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
 }) {
 	const serviceAmount =
 		isBookingService(input.service) && isBookingDuration(input.duration)
 			? DURATION_PRICES[input.duration]
 			: 0;
 	const addonsAmount = input.addons.reduce(
-		(total, addon) => total + getAddonAmount(addon, input.deliverableCount),
+		(total, addon) => total + getAddonAmount(addon, input),
 		0,
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
@@ -93,6 +82,53 @@ function formatInvoiceTotal(input: {
 		style: "currency",
 		currency: "AUD",
 	}).format(Math.max(serviceAmount + addonsAmount - depositAmount, 0));
+}
+
+type CustomInvoiceQuantityOptionsProps = {
+	disabled: boolean;
+	idPrefix: string;
+	label: string;
+	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
+	value: string;
+};
+
+function CustomInvoiceQuantityOptions({
+	disabled,
+	idPrefix,
+	label,
+	onChange,
+	value,
+}: CustomInvoiceQuantityOptionsProps) {
+	return (
+		<section className="grid gap-3">
+			<Label>{label}</Label>
+			<div className="grid gap-3 sm:grid-cols-4">
+				{DELIVERABLE_COUNT_OPTIONS.map((count) => {
+					const optionId = `${idPrefix}-${count}`;
+					const isChecked = value === count;
+
+					return (
+						<label
+							key={count}
+							htmlFor={optionId}
+							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							<Checkbox
+								id={optionId}
+								checked={isChecked}
+								disabled={disabled}
+								onCheckedChange={(checked) => {
+									if (checked === true) {
+										onChange(count);
+									}
+								}}
+							/>
+							<span className="font-medium">{count}</span>
+						</label>
+					);
+				})}
+			</div>
+		</section>
+	);
 }
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
@@ -104,7 +140,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		service: "",
 		duration: booking.duration as BookingFormValues["duration"],
 		addons: [],
-		deliverableCount: toDeliverableCountOption(booking.deliverableCount),
+		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
+		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		dueDate: booking.date,
 		includeDepositLineItem: false,
 	});
@@ -112,7 +149,6 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 	const hasInvoiceSelection =
 		Boolean(draft.service) || draft.addons.length > 0 || draft.includeDepositLineItem;
-	const showDeliverableCount = hasEditingAddon(draft.addons);
 
 	useEffect(() => {
 		if (open) {
@@ -120,12 +156,19 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				service: "",
 				duration: booking.duration as BookingFormValues["duration"],
 				addons: [],
-				deliverableCount: toDeliverableCountOption(booking.deliverableCount),
+				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
+				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 				dueDate: booking.date,
 				includeDepositLineItem: false,
 			});
 		}
-	}, [booking.date, booking.deliverableCount, booking.duration, open]);
+	}, [
+		booking.clipsPackageQuantity,
+		booking.date,
+		booking.duration,
+		booking.essentialEditQuantity,
+		open,
+	]);
 
 	async function downloadCustomInvoice(input: {
 		_id: string;
@@ -136,14 +179,9 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		includeDepositLineItem: boolean;
 		createdAt: number;
 		duration?: string;
-		deliverableCount?: string;
+		essentialEditQuantity?: string;
+		clipsPackageQuantity?: string;
 	}) {
-		const deliverableCount = getInvoiceDeliverableCount({
-			addons: input.addons as BookingFormValues["addons"],
-			bookingDeliverableCount: booking.deliverableCount,
-			deliverableCount: input.deliverableCount,
-		});
-
 		setDownloadingInvoiceId(input._id);
 
 		try {
@@ -151,7 +189,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				booking,
 				addons: input.addons as BookingFormValues["addons"],
 				createdAt: input.createdAt,
-				deliverableCount,
+				essentialEditQuantity: input.essentialEditQuantity ?? booking.essentialEditQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity ?? booking.clipsPackageQuantity,
 				dueDate: input.dueDate,
 				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
@@ -176,12 +215,6 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
-		const deliverableCount = getInvoiceDeliverableCount({
-			addons: draft.addons,
-			bookingDeliverableCount: booking.deliverableCount,
-			deliverableCount: draft.deliverableCount,
-		});
-
 		setIsGenerating(true);
 
 		try {
@@ -191,7 +224,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				service: draft.service || undefined,
 				duration: draft.duration,
 				addons: draft.addons,
-				deliverableCount: deliverableCount || undefined,
+				essentialEditQuantity: draft.essentialEditQuantity || undefined,
+				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 			});
 
@@ -199,7 +233,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				booking,
 				addons: draft.addons,
 				createdAt: customInvoice.createdAt,
-				deliverableCount,
+				essentialEditQuantity: draft.essentialEditQuantity,
+				clipsPackageQuantity: draft.clipsPackageQuantity,
 				dueDate: draft.dueDate,
 				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
@@ -304,7 +339,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														addons: invoice.addons as BookingFormValues["addons"],
 														duration: invoice.duration ?? booking.duration,
 														includeDepositLineItem: invoice.includeDepositLineItem,
-														deliverableCount: invoice.deliverableCount ?? booking.deliverableCount,
+														essentialEditQuantity:
+															invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
+														clipsPackageQuantity:
+															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
 													})}
 												</span>
 											</div>
@@ -386,7 +424,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 					<AdminAddonOptions
 						addons={draft.addons}
-						deliverableCount={draft.deliverableCount}
+						essentialEditQuantity={draft.essentialEditQuantity}
+						clipsPackageQuantity={draft.clipsPackageQuantity}
 						disabled={isGenerating}
 						idPrefix="custom-invoice-addon"
 						onChange={(nextValues) => {
@@ -397,37 +436,27 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						}}
 					/>
 
-					{showDeliverableCount ? (
-						<section className="grid gap-3">
-							<Label>Number of deliverables</Label>
-							<div className="grid gap-3 sm:grid-cols-4">
-								{DELIVERABLE_COUNT_OPTIONS.map((count) => {
-									const optionId = `custom-invoice-deliverable-count-${count}`;
-									const isChecked = draft.deliverableCount === count;
-
-									return (
-										<label
-											key={count}
-											htmlFor={optionId}
-											className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
-											<Checkbox
-												id={optionId}
-												checked={isChecked}
-												disabled={isGenerating}
-												onCheckedChange={(checked) => {
-													if (checked !== true) {
-														return;
-													}
-
-													setDraft((current) => ({ ...current, deliverableCount: count }));
-												}}
-											/>
-											<span className="font-medium">{count}</span>
-										</label>
-									);
-								})}
-							</div>
-						</section>
+					{draft.addons.includes("Essential Edit") ? (
+						<CustomInvoiceQuantityOptions
+							idPrefix="custom-invoice-essential-edit-quantity"
+							label="Essential Edit quantity"
+							value={draft.essentialEditQuantity ?? ""}
+							disabled={isGenerating}
+							onChange={(count) => {
+								setDraft((current) => ({ ...current, essentialEditQuantity: count }));
+							}}
+						/>
+					) : null}
+					{draft.addons.includes("Clips Package") ? (
+						<CustomInvoiceQuantityOptions
+							idPrefix="custom-invoice-clips-package-quantity"
+							label="Clips Package quantity"
+							value={draft.clipsPackageQuantity ?? ""}
+							disabled={isGenerating}
+							onChange={(count) => {
+								setDraft((current) => ({ ...current, clipsPackageQuantity: count }));
+							}}
+						/>
 					) : null}
 
 					<section className="grid gap-3">

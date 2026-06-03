@@ -169,7 +169,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: values.duration,
 				service: values.service,
 				addons: values.addons,
-				deliverableCount: values.deliverableCount,
+				essentialEditQuantity: values.essentialEditQuantity,
+				clipsPackageQuantity: values.clipsPackageQuantity,
 				notes: values.notes,
 			});
 
@@ -190,7 +191,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				duration: parsedValues.data.duration,
 				service: parsedValues.data.service,
 				addons: parsedValues.data.addons,
-				deliverableCount: parsedValues.data.deliverableCount || undefined,
+				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
+				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
 				notes: parsedValues.data.notes || undefined,
 			});
 			setIsEditDialogOpen(false);

@@ -77,7 +77,8 @@ export const createEmbeddedCheckoutSession = action({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		deliverableCount: v.optional(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreateEmbeddedCheckoutSessionResult> => {
@@ -107,7 +108,8 @@ export const createEmbeddedCheckoutSession = action({
 			duration: booking.duration,
 			service: booking.service,
 			addons: booking.addons,
-			deliverableCount: booking.deliverableCount || undefined,
+			essentialEditQuantity: booking.essentialEditQuantity || undefined,
+			clipsPackageQuantity: booking.clipsPackageQuantity || undefined,
 			notes: booking.notes || undefined,
 		});
 

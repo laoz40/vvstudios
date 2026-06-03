@@ -28,7 +28,8 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		duration: booking.duration,
 		service: booking.service,
 		addons: booking.addons,
-		deliverableCount: booking.deliverableCount ?? "",
+		essentialEditQuantity: booking.essentialEditQuantity ?? "",
+		clipsPackageQuantity: booking.clipsPackageQuantity ?? "",
 		notes: booking.notes ?? "",
 	});
 
@@ -48,7 +49,8 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		duration: parsedBooking.data.duration,
 		service: parsedBooking.data.service,
 		addons: parsedBooking.data.addons,
-		deliverableCount: parsedBooking.data.deliverableCount || undefined,
+		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
 	});
 	const emailHtml = await renderBookingInvoiceEmail(data);
