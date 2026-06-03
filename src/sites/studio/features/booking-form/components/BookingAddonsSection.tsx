@@ -148,6 +148,7 @@ export function BookingAddonsSection() {
 											{addon === "Essential Edit" &&
 											field.state.value.includes("Essential Edit") ? (
 												<BookingAddonQuantityField
+													key="essentialEditQuantity"
 													formApi={formApi}
 													fieldName="essentialEditQuantity"
 													label="Number of Essential Edits"
@@ -157,6 +158,7 @@ export function BookingAddonsSection() {
 											) : null}
 											{addon === "Clips Package" && field.state.value.includes("Clips Package") ? (
 												<BookingAddonQuantityField
+													key="clipsPackageQuantity"
 													formApi={formApi}
 													fieldName="clipsPackageQuantity"
 													label="Number of Clips Packages"
