@@ -29,7 +29,6 @@ import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
-import type * as migrations from "../migrations.js";
 import type * as reminders from "../reminders.js";
 import type * as stripe from "../stripe.js";
 
@@ -61,7 +60,6 @@ declare const fullApi: ApiFromModules<{
   "lib/googleDriveLinks": typeof lib_googleDriveLinks;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
-  migrations: typeof migrations;
   reminders: typeof reminders;
   stripe: typeof stripe;
 }>;
