@@ -9,7 +9,8 @@ export type DownloadAdminBookingInvoiceInput = {
 	booking: Doc<"bookings">;
 	addons?: BookingFormValues["addons"];
 	createdAt?: number;
-	deliverableCount?: string;
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
 	dueDate?: string;
 	duration?: BookingFormValues["duration"];
 	includeDepositLineItem?: boolean;
@@ -25,7 +26,8 @@ export async function downloadAdminBookingInvoice({
 	booking,
 	addons,
 	createdAt,
-	deliverableCount = booking.deliverableCount ?? "",
+	essentialEditQuantity = booking.essentialEditQuantity ?? "",
+	clipsPackageQuantity = booking.clipsPackageQuantity ?? "",
 	dueDate,
 	duration = booking.duration as BookingFormValues["duration"],
 	includeDepositLineItem,
@@ -46,7 +48,8 @@ export async function downloadAdminBookingInvoice({
 		duration,
 		service: booking.service,
 		addons: invoiceAddons,
-		deliverableCount,
+		essentialEditQuantity,
+		clipsPackageQuantity,
 		notes: booking.notes ?? "",
 	});
 
@@ -70,7 +73,8 @@ export async function downloadAdminBookingInvoice({
 		duration: parsedBooking.data.duration,
 		service: service ?? parsedBooking.data.service,
 		addons: parsedBooking.data.addons,
-		deliverableCount: parsedBooking.data.deliverableCount || undefined,
+		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
 		includeDepositLineItem,
 		invoiceNumber,

@@ -33,7 +33,8 @@ export const createPendingBooking = internalMutation({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		deliverableCount: v.optional(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
@@ -79,7 +80,8 @@ export const createPendingBooking = internalMutation({
 			duration: args.duration,
 			service: args.service,
 			addons: args.addons,
-			deliverableCount: args.deliverableCount,
+			essentialEditQuantity: args.essentialEditQuantity,
+			clipsPackageQuantity: args.clipsPackageQuantity,
 			notes: args.notes,
 			status: "pending_payment",
 			pendingPaymentCreatedAt: Date.now(),
@@ -129,7 +131,8 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 		duration: booking.duration,
 		service: booking.service,
 		addons: booking.addons,
-		deliverableCount: booking.deliverableCount,
+		essentialEditQuantity: booking.essentialEditQuantity,
+		clipsPackageQuantity: booking.clipsPackageQuantity,
 	};
 }
 
@@ -552,7 +555,8 @@ export const updateBooking = mutation({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		deliverableCount: v.optional(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
@@ -573,12 +577,14 @@ export const updateBooking = mutation({
 			remainingBalanceAmount: calculateBookingInvoiceAmounts({
 				duration: args.duration,
 				addons: args.addons,
-				deliverableCount: args.deliverableCount,
+				essentialEditQuantity: args.essentialEditQuantity,
+				clipsPackageQuantity: args.clipsPackageQuantity,
 			}).totalDueAmount,
 			sessionStartAt: getSessionStartAt(args.date, args.time),
 			service: args.service,
 			addons: args.addons,
-			deliverableCount: args.deliverableCount,
+			essentialEditQuantity: args.essentialEditQuantity,
+			clipsPackageQuantity: args.clipsPackageQuantity,
 			notes: args.notes,
 			...(dateOrTimeChanged
 				? {

@@ -36,7 +36,8 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const amounts = calculateBookingInvoiceAmounts({
 		duration: input.duration,
 		addons: input.addons,
-		deliverableCount: input.deliverableCount,
+		essentialEditQuantity: input.essentialEditQuantity,
+		clipsPackageQuantity: input.clipsPackageQuantity,
 		includeBaseAmount: Boolean(input.service),
 		includeDepositLineItem: input.includeDepositLineItem !== false,
 	});
@@ -49,10 +50,13 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		input.addons.length > 0
 			? input.addons
 					.map((addon) => {
-						const quantity = getAddonQuantity(addon, input.deliverableCount);
+						const quantity = getAddonQuantity(addon, {
+							essentialEditQuantity: input.essentialEditQuantity,
+							clipsPackageQuantity: input.clipsPackageQuantity,
+						});
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
 
-						return `${addon}${quantityLabel} (${getAddonAmount(addon, input.deliverableCount).toFixed(2)})`;
+						return `${addon}${quantityLabel} (${getAddonAmount(addon, { essentialEditQuantity: input.essentialEditQuantity, clipsPackageQuantity: input.clipsPackageQuantity }).toFixed(2)})`;
 					})
 					.join(", ")
 			: "No add-ons selected";
@@ -69,9 +73,15 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 				]
 			: []),
 		...input.addons.map((addon) => ({
-			amount: getAddonAmount(addon, input.deliverableCount),
+			amount: getAddonAmount(addon, {
+				essentialEditQuantity: input.essentialEditQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity,
+			}),
 			description: addon,
-			quantity: getAddonQuantity(addon, input.deliverableCount),
+			quantity: getAddonQuantity(addon, {
+				essentialEditQuantity: input.essentialEditQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity,
+			}),
 			rate: ADDON_PRICES[addon],
 		})),
 		...(input.includeDepositLineItem === false

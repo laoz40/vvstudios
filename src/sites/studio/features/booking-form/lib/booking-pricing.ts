@@ -1,7 +1,7 @@
-import {
-	EDITING_ADDONS,
-	type BookingAddon,
-	type BookingFormValues,
+import { getEditingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import type {
+	BookingAddon,
+	BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
 
 export const DURATION_PRICES = {
@@ -21,21 +21,17 @@ export function formatBookingPrice(price: number) {
 	return `$${price}`;
 }
 
-export function getEditingAddonQuantity(addon: BookingAddon, deliverableCount: string | undefined) {
-	if (!EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number])) {
-		return 1;
-	}
-
-	const quantity = Number(deliverableCount);
-	return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
-}
+export { getEditingAddonQuantityForForm as getEditingAddonQuantity };
 
 export function getBookingTotal(
-	values: Pick<BookingFormValues, "addons" | "deliverableCount" | "duration">,
+	values: Pick<
+		BookingFormValues,
+		"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
+	>,
 ) {
 	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const addonsTotal = values.addons.reduce((total, addon) => {
-		return total + ADDON_PRICES[addon] * getEditingAddonQuantity(addon, values.deliverableCount);
+		return total + ADDON_PRICES[addon] * getEditingAddonQuantityForForm(addon, values);
 	}, 0);
 
 	return durationTotal + addonsTotal;

@@ -21,7 +21,8 @@ export interface BookingInvoiceBuilderInput {
 	duration: BookingDuration;
 	service?: BookingService;
 	addons: BookingAddon[];
-	deliverableCount?: string;
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
 	createdAt?: number;
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;

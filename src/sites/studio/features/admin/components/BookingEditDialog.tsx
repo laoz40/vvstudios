@@ -20,7 +20,6 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
-	hasEditingAddon,
 	toDeliverableCountOption,
 	type BookingFormValues,
 } from "#studio/features/booking-form/lib/form-shared";
@@ -34,7 +33,8 @@ export type BookingEditDraft = {
 	addons: BookingFormValues["addons"];
 	abn: string;
 	date: string;
-	deliverableCount: BookingFormValues["deliverableCount"];
+	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	duration: BookingFormValues["duration"];
 	email: string;
 	name: string;
@@ -63,7 +63,8 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		accountName: booking.accountName,
 		abn: booking.abn ?? "",
 		date: booking.date,
-		deliverableCount: toDeliverableCountOption(booking.deliverableCount),
+		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
+		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		time: booking.time,
 		duration: booking.duration as BookingFormValues["duration"],
 		service: booking.service,
@@ -72,6 +73,52 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		phone: booking.phone,
 		notes: booking.notes ?? "",
 	};
+}
+
+type EditingQuantityOptionsProps = {
+	disabled: boolean;
+	idPrefix: string;
+	label: string;
+	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
+	value: string;
+};
+
+function EditingQuantityOptions({
+	disabled,
+	idPrefix,
+	label,
+	onChange,
+	value,
+}: EditingQuantityOptionsProps) {
+	return (
+		<section className="grid gap-3">
+			<Label>{label}</Label>
+			<RadioGroup
+				value={value}
+				onValueChange={(nextValue) =>
+					onChange(nextValue as BookingFormValues["essentialEditQuantity"])
+				}
+				className="grid gap-3 sm:grid-cols-4">
+				{DELIVERABLE_COUNT_OPTIONS.map((count) => {
+					const optionId = `${idPrefix}-${count}`;
+
+					return (
+						<label
+							key={count}
+							htmlFor={optionId}
+							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							<RadioGroupItem
+								id={optionId}
+								value={count}
+								disabled={disabled}
+							/>
+							<span className="font-medium">{count}</span>
+						</label>
+					);
+				})}
+			</RadioGroup>
+		</section>
+	);
 }
 
 export function BookingEditDialog({
@@ -83,7 +130,6 @@ export function BookingEditDialog({
 	isSaving,
 }: BookingEditDialogProps) {
 	const [draft, setDraft] = useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
-	const showDeliverableCount = hasEditingAddon(draft.addons);
 
 	useEffect(() => {
 		if (open) {
@@ -313,7 +359,8 @@ export function BookingEditDialog({
 
 					<AdminAddonOptions
 						addons={draft.addons}
-						deliverableCount={draft.deliverableCount}
+						essentialEditQuantity={draft.essentialEditQuantity}
+						clipsPackageQuantity={draft.clipsPackageQuantity}
 						disabled={isSaving}
 						idPrefix="edit-addon"
 						onChange={(nextValues) => {
@@ -324,37 +371,27 @@ export function BookingEditDialog({
 						}}
 					/>
 
-					{showDeliverableCount ? (
-						<section className="grid gap-3">
-							<Label>Number of deliverables</Label>
-							<RadioGroup
-								value={draft.deliverableCount ?? ""}
-								onValueChange={(value) => {
-									setDraft((current) => ({
-										...current,
-										deliverableCount: value as BookingFormValues["deliverableCount"],
-									}));
-								}}
-								className="grid gap-3 sm:grid-cols-4">
-								{DELIVERABLE_COUNT_OPTIONS.map((count) => {
-									const optionId = `edit-deliverable-count-${count}`;
-
-									return (
-										<label
-											key={count}
-											htmlFor={optionId}
-											className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
-											<RadioGroupItem
-												id={optionId}
-												value={count}
-												disabled={isSaving}
-											/>
-											<span className="font-medium">{count}</span>
-										</label>
-									);
-								})}
-							</RadioGroup>
-						</section>
+					{draft.addons.includes("Essential Edit") ? (
+						<EditingQuantityOptions
+							idPrefix="edit-essential-edit-quantity"
+							label="Essential Edit quantity"
+							value={draft.essentialEditQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) => {
+								setDraft((current) => ({ ...current, essentialEditQuantity: value }));
+							}}
+						/>
+					) : null}
+					{draft.addons.includes("Clips Package") ? (
+						<EditingQuantityOptions
+							idPrefix="edit-clips-package-quantity"
+							label="Clips Package quantity"
+							value={draft.clipsPackageQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) => {
+								setDraft((current) => ({ ...current, clipsPackageQuantity: value }));
+							}}
+						/>
 					) : null}
 
 					<div className="grid gap-2">

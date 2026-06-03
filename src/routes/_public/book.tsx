@@ -166,7 +166,8 @@ function BookingPage() {
 					duration: parsedValue.duration,
 					service: parsedValue.service,
 					addons: parsedValue.addons,
-					deliverableCount: parsedValue.deliverableCount || undefined,
+					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
+					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
 					notes: parsedValue.notes,
 				});
 
@@ -499,7 +500,8 @@ function BookingPage() {
 		formApi.setFieldValue("service", savedBookingInfo.service);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
 		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
-		formApi.setFieldValue("deliverableCount", savedBookingInfo.deliverableCount);
+		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
+		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
 		formApi.setFieldValue("name", savedBookingInfo.name);
 		formApi.setFieldValue("phone", savedBookingInfo.phone);
 		formApi.setFieldValue("accountName", savedBookingInfo.accountName);

@@ -91,20 +91,26 @@ export const bookingSchema = z
 			.union([z.literal(""), z.enum(SERVICES)])
 			.refine((value) => value !== "", "Recording space is required."),
 		addons: z.array(z.enum(ADDON_OPTIONS)),
-		deliverableCount: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).optional(),
+		essentialEditQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).optional(),
+		clipsPackageQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).optional(),
 		notes: z.string().trim().max(200, "Please keep this under 200 characters."),
 	})
 	.superRefine((values, ctx) => {
-		// Check the selected add-ons for editing add-ons
-		// These are charged per deliverable, so the form cannot be submitted
-		// unless the customer also selects how many deliverables they need.
-		const needsDeliverableCount = hasEditingAddon(values.addons);
-
-		if (needsDeliverableCount && !values.deliverableCount) {
+		// Editing add-ons are charged independently, so each selected editing add-on
+		// must have its own quantity instead of sharing one deliverable count.
+		if (values.addons.includes("Essential Edit") && !values.essentialEditQuantity) {
 			ctx.addIssue({
 				code: "custom",
-				message: "Number of deliverables is required for editing add-ons.",
-				path: ["deliverableCount"],
+				message: "Number of essential edits is required.",
+				path: ["essentialEditQuantity"],
+			});
+		}
+
+		if (values.addons.includes("Clips Package") && !values.clipsPackageQuantity) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Number of clips packages is required.",
+				path: ["clipsPackageQuantity"],
 			});
 		}
 	});
@@ -129,7 +135,8 @@ export const INITIAL_FORM: BookingFormValues = {
 	duration: "",
 	service: "",
 	addons: [],
-	deliverableCount: "",
+	essentialEditQuantity: "",
+	clipsPackageQuantity: "",
 	notes: "",
 };
 
