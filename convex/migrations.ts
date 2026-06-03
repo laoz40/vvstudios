@@ -20,7 +20,10 @@ function hasAddon(addons: string[], addon: (typeof editingAddons)[number]) {
 export const migrateBookingEditingAddonQuantities = internalMutation({
 	args: { limit: v.optional(v.number()) },
 	handler: async (ctx, args) => {
-		const bookings = await ctx.db.query("bookings").take(args.limit ?? 100);
+		const bookings = await ctx.db
+			.query("bookings")
+			.filter((q) => q.neq(q.field("deliverableCount"), undefined))
+			.take(args.limit ?? 100);
 		let migrated = 0;
 
 		for (const booking of bookings) {
@@ -52,7 +55,10 @@ export const migrateBookingEditingAddonQuantities = internalMutation({
 export const migrateCustomInvoiceEditingAddonQuantities = internalMutation({
 	args: { limit: v.optional(v.number()) },
 	handler: async (ctx, args) => {
-		const invoices = await ctx.db.query("customInvoices").take(args.limit ?? 100);
+		const invoices = await ctx.db
+			.query("customInvoices")
+			.filter((q) => q.neq(q.field("deliverableCount"), undefined))
+			.take(args.limit ?? 100);
 		let migrated = 0;
 
 		for (const invoice of invoices) {
