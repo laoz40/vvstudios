@@ -142,6 +142,54 @@ const bookingSydneyDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	timeZone: "Australia/Sydney",
 });
 
+function getDatePartsInSydney(date: Date) {
+	const parts = new Intl.DateTimeFormat("en-AU", {
+		day: "2-digit",
+		month: "2-digit",
+		timeZone: BOOKING_TIME_ZONE,
+		year: "numeric",
+	}).formatToParts(date);
+
+	const partValue = (type: string) => parts.find((part) => part.type === type)?.value;
+
+	return {
+		day: Number(partValue("day")),
+		month: Number(partValue("month")),
+		year: Number(partValue("year")),
+	};
+}
+
+function getSydneyDateValue(date = new Date()) {
+	const { day, month, year } = getDatePartsInSydney(date);
+
+	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getDateUtcTimestamp(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return null;
+	}
+
+	return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function formatRelativeDateDistance(dayDifference: number) {
+	const absoluteDays = Math.abs(dayDifference);
+
+	if (absoluteDays < 30) {
+		return `${absoluteDays} ${absoluteDays === 1 ? "day" : "days"}`;
+	}
+
+	if (absoluteDays < 365) {
+		const months = Math.max(1, Math.round(absoluteDays / 30));
+		return `${months} ${months === 1 ? "month" : "months"}`;
+	}
+
+	const years = Math.max(1, Math.round(absoluteDays / 365));
+	return `${years} ${years === 1 ? "year" : "years"}`;
+}
+
 export function startOfMonth(date: Date) {
 	return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -230,6 +278,32 @@ export function formatBookingDateMedium(dateValue: string) {
 	}
 
 	return bookingSydneyDateFormatter.format(date);
+}
+
+export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
+	const bookingTimestamp = getDateUtcTimestamp(dateValue);
+	const todayTimestamp = getDateUtcTimestamp(getSydneyDateValue(now));
+
+	if (bookingTimestamp === null || todayTimestamp === null) {
+		return dateValue;
+	}
+
+	const dayDifference = Math.round((bookingTimestamp - todayTimestamp) / (24 * 60 * 60 * 1000));
+
+	if (dayDifference === 0) {
+		return "Today";
+	}
+
+	if (dayDifference === 1) {
+		return "Tomorrow";
+	}
+
+	if (dayDifference === -1) {
+		return "Yesterday";
+	}
+
+	const distance = formatRelativeDateDistance(dayDifference);
+	return dayDifference > 0 ? `In ${distance}` : `${distance} ago`;
 }
 
 export function formatBookingTimeLabel(timeValue: string | undefined) {
