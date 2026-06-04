@@ -83,7 +83,8 @@ export function BookingSummary({ values }: BookingSummaryProps) {
 							<p>{formatBookingPrice(total)}</p>
 						</div>
 						<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
-							Only $50 booking deposit required to secure your time slot, which gets deducted from your total.
+							Only $50 booking deposit required to secure your time slot, which gets deducted from
+							your total.
 						</p>
 					</div>
 				</AccordionContent>

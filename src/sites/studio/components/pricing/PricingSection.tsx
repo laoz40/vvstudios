@@ -110,7 +110,7 @@ export function PricingSection({
 					</p>
 				</div>
 
-				<div className="grid gap-7 sm:gap-5 lg:grid-cols-3">
+				<div className="grid w-full gap-7 sm:gap-5 lg:grid-cols-3">
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
@@ -169,7 +169,7 @@ export function PricingSection({
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 
-				<div className="mt-8 space-y-4">
+				<div className="mt-8 w-full space-y-4">
 					<section className="space-y-12">
 						<div className="text-center">
 							<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
@@ -177,12 +177,12 @@ export function PricingSection({
 							</h2>
 						</div>
 
-						<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 md:gap-18">
+						<div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:gap-18 lg:max-w-none lg:grid-cols-4">
 							{pricingAddOns.map((addOn) => (
 								<div
 									key={addOn.label}
-									className="flex h-full w-full max-w-xs flex-col gap-3">
-									<div className="flex items-start justify-between md:justify-start gap-2">
+									className="flex h-full w-full flex-col gap-3 lg:max-w-xs">
+									<div className="flex items-start justify-between gap-2 md:justify-start">
 										<h3 className="text-base font-medium">{addOn.label}</h3>
 										<p className="text-primary text-base font-medium">{addOn.price}</p>
 									</div>
