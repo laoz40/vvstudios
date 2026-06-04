@@ -25,6 +25,7 @@ import {
 } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
@@ -332,7 +333,19 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 												<span className="font-medium">{invoice.invoiceNumber}</span>
 												<span className="text-muted-foreground">
 													{invoice.service ?? "Add-ons only"}
-													{invoice.addons.length > 0 ? ` · ${invoice.addons.join(", ")}` : ""}
+													{invoice.addons.length > 0
+														? ` · ${invoice.addons
+																.map((addon) =>
+																	formatEditingAddonLabel(addon, {
+																		essentialEditQuantity:
+																			invoice.essentialEditQuantity ??
+																			booking.essentialEditQuantity,
+																		clipsPackageQuantity:
+																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+																	}),
+																)
+																.join(", ")}`
+														: ""}
 													{" · "}
 													{formatInvoiceTotal({
 														service: invoice.service,

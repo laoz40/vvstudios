@@ -55,6 +55,7 @@ import {
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
@@ -62,6 +63,7 @@ import {
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
 	formatBookingDateMedium,
+	formatBookingRelativeDate,
 	formatBookingTimestamp,
 	formatBookingTimeLabel,
 	getBookingStartTimestamp,
@@ -137,7 +139,6 @@ async function copyText(value: string, label: string) {
 		toast.error(`Unable to copy ${label}.`);
 	}
 }
-
 type CopyableTextProps = {
 	value: string;
 	label: string;
@@ -266,15 +267,21 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			id: "session",
 			accessorFn: (row) => getBookingStartTimestamp(row.date, row.time),
 			header: ({ column }) => renderSortableHeader("Session", column),
-			cell: ({ row }) => (
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>
-					<p className="text-sm text-muted-foreground">
-						{formatBookingTimeLabel(row.original.time)}
-						{row.original.duration ? ` · ${row.original.duration}` : ""}
-					</p>
-				</div>
-			),
+			cell: ({ row }) => {
+				const relativeDateLabel = formatBookingRelativeDate(row.original.date);
+
+				return (
+					<div
+						className="flex cursor-help flex-col gap-1 whitespace-normal"
+						title={relativeDateLabel}>
+						<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>
+						<p className="text-sm text-muted-foreground">
+							{formatBookingTimeLabel(row.original.time)}
+							{row.original.duration ? ` · ${row.original.duration}` : ""}
+						</p>
+					</div>
+				);
+			},
 		},
 		{
 			accessorKey: "service",
@@ -288,7 +295,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 								<Badge
 									key={addon}
 									variant="outline">
-									{addon}
+									{formatEditingAddonLabel(addon, row.original)}
 								</Badge>
 							))}
 						</div>
