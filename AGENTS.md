@@ -3,25 +3,19 @@
 Booking website for podcast studio.
 
 - bun
-- typescript
-- shadcn
-- t3env for env vars
-- bun
-
-For Convex code, always read `convex/_generated/ai/guidelines.md` first for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+- default to shadcn for ui
+- t3env
 
 ## File/Change Hygiene
 
-- Do not add new dependencies unless needed for task
-- Keep diffs small and task-focused
-- Preserve existing architectural style.
-
-- Before adding helper functions, check for lib files that have related logic
-- Move reusable helper functions, formatting, validation, constants, and mappers into the nearest appropriate `lib` file instead of keeping them inside main component, route, or Convex function files
-- Keep main Convex files focused on Convex API/database logic; put reusable business rules and validation in `convex/lib/*`
-- Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
-- When a component grows into a distinct feature area, extract it into its own component file
-- Keep feature component helpers in the feature `lib` directory when they are not purely presentational
+- Before adding helper functions, check if they already exist
+- Move reusable helper functions, constants, mappers, and meaningful business decisions into the nearest appropriate `lib` file instead of keeping them inside main component, route, or backend function file
+- Avoid tiny helper files/functions for one-off logic; inline them unless they remove meaningful duplication, are reused, or isolate a clear business rule.
+- Optimize for readability and safe future changes over minimizing line count
+- Keep functions small and focused on one decision or operation
+- Prefer clear sequencing, guard clauses, and early returns over clever compact code
+- Keep nesting shallow; avoid more than two levels of nested control flow
+- Replace long `if`/`else if` chains and large inline booleans with named helpers or discriminated outcomes when clearer
 
 - run format and lint once changes are complete
 - do not run build
@@ -30,10 +24,8 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 - Ask user before making assumptions that change behavior, UX, architecture
 - Prioritize explicit user confirmation over inferred defaults
-- If multiple valid options exist, ask user to choose instead of silently deciding
-- one focused question at a time
 - Only proceed without asking when request clear and action low-risk easily reversible
-- be concise
+- talk to me using simple language
 
 ## Code Style Guidelines
 
@@ -42,16 +34,11 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 - Prefer absolute imports
 - Remove unused imports
 - Sort imports by react, packages, components
+- Don't export functions/types if not used
 
 ### Components and pages
 
-- compose feature components instead of putting large UI trees or business logic in `page.tsx`
 - Extract major or self-contained UI sections into separate component files instead of growing a single large component file
-- Prefer small, focused components with clear props
-- Keep components mostly presentational; move reusable transforms, constants, validation, and formatting to feature `lib` files
-- Always use shadcn/ui components by default, and unpic for images
-- Avoid thin pass-through route/page/component files; inline small route-only UI and wrappers unless they are reused, stateful, substantial, or represent a clear domain concept.
-- Avoid tiny helper files/functions for one-off logic; inline them unless they remove meaningful duplication, are reused, or isolate a clear business rule.
 
 ### Naming Conventions
 
@@ -61,7 +48,6 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 ### TypeScript
 
-- Prefer explicit exported types for component props and utility contracts
 - Avoid `any`
 - Do not use nested ternaries and patterns that make it harder to read the code
 
@@ -79,3 +65,10 @@ For Convex code, always read `convex/_generated/ai/guidelines.md` first for impo
 
 - Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
+- Do not add classes that already exist in the component
+
+### Convex
+
+- For Convex code, always read `convex/_generated/ai/guidelines.md` first for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+- Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*`
+- Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
