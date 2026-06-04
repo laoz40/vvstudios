@@ -10,7 +10,7 @@ Booking website for podcast studio.
 
 - Before adding helper functions, check if they already exist
 - Move reusable helpers, constants, mappers, and important app behavior rules into nearest appropriate `lib` file instead of keeping them inside
-components, routes, or backend functions.
+  components, routes, or backend functions.
 - App behavior rules include things like permissions, statuses, validation, limits, and error mapping.
 - Avoid tiny helper files/functions for one-off logic
 - Optimize for readability and safe future changes over minimizing line count

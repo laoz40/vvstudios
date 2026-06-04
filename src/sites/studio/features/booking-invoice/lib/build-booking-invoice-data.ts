@@ -27,7 +27,7 @@ export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: numbe
 	const suffix = String(invoiceId)
 		.replace(/[^a-zA-Z0-9]/g, "")
 		.toUpperCase()
-		.slice(0, 4);
+		.slice(-4);
 
 	return `VV-${datePart}-${suffix}`;
 }
