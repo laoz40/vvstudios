@@ -35,3 +35,9 @@ export function getEditingAddonQuantityForForm(
 ) {
 	return getEditingAddonQuantity(addon, quantities, 0);
 }
+
+export function formatEditingAddonLabel(addon: string, quantities: EditingAddonQuantities) {
+	const quantity = getEditingAddonQuantity(addon, quantities, 1);
+
+	return quantity > 1 ? `${quantity} x ${addon}` : addon;
+}

@@ -55,6 +55,7 @@ import {
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
 } from "#studio/features/admin/lib/booking-edit-status";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatAudAmount,
 	getRemainingBalanceAmount,
@@ -137,7 +138,6 @@ async function copyText(value: string, label: string) {
 		toast.error(`Unable to copy ${label}.`);
 	}
 }
-
 type CopyableTextProps = {
 	value: string;
 	label: string;
@@ -288,7 +288,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 								<Badge
 									key={addon}
 									variant="outline">
-									{addon}
+									{formatEditingAddonLabel(addon, row.original)}
 								</Badge>
 							))}
 						</div>
