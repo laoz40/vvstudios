@@ -12,13 +12,22 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ListFilter, Menu, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
-import { Checkbox } from "#/components/ui/checkbox";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+
+import { Label } from "#/components/ui/label";
 import { Input } from "#/components/ui/input";
 import {
 	Table,
@@ -36,7 +45,15 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { Label } from "#/components/ui/label";
+
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "#/components/ui/sheet";
 import { BookingActions } from "#studio/features/admin/components/BookingActions";
 import {
 	readStoredAdminDashboardSorting,
@@ -86,6 +103,36 @@ export type AdminDashboardProps = {
 	loadMoreBookings: () => void;
 	signOutControl: ReactNode;
 };
+
+function AdminDashboardMenu({
+	email,
+	signOutControl,
+}: Pick<AdminDashboardProps, "email" | "signOutControl">) {
+	return (
+		<Sheet>
+			<SheetTrigger asChild>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="md:hidden"
+					aria-label="Open admin menu">
+					<Menu aria-hidden />
+				</Button>
+			</SheetTrigger>
+			<SheetContent>
+				<SheetHeader>
+					<SheetTitle>Admin menu</SheetTitle>
+					<SheetDescription>Signed in as {email ?? "Unknown user"}.</SheetDescription>
+				</SheetHeader>
+				<div className="flex flex-col items-start gap-2 px-4">
+					<AdminAvailabilitySettings />
+					{signOutControl}
+				</div>
+			</SheetContent>
+		</Sheet>
+	);
+}
 
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
@@ -572,8 +619,14 @@ export function AdminDashboard({
 	);
 
 	return (
-		<main className="flex min-h-screen flex-col gap-5 bg-card p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
-			<section className="flex flex-col gap-4 md:gap-5">
+		<main className="relative flex min-h-screen flex-col gap-5 bg-card p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+			<div className="absolute top-3 right-3 md:hidden">
+				<AdminDashboardMenu
+					email={email}
+					signOutControl={signOutControl}
+				/>
+			</div>
+			<section className="flex flex-col gap-4 pr-14 md:gap-5 md:pr-0">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 xl:items-center xl:gap-10">
 						<h1
@@ -602,7 +655,7 @@ export function AdminDashboard({
 							/>
 						</div>
 					</div>
-					<div className="flex flex-col items-start gap-3 md:items-end">
+					<div className="hidden flex-col items-start gap-3 md:flex md:items-end">
 						<p className="text-sm text-muted-foreground">Signed in as {email ?? "Unknown user"}.</p>
 						<div className="flex flex-wrap items-center gap-2">
 							<AdminAvailabilitySettings />
@@ -621,9 +674,39 @@ export function AdminDashboard({
 							onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
 							className="w-full md:w-sm"
 						/>
-						<AdminMetricCard value={metrics.thisWeek} />
+						<div className="flex items-center justify-between gap-3 md:contents">
+							<AdminMetricCard value={metrics.thisWeek} />
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="md:hidden">
+										<ListFilter aria-hidden />
+										Filters
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuGroup>
+										<DropdownMenuCheckboxItem
+											checked={showStaleBookings}
+											onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
+											onSelect={(event) => event.preventDefault()}>
+											Show incomplete bookings
+										</DropdownMenuCheckboxItem>
+										<DropdownMenuCheckboxItem
+											checked={showUpcomingOnly}
+											onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
+											onSelect={(event) => event.preventDefault()}>
+											Show only upcoming sessions
+										</DropdownMenuCheckboxItem>
+									</DropdownMenuGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</div>
-					<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+					<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
 						<div className="flex items-center gap-2">
 							<Checkbox
 								id="show-stale-bookings"

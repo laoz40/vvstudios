@@ -108,7 +108,7 @@ export function AdminAvailabilitySettings() {
 					Availability settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-w-3xl">
+			<DialogContent className="max-h-svh max-w-3xl overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Availability settings</DialogTitle>
 				</DialogHeader>
