@@ -430,7 +430,7 @@ function AdminStatusMetric({
 	className?: string;
 }) {
 	return (
-		<div className="flex items-center justify-between w-28">
+		<div className="flex w-fit items-center justify-between gap-2 md:w-28 md:gap-0">
 			<Badge
 				variant={variant ?? "outline"}
 				className={cn("text-sm", className)}>
@@ -572,16 +572,16 @@ export function AdminDashboard({
 	);
 
 	return (
-		<main className="flex min-h-screen flex-col gap-6 bg-card p-4 pb-8 lg:px-6">
-			<section className="flex flex-col gap-5">
+		<main className="flex min-h-screen flex-col gap-5 bg-card p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+			<section className="flex flex-col gap-4 md:gap-5">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-10">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 xl:items-center xl:gap-10">
 						<h1
 							title="It would look better if the text were bigger. What do you think, Joseph?"
-							className="font-brand text-[10rem] leading-none font-medium uppercase text-foreground cursor-help">
+							className="font-brand text-4xl leading-none font-medium uppercase text-foreground cursor-help md:text-[10rem]">
 							Bookings Dashboard
 						</h1>
-						<div className="flex flex-wrap flex-col items-start gap-2">
+						<div className="flex flex-wrap items-start gap-x-4 gap-y-2 sm:flex-col sm:gap-2">
 							<AdminStatusMetric
 								label="Confirmed"
 								value={String(metrics.confirmed)}
@@ -623,7 +623,7 @@ export function AdminDashboard({
 						/>
 						<AdminMetricCard value={metrics.thisWeek} />
 					</div>
-					<div className="flex flex-wrap items-center gap-3">
+					<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
 						<div className="flex items-center gap-2">
 							<Checkbox
 								id="show-stale-bookings"
@@ -651,8 +651,8 @@ export function AdminDashboard({
 					</div>
 				</div>
 
-				<div className="overflow-hidden border-y">
-					<Table className="table-fixed">
+				<div className="overflow-x-auto border-y">
+					<Table className="min-w-6xl table-fixed">
 						<TableHeader>
 							{table.getHeaderGroups().map((headerGroup) => (
 								<TableRow key={headerGroup.id}>
