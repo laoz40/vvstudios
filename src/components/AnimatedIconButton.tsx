@@ -1,4 +1,13 @@
-import { cloneElement, isValidElement, useRef, type ReactElement, type ReactNode } from "react";
+import {
+	cloneElement,
+	isValidElement,
+	useRef,
+	type FocusEventHandler,
+	type PointerEventHandler,
+	type ReactElement,
+	type ReactNode,
+	type RefObject,
+} from "react";
 import type { VariantProps } from "class-variance-authority";
 
 import { Button, buttonVariants } from "#/components/ui/button";
@@ -6,21 +15,23 @@ import type { AnimatedIconHandle } from "#/components/ui/types";
 
 type AnimatedIconButtonChildProps = {
 	children?: ReactNode;
-	onBlur?: () => void;
-	onFocus?: () => void;
-	onPointerEnter?: () => void;
-	onPointerLeave?: () => void;
+	onBlur?: FocusEventHandler;
+	onFocus?: FocusEventHandler;
+	onPointerEnter?: PointerEventHandler;
+	onPointerLeave?: PointerEventHandler;
 };
 
 export type AnimatedIconButtonProps = VariantProps<typeof buttonVariants> & {
 	children: ReactElement<AnimatedIconButtonChildProps>;
 	className?: string;
-	renderIcon: (ref: React.RefObject<AnimatedIconHandle | null>) => ReactNode;
+	iconPosition?: "before" | "after";
+	renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
 };
 
 export function AnimatedIconButton({
 	children,
 	className,
+	iconPosition = "after",
 	renderIcon,
 	size,
 	variant,
@@ -39,16 +50,31 @@ export function AnimatedIconButton({
 		return null;
 	}
 
-	// Clone the child link/anchor so its hover and focus events can control the icon ref.
+	const icon = renderIcon(iconRef);
+
+	// Clone the child element so its hover and focus events can control the icon ref.
 	const child = cloneElement(children, {
-		onPointerEnter: startIconAnimation,
-		onPointerLeave: stopIconAnimation,
-		onFocus: startIconAnimation,
-		onBlur: stopIconAnimation,
+		onPointerEnter: (event) => {
+			children.props.onPointerEnter?.(event);
+			startIconAnimation();
+		},
+		onPointerLeave: (event) => {
+			children.props.onPointerLeave?.(event);
+			stopIconAnimation();
+		},
+		onFocus: (event) => {
+			children.props.onFocus?.(event);
+			startIconAnimation();
+		},
+		onBlur: (event) => {
+			children.props.onBlur?.(event);
+			stopIconAnimation();
+		},
 		children: (
 			<>
+				{iconPosition === "before" ? icon : null}
 				{children.props.children}
-				{renderIcon(iconRef)}
+				{iconPosition === "after" ? icon : null}
 			</>
 		),
 	});

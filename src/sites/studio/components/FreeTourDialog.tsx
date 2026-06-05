@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
-import { Button } from "#/components/ui/button";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import MagnifierIcon from "#/components/ui/magnifier-icon";
 import { photosPageContent } from "#studio/content/photos";
 import { env } from "#/env";
 import { Modal } from "#studio/components/Modal";
@@ -15,20 +15,25 @@ export function FreeTourDialogButton({ className, label }: FreeTourDialogButtonP
 
 	return (
 		<>
-			<Button
-				type="button"
+			<AnimatedIconButton
 				variant="secondary"
 				size="lg"
 				className={className}
-				aria-haspopup="dialog"
-				aria-expanded={isOpen}
-				onClick={() => setIsOpen(true)}>
-				<Search
-					className="stroke-3"
-					aria-hidden
-				/>
-				{label}
-			</Button>
+				iconPosition="before"
+				renderIcon={(iconRef) => (
+					<MagnifierIcon
+						ref={iconRef}
+						strokeWidth={3}
+					/>
+				)}>
+				<button
+					type="button"
+					aria-haspopup="dialog"
+					aria-expanded={isOpen}
+					onClick={() => setIsOpen(true)}>
+					{label}
+				</button>
+			</AnimatedIconButton>
 			<Modal
 				open={isOpen}
 				onOpenChange={setIsOpen}

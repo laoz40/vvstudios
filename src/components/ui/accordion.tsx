@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import DownChevron from "#/components/ui/down-chevron";
 import type { HTMLMotionProps, Transition } from "motion/react";
 import { motion } from "motion/react";
-import type * as React from "react";
+import * as React from "react";
 import { Accordion as AccordionPrimitive } from "radix-ui";
 
 import { cn } from "#/lib/utils";
+import type { AnimatedIconHandle } from "#/components/ui/types";
 
 function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
 	return (
@@ -40,20 +41,50 @@ function AccordionTrigger({
 	showArrow = true,
 	...props
 }: AccordionTriggerProps) {
+	// Stores the animated icon handle so hovering or focusing the whole trigger can animate it.
+	const iconRef = React.useRef<AnimatedIconHandle>(null);
+
+	const startIconAnimation = () => {
+		iconRef.current?.startAnimation();
+	};
+
+	const stopIconAnimation = () => {
+		iconRef.current?.stopAnimation();
+	};
+
 	return (
 		<AccordionPrimitive.Header className="flex">
 			<AccordionPrimitive.Trigger
 				data-slot="accordion-trigger"
 				className={cn(
-					"group flex flex-1 items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6 [&[data-state=open]>svg]:rotate-180 [&[data-state=open]>svg]:text-foreground",
+					"group flex flex-1 items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6",
 					className,
 				)}
-				{...props}>
+				{...props}
+				// Existing trigger event handlers run first so custom behavior is not replaced.
+				onPointerEnter={(event) => {
+					props.onPointerEnter?.(event);
+					startIconAnimation();
+				}}
+				onPointerLeave={(event) => {
+					props.onPointerLeave?.(event);
+					stopIconAnimation();
+				}}
+				onFocus={(event) => {
+					props.onFocus?.(event);
+					startIconAnimation();
+				}}
+				onBlur={(event) => {
+					props.onBlur?.(event);
+					stopIconAnimation();
+				}}>
 				<span className="leading-snug">{children}</span>
+				{/* The icon keeps its own Motion animation. The trigger only starts and stops it. */}
 				{showArrow ? (
-					<ChevronDown
+					<DownChevron
+						ref={iconRef}
 						aria-hidden
-						className="mt-0.5 shrink-0 text-muted-foreground transition-transform duration-200 md:mt-0"
+						className="mt-0.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-foreground md:mt-0"
 					/>
 				) : null}
 			</AccordionPrimitive.Trigger>
