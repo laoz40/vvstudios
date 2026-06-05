@@ -793,22 +793,25 @@ export function AdminDashboard({
 					</Table>
 				</div>
 
-				<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-					<div className="flex flex-wrap items-center gap-6">
-						<p className="text-sm text-muted-foreground">
-							Showing {table.getFilteredRowModel().rows.length}{" "}
-							{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
-							{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
-						</p>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-sm!"
-							onClick={() => setIsCleanupDialogOpen(true)}
-							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							<Trash2 aria-hidden />
-							Clean up incomplete bookings
-						</Button>
+				<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
+					<div className="flex flex-wrap items-center gap-3 md:gap-6">
+						<div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start md:gap-6">
+							<p className="text-sm text-muted-foreground">
+								Showing {table.getFilteredRowModel().rows.length}{" "}
+								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
+								{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
+							</p>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="text-sm!"
+								onClick={() => setIsCleanupDialogOpen(true)}
+								disabled={isCleaningUp || staleCleanupBookings.length === 0}
+								aria-label="Clean up unconfirmed bookings">
+								<Trash2 aria-hidden />
+								<span className="hidden md:inline">Clean up unconfirmed bookings</span>
+							</Button>
+						</div>
 						{canLoadMoreBookings || isLoadingMoreBookings ? (
 							<Button
 								variant="outline"
@@ -819,7 +822,7 @@ export function AdminDashboard({
 							</Button>
 						) : null}
 					</div>
-					<div className="flex flex-wrap items-center gap-2">
+					<div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
 						<p className="text-sm text-muted-foreground">
 							Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
 						</p>
@@ -846,9 +849,9 @@ export function AdminDashboard({
 				onOpenChange={setIsCleanupDialogOpen}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Clean up incomplete bookings?</DialogTitle>
+						<DialogTitle>Clean up unconfirmed bookings?</DialogTitle>
 						<DialogDescription>
-							This will permanently delete incomplete booking records from the database.
+							This will permanently delete unconfirmed booking records from the database.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -872,7 +875,7 @@ export function AdminDashboard({
 							variant="destructive"
 							onClick={handleCleanupOldBookings}
 							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							{isCleaningUp ? "Deleting..." : "Delete incomplete bookings"}
+							{isCleaningUp ? "Deleting..." : "Delete unconfirmed bookings"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
