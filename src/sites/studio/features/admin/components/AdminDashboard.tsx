@@ -12,13 +12,22 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ListFilter, Menu, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
-import { Checkbox } from "#/components/ui/checkbox";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+
+import { Label } from "#/components/ui/label";
 import { Input } from "#/components/ui/input";
 import {
 	Table,
@@ -36,7 +45,15 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { Label } from "#/components/ui/label";
+
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "#/components/ui/sheet";
 import { BookingActions } from "#studio/features/admin/components/BookingActions";
 import {
 	readStoredAdminDashboardSorting,
@@ -87,28 +104,58 @@ export type AdminDashboardProps = {
 	signOutControl: ReactNode;
 };
 
+function AdminDashboardMenu({
+	email,
+	signOutControl,
+}: Pick<AdminDashboardProps, "email" | "signOutControl">) {
+	return (
+		<Sheet>
+			<SheetTrigger asChild>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="md:hidden"
+					aria-label="Open admin menu">
+					<Menu aria-hidden />
+				</Button>
+			</SheetTrigger>
+			<SheetContent>
+				<SheetHeader>
+					<SheetTitle>Admin menu</SheetTitle>
+					<SheetDescription>Signed in as {email ?? "Unknown user"}.</SheetDescription>
+				</SheetHeader>
+				<div className="flex flex-col items-start gap-2 px-4">
+					<AdminAvailabilitySettings />
+					{signOutControl}
+				</div>
+			</SheetContent>
+		</Sheet>
+	);
+}
+
 function getColumnClassName(columnId: string) {
 	switch (columnId) {
 		case "name":
 			return "w-36";
 		case "status":
-			return "w-16";
+			return "w-24 md:w-16";
 		case "session":
-			return "w-16";
+			return "w-40 md:w-16";
 		case "service":
 			return "w-44";
 		case "contact":
-			return "w-36";
+			return "w-56 md:w-36";
 		case "notes":
 			return "w-56";
 		case "paidRemainingBalance":
-			return "w-8";
+			return "w-28 md:w-8";
 		case "editStatus":
-			return "w-16";
+			return "w-32 md:w-16";
 		case "createdAt":
-			return "w-20";
+			return "w-32 md:w-20";
 		case "actions":
-			return "w-6";
+			return "w-12 md:w-6";
 		default:
 			return undefined;
 	}
@@ -430,7 +477,7 @@ function AdminStatusMetric({
 	className?: string;
 }) {
 	return (
-		<div className="flex items-center justify-between w-28">
+		<div className="flex w-fit items-center justify-between gap-2 md:w-28 md:gap-0">
 			<Badge
 				variant={variant ?? "outline"}
 				className={cn("text-sm", className)}>
@@ -495,8 +542,8 @@ export function AdminDashboard({
 			setIsCleanupDialogOpen(false);
 			toast.success(
 				result.deletedCount === 1
-					? "Deleted 1 incomplete booking."
-					: `Deleted ${result.deletedCount} incomplete bookings.`,
+					? "Deleted 1 unconfirmed booking."
+					: `Deleted ${result.deletedCount} unconfirmed bookings.`,
 			);
 		} catch {
 			toast.error("Unable to clean up old bookings.");
@@ -572,16 +619,22 @@ export function AdminDashboard({
 	);
 
 	return (
-		<main className="flex min-h-screen flex-col gap-6 bg-card p-4 pb-8 lg:px-6">
-			<section className="flex flex-col gap-5">
+		<main className="relative flex min-h-screen flex-col gap-5 bg-card p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+			<div className="absolute top-3 right-3 md:hidden">
+				<AdminDashboardMenu
+					email={email}
+					signOutControl={signOutControl}
+				/>
+			</div>
+			<section className="flex flex-col gap-4 pr-14 md:gap-5 md:pr-0">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-10">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 xl:items-center xl:gap-10">
 						<h1
 							title="It would look better if the text were bigger. What do you think, Joseph?"
-							className="font-brand text-[10rem] leading-none font-medium uppercase text-foreground cursor-help">
+							className="font-brand text-4xl leading-none font-medium uppercase text-foreground cursor-help md:text-[10rem]">
 							Bookings Dashboard
 						</h1>
-						<div className="flex flex-wrap flex-col items-start gap-2">
+						<div className="flex flex-wrap items-start gap-x-4 gap-y-2 sm:flex-col sm:gap-2">
 							<AdminStatusMetric
 								label="Confirmed"
 								value={String(metrics.confirmed)}
@@ -602,7 +655,7 @@ export function AdminDashboard({
 							/>
 						</div>
 					</div>
-					<div className="flex flex-col items-start gap-3 md:items-end">
+					<div className="hidden flex-col items-start gap-3 md:flex md:items-end">
 						<p className="text-sm text-muted-foreground">Signed in as {email ?? "Unknown user"}.</p>
 						<div className="flex flex-wrap items-center gap-2">
 							<AdminAvailabilitySettings />
@@ -621,9 +674,39 @@ export function AdminDashboard({
 							onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
 							className="w-full md:w-sm"
 						/>
-						<AdminMetricCard value={metrics.thisWeek} />
+						<div className="flex items-center justify-between gap-3 md:contents">
+							<AdminMetricCard value={metrics.thisWeek} />
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="md:hidden">
+										<ListFilter aria-hidden />
+										Filters
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuGroup>
+										<DropdownMenuCheckboxItem
+											checked={showStaleBookings}
+											onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
+											onSelect={(event) => event.preventDefault()}>
+											Show incomplete bookings
+										</DropdownMenuCheckboxItem>
+										<DropdownMenuCheckboxItem
+											checked={showUpcomingOnly}
+											onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
+											onSelect={(event) => event.preventDefault()}>
+											Show only upcoming sessions
+										</DropdownMenuCheckboxItem>
+									</DropdownMenuGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</div>
-					<div className="flex flex-wrap items-center gap-3">
+					<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
 						<div className="flex items-center gap-2">
 							<Checkbox
 								id="show-stale-bookings"
@@ -651,8 +734,8 @@ export function AdminDashboard({
 					</div>
 				</div>
 
-				<div className="overflow-hidden border-y">
-					<Table className="table-fixed">
+				<div className="overflow-x-auto border-y">
+					<Table className="min-w-6xl table-fixed">
 						<TableHeader>
 							{table.getHeaderGroups().map((headerGroup) => (
 								<TableRow key={headerGroup.id}>
@@ -710,22 +793,25 @@ export function AdminDashboard({
 					</Table>
 				</div>
 
-				<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-					<div className="flex flex-wrap items-center gap-6">
-						<p className="text-sm text-muted-foreground">
-							Showing {table.getFilteredRowModel().rows.length}{" "}
-							{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
-							{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
-						</p>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-sm!"
-							onClick={() => setIsCleanupDialogOpen(true)}
-							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							<Trash2 aria-hidden />
-							Clean up incomplete bookings
-						</Button>
+				<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
+					<div className="flex flex-wrap items-center gap-3 md:gap-6">
+						<div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start md:gap-6">
+							<p className="text-sm text-muted-foreground">
+								Showing {table.getFilteredRowModel().rows.length}{" "}
+								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
+								{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
+							</p>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="text-sm!"
+								onClick={() => setIsCleanupDialogOpen(true)}
+								disabled={isCleaningUp || staleCleanupBookings.length === 0}
+								aria-label="Clean up unconfirmed bookings">
+								<Trash2 aria-hidden />
+								<span className="hidden md:inline">Clean up unconfirmed bookings</span>
+							</Button>
+						</div>
 						{canLoadMoreBookings || isLoadingMoreBookings ? (
 							<Button
 								variant="outline"
@@ -736,7 +822,7 @@ export function AdminDashboard({
 							</Button>
 						) : null}
 					</div>
-					<div className="flex flex-wrap items-center gap-2">
+					<div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
 						<p className="text-sm text-muted-foreground">
 							Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
 						</p>
@@ -763,9 +849,9 @@ export function AdminDashboard({
 				onOpenChange={setIsCleanupDialogOpen}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Clean up incomplete bookings?</DialogTitle>
+						<DialogTitle>Clean up unconfirmed bookings?</DialogTitle>
 						<DialogDescription>
-							This will permanently delete incomplete booking records from the database.
+							This will permanently delete unconfirmed booking records from the database.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -789,7 +875,7 @@ export function AdminDashboard({
 							variant="destructive"
 							onClick={handleCleanupOldBookings}
 							disabled={isCleaningUp || staleCleanupBookings.length === 0}>
-							{isCleaningUp ? "Deleting..." : "Delete incomplete bookings"}
+							{isCleaningUp ? "Deleting..." : "Delete unconfirmed bookings"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

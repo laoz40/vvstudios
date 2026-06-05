@@ -142,7 +142,8 @@ function AdminPageContent() {
 				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<Button
 						type="button"
-						variant="outline">
+						variant="outline"
+						size="sm">
 						Sign out
 					</Button>
 				</SignOutButton>
