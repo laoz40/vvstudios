@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Home, RotateCcw } from "lucide-react";
-import { Button } from "#/components/ui/button";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import HomeIcon from "#/components/ui/home-icon";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
@@ -50,25 +51,32 @@ function BookingExpiredPage() {
 				</div>
 
 				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-					<Button
-						asChild
+					<AnimatedIconButton
 						size="lg"
-						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto">
-						<Link to={studioSite.routes.book}>
-							<RotateCcw aria-hidden />
-							Try again
-						</Link>
-					</Button>
-					<Button
-						asChild
+						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+						renderIcon={(iconRef) => (
+							<ArrowNarrowRightIcon
+								ref={iconRef}
+								strokeWidth={3}
+								className="translate-y-px"
+								aria-hidden
+							/>
+						)}>
+						<Link to={studioSite.routes.book}>Try again</Link>
+					</AnimatedIconButton>
+					<AnimatedIconButton
 						size="lg"
-						className="h-auto w-full border-0 bg-background/60 px-8 py-3 text-base font-medium shadow-md shadow-background/25 hover:bg-background/75 sm:w-auto"
-						variant="outline">
-						<Link to={studioSite.routes.home}>
-							<Home aria-hidden />
-							Return home
-						</Link>
-					</Button>
+						className="border-none h-auto w-full px-8 py-3 text-base font-medium shadow-md shadow-background/25 sm:w-auto"
+						variant="outline"
+						iconPosition="before"
+						renderIcon={(iconRef) => (
+							<HomeIcon
+								ref={iconRef}
+								aria-hidden
+							/>
+						)}>
+						<Link to={studioSite.routes.home}>Return home</Link>
+					</AnimatedIconButton>
 				</div>
 			</section>
 		</main>

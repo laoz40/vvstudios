@@ -2,9 +2,10 @@ import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
-import { Home, LogOut } from "lucide-react";
 
-import { Button } from "#/components/ui/button";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import HomeIcon from "#/components/ui/home-icon";
+import LogoutIcon from "#/components/ui/logout-icon";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
@@ -35,7 +36,17 @@ export function AdminPage() {
 					then run <code>proxy npx convex dev</code>.
 				</p>
 				<SignOutButton redirectUrl={studioSite.routes.login}>
-					<Button type="button">Sign out</Button>
+					<AnimatedIconButton
+						type="button"
+						iconPosition="before"
+						renderIcon={(iconRef) => (
+							<LogoutIcon
+								ref={iconRef}
+								aria-hidden
+							/>
+						)}>
+						<button type="button">Sign out</button>
+					</AnimatedIconButton>
 				</SignOutButton>
 			</main>
 		);
@@ -96,21 +107,30 @@ function AdminForbiddenPage() {
 				</div>
 
 				<div className="flex flex-col gap-3 sm:flex-row">
-					<Button
-						asChild
-						size="lg">
-						<Link to={studioSite.routes.home}>
-							<Home aria-hidden />
-							Home
-						</Link>
-					</Button>
+					<AnimatedIconButton
+						size="lg"
+						iconPosition="before"
+						renderIcon={(iconRef) => (
+							<HomeIcon
+								ref={iconRef}
+								aria-hidden
+							/>
+						)}>
+						<Link to={studioSite.routes.home}>Home</Link>
+					</AnimatedIconButton>
 					<SignOutButton redirectUrl={studioSite.routes.login}>
-						<Button
+						<AnimatedIconButton
 							variant="outline"
-							size="lg">
-							<LogOut aria-hidden />
-							Sign out
-						</Button>
+							size="lg"
+							iconPosition="before"
+							renderIcon={(iconRef) => (
+								<LogoutIcon
+									ref={iconRef}
+									aria-hidden
+								/>
+							)}>
+							<button type="button">Sign out</button>
+						</AnimatedIconButton>
 					</SignOutButton>
 				</div>
 			</div>
@@ -140,12 +160,19 @@ function AdminPageContent() {
 			loadMoreBookings={() => loadMoreBookings(100)}
 			signOutControl={
 				<SignOutButton redirectUrl={studioSite.routes.login}>
-					<Button
+					<AnimatedIconButton
 						type="button"
 						variant="outline"
-						size="sm">
-						Sign out
-					</Button>
+						size="sm"
+						iconPosition="before"
+						renderIcon={(iconRef) => (
+							<LogoutIcon
+								ref={iconRef}
+								aria-hidden
+							/>
+						)}>
+						<button type="button">Sign out</button>
+					</AnimatedIconButton>
 				</SignOutButton>
 			}
 		/>

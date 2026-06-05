@@ -1,12 +1,14 @@
 import { type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Home, Phone } from "lucide-react";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import HomeIcon from "#/components/ui/home-icon";
+import PhoneVolume from "#/components/ui/phone-volume";
 import {
 	type BookingStatus,
 	BookingCompleteDevScenarioPanel,
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
-import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 
 export interface BookingStatusLayoutProps {
@@ -32,41 +34,53 @@ export function BookingStatusLayout({
 
 			{showActions ? (
 				<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-					<Button
-						asChild
-						size="lg"
-						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto">
-						{primaryAction === "contact" ? (
+					{primaryAction === "contact" ? (
+						<AnimatedIconButton
+							size="lg"
+							className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+							iconPosition="before"
+							renderIcon={(iconRef) => (
+								<PhoneVolume
+									ref={iconRef}
+									aria-hidden
+									strokeWidth={3}
+								/>
+							)}>
 							<a
 								href={studioSite.routes.contact}
 								rel="noreferrer"
 								target="_blank">
-								<Phone
-									className="stroke-2"
-									aria-hidden
-								/>
 								Contact us
 							</a>
-						) : (
-							<Link to={studioSite.routes.book}>
-								Make a new booking
-								<ArrowRight
-									className="translate-y-px stroke-3"
+						</AnimatedIconButton>
+					) : (
+						<AnimatedIconButton
+							size="lg"
+							className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+							renderIcon={(iconRef) => (
+								<ArrowNarrowRightIcon
+									ref={iconRef}
+									strokeWidth={3}
+									className="translate-y-px"
 									aria-hidden
 								/>
-							</Link>
-						)}
-					</Button>
-					<Button
-						asChild
+							)}>
+							<Link to={studioSite.routes.book}>Make a new booking</Link>
+						</AnimatedIconButton>
+					)}
+					<AnimatedIconButton
 						size="lg"
-						className="h-auto w-full border-0 bg-background/60 px-8 py-3 text-base font-medium shadow-md shadow-background/25 hover:bg-background/75 sm:w-auto"
-						variant="outline">
-						<Link to={studioSite.routes.home}>
-							<Home aria-hidden />
-							Return home
-						</Link>
-					</Button>
+						className="border-none h-auto w-full px-8 py-3 text-base font-medium shadow-md shadow-background/25 sm:w-auto"
+						variant="outline"
+						iconPosition="before"
+						renderIcon={(iconRef) => (
+							<HomeIcon
+								ref={iconRef}
+								aria-hidden
+							/>
+						)}>
+						<Link to={studioSite.routes.home}>Return home</Link>
+					</AnimatedIconButton>
 				</div>
 			) : null}
 

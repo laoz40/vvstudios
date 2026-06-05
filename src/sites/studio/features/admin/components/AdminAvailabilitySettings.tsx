@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Clock } from "lucide-react";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ClockIcon from "#/components/ui/clock-icon";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { Button } from "#/components/ui/button";
@@ -100,13 +101,19 @@ export function AdminAvailabilitySettings() {
 			open={isOpen}
 			onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button
+				<AnimatedIconButton
 					type="button"
 					variant="outline"
-					size="sm">
-					<Clock aria-hidden />
-					Availability settings
-				</Button>
+					size="sm"
+					iconPosition="before"
+					renderIcon={(iconRef) => (
+						<ClockIcon
+							ref={iconRef}
+							aria-hidden
+						/>
+					)}>
+					<button type="button">Availability settings</button>
+				</AnimatedIconButton>
 			</DialogTrigger>
 			<DialogContent className="max-h-svh max-w-3xl overflow-y-auto">
 				<DialogHeader>

@@ -1,10 +1,28 @@
-import { useEffect, useState } from "react";
+import {
+	useEffect,
+	useRef,
+	useState,
+	type ComponentProps,
+	type ReactNode,
+	type RefObject,
+} from "react";
 import { useAction, useMutation } from "convex/react";
-import { Mail, MoreHorizontal, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
+import AmbulanceIcon from "#/components/ui/ambulance-icon";
+import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
+import DownloadIcon from "#/components/ui/download-icon";
+import CurrencyDollarIcon from "#/components/ui/currency-dollar-icon";
+import HashtagIcon from "#/components/ui/hashtag-icon";
+import MailFilledIcon from "#/components/ui/mail-filled-icon";
+import PenIcon from "#/components/ui/pen-icon";
+import PhoneVolume from "#/components/ui/phone-volume";
+import SendIcon from "#/components/ui/send-icon";
+import Stack3Icon from "#/components/ui/stack-3-icon";
+import TrashIcon from "#/components/ui/trash-icon";
+import type { AnimatedIconHandle } from "#/components/ui/types";
 import { cn } from "#/lib/utils";
 import {
 	DropdownMenu,
@@ -85,6 +103,47 @@ function StatusCircleButton({
 	);
 }
 
+type AnimatedDropdownMenuItemProps = ComponentProps<typeof DropdownMenuItem> & {
+	children: ReactNode;
+	renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
+};
+
+function AnimatedDropdownMenuItem({
+	children,
+	renderIcon,
+	onBlur,
+	onFocus,
+	onPointerEnter,
+	onPointerLeave,
+	...props
+}: AnimatedDropdownMenuItemProps) {
+	const iconRef = useRef<AnimatedIconHandle>(null);
+
+	return (
+		<DropdownMenuItem
+			{...props}
+			onPointerEnter={(event) => {
+				onPointerEnter?.(event);
+				iconRef.current?.startAnimation();
+			}}
+			onPointerLeave={(event) => {
+				onPointerLeave?.(event);
+				iconRef.current?.stopAnimation();
+			}}
+			onFocus={(event) => {
+				onFocus?.(event);
+				iconRef.current?.startAnimation();
+			}}
+			onBlur={(event) => {
+				onBlur?.(event);
+				iconRef.current?.stopAnimation();
+			}}>
+			{renderIcon(iconRef)}
+			<span>{children}</span>
+		</DropdownMenuItem>
+	);
+}
+
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useMutation(api.bookings.deleteBooking);
 	const sendBookingDeliverablesEmailForBooking = useAction(
@@ -111,6 +170,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const menuIconRef = useRef<AnimatedIconHandle>(null);
+	const otherMenuIconRef = useRef<AnimatedIconHandle>(null);
+	const emailIconRef = useRef<AnimatedIconHandle>(null);
+	const phoneIconRef = useRef<AnimatedIconHandle>(null);
 	const [isUpdatingEditStatus, setIsUpdatingEditStatus] = useState(false);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] = useState(false);
@@ -357,30 +420,53 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						className="touch-manipulation">
+						className="touch-manipulation"
+						onPointerEnter={() => menuIconRef.current?.startAnimation()}
+						onPointerLeave={() => menuIconRef.current?.stopAnimation()}
+						onFocus={() => menuIconRef.current?.startAnimation()}
+						onBlur={() => menuIconRef.current?.stopAnimation()}>
 						<span className="sr-only">Open booking actions</span>
-						<MoreHorizontal />
+						<DotsHorizontalIcon
+							ref={menuIconRef}
+							aria-hidden
+						/>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					align="end"
-					className="w-56 touch-manipulation">
+					className="w-72 touch-manipulation">
 					<DropdownMenuGroup>
 						<div className="flex items-center gap-2 px-2 py-1">
 							<a
 								href={`mailto:${booking.email}`}
 								aria-label="Email customer"
 								title="Email customer"
-								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-								<Mail className="size-5" />
+								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								onPointerEnter={() => emailIconRef.current?.startAnimation()}
+								onPointerLeave={() => emailIconRef.current?.stopAnimation()}
+								onFocus={() => emailIconRef.current?.startAnimation()}
+								onBlur={() => emailIconRef.current?.stopAnimation()}>
+								<MailFilledIcon
+									ref={emailIconRef}
+									size={20}
+									aria-hidden
+								/>
 							</a>
 							{booking.phone ? (
 								<a
 									href={`tel:${booking.phone}`}
 									aria-label="Call customer"
 									title="Call customer"
-									className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-									<Phone className="size-5" />
+									className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									onPointerEnter={() => phoneIconRef.current?.startAnimation()}
+									onPointerLeave={() => phoneIconRef.current?.stopAnimation()}
+									onFocus={() => phoneIconRef.current?.startAnimation()}
+									onBlur={() => phoneIconRef.current?.stopAnimation()}>
+									<PhoneVolume
+										ref={phoneIconRef}
+										size={20}
+										aria-hidden
+									/>
 								</a>
 							) : null}
 						</div>
@@ -434,76 +520,180 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								))}
 							</div>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								className="text-green"
+							<AnimatedDropdownMenuItem
+								className="focus:text-green hover:text-green"
 								disabled={isEmailingDeliverables}
-								onSelect={() => setIsDeliverablesEmailDialogOpen(true)}>
+								onSelect={() => setIsDeliverablesEmailDialogOpen(true)}
+								renderIcon={(iconRef) => (
+									<SendIcon
+										ref={iconRef}
+										size={16}
+										aria-hidden
+										className="shrink-0 text-current"
+									/>
+								)}>
 								Deliver deliverables email
-							</DropdownMenuItem>
+							</AnimatedDropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
 					) : null}
 					<DropdownMenuSub>
-						<DropdownMenuSubTrigger>Other</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent className="w-56 touch-manipulation">
+						<DropdownMenuSubTrigger
+							onPointerEnter={() => otherMenuIconRef.current?.startAnimation()}
+							onPointerLeave={() => otherMenuIconRef.current?.stopAnimation()}
+							onFocus={() => otherMenuIconRef.current?.startAnimation()}
+							onBlur={() => otherMenuIconRef.current?.stopAnimation()}>
+							<DotsHorizontalIcon
+								ref={otherMenuIconRef}
+								aria-hidden
+							/>
+							Other
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className="w-72 touch-manipulation">
 							{isConfirmedBooking ? (
 								<>
-									<DropdownMenuItem
-										onClick={() => navigator.clipboard.writeText(customerBookingId)}>
+									<AnimatedDropdownMenuItem
+										onClick={() => navigator.clipboard.writeText(customerBookingId)}
+										renderIcon={(iconRef) => (
+											<HashtagIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										Copy invoice number
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={() => navigator.clipboard.writeText(String(booking._id))}>
+									</AnimatedDropdownMenuItem>
+									<AnimatedDropdownMenuItem
+										onClick={() => navigator.clipboard.writeText(String(booking._id))}
+										renderIcon={(iconRef) => (
+											<Stack3Icon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										Copy database ID
-									</DropdownMenuItem>
+									</AnimatedDropdownMenuItem>
 									<DropdownMenuSeparator />
-									<DropdownMenuItem
+									<AnimatedDropdownMenuItem
 										disabled={isDownloadingInvoice}
-										onSelect={handleDownloadInvoice}>
+										onSelect={handleDownloadInvoice}
+										renderIcon={(iconRef) => (
+											<DownloadIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										{isDownloadingInvoice ? "Generating invoice..." : "Download invoice"}
-									</DropdownMenuItem>
-									<DropdownMenuItem
+									</AnimatedDropdownMenuItem>
+									<AnimatedDropdownMenuItem
 										disabled={isEmailingInvoice}
-										onSelect={() => setIsEmailInvoiceDialogOpen(true)}>
+										onSelect={() => setIsEmailInvoiceDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<MailFilledIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										Email invoice to customer
-									</DropdownMenuItem>
-									<DropdownMenuItem onSelect={() => setIsCustomInvoiceDialogOpen(true)}>
+									</AnimatedDropdownMenuItem>
+									<AnimatedDropdownMenuItem
+										onSelect={() => setIsCustomInvoiceDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<PenIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										Create custom invoice
-									</DropdownMenuItem>
-									<DropdownMenuItem onSelect={() => setIsRemainingBalanceDialogOpen(true)}>
+									</AnimatedDropdownMenuItem>
+									<AnimatedDropdownMenuItem
+										onSelect={() => setIsRemainingBalanceDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<CurrencyDollarIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										Set remaining balance
-									</DropdownMenuItem>
+									</AnimatedDropdownMenuItem>
 								</>
 							) : (
-								<DropdownMenuItem
-									onClick={() => navigator.clipboard.writeText(String(booking._id))}>
+								<AnimatedDropdownMenuItem
+									onClick={() => navigator.clipboard.writeText(String(booking._id))}
+									renderIcon={(iconRef) => (
+										<Stack3Icon
+											ref={iconRef}
+											size={16}
+											aria-hidden
+											className="shrink-0 text-current"
+										/>
+									)}>
 									Copy database ID
-								</DropdownMenuItem>
+								</AnimatedDropdownMenuItem>
 							)}
 							{canToggleStatus ? (
 								<>
 									<DropdownMenuSeparator />
-									<DropdownMenuItem
-										className={isConfirmedBooking ? "text-destructive" : "text-green"}
+									<AnimatedDropdownMenuItem
+										className={
+											isConfirmedBooking
+												? "focus:text-destructive hover:text-destructive"
+												: "focus:text-green hover:text-green"
+										}
 										disabled={isUpdatingStatus}
-										onSelect={handleToggleStatus}>
+										onSelect={handleToggleStatus}
+										renderIcon={(iconRef) => (
+											<AmbulanceIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
 										{toggleStatusLabel}
-									</DropdownMenuItem>
+									</AnimatedDropdownMenuItem>
 								</>
 							) : null}
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
 					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="text-destructive focus:text-destructive"
-						onSelect={() => setIsEditDialogOpen(true)}>
+					<AnimatedDropdownMenuItem
+						className="focus:text-destructive hover:text-destructive"
+						onSelect={() => setIsEditDialogOpen(true)}
+						renderIcon={(iconRef) => (
+							<PenIcon
+								ref={iconRef}
+								size={16}
+								aria-hidden
+								className="shrink-0 text-current"
+							/>
+						)}>
 						Edit booking
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						className="text-destructive focus:text-destructive"
-						onSelect={() => setIsDeleteDialogOpen(true)}>
+					</AnimatedDropdownMenuItem>
+					<AnimatedDropdownMenuItem
+						className="focus:text-destructive hover:text-destructive"
+						onSelect={() => setIsDeleteDialogOpen(true)}
+						renderIcon={(iconRef) => (
+							<TrashIcon
+								ref={iconRef}
+								size={16}
+								aria-hidden
+								className="shrink-0 text-current"
+							/>
+						)}>
 						Delete booking
-					</DropdownMenuItem>
+					</AnimatedDropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 

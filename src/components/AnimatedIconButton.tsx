@@ -3,6 +3,7 @@ import {
 	isValidElement,
 	useRef,
 	type FocusEventHandler,
+	type ComponentProps,
 	type PointerEventHandler,
 	type ReactElement,
 	type ReactNode,
@@ -21,12 +22,13 @@ type AnimatedIconButtonChildProps = {
 	onPointerLeave?: PointerEventHandler;
 };
 
-export type AnimatedIconButtonProps = VariantProps<typeof buttonVariants> & {
-	children: ReactElement<AnimatedIconButtonChildProps>;
-	className?: string;
-	iconPosition?: "before" | "after";
-	renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
-};
+export type AnimatedIconButtonProps = VariantProps<typeof buttonVariants> &
+	Omit<ComponentProps<"button">, "children" | "className"> & {
+		children: ReactElement<AnimatedIconButtonChildProps>;
+		className?: string;
+		iconPosition?: "before" | "after";
+		renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
+	};
 
 export function AnimatedIconButton({
 	children,
@@ -35,6 +37,7 @@ export function AnimatedIconButton({
 	renderIcon,
 	size,
 	variant,
+	...props
 }: AnimatedIconButtonProps) {
 	const iconRef = useRef<AnimatedIconHandle>(null);
 
@@ -84,7 +87,8 @@ export function AnimatedIconButton({
 			asChild
 			size={size}
 			variant={variant}
-			className={className}>
+			className={className}
+			{...props}>
 			{child}
 		</Button>
 	);
