@@ -542,8 +542,8 @@ export function AdminDashboard({
 			setIsCleanupDialogOpen(false);
 			toast.success(
 				result.deletedCount === 1
-					? "Deleted 1 incomplete booking."
-					: `Deleted ${result.deletedCount} incomplete bookings.`,
+					? "Deleted 1 unconfirmed booking."
+					: `Deleted ${result.deletedCount} unconfirmed bookings.`,
 			);
 		} catch {
 			toast.error("Unable to clean up old bookings.");
