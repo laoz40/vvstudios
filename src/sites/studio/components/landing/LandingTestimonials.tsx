@@ -1,9 +1,10 @@
+import { Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Star } from "lucide-react";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import { studioSite } from "#/config/sites";
 import { motion } from "motion/react";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
-import { Button } from "#/components/ui/button";
-import { studioSite } from "#/config/sites";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
@@ -82,18 +83,18 @@ export function LandingTestimonials() {
 				</div>
 
 				<div className="mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
-					<Button
-						asChild
-						size="lg"
-						className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0">
-						<Link to={studioSite.routes.book}>
-							{testimonialCopy.bookCta}
-							<ArrowRight
-								className="translate-y-px stroke-3"
-								aria-hidden
+					<AnimatedIconButton
+						className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
+						renderIcon={(iconRef) => (
+							<ArrowNarrowRightIcon
+								ref={iconRef}
+								size={24}
+								strokeWidth={3}
+								className="translate-y-px"
 							/>
-						</Link>
-					</Button>
+						)}>
+						<Link to={studioSite.routes.book}>{testimonialCopy.bookCta}</Link>
+					</AnimatedIconButton>
 					<FreeTourDialogButton
 						label={testimonialCopy.tourCta}
 						className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"

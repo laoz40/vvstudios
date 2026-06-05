@@ -1,8 +1,8 @@
 import { useRef } from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { Button } from "#/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
 
 export type FooterImageRevealProps = {
@@ -28,18 +28,19 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					style={{
 						scale: prefersReducedMotion ? 1 : scale,
 					}}>
-					<Button
-						asChild
+					<AnimatedIconButton
 						variant="outline"
-						className="bg-accent/80 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg md:bg-accent/40">
-						<Link to={studioSite.routes.book}>
-							Book session
-							<ArrowRight
-								className="translate-y-px stroke-3 size-4"
-								aria-hidden
+						className="bg-accent/80 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg md:bg-accent/40"
+						renderIcon={(iconRef) => (
+							<ArrowNarrowRightIcon
+								ref={iconRef}
+								size={16}
+								strokeWidth={3}
+								className="translate-y-px"
 							/>
-						</Link>
-					</Button>
+						)}>
+						<Link to={studioSite.routes.book}>Book session</Link>
+					</AnimatedIconButton>
 				</motion.div>
 			) : null}
 		</div>
