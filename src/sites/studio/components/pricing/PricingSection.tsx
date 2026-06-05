@@ -148,7 +148,7 @@ export function PricingSection({
 
 								<div className="mt-auto pt-6 sm:pt-8">
 									<AnimatedIconButton
-										className="w-full justify-center gap-1.5 text-base font-medium shadow-lg shadow-primary/45"
+										className="w-full justify-center py-5 gap-1.5 text-base font-medium shadow-lg shadow-primary/45"
 										renderIcon={(iconRef) => (
 											<ArrowNarrowRightIcon
 												ref={iconRef}
