@@ -139,23 +139,23 @@ function getColumnClassName(columnId: string) {
 		case "name":
 			return "w-36";
 		case "status":
-			return "w-16";
+			return "w-24 md:w-16";
 		case "session":
-			return "w-16";
+			return "w-40 md:w-16";
 		case "service":
 			return "w-44";
 		case "contact":
-			return "w-36";
+			return "w-56 md:w-36";
 		case "notes":
 			return "w-56";
 		case "paidRemainingBalance":
-			return "w-8";
+			return "w-28 md:w-8";
 		case "editStatus":
-			return "w-16";
+			return "w-32 md:w-16";
 		case "createdAt":
-			return "w-20";
+			return "w-32 md:w-20";
 		case "actions":
-			return "w-6";
+			return "w-12 md:w-6";
 		default:
 			return undefined;
 	}
