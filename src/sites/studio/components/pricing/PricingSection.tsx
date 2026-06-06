@@ -1,10 +1,12 @@
-import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { Image } from "@unpic/react";
+import { motion } from "motion/react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
-import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 import { cn } from "#/lib/utils";
+import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
+import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type PricingSession = {
 	label: string;
@@ -95,20 +97,25 @@ export function PricingSection({
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	return (
-		<section className={cn("px-4 pb-16 sm:pb-20", compact ? "" : "pt-0", className)}>
+		<section
+			className={cn(
+				"px-4 pb-16 sm:pb-20 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
+				compact ? "" : "pt-0",
+				className,
+			)}>
 			<motion.div
-				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
+				className="flex w-full flex-col items-center gap-8"
 				{...fadeInAnimation}>
-				<div className="flex max-w-4xl flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
+				<div className="flex w-full flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
 					<HeadingTag className="font-brand text-5xl leading-none tracking-tight text-balance uppercase md:text-6xl">
 						{pricingPageCopy.title}
 					</HeadingTag>
-					<p className="text-muted-foreground text-base text-pretty leading-7 md:text-lg">
+					<p className="max-w-4xl text-base leading-7 text-pretty text-muted-foreground md:text-lg">
 						{pricingPageCopy.lead}
 					</p>
 				</div>
 
-				<div className="grid w-full gap-7 sm:gap-5 lg:grid-cols-3">
+				<div className="mt-6 grid w-full gap-7 sm:gap-6 md:mt-10 lg:grid-cols-3 lg:gap-8 xl:gap-12">
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
@@ -165,32 +172,46 @@ export function PricingSection({
 					))}
 				</div>
 
-				<p className="self-stretch text-left text-xs leading-snug text-muted-foreground italic md:text-center">
+				<p className="self-stretch text-left text-base leading-snug text-muted-foreground italic md:text-center">
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 
-				<div className="mt-8 w-full space-y-4">
-					<section className="space-y-12">
-						<div className="text-left md:text-center">
-							<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
-								{pricingPageCopy.addOnsTitle}
-							</h2>
+				<div className="mt-16 w-full space-y-4 md:mt-24">
+					<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+						<div className="flex w-full flex-col gap-12 text-left">
+							<div className="text-left">
+								<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
+									{pricingPageCopy.addOnsTitle}
+								</h2>
+							</div>
+
+							<div className="grid w-full gap-8 text-left md:gap-10">
+								{pricingAddOns.map((addOn) => (
+									<div
+										key={addOn.label}
+										className="flex h-full w-full flex-col gap-3">
+										<div className="flex items-start justify-between gap-2 md:justify-start">
+											<h3 className="text-base font-medium">{addOn.label}</h3>
+											<p className="text-primary text-base font-medium">{addOn.price}</p>
+										</div>
+										<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
+											{addOn.description}
+										</p>
+									</div>
+								))}
+							</div>
 						</div>
 
-						<div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:gap-18 lg:max-w-none lg:grid-cols-4">
-							{pricingAddOns.map((addOn) => (
-								<div
-									key={addOn.label}
-									className="flex h-full w-full flex-col gap-3 lg:max-w-xs">
-									<div className="flex items-start justify-between gap-2 md:justify-start">
-										<h3 className="text-base font-medium">{addOn.label}</h3>
-										<p className="text-primary text-base font-medium">{addOn.price}</p>
-									</div>
-									<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
-										{addOn.description}
-									</p>
-								</div>
-							))}
+						<div className="hidden h-full w-full max-w-2xl justify-self-end overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25 md:block">
+							<Image
+								src={behindTheScenesWideImage}
+								alt="Behind the scenes view of VV Studios podcast studio hire space in Sydney"
+								layout="constrained"
+								width={1971}
+								height={1110}
+								loading="lazy"
+								className="h-full w-full object-cover"
+							/>
 						</div>
 					</section>
 				</div>

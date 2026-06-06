@@ -55,9 +55,9 @@ export function LandingTestimonials() {
 	return (
 		<section
 			aria-labelledby="landing-testimonials-title"
-			className="px-4 pt-28 pb-16 md:px-0 md:pt-40 md:pb-20">
+			className="px-4 pt-28 pb-16 md:px-12 md:pt-40 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
 			<motion.div
-				className="flex w-full flex-col items-start gap-10 text-left md:items-center md:px-8 md:text-center lg:px-16 xl:px-24"
+				className="flex w-full flex-col items-start gap-10 text-left md:items-center md:text-center"
 				{...fadeInAnimation}>
 				<h2
 					id="landing-testimonials-title"
