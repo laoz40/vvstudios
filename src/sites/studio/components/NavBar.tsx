@@ -9,7 +9,6 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "#/components/ui/sheet";
 import { cn } from "#/lib/utils";
-import { AdminNavButton } from "#studio/components/AdminNavButton";
 
 const BRAND_LABEL = "VV STUDIOS";
 const HOME_ARIA_LABEL = "VV Studios home";
@@ -163,7 +162,6 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 										pathname={pathname}
 									/>
 								))}
-								<AdminNavButton media="desktop" />
 							</ul>
 
 							{isBookPage ? (
@@ -267,11 +265,6 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 								</Button>
 							</li>
 						))}
-
-						<AdminNavButton
-							media="mobile"
-							onNavigate={() => setIsOpen(false)}
-						/>
 
 						<li className="mt-1 border-t pt-6">
 							{isBookPage ? (
