@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
-import { Button } from "#/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
@@ -147,18 +147,20 @@ export function PricingSection({
 								</p>
 
 								<div className="mt-auto pt-6 sm:pt-8">
-									<Button
-										asChild
-										size="lg"
-										className="w-full justify-center gap-1.5 text-base font-medium shadow-lg shadow-primary/45">
-										<Link to={studioSite.routes.book}>
-											{pricingPageCopy.bookSessionLabel}
-											<ArrowRight
-												className="translate-y-px stroke-3"
-												aria-hidden
+									<AnimatedIconButton
+										className="w-full justify-center py-5 gap-1.5 text-base font-medium shadow-lg shadow-primary/45"
+										renderIcon={(iconRef) => (
+											<ArrowNarrowRightIcon
+												ref={iconRef}
+												aria-hidden="true"
+												focusable="false"
+												size={24}
+												strokeWidth={3}
+												className="translate-y-px"
 											/>
-										</Link>
-									</Button>
+										)}>
+										<Link to={studioSite.routes.book}>{pricingPageCopy.bookSessionLabel}</Link>
+									</AnimatedIconButton>
 								</div>
 							</div>
 						</article>

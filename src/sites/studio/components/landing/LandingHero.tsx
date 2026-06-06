@@ -1,15 +1,17 @@
 import { useRef, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, MapPin } from "lucide-react";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import { studioSite } from "#/config/sites";
+import { Button } from "#/components/ui/button";
+import { MapPin } from "lucide-react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import heroVideoMp4 from "#studio/assets/bg/landing.mp4";
 import heroVideoWebm from "#studio/assets/bg/landing.webm";
 import heroPoster from "#studio/assets/bg/landing-poster.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
-import { Button } from "#/components/ui/button";
 import { STUDIO_ADDRESS_URL } from "#/config/contact";
-import { studioSite } from "#/config/sites";
 
 const heroCopy = {
 	eyebrow: "From Vertigo Visuals",
@@ -97,18 +99,18 @@ export function LandingHero() {
 							</p>
 
 							<div className="mt-4 flex w-full flex-wrap gap-3 md:mt-4">
-								<Button
-									asChild
-									size="lg"
-									className="h-auto flex-1 gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none">
-									<Link to={studioSite.routes.book}>
-										{heroCopy.bookCta}
-										<ArrowRight
-											className="translate-y-px stroke-3"
-											aria-hidden
+								<AnimatedIconButton
+									className="h-auto flex-1 gap-1.5 px-6! py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none"
+									renderIcon={(iconRef) => (
+										<ArrowNarrowRightIcon
+											ref={iconRef}
+											size={24}
+											strokeWidth={3}
+											className="translate-y-px"
 										/>
-									</Link>
-								</Button>
+									)}>
+									<Link to={studioSite.routes.book}>{heroCopy.bookCta}</Link>
+								</AnimatedIconButton>
 
 								<FreeTourDialogButton
 									label={heroCopy.tourCta}

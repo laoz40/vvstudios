@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import logoYellow from "#studio/assets/vv-logo-yellow.svg";
 import { studioSite } from "#/config/sites";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "#/components/ui/sheet";
 import { cn } from "#/lib/utils";
@@ -106,24 +108,31 @@ function NavCta({
 	label: string;
 	variant?: "primary" | "secondary";
 }) {
+	if (href === BOOK_LINK.href) {
+		return (
+			<AnimatedIconButton
+				className="site-nav-cta gap-1.5 shadow-lg shadow-primary/45 leading-0"
+				renderIcon={(iconRef) => (
+					<ArrowNarrowRightIcon
+						ref={iconRef}
+						aria-hidden="true"
+						focusable="false"
+						size={24}
+						strokeWidth={2}
+					/>
+				)}>
+				<Link to={studioSite.routes.book}>{label}</Link>
+			</AnimatedIconButton>
+		);
+	}
+
 	return (
 		<Button
 			asChild
 			size="lg"
 			variant={variant === "primary" ? "default" : "secondary"}
-			className={cn(
-				"site-nav-cta",
-				href === BOOK_LINK.href && "gap-1.5 shadow-lg shadow-primary/45",
-			)}>
-			<Link to={href}>
-				{label}
-				{href === BOOK_LINK.href ? (
-					<ArrowRight
-						className="stroke-2"
-						aria-hidden
-					/>
-				) : null}
-			</Link>
+			className="site-nav-cta">
+			<Link to={href}>{label}</Link>
 		</Button>
 	);
 }

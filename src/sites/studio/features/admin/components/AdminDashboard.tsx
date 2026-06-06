@@ -12,10 +12,13 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ListFilter, Menu, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import CopyIcon from "#/components/ui/copy-icon";
+import TrashIcon from "#/components/ui/trash-icon";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -141,7 +144,7 @@ function getColumnClassName(columnId: string) {
 		case "status":
 			return "w-24 md:w-16";
 		case "session":
-			return "w-40 md:w-16";
+			return "w-28 md:w-16";
 		case "service":
 			return "w-44";
 		case "contact":
@@ -149,11 +152,11 @@ function getColumnClassName(columnId: string) {
 		case "notes":
 			return "w-56";
 		case "paidRemainingBalance":
-			return "w-28 md:w-8";
+			return "w-16 md:w-8";
 		case "editStatus":
-			return "w-32 md:w-16";
+			return "w-24 md:w-16";
 		case "createdAt":
-			return "w-32 md:w-20";
+			return "w-36 md:w-20";
 		case "actions":
 			return "w-12 md:w-6";
 		default:
@@ -196,15 +199,21 @@ function CopyableText({ value, label, children }: CopyableTextProps) {
 	return (
 		<span className="inline-flex items-center gap-1 align-baseline">
 			<span>{children}</span>
-			<Button
+			<AnimatedIconButton
 				type="button"
 				size="icon-sm"
 				variant="ghost"
 				aria-label={`Copy ${label}`}
-				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:cursor-grab active:cursor-grabbing"
-				onClick={() => void copyText(value, label)}>
-				<Copy className="size-3" />
-			</Button>
+				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				renderIcon={(iconRef) => (
+					<CopyIcon
+						ref={iconRef}
+						size={12}
+						aria-hidden
+					/>
+				)}>
+				<button onClick={() => void copyText(value, label)} />
+			</AnimatedIconButton>
 		</span>
 	);
 }
@@ -801,16 +810,24 @@ export function AdminDashboard({
 								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
 								{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
 							</p>
-							<Button
+							<AnimatedIconButton
 								variant="ghost"
 								size="sm"
-								className="text-sm!"
-								onClick={() => setIsCleanupDialogOpen(true)}
+								className="text-sm! hover:text-destructive"
 								disabled={isCleaningUp || staleCleanupBookings.length === 0}
-								aria-label="Clean up unconfirmed bookings">
-								<Trash2 aria-hidden />
-								<span className="hidden md:inline">Clean up unconfirmed bookings</span>
-							</Button>
+								aria-label="Clean up unconfirmed bookings"
+								onClick={() => setIsCleanupDialogOpen(true)}
+								iconPosition="before"
+								renderIcon={(iconRef) => (
+									<TrashIcon
+										ref={iconRef}
+										aria-hidden
+									/>
+								)}>
+								<button type="button">
+									<span className="hidden md:inline">Clean up unconfirmed bookings</span>
+								</button>
+							</AnimatedIconButton>
 						</div>
 						{canLoadMoreBookings || isLoadingMoreBookings ? (
 							<Button
