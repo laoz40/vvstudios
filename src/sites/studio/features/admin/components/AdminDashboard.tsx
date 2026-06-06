@@ -816,6 +816,7 @@ export function AdminDashboard({
 								className="text-sm! hover:text-destructive"
 								disabled={isCleaningUp || staleCleanupBookings.length === 0}
 								aria-label="Clean up unconfirmed bookings"
+								onClick={() => setIsCleanupDialogOpen(true)}
 								iconPosition="before"
 								renderIcon={(iconRef) => (
 									<TrashIcon
@@ -823,9 +824,7 @@ export function AdminDashboard({
 										aria-hidden
 									/>
 								)}>
-								<button
-									type="button"
-									onClick={() => setIsCleanupDialogOpen(true)}>
+								<button type="button">
 									<span className="hidden md:inline">Clean up unconfirmed bookings</span>
 								</button>
 							</AnimatedIconButton>

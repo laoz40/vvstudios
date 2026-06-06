@@ -115,6 +115,8 @@ function NavCta({
 				renderIcon={(iconRef) => (
 					<ArrowNarrowRightIcon
 						ref={iconRef}
+						aria-hidden="true"
+						focusable="false"
 						size={24}
 						strokeWidth={2}
 					/>

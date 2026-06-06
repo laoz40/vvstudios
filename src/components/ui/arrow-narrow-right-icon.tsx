@@ -3,7 +3,7 @@ import type { AnimatedIconHandle, AnimatedIconProps } from "./types";
 import { motion, useAnimate } from "motion/react";
 
 const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-	({ size = 24, color = "currentColor", strokeWidth = 2, className = "" }, ref) => {
+	({ size = 24, color = "currentColor", strokeWidth = 2, className = "", ...props }, ref) => {
 		const [scope, animate] = useAnimate();
 
 		const start = async () => {
@@ -35,7 +35,8 @@ const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					stroke={color}
 					strokeWidth={strokeWidth}
 					strokeLinecap="round"
-					strokeLinejoin="round">
+					strokeLinejoin="round"
+					{...props}>
 					<motion.g className="arrow-group">
 						<path
 							stroke="none"

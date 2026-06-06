@@ -152,6 +152,8 @@ export function PricingSection({
 										renderIcon={(iconRef) => (
 											<ArrowNarrowRightIcon
 												ref={iconRef}
+												aria-hidden="true"
+												focusable="false"
 												size={24}
 												strokeWidth={3}
 												className="translate-y-px"
