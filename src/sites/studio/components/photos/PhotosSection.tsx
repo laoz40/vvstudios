@@ -53,7 +53,12 @@ export function PhotosSection({
 		<section className={cn("px-4 pb-16", className)}>
 			<motion.div {...fadeInAnimation}>
 				<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 md:gap-10">
-					<div className="max-w-3xl space-y-4 text-center">{heading}</div>
+					<div className="max-w-4xl space-y-4 text-left md:text-center">
+						{heading}
+						<p className="text-base leading-7 text-pretty text-muted-foreground md:text-lg">
+							{photosPageContent.lead}
+						</p>
+					</div>
 					<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 						{galleryImages.map((image, index) => (
 							<figure

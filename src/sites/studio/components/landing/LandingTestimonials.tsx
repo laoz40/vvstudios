@@ -1,19 +1,25 @@
-import { Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import { studioSite } from "#/config/sites";
+import { Image } from "@unpic/react";
+import { Star } from "lucide-react";
 import { motion } from "motion/react";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { studioSite } from "#/config/sites";
+import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
+import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 const testimonialCopy = {
-	title: "Trusted by creators in Sydney",
-	lead: "VV Studios is a multimedia space in South West Sydney specialising in top-quality audio-visual production. We offer 4K video and industry-standard audio equipment to ensure your content shines.",
+	title: "Loved by creators in Sydney",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	reviews: [
+		{
+			quote:
+				"I am so thankful I found VV Studios and Joseph. He made me feel so supported and relaxed about recording and answered all my questions. I would recommend him to anyone looking for similar services.",
+			author: "Breanna Sada",
+		},
 		{
 			quote:
 				"Really good facility. Professional setup with owner at the helm managing the recording and sound. Highly recommended!",
@@ -21,7 +27,7 @@ const testimonialCopy = {
 		},
 		{
 			quote:
-				"I plan on coming back to shoot even more content! The studio is clean and well put together, very professional. Joseph uses high quality gear to capture the footage and audio, and can also do the editing for you.",
+				"I plan on coming back to shoot even more content. Joseph uses high quality gear to capture the footage and audio, and can also do the editing for you.",
 			author: "Omar M",
 		},
 	],
@@ -49,56 +55,69 @@ export function LandingTestimonials() {
 	return (
 		<section
 			aria-labelledby="landing-testimonials-title"
-			className="px-4 pt-28 pb-16 md:pt-40 md:pb-20">
+			className="px-4 pt-28 pb-16 md:px-0 md:pt-40 md:pb-20">
 			<motion.div
-				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 text-center"
+				className="flex w-full flex-col items-center gap-10 text-center md:px-8 lg:px-16 xl:px-24"
 				{...fadeInAnimation}>
-				<div className="flex max-w-4xl flex-col items-center gap-5">
-					<h2
-						id="landing-testimonials-title"
-						className="font-brand text-[2.5rem] leading-none text-pretty tracking-tight uppercase md:text-6xl">
-						{testimonialCopy.title}
-					</h2>
-					<p className="text-base leading-7 text-pretty text-muted-foreground md:text-lg">
-						{testimonialCopy.lead}
-					</p>
-				</div>
+				<h2
+					id="landing-testimonials-title"
+					className="font-brand text-[2.5rem] leading-none text-pretty tracking-tight uppercase md:text-6xl">
+					{testimonialCopy.title}
+				</h2>
 
-				<div className="grid w-full gap-4 text-left md:grid-cols-2 md:gap-6">
-					{testimonialCopy.reviews.map((review) => (
-						<Card
-							key={review.author}
-							className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
-							<CardContent className="px-6">
-								<blockquote className="text-base leading-8 text-pretty italic md:text-2xl md:leading-9">
-									“{review.quote}”
-								</blockquote>
-							</CardContent>
-							<CardFooter className="flex items-center gap-3 px-6 text-base font-medium text-muted-foreground">
-								<span>- {review.author}</span>
-								<StarRating />
-							</CardFooter>
-						</Card>
-					))}
-				</div>
+				<div className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+					<div className="flex w-full flex-col items-center gap-10 md:order-2 md:h-full md:items-start">
+						<div className="grid w-full gap-4 text-left md:gap-6">
+							{testimonialCopy.reviews.map((review) => (
+								<Card
+									key={review.author}
+									className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
+									<CardContent className="px-6">
+										<blockquote className="text-base leading-8 text-pretty italic md:text-xl md:leading-9">
+											“{review.quote}”
+										</blockquote>
+									</CardContent>
+									<CardFooter className="flex items-center gap-3 px-6 text-base font-medium text-muted-foreground">
+										<span>- {review.author}</span>
+										<StarRating />
+									</CardFooter>
+								</Card>
+							))}
+						</div>
+					</div>
 
-				<div className="mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
-					<AnimatedIconButton
-						className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
-						renderIcon={(iconRef) => (
-							<ArrowNarrowRightIcon
-								ref={iconRef}
-								size={24}
-								strokeWidth={3}
-								className="translate-y-px"
+					<div className="flex w-full flex-col gap-6 md:order-1 md:h-full md:justify-between">
+						<div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25 md:block md:self-start">
+							<Image
+								src={tableSetupImage}
+								alt="Podcast studio table setup for hire at VV Studios Sydney"
+								layout="constrained"
+								width={1885}
+								height={1060}
+								loading="lazy"
+								className="h-auto w-full"
 							/>
-						)}>
-						<Link to={studioSite.routes.book}>{testimonialCopy.bookCta}</Link>
-					</AnimatedIconButton>
-					<FreeTourDialogButton
-						label={testimonialCopy.tourCta}
-						className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
-					/>
+						</div>
+
+						<div className="mt-7 flex w-full flex-wrap justify-center gap-4 md:mt-0 md:justify-start md:gap-6">
+							<AnimatedIconButton
+								className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
+								renderIcon={(iconRef) => (
+									<ArrowNarrowRightIcon
+										ref={iconRef}
+										size={24}
+										strokeWidth={3}
+										className="translate-y-px"
+									/>
+								)}>
+								<Link to={studioSite.routes.book}>{testimonialCopy.bookCta}</Link>
+							</AnimatedIconButton>
+							<FreeTourDialogButton
+								label={testimonialCopy.tourCta}
+								className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
+							/>
+						</div>
+					</div>
 				</div>
 			</motion.div>
 		</section>

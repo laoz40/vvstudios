@@ -21,6 +21,7 @@ export interface PhotoGalleryImage {
 
 export interface PhotosPageContent {
 	title: string;
+	lead: string;
 	bookCta: string;
 	tourCta: string;
 	tourDialogLabel: string;
@@ -152,6 +153,7 @@ export const landingMobileGalleryImages: PhotoGalleryImage[] = [
 
 export const photosPageContent: PhotosPageContent = {
 	title: "What to expect at VV Studios",
+	lead: "VV Studios is a multimedia space in South West Sydney specialising in top-quality audio-visual production. We offer 4K video and industry-standard audio equipment to ensure your content shines.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",
