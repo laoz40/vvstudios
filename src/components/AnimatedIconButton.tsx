@@ -39,7 +39,7 @@ export function AnimatedIconButton({
 	variant,
 	...props
 }: AnimatedIconButtonProps) {
-	const iconRef = useRef<AnimatedIconHandle>(null);
+	const iconRef = useRef<AnimatedIconHandle | null>(null);
 
 	const startIconAnimation = () => {
 		iconRef.current?.startAnimation();

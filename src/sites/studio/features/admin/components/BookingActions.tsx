@@ -117,7 +117,7 @@ function AnimatedDropdownMenuItem({
 	onPointerLeave,
 	...props
 }: AnimatedDropdownMenuItemProps) {
-	const iconRef = useRef<AnimatedIconHandle>(null);
+	const iconRef = useRef<AnimatedIconHandle | null>(null);
 
 	return (
 		<DropdownMenuItem
@@ -170,10 +170,10 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-	const menuIconRef = useRef<AnimatedIconHandle>(null);
-	const otherMenuIconRef = useRef<AnimatedIconHandle>(null);
-	const emailIconRef = useRef<AnimatedIconHandle>(null);
-	const phoneIconRef = useRef<AnimatedIconHandle>(null);
+	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
+	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
+	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
+	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
 	const [isUpdatingEditStatus, setIsUpdatingEditStatus] = useState(false);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] = useState(false);

@@ -42,7 +42,7 @@ function AccordionTrigger({
 	...props
 }: AccordionTriggerProps) {
 	// Stores the animated icon handle so hovering or focusing the whole trigger can animate it.
-	const iconRef = React.useRef<AnimatedIconHandle>(null);
+	const iconRef = React.useRef<AnimatedIconHandle | null>(null);
 
 	const startIconAnimation = () => {
 		iconRef.current?.startAnimation();
