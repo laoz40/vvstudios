@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { useAction } from "convex/react";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleX } from "lucide-react";
 import { toast } from "sonner";
+import CheckedIcon from "#/components/ui/checked-icon";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingDetails } from "#studio/features/booking-complete/components/BookingDetails";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -71,9 +72,10 @@ export function BookingResult({
 			<div className="space-y-4">
 				<h1 className={titleClassName}>
 					{showSuccessIcon ? (
-						<CircleCheck
+						<CheckedIcon
 							className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
-							aria-hidden
+							aria-hidden="true"
+							focusable="false"
 						/>
 					) : null}
 					{showErrorIcon ? (

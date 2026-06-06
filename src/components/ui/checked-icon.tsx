@@ -3,7 +3,7 @@ import type { AnimatedIconHandle, AnimatedIconProps } from "./types";
 import { motion, useAnimate } from "motion/react";
 
 const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-	({ size = 24, color = "currentColor", strokeWidth = 2, className = "" }, ref) => {
+	({ size = 24, color = "currentColor", strokeWidth = 2, className = "", ...props }, ref) => {
 		const [scope, animate] = useAnimate();
 
 		const start = async () => {
@@ -71,7 +71,7 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		return (
-			<motion.div
+			<motion.span
 				ref={scope}
 				data-slot="animated-icon"
 				onHoverStart={handleHoverStart}
@@ -86,7 +86,8 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					strokeWidth={strokeWidth}
 					strokeLinecap="round"
 					strokeLinejoin="round"
-					className={`cursor-pointer ${className}`}>
+					className={`cursor-pointer ${className}`}
+					{...props}>
 					<motion.path
 						stroke="none"
 						d="M0 0h24v24H0z"
@@ -98,7 +99,7 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 						className="check-icon"
 					/>
 				</motion.svg>
-			</motion.div>
+			</motion.span>
 		);
 	},
 );

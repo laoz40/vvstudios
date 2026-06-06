@@ -111,7 +111,7 @@ function NavCta({
 	if (href === BOOK_LINK.href) {
 		return (
 			<AnimatedIconButton
-				className="site-nav-cta gap-1.5 shadow-lg shadow-primary/45"
+				className="site-nav-cta gap-1.5 shadow-lg shadow-primary/45 leading-0"
 				renderIcon={(iconRef) => (
 					<ArrowNarrowRightIcon
 						ref={iconRef}
