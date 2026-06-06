@@ -4,6 +4,7 @@ import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
+import { cn } from "#/lib/utils";
 
 type PricingSession = {
 	label: string;
@@ -94,10 +95,7 @@ export function PricingSection({
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	return (
-		<section
-			className={["px-4 pb-16 sm:pb-20", compact ? "pt-16 md:pt-20" : "pt-28 md:pt-32", className]
-				.filter(Boolean)
-				.join(" ")}>
+		<section className={cn("px-4 pb-16 sm:pb-20", compact ? "" : "pt-0", className)}>
 			<motion.div
 				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
 				{...fadeInAnimation}>

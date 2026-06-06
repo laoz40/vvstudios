@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_public/contact")({
 
 function ContactRoute() {
 	return (
-		<section className="px-4 pb-12 sm:pb-16">
+		<section className="px-4 pt-8 pb-12 sm:pt-10 sm:pb-16">
 			<div className="mx-auto w-full max-w-2xl">
 				<ContactCard />
 			</div>

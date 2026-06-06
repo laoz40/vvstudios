@@ -19,7 +19,7 @@ export interface PhotosSectionProps {
 }
 
 const headingTagClassName =
-	"font-brand text-[2.5rem] leading-none text-pretty tracking-tight uppercase md:text-6xl";
+	"font-brand text-[2.5rem] leading-none text-balance tracking-tight uppercase md:text-6xl";
 
 export function PhotosSection({
 	className,
@@ -50,9 +50,9 @@ export function PhotosSection({
 		);
 
 	return (
-		<section className={cn("px-4 pt-28 pb-16 md:pt-32", className)}>
+		<section className={cn("px-4 pb-16", className)}>
 			<motion.div {...fadeInAnimation}>
-				<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6">
+				<div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 md:gap-10">
 					<div className="max-w-3xl space-y-4 text-center">{heading}</div>
 					<div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
 						{galleryImages.map((image, index) => (
