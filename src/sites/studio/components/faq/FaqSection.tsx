@@ -21,7 +21,7 @@ export const faqSectionCopy: {
 	readonly title: string;
 	readonly items: readonly ContactFaqItem[];
 } = {
-	title: "Frequently Asked Questions",
+	title: "FAQs",
 	items: [
 		{
 			question: "Can I film content other than podcasts?",
@@ -138,10 +138,10 @@ export function FaqSection({ id, className, containerClassName, fadeIn = false }
 			<motion.div
 				className={containerClassName}
 				{...fadeInAnimation}>
-				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+				<div className="mx-auto flex max-w-3xl flex-col items-start text-left md:items-center md:text-center">
 					<h2
 						id={id}
-						className="scroll-mt-20 font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:scroll-mt-28 md:text-6xl">
+						className="scroll-mt-20 font-brand text-5xl leading-none tracking-tight text-balance uppercase md:scroll-mt-28 md:text-6xl">
 						{faqSectionCopy.title}
 					</h2>
 				</div>

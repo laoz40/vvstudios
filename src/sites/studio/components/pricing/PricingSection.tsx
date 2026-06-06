@@ -22,7 +22,7 @@ type PricingAddOn = {
 };
 
 const pricingPageCopy = {
-	title: "Studio session pricing",
+	title: "Session pricing",
 	lead: "Each session comes with a fully prepared studio for creators who want their content to look and sound proffesional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOnsTitle: "Production add-ons",
 	bookSessionLabel: "Book session",
@@ -99,8 +99,8 @@ export function PricingSection({
 			<motion.div
 				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
 				{...fadeInAnimation}>
-				<div className="flex max-w-4xl flex-col items-center gap-5 pb-2 text-center">
-					<HeadingTag className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
+				<div className="flex max-w-4xl flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
+					<HeadingTag className="font-brand text-5xl leading-none tracking-tight text-balance uppercase md:text-6xl">
 						{pricingPageCopy.title}
 					</HeadingTag>
 					<p className="text-muted-foreground text-base text-pretty leading-7 md:text-lg">
@@ -165,13 +165,13 @@ export function PricingSection({
 					))}
 				</div>
 
-				<p className="text-center text-xs italic leading-snug text-muted-foreground">
+				<p className="self-stretch text-left text-xs leading-snug text-muted-foreground italic md:text-center">
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 
 				<div className="mt-8 w-full space-y-4">
 					<section className="space-y-12">
-						<div className="text-center">
+						<div className="text-left md:text-center">
 							<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>

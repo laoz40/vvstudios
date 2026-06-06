@@ -57,11 +57,11 @@ export function LandingTestimonials() {
 			aria-labelledby="landing-testimonials-title"
 			className="px-4 pt-28 pb-16 md:px-0 md:pt-40 md:pb-20">
 			<motion.div
-				className="flex w-full flex-col items-center gap-10 text-center md:px-8 lg:px-16 xl:px-24"
+				className="flex w-full flex-col items-start gap-10 text-left md:items-center md:px-8 md:text-center lg:px-16 xl:px-24"
 				{...fadeInAnimation}>
 				<h2
 					id="landing-testimonials-title"
-					className="font-brand text-[2.5rem] leading-none text-pretty tracking-tight uppercase md:text-6xl">
+					className="font-brand text-5xl leading-none text-balance tracking-tight uppercase md:text-6xl">
 					{testimonialCopy.title}
 				</h2>
 

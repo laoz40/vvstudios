@@ -19,7 +19,7 @@ export interface PhotosSectionProps {
 }
 
 const headingTagClassName =
-	"font-brand text-[2.5rem] leading-none text-balance tracking-tight uppercase md:text-6xl";
+	"font-brand text-5xl leading-none text-balance tracking-tight uppercase md:text-6xl";
 
 export function PhotosSection({
 	className,
