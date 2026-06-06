@@ -276,7 +276,7 @@ export function BookingDateTimeSection({
 					</formApi.Field>
 				</div>
 			</div>
-			<div
+			{/* <div
 				aria-live="polite"
 				className="text-muted-foreground flex min-h-10 flex-col gap-1 text-sm sm:flex-row sm:gap-8">
 				<p>
@@ -285,7 +285,7 @@ export function BookingDateTimeSection({
 				<p>
 					Time: <span className="text-foreground font-medium">{bookingTimeSummary}</span>
 				</p>
-			</div>
+			</div> */}
 			<Modal
 				open={isSessionSummaryDialogOpen}
 				onOpenChange={setIsSessionSummaryDialogOpen}
