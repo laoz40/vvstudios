@@ -172,3 +172,42 @@ textarea {
 	animation-duration: 150ms;
 	animation-timing-function: ease;
 }
+
+html:active-view-transition-type(booking-slide-left)::view-transition-old(root) {
+	animation-name: booking-slide-left-old;
+	animation-duration: 200ms;
+	animation-timing-function: ease-in-out;
+}
+
+html:active-view-transition-type(booking-slide-left)::view-transition-new(root) {
+	animation-name: booking-slide-left-new;
+	animation-duration: 200ms;
+	animation-timing-function: ease-in-out;
+}
+
+@keyframes booking-slide-left-old {
+	from {
+		translate: 0;
+	}
+
+	to {
+		translate: -100%;
+	}
+}
+
+@keyframes booking-slide-left-new {
+	from {
+		translate: 100%;
+	}
+
+	to {
+		translate: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html:active-view-transition-type(booking-slide-left)::view-transition-old(root),
+	html:active-view-transition-type(booking-slide-left)::view-transition-new(root) {
+		animation-name: none;
+	}
+}
