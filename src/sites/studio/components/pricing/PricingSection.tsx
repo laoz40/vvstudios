@@ -7,7 +7,7 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
-import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
+import trioTalkingAtTableSetupImage from "#studio/assets/gallery/trio-talking-at-table-setup.webp";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type PricingSession = {
@@ -225,15 +225,15 @@ export function PricingSection({
 							</div>
 						</div>
 
-						<div className="hidden h-full w-full max-w-2xl justify-self-end overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25 md:block">
+						<div className="relative hidden h-full w-full max-w-2xl justify-self-end overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
 							<Image
-								src={behindTheScenesWideImage}
-								alt="Behind the scenes view of VV Studios podcast studio hire space in Sydney"
+								src={trioTalkingAtTableSetupImage}
+								alt="Trio talking at the VV Studios podcast studio table setup in Sydney"
 								layout="constrained"
-								width={1971}
-								height={1110}
+								width={1612}
+								height={1612}
 								loading="lazy"
-								className="h-full w-full object-cover"
+								className="absolute inset-0 size-full object-cover object-bottom"
 							/>
 						</div>
 					</section>

@@ -63,7 +63,7 @@ export function PhotosSection({
 						{galleryImages.map((image, index) => (
 							<figure
 								key={image.src}
-								className="mb-4 break-inside-avoid overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25">
+								className="mb-4 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40">
 								<Image
 									src={image.src}
 									alt={image.alt}

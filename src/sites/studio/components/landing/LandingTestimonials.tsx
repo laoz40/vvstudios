@@ -87,7 +87,7 @@ export function LandingTestimonials() {
 					</div>
 
 					<div className="flex w-full flex-col gap-6 md:order-1 md:h-full md:justify-between">
-						<div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-lg shadow-background/25 md:block md:self-start">
+						<div className="hidden overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block md:self-start">
 							<Image
 								src={tableSetupImage}
 								alt="Podcast studio table setup for hire at VV Studios Sydney"
