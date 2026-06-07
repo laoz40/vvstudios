@@ -6,12 +6,12 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
-import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
+import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 const testimonialCopy = {
-	title: "Loved by creators in Sydney",
+	title: "Trusted by creators in Sydney",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	reviews: [
@@ -87,15 +87,15 @@ export function LandingTestimonials() {
 					</div>
 
 					<div className="flex w-full flex-col gap-6 md:order-1 md:h-full md:justify-between">
-						<div className="hidden overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block md:self-start">
+						<div className="relative hidden min-h-0 w-full flex-1 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
 							<Image
-								src={tableSetupImage}
-								alt="Podcast studio table setup for hire at VV Studios Sydney"
+								src={girlSingingImage}
+								alt="Creator singing into a microphone at VV Studios Sydney"
 								layout="constrained"
-								width={1885}
-								height={1060}
+								width={1788}
+								height={1117}
 								loading="lazy"
-								className="h-auto w-full"
+								className="absolute inset-0 size-full object-cover"
 							/>
 						</div>
 
