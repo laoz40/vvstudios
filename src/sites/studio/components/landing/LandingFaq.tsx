@@ -30,7 +30,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 			containerClassName="w-full"
 			fadeIn>
 			<div className="mt-10 grid w-full gap-10 md:grid-cols-2 md:items-start">
-				<div className="flex w-full flex-col gap-6">
+				<div className="order-2 flex w-full flex-col gap-6 md:order-1">
 					<div className="hidden h-128 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
 						<Image
 							src={behindTheScenesWideImage}
@@ -66,7 +66,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 				<Accordion
 					type="single"
 					collapsible
-					className="w-full">
+					className="order-1 w-full md:order-2">
 					{faqSectionCopy.items.map((item) => (
 						<AccordionItem
 							key={item.question}
