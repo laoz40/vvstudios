@@ -143,7 +143,9 @@ export function PricingSection({
 								</span>
 							) : null}
 							<div className="flex flex-1 flex-col space-y-2">
-								<h3 className="text-foreground text-lg sm:text-2xl font-semibold">{session.label}</h3>
+								<h3 className="text-foreground text-lg sm:text-2xl font-semibold">
+									{session.label}
+								</h3>
 								<p className="text-4xl leading-none sm:text-5xl">{session.price}</p>
 								<div className="min-h-6">
 									{session.savings ? (
