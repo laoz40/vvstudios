@@ -86,7 +86,7 @@ export function LandingTestimonials() {
 									key={review.author}
 									className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
 									<CardContent className="px-6">
-										<blockquote className="text-base leading-8 text-pretty italic md:text-xl md:leading-9">
+										<blockquote className="text-base leading-7 text-pretty italic md:text-xl md:leading-9">
 											“{review.quote}”
 										</blockquote>
 									</CardContent>
