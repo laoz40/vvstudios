@@ -10,7 +10,6 @@ export function useFadeInAnimation(enabled = false) {
 			initial: false,
 			animate: { opacity: 1 },
 			whileInView: undefined,
-			viewport: { amount: 0.05, once: true },
 			transition: { duration: 0 },
 		};
 	}
