@@ -1,6 +1,8 @@
+import { type ComponentProps, type ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { motion } from "motion/react";
+import { Globe, Scissors, Smartphone, Video } from "lucide-react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
@@ -21,6 +23,7 @@ type PricingAddOn = {
 	label: string;
 	price: string;
 	description: string;
+	icon: ComponentType<ComponentProps<"svg">>;
 };
 
 const pricingPageCopy = {
@@ -61,22 +64,30 @@ const pricingAddOns: readonly PricingAddOn[] = [
 	{
 		label: "Remote Podcast",
 		price: "$59",
-		description: "Record with guests anywhere in the world using professional equipment.",
+		description:
+			"Record with guests anywhere in the world through Riverside.fm, while you get the professional studio look and cinematic lighting in your own recording.",
+		icon: Globe,
 	},
 	{
 		label: "4K UHD recording",
 		price: "$49",
-		description: "Our highest quality recording, perfect for cropping without losing clarity.",
+		description:
+			"Our highest quality recording option. Ideal if you want extra clarity in the final video or plan to crop footage for social media without losing quality.",
+		icon: Video,
 	},
 	{
 		label: "Essential Edit",
 		price: "$99",
-		description: "Professionally synchronised audio with clean cuts between camera angles.",
+		description:
+			"A clean edit of your full episode. We synchronise the audio and cut between camera angles so the final video feels smooth and ready to publish.",
+		icon: Scissors,
 	},
 	{
 		label: "Clips Package",
 		price: "$79",
-		description: "10 clips with subtitles and vertical cropping ready for social media.",
+		description:
+			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",
+		icon: Smartphone,
 	},
 ];
 
@@ -186,19 +197,31 @@ export function PricingSection({
 							</div>
 
 							<div className="grid w-full gap-8 text-left md:gap-10">
-								{pricingAddOns.map((addOn) => (
-									<div
-										key={addOn.label}
-										className="flex h-full w-full flex-col gap-3">
-										<div className="flex items-start justify-between gap-2 md:justify-start">
-											<h3 className="text-base font-medium">{addOn.label}</h3>
-											<p className="text-primary text-base font-medium">{addOn.price}</p>
+								{pricingAddOns.map((addOn) => {
+									const Icon = addOn.icon;
+
+									return (
+										<div
+											key={addOn.label}
+											className="flex h-full w-full gap-4">
+											<div className="hidden w-12 shrink-0 self-stretch items-center justify-center text-primary md:flex">
+												<Icon
+													aria-hidden="true"
+													className="size-12"
+												/>
+											</div>
+											<div className="min-w-0 flex-1 space-y-1">
+												<div className="flex items-start justify-between gap-2 md:justify-start">
+													<h3 className="text-base font-medium">{addOn.label}</h3>
+													<p className="text-primary text-base font-medium">{addOn.price}</p>
+												</div>
+												<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
+													{addOn.description}
+												</p>
+											</div>
 										</div>
-										<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
-											{addOn.description}
-										</p>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						</div>
 
