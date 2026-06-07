@@ -31,7 +31,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 			fadeIn>
 			<div className="mt-6 grid w-full gap-10 md:mt-10 md:grid-cols-2 md:items-start">
 				<div className="order-2 flex w-full flex-col gap-6 md:order-1">
-					<div className="hidden h-128 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
+					<div className="h-80 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-128">
 						<Image
 							src={behindTheScenesWideImage}
 							alt="Behind the scenes view of VV Studios podcast studio hire space in Sydney"

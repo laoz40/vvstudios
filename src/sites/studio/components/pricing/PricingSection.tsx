@@ -226,7 +226,7 @@ export function PricingSection({
 							</div>
 						</div>
 
-						<div className="relative hidden h-full w-full max-w-2xl justify-self-end overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
+						<div className="relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full md:max-w-2xl md:justify-self-end">
 							<Image
 								src={trioTalkingAtTableSetupImage}
 								alt="Trio talking at the VV Studios podcast studio table setup in Sydney"

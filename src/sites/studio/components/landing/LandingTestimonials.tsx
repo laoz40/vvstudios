@@ -67,6 +67,18 @@ export function LandingTestimonials() {
 				</h2>
 
 				<div className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+					<div className="relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:hidden">
+						<Image
+							src={girlSingingImage}
+							alt="Creator singing into a microphone at VV Studios Sydney"
+							layout="constrained"
+							width={1788}
+							height={1117}
+							loading="lazy"
+							className="absolute inset-0 size-full object-cover"
+						/>
+					</div>
+
 					<div className="flex w-full flex-col items-center gap-10 md:order-2 md:h-full md:items-start">
 						<div className="grid w-full gap-4 text-left md:gap-6">
 							{testimonialCopy.reviews.map((review) => (
