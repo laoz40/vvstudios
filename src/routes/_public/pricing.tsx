@@ -11,7 +11,7 @@ function PricingRoute() {
 	return (
 		<PricingSection
 			headingLevel="h1"
-			className="pt-0!"
+			className="pt-8 sm:pt-10"
 		/>
 	);
 }

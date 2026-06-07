@@ -93,7 +93,7 @@ export function BookingRecurringSessionsPrompt() {
 	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
 
 	return (
-		<div className="text-center text-sm text-muted-foreground">
+		<div className="text-left text-sm text-muted-foreground sm:text-center">
 			{sectionCopy.recurringPromptPrefix}{" "}
 			<Button
 				type="button"

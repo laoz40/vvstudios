@@ -555,7 +555,7 @@ function BookingPage() {
 	};
 
 	return (
-		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pb-12">
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pt-8 pb-12 sm:pt-10">
 			<div className="space-y-3">
 				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
 					{pageCopy.title}

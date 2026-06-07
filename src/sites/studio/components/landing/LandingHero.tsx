@@ -43,7 +43,7 @@ export function LandingHero() {
 			ref={heroRef}
 			aria-labelledby="landing-hero-title"
 			className="landing-hero-scroll-space relative isolate w-full">
-			<div className="sticky top-0 isolate h-svh overflow-hidden">
+			<div className="sticky top-0 isolate h-dvh overflow-hidden">
 				<motion.div
 					aria-hidden
 					className="absolute inset-0 -z-20"

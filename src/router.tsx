@@ -13,7 +13,9 @@ export function getRouter() {
 		scrollRestoration: false,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
-		defaultViewTransition: true,
+		defaultViewTransition: {
+			types: ({ toLocation }) => (toLocation.pathname === "/book" ? ["booking-slide-left"] : []),
+		},
 	});
 
 	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });

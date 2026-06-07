@@ -1,8 +1,14 @@
-import { motion } from "motion/react";
+import { type ComponentProps, type ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
+import { Image } from "@unpic/react";
+import { motion } from "motion/react";
+import { Globe, Scissors, Smartphone, Video } from "lucide-react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
+import { cn } from "#/lib/utils";
+import trioTalkingAtTableSetupImage from "#studio/assets/gallery/trio-talking-at-table-setup.webp";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type PricingSession = {
@@ -18,11 +24,12 @@ type PricingAddOn = {
 	label: string;
 	price: string;
 	description: string;
+	icon: ComponentType<ComponentProps<"svg">>;
 };
 
 const pricingPageCopy = {
-	title: "Studio session pricing",
-	lead: "Each session comes with a fully prepared studio for creators who want their content to look and sound proffesional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
+	title: "Session pricing",
+	lead: "Each session comes with a fully prepared studio for creators who want their content to look and sound professional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOnsTitle: "Production add-ons",
 	bookSessionLabel: "Book session",
 	bookingDepositNote:
@@ -58,22 +65,30 @@ const pricingAddOns: readonly PricingAddOn[] = [
 	{
 		label: "Remote Podcast",
 		price: "$59",
-		description: "Record with guests anywhere in the world using professional equipment.",
+		description:
+			"Record with guests anywhere in the world through Riverside.fm, while you get the professional studio look and cinematic lighting in your own recording.",
+		icon: Globe,
 	},
 	{
 		label: "4K UHD recording",
 		price: "$49",
-		description: "Our highest quality recording, perfect for cropping without losing clarity.",
+		description:
+			"Our highest quality recording option. Ideal if you want extra clarity in the final video or plan to crop footage for social media without losing quality.",
+		icon: Video,
 	},
 	{
 		label: "Essential Edit",
 		price: "$99",
-		description: "Professionally synchronised audio with clean cuts between camera angles.",
+		description:
+			"A clean edit of your full episode. We synchronise the audio and cut between camera angles so the final video feels smooth and ready to publish.",
+		icon: Scissors,
 	},
 	{
 		label: "Clips Package",
 		price: "$79",
-		description: "10 clips with subtitles and vertical cropping ready for social media.",
+		description:
+			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",
+		icon: Smartphone,
 	},
 ];
 
@@ -95,22 +110,24 @@ export function PricingSection({
 
 	return (
 		<section
-			className={["px-4 pb-16 sm:pb-20", compact ? "pt-16 md:pt-20" : "pt-28 md:pt-32", className]
-				.filter(Boolean)
-				.join(" ")}>
+			className={cn(
+				"px-4 pb-16 sm:pb-20 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
+				compact ? "" : "pt-0",
+				className,
+			)}>
 			<motion.div
-				className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
+				className="flex w-full flex-col items-center gap-8 md:gap-12"
 				{...fadeInAnimation}>
-				<div className="flex max-w-4xl flex-col items-center gap-5 pb-2 text-center">
-					<HeadingTag className="font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:text-6xl">
+				<div className="flex w-full flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
+					<HeadingTag className={landingSectionHeadingClassName}>
 						{pricingPageCopy.title}
 					</HeadingTag>
-					<p className="text-muted-foreground text-base text-pretty leading-7 md:text-lg">
+					<p className="max-w-4xl text-base leading-7 text-pretty text-muted-foreground md:text-lg">
 						{pricingPageCopy.lead}
 					</p>
 				</div>
 
-				<div className="grid w-full gap-7 sm:gap-5 lg:grid-cols-3">
+				<div className="grid w-full gap-8 md:gap-6 lg:grid-cols-3">
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
@@ -126,11 +143,13 @@ export function PricingSection({
 								</span>
 							) : null}
 							<div className="flex flex-1 flex-col space-y-2">
-								<h3 className="text-foreground text-base font-semibold">{session.label}</h3>
-								<p className="text-4xl leading-none sm:text-4xl">{session.price}</p>
+								<h3 className="text-foreground text-lg sm:text-2xl font-semibold">
+									{session.label}
+								</h3>
+								<p className="text-4xl leading-none sm:text-5xl">{session.price}</p>
 								<div className="min-h-6">
 									{session.savings ? (
-										<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+										<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
 											<p className="text-muted-foreground">
 												<span className="line-through">{session.baseRatePrice}</span>
 												<span> standard rate</span>
@@ -138,11 +157,11 @@ export function PricingSection({
 											<p className="text-primary font-semibold">{session.savings}</p>
 										</div>
 									) : (
-										<p className="text-muted-foreground text-xs">Standard rate</p>
+										<p className="text-muted-foreground text-sm">Standard rate</p>
 									)}
 								</div>
 
-								<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
+								<p className="mt-2 text-muted-foreground text-sm leading-relaxed sm:text-base">
 									{session.description}
 								</p>
 
@@ -167,32 +186,56 @@ export function PricingSection({
 					))}
 				</div>
 
-				<p className="text-center text-xs italic leading-snug text-muted-foreground">
+				<p className="self-stretch text-left text-base leading-snug text-muted-foreground italic md:text-center">
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 
-				<div className="mt-8 w-full space-y-4">
-					<section className="space-y-12">
-						<div className="text-center">
-							<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
+				<div className="mt-8 w-full space-y-4 md:mt-24">
+					<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+						<div className="flex w-full flex-col gap-8 md:gap-12 text-left">
+							<h2 className="ml-0 md:ml-16 font-brand text-3xl leading-none uppercase md:text-5xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>
+
+							<div className="grid w-full gap-8 text-left md:gap-10">
+								{pricingAddOns.map((addOn) => {
+									const Icon = addOn.icon;
+
+									return (
+										<div
+											key={addOn.label}
+											className="flex h-full w-full gap-4">
+											<div className="hidden w-12 shrink-0 self-stretch items-center justify-center text-primary md:flex">
+												<Icon
+													aria-hidden="true"
+													className="size-12"
+												/>
+											</div>
+											<div className="min-w-0 flex-1 space-y-1">
+												<div className="flex items-start justify-between gap-2 md:justify-start">
+													<h3 className="text-base font-medium">{addOn.label}</h3>
+													<p className="text-primary text-base font-medium">{addOn.price}</p>
+												</div>
+												<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
+													{addOn.description}
+												</p>
+											</div>
+										</div>
+									);
+								})}
+							</div>
 						</div>
 
-						<div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:gap-18 lg:max-w-none lg:grid-cols-4">
-							{pricingAddOns.map((addOn) => (
-								<div
-									key={addOn.label}
-									className="flex h-full w-full flex-col gap-3 lg:max-w-xs">
-									<div className="flex items-start justify-between gap-2 md:justify-start">
-										<h3 className="text-base font-medium">{addOn.label}</h3>
-										<p className="text-primary text-base font-medium">{addOn.price}</p>
-									</div>
-									<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
-										{addOn.description}
-									</p>
-								</div>
-							))}
+						<div className="relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full md:max-w-2xl md:justify-self-end">
+							<Image
+								src={trioTalkingAtTableSetupImage}
+								alt="Trio talking at the VV Studios podcast studio table setup in Sydney"
+								layout="constrained"
+								width={1612}
+								height={1612}
+								loading="lazy"
+								className="absolute inset-0 size-full object-cover object-bottom"
+							/>
 						</div>
 					</section>
 				</div>

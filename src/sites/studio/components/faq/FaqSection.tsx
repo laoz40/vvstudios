@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import {
 	Accordion,
@@ -5,6 +6,8 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "#/components/ui/accordion";
+import { cn } from "#/lib/utils";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type ContactFaqAnswerPart = {
@@ -21,7 +24,7 @@ export const faqSectionCopy: {
 	readonly title: string;
 	readonly items: readonly ContactFaqItem[];
 } = {
-	title: "Frequently Asked Questions",
+	title: "FAQs",
 	items: [
 		{
 			question: "Can I film content other than podcasts?",
@@ -126,9 +129,16 @@ export type FaqSectionProps = {
 	className?: string;
 	containerClassName?: string;
 	fadeIn?: boolean;
+	children?: ReactNode;
 };
 
-export function FaqSection({ id, className, containerClassName, fadeIn = false }: FaqSectionProps) {
+export function FaqSection({
+	id,
+	className,
+	containerClassName,
+	fadeIn = false,
+	children,
+}: FaqSectionProps) {
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	return (
@@ -138,38 +148,42 @@ export function FaqSection({ id, className, containerClassName, fadeIn = false }
 			<motion.div
 				className={containerClassName}
 				{...fadeInAnimation}>
-				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+				<div className="mx-auto flex max-w-3xl flex-col items-start text-left md:items-center md:text-center">
 					<h2
 						id={id}
-						className="scroll-mt-20 font-brand text-[2.5rem] leading-none tracking-tight text-balance uppercase md:scroll-mt-28 md:text-6xl">
+						className={cn("scroll-mt-20 md:scroll-mt-28", landingSectionHeadingClassName)}>
 						{faqSectionCopy.title}
 					</h2>
 				</div>
 
-				<Accordion
-					type="single"
-					collapsible
-					className="mx-auto mt-10 max-w-4xl">
-					{faqSectionCopy.items.map((item) => (
-						<AccordionItem
-							key={item.question}
-							value={item.question}>
-							<AccordionTrigger>{item.question}</AccordionTrigger>
-							<AccordionContent>
-								{item.answerParts.map((part) => (
-									<p
-										key={`${item.question}-${part.heading ?? part.value}`}
-										className="first:mt-0 mt-4">
-										{part.heading ? (
-											<strong className="text-foreground">{part.heading} </strong>
-										) : null}
-										{part.value}
-									</p>
-								))}
-							</AccordionContent>
-						</AccordionItem>
-					))}
-				</Accordion>
+				{children ? (
+					children
+				) : (
+					<Accordion
+						type="single"
+						collapsible
+						className="mt-10 w-full">
+						{faqSectionCopy.items.map((item) => (
+							<AccordionItem
+								key={item.question}
+								value={item.question}>
+								<AccordionTrigger>{item.question}</AccordionTrigger>
+								<AccordionContent>
+									{item.answerParts.map((part) => (
+										<p
+											key={`${item.question}-${part.heading ?? part.value}`}
+											className="first:mt-0 mt-4">
+											{part.heading ? (
+												<strong className="text-foreground">{part.heading} </strong>
+											) : null}
+											{part.value}
+										</p>
+									))}
+								</AccordionContent>
+							</AccordionItem>
+						))}
+					</Accordion>
+				)}
 			</motion.div>
 		</section>
 	);

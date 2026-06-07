@@ -28,7 +28,7 @@
 	--green: #00bc00;
 	--blue: #0891b2;
 
-	--border: #363636;
+	--border: #36363670;
 	--input: #3f3f3f;
 	--ring: #f5c400;
 
@@ -175,11 +175,11 @@
 }
 
 .landing-hero-scroll-space {
-	min-height: 200svh;
+	min-height: 200dvh;
 }
 
 .landing-page-content-overlap {
-	margin-top: -100svh;
+	margin-top: -100dvh;
 }
 
 .landing-hero-reveal {
@@ -250,7 +250,7 @@
 	}
 
 	.footer-image-reveal__cta {
-		top: calc(100svh - (min(42svh, 94.1938vw) / 2) - 6rem);
+		top: calc(100svh - (min(42svh, 94.1938vw) / 2));
 	}
 }
 

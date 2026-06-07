@@ -17,10 +17,12 @@ export interface PhotoGalleryImage {
 	alt: string;
 	width: number;
 	height: number;
+	caption?: string;
 }
 
 export interface PhotosPageContent {
 	title: string;
+	lead: string;
 	bookCta: string;
 	tourCta: string;
 	tourDialogLabel: string;
@@ -105,53 +107,33 @@ const galleryImages: PhotoGalleryImage[] = [
 	},
 ];
 
-export const landingMobileGalleryImages: PhotoGalleryImage[] = [
-	{
-		src: tableSetupImage,
-		alt: "Podcast studio table setup for hire at VV Studios Sydney",
-		width: 1885,
-		height: 1060,
-	},
+export const landingGalleryImages: PhotoGalleryImage[] = [
 	{
 		src: armchairSetupImage,
 		alt: "Podcast studio hire Sydney armchair setup at VV Studios",
 		width: 1885,
 		height: 1060,
+		caption: "Armchair Setup",
+	},
+	{
+		src: tableSetupImage,
+		alt: "Podcast studio table setup for hire at VV Studios Sydney",
+		width: 1885,
+		height: 1060,
+		caption: "Table Setup",
 	},
 	{
 		src: musicSetupImage,
 		alt: "Music production setup inside VV Studios podcast studio in Sydney",
 		width: 1920,
 		height: 1080,
-	},
-	{
-		src: trioTalkingAtTableSetupImage,
-		alt: "Three person podcast recording table setup at VV Studios Sydney",
-		width: 1612,
-		height: 1612,
-	},
-	{
-		src: screenImage,
-		alt: "Sydney podcast studio screen setup for branded video podcast recording",
-		width: 1920,
-		height: 1081,
-	},
-	// {
-	// 	src: armchairVerticalImage,
-	// 	alt: "Armchair video podcast setup at VV Studios in South West Sydney",
-	// 	width: 1060,
-	// 	height: 1885,
-	// },
-	{
-		src: girlSingingImage,
-		alt: "Creator recording audio and video content at VV Studios Sydney",
-		width: 1788,
-		height: 1117,
+		caption: "Music Setup",
 	},
 ];
 
 export const photosPageContent: PhotosPageContent = {
 	title: "What to expect at VV Studios",
+	lead: "VV Studios is a multimedia space in South West Sydney specialising in top-quality audio-visual production. We offer 4K video and industry-standard audio equipment to ensure your content shines.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
 	tourDialogLabel: "Take a free tour",

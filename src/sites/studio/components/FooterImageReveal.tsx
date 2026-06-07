@@ -30,7 +30,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					}}>
 					<AnimatedIconButton
 						variant="outline"
-						className="bg-accent/80 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg md:bg-accent/40"
+						className="bg-accent/70 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg backdrop-blur-xs md:bg-accent/50"
 						renderIcon={(iconRef) => (
 							<ArrowNarrowRightIcon
 								ref={iconRef}
