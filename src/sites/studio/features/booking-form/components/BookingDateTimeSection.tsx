@@ -18,7 +18,6 @@ import { useBookingFormContext } from "#studio/features/booking-form/lib/booking
 import {
 	getCardStateClassName,
 	getTextStateClassName,
-	sectionHeaderClassName,
 	sectionHeadingClassName,
 	transitionClassName,
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -119,12 +118,8 @@ export function BookingDateTimeSection({
 						{(field) => (
 							<Field
 								data-field-name="date"
-								className="gap-4 md:gap-5">
-								<div className={sectionHeaderClassName}>
-									<FieldLabel className={sectionHeadingClassName}>
-										{sectionCopy.dateLabel}
-									</FieldLabel>
-								</div>
+								className="gap-3">
+								<FieldLabel className={sectionHeadingClassName}>{sectionCopy.dateLabel}</FieldLabel>
 								<div className="border-border flex overflow-hidden rounded-lg border bg-input/30 shadow-lg shadow-background/25 xl:h-128">
 									<Calendar
 										className="h-full bg-transparent p-5 xl:p-6 [--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
@@ -175,43 +170,41 @@ export function BookingDateTimeSection({
 						{(field) => (
 							<FieldSet
 								data-field-name="time"
-								className="min-w-0 gap-4 md:gap-5">
-								<div className={sectionHeaderClassName}>
-									<FieldLegend className={sectionHeadingClassName}>
-										{sectionCopy.timeLabel}
-									</FieldLegend>
-									{!formValues.date || !isViewingSelectedMonth ? (
-										<FieldDescription>{sectionCopy.selectDatePrompt}</FieldDescription>
-									) : !formValues.duration ? (
-										<FieldDescription className="text-destructive">
-											{sectionCopy.selectDurationPrompt}
-										</FieldDescription>
-									) : null}
-									{formValues.duration &&
-									formValues.date &&
-									isViewingSelectedMonth &&
-									isSelectedDateInPast ? (
-										<FieldDescription>{sectionCopy.pastDatesUnavailable}</FieldDescription>
-									) : null}
-									{formValues.duration &&
-									formValues.date &&
-									isViewingSelectedMonth &&
-									isLoadingMonthAvailability ? (
-										<FieldDescription className="flex items-center gap-2">
-											<LoaderCircle className="size-4 animate-spin" />
-											{sectionCopy.loadingAvailability}
-										</FieldDescription>
-									) : null}
-									{!isLoadingMonthAvailability &&
-									formValues.duration &&
-									formValues.date &&
-									isViewingSelectedMonth &&
-									!isSelectedDateInPast &&
-									!hasAvailableTimes &&
-									!availabilityError ? (
-										<FieldDescription>{sectionCopy.noTimesAvailable}</FieldDescription>
-									) : null}
-								</div>
+								className="min-w-0 gap-3">
+								<FieldLegend className={sectionHeadingClassName}>
+									{sectionCopy.timeLabel}
+								</FieldLegend>
+								{!formValues.date || !isViewingSelectedMonth ? (
+									<FieldDescription>{sectionCopy.selectDatePrompt}</FieldDescription>
+								) : !formValues.duration ? (
+									<FieldDescription className="text-destructive">
+										{sectionCopy.selectDurationPrompt}
+									</FieldDescription>
+								) : null}
+								{formValues.duration &&
+								formValues.date &&
+								isViewingSelectedMonth &&
+								isSelectedDateInPast ? (
+									<FieldDescription>{sectionCopy.pastDatesUnavailable}</FieldDescription>
+								) : null}
+								{formValues.duration &&
+								formValues.date &&
+								isViewingSelectedMonth &&
+								isLoadingMonthAvailability ? (
+									<FieldDescription className="flex items-center gap-2">
+										<LoaderCircle className="size-4 animate-spin" />
+										{sectionCopy.loadingAvailability}
+									</FieldDescription>
+								) : null}
+								{!isLoadingMonthAvailability &&
+								formValues.duration &&
+								formValues.date &&
+								isViewingSelectedMonth &&
+								!isSelectedDateInPast &&
+								!hasAvailableTimes &&
+								!availabilityError ? (
+									<FieldDescription>{sectionCopy.noTimesAvailable}</FieldDescription>
+								) : null}
 								{hasAvailableTimes ? (
 									<div
 										data-lenis-prevent
