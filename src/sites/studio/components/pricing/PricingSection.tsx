@@ -8,6 +8,7 @@ import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
 import trioTalkingAtTableSetupImage from "#studio/assets/gallery/trio-talking-at-table-setup.webp";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type PricingSession = {
@@ -115,10 +116,10 @@ export function PricingSection({
 				className,
 			)}>
 			<motion.div
-				className="flex w-full flex-col items-center gap-8"
+				className="flex w-full flex-col items-center gap-8 md:gap-12"
 				{...fadeInAnimation}>
 				<div className="flex w-full flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
-					<HeadingTag className="font-brand text-5xl leading-none tracking-tight text-balance uppercase md:text-6xl">
+					<HeadingTag className={landingSectionHeadingClassName}>
 						{pricingPageCopy.title}
 					</HeadingTag>
 					<p className="max-w-4xl text-base leading-7 text-pretty text-muted-foreground md:text-lg">
@@ -126,7 +127,7 @@ export function PricingSection({
 					</p>
 				</div>
 
-				<div className="mt-6 grid w-full gap-7 sm:gap-6 md:mt-10 lg:grid-cols-3 lg:gap-8 xl:gap-12">
+				<div className="grid w-full gap-8 md:gap-6 lg:grid-cols-3">
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
@@ -187,14 +188,12 @@ export function PricingSection({
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 
-				<div className="mt-16 w-full space-y-4 md:mt-24">
+				<div className="mt-8 w-full space-y-4 md:mt-24">
 					<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
-						<div className="flex w-full flex-col gap-12 text-left">
-							<div className="text-left">
-								<h2 className="font-brand text-3xl leading-none uppercase md:text-4xl">
-									{pricingPageCopy.addOnsTitle}
-								</h2>
-							</div>
+						<div className="flex w-full flex-col gap-8 md:gap-12 text-left">
+							<h2 className="ml-0 md:ml-16 font-brand text-3xl leading-none uppercase md:text-5xl">
+								{pricingPageCopy.addOnsTitle}
+							</h2>
 
 							<div className="grid w-full gap-8 text-left md:gap-10">
 								{pricingAddOns.map((addOn) => {

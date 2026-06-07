@@ -15,7 +15,11 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Modal } from "#studio/components/Modal";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import {
+	sectionFieldSetClassName,
+	sectionHeaderClassName,
+	sectionHeadingClassName,
+} from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
@@ -131,9 +135,13 @@ export function BookingAddonsSection() {
 					}
 
 					return (
-						<FieldSet data-field-name="addons">
-							<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
-							<FieldDescription>Choose add-ons to enhance your session.</FieldDescription>
+						<FieldSet
+							data-field-name="addons"
+							className={sectionFieldSetClassName}>
+							<div className={sectionHeaderClassName}>
+								<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
+								<FieldDescription>Choose add-ons to enhance your session.</FieldDescription>
+							</div>
 							<div className="flex flex-col gap-4">
 								{ADDON_OPTIONS.map((addon) => (
 									<div

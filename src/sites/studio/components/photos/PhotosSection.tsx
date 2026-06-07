@@ -7,6 +7,7 @@ import { Image } from "@unpic/react";
 import { motion } from "motion/react";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 import { cn } from "#/lib/utils";
 
@@ -18,9 +19,6 @@ export interface PhotosSectionProps {
 	fadeIn?: boolean;
 	layout?: "masonry" | "threeFeature";
 }
-
-const headingTagClassName =
-	"font-brand text-5xl leading-none text-balance tracking-tight uppercase md:text-6xl";
 
 export function PhotosSection({
 	className,
@@ -46,21 +44,21 @@ export function PhotosSection({
 	const galleryImages = isMobile && mobileImages ? mobileImages : images;
 	const galleryClassName =
 		layout === "threeFeature"
-			? "flex w-full flex-col gap-4 lg:flex-row"
-			: "w-full columns-1 gap-4 sm:columns-2 xl:columns-3";
+			? "flex w-full flex-col gap-6 lg:flex-row"
+			: "w-full columns-1 gap-6 sm:columns-2 xl:columns-3";
 	const figureClassName =
 		layout === "threeFeature"
 			? "lg:flex-1"
-			: "mb-4 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40";
+			: "mb-6 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40";
 	const imageClassName =
 		layout === "threeFeature"
 			? "block h-auto w-full rounded-lg shadow-xl shadow-background/40"
 			: "block h-auto w-full";
 	const heading =
 		headingLevel === "h1" ? (
-			<h1 className={headingTagClassName}>{photosPageContent.title}</h1>
+			<h1 className={landingSectionHeadingClassName}>{photosPageContent.title}</h1>
 		) : (
-			<h2 className={headingTagClassName}>{photosPageContent.title}</h2>
+			<h2 className={landingSectionHeadingClassName}>{photosPageContent.title}</h2>
 		);
 
 	return (

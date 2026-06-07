@@ -8,6 +8,7 @@ import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 const testimonialCopy = {
@@ -61,7 +62,7 @@ export function LandingTestimonials() {
 				{...fadeInAnimation}>
 				<h2
 					id="landing-testimonials-title"
-					className="font-brand text-5xl leading-none text-balance tracking-tight uppercase md:text-6xl">
+					className={landingSectionHeadingClassName}>
 					{testimonialCopy.title}
 				</h2>
 
@@ -99,7 +100,7 @@ export function LandingTestimonials() {
 							/>
 						</div>
 
-						<div className="mt-7 flex w-full flex-wrap justify-center gap-4 md:mt-0 md:justify-start md:gap-6">
+						<div className="flex w-full flex-wrap justify-center gap-4 md:justify-start md:gap-6">
 							<AnimatedIconButton
 								className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
 								renderIcon={(iconRef) => (

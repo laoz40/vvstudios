@@ -6,6 +6,8 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "#/components/ui/accordion";
+import { cn } from "#/lib/utils";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 type ContactFaqAnswerPart = {
@@ -146,10 +148,10 @@ export function FaqSection({
 			<motion.div
 				className={containerClassName}
 				{...fadeInAnimation}>
-				<div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+				<div className="mx-auto flex max-w-3xl flex-col items-start text-left md:items-center md:text-center">
 					<h2
 						id={id}
-						className="scroll-mt-20 font-brand text-5xl leading-none tracking-tight text-balance uppercase md:scroll-mt-28 md:text-6xl">
+						className={cn("scroll-mt-20 md:scroll-mt-28", landingSectionHeadingClassName)}>
 						{faqSectionCopy.title}
 					</h2>
 				</div>

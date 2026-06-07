@@ -10,13 +10,15 @@ import {
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import {
+	sectionFieldSetClassName,
+	sectionHeaderClassName,
+	sectionHeadingClassName,
+} from "#studio/features/booking-form/lib/booking-form-styles";
 import { toFieldErrorObjects } from "#studio/features/booking-form/lib/form-shared";
 
-const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";
 const fieldNoteClassName = "-mt-0.5 italic md:-mt-1";
-const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
 const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 const sectionCopy = {
@@ -44,10 +46,12 @@ export function BookingContactSection() {
 
 	return (
 		<>
-			<FieldSet className={fieldSetClassName}>
-				<FieldLegend className={sectionLegendClassName}>
-					{sectionCopy.contactDetailsLegend}
-				</FieldLegend>
+			<FieldSet className={sectionFieldSetClassName}>
+				<div className={sectionHeaderClassName}>
+					<FieldLegend className={sectionHeadingClassName}>
+						{sectionCopy.contactDetailsLegend}
+					</FieldLegend>
+				</div>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="name">
 						{(field) => (
@@ -100,10 +104,12 @@ export function BookingContactSection() {
 				</div>
 			</FieldSet>
 
-			<FieldSet className={fieldSetClassName}>
-				<FieldLegend className={sectionLegendClassName}>
-					{sectionCopy.billingInformationLegend}
-				</FieldLegend>
+			<FieldSet className={sectionFieldSetClassName}>
+				<div className={sectionHeaderClassName}>
+					<FieldLegend className={sectionHeadingClassName}>
+						{sectionCopy.billingInformationLegend}
+					</FieldLegend>
+				</div>
 				<div className="grid gap-4 md:grid-cols-2">
 					<formApi.Field name="accountName">
 						{(field) => (
@@ -185,8 +191,10 @@ export function BookingContactSection() {
 				</div>
 			</FieldSet>
 
-			<FieldSet className={fieldSetClassName}>
-				<FieldLegend className={sectionLegendClassName}>{sectionCopy.notesLegend}</FieldLegend>
+			<FieldSet className={sectionFieldSetClassName}>
+				<div className={sectionHeaderClassName}>
+					<FieldLegend className={sectionHeadingClassName}>{sectionCopy.notesLegend}</FieldLegend>
+				</div>
 				<formApi.Field name="notes">
 					{(field) => (
 						<Field

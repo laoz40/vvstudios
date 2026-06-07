@@ -12,6 +12,8 @@ import {
 	getCardStateClassName,
 	getFooterStateClassName,
 	getPillStateClassName,
+	sectionFieldSetClassName,
+	sectionHeaderClassName,
 	sectionHeadingClassName,
 	transitionClassName,
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -140,10 +142,12 @@ export function BookingRecordingSpaceDurationSection() {
 					<section
 						data-field-name="duration"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
-						<FieldSet className="gap-1">
-							<FieldLegend className={sectionHeadingClassName}>
-								{sectionCopy.durationLabel}
-							</FieldLegend>
+						<FieldSet className={sectionFieldSetClassName}>
+							<div className={sectionHeaderClassName}>
+								<FieldLegend className={sectionHeadingClassName}>
+									{sectionCopy.durationLabel}
+								</FieldLegend>
+							</div>
 							<RadioGroup
 								value={field.state.value}
 								onValueChange={(value) => {
@@ -215,10 +219,12 @@ export function BookingRecordingSpaceDurationSection() {
 					<section
 						data-field-name="service"
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
-						<FieldSet className="gap-1">
-							<FieldLegend className={sectionHeadingClassName}>
-								{sectionCopy.recordingSpaceLabel}
-							</FieldLegend>
+						<FieldSet className={sectionFieldSetClassName}>
+							<div className={sectionHeaderClassName}>
+								<FieldLegend className={sectionHeadingClassName}>
+									{sectionCopy.recordingSpaceLabel}
+								</FieldLegend>
+							</div>
 							<RadioGroup
 								value={field.state.value}
 								onValueChange={(value) => {
