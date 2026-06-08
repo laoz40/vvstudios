@@ -25,8 +25,86 @@ export function getBookingSessionStartAt(date: string, time: string, timeZone: s
 	return getUtcDateForZonedDateTime(date, time, timeZone).getTime();
 }
 
-export function didBookingScheduleChange(booking: Doc<"bookings">, values: BookingEditValues) {
-	return booking.date !== values.date || booking.time !== values.time;
+type BookingEditField = keyof BookingEditValues;
+
+// Timing field changes need availability checks.
+const bookingTimingFields: readonly BookingEditField[] = ["date", "time", "duration"];
+// Google event field changes will later update the calendar event.
+const bookingGoogleEventFields: readonly BookingEditField[] = [
+	"name",
+	"email",
+	"service",
+	"addons",
+	"date",
+	"time",
+	"duration",
+	"essentialEditQuantity",
+	"clipsPackageQuantity",
+	"notes",
+];
+// Pricing field changes may recalculate the remaining balance.
+const bookingPricingFields: readonly BookingEditField[] = [
+	"addons",
+	"duration",
+	"essentialEditQuantity",
+	"clipsPackageQuantity",
+];
+
+type BookingFieldChangeSummary = {
+	changedFields: BookingEditField[];
+	timingFieldsChanged: boolean;
+	googleEventFieldsChanged: boolean;
+	pricingFieldsChanged: boolean;
+};
+
+// Compare one editable field from the saved booking with the admin's draft.
+// Addons are arrays, so compare their contents instead of the array objects.
+function didBookingEditFieldChange(
+	booking: Doc<"bookings">,
+	values: BookingEditValues,
+	field: BookingEditField,
+) {
+	const currentValue = booking[field];
+	const nextValue = values[field];
+
+	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
+		if (currentValue.length !== nextValue.length) {
+			return true;
+		}
+
+		return currentValue.some((value, index) => value !== nextValue[index]);
+	}
+
+	return (currentValue ?? undefined) !== (nextValue ?? undefined);
+}
+
+// Build summary of what changed
+export function getBookingEditFieldChanges(
+	booking: Doc<"bookings">,
+	values: BookingEditValues,
+): BookingFieldChangeSummary {
+	const valueFields = Object.keys(values) as BookingEditField[];
+	const changedFields = valueFields.filter((field) =>
+		didBookingEditFieldChange(booking, values, field),
+	);
+
+	return {
+		changedFields,
+		timingFieldsChanged: bookingTimingFields.some((field) => changedFields.includes(field)),
+		googleEventFieldsChanged: bookingGoogleEventFields.some((field) =>
+			changedFields.includes(field),
+		),
+		pricingFieldsChanged: bookingPricingFields.some((field) => changedFields.includes(field)),
+	};
+}
+
+export function doesBookingEditRequireAvailabilityValidation(changes: BookingFieldChangeSummary) {
+	return changes.timingFieldsChanged;
+}
+
+// Warn admins before saving edits that affect calendar details or pricing.
+export function doesBookingEditRequireConfirmationWarning(changes: BookingFieldChangeSummary) {
+	return changes.googleEventFieldsChanged || changes.pricingFieldsChanged;
 }
 
 export function calculateBookingRemainingBalanceAmount(
@@ -52,7 +130,8 @@ export function buildAdminBookingUpdatePatch({
 	timeZone: string;
 	values: BookingEditValues;
 }) {
-	const scheduleChanged = didBookingScheduleChange(booking, values);
+	const changes = getBookingEditFieldChanges(booking, values);
+	const scheduleChanged = doesBookingEditRequireAvailabilityValidation(changes);
 
 	return {
 		name: values.name,
