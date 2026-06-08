@@ -195,7 +195,7 @@ function addDays(date: Date, days: number) {
 	return result;
 }
 
-export function assertBookingMeetsAvailabilitySettings({
+export function checkBookingMeetsAvailabilitySettings({
 	date,
 	duration,
 	now = Date.now(),

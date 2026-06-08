@@ -1,21 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { calculateBookingInvoiceAmounts } from "../src/sites/studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
 import { requireAdmin, requireBookingInDb } from "./lib/auth";
-import {
-	assertBookingMeetsAvailabilitySettings,
-	getUtcDateForZonedDateTime,
-} from "./lib/bookingCalendarTime";
+import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
+import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
-
-function getSessionStartAt(date: string, time: string) {
-	return getUtcDateForZonedDateTime(date, time, env.GOOGLE_CALENDAR_TIMEZONE).getTime();
-}
-
 type CreatePendingBookingResult =
 	| { ok: true; bookingId: Doc<"bookings">["_id"] }
 	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };
@@ -39,7 +31,7 @@ export const createPendingBooking = internalMutation({
 	},
 	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		assertBookingMeetsAvailabilitySettings({
+		checkBookingMeetsAvailabilitySettings({
 			date: args.date,
 			duration: args.duration,
 			settings,
@@ -76,7 +68,7 @@ export const createPendingBooking = internalMutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
-			sessionStartAt: getSessionStartAt(args.date, args.time),
+			sessionStartAt: getBookingSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE),
 			duration: args.duration,
 			service: args.service,
 			addons: args.addons,
@@ -563,37 +555,14 @@ export const updateBooking = mutation({
 		await requireAdmin(ctx);
 		const booking = await requireBookingInDb(ctx, args.bookingId);
 
-		const dateOrTimeChanged = booking.date !== args.date || booking.time !== args.time;
-
-		await ctx.db.patch(args.bookingId, {
-			name: args.name,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			email: args.email,
-			date: args.date,
-			time: args.time,
-			duration: args.duration,
-			remainingBalanceAmount: calculateBookingInvoiceAmounts({
-				duration: args.duration,
-				addons: args.addons,
-				essentialEditQuantity: args.essentialEditQuantity,
-				clipsPackageQuantity: args.clipsPackageQuantity,
-			}).totalDueAmount,
-			sessionStartAt: getSessionStartAt(args.date, args.time),
-			service: args.service,
-			addons: args.addons,
-			essentialEditQuantity: args.essentialEditQuantity,
-			clipsPackageQuantity: args.clipsPackageQuantity,
-			notes: args.notes,
-			...(dateOrTimeChanged
-				? {
-						reminderEmailClaimedAt: undefined,
-						reminderEmailSentAt: undefined,
-						reminderEmailFailureCode: undefined,
-					}
-				: {}),
-		});
+		await ctx.db.patch(
+			args.bookingId,
+			buildAdminBookingUpdatePatch({
+				booking,
+				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+				values: args,
+			}),
+		);
 
 		return { ok: true as const };
 	},
