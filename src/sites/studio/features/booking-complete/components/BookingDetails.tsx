@@ -34,18 +34,6 @@ export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {
 					label="Add-ons"
 					value={booking.addons.length > 0 ? booking.addons.join(", ") : "None"}
 				/>
-				{booking.essentialEditQuantity ? (
-					<BookingDetail
-						label="Essential Edit quantity"
-						value={booking.essentialEditQuantity}
-					/>
-				) : null}
-				{booking.clipsPackageQuantity ? (
-					<BookingDetail
-						label="Clips Package quantity"
-						value={booking.clipsPackageQuantity}
-					/>
-				) : null}
 			</dl>
 			<BookingSessionTable
 				dateValue={dateValue}
