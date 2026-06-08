@@ -8,7 +8,6 @@ export function LandingGallery() {
 			images={landingGalleryImages}
 			layout="threeFeature"
 			fadeIn
-			className="bg-background"
 		/>
 	);
 }

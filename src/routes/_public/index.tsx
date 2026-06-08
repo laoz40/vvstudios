@@ -48,13 +48,13 @@ function HomeRoute() {
 		// Cancels StudioLayout's top padding so the landing hero starts behind the navbar.
 		<main className="-mt-18 md:-mt-24">
 			<LandingHero />
-			<div className="landing-page-content-overlap relative z-10 flex flex-col gap-16 bg-background md:gap-20">
+			<div className="landing-page-content-overlap page-spotlight-background relative z-10 flex flex-col gap-16 md:gap-20">
 				<LandingTestimonials />
 				<LandingGallery />
 				<PricingSection
 					compact
 					fadeIn
-					className="bg-background text-foreground"
+					className="text-foreground"
 				/>
 				<LandingFaq />
 			</div>
