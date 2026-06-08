@@ -411,7 +411,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			accessorKey: "paidRemainingBalance",
 			header: "Due",
 			cell: ({ row }) => {
-				if (row.original.status !== "confirmed") {
+				if (row.original.status !== "confirmed" && row.original.status !== "email_failed") {
 					return null;
 				}
 
@@ -431,7 +431,11 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			cell: ({ row }) => {
 				const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
 
-				if (row.original.status !== "confirmed" || !isPastBooking) {
+				if (row.original.status !== "confirmed" && row.original.status !== "email_failed") {
+					return null;
+				}
+
+				if (!isPastBooking) {
 					return null;
 				}
 
@@ -588,7 +592,7 @@ export function AdminDashboard({
 				accumulator.total += 1;
 				accumulator[booking.status] += 1;
 				if (
-					booking.status === "confirmed" &&
+					(booking.status === "confirmed" || booking.status === "email_failed") &&
 					booking.pendingPaymentCreatedAt >= startOfWeekTimestamp
 				) {
 					accumulator.thisWeek += 1;
@@ -600,6 +604,7 @@ export function AdminDashboard({
 				thisWeek: 0,
 				abandoned: 0,
 				confirmed: 0,
+				email_failed: 0,
 				expired: 0,
 				failed: 0,
 				pending_payment: 0,
@@ -620,6 +625,7 @@ export function AdminDashboard({
 					abandoned: 0,
 					confirmed: 0,
 					expired: 0,
+					email_failed: 0,
 					failed: 0,
 					pending_payment: 0,
 				},

@@ -25,7 +25,8 @@ export function BookingStatusLayout({
 	stripeSessionId,
 }: BookingStatusLayoutProps): ReactNode {
 	const primaryAction = bookingStatus === "failed" ? "contact" : "new_booking";
-	const showInstagramPrompt = bookingStatus === "confirmed" && Boolean(stripeSessionId);
+	const showInstagramPrompt =
+		(bookingStatus === "confirmed" || bookingStatus === "email_failed") && Boolean(stripeSessionId);
 
 	return (
 		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">

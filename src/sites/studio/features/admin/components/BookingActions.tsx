@@ -184,7 +184,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	);
 	const isConfirmedBooking = booking.status === "confirmed";
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
-	const canToggleStatus = isConfirmedBooking || booking.status === "failed";
+	const canToggleStatus =
+		isConfirmedBooking || booking.status === "failed" || booking.status === "email_failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
 	const deliverableStatus = getDeliverableStatus(booking);

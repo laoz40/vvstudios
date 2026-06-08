@@ -32,7 +32,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
-		if (booking.status !== "confirmed") {
+		if (booking.status !== "confirmed" && booking.status !== "email_failed") {
 			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_CONFIRMED" });
 		}
 

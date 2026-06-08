@@ -161,7 +161,7 @@ export const saveBookingInstagramHandle = mutation({
 			throw new ConvexError<SaveBookingInstagramHandleErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
-		if (booking.status !== "confirmed") {
+		if (booking.status !== "confirmed" && booking.status !== "email_failed") {
 			throw new ConvexError<SaveBookingInstagramHandleErrorData>({
 				code: "BOOKING_NOT_CONFIRMED",
 			});
@@ -320,7 +320,7 @@ export const claimBookingCompletion = internalMutation({
 			};
 		}
 
-		if (booking.status === "confirmed") {
+		if (booking.status === "confirmed" || booking.status === "email_failed") {
 			return {
 				ok: true as const,
 				outcome: "already_confirmed" as const,
@@ -408,6 +408,42 @@ export const markBookingCompleted = internalMutation({
 	},
 });
 
+export const markBookingInvoiceEmailFailed = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		await requireBookingInDb(ctx, args.bookingId);
+
+		await ctx.db.patch(args.bookingId, {
+			status: "email_failed",
+			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED",
+		});
+
+		return null;
+	},
+});
+
+export const markBookingInvoiceEmailSent = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		const booking = await requireBookingInDb(ctx, args.bookingId);
+
+		if (booking.status !== "email_failed") {
+			return null;
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			status: "confirmed",
+			bookingFailureCode: undefined,
+		});
+
+		return null;
+	},
+});
+
 export const markBookingCompletionFailed = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -433,7 +469,7 @@ export const claimBookingReminderEmail = internalMutation({
 	handler: async (ctx, args) => {
 		const booking = await ctx.db.get(args.bookingId);
 
-		if (!booking || booking.status !== "confirmed") {
+		if (!booking || (booking.status !== "confirmed" && booking.status !== "email_failed")) {
 			return { ok: false as const, reason: "not_sendable" as const };
 		}
 
@@ -571,13 +607,13 @@ export const updateBooking = mutation({
 export const updateBookingStatus = mutation({
 	args: {
 		bookingId: v.id("bookings"),
-		status: v.union(v.literal("confirmed"), v.literal("failed")),
+		status: v.union(v.literal("confirmed"), v.literal("failed"), v.literal("email_failed")),
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
 		const booking = await requireBookingInDb(ctx, args.bookingId);
 
-		if (booking.status !== "confirmed" && booking.status !== "failed") {
+		if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
 			throw new ConvexError<UpdateBookingStatusErrorData>({
 				code: "INVALID_BOOKING_STATUS_TRANSITION",
 			});

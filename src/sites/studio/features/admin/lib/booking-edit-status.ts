@@ -12,6 +12,7 @@ type BookingStatus = BookingRecord["status"];
 export const bookingStatusLabelMap: Record<BookingStatus, string> = {
 	abandoned: "Abandoned",
 	confirmed: "Confirmed",
+	email_failed: "Email failed",
 	expired: "Expired",
 	failed: "Needs follow up",
 	pending_payment: "Pending payment",
@@ -24,6 +25,7 @@ export const bookingStatusBadgeVariantMap: Record<
 	abandoned: "outline",
 	confirmed: "default",
 	expired: "outline",
+	email_failed: "destructive",
 	failed: "destructive",
 	pending_payment: "secondary",
 };
@@ -32,6 +34,7 @@ export const bookingStatusBadgeClassNameMap: Record<BookingStatus, string | unde
 	abandoned: "bg-muted text-muted-foreground",
 	confirmed: "bg-green text-primary-foreground",
 	expired: "bg-muted text-muted-foreground",
+	email_failed: "bg-destructive text-primary-foreground",
 	failed: "bg-destructive text-primary-foreground",
 	pending_payment: "bg-primary text-primary-foreground",
 };

@@ -266,6 +266,9 @@ export const sendBookingInvoiceForBooking = action({
 
 		try {
 			await sendBookingInvoiceForBookingRecord(booking);
+			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
+				bookingId: booking._id,
+			});
 			return { ok: true as const };
 		} catch (error) {
 			if (error instanceof ConvexError) {
@@ -338,7 +341,7 @@ export const completeClaimedBooking = internalAction({
 			throw new Error("Booking confirmation was not claimed");
 		}
 
-		if (booking.status === "confirmed") {
+		if (booking.status === "confirmed" || booking.status === "email_failed") {
 			return null;
 		}
 
@@ -393,10 +396,13 @@ export const completeClaimedBooking = internalAction({
 					bookingEmail: booking.email,
 					error: invoiceError,
 				});
+				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
+					bookingId: booking._id,
+				});
 			}
 
 			return null;
-		// if error, mark booking as failed and return
+			// if error, mark booking as failed and return
 		} catch (error) {
 			console.error("Claimed booking completion failed", {
 				bookingId: booking._id,

@@ -32,6 +32,8 @@ function BookingCompletePage(): ReactNode {
 			: "skip",
 	);
 	const booking = activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking;
+	const previewStripeSessionId =
+		usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null);
 	const isLoading =
 		!activeDevScenario && Boolean(usableStripeSessionId) && liveBooking === undefined;
 
@@ -97,11 +99,11 @@ function BookingCompletePage(): ReactNode {
 	return (
 		<BookingStatusLayout
 			bookingStatus={booking.status}
-			stripeSessionId={usableStripeSessionId}>
+			stripeSessionId={previewStripeSessionId}>
 			<BookingResult
 				booking={booking}
 				content={resultContent}
-				stripeSessionId={usableStripeSessionId}
+				stripeSessionId={previewStripeSessionId}
 			/>
 		</BookingStatusLayout>
 	);
