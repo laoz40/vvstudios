@@ -284,7 +284,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						</CopyableText>
 					</p>
 					{row.original.accountName || row.original.abn ? (
-						<p className="text-sm text-muted-foreground">
+						<p className="text-sm">
 							{row.original.accountName ? (
 								<CopyableText
 									value={row.original.accountName}
@@ -331,7 +331,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						className="flex cursor-help flex-col gap-1 whitespace-normal"
 						title={relativeDateLabel}>
 						<p className="font-medium">{formatBookingDateMedium(row.original.date)}</p>
-						<p className="text-sm text-muted-foreground">
+						<p className="text-sm">
 							{formatBookingTimeLabel(row.original.time)}
 							{row.original.duration ? ` · ${row.original.duration}` : ""}
 						</p>
@@ -374,7 +374,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 							{row.original.email}
 						</CopyableText>
 					</p>
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm">
 						{row.original.phone ? (
 							<CopyableText
 								value={row.original.phone}
@@ -768,9 +768,7 @@ export function AdminDashboard({
 									return (
 										<TableRow
 											key={row.id}
-											className={cn(
-												!showUpcomingOnly && isPastBooking && "bg-muted/40 text-muted-foreground",
-											)}>
+											className={cn(!showUpcomingOnly && isPastBooking && "text-muted-foreground")}>
 											{row.getVisibleCells().map((cell) => (
 												<TableCell
 													key={cell.id}

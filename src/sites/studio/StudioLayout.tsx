@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { studioSite } from "#/config/sites";
+import { cn } from "#/lib/utils";
 import footerRevealImage from "#studio/assets/bg/landing-full.webp";
 import { Footer } from "#studio/components/Footer";
 import { FooterImageReveal } from "#studio/components/FooterImageReveal";
@@ -18,6 +19,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 		pathname === studioSite.routes.bookingComplete ||
 		pathname === studioSite.routes.bookingExpired;
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
+	const isHomePage = pathname === studioSite.routes.home;
 	const prefersReducedMotion = useReducedMotion();
 	const { scrollYProgress } = useScroll();
 	const footerImageY = useTransform(scrollYProgress, [0.75, 1], [120, -30]);
@@ -42,11 +44,12 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 				// Top padding keeps regular pages below the fixed navbar. The home page
 				// intentionally cancels this with a matching negative margin so the video
 				// can sit behind the navbar.
-				className={
+				className={cn(
 					useMinimalLayout
-						? "flex min-h-screen flex-col"
-						: "relative z-10 min-h-screen bg-background pt-18 md:pt-24"
-				}>
+						? "flex min-h-screen flex-col bg-background"
+						: "relative z-10 min-h-screen bg-background pt-18 md:pt-24",
+					!useMinimalLayout && !isHomePage && "page-spotlight-background",
+				)}>
 				{children}
 			</div>
 			{useMinimalLayout ? null : <Footer />}

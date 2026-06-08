@@ -167,7 +167,7 @@ export function Modal({
 					</Button>
 					<div
 						className={cn(
-							"bg-popover text-popover-foreground ring-foreground/10 grid w-full gap-4 rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 sm:p-6",
+							"bg-background text-foreground ring-foreground/10 grid w-full gap-4 rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 sm:p-6",
 							className,
 						)}>
 						<div className={cn("flex flex-col gap-2 text-left", hideHeader && "sr-only")}>

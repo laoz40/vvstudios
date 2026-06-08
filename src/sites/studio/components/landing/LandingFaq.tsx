@@ -26,7 +26,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 	return (
 		<FaqSection
 			id={id}
-			className="bg-background px-4 pb-16 md:px-12 md:pb-20 lg:px-24 xl:px-32 2xl:px-48"
+			className="px-4 pb-16 md:px-12 md:pb-20 lg:px-24 xl:px-32 2xl:px-48"
 			containerClassName="w-full"
 			fadeIn>
 			<div className="mt-6 grid w-full gap-10 md:mt-10 md:grid-cols-2 md:items-start">

@@ -1,10 +1,10 @@
 /* Studio-specific theme tokens, page effects, and third-party styling. */
 
 .studio-site {
-	--background: #1a1a1a;
+	--background: rgb(20, 20, 20);
 	--foreground: #fafafa;
 
-	--card: #252525;
+	--card: #25252580;
 	--card-foreground: #fafafa;
 
 	--popover: #2a2a2a;
@@ -13,7 +13,7 @@
 	--primary: #f5c400;
 	--primary-foreground: #1a1a1a;
 
-	--secondary: #303030;
+	--secondary: #30303070;
 	--secondary-foreground: #f5f5f5;
 
 	--muted: #2b2b2b;
@@ -28,8 +28,8 @@
 	--green: #00bc00;
 	--blue: #0891b2;
 
-	--border: #36363670;
-	--input: #3f3f3f;
+	--border: #36363640;
+	--input: #3f3f3f80;
 	--ring: #f5c400;
 
 	--chart-1: oklch(0.8088 0.0991 251.7533);
@@ -164,6 +164,32 @@
 		animation: none;
 		will-change: auto;
 	}
+}
+
+/* page background */
+.page-spotlight-background {
+	position: relative;
+	overflow: hidden;
+	background-color: var(--background);
+}
+
+.page-spotlight-background::before {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	content: "";
+	background: radial-gradient(
+		circle at top,
+		rgba(255, 255, 240, 0.01) 0%,
+		rgba(255, 255, 220, 0.02) 10%,
+		rgba(0, 0, 0, 0) 40%
+	);
+}
+
+.page-spotlight-background > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* landing hero reveal */
