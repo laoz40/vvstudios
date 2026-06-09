@@ -36,6 +36,14 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
@@ -160,6 +168,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
@@ -243,7 +252,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				return;
 			}
 
-			await updateBooking({
+			const result = await updateBooking({
 				bookingId: booking._id,
 				name: parsedValues.data.name,
 				phone: parsedValues.data.phone,
@@ -259,6 +268,13 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
 				notes: parsedValues.data.notes || undefined,
 			});
+
+			if (result.googleOutcome === "replacementCreated") {
+				setIsEditDialogOpen(false);
+				setIsReplacementEventDialogOpen(true);
+				toast.success("Booking updated. Replacement Calendar event created.");
+				return;
+			}
 			setIsEditDialogOpen(false);
 			toast.success("Booking updated.");
 		} catch (error) {
@@ -762,6 +778,27 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				onSave={handleEditBooking}
 				isSaving={isSaving}
 			/>
+
+			<Dialog
+				open={isReplacementEventDialogOpen}
+				onOpenChange={setIsReplacementEventDialogOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Google Calendar event repaired</DialogTitle>
+						<DialogDescription>
+							The old Google Calendar event was missing or deleted, so a replacement event was
+							created and linked to this booking.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button
+							type="button"
+							onClick={() => setIsReplacementEventDialogOpen(false)}>
+							OK
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

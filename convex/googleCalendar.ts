@@ -33,10 +33,15 @@ import {
 	validateBookingTimingEdit,
 	verifyBookingCanBeScheduled,
 } from "./lib/bookingAdminEdit";
-import { createBookingCalendarEvent, patchBookingCalendarEvent } from "./lib/googleCalendarEvents";
+import {
+	createBookingCalendarEvent,
+	getBookingCalendarEvent,
+	patchBookingCalendarEvent,
+} from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
+	isGoogleCalendarEventNotFoundError,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
@@ -285,7 +290,7 @@ export const updateBookingFromAdmin = action({
 
 		try {
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
 
 			await validateBookingTimingEdit({
 				bypassAvailabilitySettings: true,
@@ -319,6 +324,36 @@ export const updateBookingFromAdmin = action({
 			const googleEventId = booking.googleEventId;
 
 			try {
+				const existingGoogleEvent = await getBookingCalendarEvent({
+					calendar,
+					calendarId: googleCalendarId,
+					eventId: googleEventId,
+				});
+
+				if (existingGoogleEvent.status === "cancelled") {
+					const { googleEventId: replacementGoogleEventId } = await createBookingCalendarEvent({
+						calendar,
+						calendarId,
+						date: args.date,
+						details: {
+							addons: args.addons,
+							duration: args.duration,
+							email: args.email,
+							name: args.name,
+							service: args.service,
+						},
+						time: args.time,
+						timeZone,
+					});
+
+					await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+						...args,
+						googleCalendarId: calendarId,
+						googleEventId: replacementGoogleEventId,
+					});
+
+					return { ok: true as const, googleOutcome: "replacementCreated" as const };
+				}
 				await patchBookingCalendarEvent({
 					calendar,
 					calendarId: googleCalendarId,
@@ -335,6 +370,31 @@ export const updateBookingFromAdmin = action({
 					timeZone,
 				});
 			} catch (error) {
+				if (isGoogleCalendarEventNotFoundError(error)) {
+					const { googleEventId: replacementGoogleEventId } = await createBookingCalendarEvent({
+						calendar,
+						calendarId,
+						date: args.date,
+						details: {
+							addons: args.addons,
+							duration: args.duration,
+							email: args.email,
+							name: args.name,
+							service: args.service,
+						},
+						time: args.time,
+						timeZone,
+					});
+
+					await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+						...args,
+						googleCalendarId: calendarId,
+						googleEventId: replacementGoogleEventId,
+					});
+
+					return { ok: true as const, googleOutcome: "replacementCreated" as const };
+				}
+
 				const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED");
 				console.error("Admin booking Google Calendar event update failed", {
 					bookingId: args.bookingId,

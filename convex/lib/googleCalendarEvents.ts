@@ -34,6 +34,12 @@ interface PatchBookingCalendarEventArgs extends MutateBookingCalendarEventArgs {
 	eventId: string;
 }
 
+interface GetBookingCalendarEventArgs {
+	calendar: GoogleCalendarLike;
+	calendarId: string;
+	eventId: string;
+}
+
 export function buildBookingCalendarEventPayload({
 	date,
 	details,
@@ -100,6 +106,19 @@ export async function createBookingCalendarEvent({
 	return {
 		googleEventId: event.data.id ?? undefined,
 	};
+}
+
+export async function getBookingCalendarEvent({
+	calendar,
+	calendarId,
+	eventId,
+}: GetBookingCalendarEventArgs) {
+	const event = await calendar.events.get({
+		calendarId,
+		eventId,
+	});
+
+	return event.data;
 }
 
 export async function patchBookingCalendarEvent({

@@ -586,18 +586,24 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
+		googleCalendarId: v.optional(v.string()),
+		googleEventId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const booking = await requireBookingInDb(ctx, args.bookingId);
+		const updatePatch = buildAdminBookingUpdatePatch({
+			booking,
+			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+			values: args,
+		});
 
-		await ctx.db.patch(
-			args.bookingId,
-			buildAdminBookingUpdatePatch({
-				booking,
-				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-				values: args,
-			}),
-		);
+		// If the old Google Calendar event was deleted, create
+		// replacement event and pass new IDs here so booking points at the new event.
+		await ctx.db.patch(args.bookingId, {
+			...updatePatch,
+			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+		});
 
 		return { ok: true as const };
 	},
