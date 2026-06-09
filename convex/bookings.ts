@@ -588,6 +588,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		notes: v.optional(v.string()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
+		confirmBooking: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
 		const booking = await requireBookingInDb(ctx, args.bookingId);
@@ -597,12 +598,19 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 			values: args,
 		});
 
-		// If the old Google Calendar event was deleted, create
-		// replacement event and pass new IDs here so booking points at the new event.
+		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
+		// Failed bookings can be promoted after a Calendar event is created.
 		await ctx.db.patch(args.bookingId, {
 			...updatePatch,
 			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
 			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+			...(args.confirmBooking
+				? {
+						status: "confirmed" as const,
+						bookingConfirmedAt: Date.now(),
+						bookingFailureCode: undefined,
+					}
+				: {}),
 		});
 
 		return { ok: true as const };

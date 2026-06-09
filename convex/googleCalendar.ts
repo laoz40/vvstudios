@@ -30,18 +30,14 @@ import {
 } from "./lib/email";
 import {
 	failBookingCompletion,
-	validateBookingTimingEdit,
 	verifyBookingCanBeScheduled,
+	type AdminBookingUpdateResult,
+	updateBookingFromAdminWithGoogleCalendar,
 } from "./lib/bookingAdminEdit";
-import {
-	createBookingCalendarEvent,
-	getBookingCalendarEvent,
-	patchBookingCalendarEvent,
-} from "./lib/googleCalendarEvents";
+import { createBookingCalendarEvent } from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
-	isGoogleCalendarEventNotFoundError,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
@@ -277,12 +273,13 @@ export const updateBookingFromAdmin = action({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<AdminBookingUpdateResult> => {
 		await requireAdmin(ctx);
 
-		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId,
-		});
+		const booking: Doc<"bookings"> | null = await ctx.runQuery(
+			internal.bookings.getBookingByIdInternal,
+			{ bookingId: args.bookingId },
+		);
 
 		if (!booking) {
 			throw new ConvexError({ code: "BOOKING_NOT_FOUND" });
@@ -290,124 +287,15 @@ export const updateBookingFromAdmin = action({
 
 		try {
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
+			const client = getGoogleCalendarClient();
 
-			await validateBookingTimingEdit({
-				bypassAvailabilitySettings: true,
-				calendar,
-				calendarIds,
-				existing: {
-					date: booking.date,
-					duration: booking.duration,
-					googleCalendarId: booking.googleCalendarId,
-					googleEventId: booking.googleEventId,
-					time: booking.time,
-				},
-				next: {
-					date: args.date,
-					duration: args.duration,
-					time: args.time,
-				},
+			return await updateBookingFromAdminWithGoogleCalendar({
+				args,
+				booking,
+				client,
+				ctx,
 				settings,
-				timeZone,
 			});
-
-			// If there is no existing Google event to update, save only the booking changes.
-			// This avoids calling Google Calendar when we do not have a calendar event link.
-			if (booking.status !== "confirmed" || !booking.googleEventId || !booking.googleCalendarId) {
-				await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
-
-				return { ok: true as const };
-			}
-
-			const googleCalendarId = booking.googleCalendarId;
-			const googleEventId = booking.googleEventId;
-
-			try {
-				const existingGoogleEvent = await getBookingCalendarEvent({
-					calendar,
-					calendarId: googleCalendarId,
-					eventId: googleEventId,
-				});
-
-				if (existingGoogleEvent.status === "cancelled") {
-					const { googleEventId: replacementGoogleEventId } = await createBookingCalendarEvent({
-						calendar,
-						calendarId,
-						date: args.date,
-						details: {
-							addons: args.addons,
-							duration: args.duration,
-							email: args.email,
-							name: args.name,
-							service: args.service,
-						},
-						time: args.time,
-						timeZone,
-					});
-
-					await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-						...args,
-						googleCalendarId: calendarId,
-						googleEventId: replacementGoogleEventId,
-					});
-
-					return { ok: true as const, googleOutcome: "replacementCreated" as const };
-				}
-				await patchBookingCalendarEvent({
-					calendar,
-					calendarId: googleCalendarId,
-					date: args.date,
-					details: {
-						addons: args.addons,
-						duration: args.duration,
-						email: args.email,
-						name: args.name,
-						service: args.service,
-					},
-					eventId: googleEventId,
-					time: args.time,
-					timeZone,
-				});
-			} catch (error) {
-				if (isGoogleCalendarEventNotFoundError(error)) {
-					const { googleEventId: replacementGoogleEventId } = await createBookingCalendarEvent({
-						calendar,
-						calendarId,
-						date: args.date,
-						details: {
-							addons: args.addons,
-							duration: args.duration,
-							email: args.email,
-							name: args.name,
-							service: args.service,
-						},
-						time: args.time,
-						timeZone,
-					});
-
-					await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-						...args,
-						googleCalendarId: calendarId,
-						googleEventId: replacementGoogleEventId,
-					});
-
-					return { ok: true as const, googleOutcome: "replacementCreated" as const };
-				}
-
-				const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED");
-				console.error("Admin booking Google Calendar event update failed", {
-					bookingId: args.bookingId,
-					googleCalendarId,
-					googleEventId,
-					...getGoogleCalendarErrorDetails(error),
-				});
-				throw new ConvexError<BookingCalendarErrorData>({ code });
-			}
-
-			await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
-
-			return { ok: true as const };
 		} catch (error) {
 			if (error instanceof ConvexError) {
 				throw error;
