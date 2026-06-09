@@ -23,9 +23,15 @@ interface BuildBookingCalendarEventPayloadArgs {
 	timeZone: string;
 }
 
-interface CreateBookingCalendarEventArgs extends BuildBookingCalendarEventPayloadArgs {
+interface MutateBookingCalendarEventArgs extends BuildBookingCalendarEventPayloadArgs {
 	calendar: GoogleCalendarLike;
 	calendarId: string;
+}
+
+type CreateBookingCalendarEventArgs = MutateBookingCalendarEventArgs;
+
+interface PatchBookingCalendarEventArgs extends MutateBookingCalendarEventArgs {
+	eventId: string;
 }
 
 export function buildBookingCalendarEventPayload({
@@ -94,4 +100,26 @@ export async function createBookingCalendarEvent({
 	return {
 		googleEventId: event.data.id ?? undefined,
 	};
+}
+
+export async function patchBookingCalendarEvent({
+	calendar,
+	calendarId,
+	date,
+	details,
+	eventId,
+	time,
+	timeZone,
+}: PatchBookingCalendarEventArgs) {
+	await calendar.events.patch({
+		calendarId,
+		eventId,
+		sendUpdates: "all",
+		requestBody: buildBookingCalendarEventPayload({
+			date,
+			details,
+			time,
+			timeZone,
+		}),
+	});
 }

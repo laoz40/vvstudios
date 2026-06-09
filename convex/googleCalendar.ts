@@ -33,7 +33,7 @@ import {
 	validateBookingTimingEdit,
 	verifyBookingCanBeScheduled,
 } from "./lib/bookingAdminEdit";
-import { createBookingCalendarEvent } from "./lib/googleCalendarEvents";
+import { createBookingCalendarEvent, patchBookingCalendarEvent } from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -46,7 +46,8 @@ type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
-	| "GOOGLE_CALENDAR_RATE_LIMITED";
+	| "GOOGLE_CALENDAR_RATE_LIMITED"
+	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
 type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
@@ -305,6 +306,44 @@ export const updateBookingFromAdmin = action({
 				settings,
 				timeZone,
 			});
+
+			// If there is no existing Google event to update, save only the booking changes.
+			// This avoids calling Google Calendar when we do not have a calendar event link.
+			if (booking.status !== "confirmed" || !booking.googleEventId || !booking.googleCalendarId) {
+				await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+
+				return { ok: true as const };
+			}
+
+			const googleCalendarId = booking.googleCalendarId;
+			const googleEventId = booking.googleEventId;
+
+			try {
+				await patchBookingCalendarEvent({
+					calendar,
+					calendarId: googleCalendarId,
+					date: args.date,
+					details: {
+						addons: args.addons,
+						duration: args.duration,
+						email: args.email,
+						name: args.name,
+						service: args.service,
+					},
+					eventId: googleEventId,
+					time: args.time,
+					timeZone,
+				});
+			} catch (error) {
+				const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED");
+				console.error("Admin booking Google Calendar event update failed", {
+					bookingId: args.bookingId,
+					googleCalendarId,
+					googleEventId,
+					...getGoogleCalendarErrorDetails(error),
+				});
+				throw new ConvexError<BookingCalendarErrorData>({ code });
+			}
 
 			await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
 

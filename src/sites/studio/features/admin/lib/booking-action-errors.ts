@@ -44,7 +44,9 @@ export function getBookingMutationErrorMessage(error: unknown) {
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 			return "Could not check calendar availability. Please try again.";
 		case "GOOGLE_CALENDAR_CREATE_FAILED":
-			return "Could not create or update the Google Calendar event.";
+			return "Could not create the Google Calendar event.";
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+			return "Could not update the Google Calendar event. Booking changes were not saved.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Google Calendar was used too many times. Please wait a minute and try again.";
 		default:
