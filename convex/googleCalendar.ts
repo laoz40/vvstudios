@@ -28,7 +28,11 @@ import {
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
-import { failBookingCompletion, verifyBookingCanBeScheduled } from "./lib/bookingAdminEdit";
+import {
+	failBookingCompletion,
+	validateBookingTimingEdit,
+	verifyBookingCanBeScheduled,
+} from "./lib/bookingAdminEdit";
 import { createBookingCalendarEvent } from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
@@ -38,6 +42,7 @@ import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvail
 import { rateLimiter } from "./lib/rateLimits";
 
 type BookingCalendarErrorCode =
+	| "BOOKING_TIME_UNAVAILABLE"
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
@@ -242,6 +247,76 @@ export const getAvailableBookingTimes = action({
 			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 			console.error("Google Calendar availability lookup failed", {
 				date: args.date,
+				...getGoogleCalendarErrorDetails(error),
+			});
+			throw new ConvexError<BookingCalendarErrorData>({ code });
+		}
+	},
+});
+
+export const updateBookingFromAdmin = action({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		date: v.string(),
+		time: v.string(),
+		duration: v.string(),
+		service: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		await requireAdmin(ctx);
+
+		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
+			bookingId: args.bookingId,
+		});
+
+		if (!booking) {
+			throw new ConvexError({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		try {
+			const settings = await ctx.runQuery(api.bookingSettings.get, {});
+			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+
+			await validateBookingTimingEdit({
+				bypassAvailabilitySettings: true,
+				calendar,
+				calendarIds,
+				existing: {
+					date: booking.date,
+					duration: booking.duration,
+					googleCalendarId: booking.googleCalendarId,
+					googleEventId: booking.googleEventId,
+					time: booking.time,
+				},
+				next: {
+					date: args.date,
+					duration: args.duration,
+					time: args.time,
+				},
+				settings,
+				timeZone,
+			});
+
+			await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+
+			return { ok: true as const };
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+			console.error("Admin booking availability validation failed", {
+				bookingId: args.bookingId,
 				...getGoogleCalendarErrorDetails(error),
 			});
 			throw new ConvexError<BookingCalendarErrorData>({ code });

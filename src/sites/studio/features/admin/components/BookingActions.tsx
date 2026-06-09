@@ -150,7 +150,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking,
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
-	const updateBooking = useMutation(api.bookings.updateBooking);
+	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
 	const updateBookingPaidRemainingBalance = useMutation(
 		api.bookings.updateBookingPaidRemainingBalance,

@@ -34,15 +34,15 @@ export function getBookingMutationErrorMessage(error: unknown) {
 		case "BOOKING_OUTSIDE_OPENING_HOURS":
 			return "That booking time is outside opening hours.";
 		case "BOOKING_TOO_FAR_AHEAD":
-			return "That booking date is too far ahead.";
+			return "The selected date is outside the allowed booking window.";
 		case "BOOKING_TOO_SOON":
-			return "That booking time is too soon.";
+			return "The selected time does not meet the minimum notice period.";
 		case "BOOKING_TIME_UNAVAILABLE":
 			return "That time is unavailable. Choose another time.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Google Calendar authentication failed. Regenerate the refresh token and try again.";
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-			return "Could not check calendar availability. Check the Convex logs.";
+			return "Could not check calendar availability. Please try again.";
 		case "GOOGLE_CALENDAR_CREATE_FAILED":
 			return "Could not create or update the Google Calendar event.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":

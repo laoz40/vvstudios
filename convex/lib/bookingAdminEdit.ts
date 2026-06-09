@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { calculateBookingInvoiceAmounts } from "../../src/sites/studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "../_generated/api";
@@ -98,15 +99,6 @@ export function getBookingEditFieldChanges(
 	};
 }
 
-export function doesBookingEditRequireAvailabilityValidation(changes: BookingFieldChangeSummary) {
-	return changes.timingFieldsChanged;
-}
-
-// Warn admins before saving edits that affect calendar details or pricing.
-export function doesBookingEditRequireConfirmationWarning(changes: BookingFieldChangeSummary) {
-	return changes.googleEventFieldsChanged || changes.pricingFieldsChanged;
-}
-
 export function calculateBookingRemainingBalanceAmount(
 	values: Pick<
 		BookingEditValues,
@@ -131,7 +123,7 @@ export function buildAdminBookingUpdatePatch({
 	values: BookingEditValues;
 }) {
 	const changes = getBookingEditFieldChanges(booking, values);
-	const scheduleChanged = doesBookingEditRequireAvailabilityValidation(changes);
+	const scheduleChanged = changes.timingFieldsChanged;
 
 	return {
 		name: values.name,
@@ -165,6 +157,23 @@ interface VerifyBookingCanBeScheduledArgs {
 	booking: Doc<"bookings">;
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
+	settings: BookingAvailabilitySettings;
+	timeZone: string;
+}
+
+type BookingTimingValues = Pick<Doc<"bookings">, "date" | "duration" | "time">;
+
+interface ExistingBookingTiming extends BookingTimingValues {
+	googleCalendarId?: string;
+	googleEventId?: string;
+}
+
+interface ValidateBookingTimingEditArgs {
+	bypassAvailabilitySettings?: boolean;
+	calendar: GoogleCalendarLike;
+	calendarIds: string[];
+	existing: ExistingBookingTiming;
+	next: BookingTimingValues;
 	settings: BookingAvailabilitySettings;
 	timeZone: string;
 }
@@ -214,4 +223,65 @@ export async function verifyBookingCanBeScheduled({
 		time: booking.time,
 		timeZone,
 	});
+}
+
+type BookingAvailabilityErrorData = {
+	code: "BOOKING_TIME_UNAVAILABLE";
+};
+
+export async function validateBookingTimingEdit({
+	bypassAvailabilitySettings = false,
+	calendar,
+	calendarIds,
+	existing,
+	next,
+	settings,
+	timeZone,
+}: ValidateBookingTimingEditArgs) {
+	if (!didBookingTimingChange(existing, next)) {
+		return;
+	}
+
+	if (!bypassAvailabilitySettings) {
+		checkBookingMeetsAvailabilitySettings({
+			date: next.date,
+			duration: next.duration,
+			settings,
+			time: next.time,
+			timeZone,
+		});
+	}
+	const busyWindows = await getBusyWindows({
+		calendar,
+		calendarIds,
+		date: next.date,
+		ignoredEvent: {
+			calendarId: existing.googleCalendarId,
+			eventId: existing.googleEventId,
+		},
+		timeZone,
+	});
+
+	const isAvailable = isTimeSlotAvailable({
+		busyWindows,
+		date: next.date,
+		duration: next.duration,
+		eventBufferMinutes: settings.eventBufferMinutes,
+		time: next.time,
+		timeZone,
+	});
+
+	if (!isAvailable) {
+		throw new ConvexError<BookingAvailabilityErrorData>({
+			code: "BOOKING_TIME_UNAVAILABLE",
+		});
+	}
+}
+
+function didBookingTimingChange(existing: BookingTimingValues, next: BookingTimingValues) {
+	return (
+		existing.date !== next.date ||
+		existing.time !== next.time ||
+		existing.duration !== next.duration
+	);
 }
