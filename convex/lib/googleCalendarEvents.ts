@@ -8,7 +8,7 @@ import {
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
-interface BookingCalendarEventDetails {
+export interface BookingCalendarEventDetails {
 	addons: string[];
 	duration: string;
 	email: string;
@@ -16,47 +16,41 @@ interface BookingCalendarEventDetails {
 	service: string;
 }
 
-interface BuildBookingCalendarEventRequestBodyArgs extends BookingCalendarEventDetails {
-	endDateTime: string;
-	startDateTime: string;
-	timeZone: string;
-}
-
-interface CreateBookingCalendarEventArgs {
-	calendar: GoogleCalendarLike;
-	calendarId: string;
+interface BuildBookingCalendarEventPayloadArgs {
 	date: string;
 	details: BookingCalendarEventDetails;
 	time: string;
 	timeZone: string;
 }
 
-function buildBookingCalendarEventRequestBody({
-	name,
-	duration,
-	service,
-	addons,
-	startDateTime,
-	endDateTime,
+interface CreateBookingCalendarEventArgs extends BuildBookingCalendarEventPayloadArgs {
+	calendar: GoogleCalendarLike;
+	calendarId: string;
+}
+
+export function buildBookingCalendarEventPayload({
+	date,
+	details,
+	time,
 	timeZone,
-	email,
-}: BuildBookingCalendarEventRequestBodyArgs): calendar_v3.Schema$Event {
+}: BuildBookingCalendarEventPayloadArgs): calendar_v3.Schema$Event {
+	const { startDateTime, endDateTime } = buildEventWindow(date, time, details.duration, timeZone);
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
-	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
+	const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
 	return {
-		summary: `Studio Hire | ${name} | ${duration}`,
+		summary: `Studio Hire | ${details.name} | ${details.duration}`,
 		description: [
-			`Hello, ${name}!`,
+			`Hello, ${details.name}!`,
 			"",
 			"Your studio hire booking has been confirmed!",
 			"",
-			`Recording Space: ${service}`,
+			`Recording Space: ${details.service}`,
 			`Add-ons: ${addonsLine}`,
-			`Session Duration: ${duration}`,
+			`Session Duration: ${details.duration}`,
 			"",
 			`Date: ${bookingDate}`,
 			`Time: ${bookingTime}`,
@@ -74,7 +68,7 @@ function buildBookingCalendarEventRequestBody({
 			dateTime: endDateTime,
 		},
 		transparency: "opaque",
-		attendees: [{ email }],
+		attendees: [{ email: details.email }],
 	};
 }
 
@@ -86,19 +80,13 @@ export async function createBookingCalendarEvent({
 	time,
 	timeZone,
 }: CreateBookingCalendarEventArgs) {
-	const { startDateTime, endDateTime } = buildEventWindow(date, time, details.duration, timeZone);
-
 	const event = await calendar.events.insert({
 		calendarId,
 		sendUpdates: "all",
-		requestBody: buildBookingCalendarEventRequestBody({
-			addons: details.addons,
-			name: details.name,
-			duration: details.duration,
-			email: details.email,
-			service: details.service,
-			startDateTime,
-			endDateTime,
+		requestBody: buildBookingCalendarEventPayload({
+			date,
+			details,
+			time,
 			timeZone,
 		}),
 	});
