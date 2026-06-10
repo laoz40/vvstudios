@@ -72,7 +72,14 @@ export function isMatchingBookingCalendarEvent(
 ) {
 	const attendeeMatches =
 		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
-	const summaryMatches = event.summary?.includes(booking.name) ?? false;
+
+	// This is used when the saved Google event id cannot be used, mainly to find
+	// hidden Calendar events for invites the attendee has declined.
+	// Calendar summaries are created as: "Studio Hire | {name} | {duration}".
+	// Match the exact name segment so we do not delete a different event in the same time window.
+	const summaryParts = event.summary?.split("|").map((part) => part.trim()) ?? [];
+	const summaryName = summaryParts.length === 3 ? summaryParts[1] : null;
+	const summaryMatches = summaryName === booking.name;
 
 	return attendeeMatches || summaryMatches;
 }
