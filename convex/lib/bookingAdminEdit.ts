@@ -521,7 +521,7 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 	}
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
-	if (booking.status !== "confirmed") {
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
 		await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
 
 		return { ok: true };
