@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import {
@@ -5,8 +6,6 @@ import {
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingCalendarTime";
-
-type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
 export interface BookingCalendarEventDetails {
 	addons: string[];
@@ -21,23 +20,6 @@ interface BuildBookingCalendarEventPayloadArgs {
 	details: BookingCalendarEventDetails;
 	time: string;
 	timeZone: string;
-}
-
-interface MutateBookingCalendarEventArgs extends BuildBookingCalendarEventPayloadArgs {
-	calendar: GoogleCalendarLike;
-	calendarId: string;
-}
-
-type CreateBookingCalendarEventArgs = MutateBookingCalendarEventArgs;
-
-interface PatchBookingCalendarEventArgs extends MutateBookingCalendarEventArgs {
-	eventId: string;
-}
-
-interface GetBookingCalendarEventArgs {
-	calendar: GoogleCalendarLike;
-	calendarId: string;
-	eventId: string;
 }
 
 export function buildBookingCalendarEventPayload({
@@ -84,61 +66,49 @@ export function buildBookingCalendarEventPayload({
 	};
 }
 
-export async function createBookingCalendarEvent({
-	calendar,
-	calendarId,
-	date,
-	details,
-	time,
-	timeZone,
-}: CreateBookingCalendarEventArgs) {
-	const event = await calendar.events.insert({
-		calendarId,
-		sendUpdates: "all",
-		requestBody: buildBookingCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone,
-		}),
-	});
+export function isMatchingBookingCalendarEvent(
+	event: calendar_v3.Schema$Event,
+	booking: Doc<"bookings">,
+) {
+	const attendeeMatches =
+		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
 
-	return {
-		googleEventId: event.data.id ?? undefined,
-	};
+	// This is used when the saved Google event id cannot be used, mainly to find
+	// hidden Calendar events for invites the attendee has declined.
+	// Calendar summaries are created as: "Studio Hire | {name} | {duration}".
+	// Match the exact name segment so we do not delete a different event in the same time window.
+	const summaryParts = event.summary?.split("|").map((part) => part.trim()) ?? [];
+	const summaryName = summaryParts.length === 3 ? summaryParts[1] : null;
+	const summaryMatches = summaryName === booking.name;
+
+	return attendeeMatches || summaryMatches;
 }
 
-export async function getBookingCalendarEvent({
+export async function findBookingCalendarEventIncludingDeclined({
+	booking,
 	calendar,
 	calendarId,
-	eventId,
-}: GetBookingCalendarEventArgs) {
-	const event = await calendar.events.get({
-		calendarId,
-		eventId,
-	});
-
-	return event.data;
-}
-
-export async function patchBookingCalendarEvent({
-	calendar,
-	calendarId,
-	date,
-	details,
-	eventId,
-	time,
 	timeZone,
-}: PatchBookingCalendarEventArgs) {
-	await calendar.events.patch({
+}: {
+	booking: Doc<"bookings">;
+	calendar: calendar_v3.Calendar;
+	calendarId: string;
+	timeZone: string;
+}) {
+	const { startDateTime, endDateTime } = buildEventWindow(
+		booking.date,
+		booking.time,
+		booking.duration,
+		timeZone,
+	);
+	const events = await calendar.events.list({
 		calendarId,
-		eventId,
-		sendUpdates: "all",
-		requestBody: buildBookingCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone,
-		}),
+		singleEvents: true,
+		showDeleted: false,
+		showHiddenInvitations: true,
+		timeMax: endDateTime,
+		timeMin: startDateTime,
 	});
+
+	return events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null;
 }

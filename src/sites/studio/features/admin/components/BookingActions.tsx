@@ -155,7 +155,7 @@ function AnimatedDropdownMenuItem({
 }
 
 export function BookingActions({ booking }: BookingActionsProps) {
-	const deleteBooking = useMutation(api.bookings.deleteBooking);
+	const deleteBooking = useAction(api.googleCalendar.deleteBookingFromAdmin);
 	const sendBookingDeliverablesEmailForBooking = useAction(
 		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking,
 	);

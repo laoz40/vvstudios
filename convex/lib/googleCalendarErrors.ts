@@ -1,11 +1,12 @@
 type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_DELETE_FAILED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
-export type GoogleCalendarErrorCode =
-	| "GOOGLE_CALENDAR_AUTH_FAILED"
-	| GoogleCalendarFallbackErrorCode;
+export type GoogleCalendarErrorCode<
+	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode,
+> = "GOOGLE_CALENDAR_AUTH_FAILED" | T;
 
 // narrow unknown thrown values before reading nested properties
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -13,10 +14,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 // map raw Google API errors to the app error codes we expose upstream
-export function getGoogleCalendarErrorCode(
+export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
 	error: unknown,
-	fallbackCode: GoogleCalendarFallbackErrorCode,
-): GoogleCalendarErrorCode {
+	fallbackCode: T,
+): GoogleCalendarErrorCode<T> {
 	if (!isObject(error)) {
 		return fallbackCode;
 	}
