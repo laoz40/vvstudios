@@ -52,6 +52,7 @@ import {
 	BookingEditDialog,
 	type BookingEditDraft,
 } from "#studio/features/admin/components/BookingEditDialog";
+import { BookingEditConfirmationDialog } from "#studio/features/admin/components/BookingEditConfirmationDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
@@ -71,6 +72,7 @@ import {
 } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
+import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
@@ -169,6 +171,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
+	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
+	const [pendingEditDraft, setPendingEditDraft] = useState<BookingEditDraft | null>(null);
+	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
+		typeof getBookingEditWarningState
+	> | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
@@ -227,31 +234,45 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 	}
 
-	async function handleEditBooking(values: BookingEditDraft) {
+	async function saveEditBooking(
+		values: BookingEditDraft,
+		options?: { skipConfirmation?: boolean },
+	) {
+		const parsedValues = bookingSchema.safeParse({
+			name: values.name,
+			phone: values.phone,
+			accountName: values.accountName,
+			abn: values.abn,
+			email: values.email,
+			date: values.date,
+			time: values.time,
+			duration: values.duration,
+			service: values.service,
+			addons: values.addons,
+			essentialEditQuantity: values.essentialEditQuantity,
+			clipsPackageQuantity: values.clipsPackageQuantity,
+			notes: values.notes,
+		});
+
+		if (!parsedValues.success) {
+			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+			return;
+		}
+
+		if (!options?.skipConfirmation) {
+			const warningState = getBookingEditWarningState(booking, values);
+
+			if (warningState.requiresConfirmation) {
+				setPendingEditDraft(values);
+				setPendingEditWarningState(warningState);
+				setIsEditConfirmationDialogOpen(true);
+				return;
+			}
+		}
+
 		setIsSaving(true);
 
 		try {
-			const parsedValues = bookingSchema.safeParse({
-				name: values.name,
-				phone: values.phone,
-				accountName: values.accountName,
-				abn: values.abn,
-				email: values.email,
-				date: values.date,
-				time: values.time,
-				duration: values.duration,
-				service: values.service,
-				addons: values.addons,
-				essentialEditQuantity: values.essentialEditQuantity,
-				clipsPackageQuantity: values.clipsPackageQuantity,
-				notes: values.notes,
-			});
-
-			if (!parsedValues.success) {
-				toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
-				return;
-			}
-
 			const result = await updateBooking({
 				bookingId: booking._id,
 				name: parsedValues.data.name,
@@ -275,6 +296,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				toast.success("Booking updated. Replacement Calendar event created.");
 				return;
 			}
+
 			setIsEditDialogOpen(false);
 			toast.success("Booking updated.");
 		} catch (error) {
@@ -282,6 +304,29 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		} finally {
 			setIsSaving(false);
 		}
+	}
+
+	async function handleEditBooking(values: BookingEditDraft) {
+		await saveEditBooking(values);
+	}
+
+	function closeEditConfirmationDialog() {
+		setPendingEditDraft(null);
+		setPendingEditWarningState(null);
+		setIsEditConfirmationDialogOpen(false);
+	}
+
+	async function handleConfirmEditBooking() {
+		if (!pendingEditDraft) {
+			closeEditConfirmationDialog();
+			return;
+		}
+
+		const draftToSave = pendingEditDraft;
+		setIsEditConfirmationDialogOpen(false);
+		await saveEditBooking(draftToSave, { skipConfirmation: true });
+		setPendingEditWarningState(null);
+		setPendingEditDraft(null);
 	}
 
 	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
@@ -777,6 +822,24 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				onOpenChange={setIsEditDialogOpen}
 				onSave={handleEditBooking}
 				isSaving={isSaving}
+			/>
+
+			<BookingEditConfirmationDialog
+				open={isEditConfirmationDialogOpen}
+				isSaving={isSaving}
+				googleEventFieldLabels={pendingEditWarningState?.googleEventFieldLabels ?? []}
+				onCancel={closeEditConfirmationDialog}
+				pricingFieldLabels={pendingEditWarningState?.pricingFieldLabels ?? []}
+				onConfirm={() => {
+					void handleConfirmEditBooking();
+				}}
+				onOpenChange={(nextOpen) => {
+					setIsEditConfirmationDialogOpen(nextOpen);
+					if (!nextOpen) {
+						setPendingEditDraft(null);
+						setPendingEditWarningState(null);
+					}
+				}}
 			/>
 
 			<Dialog
