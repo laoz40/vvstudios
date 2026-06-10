@@ -35,12 +35,13 @@ export function BookingResult({
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
 	const titleClassName = "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
 	const supportReference = booking ? getSupportReference(booking) : null;
-	const canDownloadInvoice = booking?.status === "confirmed";
+	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
+	const canDownloadInvoice = hasConfirmedBooking;
 	const showErrorIcon = content.isBookingCompletionFailure;
-	const showSuccessIcon = booking?.status === "confirmed";
+	const showSuccessIcon = hasConfirmedBooking;
 
 	async function handleDownloadInvoice(): Promise<void> {
-		if (!booking || booking.status !== "confirmed" || !stripeSessionId) {
+		if (!booking || !hasConfirmedBooking || !stripeSessionId) {
 			return;
 		}
 
@@ -88,7 +89,14 @@ export function BookingResult({
 				</h1>
 				{canDownloadInvoice ? (
 					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
-						{content.description}{" "}
+						{booking?.status === "email_failed" ? (
+							<>
+								Your booking is confirmed, but <strong>we couldn’t email your invoice</strong>. You
+								can download it{" "}
+							</>
+						) : (
+							<>{content.description} </>
+						)}
 						<button
 							type="button"
 							className="accent-link inline bg-transparent p-0 text-base font-medium leading-normal text-foreground disabled:pointer-events-none disabled:opacity-50"

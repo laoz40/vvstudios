@@ -44,10 +44,10 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 		<section className="rounded-lg border bg-background/60 p-4 shadow-sm">
 			<div className="flex flex-col gap-3">
 				<div className="flex flex-col gap-1">
-					<h2 className="text-base font-semibold">Posting your studio content on Instagram?</h2>
+					<h2 className="text-base font-semibold">Want us to share your content?</h2>
 					<p className="text-sm leading-normal text-muted-foreground">
-						Send us your Instagram handle. If you post content made at VV Studios, we can repost it
-						and help give your work free advertising.
+						Leave your Instagram handle below. When you post content from your session, we can
+						repost it to our audience and help spread the word.
 					</p>
 				</div>
 				<form

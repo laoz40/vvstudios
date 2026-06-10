@@ -1,6 +1,7 @@
 type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-	| "GOOGLE_CALENDAR_CREATE_FAILED";
+	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
 export type GoogleCalendarErrorCode =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
@@ -33,6 +34,17 @@ export function getGoogleCalendarErrorCode(
 	}
 
 	return fallbackCode;
+}
+
+export function isGoogleCalendarEventNotFoundError(error: unknown) {
+	if (!isObject(error)) {
+		return false;
+	}
+
+	const response = isObject(error.response) ? error.response : null;
+	const status = typeof response?.status === "number" ? response.status : null;
+
+	return status === 404 || status === 410;
 }
 
 // extract the most useful Google error fields for structured logging

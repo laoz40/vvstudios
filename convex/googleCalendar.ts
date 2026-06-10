@@ -17,20 +17,24 @@ import {
 	renderBookingInvoicePdfInNode,
 } from "./lib/bookingInvoiceArtifacts";
 import {
-	assertBookingMeetsAvailabilitySettings,
 	buildEventWindow,
 	formatBookingDateShort,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
 	groupBusyWindowsByDay,
-	isTimeSlotAvailable,
 } from "./lib/bookingCalendarTime";
 import {
-	buildBookingCalendarEventRequestBody,
 	sendBookingHostDetailsEmail,
 	sendBookingInvoiceEmail,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
+import {
+	failBookingCompletion,
+	verifyBookingCanBeScheduled,
+	type AdminBookingUpdateResult,
+	updateBookingFromAdminWithGoogleCalendar,
+} from "./lib/bookingAdminEdit";
+import { createBookingCalendarEvent } from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -39,10 +43,12 @@ import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvail
 import { rateLimiter } from "./lib/rateLimits";
 
 type BookingCalendarErrorCode =
+	| "BOOKING_TIME_UNAVAILABLE"
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
-	| "GOOGLE_CALENDAR_RATE_LIMITED";
+	| "GOOGLE_CALENDAR_RATE_LIMITED"
+	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
 type BookingCalendarErrorData = {
 	code: BookingCalendarErrorCode;
@@ -250,6 +256,61 @@ export const getAvailableBookingTimes = action({
 	},
 });
 
+export const updateBookingFromAdmin = action({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		date: v.string(),
+		time: v.string(),
+		duration: v.string(),
+		service: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+	},
+	handler: async (ctx, args): Promise<AdminBookingUpdateResult> => {
+		await requireAdmin(ctx);
+
+		const booking: Doc<"bookings"> | null = await ctx.runQuery(
+			internal.bookings.getBookingByIdInternal,
+			{ bookingId: args.bookingId },
+		);
+
+		if (!booking) {
+			throw new ConvexError({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		try {
+			const settings = await ctx.runQuery(api.bookingSettings.get, {});
+			const client = getGoogleCalendarClient();
+
+			return await updateBookingFromAdminWithGoogleCalendar({
+				args,
+				booking,
+				client,
+				ctx,
+				settings,
+			});
+		} catch (error) {
+			if (error instanceof ConvexError) {
+				throw error;
+			}
+
+			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+			console.error("Admin booking availability validation failed", {
+				bookingId: args.bookingId,
+				...getGoogleCalendarErrorDetails(error),
+			});
+			throw new ConvexError<BookingCalendarErrorData>({ code });
+		}
+	},
+});
+
 export const sendBookingInvoiceForBooking = action({
 	args: {
 		bookingId: v.id("bookings"),
@@ -267,6 +328,9 @@ export const sendBookingInvoiceForBooking = action({
 
 		try {
 			await sendBookingInvoiceForBookingRecord(booking);
+			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
+				bookingId: booking._id,
+			});
 			return { ok: true as const };
 		} catch (error) {
 			if (error instanceof ConvexError) {
@@ -326,6 +390,7 @@ export const completeClaimedBooking = internalAction({
 		bookingId: v.id("bookings"),
 	},
 	handler: async (ctx, args) => {
+		// get the booking and make sure payment completion was claimed first.
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
 			bookingId: args.bookingId,
 		});
@@ -338,84 +403,53 @@ export const completeClaimedBooking = internalAction({
 			throw new Error("Booking confirmation was not claimed");
 		}
 
-		if (booking.status === "confirmed") {
+		if (booking.status === "confirmed" || booking.status === "email_failed") {
 			return null;
 		}
 
 		try {
+			// load booking rules and connect to Google Calendar.
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
+			const calendarClient = getGoogleCalendarClient();
 
-			try {
-				assertBookingMeetsAvailabilitySettings({
-					date: booking.date,
-					duration: booking.duration,
-					settings,
-					time: booking.time,
-					timeZone,
-				});
-			} catch {
-				await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
-					bookingId: booking._id,
-					failureCode: "BOOKING_TIME_UNAVAILABLE",
-				});
-				return null;
-			}
-
-			const busyWindows = await getBusyWindows({
-				calendar,
-				calendarIds,
-				date: booking.date,
-				timeZone,
+			// check booking can be scheduled
+			const canBeScheduled = await verifyBookingCanBeScheduled({
+				booking,
+				calendar: calendarClient.calendar,
+				calendarIds: calendarClient.calendarIds,
+				settings,
+				timeZone: calendarClient.timeZone,
 			});
 
-			if (
-				!isTimeSlotAvailable({
-					busyWindows,
-					date: booking.date,
-					duration: booking.duration,
-					eventBufferMinutes: settings.eventBufferMinutes,
-					time: booking.time,
-					timeZone,
-				})
-			) {
-				await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
-					bookingId: booking._id,
-					failureCode: "BOOKING_TIME_UNAVAILABLE",
-				});
+			if (!canBeScheduled) {
+				await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
 				return null;
 			}
 
-			const { startDateTime, endDateTime } = buildEventWindow(
-				booking.date,
-				booking.time,
-				booking.duration,
-				timeZone,
-			);
-
-			const event = await calendar.events.insert({
-				calendarId,
-				sendUpdates: "all",
-				requestBody: buildBookingCalendarEventRequestBody({
+			// create the calendar event
+			const { googleEventId } = await createBookingCalendarEvent({
+				calendar: calendarClient.calendar,
+				calendarId: calendarClient.calendarId,
+				date: booking.date,
+				time: booking.time,
+				timeZone: calendarClient.timeZone,
+				details: {
 					addons: booking.addons,
 					name: booking.name,
 					duration: booking.duration,
 					email: booking.email,
 					service: booking.service,
-					startDateTime,
-					endDateTime,
-					timeZone,
-				}),
+				},
 			});
 
-			const googleEventId = event.data.id ?? undefined;
-
+			// save confirmed status and Google event details.
 			await ctx.runMutation(internal.bookings.markBookingCompleted, {
 				bookingId: booking._id,
 				googleEventId,
-				googleCalendarId: calendarId,
+				googleCalendarId: calendarClient.calendarId,
 			});
 
+			// send invoice emails
 			try {
 				await sendBookingInvoiceForBookingRecord(booking);
 			} catch (invoiceError) {
@@ -424,19 +458,20 @@ export const completeClaimedBooking = internalAction({
 					bookingEmail: booking.email,
 					error: invoiceError,
 				});
+				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
+					bookingId: booking._id,
+				});
 			}
 
 			return null;
+			// if error, mark booking as failed and return
 		} catch (error) {
 			console.error("Claimed booking completion failed", {
 				bookingId: booking._id,
 				error,
 			});
 
-			await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
-				bookingId: booking._id,
-				failureCode: "GOOGLE_CALENDAR_CREATE_FAILED",
-			});
+			await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
 
 			return null;
 		}

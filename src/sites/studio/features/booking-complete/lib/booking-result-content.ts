@@ -43,6 +43,14 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 				isBookingCompletionFailure: false,
 			};
 
+		case "email_failed":
+			return {
+				title: "Congrats, your booking is confirmed!",
+				description:
+					"Your booking is confirmed, but we couldn’t email your invoice. You can download it here or contact us.",
+				isBookingCompletionFailure: false,
+			};
+
 		case "pending_payment":
 			return {
 				title: "Processing booking",

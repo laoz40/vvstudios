@@ -9,6 +9,7 @@ import { api } from "#convex/_generated/api";
 const DEV_SCENARIO_OPTIONS = [
 	{ label: "Processing", value: "processing" },
 	{ label: "Confirmed", value: "confirmed" },
+	{ label: "Email Failed", value: "email_failed" },
 	{ label: "Expired", value: "expired" },
 	{ label: "Slot Taken", value: "slot_taken" },
 	{ label: "Calendar Failed", value: "calendar_failed" },
@@ -94,6 +95,16 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 			bookingConfirmedAt: now,
 			paymentCompletedAt: now,
 			status: "confirmed",
+		};
+	}
+
+	if (devScenario === "email_failed") {
+		return {
+			...baseBooking,
+			bookingConfirmedAt: now,
+			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED",
+			paymentCompletedAt: now,
+			status: "email_failed",
 		};
 	}
 

@@ -49,6 +49,7 @@ export default defineSchema({
 			v.literal("pending_payment"),
 			v.literal("confirmed"),
 			v.literal("failed"),
+			v.literal("email_failed"),
 			v.literal("expired"),
 			v.literal("abandoned"),
 		),

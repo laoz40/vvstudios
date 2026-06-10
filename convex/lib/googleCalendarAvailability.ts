@@ -4,16 +4,23 @@ import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./booki
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
+interface IgnoredBusyEvent {
+	calendarId?: string;
+	eventId?: string;
+}
+
 interface GetBusyWindowsArgs {
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
 	date: string;
+	ignoredEvent?: IgnoredBusyEvent;
 	timeZone: string;
 }
 
 interface GetBusyWindowsInRangeArgs {
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
+	ignoredEvent?: IgnoredBusyEvent;
 	timeMax: string;
 	timeMin: string;
 	timeZone: string;
@@ -24,6 +31,7 @@ export async function getBusyWindows({
 	calendar,
 	calendarIds,
 	date,
+	ignoredEvent,
 	timeZone,
 }: GetBusyWindowsArgs): Promise<BusyWindow[]> {
 	const { timeMin, timeMax } = getAvailabilityRange(date);
@@ -31,6 +39,7 @@ export async function getBusyWindows({
 	return await getBusyWindowsInRange({
 		calendar,
 		calendarIds,
+		ignoredEvent,
 		timeMax,
 		timeMin,
 		timeZone,
@@ -40,6 +49,7 @@ export async function getBusyWindows({
 export async function getBusyWindowsInRange({
 	calendar,
 	calendarIds,
+	ignoredEvent,
 	timeMax,
 	timeMin,
 	timeZone,
@@ -62,6 +72,10 @@ export async function getBusyWindowsInRange({
 			});
 
 			for (const event of response.data.items ?? []) {
+				if (shouldIgnoreBusyEvent({ calendarId, event, ignoredEvent })) {
+					continue;
+				}
+
 				const start = getEventDateTime(event.start, timeZone);
 				const end = getEventDateTime(event.end, timeZone);
 
@@ -77,4 +91,20 @@ export async function getBusyWindowsInRange({
 	}
 
 	return busyWindows;
+}
+
+function shouldIgnoreBusyEvent({
+	calendarId,
+	event,
+	ignoredEvent,
+}: {
+	calendarId: string;
+	event: calendar_v3.Schema$Event;
+	ignoredEvent?: IgnoredBusyEvent;
+}) {
+	if (!ignoredEvent?.eventId || event.id !== ignoredEvent.eventId) {
+		return false;
+	}
+
+	return !ignoredEvent.calendarId || ignoredEvent.calendarId === calendarId;
 }

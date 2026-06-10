@@ -1,21 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { calculateBookingInvoiceAmounts } from "../src/sites/studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { env } from "./env";
 import { requireAdmin, requireBookingInDb } from "./lib/auth";
-import {
-	assertBookingMeetsAvailabilitySettings,
-	getUtcDateForZonedDateTime,
-} from "./lib/bookingCalendarTime";
+import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
+import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
-
-function getSessionStartAt(date: string, time: string) {
-	return getUtcDateForZonedDateTime(date, time, env.GOOGLE_CALENDAR_TIMEZONE).getTime();
-}
-
 type CreatePendingBookingResult =
 	| { ok: true; bookingId: Doc<"bookings">["_id"] }
 	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };
@@ -39,7 +31,7 @@ export const createPendingBooking = internalMutation({
 	},
 	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		assertBookingMeetsAvailabilitySettings({
+		checkBookingMeetsAvailabilitySettings({
 			date: args.date,
 			duration: args.duration,
 			settings,
@@ -76,7 +68,7 @@ export const createPendingBooking = internalMutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
-			sessionStartAt: getSessionStartAt(args.date, args.time),
+			sessionStartAt: getBookingSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE),
 			duration: args.duration,
 			service: args.service,
 			addons: args.addons,
@@ -169,7 +161,7 @@ export const saveBookingInstagramHandle = mutation({
 			throw new ConvexError<SaveBookingInstagramHandleErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
-		if (booking.status !== "confirmed") {
+		if (booking.status !== "confirmed" && booking.status !== "email_failed") {
 			throw new ConvexError<SaveBookingInstagramHandleErrorData>({
 				code: "BOOKING_NOT_CONFIRMED",
 			});
@@ -328,7 +320,7 @@ export const claimBookingCompletion = internalMutation({
 			};
 		}
 
-		if (booking.status === "confirmed") {
+		if (booking.status === "confirmed" || booking.status === "email_failed") {
 			return {
 				ok: true as const,
 				outcome: "already_confirmed" as const,
@@ -416,6 +408,42 @@ export const markBookingCompleted = internalMutation({
 	},
 });
 
+export const markBookingInvoiceEmailFailed = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		await requireBookingInDb(ctx, args.bookingId);
+
+		await ctx.db.patch(args.bookingId, {
+			status: "email_failed",
+			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED",
+		});
+
+		return null;
+	},
+});
+
+export const markBookingInvoiceEmailSent = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		const booking = await requireBookingInDb(ctx, args.bookingId);
+
+		if (booking.status !== "email_failed") {
+			return null;
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			status: "confirmed",
+			bookingFailureCode: undefined,
+		});
+
+		return null;
+	},
+});
+
 export const markBookingCompletionFailed = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -441,7 +469,7 @@ export const claimBookingReminderEmail = internalMutation({
 	handler: async (ctx, args) => {
 		const booking = await ctx.db.get(args.bookingId);
 
-		if (!booking || booking.status !== "confirmed") {
+		if (!booking || (booking.status !== "confirmed" && booking.status !== "email_failed")) {
 			return { ok: false as const, reason: "not_sendable" as const };
 		}
 
@@ -542,6 +570,53 @@ export const deleteBooking = mutation({
 	},
 });
 
+export const saveAdminBookingUpdateInternal = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		date: v.string(),
+		time: v.string(),
+		duration: v.string(),
+		service: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+		googleCalendarId: v.optional(v.string()),
+		googleEventId: v.optional(v.string()),
+		confirmBooking: v.optional(v.boolean()),
+	},
+	handler: async (ctx, args) => {
+		const booking = await requireBookingInDb(ctx, args.bookingId);
+		const updatePatch = buildAdminBookingUpdatePatch({
+			booking,
+			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+			values: args,
+		});
+
+		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
+		// Failed bookings can be promoted after a Calendar event is created.
+		await ctx.db.patch(args.bookingId, {
+			...updatePatch,
+			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+			...(args.confirmBooking
+				? {
+						status: "confirmed" as const,
+						bookingConfirmedAt: Date.now(),
+						bookingFailureCode: undefined,
+					}
+				: {}),
+		});
+
+		return { ok: true as const };
+	},
+});
+
 export const updateBooking = mutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -563,37 +638,14 @@ export const updateBooking = mutation({
 		await requireAdmin(ctx);
 		const booking = await requireBookingInDb(ctx, args.bookingId);
 
-		const dateOrTimeChanged = booking.date !== args.date || booking.time !== args.time;
-
-		await ctx.db.patch(args.bookingId, {
-			name: args.name,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			email: args.email,
-			date: args.date,
-			time: args.time,
-			duration: args.duration,
-			remainingBalanceAmount: calculateBookingInvoiceAmounts({
-				duration: args.duration,
-				addons: args.addons,
-				essentialEditQuantity: args.essentialEditQuantity,
-				clipsPackageQuantity: args.clipsPackageQuantity,
-			}).totalDueAmount,
-			sessionStartAt: getSessionStartAt(args.date, args.time),
-			service: args.service,
-			addons: args.addons,
-			essentialEditQuantity: args.essentialEditQuantity,
-			clipsPackageQuantity: args.clipsPackageQuantity,
-			notes: args.notes,
-			...(dateOrTimeChanged
-				? {
-						reminderEmailClaimedAt: undefined,
-						reminderEmailSentAt: undefined,
-						reminderEmailFailureCode: undefined,
-					}
-				: {}),
-		});
+		await ctx.db.patch(
+			args.bookingId,
+			buildAdminBookingUpdatePatch({
+				booking,
+				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+				values: args,
+			}),
+		);
 
 		return { ok: true as const };
 	},
@@ -602,13 +654,13 @@ export const updateBooking = mutation({
 export const updateBookingStatus = mutation({
 	args: {
 		bookingId: v.id("bookings"),
-		status: v.union(v.literal("confirmed"), v.literal("failed")),
+		status: v.union(v.literal("confirmed"), v.literal("failed"), v.literal("email_failed")),
 	},
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
 		const booking = await requireBookingInDb(ctx, args.bookingId);
 
-		if (booking.status !== "confirmed" && booking.status !== "failed") {
+		if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
 			throw new ConvexError<UpdateBookingStatusErrorData>({
 				code: "INVALID_BOOKING_STATUS_TRANSITION",
 			});

@@ -1,4 +1,3 @@
-import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
@@ -13,17 +12,6 @@ import {
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingCalendarTime";
-
-interface BuildBookingCalendarEventRequestBodyArgs {
-	name: string;
-	duration: string;
-	service: string;
-	addons: string[];
-	startDateTime: string;
-	endDateTime: string;
-	timeZone: string;
-	email: string;
-}
 
 interface ResendSendEmailSuccessResponse {
 	id: string;
@@ -70,53 +58,6 @@ function escapeHtml(value: string) {
 		.replaceAll(">", "&gt;")
 		.replaceAll('"', "&quot;")
 		.replaceAll("'", "&#39;");
-}
-
-export function buildBookingCalendarEventRequestBody({
-	name,
-	duration,
-	service,
-	addons,
-	startDateTime,
-	endDateTime,
-	timeZone,
-	email,
-}: BuildBookingCalendarEventRequestBodyArgs): calendar_v3.Schema$Event {
-	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
-	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
-	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	return {
-		summary: `Studio Hire | ${name} | ${duration}`,
-		description: [
-			`Hello, ${name}!`,
-			"",
-			"Your studio hire booking has been confirmed!",
-			"",
-			`Recording Space: ${service}`,
-			`Add-ons: ${addonsLine}`,
-			`Session Duration: ${duration}`,
-			"",
-			`Date: ${bookingDate}`,
-			`Time: ${bookingTime}`,
-			`Timezone: ${timeZone}`,
-			"",
-			"Thanks,",
-			signoffName,
-			BOOKING_INVOICE_BUSINESS.locationLabel,
-		].join("\n"),
-		location: BOOKING_INVOICE_BUSINESS.locationAddress,
-		start: {
-			dateTime: startDateTime,
-		},
-		end: {
-			dateTime: endDateTime,
-		},
-		transparency: "opaque",
-		attendees: [{ email }],
-	};
 }
 
 export async function sendBookingInvoiceEmail(args: {

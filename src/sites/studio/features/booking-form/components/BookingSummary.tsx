@@ -11,10 +11,7 @@ import {
 	getBookingTotal,
 	getEditingAddonQuantity,
 } from "#studio/features/booking-form/lib/booking-pricing";
-import {
-	EDITING_ADDONS,
-	type BookingFormValues,
-} from "#studio/features/booking-form/lib/form-shared";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export interface BookingSummaryProps {
@@ -61,19 +58,13 @@ export function BookingSummary({ values }: BookingSummaryProps) {
 						) : null}
 						{values.addons.map((addon) => {
 							const quantity = getEditingAddonQuantity(addon, values);
-							const isEditingAddon = EDITING_ADDONS.includes(
-								addon as (typeof EDITING_ADDONS)[number],
-							);
 							const lineTotal = ADDON_PRICES[addon] * quantity;
 
 							return (
 								<div
 									key={addon}
 									className="flex items-start justify-between">
-									<p>
-										{addon}
-										{isEditingAddon ? ` x ${quantity}` : ""}
-									</p>
+									<p>{addon}</p>
 									<p>{formatBookingPrice(lineTotal)}</p>
 								</div>
 							);
