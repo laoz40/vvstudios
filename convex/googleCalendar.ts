@@ -403,17 +403,19 @@ export const deleteBookingFromAdmin = action({
 			});
 			googleEventId = foundEvent?.id ?? null;
 
-			if (!googleEventId) {
-				throw new ConvexError<BookingCalendarErrorData>({
-					code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
-				});
+			if (googleEventId) {
+				try {
+					await client.calendar.events.delete({
+						calendarId,
+						eventId: googleEventId,
+						sendUpdates: "all",
+					});
+				} catch (error) {
+					if (!isGoogleCalendarEventNotFoundError(error)) {
+						throw error;
+					}
+				}
 			}
-
-			await client.calendar.events.delete({
-				calendarId,
-				eventId: googleEventId,
-				sendUpdates: "all",
-			});
 			await ctx.runMutation(internal.bookings.deleteBookingInternal, {
 				bookingId: args.bookingId,
 			});
