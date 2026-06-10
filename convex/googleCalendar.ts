@@ -10,7 +10,7 @@ import {
 	getLastBookableDate,
 	startOfToday,
 } from "../src/sites/studio/lib/bookingdatetime";
-import { env } from "./env";
+import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { requireAdmin } from "./lib/auth";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
@@ -85,35 +85,6 @@ interface BusyDayWindowResult {
 interface BookableRangeBusyWindowsResult {
 	busyWindowsByMonth: Record<string, BusyDayWindowResult[]>;
 	timeZone: string;
-}
-
-function parseGoogleCalendarAvailabilityIds(calendarId: string) {
-	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
-		.split(",")
-		.map((id) => id.trim())
-		.filter(Boolean);
-}
-
-function getGoogleCalendarClient() {
-	const clientId = env.GOOGLE_CLIENT_ID;
-	const clientSecret = env.GOOGLE_CLIENT_SECRET;
-	const refreshToken = env.GOOGLE_REFRESH_TOKEN;
-	const calendarId = env.GOOGLE_CALENDAR_ID;
-	const calendarIds = parseGoogleCalendarAvailabilityIds(calendarId);
-	const timeZone = env.GOOGLE_CALENDAR_TIMEZONE;
-
-	const oauth2Client = new google.auth.OAuth2({
-		clientId,
-		clientSecret,
-	});
-	oauth2Client.setCredentials({ refresh_token: refreshToken });
-
-	return {
-		calendarId,
-		calendarIds,
-		timeZone,
-		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
-	};
 }
 
 async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
