@@ -34,19 +34,23 @@ import {
 	type AdminBookingUpdateResult,
 	updateBookingFromAdminWithGoogleCalendar,
 } from "./lib/bookingAdminEdit";
-import { createBookingCalendarEvent } from "./lib/googleCalendarEvents";
+import { buildBookingCalendarEventPayload } from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
+	isGoogleCalendarEventNotFoundError,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
 
 type BookingCalendarErrorCode =
 	| "BOOKING_TIME_UNAVAILABLE"
+	| "BOOKING_NOT_FOUND"
 	| "GOOGLE_CALENDAR_AUTH_FAILED"
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_DELETE_FAILED"
+	| "GOOGLE_CALENDAR_EVENT_NOT_FOUND"
 	| "GOOGLE_CALENDAR_RATE_LIMITED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
@@ -347,6 +351,57 @@ export const sendBookingInvoiceForBooking = action({
 	},
 });
 
+export const deleteBookingFromAdmin = action({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		await requireAdmin(ctx);
+
+		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
+			bookingId: args.bookingId,
+		});
+
+		if (!booking) {
+			throw new ConvexError<BookingCalendarErrorData>({ code: "BOOKING_NOT_FOUND" });
+		}
+
+		if (!booking.googleEventId) {
+			throw new ConvexError<BookingCalendarErrorData>({
+				code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
+			});
+		}
+
+		try {
+			const client = getGoogleCalendarClient();
+			await client.calendar.events.delete({
+				calendarId: booking.googleCalendarId ?? client.calendarId,
+				eventId: booking.googleEventId,
+				sendUpdates: "all",
+			});
+			await ctx.runMutation(internal.bookings.deleteBookingInternal, {
+				bookingId: args.bookingId,
+			});
+
+			return { ok: true as const };
+		} catch (error) {
+			if (isGoogleCalendarEventNotFoundError(error)) {
+				throw new ConvexError<BookingCalendarErrorData>({
+					code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
+				});
+			}
+
+			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED");
+			console.error("Admin booking Calendar event delete failed", {
+				bookingId: args.bookingId,
+				googleEventId: booking.googleEventId,
+				...getGoogleCalendarErrorDetails(error),
+			});
+			throw new ConvexError<BookingCalendarErrorData>({ code });
+		}
+	},
+});
+
 export const sendBookingReminderEmailForBooking = internalAction({
 	args: {
 		bookingId: v.id("bookings"),
@@ -427,20 +482,23 @@ export const completeClaimedBooking = internalAction({
 			}
 
 			// create the calendar event
-			const { googleEventId } = await createBookingCalendarEvent({
-				calendar: calendarClient.calendar,
+			const createdEvent = await calendarClient.calendar.events.insert({
 				calendarId: calendarClient.calendarId,
-				date: booking.date,
-				time: booking.time,
-				timeZone: calendarClient.timeZone,
-				details: {
-					addons: booking.addons,
-					name: booking.name,
-					duration: booking.duration,
-					email: booking.email,
-					service: booking.service,
-				},
+				sendUpdates: "all",
+				requestBody: buildBookingCalendarEventPayload({
+					date: booking.date,
+					time: booking.time,
+					timeZone: calendarClient.timeZone,
+					details: {
+						addons: booking.addons,
+						name: booking.name,
+						duration: booking.duration,
+						email: booking.email,
+						service: booking.service,
+					},
+				}),
 			});
+			const googleEventId = createdEvent.data.id ?? undefined;
 
 			// save confirmed status and Google event details.
 			await ctx.runMutation(internal.bookings.markBookingCompleted, {

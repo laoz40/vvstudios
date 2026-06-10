@@ -6,8 +6,6 @@ import {
 	formatCalendarEventTime,
 } from "./bookingCalendarTime";
 
-type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
-
 export interface BookingCalendarEventDetails {
 	addons: string[];
 	duration: string;
@@ -21,23 +19,6 @@ interface BuildBookingCalendarEventPayloadArgs {
 	details: BookingCalendarEventDetails;
 	time: string;
 	timeZone: string;
-}
-
-interface MutateBookingCalendarEventArgs extends BuildBookingCalendarEventPayloadArgs {
-	calendar: GoogleCalendarLike;
-	calendarId: string;
-}
-
-type CreateBookingCalendarEventArgs = MutateBookingCalendarEventArgs;
-
-interface PatchBookingCalendarEventArgs extends MutateBookingCalendarEventArgs {
-	eventId: string;
-}
-
-interface GetBookingCalendarEventArgs {
-	calendar: GoogleCalendarLike;
-	calendarId: string;
-	eventId: string;
 }
 
 export function buildBookingCalendarEventPayload({
@@ -82,63 +63,4 @@ export function buildBookingCalendarEventPayload({
 		transparency: "opaque",
 		attendees: [{ email: details.email }],
 	};
-}
-
-export async function createBookingCalendarEvent({
-	calendar,
-	calendarId,
-	date,
-	details,
-	time,
-	timeZone,
-}: CreateBookingCalendarEventArgs) {
-	const event = await calendar.events.insert({
-		calendarId,
-		sendUpdates: "all",
-		requestBody: buildBookingCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone,
-		}),
-	});
-
-	return {
-		googleEventId: event.data.id ?? undefined,
-	};
-}
-
-export async function getBookingCalendarEvent({
-	calendar,
-	calendarId,
-	eventId,
-}: GetBookingCalendarEventArgs) {
-	const event = await calendar.events.get({
-		calendarId,
-		eventId,
-	});
-
-	return event.data;
-}
-
-export async function patchBookingCalendarEvent({
-	calendar,
-	calendarId,
-	date,
-	details,
-	eventId,
-	time,
-	timeZone,
-}: PatchBookingCalendarEventArgs) {
-	await calendar.events.patch({
-		calendarId,
-		eventId,
-		sendUpdates: "all",
-		requestBody: buildBookingCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone,
-		}),
-	});
 }

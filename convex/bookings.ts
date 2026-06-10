@@ -556,6 +556,19 @@ export const deletePendingBooking = internalMutation({
 	},
 });
 
+export const deleteBookingInternal = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+	},
+	handler: async (ctx, args) => {
+		await requireBookingInDb(ctx, args.bookingId);
+
+		await ctx.db.delete(args.bookingId);
+
+		return { ok: true as const };
+	},
+});
+
 export const deleteBooking = mutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -563,7 +576,6 @@ export const deleteBooking = mutation({
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
 		await requireBookingInDb(ctx, args.bookingId);
-
 		await ctx.db.delete(args.bookingId);
 
 		return { ok: true as const };
