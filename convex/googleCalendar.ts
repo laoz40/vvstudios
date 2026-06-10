@@ -35,12 +35,9 @@ import {
 } from "./lib/bookingAdminEdit";
 import {
 	buildBookingCalendarEventPayload,
-	findBookingCalendarEventIncludingDeclined,
+	deleteBookingCalendarEventIfExists,
 } from "./lib/googleCalendarEvents";
-import {
-	isGoogleCalendarEventNotFoundError,
-	throwGoogleCalendarConvexError,
-} from "./lib/googleCalendarErrors";
+import { throwGoogleCalendarConvexError } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
 
@@ -313,49 +310,13 @@ export const deleteBookingFromAdmin = action({
 		const calendarId = booking.googleCalendarId ?? client.calendarId;
 
 		try {
-			let googleEventId = booking.googleEventId ?? null;
-
-			if (googleEventId) {
-				try {
-					await client.calendar.events.delete({
-						calendarId,
-						eventId: googleEventId,
-						sendUpdates: "all",
-					});
-					await ctx.runMutation(internal.bookings.deleteBookingInternal, {
-						bookingId: args.bookingId,
-					});
-
-					return { ok: true as const };
-				} catch (error) {
-					if (!isGoogleCalendarEventNotFoundError(error)) {
-						throw error;
-					}
-				}
-			}
-
-			// Declined Calendar invites can be hidden from direct event lookup, so search the booking window before giving up.
-			const foundEvent = await findBookingCalendarEventIncludingDeclined({
+			await deleteBookingCalendarEventIfExists({
 				booking,
 				calendar: client.calendar,
 				calendarId,
 				timeZone: client.timeZone,
 			});
-			googleEventId = foundEvent?.id ?? null;
 
-			if (googleEventId) {
-				try {
-					await client.calendar.events.delete({
-						calendarId,
-						eventId: googleEventId,
-						sendUpdates: "all",
-					});
-				} catch (error) {
-					if (!isGoogleCalendarEventNotFoundError(error)) {
-						throw error;
-					}
-				}
-			}
 			await ctx.runMutation(internal.bookings.deleteBookingInternal, {
 				bookingId: args.bookingId,
 			});
