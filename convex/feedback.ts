@@ -8,9 +8,7 @@ type SubmitFeedbackErrorData = {
 };
 
 export const submit = action({
-	args: {
-		message: v.string(),
-	},
+	args: { message: v.string() },
 	handler: async (ctx, args): Promise<null> => {
 		const message = args.message.trim();
 
@@ -31,5 +29,5 @@ export const submit = action({
 		}
 
 		return null;
-	},
+	}
 });

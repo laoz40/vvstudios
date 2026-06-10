@@ -20,7 +20,7 @@ const studioRoutes = {
 	admin: withBasePath(studioBasePath, "/admin"),
 	pricing: withBasePath(studioBasePath, "/pricing"),
 	termsAndConditions: withBasePath(studioBasePath, "/terms-and-conditions"),
-	privacyPolicy: withBasePath(studioBasePath, "/privacy-policy"),
+	privacyPolicy: withBasePath(studioBasePath, "/privacy-policy")
 } as const;
 
 export const parentSite = {
@@ -34,8 +34,8 @@ export const parentSite = {
 		icon16: "/icons/parent/favicon-16x16.png",
 		shortcut: "/icons/parent/favicon.ico",
 		appleTouch: "/icons/parent/apple-touch-icon.png",
-		manifest: "/parent.webmanifest",
-	},
+		manifest: "/parent.webmanifest"
+	}
 } as const;
 
 export const studioSite = {
@@ -50,6 +50,6 @@ export const studioSite = {
 		icon16: "/icons/studio/favicon-16x16.png",
 		shortcut: "/icons/studio/favicon.ico",
 		appleTouch: "/icons/studio/apple-touch-icon.png",
-		manifest: "/studio.webmanifest",
-	},
+		manifest: "/studio.webmanifest"
+	}
 } as const;

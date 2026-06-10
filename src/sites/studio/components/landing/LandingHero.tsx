@@ -19,11 +19,11 @@ const heroCopy = {
 	lead: "A space to focus on your business or craft. You bring the idea, and we'll make it a reality.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
-	addressLabel: "23 Fields Rd, Macquarie Fields NSW",
+	addressLabel: "23 Fields Rd, Macquarie Fields NSW"
 } as const;
 
 const mobileBackgroundStyle = {
-	"--landing-hero-mobile-background": `url(${heroMobile})`,
+	"--landing-hero-mobile-background": `url(${heroMobile})`
 } as CSSProperties;
 
 export function LandingHero() {
@@ -31,7 +31,7 @@ export function LandingHero() {
 	const prefersReducedMotion = useReducedMotion();
 	const { scrollYProgress } = useScroll({
 		target: heroRef,
-		offset: ["start start", "center start"],
+		offset: ["start start", "center start"]
 	});
 	const heroVideoY = useTransform(scrollYProgress, [0, 1], [0, -300]);
 	const heroTextOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
@@ -47,9 +47,7 @@ export function LandingHero() {
 				<motion.div
 					aria-hidden
 					className="absolute inset-0 -z-20"
-					style={{
-						y: prefersReducedMotion ? 0 : heroVideoY,
-					}}>
+					style={{ y: prefersReducedMotion ? 0 : heroVideoY }}>
 					<div
 						className="landing-hero-mobile-background h-full w-full brightness-65 md:hidden"
 						style={mobileBackgroundStyle}
@@ -82,7 +80,7 @@ export function LandingHero() {
 					style={{
 						filter: prefersReducedMotion ? "blur(0px)" : heroTextBlur,
 						opacity: prefersReducedMotion ? 1 : heroTextOpacity,
-						y: prefersReducedMotion ? 0 : heroTextY,
+						y: prefersReducedMotion ? 0 : heroTextY
 					}}>
 					<div className="absolute inset-x-4 bottom-6 max-w-xl sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
 						<div className="landing-hero-reveal flex flex-col gap-2 md:max-w-xl">

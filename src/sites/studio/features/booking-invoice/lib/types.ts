@@ -2,7 +2,7 @@ import type { GenericId } from "convex/values";
 import type {
 	BookingAddon,
 	DURATION_OPTIONS,
-	SERVICES,
+	SERVICES
 } from "#studio/features/booking-form/lib/form-shared";
 
 export type BookingService = (typeof SERVICES)[number];
@@ -66,13 +66,7 @@ export interface BookingInvoiceData {
 		websiteLabel?: string;
 		websiteUrl?: string;
 	};
-	customer: {
-		abn?: string;
-		accountName: string;
-		email: string;
-		name: string;
-		phone: string;
-	};
+	customer: { abn?: string; accountName: string; email: string; name: string; phone: string };
 	invoice: {
 		dueDate: string;
 		dueDateLabel: string;
@@ -82,10 +76,7 @@ export interface BookingInvoiceData {
 		title: string;
 	};
 	lineItems: BookingInvoiceLineItem[];
-	notes: {
-		cancellationPolicy: string;
-		paymentNote: string;
-	};
+	notes: { cancellationPolicy: string; paymentNote: string };
 	payment: {
 		accountNumber: string;
 		bankTransferLabel: string;
@@ -98,9 +89,5 @@ export interface BookingInvoiceData {
 export interface BookingInvoiceArtifacts {
 	data: BookingInvoiceData;
 	emailHtml: string;
-	pdf: {
-		content: Uint8Array;
-		contentType: "application/pdf";
-		filename: string;
-	};
+	pdf: { content: Uint8Array; contentType: "application/pdf"; filename: string };
 }

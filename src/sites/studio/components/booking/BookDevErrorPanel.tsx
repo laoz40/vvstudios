@@ -3,30 +3,12 @@ import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 
 const DEV_ERROR_OPTIONS = [
-	{
-		label: "Slot Taken",
-		value: "BOOKING_TIME_UNAVAILABLE",
-	},
-	{
-		label: "Invalid Input",
-		value: "BOOKING_INVALID_INPUT",
-	},
-	{
-		label: "Calendar Auth Failed",
-		value: "GOOGLE_CALENDAR_AUTH_FAILED",
-	},
-	{
-		label: "Availability Failed",
-		value: "GOOGLE_CALENDAR_AVAILABILITY_FAILED",
-	},
-	{
-		label: "Availability Rate Limited",
-		value: "GOOGLE_CALENDAR_RATE_LIMITED",
-	},
-	{
-		label: "Unknown Error",
-		value: "UNKNOWN",
-	},
+	{ label: "Slot Taken", value: "BOOKING_TIME_UNAVAILABLE" },
+	{ label: "Invalid Input", value: "BOOKING_INVALID_INPUT" },
+	{ label: "Calendar Auth Failed", value: "GOOGLE_CALENDAR_AUTH_FAILED" },
+	{ label: "Availability Failed", value: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" },
+	{ label: "Availability Rate Limited", value: "GOOGLE_CALENDAR_RATE_LIMITED" },
+	{ label: "Unknown Error", value: "UNKNOWN" }
 ] as const;
 
 export type BookDevErrorCode = (typeof DEV_ERROR_OPTIONS)[number]["value"];

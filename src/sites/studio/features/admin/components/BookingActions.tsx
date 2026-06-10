@@ -4,7 +4,7 @@ import {
 	useState,
 	type ComponentProps,
 	type ReactNode,
-	type RefObject,
+	type RefObject
 } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ import {
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
+	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import {
 	Dialog,
@@ -42,7 +42,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
@@ -50,7 +50,7 @@ import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
 	BookingEditDialog,
-	type BookingEditDraft,
+	type BookingEditDraft
 } from "#studio/features/admin/components/BookingEditDialog";
 import { BookingEditConfirmationDialog } from "#studio/features/admin/components/BookingEditConfirmationDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
@@ -62,13 +62,13 @@ import {
 	deliverableStatusDotClassNameMap,
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
-	type DeliverableStatus,
+	type DeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	getBookingInvoiceEmailErrorMessage,
 	getBookingMutationErrorMessage,
 	getBookingStatusMutationErrorMessage,
-	getDeleteBookingErrorMessage,
+	getDeleteBookingErrorMessage
 } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
@@ -78,9 +78,7 @@ import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 type BookingRecord = Doc<"bookings">;
 
-export type BookingActionsProps = {
-	booking: BookingRecord;
-};
+export type BookingActionsProps = { booking: BookingRecord };
 
 type StatusCircleButtonProps = {
 	ariaLabel: string;
@@ -95,7 +93,7 @@ function StatusCircleButton({
 	className,
 	disabled,
 	isSelected,
-	onClick,
+	onClick
 }: StatusCircleButtonProps) {
 	return (
 		<button
@@ -106,7 +104,7 @@ function StatusCircleButton({
 			className={cn(
 				"size-5 rounded-full border border-transparent disabled:opacity-50",
 				className,
-				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover",
+				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover"
 			)}
 			onClick={onClick}
 		/>
@@ -157,16 +155,16 @@ function AnimatedDropdownMenuItem({
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useAction(api.googleCalendar.deleteBookingFromAdmin);
 	const sendBookingDeliverablesEmailForBooking = useAction(
-		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking,
+		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
 	const updateBookingPaidRemainingBalance = useMutation(
-		api.bookings.updateBookingPaidRemainingBalance,
+		api.bookings.updateBookingPaidRemainingBalance
 	);
 	const updateBookingRemainingBalanceAmount = useMutation(
-		api.bookings.updateBookingRemainingBalanceAmount,
+		api.bookings.updateBookingRemainingBalanceAmount
 	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -196,7 +194,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
-		booking.pendingPaymentCreatedAt,
+		booking.pendingPaymentCreatedAt
 	);
 	const isConfirmedBooking = booking.status === "confirmed";
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
@@ -211,7 +209,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
-		String(remainingBalanceAmount),
+		String(remainingBalanceAmount)
 	);
 
 	useEffect(() => {
@@ -236,7 +234,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 	async function saveEditBooking(
 		values: BookingEditDraft,
-		options?: { skipConfirmation?: boolean },
+		options?: { skipConfirmation?: boolean }
 	) {
 		const parsedValues = bookingSchema.safeParse({
 			name: values.name,
@@ -251,7 +249,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			addons: values.addons,
 			essentialEditQuantity: values.essentialEditQuantity,
 			clipsPackageQuantity: values.clipsPackageQuantity,
-			notes: values.notes,
+			notes: values.notes
 		});
 
 		if (!parsedValues.success) {
@@ -287,7 +285,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				addons: parsedValues.data.addons,
 				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
 				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
-				notes: parsedValues.data.notes || undefined,
+				notes: parsedValues.data.notes || undefined
 			});
 
 			if (result.googleOutcome === "replacementCreated") {
@@ -333,12 +331,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsUpdatingEditStatus(true);
 
 		try {
-			await updateBookingEditStatus({
-				bookingId: booking._id,
-				editStatus: nextEditStatus,
-			});
+			await updateBookingEditStatus({ bookingId: booking._id, editStatus: nextEditStatus });
 			toast.success(
-				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
+				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`
 			);
 		} catch {
 			toast.error("Unable to update edit status.");
@@ -351,14 +346,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsUpdatingPaidRemainingBalance(true);
 
 		try {
-			await updateBookingPaidRemainingBalance({
-				bookingId: booking._id,
-				paidRemainingBalance,
-			});
+			await updateBookingPaidRemainingBalance({ bookingId: booking._id, paidRemainingBalance });
 			toast.success(
 				paidRemainingBalance
 					? "Remaining balance marked as paid."
-					: "Remaining balance marked as unpaid.",
+					: "Remaining balance marked as unpaid."
 			);
 		} catch {
 			toast.error("Unable to update remaining balance payment status.");
@@ -380,7 +372,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		try {
 			await updateBookingRemainingBalanceAmount({
 				bookingId: booking._id,
-				remainingBalanceAmount: parsedAmount,
+				remainingBalanceAmount: parsedAmount
 			});
 			setIsRemainingBalanceDialogOpen(false);
 			toast.success("Remaining balance updated.");
@@ -399,14 +391,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsUpdatingStatus(true);
 
 		try {
-			await updateBookingStatus({
-				bookingId: booking._id,
-				status: nextStatus,
-			});
+			await updateBookingStatus({ bookingId: booking._id, status: nextStatus });
 			toast.success(
 				nextStatus === "confirmed"
 					? "Booking marked as confirmed."
-					: "Booking marked as needs follow up.",
+					: "Booking marked as needs follow up."
 			);
 		} catch (error) {
 			toast.error(getBookingStatusMutationErrorMessage(error));
@@ -421,7 +410,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		try {
 			const result = await downloadAdminBookingInvoice({
 				booking,
-				createdAt: booking.pendingPaymentCreatedAt,
+				createdAt: booking.pendingPaymentCreatedAt
 			});
 
 			if (!result.success) {
@@ -440,9 +429,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsEmailingInvoice(true);
 
 		try {
-			await sendBookingInvoiceForBooking({
-				bookingId: booking._id,
-			});
+			await sendBookingInvoiceForBooking({ bookingId: booking._id });
 			setIsEmailInvoiceDialogOpen(false);
 			toast.success(`Invoice sent to ${booking.email}.`);
 		} catch (error) {
@@ -459,12 +446,9 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			await sendBookingDeliverablesEmailForBooking({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
-				emailVariant: deliverablesEmailVariantDraft,
+				emailVariant: deliverablesEmailVariantDraft
 			});
-			await updateBookingEditStatus({
-				bookingId: booking._id,
-				editStatus: "completed",
-			});
+			await updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" });
 			setDeliverablesDriveLinkDraft("");
 			setIsDeliverablesEmailDialogOpen(false);
 			toast.success(`Deliverables email sent to ${booking.email}.`);

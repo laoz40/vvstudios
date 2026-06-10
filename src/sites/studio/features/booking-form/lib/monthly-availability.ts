@@ -3,7 +3,7 @@ import {
 	formatMonthKey,
 	getAvailableTimesForDate,
 	type BookingAvailabilitySettings,
-	type BusyPeriod,
+	type BusyPeriod
 } from "#studio/lib/bookingdatetime";
 import { getBookingErrorMessage } from "#studio/features/booking-form/lib/booking-errors";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
@@ -33,7 +33,7 @@ export function getBookableMonthKeys(startDate: Date, endDate: Date) {
 
 export function getUncachedMonthKeys(
 	bookableMonthKeys: string[],
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>,
+	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>
 ) {
 	return bookableMonthKeys.filter((month) => !monthlyBusyWindowsByMonth[month]);
 }
@@ -41,7 +41,7 @@ export function getUncachedMonthKeys(
 export function mergeBookableRangeBusyWindows({
 	bookableMonthKeys,
 	current,
-	result,
+	result
 }: {
 	bookableMonthKeys: string[];
 	current: Record<string, BusyDayWindow[]>;
@@ -50,8 +50,8 @@ export function mergeBookableRangeBusyWindows({
 	return {
 		...current,
 		...Object.fromEntries(
-			bookableMonthKeys.map((month) => [month, result.busyWindowsByMonth[month] ?? []] as const),
-		),
+			bookableMonthKeys.map((month) => [month, result.busyWindowsByMonth[month] ?? []] as const)
+		)
 	};
 }
 
@@ -64,7 +64,7 @@ export function isAvailabilityRateLimitedMessage(availabilityError: string) {
 export function getSelectedBusyDay({
 	date,
 	monthlyBusyWindowsByMonth,
-	selectedMonth,
+	selectedMonth
 }: {
 	date: string;
 	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
@@ -81,7 +81,7 @@ export function isBookingDateDisabled({
 	lastBookableDate,
 	monthlyBusyWindowsByMonth,
 	settings,
-	today,
+	today
 }: {
 	currentTimestamp: number;
 	date: Date;
@@ -105,7 +105,7 @@ export function isBookingDateDisabled({
 		currentTimestamp,
 		dateValue,
 		duration,
-		settings,
+		settings
 	});
 
 	if (!busyDays && isAvailabilityRateLimited) {

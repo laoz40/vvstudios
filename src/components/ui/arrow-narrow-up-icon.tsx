@@ -15,10 +15,7 @@ const ArrowNarrowUpIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -59,7 +56,7 @@ const ArrowNarrowUpIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 ArrowNarrowUpIcon.displayName = "ArrowNarrowUpIcon";

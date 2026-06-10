@@ -3,9 +3,7 @@ import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./lib/auth";
 
-type CustomInvoiceErrorData = {
-	code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND";
-};
+type CustomInvoiceErrorData = { code: "NOT_AUTHENTICATED" | "BOOKING_NOT_FOUND" };
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -16,7 +14,7 @@ export const createCustomInvoice = mutation({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		includeDepositLineItem: v.boolean(),
+		includeDepositLineItem: v.boolean()
 	},
 	handler: async (ctx, args) => {
 		const identity = await requireAdmin(ctx);
@@ -39,20 +37,18 @@ export const createCustomInvoice = mutation({
 			clipsPackageQuantity: args.clipsPackageQuantity,
 			includeDepositLineItem: args.includeDepositLineItem,
 			createdAt,
-			createdBy: identity.email,
+			createdBy: identity.email
 		});
 		const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
 
 		await ctx.db.patch(customInvoiceId, { invoiceNumber });
 
 		return { customInvoiceId, invoiceNumber, createdAt };
-	},
+	}
 });
 
 export const listCustomInvoicesForBooking = query({
-	args: {
-		bookingId: v.id("bookings"),
-	},
+	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
 
@@ -61,5 +57,5 @@ export const listCustomInvoicesForBooking = query({
 			.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
 			.order("desc")
 			.collect();
-	},
+	}
 });

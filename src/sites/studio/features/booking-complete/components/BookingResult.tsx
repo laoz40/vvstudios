@@ -29,7 +29,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 export function BookingResult({
 	booking,
 	content,
-	stripeSessionId,
+	stripeSessionId
 }: BookingResultProps): ReactNode {
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
@@ -61,7 +61,7 @@ export function BookingResult({
 			toast.error(
 				isExpired
 					? "Download link expired. Your invoice should be in your email — please check there."
-					: "Unable to generate invoice.",
+					: "Unable to generate invoice."
 			);
 		} finally {
 			setIsDownloadingInvoice(false);

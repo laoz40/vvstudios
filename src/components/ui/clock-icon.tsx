@@ -8,36 +8,15 @@ const ClockIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = async () => {
-			await animate(
-				".clock-hands",
-				{
-					rotate: 360,
-				},
-				{
-					duration: 1,
-					ease: "easeInOut",
-				},
-			);
+			await animate(".clock-hands", { rotate: 360 }, { duration: 1, ease: "easeInOut" });
 		};
 
 		const stop = async () => {
-			await animate(
-				".clock-hands",
-				{
-					rotate: 0,
-				},
-				{
-					duration: 1,
-					ease: "easeInOut",
-				},
-			);
+			await animate(".clock-hands", { rotate: 0 }, { duration: 1, ease: "easeInOut" });
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -79,7 +58,7 @@ const ClockIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 ClockIcon.displayName = "ClockIcon";

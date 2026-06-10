@@ -142,7 +142,7 @@ function AdminPageContent() {
 	const {
 		results: bookings,
 		status: bookingsStatus,
-		loadMore: loadMoreBookings,
+		loadMore: loadMoreBookings
 	} = usePaginatedQuery(api.bookings.getBookings, {}, { initialNumItems: 100 });
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;

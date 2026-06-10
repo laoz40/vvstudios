@@ -15,8 +15,8 @@ const AmbulanceIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				animate(
 					".ambulance",
 					{ x: [0, 1, 0, -1] },
-					{ duration: 0.6, ease: "easeInOut", repeat: Infinity },
-				),
+					{ duration: 0.6, ease: "easeInOut", repeat: Infinity }
+				)
 			);
 			animate(".plus", { scale: [1, 1.3, 1] }, { duration: 0.6, ease: "easeInOut" });
 		};
@@ -30,10 +30,7 @@ const AmbulanceIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -82,7 +79,7 @@ const AmbulanceIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</motion.g>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 AmbulanceIcon.displayName = "AmbulanceIcon";

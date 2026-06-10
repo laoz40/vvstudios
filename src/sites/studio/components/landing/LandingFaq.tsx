@@ -5,7 +5,7 @@ import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
-	AccordionTrigger,
+	AccordionTrigger
 } from "#/components/ui/accordion";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
@@ -13,14 +13,9 @@ import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-w
 import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
 
-export type LandingFaqProps = {
-	id?: string;
-};
+export type LandingFaqProps = { id?: string };
 
-const contactActionCopy = {
-	bookCta: "Book session",
-	tourCta: "Take free tour",
-} as const;
+const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
 export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 	return (

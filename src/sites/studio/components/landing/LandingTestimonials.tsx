@@ -19,19 +19,19 @@ const testimonialCopy = {
 		{
 			quote:
 				"I am so thankful I found VV Studios and Joseph. He made me feel so supported and relaxed about recording and answered all my questions. I would recommend him to anyone looking for similar services.",
-			author: "Breanna Sada",
+			author: "Breanna Sada"
 		},
 		{
 			quote:
 				"Really good facility. Professional setup with owner at the helm managing the recording and sound. Highly recommended!",
-			author: "Jeremy Yang",
+			author: "Jeremy Yang"
 		},
 		{
 			quote:
 				"I plan on coming back to shoot even more content. Joseph uses high quality gear to capture the footage and audio, and can also do the editing for you.",
-			author: "Omar M",
-		},
-	],
+			author: "Omar M"
+		}
+	]
 } as const;
 
 function StarRating() {

@@ -9,14 +9,14 @@ import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
 import {
 	BookDevErrorPanel,
-	type BookDevErrorCode,
+	type BookDevErrorCode
 } from "#studio/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
 import {
 	BookingRecordingSpaceDurationSection,
-	BookingRecurringSessionsPrompt,
+	BookingRecurringSessionsPrompt
 } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
@@ -24,17 +24,17 @@ import { BookingSavedInfoBanner } from "#studio/features/booking-form/components
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
 	bookingFormContext,
-	type BookingFormApi,
+	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	bookingSchema,
 	INITIAL_FORM,
 	TIME_SECTIONS,
-	type TimeSectionKey,
+	type TimeSectionKey
 } from "#studio/features/booking-form/lib/form-shared";
 import {
 	getBookingErrorMessage,
-	getBookingSubmitFailureMessage,
+	getBookingSubmitFailureMessage
 } from "#studio/features/booking-form/lib/booking-errors";
 import {
 	getAvailabilityRateLimitKey,
@@ -42,7 +42,7 @@ import {
 	removeStoredSavedBookingInfo,
 	storeSavedBookingInfo,
 	toSavedBookingInfo,
-	type SavedBookingInfo,
+	type SavedBookingInfo
 } from "#studio/features/booking-form/lib/saved-booking-info";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -57,7 +57,7 @@ import {
 	getLastBookableDate,
 	parseDateValue,
 	parseMonthKey,
-	startOfToday,
+	startOfToday
 } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import {
@@ -67,7 +67,7 @@ import {
 	isAvailabilityRateLimitedMessage,
 	isBookingDateDisabled,
 	mergeBookableRangeBusyWindows,
-	type BusyDayWindow,
+	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 
@@ -87,25 +87,23 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 const termsDialogPendingError = new Error("terms-dialog-pending");
 const loadBookingPaymentModal = () =>
 	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
-		default: module.BookingPaymentModal,
+		default: module.BookingPaymentModal
 	}));
 const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
-	component: BookingPage,
+	component: BookingPage
 });
 
-const pageCopy = {
-	title: "Studio Hire Booking",
-} as const;
+const pageCopy = { title: "Studio Hire Booking" } as const;
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.createEmbeddedCheckoutSession,
+		api.stripe.createEmbeddedCheckoutSession
 	);
 	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.closeEmbeddedCheckoutSession,
+		api.stripe.closeEmbeddedCheckoutSession
 	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
@@ -128,7 +126,7 @@ function BookingPage() {
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<TimeSectionKey | null>(
-		null,
+		null
 	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
@@ -138,10 +136,7 @@ function BookingPage() {
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
-		validators: {
-			onBlur: bookingSchema,
-			onSubmit: bookingSchema,
-		},
+		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
 		onSubmit: async ({ value }) => {
 			const parsedValue = bookingSchema.parse(value);
 
@@ -168,7 +163,7 @@ function BookingPage() {
 					addons: parsedValue.addons,
 					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
 					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
-					notes: parsedValue.notes,
+					notes: parsedValue.notes
 				});
 
 				if (!session.ok) {
@@ -179,7 +174,7 @@ function BookingPage() {
 				if (shouldSaveBookingInfo) {
 					const nextSavedBookingInfo = toSavedBookingInfo(
 						parsedValue,
-						preferredTimeSectionKey ?? "",
+						preferredTimeSectionKey ?? ""
 					);
 					storeSavedBookingInfo(nextSavedBookingInfo);
 					setSavedBookingInfo(nextSavedBookingInfo);
@@ -198,7 +193,7 @@ function BookingPage() {
 				setIsSubmitting(false);
 				submitAfterTermsRef.current = false;
 			}
-		},
+		}
 	});
 	const formValues = useStore(formApi.store, (state) => state.values);
 	const selectedDate = parseDateValue(formValues.date);
@@ -248,7 +243,7 @@ function BookingPage() {
 			}
 
 			setHasReachedCompleteBooking(
-				completeBookingButton.getBoundingClientRect().top <= window.innerHeight,
+				completeBookingButton.getBoundingClientRect().top <= window.innerHeight
 			);
 		};
 
@@ -279,16 +274,14 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void getBookableRangeBusyWindows({
-			rateLimitKey: availabilityRateLimitKey,
-		})
+		void getBookableRangeBusyWindows({ rateLimitKey: availabilityRateLimitKey })
 			.then((result) => {
 				if (isCancelled) {
 					return;
 				}
 
 				setMonthlyBusyWindowsByMonth((current) =>
-					mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result }),
+					mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
 				);
 			})
 			.catch((availabilityFetchError) => {
@@ -313,15 +306,11 @@ function BookingPage() {
 		availabilityRateLimitKey,
 		bookableMonthKeys,
 		getBookableRangeBusyWindows,
-		monthlyBusyWindowsByMonth,
+		monthlyBusyWindowsByMonth
 	]);
 
 	const selectedBusyDay = formValues.date
-		? getSelectedBusyDay({
-				date: formValues.date,
-				monthlyBusyWindowsByMonth,
-				selectedMonth,
-			})
+		? getSelectedBusyDay({ date: formValues.date, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
 
 	const disabledDates = useMemo(() => {
@@ -334,7 +323,7 @@ function BookingPage() {
 				lastBookableDate,
 				monthlyBusyWindowsByMonth,
 				settings: availabilitySettings,
-				today,
+				today
 			});
 	}, [
 		currentTimestamp,
@@ -343,7 +332,7 @@ function BookingPage() {
 		lastBookableDate,
 		monthlyBusyWindowsByMonth,
 		availabilitySettings,
-		today,
+		today
 	]);
 
 	const availableTimes = useMemo<string[]>(() => {
@@ -366,7 +355,7 @@ function BookingPage() {
 			currentTimestamp,
 			dateValue: formValues.date,
 			duration: formValues.duration,
-			settings: availabilitySettings,
+			settings: availabilitySettings
 		});
 	}, [
 		currentTimestamp,
@@ -379,12 +368,12 @@ function BookingPage() {
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
-		selectedMonth,
+		selectedMonth
 	]);
 
 	const availableTimeSections = TIME_SECTIONS.map((section) => ({
 		...section,
-		times: availableTimes.filter(section.includes),
+		times: availableTimes.filter(section.includes)
 	})).filter((section) => section.times.length > 0);
 
 	const scrollToFirstError = () => {
@@ -399,20 +388,17 @@ function BookingPage() {
 				"accountName",
 				"abn",
 				"email",
-				"notes",
+				"notes"
 			];
 
 			for (const fieldName of fieldOrder) {
 				const fieldContainer = formRef.current?.querySelector<HTMLElement>(
-					`[data-field-name="${fieldName}"]`,
+					`[data-field-name="${fieldName}"]`
 				);
 				const fieldError = fieldContainer?.querySelector<HTMLElement>('[data-slot="field-error"]');
 
 				if (fieldContainer && fieldError) {
-					fieldContainer.scrollIntoView({
-						behavior: "smooth",
-						block: "center",
-					});
+					fieldContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 					return;
 				}
 			}
@@ -468,7 +454,7 @@ function BookingPage() {
 		isSelectedDateTooFarInFuture,
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
-		selectedMonth,
+		selectedMonth
 	]);
 
 	const handlePaymentModalClose = () => {
@@ -481,7 +467,7 @@ function BookingPage() {
 
 		void closeEmbeddedCheckoutSession({
 			bookingId: activeCheckoutSession.bookingId,
-			stripeSessionId: activeCheckoutSession.stripeSessionId,
+			stripeSessionId: activeCheckoutSession.stripeSessionId
 		}).catch((closeCheckoutError) => {
 			toast.error(getBookingErrorMessage(closeCheckoutError));
 		});
@@ -534,7 +520,7 @@ function BookingPage() {
 
 		scrollTarget?.scrollIntoView({
 			behavior: "smooth",
-			block: isDateTimeIncomplete ? "start" : "center",
+			block: isDateTimeIncomplete ? "start" : "center"
 		});
 	};
 

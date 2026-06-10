@@ -5,9 +5,7 @@ import { buildBookingInvoiceData } from "../../src/sites/studio/features/booking
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
 import type { BookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/types";
 
-type InvalidBookingDataError = {
-	code: "INVALID_BOOKING_DATA";
-};
+type InvalidBookingDataError = { code: "INVALID_BOOKING_DATA" };
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
@@ -15,7 +13,7 @@ function createPdfFilename(invoiceNumber: string) {
 
 export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
-	createdAt: number,
+	createdAt: number
 ) {
 	const parsedBooking = bookingSchema.safeParse({
 		name: booking.name,
@@ -30,7 +28,7 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		addons: booking.addons,
 		essentialEditQuantity: booking.essentialEditQuantity ?? "",
 		clipsPackageQuantity: booking.clipsPackageQuantity ?? "",
-		notes: booking.notes ?? "",
+		notes: booking.notes ?? ""
 	});
 
 	if (!parsedBooking.success) {
@@ -51,7 +49,7 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
-		createdAt,
+		createdAt
 	});
 	const emailHtml = await renderBookingInvoiceEmail(data);
 
@@ -59,12 +57,9 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		artifacts: {
 			data,
 			emailHtml,
-			pdf: {
-				contentType: "application/pdf",
-				filename: createPdfFilename(data.invoice.number),
-			},
+			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
 		},
-		booking: parsedBooking.data,
+		booking: parsedBooking.data
 	};
 }
 

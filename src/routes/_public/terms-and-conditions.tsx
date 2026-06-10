@@ -7,7 +7,7 @@ const lastUpdated = "11 May 2026";
 
 export const Route = createFileRoute("/_public/terms-and-conditions")({
 	head: () => buildSeoHead(seoMetadata.termsAndConditions),
-	component: TermsAndConditionsPage,
+	component: TermsAndConditionsPage
 });
 
 function TermsAndConditionsPage() {

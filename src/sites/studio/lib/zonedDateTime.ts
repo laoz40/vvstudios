@@ -27,7 +27,7 @@ function getTimeZoneFormatter(timeZone: string) {
 		month: "2-digit",
 		second: "2-digit",
 		timeZone,
-		year: "numeric",
+		year: "numeric"
 	});
 
 	timeZoneFormatterCache.set(timeZone, formatter);
@@ -38,7 +38,7 @@ function getTimeZoneFormatter(timeZone: string) {
 function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
 	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
 	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
+		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)])
 	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
 
 	return {
@@ -46,7 +46,7 @@ function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
 		hours: values.hour === 24 ? 0 : values.hour,
 		minutes: values.minute,
 		month: values.month,
-		year: values.year,
+		year: values.year
 	};
 }
 
@@ -62,7 +62,7 @@ export function getUtcDateForZonedParts({
 	minutes,
 	month,
 	timeZone,
-	year,
+	year
 }: ZonedDateTimeParts) {
 	const targetUtcMs = Date.UTC(year, month - 1, day, hours, minutes, 0, 0);
 	let guessUtcMs = targetUtcMs;
@@ -76,7 +76,7 @@ export function getUtcDateForZonedParts({
 			zonedParts.hours,
 			zonedParts.minutes,
 			0,
-			0,
+			0
 		);
 		const diffMs = targetUtcMs - currentUtcMs;
 

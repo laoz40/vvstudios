@@ -2,14 +2,14 @@ import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
-	AccordionTrigger,
+	AccordionTrigger
 } from "#/components/ui/accordion";
 import {
 	ADDON_PRICES,
 	DURATION_PRICES,
 	formatBookingPrice,
 	getBookingTotal,
-	getEditingAddonQuantity,
+	getEditingAddonQuantity
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { type BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/bookingdatetime";

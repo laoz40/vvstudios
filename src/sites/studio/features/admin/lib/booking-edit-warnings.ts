@@ -14,14 +14,14 @@ const googleEventFields: readonly BookingEditWarningField[] = [
 	"duration",
 	"essentialEditQuantity",
 	"clipsPackageQuantity",
-	"notes",
+	"notes"
 ];
 
 const pricingFields: readonly BookingEditWarningField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
-	"clipsPackageQuantity",
+	"clipsPackageQuantity"
 ];
 
 const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
@@ -37,7 +37,7 @@ const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
 	notes: "Notes",
 	phone: "Phone number",
 	service: "Service",
-	time: "Session time",
+	time: "Session time"
 };
 
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
@@ -59,7 +59,7 @@ function getBookingDraftValue(booking: BookingRecord, field: BookingEditWarningF
 function didBookingEditFieldChange(
 	booking: BookingRecord,
 	draft: BookingEditDraft,
-	field: BookingEditWarningField,
+	field: BookingEditWarningField
 ) {
 	const currentValue = getBookingDraftValue(booking, field);
 	const nextValue = draft[field];
@@ -73,7 +73,7 @@ function didBookingEditFieldChange(
 
 function getChangedFieldLabels(
 	changedFields: BookingEditWarningField[],
-	warningFields: readonly BookingEditWarningField[],
+	warningFields: readonly BookingEditWarningField[]
 ) {
 	return changedFields
 		.filter((field) => warningFields.includes(field))
@@ -82,7 +82,7 @@ function getChangedFieldLabels(
 
 export function getBookingEditWarningState(booking: BookingRecord, draft: BookingEditDraft) {
 	const changedFields = (Object.keys(draft) as BookingEditWarningField[]).filter((field) =>
-		didBookingEditFieldChange(booking, draft, field),
+		didBookingEditFieldChange(booking, draft, field)
 	);
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
@@ -91,6 +91,6 @@ export function getBookingEditWarningState(booking: BookingRecord, draft: Bookin
 		changedFieldLabels: changedFields.map((field) => bookingEditFieldLabels[field]),
 		googleEventFieldLabels,
 		pricingFieldLabels,
-		requiresConfirmation: googleEventFieldLabels.length > 0 || pricingFieldLabels.length > 0,
+		requiresConfirmation: googleEventFieldLabels.length > 0 || pricingFieldLabels.length > 0
 	};
 }

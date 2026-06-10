@@ -16,14 +16,11 @@ const HomeIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(
 				".roof, .house, .door",
 				{ y: 0, opacity: 1, scale: 1, scaleY: 1 },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -62,7 +59,7 @@ const HomeIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 HomeIcon.displayName = "HomeIcon";

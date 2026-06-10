@@ -5,23 +5,13 @@ import type { MutationCtx } from "../_generated/server";
 
 export const ADMIN_ROLE = "admin";
 
-type AuthContext = {
-	auth: {
-		getUserIdentity: () => Promise<UserIdentity | null>;
-	};
-};
+type AuthContext = { auth: { getUserIdentity: () => Promise<UserIdentity | null> } };
 
-type PublicMetadata = {
-	role?: string;
-};
+type PublicMetadata = { role?: string };
 
-type AuthErrorData = {
-	code: "NOT_AUTHENTICATED" | "NOT_AUTHORIZED";
-};
+type AuthErrorData = { code: "NOT_AUTHENTICATED" | "NOT_AUTHORIZED" };
 
-type BookingNotFoundErrorData = {
-	code: "BOOKING_NOT_FOUND";
-};
+type BookingNotFoundErrorData = { code: "BOOKING_NOT_FOUND" };
 
 function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
 	const publicMetadata = identity.publicMetadata;

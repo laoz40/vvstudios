@@ -4,10 +4,7 @@ import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
 
-const contactActionCopy = {
-	bookCta: "Book session",
-	tourCta: "Take free tour",
-} as const;
+const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
 export function ContactActions() {
 	return (

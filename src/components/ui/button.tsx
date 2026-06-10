@@ -16,7 +16,7 @@ const buttonVariants = cva(
 					"border shadow-xs hover:bg-accent/60 hover:text-accent-foreground dark:border-input bg-accent/40",
 				secondary: "bg-secondary text-secondary-foreground hover:darker-bg-secondary",
 				ghost: "hover:darker-bg-accent hover:text-accent-foreground",
-				link: "text-primary underline-offset-4 hover:underline",
+				link: "text-primary underline-offset-4 hover:underline"
 			},
 			// `has-[>[data-slot=animated-icon]]` gives wrapped animated icons the same x padding as direct SVG icons.
 			size: {
@@ -27,14 +27,11 @@ const buttonVariants = cva(
 				icon: "size-9",
 				"icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
 				"icon-sm": "size-8",
-				"icon-lg": "size-10",
-			},
+				"icon-lg": "size-10"
+			}
 		},
-		defaultVariants: {
-			variant: "default",
-			size: "default",
-		},
-	},
+		defaultVariants: { variant: "default", size: "default" }
+	}
 );
 
 function Button({
@@ -43,10 +40,7 @@ function Button({
 	size = "default",
 	asChild = false,
 	...props
-}: React.ComponentProps<"button"> &
-	VariantProps<typeof buttonVariants> & {
-		asChild?: boolean;
-	}) {
+}: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
 	const Comp = asChild ? Slot.Root : "button";
 
 	return (

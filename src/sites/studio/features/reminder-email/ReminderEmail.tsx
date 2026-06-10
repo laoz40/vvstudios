@@ -8,7 +8,7 @@ import {
 	Img,
 	Preview,
 	Section,
-	Text,
+	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 
@@ -29,7 +29,7 @@ export function ReminderEmail({
 	duration,
 	name,
 	service,
-	signoffName,
+	signoffName
 }: ReminderEmailProps) {
 	return (
 		<Html>
@@ -125,7 +125,7 @@ export function ReminderEmail({
 const body = {
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
-	padding: "16px 16px",
+	padding: "16px 16px"
 };
 
 const container = {
@@ -134,7 +134,7 @@ const container = {
 	borderRadius: "12px",
 	margin: "0 auto",
 	maxWidth: "560px",
-	padding: "24px",
+	padding: "24px"
 };
 
 const heading = {
@@ -142,27 +142,19 @@ const heading = {
 	fontSize: "22px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0 0 16px",
+	margin: "0 0 16px"
 };
 
-const logo = {
-	display: "block",
-	margin: "0 auto 16px",
-};
+const logo = { display: "block", margin: "0 auto 16px" };
 
-const paragraph = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "0 0 12px",
-};
+const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
 const summaryCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
 	borderRadius: "12px",
 	margin: "0",
-	padding: "16px",
+	padding: "16px"
 };
 
 const primaryDetail = {
@@ -170,7 +162,7 @@ const primaryDetail = {
 	fontSize: "24px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0 0 4px",
+	margin: "0 0 4px"
 };
 
 const secondaryDetail = {
@@ -178,41 +170,34 @@ const secondaryDetail = {
 	fontSize: "24px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0",
+	margin: "0"
 };
 
 const arrivalReminder = {
 	color: "#fafafa",
 	fontSize: "14px",
 	lineHeight: "20px",
-	margin: "8px 0 0",
+	margin: "8px 0 0"
 };
 
-const section = {
-	margin: "0 0 24px",
-};
+const section = { margin: "0 0 24px" };
 
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
 	fontWeight: "600",
 	margin: "0 0 8px",
-	textTransform: "uppercase" as const,
+	textTransform: "uppercase" as const
 };
 
 const detailsCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
 	borderRadius: "12px",
-	padding: "16px",
+	padding: "16px"
 };
 
-const detailLine = {
-	color: "#fafafa",
-	fontSize: "14px",
-	lineHeight: "20px",
-	margin: "0 0 8px",
-};
+const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 8px" };
 
 const button = {
 	backgroundColor: "#f5c400",
@@ -221,20 +206,15 @@ const button = {
 	fontSize: "14px",
 	fontWeight: "600",
 	padding: "12px 18px",
-	textDecoration: "none",
+	textDecoration: "none"
 };
 
-const signoff = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "24px 0 4px",
-};
+const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
 
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",
 	fontWeight: "700",
 	lineHeight: "24px",
-	margin: "0",
+	margin: "0"
 };

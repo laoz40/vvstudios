@@ -8,7 +8,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -21,7 +21,7 @@ import {
 	DURATION_OPTIONS,
 	SERVICES,
 	toDeliverableCountOption,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
@@ -71,7 +71,7 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		addons: booking.addons.filter(isAddonOption),
 		email: booking.email,
 		phone: booking.phone,
-		notes: booking.notes ?? "",
+		notes: booking.notes ?? ""
 	};
 }
 
@@ -88,7 +88,7 @@ function EditingQuantityOptions({
 	idPrefix,
 	label,
 	onChange,
-	value,
+	value
 }: EditingQuantityOptionsProps) {
 	return (
 		<section className="grid gap-3">
@@ -127,7 +127,7 @@ export function BookingEditDialog({
 	bookingId,
 	onOpenChange,
 	onSave,
-	isSaving,
+	isSaving
 }: BookingEditDialogProps) {
 	const [draft, setDraft] = useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
 
@@ -302,7 +302,7 @@ export function BookingEditDialog({
 							onValueChange={(value) => {
 								setDraft((current) => ({
 									...current,
-									duration: value as BookingFormValues["duration"],
+									duration: value as BookingFormValues["duration"]
 								}));
 							}}
 							className="grid gap-3 sm:grid-cols-3">
@@ -331,10 +331,7 @@ export function BookingEditDialog({
 						<RadioGroup
 							value={draft.service}
 							onValueChange={(value) => {
-								setDraft((current) => ({
-									...current,
-									service: value as BookingRecord["service"],
-								}));
+								setDraft((current) => ({ ...current, service: value as BookingRecord["service"] }));
 							}}
 							className="grid gap-3 sm:grid-cols-2">
 							{SERVICES.map((service) => {
@@ -364,10 +361,7 @@ export function BookingEditDialog({
 						disabled={isSaving}
 						idPrefix="edit-addon"
 						onChange={(nextValues) => {
-							setDraft((current) => ({
-								...current,
-								...nextValues,
-							}));
+							setDraft((current) => ({ ...current, ...nextValues }));
 						}}
 					/>
 

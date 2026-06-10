@@ -6,7 +6,7 @@ import HomeIcon from "#/components/ui/home-icon";
 import PhoneVolume from "#/components/ui/phone-volume";
 import {
 	type BookingStatus,
-	BookingCompleteDevScenarioPanel,
+	BookingCompleteDevScenarioPanel
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
 import { studioSite } from "#/config/sites";
@@ -22,7 +22,7 @@ export function BookingStatusLayout({
 	bookingStatus,
 	children,
 	showActions = true,
-	stripeSessionId,
+	stripeSessionId
 }: BookingStatusLayoutProps): ReactNode {
 	const primaryAction = bookingStatus === "failed" ? "contact" : "new_booking";
 	const showInstagramPrompt =

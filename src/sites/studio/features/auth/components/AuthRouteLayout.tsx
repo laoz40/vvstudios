@@ -6,9 +6,7 @@ import { SmoothScroll } from "#studio/components/SmoothScroll";
 import { StudioLayout } from "#studio/StudioLayout";
 
 export function AuthRouteLayout() {
-	const pathname = useRouterState({
-		select: (state) => state.location.pathname,
-	});
+	const pathname = useRouterState({ select: (state) => state.location.pathname });
 
 	return (
 		<ClerkProvider>

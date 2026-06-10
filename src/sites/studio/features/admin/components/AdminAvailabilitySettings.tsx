@@ -11,7 +11,7 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
+	DialogTrigger
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -22,17 +22,14 @@ import {
 	parseNumberSetting,
 	type BookingSettings,
 	type NumberSettingKey,
-	toBookingSettingsDraft,
+	toBookingSettingsDraft
 } from "#studio/features/admin/lib/availability-settings";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	formatTimeValue,
+	formatTimeValue
 } from "#studio/lib/bookingdatetime";
 
-type TimeSelectProps = {
-	value: string;
-	onChange: (value: string) => void;
-};
+type TimeSelectProps = { value: string; onChange: (value: string) => void };
 
 function TimeSelect({ value, onChange }: TimeSelectProps) {
 	return (
@@ -91,8 +88,8 @@ export function AdminAvailabilitySettings() {
 		setDraft((current) => ({
 			...current,
 			weekSchedule: current.weekSchedule.map((schedule, index) =>
-				index === day ? { ...schedule, [field]: value } : schedule,
-			),
+				index === day ? { ...schedule, [field]: value } : schedule
+			)
 		}));
 	}
 

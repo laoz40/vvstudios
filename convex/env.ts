@@ -17,8 +17,8 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string().min(1),
 		STRIPE_CHECKOUT_RETURN_URL: z.string().min(1),
 		STRIPE_BOOKING_DEPOSIT_PRICE_ID: z.string().min(1),
-		STRIPE_PROCESSING_FEE_PRICE_ID: z.string().min(1),
+		STRIPE_PROCESSING_FEE_PRICE_ID: z.string().min(1)
 	},
 	runtimeEnv: process.env,
-	emptyStringAsUndefined: true,
+	emptyStringAsUndefined: true
 });

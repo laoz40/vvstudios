@@ -12,7 +12,7 @@ const previewProps = {
 	service: "Table Setup",
 	duration: "2h",
 	addonsLine: "4K UHD Recording, Clips Package",
-	notes: "Please have two microphones ready and leave space for a guest camera.",
+	notes: "Please have two microphones ready and leave space for a guest camera."
 };
 
 export default function HostBookingDetailsEmailPreview() {

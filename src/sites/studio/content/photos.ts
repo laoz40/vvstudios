@@ -37,74 +37,74 @@ const galleryImages: PhotoGalleryImage[] = [
 		src: armchairSetupImage,
 		alt: "Podcast studio hire Sydney armchair setup at VV Studios",
 		width: 1885,
-		height: 1060,
+		height: 1060
 	},
 	{
 		src: expressiveManImage,
 		alt: "Sydney podcast studio lighting and desk setup for video recording",
 		width: 2560,
-		height: 1375,
+		height: 1375
 	},
 	{
 		src: micSetupImage,
 		alt: "Podcast studio equipment with cameras, microphones and lighting in Sydney",
 		width: 1280,
-		height: 1920,
+		height: 1920
 	},
 	{
 		src: leonardoDicaprioImage,
 		alt: "Main podcast recording setup at VV Studios in South West Sydney",
 		width: 2560,
-		height: 1920,
+		height: 1920
 	},
 	{
 		src: behindTheScenesWideImage,
 		alt: "Behind the scenes view of VV Studios podcast studio hire space in Sydney",
 		width: 1971,
-		height: 1110,
+		height: 1110
 	},
 	{
 		src: girlNotSadImage,
 		alt: "Guest recording a video podcast at VV Studios in Sydney",
 		width: 1060,
-		height: 1885,
+		height: 1885
 	},
 	{
 		src: behindTheScenesImage,
 		alt: "Entry side view of the VV Studios podcast recording space in Sydney",
 		width: 1305,
-		height: 2178,
+		height: 2178
 	},
 	{
 		src: tableSetupImage,
 		alt: "Podcast studio table setup for hire at VV Studios Sydney",
 		width: 1885,
-		height: 1060,
+		height: 1060
 	},
 	{
 		src: trioTalkingAtTableSetupImage,
 		alt: "Three person podcast recording table setup at VV Studios Sydney",
 		width: 1612,
-		height: 1612,
+		height: 1612
 	},
 	{
 		src: screenImage,
 		alt: "Sydney podcast studio screen setup for branded video podcast recording",
 		width: 1920,
-		height: 1081,
+		height: 1081
 	},
 	{
 		src: armchairVerticalImage,
 		alt: "Armchair video podcast setup at VV Studios in South West Sydney",
 		width: 1060,
-		height: 1885,
+		height: 1885
 	},
 	{
 		src: girlSingingImage,
 		alt: "Creator recording audio and video content at VV Studios Sydney",
 		width: 1788,
-		height: 1117,
-	},
+		height: 1117
+	}
 ];
 
 export const landingGalleryImages: PhotoGalleryImage[] = [
@@ -113,22 +113,22 @@ export const landingGalleryImages: PhotoGalleryImage[] = [
 		alt: "Podcast studio hire Sydney armchair setup at VV Studios",
 		width: 1885,
 		height: 1060,
-		caption: "Armchair Setup",
+		caption: "Armchair Setup"
 	},
 	{
 		src: tableSetupImage,
 		alt: "Podcast studio table setup for hire at VV Studios Sydney",
 		width: 1885,
 		height: 1060,
-		caption: "Table Setup",
+		caption: "Table Setup"
 	},
 	{
 		src: musicSetupImage,
 		alt: "Music production setup inside VV Studios podcast studio in Sydney",
 		width: 1920,
 		height: 1080,
-		caption: "Music Setup",
-	},
+		caption: "Music Setup"
+	}
 ];
 
 export const photosPageContent: PhotosPageContent = {
@@ -140,5 +140,5 @@ export const photosPageContent: PhotosPageContent = {
 	tourDialogDescription: "See the studio space before you book.",
 	tourDialogCloseLabel: "Close",
 	tourIframeTitle: "Free studio tour booking",
-	galleryImages,
+	galleryImages
 };

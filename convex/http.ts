@@ -7,9 +7,7 @@ import { env } from "./env";
 
 const http = httpRouter();
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-	apiVersion: "2026-03-25.dahlia",
-});
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
 
 http.route({
 	path: "/stripe/webhook",
@@ -18,9 +16,7 @@ http.route({
 		const signature = req.headers.get("stripe-signature");
 
 		if (!signature) {
-			return new Response("Missing Stripe signature header", {
-				status: 400,
-			});
+			return new Response("Missing Stripe signature header", { status: 400 });
 		}
 
 		const body = await req.text();
@@ -31,9 +27,7 @@ http.route({
 			event = await stripe.webhooks.constructEventAsync(body, signature, env.STRIPE_WEBHOOK_SECRET);
 		} catch (error) {
 			console.error("Invalid Stripe webhook signature", error);
-			return new Response("Invalid Stripe webhook signature", {
-				status: 400,
-			});
+			return new Response("Invalid Stripe webhook signature", { status: 400 });
 		}
 
 		if (event.type === "checkout.session.completed") {
@@ -43,7 +37,7 @@ http.route({
 			if (!bookingId) {
 				console.error("Stripe checkout session missing bookingId metadata", {
 					eventId: event.id,
-					sessionId: session.id,
+					sessionId: session.id
 				});
 				return new Response("Missing bookingId metadata", { status: 400 });
 			}
@@ -57,7 +51,7 @@ http.route({
 				bookingId: bookingId as Id<"bookings">,
 				stripeSessionId: session.id,
 				stripePaymentIntentId,
-				stripeEventId: event.id,
+				stripeEventId: event.id
 			});
 
 			if (!result.ok) {
@@ -65,7 +59,7 @@ http.route({
 					eventId: event.id,
 					sessionId: session.id,
 					bookingId,
-					result,
+					result
 				});
 
 				return new Response("claim failed", { status: 200 });
@@ -80,7 +74,7 @@ http.route({
 			}
 
 			await ctx.runAction(internal.googleCalendar.completeClaimedBooking, {
-				bookingId: bookingId as Id<"bookings">,
+				bookingId: bookingId as Id<"bookings">
 			});
 
 			return new Response("confirmed", { status: 200 });
@@ -90,14 +84,14 @@ http.route({
 			const session = event.data.object as Stripe.Checkout.Session;
 
 			await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
-				stripeSessionId: session.id,
+				stripeSessionId: session.id
 			});
 
 			return new Response("expired", { status: 200 });
 		}
 
 		return new Response("ignored", { status: 200 });
-	}),
+	})
 });
 
 export default http;

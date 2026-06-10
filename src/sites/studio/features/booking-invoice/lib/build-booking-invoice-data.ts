@@ -5,17 +5,17 @@ import {
 	BOOKING_INVOICE_BUSINESS,
 	BOOKING_INVOICE_NOTES,
 	BOOKING_INVOICE_PAYMENT,
-	BOOKING_INVOICE_TITLE,
+	BOOKING_INVOICE_TITLE
 } from "#studio/features/booking-invoice/lib/constants";
 import {
 	calculateBookingInvoiceAmounts,
 	getAddonAmount,
-	getAddonQuantity,
+	getAddonQuantity
 } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type {
 	BookingInvoiceBuilderInput,
 	BookingInvoiceData,
-	BookingInvoiceLineItem,
+	BookingInvoiceLineItem
 } from "#studio/features/booking-invoice/lib/types";
 
 function formatCalendarDate(value: string) {
@@ -39,7 +39,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		essentialEditQuantity: input.essentialEditQuantity,
 		clipsPackageQuantity: input.clipsPackageQuantity,
 		includeBaseAmount: Boolean(input.service),
-		includeDepositLineItem: input.includeDepositLineItem !== false,
+		includeDepositLineItem: input.includeDepositLineItem !== false
 	});
 	const bookingDateLabel = formatCalendarDate(input.date);
 	const dueDate = input.dueDate ?? input.date;
@@ -52,7 +52,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 					.map((addon) => {
 						const quantity = getAddonQuantity(addon, {
 							essentialEditQuantity: input.essentialEditQuantity,
-							clipsPackageQuantity: input.clipsPackageQuantity,
+							clipsPackageQuantity: input.clipsPackageQuantity
 						});
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
 
@@ -68,21 +68,21 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 						amount: amounts.baseAmount,
 						description: `${input.service} Podcast Studio Hire (${input.duration})`,
 						quantity: 1,
-						rate: amounts.baseAmount,
-					},
+						rate: amounts.baseAmount
+					}
 				]
 			: []),
 		...input.addons.map((addon) => ({
 			amount: getAddonAmount(addon, {
 				essentialEditQuantity: input.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity
 			}),
 			description: addon,
 			quantity: getAddonQuantity(addon, {
 				essentialEditQuantity: input.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity
 			}),
-			rate: ADDON_PRICES[addon],
+			rate: ADDON_PRICES[addon]
 		})),
 		...(input.includeDepositLineItem === false
 			? []
@@ -91,9 +91,9 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 						amount: -BOOKING_DEPOSIT_AMOUNT,
 						description: "Deposit paid",
 						quantity: 1,
-						rate: -BOOKING_DEPOSIT_AMOUNT,
-					},
-				]),
+						rate: -BOOKING_DEPOSIT_AMOUNT
+					}
+				])
 	];
 
 	return {
@@ -105,7 +105,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			bookingDateLabel,
 			duration: input.duration,
 			service: input.service,
-			time: input.time,
+			time: input.time
 		},
 		branding: {
 			businessName: BOOKING_INVOICE_BUSINESS.businessName,
@@ -116,14 +116,14 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			logoUrl: BOOKING_INVOICE_BUSINESS.logoUrl,
 			ownerName: BOOKING_INVOICE_BUSINESS.ownerName,
 			websiteLabel: BOOKING_INVOICE_BUSINESS.websiteLabel,
-			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl,
+			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl
 		},
 		customer: {
 			abn: input.abn,
 			accountName: input.accountName,
 			email: input.email,
 			name: input.name,
-			phone: input.phone,
+			phone: input.phone
 		},
 		invoice: {
 			dueDate,
@@ -131,19 +131,19 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			invoiceDate: new Date(invoiceDate).toISOString(),
 			invoiceDateLabel,
 			number: input.invoiceNumber ?? formatBookingInvoiceNumber(input.bookingId, invoiceDate),
-			title: BOOKING_INVOICE_TITLE,
+			title: BOOKING_INVOICE_TITLE
 		},
 		lineItems,
 		notes: {
 			cancellationPolicy: BOOKING_INVOICE_NOTES.cancellationPolicy,
-			paymentNote: BOOKING_INVOICE_NOTES.paymentNote,
+			paymentNote: BOOKING_INVOICE_NOTES.paymentNote
 		},
 		payment: {
 			accountNumber: BOOKING_INVOICE_PAYMENT.accountNumber,
 			bankTransferLabel: BOOKING_INVOICE_PAYMENT.bankTransferLabel,
 			bsb: BOOKING_INVOICE_PAYMENT.bsb,
 			payId: BOOKING_INVOICE_PAYMENT.payId,
-			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel,
-		},
+			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel
+		}
 	};
 }

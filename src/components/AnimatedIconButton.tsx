@@ -7,7 +7,7 @@ import {
 	type PointerEventHandler,
 	type ReactElement,
 	type ReactNode,
-	type RefObject,
+	type RefObject
 } from "react";
 import type { VariantProps } from "class-variance-authority";
 
@@ -79,7 +79,7 @@ export function AnimatedIconButton({
 				{children.props.children}
 				{iconPosition === "after" ? icon : null}
 			</>
-		),
+		)
 	});
 
 	return (

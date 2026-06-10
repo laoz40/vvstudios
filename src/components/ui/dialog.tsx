@@ -50,7 +50,7 @@ function DialogOverlay({
 			data-slot="dialog-overlay"
 			className={cn(
 				"fixed inset-0 z-50 bg-black/80 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
-				className,
+				className
 			)}
 			{...props}
 		/>
@@ -69,7 +69,7 @@ function DialogContent({
 				data-slot="dialog-content"
 				className={cn(
 					"bg-background text-foreground ring-foreground/10 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-1.5rem)] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-hidden rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 max-h-[calc(100vh-2rem)] sm:p-6",
-					className,
+					className
 				)}
 				{...props}>
 				{children}
@@ -131,5 +131,5 @@ export {
 	DialogOverlay,
 	DialogPortal,
 	DialogTitle,
-	DialogTrigger,
+	DialogTrigger
 };

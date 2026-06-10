@@ -9,53 +9,27 @@ const PhoneVolume = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = useCallback(async () => {
 			animate(
 				".phone-wave-inner",
-				{
-					scale: [1, 1.15, 1],
-					opacity: [0.4, 1, 0.4],
-				},
-				{
-					duration: 0.4,
-					ease: "easeInOut",
-				},
+				{ scale: [1, 1.15, 1], opacity: [0.4, 1, 0.4] },
+				{ duration: 0.4, ease: "easeInOut" }
 			);
 			await animate(
 				".phone-wave-outer",
-				{
-					scale: [1, 1.25, 1],
-					opacity: [0.2, 0.8, 0.2],
-				},
-				{
-					duration: 0.45,
-					ease: "easeInOut",
-					delay: 0.1,
-				},
+				{ scale: [1, 1.25, 1], opacity: [0.2, 0.8, 0.2] },
+				{ duration: 0.45, ease: "easeInOut", delay: 0.1 }
 			);
 
-			animate(
-				".phone-wave",
-				{
-					opacity: 1,
-					scale: 1,
-				},
-				{
-					duration: 0.3,
-					ease: "easeInOut",
-				},
-			);
+			animate(".phone-wave", { opacity: 1, scale: 1 }, { duration: 0.3, ease: "easeInOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {
 			animate(
 				".phone-wave-inner, .phone-wave-outer, .phone-wave",
 				{ opacity: 1, scale: 1 },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.div
@@ -94,7 +68,7 @@ const PhoneVolume = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 PhoneVolume.displayName = "PhoneVolume";

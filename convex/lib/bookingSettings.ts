@@ -1,28 +1,23 @@
 import { ConvexError, v } from "convex/values";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	type BookingAvailabilitySettings,
+	type BookingAvailabilitySettings
 } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
 
 export type BookingSettingsArgs = BookingAvailabilitySettings;
 
 export const DEFAULT_BOOKING_SETTINGS = DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 
-const dayScheduleValidator = v.object({
-	endTime: v.string(),
-	startTime: v.string(),
-});
+const dayScheduleValidator = v.object({ endTime: v.string(), startTime: v.string() });
 
 export const bookingSettingsArgs = {
 	eventBufferMinutes: v.number(),
 	leadTimeMinutes: v.number(),
 	maxDaysAhead: v.number(),
-	weekSchedule: v.array(dayScheduleValidator),
+	weekSchedule: v.array(dayScheduleValidator)
 };
 
-type BookingSettingsErrorData = {
-	code: "INVALID_BOOKING_SETTINGS" | "NOT_AUTHENTICATED";
-};
+type BookingSettingsErrorData = { code: "INVALID_BOOKING_SETTINGS" | "NOT_AUTHENTICATED" };
 
 export function assertAuthenticated(identity: unknown) {
 	if (!identity) {

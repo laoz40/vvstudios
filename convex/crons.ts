@@ -7,7 +7,7 @@ crons.interval(
 	"send booking reminder emails",
 	{ hours: 1 },
 	internal.reminders.sendDueBookingReminderEmails,
-	{},
+	{}
 );
 
 export default crons;

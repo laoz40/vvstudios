@@ -7,7 +7,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
 
@@ -26,7 +26,7 @@ export function EmailInvoiceDialog({
 	bookingEmail,
 	isSending,
 	onOpenChange,
-	onSend,
+	onSend
 }: EmailInvoiceDialogProps) {
 	function handleOpenChange(nextOpen: boolean) {
 		if (isSending && !nextOpen) {

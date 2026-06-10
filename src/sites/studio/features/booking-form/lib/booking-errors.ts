@@ -1,20 +1,10 @@
 interface BookingErrorWithData {
-	data?: {
-		code?: string;
-		retryAfter?: number;
-	};
+	data?: { code?: string; retryAfter?: number };
 }
 
 export type BookingSubmitFailureResult =
-	| {
-			code: "BOOKING_RATE_LIMITED";
-			ok: false;
-			retryAfter: number;
-	  }
-	| {
-			code: "BOOKING_EMAIL_DOMAIN_INVALID";
-			ok: false;
-	  };
+	| { code: "BOOKING_RATE_LIMITED"; ok: false; retryAfter: number }
+	| { code: "BOOKING_EMAIL_DOMAIN_INVALID"; ok: false };
 
 export function getBookingSubmitFailureMessage(result: BookingSubmitFailureResult) {
 	if (result.code === "BOOKING_EMAIL_DOMAIN_INVALID") {

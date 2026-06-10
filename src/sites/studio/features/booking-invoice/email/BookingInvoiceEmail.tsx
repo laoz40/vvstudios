@@ -10,7 +10,7 @@ import {
 	Preview,
 	Row,
 	Section,
-	Text,
+	Text
 } from "@react-email/components";
 import { formatAud } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceData } from "#studio/features/booking-invoice/lib/types";
@@ -111,7 +111,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 const body = {
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
-	padding: "16px 16px",
+	padding: "16px 16px"
 };
 
 const container = {
@@ -120,14 +120,14 @@ const container = {
 	borderRadius: "12px",
 	margin: "0 auto",
 	maxWidth: "560px",
-	padding: "24px",
+	padding: "24px"
 };
 
 const invoiceNumber = {
 	color: "#d0d0d0",
 	fontSize: "12px",
 	margin: "0 0 16px",
-	textAlign: "right" as const,
+	textAlign: "right" as const
 };
 
 const heading = {
@@ -135,20 +135,12 @@ const heading = {
 	fontSize: "22px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0 0 16px",
+	margin: "0 0 16px"
 };
 
-const logo = {
-	display: "block",
-	margin: "0 auto 16px",
-};
+const logo = { display: "block", margin: "0 auto 16px" };
 
-const paragraph = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "0 0 12px",
-};
+const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
 const summaryCard = {
 	backgroundColor: "#383838",
@@ -156,61 +148,44 @@ const summaryCard = {
 	borderRadius: "12px",
 	margin: "0",
 	padding: "24px",
-	textAlign: "center" as const,
+	textAlign: "center" as const
 };
 
-const detailLine = {
-	color: "#fafafa",
-	fontSize: "14px",
-	lineHeight: "16px",
-	margin: "0 0 8px",
-};
+const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "16px", margin: "0 0 8px" };
 
 const paymentCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
 	borderRadius: "12px",
-	padding: "10px 20px",
+	padding: "10px 20px"
 };
 
-const paymentColumnLeft = {
-	paddingRight: "16px",
-	verticalAlign: "top" as const,
-	width: "65%",
-};
+const paymentColumnLeft = { paddingRight: "16px", verticalAlign: "top" as const, width: "65%" };
 
 const paymentColumnRight = {
 	borderLeft: "1px solid #454545",
 	paddingLeft: "16px",
 	verticalAlign: "top" as const,
-	width: "35%",
+	width: "35%"
 };
 
 const paymentOptionTitle = {
 	color: "#fafafa",
 	fontSize: "14px",
 	fontWeight: "700",
-	margin: "0 0 12px",
+	margin: "0 0 12px"
 };
 
-const paymentNoticeCard = {
-	margin: "0 0",
-	padding: "0px 0px 18px 0px",
-};
+const paymentNoticeCard = { margin: "0 0", padding: "0px 0px 18px 0px" };
 
-const noticeLine = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "0 0 8px",
-};
+const noticeLine = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 8px" };
 
 const noteText = {
 	color: "#d0d0d0",
 	fontSize: "13px",
 	fontStyle: "italic",
 	lineHeight: "20px",
-	margin: "0",
+	margin: "0"
 };
 
 const amount = {
@@ -218,7 +193,7 @@ const amount = {
 	fontSize: "36px",
 	fontWeight: "700",
 	margin: "10px 0 16px",
-	textAlign: "center" as const,
+	textAlign: "center" as const
 };
 
 const summaryDueLine = {
@@ -226,19 +201,17 @@ const summaryDueLine = {
 	fontSize: "14px",
 	fontWeight: "600",
 	margin: "0",
-	textAlign: "center" as const,
+	textAlign: "center" as const
 };
 
-const section = {
-	margin: "0 0 24px",
-};
+const section = { margin: "0 0 24px" };
 
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
 	fontWeight: "600",
 	margin: "0 0 8px",
-	textTransform: "uppercase" as const,
+	textTransform: "uppercase" as const
 };
 
 const button = {
@@ -248,18 +221,9 @@ const button = {
 	fontSize: "14px",
 	fontWeight: "600",
 	padding: "12px 18px",
-	textDecoration: "none",
+	textDecoration: "none"
 };
 
-const signoff = {
-	color: "#fafafa",
-	fontSize: "15px",
-	margin: "24px 0 4px",
-};
+const signoff = { color: "#fafafa", fontSize: "15px", margin: "24px 0 4px" };
 
-const signature = {
-	color: "#fafafa",
-	fontSize: "15px",
-	fontWeight: "700",
-	margin: "0",
-};
+const signature = { color: "#fafafa", fontSize: "15px", fontWeight: "700", margin: "0" };

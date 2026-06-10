@@ -7,7 +7,7 @@ const previewProps = {
 	duration: "2h",
 	name: "Alex Carter",
 	service: "Table Setup",
-	signoffName: "Joseph",
+	signoffName: "Joseph"
 };
 
 export default function ReminderEmailPreview() {

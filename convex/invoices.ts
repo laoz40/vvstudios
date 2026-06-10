@@ -5,7 +5,7 @@ import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode,
+	renderBookingInvoicePdfInNode
 } from "./lib/bookingInvoiceArtifacts";
 
 type BookingInvoiceDownloadErrorData = {
@@ -20,12 +20,10 @@ type BookingInvoiceDownloadErrorData = {
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
 
 export const getBookingInvoicePdfByStripeSessionId = action({
-	args: {
-		stripeSessionId: v.string(),
-	},
+	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) => {
 		const booking = await ctx.runQuery(internal.bookings.getBookingByStripeSessionIdInternal, {
-			stripeSessionId: args.stripeSessionId,
+			stripeSessionId: args.stripeSessionId
 		});
 
 		if (!booking) {
@@ -54,7 +52,7 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 		try {
 			({ artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
 				booking,
-				booking.pendingPaymentCreatedAt,
+				booking.pendingPaymentCreatedAt
 			));
 			pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 		} catch (error) {
@@ -62,18 +60,16 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 				throw error;
 			}
 
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({
-				code: "INVOICE_DOWNLOAD_FAILED",
-			});
+			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_FAILED" });
 		}
 
 		return {
 			content: pdfContent.buffer.slice(
 				pdfContent.byteOffset,
-				pdfContent.byteOffset + pdfContent.byteLength,
+				pdfContent.byteOffset + pdfContent.byteLength
 			),
 			contentType: artifacts.pdf.contentType,
-			filename: artifacts.pdf.filename,
+			filename: artifacts.pdf.filename
 		};
-	},
+	}
 });

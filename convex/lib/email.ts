@@ -11,11 +11,11 @@ import {
 	formatBookingDateShort,
 	formatBookingDateWithoutYear,
 	formatCalendarEventDate,
-	formatCalendarEventTime,
+	formatCalendarEventTime
 } from "./bookingCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode,
+	renderBookingInvoicePdfInNode
 } from "./bookingInvoiceArtifacts";
 
 interface ResendSendEmailSuccessResponse {
@@ -80,22 +80,19 @@ async function sendEmail(args: {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
 		content: Buffer.from(attachment.content).toString("base64"),
-		contentType: attachment.contentType,
+		contentType: attachment.contentType
 	}));
 
 	const response = await fetch("https://api.resend.com/emails", {
 		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
+		headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
 		body: JSON.stringify({
 			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
 			to: args.to,
 			subject: args.subject,
 			html: args.html,
-			...(attachments ? { attachments } : {}),
-		}),
+			...(attachments ? { attachments } : {})
+		})
 	});
 
 	if (!response.ok) {
@@ -126,20 +123,20 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 		service: args.service,
 		duration: args.duration,
 		addonsLine,
-		notes: args.notes,
+		notes: args.notes
 	});
 
 	return await sendEmail({
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
-		html,
+		html
 	});
 }
 
 export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings">) {
 	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
 	);
 	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 
@@ -147,7 +144,7 @@ export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings"
 		to: [booking.email],
 		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfContent }],
+		attachments: [{ ...artifacts.pdf, content: pdfContent }]
 	});
 
 	await sendBookingHostDetailsEmail({
@@ -162,7 +159,7 @@ export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings"
 		service: parsedBooking.service,
 		duration: parsedBooking.duration,
 		addons: parsedBooking.addons,
-		notes: parsedBooking.notes,
+		notes: parsedBooking.notes
 	});
 }
 
@@ -173,8 +170,8 @@ export async function sendFeedbackEmailForMessage(message: string) {
 		html: [
 			"<p>You received new website feedback from the VV Studios website.</p>",
 			"<p><strong>Message:</strong></p>",
-			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`,
-		].join(""),
+			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`
+		].join("")
 	});
 }
 
@@ -183,7 +180,7 @@ export async function sendBookingDeliverablesEmailForBooking({
 	driveLink,
 	email,
 	emailVariant,
-	name,
+	name
 }: SendBookingDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
@@ -192,14 +189,10 @@ export async function sendBookingDeliverablesEmailForBooking({
 		driveLink,
 		emailVariant,
 		name,
-		signoffName,
+		signoffName
 	});
 
-	return await sendEmail({
-		to: [email],
-		subject: "Your VV Studios Deliverables Folder",
-		html,
-	});
+	return await sendEmail({ to: [email], subject: "Your VV Studios Deliverables Folder", html });
 }
 
 export async function sendBookingReminderEmailForBooking({
@@ -210,7 +203,7 @@ export async function sendBookingReminderEmailForBooking({
 	timeZone,
 	service,
 	duration,
-	addons,
+	addons
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
@@ -224,13 +217,13 @@ export async function sendBookingReminderEmailForBooking({
 		duration,
 		name,
 		service,
-		signoffName,
+		signoffName
 	});
 
 	await sendEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
-		html,
+		html
 	});
 }
 

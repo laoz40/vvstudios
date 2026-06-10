@@ -49,7 +49,7 @@ export function LoginPage() {
 								colorInputBackground: "#1a1a1a",
 								colorInputText: "#fafafa",
 								colorPrimary: "#f5c400",
-								borderRadius: "0.5rem",
+								borderRadius: "0.5rem"
 							},
 							elements: {
 								rootBox: "w-full",
@@ -67,8 +67,8 @@ export function LoginPage() {
 								dividerLine: "bg-border",
 								dividerText: "text-muted-foreground",
 								formFieldAction: "text-primary hover:text-primary/90",
-								identityPreviewEditButton: "text-primary hover:text-primary/90",
-							},
+								identityPreviewEditButton: "text-primary hover:text-primary/90"
+							}
 						}}
 					/>
 				</CardContent>

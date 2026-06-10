@@ -9,7 +9,7 @@ import {
 	Link,
 	Preview,
 	Section,
-	Text,
+	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { DELIVERABLES_REVIEW_URL } from "#studio/features/deliverables-email/lib/constants";
@@ -25,7 +25,7 @@ export function FirstTimeDeliverablesEmail({
 	bookingDate,
 	driveLink,
 	name,
-	signoffName,
+	signoffName
 }: FirstTimeDeliverablesEmailProps) {
 	return (
 		<Html>
@@ -125,7 +125,7 @@ export function FirstTimeDeliverablesEmail({
 const body = {
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
-	padding: "16px 16px",
+	padding: "16px 16px"
 };
 
 const container = {
@@ -134,7 +134,7 @@ const container = {
 	borderRadius: "12px",
 	margin: "0 auto",
 	maxWidth: "560px",
-	padding: "24px",
+	padding: "24px"
 };
 
 const heading = {
@@ -142,99 +142,62 @@ const heading = {
 	fontSize: "22px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0 0 16px",
+	margin: "0 0 16px"
 };
 
-const logo = {
-	display: "block",
-	margin: "0 auto 16px",
-};
+const logo = { display: "block", margin: "0 auto 16px" };
 
-const paragraph = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "0 0 12px",
-};
+const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
 const noteText = {
 	color: "#fafafa",
 	fontSize: "13px",
 	fontStyle: "italic",
 	lineHeight: "20px",
-	margin: "12px 0 24px",
+	margin: "12px 0 24px"
 };
 
-const section = {
-	margin: "0 0 20px",
-};
+const section = { margin: "0 0 20px" };
 
-const compactSection = {
-	margin: "0 0 16px",
-};
+const compactSection = { margin: "0 0 16px" };
 
-const contactParagraph = {
-	...paragraph,
-	margin: "4px 0 12px",
-};
+const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
 
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
 	fontWeight: "600",
 	margin: "0 0 8px",
-	textTransform: "uppercase" as const,
+	textTransform: "uppercase" as const
 };
 
 const subtleSectionTitle = {
 	color: "#fafafa",
 	fontSize: "13px",
 	fontWeight: "600",
-	margin: "0 0 8px",
+	margin: "0 0 8px"
 };
 
 const instructionCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
 	borderRadius: "12px",
-	padding: "16px",
+	padding: "16px"
 };
 
-const detailLine = {
-	color: "#fafafa",
-	fontSize: "14px",
-	lineHeight: "20px",
-	margin: "0 0 12px",
-};
+const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 12px" };
 
-const stepGroup = {
-	margin: "0 0 12px",
-};
+const stepGroup = { margin: "0 0 12px" };
 
-const groupedDetailLine = {
-	...detailLine,
-	margin: "0 0 1px",
-};
+const groupedDetailLine = { ...detailLine, margin: "0 0 1px" };
 
-const nestedDetailLine = {
-	...detailLine,
-	margin: "0 0 1px 16px",
-};
+const nestedDetailLine = { ...detailLine, margin: "0 0 1px 16px" };
 
-const lastNestedDetailLine = {
-	...detailLine,
-	margin: "0 0 0 16px",
-};
+const lastNestedDetailLine = { ...detailLine, margin: "0 0 0 16px" };
 
-const lastDetailLine = {
-	...detailLine,
-	margin: "0",
-};
+const lastDetailLine = { ...detailLine, margin: "0" };
 
-const buttonWrapper = {
-	margin: "28px 0",
-	textAlign: "center" as const,
-};
+const buttonWrapper = { margin: "28px 0", textAlign: "center" as const };
 
 const button = {
 	backgroundColor: "#f5c400",
@@ -243,25 +206,17 @@ const button = {
 	fontSize: "14px",
 	fontWeight: "600",
 	padding: "12px 18px",
-	textDecoration: "none",
+	textDecoration: "none"
 };
 
-const link = {
-	color: "#f5c400",
-	fontWeight: "600",
-};
+const link = { color: "#f5c400", fontWeight: "600" };
 
-const signoff = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "24px 0 4px",
-};
+const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
 
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",
 	fontWeight: "700",
 	lineHeight: "24px",
-	margin: "0",
+	margin: "0"
 };

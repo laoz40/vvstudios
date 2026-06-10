@@ -16,21 +16,13 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				animate(
 					".arrow-head",
 					{ y: [0, 8, 8, -8, 0], opacity: [1, 0, 0, 0, 1] },
-					{
-						duration: 1,
-						times: [0, 0.4, 0.5, 0.6, 1],
-						ease: "easeInOut",
-					},
+					{ duration: 1, times: [0, 0.4, 0.5, 0.6, 1], ease: "easeInOut" }
 				);
 
 				await animate(
 					".arrow-stem",
 					{ y: [0, 8, 8, -8, 0], opacity: [1, 0, 0, 0, 1] },
-					{
-						duration: 1,
-						times: [0, 0.3, 0.4, 0.5, 1],
-						ease: "easeInOut",
-					},
+					{ duration: 1, times: [0, 0.3, 0.4, 0.5, 1], ease: "easeInOut" }
 				);
 
 				if (!isAnimatingRef.current) break;
@@ -39,7 +31,7 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				await animate(
 					".tray",
 					{ y: [0, 2, 0], scale: [1, 1.05, 1] },
-					{ duration: 0.3, ease: "easeOut" },
+					{ duration: 0.3, ease: "easeOut" }
 				);
 
 				if (!isAnimatingRef.current) break;
@@ -54,10 +46,7 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(".arrow-head, .arrow-stem, .tray", { y: 0, opacity: 1, scale: 1 }, { duration: 0.3 });
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -97,7 +86,7 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 DownloadIcon.displayName = "DownloadIcon";

@@ -9,7 +9,7 @@ export default defineSchema({
 		maxDaysAhead: v.number(),
 		weekSchedule: v.array(v.object({ startTime: v.string(), endTime: v.string() })),
 		updatedAt: v.number(),
-		updatedBy: v.optional(v.string()),
+		updatedBy: v.optional(v.string())
 	}).index("by_key", ["key"]),
 
 	customInvoices: defineTable({
@@ -23,7 +23,7 @@ export default defineSchema({
 		clipsPackageQuantity: v.optional(v.string()),
 		includeDepositLineItem: v.boolean(),
 		createdAt: v.number(),
-		createdBy: v.optional(v.string()),
+		createdBy: v.optional(v.string())
 	}).index("by_bookingId", ["bookingId"]),
 
 	bookings: defineTable({
@@ -51,7 +51,7 @@ export default defineSchema({
 			v.literal("failed"),
 			v.literal("email_failed"),
 			v.literal("expired"),
-			v.literal("abandoned"),
+			v.literal("abandoned")
 		),
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
@@ -65,7 +65,7 @@ export default defineSchema({
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
 		editStatus: v.optional(
-			v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed")),
+			v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
 		),
 
 		// Stripe data
@@ -74,10 +74,10 @@ export default defineSchema({
 
 		// Google Calendar data
 		googleEventId: v.optional(v.string()),
-		googleCalendarId: v.optional(v.string()),
+		googleCalendarId: v.optional(v.string())
 	})
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
-		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"]),
+		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 });

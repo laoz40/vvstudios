@@ -12,5 +12,5 @@ export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
 	duration: "2h",
 	service: "Table Setup",
 	addons: ["4K UHD Recording", "Clips Package", "Remote Podcast"],
-	createdAt: Date.UTC(2026, 3, 19, 2, 0, 0),
+	createdAt: Date.UTC(2026, 3, 19, 2, 0, 0)
 };

@@ -25,24 +25,20 @@ const BACK_HOME_LINK = { href: studioSite.routes.home, label: "Back to home" } a
 
 const CONTACT_FAQ_HASH = "contact-faq-title";
 
-type NavLinkItem = {
-	href: string;
-	hash?: string;
-	label: string;
-};
+type NavLinkItem = { href: string; hash?: string; label: string };
 
 const DESKTOP_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.gallery, label: "Gallery" },
 	{ href: studioSite.routes.pricing, label: "Pricing" },
 	{ href: studioSite.routes.contact, hash: CONTACT_FAQ_HASH, label: "FAQ" },
-	{ href: studioSite.routes.contact, label: "Contact" },
+	{ href: studioSite.routes.contact, label: "Contact" }
 ] as const;
 const MOBILE_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.home, label: "Home" },
 	{ href: studioSite.routes.gallery, label: "Gallery" },
 	{ href: studioSite.routes.pricing, label: "Pricing" },
 	{ href: studioSite.routes.contact, hash: CONTACT_FAQ_HASH, label: "FAQ" },
-	{ href: studioSite.routes.contact, label: "Contact" },
+	{ href: studioSite.routes.contact, label: "Contact" }
 ] as const;
 
 function BrandLink({ className, logoClassName }: { className?: string; logoClassName?: string }) {
@@ -52,7 +48,7 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 			aria-label={HOME_ARIA_LABEL}
 			className={cn(
 				"inline-flex h-full items-center gap-2 rounded-md no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50",
-				className,
+				className
 			)}>
 			<Image
 				src={logoYellow}
@@ -73,7 +69,7 @@ function DesktopNavLink({
 	href,
 	hash,
 	label,
-	pathname,
+	pathname
 }: {
 	href: string;
 	hash?: string;
@@ -101,7 +97,7 @@ function DesktopNavLink({
 function NavCta({
 	href,
 	label,
-	variant = "primary",
+	variant = "primary"
 }: {
 	href: string;
 	label: string;
@@ -251,7 +247,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 										"h-11 w-full justify-start px-3 text-base",
 										pathname === link.href && !link.hash
 											? "text-accent-foreground"
-											: "text-foreground hover:text-foreground",
+											: "text-foreground hover:text-foreground"
 									)}>
 									<Link
 										to={link.href}
@@ -288,9 +284,7 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 }
 
 export function SiteNavbar() {
-	const pathname = useRouterState({
-		select: (state) => state.location.pathname,
-	});
+	const pathname = useRouterState({ select: (state) => state.location.pathname });
 
 	return (
 		<>

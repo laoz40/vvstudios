@@ -29,7 +29,7 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 		try {
 			await saveBookingInstagramHandle({
 				stripeSessionId,
-				instagramHandle: trimmedInstagramHandle,
+				instagramHandle: trimmedInstagramHandle
 			});
 			setIsSubmitted(true);
 			toast.success("Thanks! We’ll keep an eye out for your post.");

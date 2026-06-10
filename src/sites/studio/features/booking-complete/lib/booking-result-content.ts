@@ -15,7 +15,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 						title: "We received your payment and need to adjust your booking time",
 						description:
 							"This time slot became unavailable while checkout was finishing. Please contact us and we’ll help move your booking to a time that works for you.",
-						isBookingCompletionFailure: true,
+						isBookingCompletionFailure: true
 					};
 
 				case "GOOGLE_CALENDAR_CREATE_FAILED":
@@ -23,7 +23,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 						title: "We received your payment and need to confirm your booking manually",
 						description:
 							"Your payment went through, but the calendar event could not be created automatically. Please contact us and we’ll finalise the booking for you.",
-						isBookingCompletionFailure: true,
+						isBookingCompletionFailure: true
 					};
 
 				default:
@@ -31,7 +31,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 						title: "We received your payment and need to confirm your booking manually",
 						description:
 							"Your payment went through, but the booking could not be completed automatically. Please contact us and we’ll finalise it for you.",
-						isBookingCompletionFailure: true,
+						isBookingCompletionFailure: true
 					};
 			}
 		}
@@ -40,7 +40,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 			return {
 				title: "Congrats, your booking is confirmed!",
 				description: "Your invoice has been emailed to you, or you can download it",
-				isBookingCompletionFailure: false,
+				isBookingCompletionFailure: false
 			};
 
 		case "email_failed":
@@ -48,21 +48,21 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 				title: "Congrats, your booking is confirmed!",
 				description:
 					"Your booking is confirmed, but we couldn’t email your invoice. You can download it here or contact us.",
-				isBookingCompletionFailure: false,
+				isBookingCompletionFailure: false
 			};
 
 		case "pending_payment":
 			return {
 				title: "Processing booking",
 				description: "We’re still checking your payment.",
-				isBookingCompletionFailure: false,
+				isBookingCompletionFailure: false
 			};
 
 		case "expired":
 			return {
 				title: "This booking session has expired",
 				description: "Please return to the booking form to start a new checkout session.",
-				isBookingCompletionFailure: false,
+				isBookingCompletionFailure: false
 			};
 
 		default:

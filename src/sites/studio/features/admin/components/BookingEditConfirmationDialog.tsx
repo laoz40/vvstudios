@@ -5,13 +5,10 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 
-type ChangedFieldListProps = {
-	fields: string[];
-	title: string;
-};
+type ChangedFieldListProps = { fields: string[]; title: string };
 
 export type BookingEditConfirmationDialogProps = {
 	open: boolean;
@@ -47,7 +44,7 @@ export function BookingEditConfirmationDialog({
 	pricingFieldLabels,
 	onCancel,
 	onConfirm,
-	onOpenChange,
+	onOpenChange
 }: BookingEditConfirmationDialogProps) {
 	return (
 		<Dialog

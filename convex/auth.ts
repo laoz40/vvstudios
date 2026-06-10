@@ -11,5 +11,5 @@ export const getCurrentUserAccess = query({
 		}
 
 		return { isAuthenticated: true, isAdmin: isAdminIdentity(identity) };
-	},
+	}
 });

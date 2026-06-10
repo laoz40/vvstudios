@@ -3,7 +3,7 @@ import type { SortingState } from "@tanstack/react-table";
 const ADMIN_DASHBOARD_STORAGE_KEYS = {
 	sorting: "vvstudios.adminDashboard.sorting",
 	showStaleBookings: "vvstudios.adminDashboard.showStaleBookings",
-	showUpcomingOnly: "vvstudios.adminDashboard.showUpcomingOnly",
+	showUpcomingOnly: "vvstudios.adminDashboard.showUpcomingOnly"
 } as const;
 
 const DEFAULT_ADMIN_DASHBOARD_SORTING: SortingState = [{ id: "session", desc: false }];
@@ -51,7 +51,7 @@ export function readStoredAdminDashboardSorting() {
 				"id" in sort &&
 				typeof sort.id === "string" &&
 				sortableColumnIds.has(sort.id) &&
-				("desc" in sort ? typeof sort.desc === "boolean" : true),
+				("desc" in sort ? typeof sort.desc === "boolean" : true)
 		);
 
 		return storedSorting.length > 0 ? storedSorting : DEFAULT_ADMIN_DASHBOARD_SORTING;
@@ -63,34 +63,34 @@ export function readStoredAdminDashboardSorting() {
 export function readStoredShowUpcomingOnly() {
 	return readStoredBoolean(
 		ADMIN_DASHBOARD_STORAGE_KEYS.showUpcomingOnly,
-		DEFAULT_SHOW_UPCOMING_ONLY,
+		DEFAULT_SHOW_UPCOMING_ONLY
 	);
 }
 
 export function readStoredShowStaleBookings() {
 	return readStoredBoolean(
 		ADMIN_DASHBOARD_STORAGE_KEYS.showStaleBookings,
-		DEFAULT_SHOW_STALE_BOOKINGS,
+		DEFAULT_SHOW_STALE_BOOKINGS
 	);
 }
 
 export function storeAdminDashboardSorting(sorting: SortingState) {
 	getAdminDashboardStorage()?.setItem(
 		ADMIN_DASHBOARD_STORAGE_KEYS.sorting,
-		JSON.stringify(sorting),
+		JSON.stringify(sorting)
 	);
 }
 
 export function storeShowUpcomingOnly(showUpcomingOnly: boolean) {
 	getAdminDashboardStorage()?.setItem(
 		ADMIN_DASHBOARD_STORAGE_KEYS.showUpcomingOnly,
-		String(showUpcomingOnly),
+		String(showUpcomingOnly)
 	);
 }
 
 export function storeShowStaleBookings(showStaleBookings: boolean) {
 	getAdminDashboardStorage()?.setItem(
 		ADMIN_DASHBOARD_STORAGE_KEYS.showStaleBookings,
-		String(showStaleBookings),
+		String(showStaleBookings)
 	);
 }

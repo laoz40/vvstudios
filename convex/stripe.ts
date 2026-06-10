@@ -11,21 +11,9 @@ import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/for
 import { env } from "./env";
 
 type CreateEmbeddedCheckoutSessionResult =
-	| {
-			ok: true;
-			bookingId: Id<"bookings">;
-			clientSecret: string;
-			stripeSessionId: string;
-	  }
-	| {
-			ok: false;
-			code: "BOOKING_RATE_LIMITED";
-			retryAfter: number;
-	  }
-	| {
-			ok: false;
-			code: "BOOKING_EMAIL_DOMAIN_INVALID";
-	  };
+	| { ok: true; bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string }
+	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number }
+	| { ok: false; code: "BOOKING_EMAIL_DOMAIN_INVALID" };
 
 interface CloseEmbeddedCheckoutSessionResult {
 	ok: true;
@@ -41,9 +29,7 @@ type DeletePendingBookingResult =
 	| { ok: false; reason: "stripe_session_mismatch" };
 
 function getStripeClient() {
-	return new Stripe(env.STRIPE_SECRET_KEY, {
-		apiVersion: "2026-03-25.dahlia",
-	});
+	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
 }
 
 function getBookingSubmitRateLimitKey(email: string) {
@@ -79,7 +65,7 @@ export const createEmbeddedCheckoutSession = action({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string()),
+		notes: v.optional(v.string())
 	},
 	handler: async (ctx, args): Promise<CreateEmbeddedCheckoutSessionResult> => {
 		const parsedBooking = bookingSchema.safeParse(args);
@@ -110,7 +96,7 @@ export const createEmbeddedCheckoutSession = action({
 			addons: booking.addons,
 			essentialEditQuantity: booking.essentialEditQuantity || undefined,
 			clipsPackageQuantity: booking.clipsPackageQuantity || undefined,
-			notes: booking.notes || undefined,
+			notes: booking.notes || undefined
 		});
 
 		if (!pendingBookingResult.ok) {
@@ -124,19 +110,11 @@ export const createEmbeddedCheckoutSession = action({
 			payment_method_types: ["card"],
 			return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
 			customer_email: booking.email,
-			metadata: {
-				bookingId,
-			},
+			metadata: { bookingId },
 			line_items: [
-				{
-					price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID,
-					quantity: 1,
-				},
-				{
-					price: env.STRIPE_PROCESSING_FEE_PRICE_ID,
-					quantity: 1,
-				},
-			],
+				{ price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID, quantity: 1 },
+				{ price: env.STRIPE_PROCESSING_FEE_PRICE_ID, quantity: 1 }
+			]
 		});
 
 		if (!session.client_secret) {
@@ -145,23 +123,20 @@ export const createEmbeddedCheckoutSession = action({
 
 		await ctx.runMutation(internal.bookings.setBookingStripeSessionId, {
 			bookingId,
-			stripeSessionId: session.id,
+			stripeSessionId: session.id
 		});
 
 		return {
 			ok: true,
 			bookingId,
 			clientSecret: session.client_secret,
-			stripeSessionId: session.id,
+			stripeSessionId: session.id
 		};
-	},
+	}
 });
 
 export const closeEmbeddedCheckoutSession = action({
-	args: {
-		bookingId: v.id("bookings"),
-		stripeSessionId: v.string(),
-	},
+	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
 	handler: async (ctx, args): Promise<CloseEmbeddedCheckoutSessionResult> => {
 		const stripe = getStripeClient();
 		const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
@@ -176,10 +151,7 @@ export const closeEmbeddedCheckoutSession = action({
 
 		const result: DeletePendingBookingResult = await ctx.runMutation(
 			internal.bookings.deletePendingBooking,
-			{
-				bookingId: args.bookingId,
-				stripeSessionId: args.stripeSessionId,
-			},
+			{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
 		);
 
 		if (!result.ok) {
@@ -187,5 +159,5 @@ export const closeEmbeddedCheckoutSession = action({
 		}
 
 		return { ok: true as const, outcome: result.outcome };
-	},
+	}
 });

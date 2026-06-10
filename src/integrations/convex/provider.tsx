@@ -13,24 +13,17 @@ function useConvexClerkAuth() {
 	const fetchAccessToken = useCallback(
 		async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
 			try {
-				return await getToken({
-					skipCache: forceRefreshToken,
-					template: "convex",
-				});
+				return await getToken({ skipCache: forceRefreshToken, template: "convex" });
 			} catch {
 				return null;
 			}
 		},
-		[getToken],
+		[getToken]
 	);
 
 	return useMemo(
-		() => ({
-			fetchAccessToken,
-			isAuthenticated: isSignedIn ?? false,
-			isLoading: !isLoaded,
-		}),
-		[fetchAccessToken, isLoaded, isSignedIn],
+		() => ({ fetchAccessToken, isAuthenticated: isSignedIn ?? false, isLoading: !isLoaded }),
+		[fetchAccessToken, isLoaded, isSignedIn]
 	);
 }
 

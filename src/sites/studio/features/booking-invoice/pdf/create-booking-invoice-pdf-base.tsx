@@ -17,6 +17,6 @@ export function createBookingInvoicePdfBase(input: BookingInvoiceBuilderInput) {
 	return {
 		data,
 		filename: createPdfFilename(data.invoice.number),
-		instance: createBookingInvoicePdfInstance(data),
+		instance: createBookingInvoicePdfInstance(data)
 	};
 }

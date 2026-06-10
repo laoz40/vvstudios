@@ -7,26 +7,14 @@ const DownChevron = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = useCallback(async () => {
-			await animate(
-				".chevron-down",
-				{
-					y: [0, 6, 0],
-				},
-				{
-					duration: 0.8,
-					ease: "easeInOut",
-				},
-			);
+			await animate(".chevron-down", { y: [0, 6, 0] }, { duration: 0.8, ease: "easeInOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {
 			animate(".chevron-down", { y: 0 }, { duration: 0.2, ease: "easeInOut" });
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.div
@@ -55,7 +43,7 @@ const DownChevron = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 DownChevron.displayName = "DownChevron";

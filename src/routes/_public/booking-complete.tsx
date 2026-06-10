@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import {
 	BookingCompleteDevScenarioPanel,
 	buildDevBooking,
-	parseBookingCompleteSearch,
+	parseBookingCompleteSearch
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingResult } from "#studio/features/booking-complete/components/BookingResult";
@@ -17,7 +17,7 @@ import { buildNoIndexHead } from "#/lib/seo";
 export const Route = createFileRoute("/_public/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
 	head: () => buildNoIndexHead("Booking Complete | VV Studios"),
-	component: BookingCompletePage,
+	component: BookingCompletePage
 });
 
 function BookingCompletePage(): ReactNode {
@@ -29,7 +29,7 @@ function BookingCompletePage(): ReactNode {
 		api.bookings.getBookingStatusByStripeSessionId,
 		usableStripeSessionId && !activeDevScenario
 			? { stripeSessionId: usableStripeSessionId }
-			: "skip",
+			: "skip"
 	);
 	const booking = activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking;
 	const previewStripeSessionId =
@@ -47,7 +47,7 @@ function BookingCompletePage(): ReactNode {
 						title: "No booking session was provided",
 						description:
 							"This page needs a valid booking session link. Try returning to the booking form to start a new checkout session.",
-						isBookingCompletionFailure: false,
+						isBookingCompletionFailure: false
 					}}
 				/>
 			</BookingStatusLayout>
@@ -70,7 +70,7 @@ function BookingCompletePage(): ReactNode {
 					content={{
 						title: "We couldn't find this booking",
 						description: "The link may be invalid or no longer available.",
-						isBookingCompletionFailure: false,
+						isBookingCompletionFailure: false
 					}}
 				/>
 			</BookingStatusLayout>

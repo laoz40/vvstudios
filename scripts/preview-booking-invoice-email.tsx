@@ -8,6 +8,4 @@ export default function BookingInvoicePreviewEmail() {
 	return <BookingInvoiceEmail data={previewData} />;
 }
 
-BookingInvoicePreviewEmail.PreviewProps = {
-	data: previewData,
-};
+BookingInvoicePreviewEmail.PreviewProps = { data: previewData };

@@ -1,11 +1,11 @@
 import { ConvexError } from "convex/values";
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
-	BOOKING_TIME_OPTIONS,
+	BOOKING_TIME_OPTIONS
 } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
 import {
 	getTimeZoneDateKey,
-	getUtcDateForZonedParts,
+	getUtcDateForZonedParts
 } from "../../src/sites/studio/lib/zonedDateTime";
 
 export interface BusyWindow {
@@ -16,10 +16,7 @@ export interface BusyWindow {
 export interface BusyDayWindow {
 	date: string;
 	label: string;
-	busyPeriods: Array<{
-		end: string;
-		start: string;
-	}>;
+	busyPeriods: Array<{ end: string; start: string }>;
 }
 
 interface DateParts {
@@ -39,9 +36,7 @@ type BookingTimeUtilsErrorCode =
 	| "BOOKING_INVALID_MONTH"
 	| "BOOKING_INVALID_TIME";
 
-type BookingTimeUtilsErrorData = {
-	code: BookingTimeUtilsErrorCode;
-};
+type BookingTimeUtilsErrorData = { code: BookingTimeUtilsErrorCode };
 
 export type BookingAvailabilitySettings = {
 	eventBufferMinutes: number;
@@ -95,7 +90,7 @@ export function getUtcDateForZonedDateTime(date: string, time: string, timeZone:
 		minutes: timeParts.minutes,
 		month: dateParts.month,
 		timeZone,
-		year: dateParts.year,
+		year: dateParts.year
 	});
 }
 
@@ -104,10 +99,7 @@ export function buildEventWindow(date: string, time: string, duration: string, t
 	const startUtc = getUtcDateForZonedDateTime(date, time, timeZone);
 	const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000);
 
-	return {
-		startDateTime: startUtc.toISOString(),
-		endDateTime: endUtc.toISOString(),
-	};
+	return { startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() };
 }
 
 // keep only the times that do not overlap with busy calendar events
@@ -124,17 +116,10 @@ export function getAvailableTimeOptions({
 	date,
 	duration,
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
-	timeZone,
+	timeZone
 }: GetAvailableTimeOptionsArgs) {
 	return BOOKING_TIME_OPTIONS.filter((time) =>
-		isTimeSlotAvailable({
-			busyWindows,
-			date,
-			duration,
-			eventBufferMinutes,
-			time,
-			timeZone,
-		}),
+		isTimeSlotAvailable({ busyWindows, date, duration, eventBufferMinutes, time, timeZone })
 	);
 }
 
@@ -154,7 +139,7 @@ export function isTimeSlotAvailable({
 	duration,
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	time,
-	timeZone,
+	timeZone
 }: IsTimeSlotAvailableArgs) {
 	const { endDateTime, startDateTime } = buildEventWindow(date, time, duration, timeZone);
 	const startMs = Date.parse(startDateTime);
@@ -201,7 +186,7 @@ export function checkBookingMeetsAvailabilitySettings({
 	now = Date.now(),
 	settings,
 	time,
-	timeZone,
+	timeZone
 }: {
 	date: string;
 	duration: string;
@@ -220,14 +205,14 @@ export function checkBookingMeetsAvailabilitySettings({
 
 	if (bookingDate > lastBookableDate) {
 		throw new ConvexError<BookingAvailabilityValidationErrorData>({
-			code: "BOOKING_TOO_FAR_AHEAD",
+			code: "BOOKING_TOO_FAR_AHEAD"
 		});
 	}
 
 	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
 	if (!daySchedule) {
 		throw new ConvexError<BookingAvailabilityValidationErrorData>({
-			code: "BOOKING_OUTSIDE_OPENING_HOURS",
+			code: "BOOKING_OUTSIDE_OPENING_HOURS"
 		});
 	}
 
@@ -238,7 +223,7 @@ export function checkBookingMeetsAvailabilitySettings({
 
 	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
 		throw new ConvexError<BookingAvailabilityValidationErrorData>({
-			code: "BOOKING_OUTSIDE_OPENING_HOURS",
+			code: "BOOKING_OUTSIDE_OPENING_HOURS"
 		});
 	}
 
@@ -253,23 +238,20 @@ export function checkBookingMeetsAvailabilitySettings({
 export function getAvailabilityRange(date: string) {
 	return {
 		timeMin: getUtcDateForBufferedQuery(getPreviousDate(date), "00:00").toISOString(),
-		timeMax: getUtcDateForBufferedQuery(getNextDate(date), "23:59").toISOString(),
+		timeMax: getUtcDateForBufferedQuery(getNextDate(date), "23:59").toISOString()
 	};
 }
 
 export function getDateAvailabilityRange(startDate: string, endDate: string, timeZone: string) {
 	return {
 		timeMax: getUtcDateForZonedDateTime(getNextDate(endDate), "00:00", timeZone).toISOString(),
-		timeMin: getUtcDateForZonedDateTime(startDate, "00:00", timeZone).toISOString(),
+		timeMin: getUtcDateForZonedDateTime(startDate, "00:00", timeZone).toISOString()
 	};
 }
 
 export function mergeBusyWindows(busyWindows: BusyWindow[]) {
 	const sortedWindows = busyWindows
-		.map((window) => ({
-			endMs: Date.parse(window.end),
-			startMs: Date.parse(window.start),
-		}))
+		.map((window) => ({ endMs: Date.parse(window.end), startMs: Date.parse(window.start) }))
 		.sort((left, right) => left.startMs - right.startMs);
 
 	const mergedWindows: BusyWindow[] = [];
@@ -279,7 +261,7 @@ export function mergeBusyWindows(busyWindows: BusyWindow[]) {
 		if (!lastWindow) {
 			mergedWindows.push({
 				end: new Date(window.endMs).toISOString(),
-				start: new Date(window.startMs).toISOString(),
+				start: new Date(window.startMs).toISOString()
 			});
 			continue;
 		}
@@ -292,7 +274,7 @@ export function mergeBusyWindows(busyWindows: BusyWindow[]) {
 
 		mergedWindows.push({
 			end: new Date(window.endMs).toISOString(),
-			start: new Date(window.startMs).toISOString(),
+			start: new Date(window.startMs).toISOString()
 		});
 	}
 
@@ -311,7 +293,7 @@ export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: strin
 			const segmentStartDate = new Date(segmentStartMs);
 			const localDateKey = getLocalDateKey(segmentStartDate, timeZone);
 			const dayEndMs = Date.parse(
-				getUtcDateForZonedDateTime(getNextDate(localDateKey), "00:00", timeZone).toISOString(),
+				getUtcDateForZonedDateTime(getNextDate(localDateKey), "00:00", timeZone).toISOString()
 			);
 			const segmentEndMs = Math.min(windowEndMs, dayEndMs);
 			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
@@ -319,9 +301,9 @@ export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: strin
 			bucket.busyPeriods.push({
 				end: formatTimeInTimeZone(
 					new Date(segmentEndMs === dayEndMs ? segmentEndMs - 60 * 1000 : segmentEndMs),
-					timeZone,
+					timeZone
 				),
-				start: formatTimeInTimeZone(segmentStartDate, timeZone),
+				start: formatTimeInTimeZone(segmentStartDate, timeZone)
 			});
 
 			segmentStartMs = segmentEndMs;
@@ -339,7 +321,7 @@ interface EventDateTimeRange {
 
 export function getEventDateTime(
 	dateTimeRange: EventDateTimeRange | null | undefined,
-	timeZone: string,
+	timeZone: string
 ) {
 	if (dateTimeRange?.dateTime) {
 		return dateTimeRange.dateTime;
@@ -385,18 +367,14 @@ function getLocalDateKey(date: Date, timeZone: string) {
 function getOrCreateDayBucket(
 	dayBuckets: Map<string, BusyDayWindow>,
 	date: string,
-	timeZone: string,
+	timeZone: string
 ) {
 	const existingBucket = dayBuckets.get(date);
 	if (existingBucket) {
 		return existingBucket;
 	}
 
-	const bucket: BusyDayWindow = {
-		busyPeriods: [],
-		date,
-		label: formatDayLabel(date, timeZone),
-	};
+	const bucket: BusyDayWindow = { busyPeriods: [], date, label: formatDayLabel(date, timeZone) };
 	dayBuckets.set(date, bucket);
 
 	return bucket;
@@ -407,7 +385,7 @@ function formatDayLabel(date: string, timeZone: string) {
 		day: "numeric",
 		month: "short",
 		weekday: "short",
-		timeZone,
+		timeZone
 	}).format(getUtcDateForZonedDateTime(date, "12:00", timeZone));
 }
 
@@ -416,7 +394,7 @@ function formatTimeInTimeZone(date: Date, timeZone: string) {
 		hour: "numeric",
 		hour12: true,
 		minute: "2-digit",
-		timeZone,
+		timeZone
 	}).format(date);
 }
 
@@ -426,7 +404,7 @@ export function formatCalendarEventDate(dateTime: string, timeZone: string) {
 		month: "long",
 		day: "numeric",
 		year: "numeric",
-		timeZone,
+		timeZone
 	}).format(new Date(dateTime));
 }
 
@@ -435,7 +413,7 @@ export function formatCalendarEventTime(dateTime: string, timeZone: string) {
 		hour: "numeric",
 		minute: "2-digit",
 		hour12: true,
-		timeZone,
+		timeZone
 	}).format(new Date(dateTime));
 }
 
@@ -450,7 +428,7 @@ export function formatBookingDateLong(date: string) {
 		weekday: "long",
 		month: "long",
 		day: "numeric",
-		year: "numeric",
+		year: "numeric"
 	}).format(new Date(year, month - 1, day));
 }
 
@@ -463,7 +441,7 @@ export function formatBookingDateWithoutYear(date: string) {
 
 	const suffix = getOrdinalSuffix(day);
 	const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long" }).format(
-		new Date(2000, month - 1, day),
+		new Date(2000, month - 1, day)
 	);
 
 	return `${day}${suffix} ${monthLabel}`;

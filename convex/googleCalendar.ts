@@ -7,7 +7,7 @@ import type { Doc } from "./_generated/dataModel";
 import {
 	formatDateValue,
 	getLastBookableDate,
-	startOfToday,
+	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { requireAdmin } from "./lib/auth";
@@ -15,21 +15,21 @@ import {
 	buildEventWindow,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
-	groupBusyWindowsByDay,
+	groupBusyWindowsByDay
 } from "./lib/bookingCalendarTime";
 import {
 	sendBookingInvoiceEmailsForBooking,
-	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
+	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails
 } from "./lib/email";
 import {
 	failBookingCompletion,
 	verifyBookingCanBeScheduled,
 	type AdminBookingUpdateResult,
-	updateBookingFromAdminWithGoogleCalendar,
+	updateBookingFromAdminWithGoogleCalendar
 } from "./lib/bookingAdminEdit";
 import {
 	buildBookingCalendarEventPayload,
-	deleteBookingCalendarEventIfExists,
+	deleteBookingCalendarEventIfExists
 } from "./lib/googleCalendarEvents";
 import { throwGoogleCalendarConvexError } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
@@ -46,9 +46,7 @@ type BookingCalendarErrorCode =
 	| "GOOGLE_CALENDAR_RATE_LIMITED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
-type BookingCalendarErrorData = {
-	code: BookingCalendarErrorCode;
-};
+type BookingCalendarErrorData = { code: BookingCalendarErrorCode };
 
 type BookingInvoiceEmailErrorCode =
 	| "NOT_AUTHENTICATED"
@@ -56,9 +54,7 @@ type BookingInvoiceEmailErrorCode =
 	| "INVALID_BOOKING_DATA"
 	| "INVOICE_SEND_FAILED";
 
-type BookingInvoiceEmailErrorData = {
-	code: BookingInvoiceEmailErrorCode;
-};
+type BookingInvoiceEmailErrorData = { code: BookingInvoiceEmailErrorCode };
 
 interface AvailableBookingTimesResult {
 	timeZone: string;
@@ -82,7 +78,7 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 		booking.date,
 		booking.time,
 		booking.duration,
-		timeZone,
+		timeZone
 	);
 
 	await sendReminderEmailForBookingDetails({
@@ -93,22 +89,20 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 		timeZone,
 		service: booking.service,
 		duration: booking.duration,
-		addons: booking.addons,
+		addons: booking.addons
 	});
 }
 
 export const getBookableRangeBusyWindows = action({
-	args: {
-		rateLimitKey: v.string(),
-	},
+	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args): Promise<BookableRangeBusyWindowsResult> => {
 		try {
 			const globalRateLimitStatus = await rateLimiter.limit(
 				ctx,
-				"googleCalendarAvailabilityGlobal",
+				"googleCalendarAvailabilityGlobal"
 			);
 			const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", {
-				key: args.rateLimitKey,
+				key: args.rateLimitKey
 			});
 
 			if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
@@ -126,7 +120,7 @@ export const getBookableRangeBusyWindows = action({
 				calendarIds,
 				timeMax,
 				timeMin,
-				timeZone,
+				timeZone
 			});
 
 			const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
@@ -140,14 +134,11 @@ export const getBookableRangeBusyWindows = action({
 		} catch (error) {
 			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
-	},
+	}
 });
 
 export const getAvailableBookingTimes = action({
-	args: {
-		date: v.string(),
-		duration: v.string(),
-	},
+	args: { date: v.string(), duration: v.string() },
 	handler: async (ctx, args): Promise<AvailableBookingTimesResult> => {
 		try {
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
@@ -156,24 +147,21 @@ export const getAvailableBookingTimes = action({
 				calendar,
 				calendarIds,
 				date: args.date,
-				timeZone,
+				timeZone
 			});
 			const times = getAvailableTimeOptions({
 				busyWindows,
 				date: args.date,
 				duration: args.duration,
 				eventBufferMinutes: settings.eventBufferMinutes,
-				timeZone,
+				timeZone
 			});
 
-			return {
-				timeZone,
-				times,
-			};
+			return { timeZone, times };
 		} catch (error) {
 			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
-	},
+	}
 });
 
 export const updateBookingFromAdmin = action({
@@ -191,14 +179,14 @@ export const updateBookingFromAdmin = action({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string()),
+		notes: v.optional(v.string())
 	},
 	handler: async (ctx, args): Promise<AdminBookingUpdateResult> => {
 		await requireAdmin(ctx);
 
 		const booking: Doc<"bookings"> | null = await ctx.runQuery(
 			internal.bookings.getBookingByIdInternal,
-			{ bookingId: args.bookingId },
+			{ bookingId: args.bookingId }
 		);
 
 		if (!booking) {
@@ -214,23 +202,21 @@ export const updateBookingFromAdmin = action({
 				booking,
 				client,
 				ctx,
-				settings,
+				settings
 			});
 		} catch (error) {
 			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
-	},
+	}
 });
 
 export const sendBookingInvoiceForBooking = action({
-	args: {
-		bookingId: v.id("bookings"),
-	},
+	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		await requireAdmin(ctx);
 
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId,
+			bookingId: args.bookingId
 		});
 
 		if (!booking) {
@@ -240,30 +226,24 @@ export const sendBookingInvoiceForBooking = action({
 		try {
 			await sendBookingInvoiceEmailsForBooking(booking);
 			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
-				bookingId: booking._id,
+				bookingId: booking._id
 			});
 			return { ok: true as const };
 		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
+			if (error instanceof ConvexError) throw error;
 			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVOICE_SEND_FAILED" });
 		}
-	},
+	}
 });
 
 export const deleteBookingFromAdmin = action({
-	args: {
-		bookingId: v.id("bookings"),
-	},
+	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args): Promise<{ ok: true }> => {
 		await requireAdmin(ctx);
 
 		const booking: Doc<"bookings"> | null = await ctx.runQuery(
 			internal.bookings.getBookingByIdInternal,
-			{
-				bookingId: args.bookingId,
-			},
+			{ bookingId: args.bookingId }
 		);
 
 		if (!booking) {
@@ -278,65 +258,55 @@ export const deleteBookingFromAdmin = action({
 				booking,
 				calendar: client.calendar,
 				calendarId,
-				timeZone: client.timeZone,
+				timeZone: client.timeZone
 			});
 
-			await ctx.runMutation(internal.bookings.deleteBookingInternal, {
-				bookingId: args.bookingId,
-			});
+			await ctx.runMutation(internal.bookings.deleteBookingInternal, { bookingId: args.bookingId });
 
 			return { ok: true as const };
 		} catch (error) {
 			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_DELETE_FAILED");
 		}
-	},
+	}
 });
 
 export const sendBookingReminderEmailForBooking = internalAction({
-	args: {
-		bookingId: v.id("bookings"),
-	},
+	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const now = Date.now();
 		const claim = await ctx.runMutation(internal.bookings.claimBookingReminderEmail, {
 			bookingId: args.bookingId,
-			now,
+			now
 		});
 
-		if (!claim.ok) {
-			return null;
-		}
+		if (!claim.ok) return null;
 
 		try {
 			await sendBookingReminderEmailForBookingRecord(claim.booking);
 
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
 				bookingId: args.bookingId,
-				now: Date.now(),
+				now: Date.now()
 			});
 		} catch {
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
 				bookingId: args.bookingId,
-				failureCode: "RESEND_SEND_FAILED",
+				failureCode: "RESEND_SEND_FAILED"
 			});
 		}
 
 		return null;
-	},
+	}
 });
 
 export const completeClaimedBooking = internalAction({
-	args: {
-		bookingId: v.id("bookings"),
-	},
+	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId,
+			bookingId: args.bookingId
 		});
 
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+		if (!booking) throw new Error("Booking not found");
 
 		if (!booking.bookingConfirmationClaimedAt) {
 			throw new Error("Booking confirmation was not claimed");
@@ -355,7 +325,7 @@ export const completeClaimedBooking = internalAction({
 				calendar: calendarClient.calendar,
 				calendarIds: calendarClient.calendarIds,
 				settings,
-				timeZone: calendarClient.timeZone,
+				timeZone: calendarClient.timeZone
 			});
 
 			if (!canBeScheduled) {
@@ -375,9 +345,9 @@ export const completeClaimedBooking = internalAction({
 						name: booking.name,
 						duration: booking.duration,
 						email: booking.email,
-						service: booking.service,
-					},
-				}),
+						service: booking.service
+					}
+				})
 			});
 			const googleEventId = createdEvent.data.id ?? undefined;
 
@@ -385,14 +355,14 @@ export const completeClaimedBooking = internalAction({
 			await ctx.runMutation(internal.bookings.markBookingCompleted, {
 				bookingId: booking._id,
 				googleEventId,
-				googleCalendarId: calendarClient.calendarId,
+				googleCalendarId: calendarClient.calendarId
 			});
 
 			try {
 				await sendBookingInvoiceEmailsForBooking(booking);
 			} catch {
 				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
-					bookingId: booking._id,
+					bookingId: booking._id
 				});
 			}
 
@@ -402,5 +372,5 @@ export const completeClaimedBooking = internalAction({
 
 			return null;
 		}
-	},
+	}
 });

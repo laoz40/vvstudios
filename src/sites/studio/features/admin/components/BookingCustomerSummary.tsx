@@ -1,7 +1,4 @@
-export type BookingCustomerSummaryProps = {
-	bookingEmail: string;
-	bookingName: string;
-};
+export type BookingCustomerSummaryProps = { bookingEmail: string; bookingName: string };
 
 export function BookingCustomerSummary({ bookingEmail, bookingName }: BookingCustomerSummaryProps) {
 	return (

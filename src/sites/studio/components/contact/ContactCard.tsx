@@ -6,20 +6,12 @@ import { CONTACT_EMAIL, CONTACT_PHONE } from "#/config/contact";
 const contactCardCopy = {
 	title: "Contact",
 	contactInfoAriaLabel: "Contact information",
-	studioImageAlt: "Podcast studio microphone setup at VV Studios Sydney",
+	studioImageAlt: "Podcast studio microphone setup at VV Studios Sydney"
 } as const;
 
 const directContactItems = [
-	{
-		label: "Phone",
-		value: CONTACT_PHONE,
-		href: `tel:${CONTACT_PHONE}`,
-	},
-	{
-		label: "Email",
-		value: CONTACT_EMAIL,
-		href: `mailto:${CONTACT_EMAIL}`,
-	},
+	{ label: "Phone", value: CONTACT_PHONE, href: `tel:${CONTACT_PHONE}` },
+	{ label: "Email", value: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` }
 ] as const;
 
 export function ContactCard() {
@@ -36,7 +28,7 @@ export function ContactCard() {
 
 		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const supportsCardHover = window.matchMedia(
-			"(min-width: 640px) and (hover: hover) and (pointer: fine)",
+			"(min-width: 640px) and (hover: hover) and (pointer: fine)"
 		);
 
 		if (prefersReducedMotion.matches || !supportsCardHover.matches) {

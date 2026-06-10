@@ -23,10 +23,7 @@ const Stack3Icon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(".layer-3", { y: 0, opacity: 1 }, { duration: 0.25 });
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -67,7 +64,7 @@ const Stack3Icon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 Stack3Icon.displayName = "Stack3Icon";

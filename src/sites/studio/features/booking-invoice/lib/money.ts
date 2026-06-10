@@ -3,7 +3,7 @@ export function formatAud(amount: number) {
 		currency: "AUD",
 		style: "currency",
 		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
+		maximumFractionDigits: 2
 	}).format(amount);
 }
 

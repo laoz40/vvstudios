@@ -15,7 +15,7 @@ export function getGoogleCalendarClient() {
 	const calendarId = env.GOOGLE_CALENDAR_ID;
 	const oauth2Client = new google.auth.OAuth2({
 		clientId: env.GOOGLE_CLIENT_ID,
-		clientSecret: env.GOOGLE_CLIENT_SECRET,
+		clientSecret: env.GOOGLE_CLIENT_SECRET
 	});
 
 	oauth2Client.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
@@ -24,6 +24,6 @@ export function getGoogleCalendarClient() {
 		calendarId,
 		calendarIds: parseGoogleCalendarAvailabilityIds(calendarId),
 		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-		calendar: google.calendar({ version: "v3", auth: oauth2Client }),
+		calendar: google.calendar({ version: "v3", auth: oauth2Client })
 	};
 }

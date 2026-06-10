@@ -15,10 +15,7 @@ const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		return (
@@ -50,7 +47,7 @@ const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 ArrowNarrowRightIcon.displayName = "ArrowNarrowRightIcon";

@@ -15,13 +15,13 @@ import {
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
-	DURATION_PRICES,
+	DURATION_PRICES
 } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
@@ -31,7 +31,7 @@ import {
 	DURATION_OPTIONS,
 	SERVICES,
 	toDeliverableCountOption,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
@@ -76,14 +76,13 @@ function formatInvoiceTotal(input: {
 			: 0;
 	const addonsAmount = input.addons.reduce(
 		(total, addon) => total + getAddonAmount(addon, input),
-		0,
+		0
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 
-	return new Intl.NumberFormat("en-AU", {
-		style: "currency",
-		currency: "AUD",
-	}).format(Math.max(serviceAmount + addonsAmount - depositAmount, 0));
+	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
+		Math.max(serviceAmount + addonsAmount - depositAmount, 0)
+	);
 }
 
 type CustomInvoiceQuantityOptionsProps = {
@@ -99,7 +98,7 @@ function CustomInvoiceQuantityOptions({
 	idPrefix,
 	label,
 	onChange,
-	value,
+	value
 }: CustomInvoiceQuantityOptionsProps) {
 	return (
 		<section className="grid gap-3">
@@ -137,9 +136,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
 	const customInvoices: CustomInvoiceRecord[] | undefined = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
-		{
-			bookingId: booking._id,
-		},
+		{ bookingId: booking._id }
 	);
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
@@ -148,7 +145,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		dueDate: booking.date,
-		includeDepositLineItem: false,
+		includeDepositLineItem: false
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
@@ -164,7 +161,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 				dueDate: booking.date,
-				includeDepositLineItem: false,
+				includeDepositLineItem: false
 			});
 		}
 	}, [
@@ -172,7 +169,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		booking.date,
 		booking.duration,
 		booking.essentialEditQuantity,
-		open,
+		open
 	]);
 
 	async function downloadCustomInvoice(input: {
@@ -200,7 +197,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
-				service: isBookingService(input.service) ? input.service : undefined,
+				service: isBookingService(input.service) ? input.service : undefined
 			});
 
 			if (!result.success) {
@@ -231,7 +228,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				addons: draft.addons,
 				essentialEditQuantity: draft.essentialEditQuantity || undefined,
 				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
-				includeDepositLineItem: draft.includeDepositLineItem,
+				includeDepositLineItem: draft.includeDepositLineItem
 			});
 
 			const result = await downloadAdminBookingInvoice({
@@ -244,7 +241,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
-				service: draft.service || undefined,
+				service: draft.service || undefined
 			});
 
 			if (!result.success) {
@@ -345,8 +342,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 																			invoice.essentialEditQuantity ??
 																			booking.essentialEditQuantity,
 																		clipsPackageQuantity:
-																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
-																	}),
+																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+																	})
 																)
 																.join(", ")}`
 														: ""}
@@ -359,7 +356,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														essentialEditQuantity:
 															invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
 														clipsPackageQuantity:
-															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
 													})}
 												</span>
 											</div>
@@ -428,7 +425,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 											onCheckedChange={(checked) => {
 												setDraft((current) => ({
 													...current,
-													service: checked === true ? service : "",
+													service: checked === true ? service : ""
 												}));
 											}}
 										/>
@@ -446,10 +443,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						disabled={isGenerating}
 						idPrefix="custom-invoice-addon"
 						onChange={(nextValues) => {
-							setDraft((current) => ({
-								...current,
-								...nextValues,
-							}));
+							setDraft((current) => ({ ...current, ...nextValues }));
 						}}
 					/>
 
@@ -486,10 +480,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 								checked={draft.includeDepositLineItem}
 								disabled={isGenerating}
 								onCheckedChange={(checked) => {
-									setDraft((current) => ({
-										...current,
-										includeDepositLineItem: checked === true,
-									}));
+									setDraft((current) => ({ ...current, includeDepositLineItem: checked === true }));
 								}}
 							/>
 							<span className="font-medium">Include deposit paid</span>

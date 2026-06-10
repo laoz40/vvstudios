@@ -5,7 +5,7 @@ import { LandingFaq } from "#studio/components/landing/LandingFaq";
 
 export const Route = createFileRoute("/_public/contact")({
 	head: () => buildSeoHead(seoMetadata.contact),
-	component: ContactRoute,
+	component: ContactRoute
 });
 
 function ContactRoute() {

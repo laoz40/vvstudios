@@ -4,7 +4,7 @@ import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/bookin
 import {
 	buildEventWindow,
 	formatCalendarEventDate,
-	formatCalendarEventTime,
+	formatCalendarEventTime
 } from "./bookingCalendarTime";
 import { isGoogleCalendarEventNotFoundError } from "./googleCalendarErrors";
 
@@ -27,7 +27,7 @@ export function buildBookingCalendarEventPayload({
 	date,
 	details,
 	time,
-	timeZone,
+	timeZone
 }: BuildBookingCalendarEventPayloadArgs): calendar_v3.Schema$Event {
 	const { startDateTime, endDateTime } = buildEventWindow(date, time, details.duration, timeZone);
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
@@ -53,23 +53,19 @@ export function buildBookingCalendarEventPayload({
 			"",
 			"Thanks,",
 			signoffName,
-			BOOKING_INVOICE_BUSINESS.locationLabel,
+			BOOKING_INVOICE_BUSINESS.locationLabel
 		].join("\n"),
 		location: BOOKING_INVOICE_BUSINESS.locationAddress,
-		start: {
-			dateTime: startDateTime,
-		},
-		end: {
-			dateTime: endDateTime,
-		},
+		start: { dateTime: startDateTime },
+		end: { dateTime: endDateTime },
 		transparency: "opaque",
-		attendees: [{ email: details.email }],
+		attendees: [{ email: details.email }]
 	};
 }
 
 export function isMatchingBookingCalendarEvent(
 	event: calendar_v3.Schema$Event,
-	booking: Doc<"bookings">,
+	booking: Doc<"bookings">
 ) {
 	const attendeeMatches =
 		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
@@ -89,7 +85,7 @@ export async function findBookingCalendarEventIncludingDeclined({
 	booking,
 	calendar,
 	calendarId,
-	timeZone,
+	timeZone
 }: {
 	booking: Doc<"bookings">;
 	calendar: calendar_v3.Calendar;
@@ -100,7 +96,7 @@ export async function findBookingCalendarEventIncludingDeclined({
 		booking.date,
 		booking.time,
 		booking.duration,
-		timeZone,
+		timeZone
 	);
 	const events = await calendar.events.list({
 		calendarId,
@@ -108,7 +104,7 @@ export async function findBookingCalendarEventIncludingDeclined({
 		showDeleted: false,
 		showHiddenInvitations: true,
 		timeMax: endDateTime,
-		timeMin: startDateTime,
+		timeMin: startDateTime
 	});
 
 	return events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null;
@@ -117,20 +113,14 @@ export async function findBookingCalendarEventIncludingDeclined({
 async function deleteCalendarEventIfFound(
 	calendar: calendar_v3.Calendar,
 	calendarId: string,
-	eventId: string,
+	eventId: string
 ) {
 	try {
-		await calendar.events.delete({
-			calendarId,
-			eventId,
-			sendUpdates: "all",
-		});
+		await calendar.events.delete({ calendarId, eventId, sendUpdates: "all" });
 
 		return true;
 	} catch (error) {
-		if (isGoogleCalendarEventNotFoundError(error)) {
-			return false;
-		}
+		if (isGoogleCalendarEventNotFoundError(error)) return false;
 
 		throw error;
 	}
@@ -140,7 +130,7 @@ export async function deleteBookingCalendarEventIfExists({
 	booking,
 	calendar,
 	calendarId,
-	timeZone,
+	timeZone
 }: {
 	booking: Doc<"bookings">;
 	calendar: calendar_v3.Calendar;
@@ -152,9 +142,7 @@ export async function deleteBookingCalendarEventIfExists({
 	if (savedEventId) {
 		const wasDeleted = await deleteCalendarEventIfFound(calendar, calendarId, savedEventId);
 
-		if (wasDeleted) {
-			return;
-		}
+		if (wasDeleted) return;
 	}
 
 	// Declined Calendar invites can be hidden from direct event lookup, so search the booking window before giving up.
@@ -162,13 +150,11 @@ export async function deleteBookingCalendarEventIfExists({
 		booking,
 		calendar,
 		calendarId,
-		timeZone,
+		timeZone
 	});
 	const foundEventId = foundEvent?.id ?? null;
 
-	if (!foundEventId) {
-		return;
-	}
+	if (!foundEventId) return;
 
 	await deleteCalendarEventIfFound(calendar, calendarId, foundEventId);
 }

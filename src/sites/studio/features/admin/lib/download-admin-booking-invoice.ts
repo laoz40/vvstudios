@@ -1,7 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	bookingSchema,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
@@ -32,7 +32,7 @@ export async function downloadAdminBookingInvoice({
 	duration = booking.duration as BookingFormValues["duration"],
 	includeDepositLineItem,
 	invoiceNumber,
-	service,
+	service
 }: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
@@ -50,13 +50,13 @@ export async function downloadAdminBookingInvoice({
 		addons: invoiceAddons,
 		essentialEditQuantity,
 		clipsPackageQuantity,
-		notes: booking.notes ?? "",
+		notes: booking.notes ?? ""
 	});
 
 	if (!parsedBooking.success) {
 		return {
 			message: parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.",
-			success: false,
+			success: false
 		};
 	}
 
@@ -77,7 +77,7 @@ export async function downloadAdminBookingInvoice({
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
 		includeDepositLineItem,
-		invoiceNumber,
+		invoiceNumber
 	});
 
 	return { success: true };

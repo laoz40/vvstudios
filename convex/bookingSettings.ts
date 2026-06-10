@@ -3,7 +3,7 @@ import { requireAdmin } from "./lib/auth";
 import {
 	bookingSettingsArgs,
 	DEFAULT_BOOKING_SETTINGS,
-	validateBookingSettings,
+	validateBookingSettings
 } from "./lib/bookingSettings";
 
 export const get = query({
@@ -14,7 +14,7 @@ export const get = query({
 			.withIndex("by_key", (q) => q.eq("key", "main"))
 			.unique();
 		return settings ?? DEFAULT_BOOKING_SETTINGS;
-	},
+	}
 });
 
 export const update = mutation({
@@ -36,5 +36,5 @@ export const update = mutation({
 		}
 
 		return { ok: true as const };
-	},
+	}
 });

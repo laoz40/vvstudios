@@ -13,7 +13,7 @@ const DEV_SCENARIO_OPTIONS = [
 	{ label: "Expired", value: "expired" },
 	{ label: "Slot Taken", value: "slot_taken" },
 	{ label: "Calendar Failed", value: "calendar_failed" },
-	{ label: "Not Found", value: "not_found" },
+	{ label: "Not Found", value: "not_found" }
 ] as const;
 
 export type DevBookingScenario = (typeof DEV_SCENARIO_OPTIONS)[number]["value"];
@@ -59,7 +59,7 @@ export function parseBookingCompleteSearch(search: Record<string, unknown>): Boo
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
 				? search.session_id
-				: undefined,
+				: undefined
 	};
 }
 
@@ -82,7 +82,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		paymentCompletedAt: undefined,
 		service: "Table Setup",
 		status: "pending_payment",
-		time: "10:00",
+		time: "10:00"
 	};
 
 	if (devScenario === "processing") {
@@ -94,7 +94,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 			...baseBooking,
 			bookingConfirmedAt: now,
 			paymentCompletedAt: now,
-			status: "confirmed",
+			status: "confirmed"
 		};
 	}
 
@@ -104,15 +104,12 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 			bookingConfirmedAt: now,
 			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED",
 			paymentCompletedAt: now,
-			status: "email_failed",
+			status: "email_failed"
 		};
 	}
 
 	if (devScenario === "expired") {
-		return {
-			...baseBooking,
-			status: "expired",
-		};
+		return { ...baseBooking, status: "expired" };
 	}
 
 	if (devScenario === "slot_taken") {
@@ -120,7 +117,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 			...baseBooking,
 			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE",
 			paymentCompletedAt: now,
-			status: "failed",
+			status: "failed"
 		};
 	}
 
@@ -128,7 +125,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		...baseBooking,
 		bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED",
 		paymentCompletedAt: now,
-		status: "failed",
+		status: "failed"
 	};
 }
 

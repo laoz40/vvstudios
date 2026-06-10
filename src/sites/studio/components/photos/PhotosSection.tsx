@@ -26,7 +26,7 @@ export function PhotosSection({
 	images = photosPageContent.galleryImages,
 	mobileImages,
 	fadeIn = false,
-	layout = "masonry",
+	layout = "masonry"
 }: PhotosSectionProps) {
 	const [isMobile, setIsMobile] = useState(false);
 	const fadeInAnimation = useFadeInAnimation(fadeIn);

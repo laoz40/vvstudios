@@ -14,9 +14,7 @@ function getScrollMarginTop(element: HTMLElement) {
 export function SmoothScroll() {
 	const router = useRouter();
 	const lenisRef = useRef<LenisInstance | null>(null);
-	const hash = useRouterState({
-		select: (state) => state.location.hash,
-	});
+	const hash = useRouterState({ select: (state) => state.location.hash });
 
 	useEffect(() => {
 		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -34,10 +32,7 @@ export function SmoothScroll() {
 				return;
 			}
 
-			lenis = new Lenis({
-				autoRaf: true,
-				anchors: true,
-			});
+			lenis = new Lenis({ autoRaf: true, anchors: true });
 			lenisRef.current = lenis;
 		});
 
@@ -93,10 +88,7 @@ export function SmoothScroll() {
 				}
 
 				if (lenis) {
-					lenis.scrollTo(target, {
-						force: true,
-						offset: -getScrollMarginTop(target),
-					});
+					lenis.scrollTo(target, { force: true, offset: -getScrollMarginTop(target) });
 					return;
 				}
 

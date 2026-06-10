@@ -23,7 +23,7 @@ export function AdminAddonOptions({
 	clipsPackageQuantity,
 	disabled,
 	idPrefix,
-	onChange,
+	onChange
 }: AdminAddonOptionsProps) {
 	return (
 		<section className="grid gap-3">
@@ -54,7 +54,7 @@ export function AdminAddonOptions({
 											: "",
 										clipsPackageQuantity: nextAddons.includes("Clips Package")
 											? clipsPackageQuantity
-											: "",
+											: ""
 									});
 								}}
 							/>

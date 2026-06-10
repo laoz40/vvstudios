@@ -1,6 +1,6 @@
 import {
 	BOOKING_TIME_OPTIONS,
-	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS
 } from "#studio/lib/bookingdatetime";
 
 export const bookingDayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -17,8 +17,8 @@ export function toBookingSettingsDraft(settings: BookingSettings): BookingSettin
 		maxDaysAhead: settings.maxDaysAhead,
 		weekSchedule: settings.weekSchedule.map((schedule) => ({
 			endTime: schedule.endTime,
-			startTime: schedule.startTime,
-		})),
+			startTime: schedule.startTime
+		}))
 	};
 }
 

@@ -9,38 +9,21 @@ const LogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = useCallback(async () => {
 			await animate(
 				".logout-arrow, .logout-arrow-bottom",
-				{
-					x: [0, 6, 0],
-				},
-				{
-					duration: 0.3,
-					ease: "easeInOut",
-				},
+				{ x: [0, 6, 0] },
+				{ duration: 0.3, ease: "easeInOut" }
 			);
-			animate(
-				".logout-door",
-				{
-					x: [0, -2, 0],
-				},
-				{
-					duration: 0.25,
-					ease: "easeOut",
-				},
-			);
+			animate(".logout-door", { x: [0, -2, 0] }, { duration: 0.25, ease: "easeOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {
 			animate(
 				".logout-arrow, .logout-arrow-bottom, .logout-door",
 				{ x: 0 },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.div
@@ -77,7 +60,7 @@ const LogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 LogoutIcon.displayName = "LogoutIcon";
