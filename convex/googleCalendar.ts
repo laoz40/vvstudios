@@ -38,9 +38,8 @@ import {
 	findBookingCalendarEventIncludingDeclined,
 } from "./lib/googleCalendarEvents";
 import {
-	getGoogleCalendarErrorCode,
-	getGoogleCalendarErrorDetails,
 	isGoogleCalendarEventNotFoundError,
+	throwGoogleCalendarConvexError,
 } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
@@ -178,15 +177,7 @@ export const getBookableRangeBusyWindows = action({
 
 			return { busyWindowsByMonth, timeZone };
 		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
-
-			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-			console.error("Google Calendar range availability lookup failed", {
-				...getGoogleCalendarErrorDetails(error),
-			});
-			throw new ConvexError<BookingCalendarErrorData>({ code });
+			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
 	},
 });
@@ -219,16 +210,7 @@ export const getAvailableBookingTimes = action({
 				times,
 			};
 		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
-
-			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-			console.error("Google Calendar availability lookup failed", {
-				date: args.date,
-				...getGoogleCalendarErrorDetails(error),
-			});
-			throw new ConvexError<BookingCalendarErrorData>({ code });
+			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
 	},
 });
@@ -274,16 +256,7 @@ export const updateBookingFromAdmin = action({
 				settings,
 			});
 		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
-
-			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-			console.error("Admin booking availability validation failed", {
-				bookingId: args.bookingId,
-				...getGoogleCalendarErrorDetails(error),
-			});
-			throw new ConvexError<BookingCalendarErrorData>({ code });
+			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
 		}
 	},
 });
@@ -313,12 +286,6 @@ export const sendBookingInvoiceForBooking = action({
 			if (error instanceof ConvexError) {
 				throw error;
 			}
-
-			console.error("Manual booking invoice send failed", {
-				bookingId: booking._id,
-				bookingEmail: booking.email,
-				error,
-			});
 			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVOICE_SEND_FAILED" });
 		}
 	},
@@ -395,17 +362,7 @@ export const deleteBookingFromAdmin = action({
 
 			return { ok: true as const };
 		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
-
-			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED");
-			console.error("Admin booking Calendar event delete failed", {
-				bookingId: args.bookingId,
-				googleEventId: booking.googleEventId,
-				...getGoogleCalendarErrorDetails(error),
-			});
-			throw new ConvexError<BookingCalendarErrorData>({ code });
+			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_DELETE_FAILED");
 		}
 	},
 });
@@ -432,12 +389,7 @@ export const sendBookingReminderEmailForBooking = internalAction({
 				bookingId: args.bookingId,
 				now: Date.now(),
 			});
-		} catch (error) {
-			console.error("Booking reminder email send failed", {
-				bookingId: args.bookingId,
-				error,
-			});
-
+		} catch {
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
 				bookingId: args.bookingId,
 				failureCode: "RESEND_SEND_FAILED",
@@ -518,12 +470,7 @@ export const completeClaimedBooking = internalAction({
 			// send invoice emails
 			try {
 				await sendBookingInvoiceForBookingRecord(booking);
-			} catch (invoiceError) {
-				console.error("Booking invoice artifact generation or send failed", {
-					bookingId: booking._id,
-					bookingEmail: booking.email,
-					error: invoiceError,
-				});
+			} catch {
 				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 					bookingId: booking._id,
 				});
@@ -531,12 +478,7 @@ export const completeClaimedBooking = internalAction({
 
 			return null;
 			// if error, mark booking as failed and return
-		} catch (error) {
-			console.error("Claimed booking completion failed", {
-				bookingId: booking._id,
-				error,
-			});
-
+		} catch {
 			await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
 
 			return null;

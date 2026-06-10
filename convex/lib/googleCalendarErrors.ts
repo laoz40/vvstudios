@@ -1,3 +1,5 @@
+import { ConvexError } from "convex/values";
+
 type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
@@ -14,7 +16,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 // map raw Google API errors to the app error codes we expose upstream
-export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
+function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
 	error: unknown,
 	fallbackCode: T,
 ): GoogleCalendarErrorCode<T> {
@@ -37,6 +39,21 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 	return fallbackCode;
 }
 
+export function throwGoogleCalendarConvexError<T extends GoogleCalendarFallbackErrorCode>(
+	error: unknown,
+	fallbackCode: T,
+): never {
+	// if ConvexError, throw it
+	if (error instanceof ConvexError) {
+		throw error;
+	}
+
+	// else, throw a new ConvexError with the fallback code
+	const code = getGoogleCalendarErrorCode(error, fallbackCode);
+
+	throw new ConvexError({ code });
+}
+
 export function isGoogleCalendarEventNotFoundError(error: unknown) {
 	if (!isObject(error)) {
 		return false;
@@ -46,21 +63,4 @@ export function isGoogleCalendarEventNotFoundError(error: unknown) {
 	const status = typeof response?.status === "number" ? response.status : null;
 
 	return status === 404 || status === 410;
-}
-
-// extract the most useful Google error fields for structured logging
-export function getGoogleCalendarErrorDetails(error: unknown) {
-	if (!isObject(error)) {
-		return { error };
-	}
-
-	const response = isObject(error.response) ? error.response : null;
-	const responseData = response && "data" in response ? response.data : undefined;
-
-	return {
-		message: typeof error.message === "string" ? error.message : undefined,
-		stack: typeof error.stack === "string" ? error.stack : undefined,
-		responseData,
-		status: typeof response?.status === "number" ? response.status : undefined,
-	};
 }

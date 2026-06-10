@@ -13,9 +13,8 @@ import {
 import { getBusyWindows } from "./googleCalendarAvailability";
 import { buildBookingCalendarEventPayload } from "./googleCalendarEvents";
 import {
-	getGoogleCalendarErrorCode,
-	getGoogleCalendarErrorDetails,
 	isGoogleCalendarEventNotFoundError,
+	throwGoogleCalendarConvexError,
 } from "./googleCalendarErrors";
 
 type BookingEditValues = Pick<
@@ -374,12 +373,7 @@ async function promoteFailedBookingFromAdmin({
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch (error) {
-		const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED");
-		console.error("Admin failed booking Google Calendar event create failed", {
-			bookingId: args.bookingId,
-			...getGoogleCalendarErrorDetails(error),
-		});
-		throw new ConvexError<BookingCalendarErrorData>({ code });
+		throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_CREATE_FAILED");
 	}
 
 	// Promote to confirmed and clear the previous failure code in the save mutation.
@@ -469,14 +463,7 @@ async function updateConfirmedBookingGoogleEventOrCreateReplacement({
 			return saveReplacementGoogleEvent({ args, client, ctx });
 		}
 
-		const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED");
-		console.error("Admin booking Google Calendar event update failed", {
-			bookingId: args.bookingId,
-			googleCalendarId,
-			googleEventId,
-			...getGoogleCalendarErrorDetails(error),
-		});
-		throw new ConvexError<BookingCalendarErrorData>({ code });
+		throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_UPDATE_FAILED");
 	}
 
 	return null;
