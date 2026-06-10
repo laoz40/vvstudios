@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import {
@@ -63,4 +64,44 @@ export function buildBookingCalendarEventPayload({
 		transparency: "opaque",
 		attendees: [{ email: details.email }],
 	};
+}
+
+export function isMatchingBookingCalendarEvent(
+	event: calendar_v3.Schema$Event,
+	booking: Doc<"bookings">,
+) {
+	const attendeeMatches =
+		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
+	const summaryMatches = event.summary?.includes(booking.name) ?? false;
+
+	return attendeeMatches || summaryMatches;
+}
+
+export async function findBookingCalendarEventIncludingDeclined({
+	booking,
+	calendar,
+	calendarId,
+	timeZone,
+}: {
+	booking: Doc<"bookings">;
+	calendar: calendar_v3.Calendar;
+	calendarId: string;
+	timeZone: string;
+}) {
+	const { startDateTime, endDateTime } = buildEventWindow(
+		booking.date,
+		booking.time,
+		booking.duration,
+		timeZone,
+	);
+	const events = await calendar.events.list({
+		calendarId,
+		singleEvents: true,
+		showDeleted: false,
+		showHiddenInvitations: true,
+		timeMax: endDateTime,
+		timeMin: startDateTime,
+	});
+
+	return events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null;
 }

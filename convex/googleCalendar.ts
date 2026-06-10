@@ -34,7 +34,10 @@ import {
 	type AdminBookingUpdateResult,
 	updateBookingFromAdminWithGoogleCalendar,
 } from "./lib/bookingAdminEdit";
-import { buildBookingCalendarEventPayload } from "./lib/googleCalendarEvents";
+import {
+	buildBookingCalendarEventPayload,
+	findBookingCalendarEventIncludingDeclined,
+} from "./lib/googleCalendarEvents";
 import {
 	getGoogleCalendarErrorCode,
 	getGoogleCalendarErrorDetails,
@@ -366,17 +369,49 @@ export const deleteBookingFromAdmin = action({
 			throw new ConvexError<BookingCalendarErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
-		if (!booking.googleEventId) {
-			throw new ConvexError<BookingCalendarErrorData>({
-				code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
-			});
-		}
+		const client = getGoogleCalendarClient();
+		const calendarId = booking.googleCalendarId ?? client.calendarId;
 
 		try {
-			const client = getGoogleCalendarClient();
+			let googleEventId = booking.googleEventId ?? null;
+
+			if (googleEventId) {
+				try {
+					await client.calendar.events.delete({
+						calendarId,
+						eventId: googleEventId,
+						sendUpdates: "all",
+					});
+					await ctx.runMutation(internal.bookings.deleteBookingInternal, {
+						bookingId: args.bookingId,
+					});
+
+					return { ok: true as const };
+				} catch (error) {
+					if (!isGoogleCalendarEventNotFoundError(error)) {
+						throw error;
+					}
+				}
+			}
+
+			// Declined Calendar invites can be hidden from direct event lookup, so search the booking window before giving up.
+			const foundEvent = await findBookingCalendarEventIncludingDeclined({
+				booking,
+				calendar: client.calendar,
+				calendarId,
+				timeZone: client.timeZone,
+			});
+			googleEventId = foundEvent?.id ?? null;
+
+			if (!googleEventId) {
+				throw new ConvexError<BookingCalendarErrorData>({
+					code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
+				});
+			}
+
 			await client.calendar.events.delete({
-				calendarId: booking.googleCalendarId ?? client.calendarId,
-				eventId: booking.googleEventId,
+				calendarId,
+				eventId: googleEventId,
 				sendUpdates: "all",
 			});
 			await ctx.runMutation(internal.bookings.deleteBookingInternal, {
@@ -385,10 +420,8 @@ export const deleteBookingFromAdmin = action({
 
 			return { ok: true as const };
 		} catch (error) {
-			if (isGoogleCalendarEventNotFoundError(error)) {
-				throw new ConvexError<BookingCalendarErrorData>({
-					code: "GOOGLE_CALENDAR_EVENT_NOT_FOUND",
-				});
+			if (error instanceof ConvexError) {
+				throw error;
 			}
 
 			const code = getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED");
