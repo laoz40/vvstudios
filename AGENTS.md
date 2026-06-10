@@ -50,7 +50,16 @@ Booking website for podcast studio.
 ### TypeScript
 
 - Avoid `any`
-- Do not use nested ternaries and patterns that make it harder to read the code
+- Do not use nested ternaries and if statements
+- Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
+- Handle every union variant. Use `never` in the default case to force exhaustive switches.
+- Return `Result<T, E>` for expected failures. Do not hide recoverable errors behind exceptions.
+- Model failure cases as typed variants with a stable discriminator, such as `type`.
+- Treat boundary data as `unknown`: APIs, forms, storage, env vars, SDKs, URLs, and user input.
+- Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
+- Convert validated primitives into domain-specific types when the value has business rules.
+- Create domain types through validating factories like `tryFrom`. Use private constructors when possible.
+- Pass trusted domain types through internal code. Avoid raw primitives when the domain has rules.
 
 ### Tailwind
 
@@ -64,12 +73,8 @@ Booking website for podcast studio.
 - Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*`
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
 
-### Error handling
+#### Error handling
 
 - Prefer typed error flows with narrow `code` values
 - For Convex, throw `ConvexError` with structured `data.code` values and handle exact codes
 - Re-throw known `ConvexError`s and map unknown server errors to safe app error codes
-- Map codes by layer:
-  - helper -> error code
-  - route -> HTTP response/status
-  - UI -> toast/message
