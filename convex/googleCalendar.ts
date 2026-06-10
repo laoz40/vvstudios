@@ -12,19 +12,13 @@ import {
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { requireAdmin } from "./lib/auth";
 import {
-	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode,
-} from "./lib/bookingInvoiceArtifacts";
-import {
 	buildEventWindow,
-	formatBookingDateShort,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
 	groupBusyWindowsByDay,
 } from "./lib/bookingCalendarTime";
 import {
-	sendBookingHostDetailsEmail,
-	sendBookingInvoiceEmail,
+	sendBookingInvoiceEmailsForBooking,
 	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails,
 } from "./lib/email";
 import {
@@ -80,36 +74,6 @@ interface BusyDayWindowResult {
 interface BookableRangeBusyWindowsResult {
 	busyWindowsByMonth: Record<string, BusyDayWindowResult[]>;
 	timeZone: string;
-}
-
-async function sendBookingInvoiceForBookingRecord(booking: Doc<"bookings">) {
-	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
-		booking,
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-	);
-	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	await sendBookingInvoiceEmail({
-		to: booking.email,
-		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
-		html: artifacts.emailHtml,
-		attachment: { ...artifacts.pdf, content: pdfContent },
-	});
-
-	await sendBookingHostDetailsEmail({
-		invoiceNumber: artifacts.data.invoice.number,
-		name: parsedBooking.name,
-		email: parsedBooking.email,
-		phone: parsedBooking.phone,
-		accountName: parsedBooking.accountName,
-		abn: parsedBooking.abn,
-		date: parsedBooking.date,
-		time: parsedBooking.time,
-		service: parsedBooking.service,
-		duration: parsedBooking.duration,
-		addons: parsedBooking.addons,
-		notes: parsedBooking.notes,
-	});
 }
 
 async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
@@ -274,7 +238,7 @@ export const sendBookingInvoiceForBooking = action({
 		}
 
 		try {
-			await sendBookingInvoiceForBookingRecord(booking);
+			await sendBookingInvoiceEmailsForBooking(booking);
 			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
 				bookingId: booking._id,
 			});
@@ -366,7 +330,6 @@ export const completeClaimedBooking = internalAction({
 		bookingId: v.id("bookings"),
 	},
 	handler: async (ctx, args) => {
-		// get the booking and make sure payment completion was claimed first.
 		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
 			bookingId: args.bookingId,
 		});
@@ -384,11 +347,9 @@ export const completeClaimedBooking = internalAction({
 		}
 
 		try {
-			// load booking rules and connect to Google Calendar.
 			const settings = await ctx.runQuery(api.bookingSettings.get, {});
 			const calendarClient = getGoogleCalendarClient();
 
-			// check booking can be scheduled
 			const canBeScheduled = await verifyBookingCanBeScheduled({
 				booking,
 				calendar: calendarClient.calendar,
@@ -402,7 +363,6 @@ export const completeClaimedBooking = internalAction({
 				return null;
 			}
 
-			// create the calendar event
 			const createdEvent = await calendarClient.calendar.events.insert({
 				calendarId: calendarClient.calendarId,
 				sendUpdates: "all",
@@ -428,9 +388,8 @@ export const completeClaimedBooking = internalAction({
 				googleCalendarId: calendarClient.calendarId,
 			});
 
-			// send invoice emails
 			try {
-				await sendBookingInvoiceForBookingRecord(booking);
+				await sendBookingInvoiceEmailsForBooking(booking);
 			} catch {
 				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 					bookingId: booking._id,
@@ -438,7 +397,6 @@ export const completeClaimedBooking = internalAction({
 			}
 
 			return null;
-			// if error, mark booking as failed and return
 		} catch {
 			await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
 

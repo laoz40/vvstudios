@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
@@ -12,6 +13,10 @@ import {
 	formatCalendarEventDate,
 	formatCalendarEventTime,
 } from "./bookingCalendarTime";
+import {
+	createBookingInvoiceEmailArtifactsForBooking,
+	renderBookingInvoicePdfInNode,
+} from "./bookingInvoiceArtifacts";
 
 interface ResendSendEmailSuccessResponse {
 	id: string;
@@ -60,58 +65,24 @@ function escapeHtml(value: string) {
 		.replaceAll("'", "&#39;");
 }
 
-export async function sendBookingInvoiceEmail(args: {
-	to: string;
-	subject: string;
-	html: string;
-	attachment: {
-		content: Uint8Array;
-		contentType: string;
-		filename: string;
-	};
-}) {
-	const response = await fetch("https://api.resend.com/emails", {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
-			to: [args.to],
-			subject: args.subject,
-			html: args.html,
-			attachments: [
-				{
-					filename: args.attachment.filename,
-					content: Buffer.from(args.attachment.content).toString("base64"),
-					contentType: args.attachment.contentType,
-				},
-			],
-		}),
-	});
-
-	if (!response.ok) {
-		const errorBody = await response.text();
-		throw new Error(`Resend request failed (${response.status}): ${errorBody}`);
-	}
-
-	return (await response.json()) as ResendSendEmailSuccessResponse;
+interface EmailAttachment {
+	content: Uint8Array;
+	contentType: string;
+	filename: string;
 }
 
-export async function sendBookingReminderEmail(args: {
+async function sendEmail(args: {
 	to: string[];
 	subject: string;
 	html: string;
+	attachments?: EmailAttachment[];
 }) {
-	return await sendEmail({
-		to: args.to,
-		subject: args.subject,
-		html: args.html,
-	});
-}
+	const attachments = args.attachments?.map((attachment) => ({
+		filename: attachment.filename,
+		content: Buffer.from(attachment.content).toString("base64"),
+		contentType: attachment.contentType,
+	}));
 
-async function sendEmail(args: { to: string[]; subject: string; html: string }) {
 	const response = await fetch("https://api.resend.com/emails", {
 		method: "POST",
 		headers: {
@@ -123,6 +94,7 @@ async function sendEmail(args: { to: string[]; subject: string; html: string }) 
 			to: args.to,
 			subject: args.subject,
 			html: args.html,
+			...(attachments ? { attachments } : {}),
 		}),
 	});
 
@@ -161,6 +133,36 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
 		html,
+	});
+}
+
+export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings">) {
+	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
+		booking,
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
+	);
+	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+
+	await sendEmail({
+		to: [booking.email],
+		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfContent }],
+	});
+
+	await sendBookingHostDetailsEmail({
+		invoiceNumber: artifacts.data.invoice.number,
+		name: parsedBooking.name,
+		email: parsedBooking.email,
+		phone: parsedBooking.phone,
+		accountName: parsedBooking.accountName,
+		abn: parsedBooking.abn,
+		date: parsedBooking.date,
+		time: parsedBooking.time,
+		service: parsedBooking.service,
+		duration: parsedBooking.duration,
+		addons: parsedBooking.addons,
+		notes: parsedBooking.notes,
 	});
 }
 
@@ -225,7 +227,7 @@ export async function sendBookingReminderEmailForBooking({
 		signoffName,
 	});
 
-	await sendBookingReminderEmail({
+	await sendEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
 		html,

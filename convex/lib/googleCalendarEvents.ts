@@ -172,4 +172,3 @@ export async function deleteBookingCalendarEventIfExists({
 
 	await deleteCalendarEventIfFound(calendar, calendarId, foundEventId);
 }
-
