@@ -274,24 +274,31 @@ export const claimBookingCompletion = internalMutation({
 			return { ok: false as const, reason: "stripe_session_mismatch" as const };
 		}
 
-		if (booking.status === "confirmed" || booking.status === "email_failed") {
-			return { ok: true as const, outcome: "already_confirmed" as const };
-		}
+		switch (booking.status) {
+			case "confirmed":
+			case "email_failed":
+				return { ok: true as const, outcome: "already_confirmed" as const };
 
-		if (booking.status === "expired") {
-			return { ok: false as const, reason: "expired" as const };
-		}
+			case "expired":
+				return { ok: false as const, reason: "expired" as const };
 
-		if (booking.status === "failed") {
-			return { ok: false as const, reason: "failed" as const };
+			case "failed":
+				return { ok: false as const, reason: "failed" as const };
+
+			case "abandoned":
+				return { ok: false as const, reason: "invalid_status" as const, status: booking.status };
+
+			case "pending_payment":
+				break;
+
+			default: {
+				const _exhaustive: never = booking.status;
+				return _exhaustive;
+			}
 		}
 
 		if (booking.bookingConfirmationClaimedAt) {
 			return { ok: true as const, outcome: "already_claimed" as const };
-		}
-
-		if (booking.status !== "pending_payment") {
-			return { ok: false as const, reason: "invalid_status" as const, status: booking.status };
 		}
 
 		const now = Date.now();
