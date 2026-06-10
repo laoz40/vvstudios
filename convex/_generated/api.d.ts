@@ -26,6 +26,7 @@ import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifact
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
+import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_googleCalendarEvents from "../lib/googleCalendarEvents.js";
 import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
+  "lib/googleCalendarClient": typeof lib_googleCalendarClient;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
   "lib/googleCalendarEvents": typeof lib_googleCalendarEvents;
   "lib/googleDriveLinks": typeof lib_googleDriveLinks;

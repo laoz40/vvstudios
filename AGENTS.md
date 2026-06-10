@@ -20,7 +20,7 @@ Booking website for podcast studio.
 - Replace long `if`/`else if` chains and large inline booleans with named helpers or discriminated outcomes when clearer
 
 - run format and lint once changes are complete
-- do not run build
+- do not run build or convex codegen
 
 ## Behavior
 

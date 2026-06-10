@@ -36,6 +36,7 @@ import {
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 type BookingRecord = Doc<"bookings">;
+type CustomInvoiceRecord = Doc<"customInvoices">;
 
 type CustomInvoiceDraft = {
 	service: BookingService | "";
@@ -134,9 +135,12 @@ function CustomInvoiceQuantityOptions({
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
-	const customInvoices = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
-		bookingId: booking._id,
-	});
+	const customInvoices: CustomInvoiceRecord[] | undefined = useQuery(
+		api.customInvoices.listCustomInvoicesForBooking,
+		{
+			bookingId: booking._id,
+		},
+	);
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		duration: booking.duration as BookingFormValues["duration"],

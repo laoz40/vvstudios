@@ -1,3 +1,5 @@
+"use node";
+
 import { google } from "googleapis";
 
 import { env } from "../env";

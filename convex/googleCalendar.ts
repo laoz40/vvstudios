@@ -1,7 +1,6 @@
 "use node";
 
 import { ConvexError, v } from "convex/values";
-import { google } from "googleapis";
 import { api, internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
@@ -329,12 +328,15 @@ export const deleteBookingFromAdmin = action({
 	args: {
 		bookingId: v.id("bookings"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<{ ok: true }> => {
 		await requireAdmin(ctx);
 
-		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId,
-		});
+		const booking: Doc<"bookings"> | null = await ctx.runQuery(
+			internal.bookings.getBookingByIdInternal,
+			{
+				bookingId: args.bookingId,
+			},
+		);
 
 		if (!booking) {
 			throw new ConvexError<BookingCalendarErrorData>({ code: "BOOKING_NOT_FOUND" });
