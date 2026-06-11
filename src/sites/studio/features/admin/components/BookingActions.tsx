@@ -65,16 +65,16 @@ import {
 	getDeliverableStatus,
 	type DeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
-import {
-	getBookingInvoiceEmailErrorMessage,
-	getBookingMutationErrorMessage
-} from "#studio/features/admin/lib/booking-action-errors";
+import { getBookingInvoiceEmailErrorMessage } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
-import type { DeleteBookingFromAdminResult } from "#convex/googleCalendar";
+import type {
+	DeleteBookingFromAdminResult,
+	UpdateBookingFromAdminResult
+} from "#convex/googleCalendar";
 import type {
 	UpdateBookingEditStatusResult,
 	UpdateBookingPaidRemainingBalanceResult,
@@ -322,8 +322,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsSaving(true);
 
-		try {
-			const result = await updateBooking({
+		const [error, result] = await tryCatch<UpdateBookingFromAdminResult>(
+			updateBooking({
 				bookingId: booking._id,
 				name: parsedValues.data.name,
 				phone: parsedValues.data.phone,
@@ -338,22 +338,69 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
 				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
 				notes: parsedValues.data.notes || undefined
-			});
+			})
+		);
 
-			if (result.googleOutcome === "replacementCreated") {
-				setIsEditDialogOpen(false);
-				setIsReplacementEventDialogOpen(true);
-				toast.success("Booking updated. Replacement Calendar event created.");
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_TIME_UNAVAILABLE":
+					toast.error("That time is no longer available. Choose another time.");
+					break;
+
+				case "GOOGLE_CALENDAR_AUTH_FAILED":
+					toast.error("Google Calendar authentication failed. Booking was not updated.");
+					break;
+
+				case "GOOGLE_CALENDAR_CREATE_FAILED":
+					toast.error("Google Calendar failed to create the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_UPDATE_FAILED":
+					toast.error("Google Calendar failed to update the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_RATE_LIMITED":
+					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the booking. Please try again.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
 
-			setIsEditDialogOpen(false);
-			toast.success("Booking updated.");
-		} catch (error) {
-			toast.error(getBookingMutationErrorMessage(error));
-		} finally {
 			setIsSaving(false);
+			return;
 		}
+
+		if (result.googleOutcome === "replacementCreated") {
+			setIsEditDialogOpen(false);
+			setIsReplacementEventDialogOpen(true);
+			toast.success("Booking updated. Replacement Calendar event created.");
+			setIsSaving(false);
+			return;
+		}
+
+		setIsEditDialogOpen(false);
+		toast.success("Booking updated.");
+		setIsSaving(false);
 	}
 
 	async function handleEditBooking(values: BookingEditDraft) {

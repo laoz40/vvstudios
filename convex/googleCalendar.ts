@@ -1,7 +1,7 @@
 "use node";
 
 import { ConvexError, v } from "convex/values";
-import { err, ok } from "../src/lib/result";
+import { err, ok, type Result } from "../src/lib/result";
 import { api, internal } from "./_generated/api";
 import { action, type ActionCtx, internalAction } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -14,6 +14,7 @@ import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { isAdminIdentity, requireAdmin } from "./lib/auth";
 import {
 	buildEventWindow,
+	type BookingAvailabilitySettings,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
 	groupBusyWindowsByDay
@@ -24,8 +25,10 @@ import {
 } from "./lib/email";
 import {
 	failBookingCompletion,
-	verifyBookingCanBeScheduled,
+	type AdminBookingUpdateArgs,
+	type AdminBookingUpdateError,
 	type AdminBookingUpdateResult,
+	verifyBookingCanBeScheduled,
 	updateBookingFromAdminWithGoogleCalendar
 } from "./lib/bookingAdminEdit";
 import { deleteBookingCalendarEvent } from "./lib/googleCalendarEventDeletion";
@@ -186,34 +189,47 @@ export const updateBookingFromAdmin = action({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args): Promise<AdminBookingUpdateResult> => {
-		await requireAdmin(ctx);
-
-		const booking: Doc<"bookings"> | null = await ctx.runQuery(
-			internal.bookings.getBookingByIdInternal,
-			{ bookingId: args.bookingId }
-		);
-
-		if (!booking) {
-			throw new ConvexError({ code: "BOOKING_NOT_FOUND" });
-		}
-
-		try {
-			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const client = getGoogleCalendarClient();
-
-			return await updateBookingFromAdminWithGoogleCalendar({
-				args,
-				booking,
-				client,
-				ctx,
-				settings
-			});
-		} catch (error) {
-			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-		}
-	}
+	handler: updateBookingFromAdminHandler
 });
+
+type UpdateBookingFromAdminError =
+	| AdminBookingUpdateError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" };
+
+async function updateBookingFromAdminHandler(
+	ctx: ActionCtx,
+	args: AdminBookingUpdateArgs
+): Promise<Result<AdminBookingUpdateResult, UpdateBookingFromAdminError>> {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking: Doc<"bookings"> | null = await ctx.runQuery(
+		internal.bookings.getBookingByIdInternal,
+		{ bookingId: args.bookingId }
+	);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const client = getGoogleCalendarClient();
+
+	return updateBookingFromAdminWithGoogleCalendar({ args, booking, client, ctx, settings });
+}
+
+export type UpdateBookingFromAdminResult = Awaited<
+	ReturnType<typeof updateBookingFromAdminHandler>
+>;
 
 export const sendBookingInvoiceForBooking = action({
 	args: { bookingId: v.id("bookings") },

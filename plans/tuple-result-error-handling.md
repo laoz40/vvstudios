@@ -205,9 +205,11 @@ Pattern implemented for delete booking:
 
 Helper naming preference: use behavior names like `deleteBookingCalendarEvent`, not `try...` or `...ForAdmin` unless the helper actually enforces admin behavior.
 
-## Current Delete Booking Pattern
+## Converted Areas So Far
 
-Delete booking currently involves:
+### Admin delete booking
+
+Delete booking currently uses tuple results across:
 
 1. `convex/googleCalendar.ts` public action `deleteBookingFromAdmin`.
 2. Auth check returns `NOT_AUTHENTICATED` / `NOT_AUTHORIZED`.
@@ -216,24 +218,55 @@ Delete booking currently involves:
 5. Internal DB delete maps failures to `BOOKING_DELETE_FAILED`.
 6. Client handles all reasons plus `UNEXPECTED_ERROR` through `tryCatch<DeleteBookingFromAdminResult>(...)`.
 
+### Admin booking mutations
+
+The following `convex/bookings.ts` mutations now use tuple `Result` returns with inferred exported result types:
+
+- `updateBooking`
+  - Returns auth, booking lookup, and `BOOKING_UPDATE_FAILED` reasons.
+  - Client-side admin edit save still goes through `convex/googleCalendar.ts` `updateBookingFromAdmin`, so this direct mutation result type is available but not the main edit flow.
+- `updateBookingStatus`
+  - Returns auth, booking lookup, `INVALID_BOOKING_STATUS_TRANSITION`, and `BOOKING_STATUS_UPDATE_FAILED` reasons.
+  - Client handles reasons explicitly in `BookingActions.tsx`.
+- `updateBookingPaidRemainingBalance`
+  - Returns auth, booking lookup, and `BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED` reasons.
+  - Client handles reasons explicitly in `BookingActions.tsx`.
+- `updateBookingEditStatus`
+  - Returns auth, booking lookup, and `BOOKING_EDIT_STATUS_UPDATE_FAILED` reasons.
+  - Client handles reasons explicitly in `BookingActions.tsx`.
+  - Deliverables email flow sends the email first, then handles status update result errors separately.
+- `updateBookingRemainingBalanceAmount`
+  - Returns auth, booking lookup, and `BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED` reasons.
+  - Client handles reasons explicitly in `BookingActions.tsx`.
+- `saveBookingInstagramHandle`
+  - Returns `BOOKING_NOT_FOUND`, `BOOKING_NOT_CONFIRMED`, and `BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED` reasons.
+  - Client handles reasons explicitly in `InstagramRepostPrompt.tsx`.
+
+### Admin Google Calendar update booking
+
+- `convex/googleCalendar.ts` `updateBookingFromAdmin` now returns tuple `Result` values.
+- Auth and booking lookup return `NOT_AUTHENTICATED`, `NOT_AUTHORIZED`, and `BOOKING_NOT_FOUND`.
+- Google Calendar availability/create/update/auth/rate limit failures map to tuple reasons.
+- `convex/lib/bookingAdminEdit.ts` returns `err(...)` at the point failures happen instead of throwing `ConvexError` and translating later.
+- Client admin edit save handles `UpdateBookingFromAdminResult` explicitly in `BookingActions.tsx`.
+
+Removed after conversion:
+
+- `UpdateBookingStatusErrorData`
+- `SaveBookingInstagramHandleErrorData`
+- `AdminAuthErrorCode` helper type
+- `getBookingStatusMutationErrorMessage` client helper
+
 ## Rollout Targets
 
 Continue converting one public client-facing function at a time.
 
-Initial targets:
+Next targets to consider:
 
-- `convex/bookings.ts`
-  - `updateBooking`
-  - `updateBookingStatus`
-  - `updateBookingPaidRemainingBalance`
-  - `updateBookingEditStatus`
-  - `updateBookingRemainingBalanceAmount`
-  - `saveBookingInstagramHandle`
-- Then consider:
-  - `convex/bookingSettings.ts` `update`
-  - `convex/deliverablesEmail.ts` actions
-  - other `convex/googleCalendar.ts` admin actions
-  - `convex/stripe.ts` public actions
+- `convex/bookingSettings.ts` `update`
+- `convex/deliverablesEmail.ts` actions
+- other `convex/googleCalendar.ts` admin actions
+- `convex/stripe.ts` public actions
 
 Do not convert the whole app in one pass.
 

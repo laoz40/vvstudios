@@ -16,7 +16,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 // map raw Google API errors to the app error codes we expose upstream
-function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
+export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
 	error: unknown,
 	fallbackCode: T
 ): GoogleCalendarErrorCode<T> {
