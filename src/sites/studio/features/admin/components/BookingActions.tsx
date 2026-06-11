@@ -66,7 +66,7 @@ import {
 	type DeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
 import { getBookingInvoiceEmailErrorMessage } from "#studio/features/admin/lib/booking-action-errors";
-import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
+import type { SendBookingDeliverablesEmailResult } from "#convex/deliverablesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
@@ -160,8 +160,8 @@ function AnimatedDropdownMenuItem({
 
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useAction(api.googleCalendar.deleteBookingFromAdmin);
-	const sendBookingDeliverablesEmailForBooking = useAction(
-		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking
+	const sendBookingDeliverablesEmail = useAction(
+		api.deliverablesEmail.sendBookingDeliverablesEmail
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
@@ -665,60 +665,94 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
 
-		try {
-			await sendBookingDeliverablesEmailForBooking({
+		const [emailError] = await tryCatch<SendBookingDeliverablesEmailResult>(
+			sendBookingDeliverablesEmail({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
 				emailVariant: deliverablesEmailVariantDraft
-			});
-			const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
-				updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
-			);
+			})
+		);
 
-			if (statusError !== null) {
-				switch (statusError.reason) {
-					case "NOT_AUTHENTICATED":
-						toast.error(
-							"Deliverables email sent, but you need to sign in again to update the status."
-						);
-						break;
+		if (emailError !== null) {
+			switch (emailError.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
 
-					case "NOT_AUTHORIZED":
-						toast.error(
-							"Deliverables email sent, but you do not have access to update the status."
-						);
-						break;
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to send deliverables emails.");
+					break;
 
-					case "BOOKING_NOT_FOUND":
-						toast.error(
-							"Deliverables email sent, but the booking could not be found in the database."
-						);
-						break;
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
 
-					case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
-						toast.error("Deliverables email sent, but the status could not be updated.");
-						break;
+				case "INVALID_DRIVE_LINK":
+					toast.error("Enter a valid Google Drive link.");
+					break;
 
-					case "UNEXPECTED_ERROR":
-						toast.error("Deliverables email sent, but something went wrong updating the status.");
-						break;
+				case "DELIVERABLES_SEND_FAILED":
+					toast.error("Unable to send deliverables email.");
+					break;
 
-					default: {
-						const _exhaustive: never = statusError;
-						return _exhaustive;
-					}
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending the deliverables email.");
+					break;
+
+				default: {
+					const _exhaustive: never = emailError;
+					return _exhaustive;
 				}
-
-				return;
 			}
-			setDeliverablesDriveLinkDraft("");
-			setIsDeliverablesEmailDialogOpen(false);
-			toast.success(`Deliverables email sent to ${booking.email}.`);
-		} catch (error) {
-			toast.error(getBookingDeliverablesEmailErrorMessage(error));
-		} finally {
+
 			setIsEmailingDeliverables(false);
+			return;
 		}
+
+		const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
+			updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
+		);
+
+		if (statusError !== null) {
+			switch (statusError.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error(
+						"Deliverables email sent, but you need to sign in again to update the status."
+					);
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("Deliverables email sent, but you do not have access to update the status.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error(
+						"Deliverables email sent, but the booking could not be found in the database."
+					);
+					break;
+
+				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+					toast.error("Deliverables email sent, but the status could not be updated.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Deliverables email sent, but something went wrong updating the status.");
+					break;
+
+				default: {
+					const _exhaustive: never = statusError;
+					return _exhaustive;
+				}
+			}
+
+			setIsEmailingDeliverables(false);
+			return;
+		}
+
+		setDeliverablesDriveLinkDraft("");
+		setIsDeliverablesEmailDialogOpen(false);
+		toast.success(`Deliverables email sent to ${booking.email}.`);
+		setIsEmailingDeliverables(false);
 	}
 
 	return (

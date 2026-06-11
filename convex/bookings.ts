@@ -15,6 +15,7 @@ import { isAdminIdentity, requireAdmin, requireBookingInDb } from "./lib/auth";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
+
 type CreatePendingBookingResult =
 	| { ok: true; bookingId: Doc<"bookings">["_id"] }
 	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };

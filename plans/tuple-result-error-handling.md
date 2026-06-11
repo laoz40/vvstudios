@@ -268,6 +268,16 @@ The following `convex/bookings.ts` mutations now use tuple `Result` returns with
 - Uses direct existing settings types/constants instead of one-line wrapper aliases.
 - Uses an inline Convex handler wrapper to preserve generated argument inference without client-side `FunctionReference` casts.
 
+### Admin deliverables email
+
+- `convex/deliverablesEmail.ts` `sendBookingDeliverablesEmail` now returns tuple `Result` values.
+- Auth checks return `NOT_AUTHENTICATED` and `NOT_AUTHORIZED`.
+- Booking lookup returns `BOOKING_NOT_FOUND`.
+- Invalid Drive links return `INVALID_DRIVE_LINK`.
+- Email send failures return `DELIVERABLES_SEND_FAILED`.
+- Client handles `SendBookingDeliverablesEmailResult` explicitly in `BookingActions.tsx`.
+- The old ConvexError-to-message helper `booking-email-errors.ts` was removed.
+
 Removed after conversion:
 
 - `UpdateBookingStatusErrorData`
@@ -281,7 +291,7 @@ Continue converting one public client-facing function at a time.
 
 Next targets to consider:
 
-- `convex/deliverablesEmail.ts` actions
+- remaining `convex/deliverablesEmail.ts` actions, if any are added
 - other `convex/googleCalendar.ts` admin actions
 - `convex/stripe.ts` public actions
 
