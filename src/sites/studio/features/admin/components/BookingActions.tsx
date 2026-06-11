@@ -249,9 +249,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					break;
 
 				case "BOOKING_DELETE_FAILED":
-					toast.error(
-						"The booking could not be deleted from the databse. Please try again."
-					);
+					toast.error("The booking could not be deleted from the databse. Please try again.");
 					break;
 
 				case "GOOGLE_CALENDAR_DELETE_FAILED":

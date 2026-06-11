@@ -1,10 +1,17 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { err, ok } from "../src/lib/result";
 import { api } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import {
+	internalMutation,
+	internalQuery,
+	mutation,
+	type MutationCtx,
+	query
+} from "./_generated/server";
 import { env } from "./env";
-import { requireAdmin, requireBookingInDb } from "./lib/auth";
+import { isAdminIdentity, requireAdmin, requireBookingInDb } from "./lib/auth";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
@@ -480,32 +487,38 @@ export const deleteBookingInternal = internalMutation({
 
 export const deleteBooking = mutation({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args): Promise<DeleteBookingResult> => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			return err({ reason: "NOT_AUTHENTICATED" });
-		}
-
-		if (!isAdminIdentity(identity)) {
-			return err({ reason: "NOT_AUTHORIZED" });
-		}
-
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			return err({ reason: "BOOKING_NOT_FOUND" });
-		}
-
-		try {
-			await ctx.db.delete(booking._id);
-		} catch {
-			return err({ reason: "BOOKING_DELETE_FAILED" });
-		}
-
-		return ok({ deleted: true });
-	}
+	handler: deleteBookingHandler
 });
+
+type DeleteBookingArgs = { bookingId: Id<"bookings"> };
+
+async function deleteBookingHandler(ctx: MutationCtx, args: DeleteBookingArgs) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.delete(booking._id);
+	} catch {
+		return err({ reason: "BOOKING_DELETE_FAILED" });
+	}
+
+	return ok({ deleted: true });
+}
+
+export type DeleteBookingResult = Awaited<ReturnType<typeof deleteBookingHandler>>;
 
 export const saveAdminBookingUpdateInternal = internalMutation({
 	args: {
