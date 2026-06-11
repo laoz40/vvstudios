@@ -31,8 +31,10 @@ import {
 	verifyBookingCanBeScheduled,
 	updateBookingFromAdminWithGoogleCalendar
 } from "./lib/bookingAdminEdit";
-import { deleteBookingCalendarEvent } from "./lib/googleCalendarEventDeletion";
-import { buildBookingCalendarEventPayload } from "./lib/googleCalendarEvents";
+import {
+	buildBookingCalendarEventPayload,
+	deleteBookingCalendarEvent
+} from "./lib/googleCalendarEvents";
 import { throwGoogleCalendarConvexError } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
@@ -282,7 +284,8 @@ async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBooking
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	const [error] = await deleteBookingCalendarEvent({ booking });
+	const client = getGoogleCalendarClient();
+	const [error] = await deleteBookingCalendarEvent({ booking, client });
 
 	if (error !== null) {
 		return err(error);

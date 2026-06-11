@@ -28,7 +28,6 @@ import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
-import type * as lib_googleCalendarEventDeletion from "../lib/googleCalendarEventDeletion.js";
 import type * as lib_googleCalendarEvents from "../lib/googleCalendarEvents.js";
 import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
@@ -63,7 +62,6 @@ declare const fullApi: ApiFromModules<{
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
   "lib/googleCalendarClient": typeof lib_googleCalendarClient;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
-  "lib/googleCalendarEventDeletion": typeof lib_googleCalendarEventDeletion;
   "lib/googleCalendarEvents": typeof lib_googleCalendarEvents;
   "lib/googleDriveLinks": typeof lib_googleDriveLinks;
   "lib/rateLimits": typeof lib_rateLimits;
