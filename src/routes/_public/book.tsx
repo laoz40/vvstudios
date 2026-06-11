@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
+import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -32,10 +33,7 @@ import {
 	TIME_SECTIONS,
 	type TimeSectionKey
 } from "#studio/features/booking-form/lib/form-shared";
-import {
-	getBookingErrorMessage,
-	getBookingSubmitFailureMessage
-} from "#studio/features/booking-form/lib/booking-errors";
+import { getBookingErrorMessage } from "#studio/features/booking-form/lib/booking-errors";
 import {
 	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
@@ -70,6 +68,7 @@ import {
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
+import { tryCatch } from "#/lib/result";
 
 interface EmbeddedCheckoutSession {
 	bookingId: Id<"bookings">;
@@ -150,25 +149,55 @@ function BookingPage() {
 			setIsSubmitting(true);
 
 			try {
-				const session = await createEmbeddedCheckoutSession({
-					name: parsedValue.name,
-					phone: parsedValue.phone,
-					accountName: parsedValue.accountName,
-					abn: parsedValue.abn || undefined,
-					email: parsedValue.email,
-					date: parsedValue.date,
-					time: parsedValue.time,
-					duration: parsedValue.duration,
-					service: parsedValue.service,
-					addons: parsedValue.addons,
-					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
-					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
-					notes: parsedValue.notes
-				});
+				const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
+					createEmbeddedCheckoutSession({
+						name: parsedValue.name,
+						phone: parsedValue.phone,
+						accountName: parsedValue.accountName,
+						abn: parsedValue.abn || undefined,
+						email: parsedValue.email,
+						date: parsedValue.date,
+						time: parsedValue.time,
+						duration: parsedValue.duration,
+						service: parsedValue.service,
+						addons: parsedValue.addons,
+						essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
+						clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
+						notes: parsedValue.notes
+					})
+				);
 
-				if (!session.ok) {
-					toast.error(getBookingSubmitFailureMessage(session));
-					return;
+				if (error !== null) {
+					switch (error.reason) {
+						case "BOOKING_EMAIL_DOMAIN_INVALID":
+							toast.error(
+								"This email domain doesn't appear able to receive email. Please check for typos."
+							);
+							return;
+
+						case "BOOKING_INVALID_INPUT":
+							toast.error(
+								"Some booking details were invalid. Please review the form and try again."
+							);
+							return;
+
+						case "BOOKING_RATE_LIMITED":
+							toast.error("Too many booking attempts. Please try again in one minute.");
+							return;
+
+						case "BOOKING_TIME_UNAVAILABLE":
+							toast.error("That time was just taken. Please choose another available time.");
+							return;
+
+						case "UNEXPECTED_ERROR":
+							toast.error("Something went wrong while starting checkout.");
+							return;
+
+						default: {
+							const _exhaustive: never = error;
+							return _exhaustive;
+						}
+					}
 				}
 
 				if (shouldSaveBookingInfo) {
@@ -187,8 +216,6 @@ function BookingPage() {
 				setShowTermsDialog(false);
 
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
-			} catch (submissionError) {
-				toast.error(getBookingErrorMessage(submissionError));
 			} finally {
 				setIsSubmitting(false);
 				submitAfterTermsRef.current = false;

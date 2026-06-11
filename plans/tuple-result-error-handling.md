@@ -143,6 +143,8 @@ If `error.reason` becomes plain `string`, import the inferred result type from t
 
 Toast preference: do not group specific expected write failures with `UNEXPECTED_ERROR`. Use a specific message for the known failure, such as “Failed to save availability settings.” Use a separate unexpected message, such as “Something went wrong with saving availability settings.”
 
+Client message preference: keep expected error messages inline in the component switch where the action is handled. Do not add external error-message helpers for one converted action unless the same mapping is reused by multiple clients.
+
 ## Convex Mutation Safety
 
 Convex mutations commit when they return and roll back when they throw. Because `err(...)` returns, do expected failure checks before writes.
@@ -285,6 +287,15 @@ Removed after conversion:
 - `AdminAuthErrorCode` helper type
 - `getBookingStatusMutationErrorMessage` client helper
 
+### Public booking checkout session
+
+- `convex/stripe.ts` `createEmbeddedCheckoutSession` now returns tuple `Result` values.
+- Invalid form input returns `BOOKING_INVALID_INPUT`.
+- Invalid email domains return `BOOKING_EMAIL_DOMAIN_INVALID`.
+- Booking rate limits return `BOOKING_RATE_LIMITED`.
+- Availability/input validation failures from pending booking creation map to `BOOKING_TIME_UNAVAILABLE` or `BOOKING_INVALID_INPUT`.
+- Client handles `CreateEmbeddedCheckoutSessionResult` through `tryCatch<CreateEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
+
 ## Rollout Targets
 
 Continue converting one public client-facing function at a time.
@@ -293,7 +304,7 @@ Next targets to consider:
 
 - remaining `convex/deliverablesEmail.ts` actions, if any are added
 - other `convex/googleCalendar.ts` admin actions
-- `convex/stripe.ts` public actions
+- remaining `convex/stripe.ts` public actions, such as `closeEmbeddedCheckoutSession`
 
 Do not convert the whole app in one pass.
 

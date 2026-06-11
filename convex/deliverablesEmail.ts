@@ -15,33 +15,13 @@ type SendBookingDeliverablesEmailArgs = {
 	emailVariant: "first-time" | "recurring";
 };
 
-type SendBookingDeliverablesEmailError =
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" }
-	| { reason: "INVALID_DRIVE_LINK" }
-	| { reason: "DELIVERABLES_SEND_FAILED" };
-
-type SendBookingDeliverablesEmailSuccess = { sent: true };
-
-type SendBookingDeliverablesEmailRecordResult = Result<
-	SendBookingDeliverablesEmailSuccess,
-	Extract<
-		SendBookingDeliverablesEmailError,
-		{ reason: "INVALID_DRIVE_LINK" | "DELIVERABLES_SEND_FAILED" }
-	>
->;
-
-type SendBookingDeliverablesEmailHandlerResult = Result<
-	SendBookingDeliverablesEmailSuccess,
-	SendBookingDeliverablesEmailError
->;
-
 async function sendDeliverablesEmailForRecord(
 	booking: Doc<"bookings">,
 	driveLink: string,
 	emailVariant: "first-time" | "recurring"
-): Promise<SendBookingDeliverablesEmailRecordResult> {
+): Promise<
+	Result<{ sent: true }, { reason: "INVALID_DRIVE_LINK" } | { reason: "DELIVERABLES_SEND_FAILED" }>
+> {
 	const parsedDriveLink = parseGoogleDriveLink(driveLink);
 
 	if (!parsedDriveLink) {
@@ -71,7 +51,16 @@ async function sendDeliverablesEmailForRecord(
 async function sendBookingDeliverablesEmailHandler(
 	ctx: ActionCtx,
 	args: SendBookingDeliverablesEmailArgs
-): Promise<SendBookingDeliverablesEmailHandlerResult> {
+): Promise<
+	Result<
+		{ sent: true },
+		| { reason: "NOT_AUTHENTICATED" }
+		| { reason: "NOT_AUTHORIZED" }
+		| { reason: "BOOKING_NOT_FOUND" }
+		| { reason: "INVALID_DRIVE_LINK" }
+		| { reason: "DELIVERABLES_SEND_FAILED" }
+	>
+> {
 	const identity = await ctx.auth.getUserIdentity();
 
 	if (!identity) {

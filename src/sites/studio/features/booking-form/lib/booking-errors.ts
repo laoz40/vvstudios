@@ -2,18 +2,6 @@ interface BookingErrorWithData {
 	data?: { code?: string; retryAfter?: number };
 }
 
-export type BookingSubmitFailureResult =
-	| { code: "BOOKING_RATE_LIMITED"; ok: false; retryAfter: number }
-	| { code: "BOOKING_EMAIL_DOMAIN_INVALID"; ok: false };
-
-export function getBookingSubmitFailureMessage(result: BookingSubmitFailureResult) {
-	if (result.code === "BOOKING_EMAIL_DOMAIN_INVALID") {
-		return "This email domain doesn't appear able to receive email. Please check for typos.";
-	}
-
-	return "Too many booking attempts. Please try again in one minute.";
-}
-
 export function getBookingErrorMessage(error: unknown) {
 	const errorWithData =
 		typeof error === "object" && error !== null ? (error as BookingErrorWithData) : null;
