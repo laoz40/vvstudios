@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { err, ok } from "../src/lib/result";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -99,14 +99,6 @@ export const getBookings = query({
 	}
 });
 
-type AdminAuthErrorCode = "NOT_AUTHENTICATED" | "NOT_AUTHORIZED";
-
-type UpdateBookingStatusErrorData = {
-	code: AdminAuthErrorCode | "BOOKING_NOT_FOUND" | "INVALID_BOOKING_STATUS_TRANSITION";
-};
-
-type SaveBookingInstagramHandleErrorData = { code: "BOOKING_NOT_FOUND" | "BOOKING_NOT_CONFIRMED" };
-
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
@@ -143,25 +135,40 @@ export const getBookingStatusByStripeSessionId = query({
 
 export const saveBookingInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
-	handler: async (ctx, args) => {
-		const booking = await ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
-			.unique();
-
-		if (!booking) {
-			throw new ConvexError<SaveBookingInstagramHandleErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
-
-		if (booking.status !== "confirmed" && booking.status !== "email_failed") {
-			throw new ConvexError<SaveBookingInstagramHandleErrorData>({ code: "BOOKING_NOT_CONFIRMED" });
-		}
-
-		await ctx.db.patch(booking._id, { instagramHandle: args.instagramHandle });
-
-		return { ok: true as const };
-	}
+	handler: saveBookingInstagramHandleHandler
 });
+
+type SaveBookingInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
+
+async function saveBookingInstagramHandleHandler(
+	ctx: MutationCtx,
+	args: SaveBookingInstagramHandleArgs
+) {
+	const booking = await ctx.db
+		.query("bookings")
+		.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+		.unique();
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" });
+	}
+
+	try {
+		await ctx.db.patch(booking._id, { instagramHandle: args.instagramHandle });
+	} catch {
+		return err({ reason: "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED" });
+	}
+
+	return ok({ saved: true });
+}
+
+export type SaveBookingInstagramHandleResult = Awaited<
+	ReturnType<typeof saveBookingInstagramHandleHandler>
+>;
 
 export const getBookingByIdInternal = internalQuery({
 	args: { bookingId: v.id("bookings") },
@@ -584,10 +591,44 @@ export const updateBooking = mutation({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		const booking = await requireBookingInDb(ctx, args.bookingId);
+	handler: updateBookingHandler
+});
 
+type UpdateBookingArgs = {
+	bookingId: Id<"bookings">;
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	date: string;
+	time: string;
+	duration: string;
+	service: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+};
+
+async function updateBookingHandler(ctx: MutationCtx, args: UpdateBookingArgs) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	try {
 		await ctx.db.patch(
 			args.bookingId,
 			buildAdminBookingUpdatePatch({
@@ -596,69 +637,187 @@ export const updateBooking = mutation({
 				values: args
 			})
 		);
-
-		return { ok: true as const };
+	} catch {
+		return err({ reason: "BOOKING_UPDATE_FAILED" });
 	}
-});
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingResult = Awaited<ReturnType<typeof updateBookingHandler>>;
 
 export const updateBookingStatus = mutation({
 	args: {
 		bookingId: v.id("bookings"),
 		status: v.union(v.literal("confirmed"), v.literal("failed"), v.literal("email_failed"))
 	},
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		const booking = await requireBookingInDb(ctx, args.bookingId);
-
-		if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
-			throw new ConvexError<UpdateBookingStatusErrorData>({
-				code: "INVALID_BOOKING_STATUS_TRANSITION"
-			});
-		}
-
-		await ctx.db.patch(args.bookingId, { status: args.status });
-
-		return { ok: true as const };
-	}
+	handler: updateBookingStatusHandler
 });
+
+type UpdateBookingStatusArgs = {
+	bookingId: Id<"bookings">;
+	status: "confirmed" | "failed" | "email_failed";
+};
+
+async function updateBookingStatusHandler(ctx: MutationCtx, args: UpdateBookingStatusArgs) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
+		return err({ reason: "INVALID_BOOKING_STATUS_TRANSITION" });
+	}
+
+	try {
+		await ctx.db.patch(args.bookingId, { status: args.status });
+	} catch {
+		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingStatusResult = Awaited<ReturnType<typeof updateBookingStatusHandler>>;
 
 export const updateBookingPaidRemainingBalance = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		await requireBookingInDb(ctx, args.bookingId);
-
-		await ctx.db.patch(args.bookingId, { paidRemainingBalance: args.paidRemainingBalance });
-
-		return { ok: true as const };
-	}
+	handler: updateBookingPaidRemainingBalanceHandler
 });
+
+type UpdateBookingPaidRemainingBalanceArgs = {
+	bookingId: Id<"bookings">;
+	paidRemainingBalance: boolean;
+};
+
+async function updateBookingPaidRemainingBalanceHandler(
+	ctx: MutationCtx,
+	args: UpdateBookingPaidRemainingBalanceArgs
+) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.patch(booking._id, { paidRemainingBalance: args.paidRemainingBalance });
+	} catch {
+		return err({ reason: "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED" });
+	}
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingPaidRemainingBalanceResult = Awaited<
+	ReturnType<typeof updateBookingPaidRemainingBalanceHandler>
+>;
 
 export const updateBookingEditStatus = mutation({
 	args: {
 		bookingId: v.id("bookings"),
 		editStatus: v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
 	},
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		await requireBookingInDb(ctx, args.bookingId);
-
-		await ctx.db.patch(args.bookingId, { editStatus: args.editStatus });
-
-		return { ok: true as const };
-	}
+	handler: updateBookingEditStatusHandler
 });
+
+type UpdateBookingEditStatusArgs = {
+	bookingId: Id<"bookings">;
+	editStatus: "to_edit" | "editing" | "completed";
+};
+
+async function updateBookingEditStatusHandler(ctx: MutationCtx, args: UpdateBookingEditStatusArgs) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.patch(booking._id, { editStatus: args.editStatus });
+	} catch {
+		return err({ reason: "BOOKING_EDIT_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingEditStatusResult = Awaited<
+	ReturnType<typeof updateBookingEditStatusHandler>
+>;
 
 export const updateBookingRemainingBalanceAmount = mutation({
 	args: { bookingId: v.id("bookings"), remainingBalanceAmount: v.number() },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		await requireBookingInDb(ctx, args.bookingId);
+	handler: updateBookingRemainingBalanceAmountHandler
+});
 
-		await ctx.db.patch(args.bookingId, {
+type UpdateBookingRemainingBalanceAmountArgs = {
+	bookingId: Id<"bookings">;
+	remainingBalanceAmount: number;
+};
+
+async function updateBookingRemainingBalanceAmountHandler(
+	ctx: MutationCtx,
+	args: UpdateBookingRemainingBalanceAmountArgs
+) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking = await ctx.db.get(args.bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.patch(booking._id, {
 			remainingBalanceAmount: Math.max(args.remainingBalanceAmount, 0)
 		});
-
-		return { ok: true as const };
+	} catch {
+		return err({ reason: "BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED" });
 	}
-});
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingRemainingBalanceAmountResult = Awaited<
+	ReturnType<typeof updateBookingRemainingBalanceAmountHandler>
+>;

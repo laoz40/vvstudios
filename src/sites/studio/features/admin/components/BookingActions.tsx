@@ -67,8 +67,7 @@ import {
 } from "#studio/features/admin/lib/booking-edit-status";
 import {
 	getBookingInvoiceEmailErrorMessage,
-	getBookingMutationErrorMessage,
-	getBookingStatusMutationErrorMessage
+	getBookingMutationErrorMessage
 } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
@@ -76,6 +75,12 @@ import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-e
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 import type { DeleteBookingFromAdminResult } from "#convex/googleCalendar";
+import type {
+	UpdateBookingEditStatusResult,
+	UpdateBookingPaidRemainingBalanceResult,
+	UpdateBookingRemainingBalanceAmountResult,
+	UpdateBookingStatusResult
+} from "#convex/bookings";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -249,7 +254,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					break;
 
 				case "BOOKING_DELETE_FAILED":
-					toast.error("The booking could not be deleted from the databse. Please try again.");
+					toast.error("Could not delete the booking. Please try again.");
 					break;
 
 				case "GOOGLE_CALENDAR_DELETE_FAILED":
@@ -377,33 +382,93 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
 		setIsUpdatingEditStatus(true);
 
-		try {
-			await updateBookingEditStatus({ bookingId: booking._id, editStatus: nextEditStatus });
-			toast.success(
-				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`
-			);
-		} catch {
-			toast.error("Unable to update edit status.");
-		} finally {
+		const [error] = await tryCatch<UpdateBookingEditStatusResult>(
+			updateBookingEditStatus({ bookingId: booking._id, editStatus: nextEditStatus })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+					toast.error("Could not update the deliverables status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the deliverables status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingEditStatus(false);
+			return;
 		}
+
+		toast.success(
+			`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`
+		);
+		setIsUpdatingEditStatus(false);
 	}
 
 	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
-		try {
-			await updateBookingPaidRemainingBalance({ bookingId: booking._id, paidRemainingBalance });
-			toast.success(
-				paidRemainingBalance
-					? "Remaining balance marked as paid."
-					: "Remaining balance marked as unpaid."
-			);
-		} catch {
-			toast.error("Unable to update remaining balance payment status.");
-		} finally {
+		const [error] = await tryCatch<UpdateBookingPaidRemainingBalanceResult>(
+			updateBookingPaidRemainingBalance({ bookingId: booking._id, paidRemainingBalance })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED":
+					toast.error("Could not update the payment status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the payment status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingPaidRemainingBalance(false);
+			return;
 		}
+
+		toast.success(
+			paidRemainingBalance
+				? "Remaining balance marked as paid."
+				: "Remaining balance marked as unpaid."
+		);
+		setIsUpdatingPaidRemainingBalance(false);
 	}
 
 	async function handleSetRemainingBalanceAmount() {
@@ -416,18 +481,48 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsUpdatingRemainingBalanceAmount(true);
 
-		try {
-			await updateBookingRemainingBalanceAmount({
+		const [error] = await tryCatch<UpdateBookingRemainingBalanceAmountResult>(
+			updateBookingRemainingBalanceAmount({
 				bookingId: booking._id,
 				remainingBalanceAmount: parsedAmount
-			});
-			setIsRemainingBalanceDialogOpen(false);
-			toast.success("Remaining balance updated.");
-		} catch {
-			toast.error("Unable to update remaining balance.");
-		} finally {
+			})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED":
+					toast.error("Could not update the remaining balance. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the remaining balance.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingRemainingBalanceAmount(false);
+			return;
 		}
+
+		setIsRemainingBalanceDialogOpen(false);
+		toast.success("Remaining balance updated.");
+		setIsUpdatingRemainingBalanceAmount(false);
 	}
 
 	async function handleToggleStatus() {
@@ -437,18 +532,52 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsUpdatingStatus(true);
 
-		try {
-			await updateBookingStatus({ bookingId: booking._id, status: nextStatus });
-			toast.success(
-				nextStatus === "confirmed"
-					? "Booking marked as confirmed."
-					: "Booking marked as needs follow up."
-			);
-		} catch (error) {
-			toast.error(getBookingStatusMutationErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<UpdateBookingStatusResult>(
+			updateBookingStatus({ bookingId: booking._id, status: nextStatus })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "INVALID_BOOKING_STATUS_TRANSITION":
+					toast.error("This booking status cannot be changed here.");
+					break;
+
+				case "BOOKING_STATUS_UPDATE_FAILED":
+					toast.error("Could not update the booking status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the booking status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingStatus(false);
+			return;
 		}
+
+		toast.success(
+			nextStatus === "confirmed"
+				? "Booking marked as confirmed."
+				: "Booking marked as needs follow up."
+		);
+		setIsUpdatingStatus(false);
 	}
 
 	async function handleDownloadInvoice() {
@@ -495,7 +624,46 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				driveLink: deliverablesDriveLinkDraft,
 				emailVariant: deliverablesEmailVariantDraft
 			});
-			await updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" });
+			const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
+				updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
+			);
+
+			if (statusError !== null) {
+				switch (statusError.reason) {
+					case "NOT_AUTHENTICATED":
+						toast.error(
+							"Deliverables email sent, but you need to sign in again to update the status."
+						);
+						break;
+
+					case "NOT_AUTHORIZED":
+						toast.error(
+							"Deliverables email sent, but you do not have access to update the status."
+						);
+						break;
+
+					case "BOOKING_NOT_FOUND":
+						toast.error(
+							"Deliverables email sent, but the booking could not be found in the database."
+						);
+						break;
+
+					case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+						toast.error("Deliverables email sent, but the status could not be updated.");
+						break;
+
+					case "UNEXPECTED_ERROR":
+						toast.error("Deliverables email sent, but something went wrong updating the status.");
+						break;
+
+					default: {
+						const _exhaustive: never = statusError;
+						return _exhaustive;
+					}
+				}
+
+				return;
+			}
 			setDeliverablesDriveLinkDraft("");
 			setIsDeliverablesEmailDialogOpen(false);
 			toast.success(`Deliverables email sent to ${booking.email}.`);

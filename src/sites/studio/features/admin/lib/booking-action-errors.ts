@@ -43,19 +43,6 @@ export function getBookingMutationErrorMessage(error: unknown) {
 	}
 }
 
-export function getBookingStatusMutationErrorMessage(error: unknown) {
-	switch (getConvexErrorCode(error)) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		case "INVALID_BOOKING_STATUS_TRANSITION":
-			return "Only confirmed and needs follow up bookings can be toggled here.";
-		default:
-			return "Unable to update booking status.";
-	}
-}
-
 export function getBookingInvoiceEmailErrorMessage(error: unknown) {
 	switch (getConvexErrorCode(error)) {
 		case "NOT_AUTHENTICATED":
