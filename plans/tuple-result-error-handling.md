@@ -50,6 +50,7 @@ const [error] = await tryCatch<DeleteBookingResult>(deleteBooking({ bookingId })
 
 Prefer inferred result types from the real handler returns. Do **not** duplicate error codes in a separate manual union unless inference cannot work.
 
+Avoid aliases that only rename an existing type or constant. If `BookingAvailabilitySettings` or `DEFAULT_BOOKING_AVAILABILITY_SETTINGS` already exists, use it directly instead of adding wrappers like `BookingSettingsArgs = BookingAvailabilitySettings` or `DEFAULT_BOOKING_SETTINGS = DEFAULT_BOOKING_AVAILABILITY_SETTINGS`.
 Preferred order:
 
 1. Export the Convex function.
@@ -63,7 +64,7 @@ type DeleteBookingArgs = { bookingId: Id<"bookings"> };
 
 export const deleteBooking = mutation({
 	args: { bookingId: v.id("bookings") },
-	handler: deleteBookingHandler
+	handler: (ctx, args) => deleteBookingHandler(ctx, args)
 });
 
 async function deleteBookingHandler(ctx: MutationCtx, args: DeleteBookingArgs) {
@@ -97,6 +98,8 @@ export type DeleteBookingResult = Awaited<ReturnType<typeof deleteBookingHandler
 
 The expected error codes live in the actual `return err({ reason: "..." })` lines. If a new `err(...)` return is added, the exported result type updates automatically.
 
+Convex typing preference: do not add temporary client-side `FunctionReference` casts to work around stale generated types. If Convex client types are stale, the user will run Convex codegen. If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler for result inference but use a small inline wrapper in the Convex function: `handler: (ctx, args) => namedHandler(ctx, args)`.
+
 ## Client Handling Style
 
 Handle the tuple result explicitly and keep exhaustive switches:
@@ -119,8 +122,11 @@ if (error !== null) {
 			return;
 
 		case "BOOKING_DELETE_FAILED":
+			toast.error("Failed to delete booking.");
+			return;
+
 		case "UNEXPECTED_ERROR":
-			toast.error("Could not delete booking. Please try again.");
+			toast.error("Something went wrong with deleting booking.");
 			return;
 
 		default: {
@@ -134,6 +140,8 @@ toast.success("Booking deleted");
 ```
 
 If `error.reason` becomes plain `string`, import the inferred result type from the Convex module and call `tryCatch<ResultType>(...)`.
+
+Toast preference: do not group specific expected write failures with `UNEXPECTED_ERROR`. Use a specific message for the known failure, such as “Failed to save availability settings.” Use a separate unexpected message, such as “Something went wrong with saving availability settings.”
 
 ## Convex Mutation Safety
 
@@ -250,6 +258,16 @@ The following `convex/bookings.ts` mutations now use tuple `Result` returns with
 - `convex/lib/bookingAdminEdit.ts` returns `err(...)` at the point failures happen instead of throwing `ConvexError` and translating later.
 - Client admin edit save handles `UpdateBookingFromAdminResult` explicitly in `BookingActions.tsx`.
 
+### Admin availability settings
+
+- `convex/bookingSettings.ts` `update` now returns tuple `Result` values.
+- Auth checks return `NOT_AUTHENTICATED` and `NOT_AUTHORIZED`.
+- Settings validation returns `INVALID_BOOKING_SETTINGS`.
+- DB write failures return `BOOKING_SETTINGS_UPDATE_FAILED`.
+- Client handles `UpdateBookingSettingsResult` explicitly in `AdminAvailabilitySettings.tsx`.
+- Uses direct existing settings types/constants instead of one-line wrapper aliases.
+- Uses an inline Convex handler wrapper to preserve generated argument inference without client-side `FunctionReference` casts.
+
 Removed after conversion:
 
 - `UpdateBookingStatusErrorData`
@@ -263,7 +281,6 @@ Continue converting one public client-facing function at a time.
 
 Next targets to consider:
 
-- `convex/bookingSettings.ts` `update`
 - `convex/deliverablesEmail.ts` actions
 - other `convex/googleCalendar.ts` admin actions
 - `convex/stripe.ts` public actions

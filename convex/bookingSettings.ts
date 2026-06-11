@@ -1,10 +1,10 @@
-import { mutation, query } from "./_generated/server";
-import { requireAdmin } from "./lib/auth";
-import {
-	bookingSettingsArgs,
-	DEFAULT_BOOKING_SETTINGS,
-	validateBookingSettings
-} from "./lib/bookingSettings";
+import { v } from "convex/values";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import { err, ok } from "../src/lib/result";
+import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "../src/sites/studio/lib/bookingAvailabilitySettings";
+import type { BookingAvailabilitySettings } from "../src/sites/studio/lib/bookingAvailabilitySettings";
+import { isAdminIdentity } from "./lib/auth";
+import { isValidBookingSettings } from "./lib/bookingSettings";
 
 export const get = query({
 	args: {},
@@ -13,28 +13,52 @@ export const get = query({
 			.query("bookingSettings")
 			.withIndex("by_key", (q) => q.eq("key", "main"))
 			.unique();
-		return settings ?? DEFAULT_BOOKING_SETTINGS;
+		return settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	}
 });
 
 export const update = mutation({
-	args: bookingSettingsArgs,
-	handler: async (ctx, args) => {
-		const identity = await requireAdmin(ctx);
-		validateBookingSettings(args);
+	args: {
+		eventBufferMinutes: v.number(),
+		leadTimeMinutes: v.number(),
+		maxDaysAhead: v.number(),
+		weekSchedule: v.array(v.object({ endTime: v.string(), startTime: v.string() }))
+	},
+	handler: (ctx, args) => updateBookingSettingsHandler(ctx, args)
+});
 
-		const existing = await ctx.db
-			.query("bookingSettings")
-			.withIndex("by_key", (q) => q.eq("key", "main"))
-			.unique();
-		const value = { ...args, key: "main", updatedAt: Date.now(), updatedBy: identity?.email };
+async function updateBookingSettingsHandler(ctx: MutationCtx, args: BookingAvailabilitySettings) {
+	const identity = await ctx.auth.getUserIdentity();
 
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	if (!isValidBookingSettings(args)) {
+		return err({ reason: "INVALID_BOOKING_SETTINGS" });
+	}
+
+	const existing = await ctx.db
+		.query("bookingSettings")
+		.withIndex("by_key", (q) => q.eq("key", "main"))
+		.unique();
+	const value = { ...args, key: "main", updatedAt: Date.now(), updatedBy: identity.email };
+
+	try {
 		if (existing) {
 			await ctx.db.patch(existing._id, value);
 		} else {
 			await ctx.db.insert("bookingSettings", value);
 		}
-
-		return { ok: true as const };
+	} catch {
+		return err({ reason: "BOOKING_SETTINGS_UPDATE_FAILED" });
 	}
-});
+
+	return ok({ updated: true });
+}
+
+export type UpdateBookingSettingsResult = Awaited<ReturnType<typeof updateBookingSettingsHandler>>;

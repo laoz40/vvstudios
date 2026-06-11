@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import ClockIcon from "#/components/ui/clock-icon";
 import { toast } from "sonner";
-import { api } from "#convex/_generated/api";
+import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
+import ClockIcon from "#/components/ui/clock-icon";
+import { api } from "#convex/_generated/api";
+import type { UpdateBookingSettingsResult } from "#convex/bookingSettings";
+import { tryCatch } from "#/lib/result";
 import {
 	Dialog,
 	DialogContent,
@@ -65,15 +67,45 @@ export function AdminAvailabilitySettings() {
 
 	async function handleSaveSettings() {
 		setIsSaving(true);
-		try {
-			await updateBookingSettings(toBookingSettingsDraft(draft));
-			toast.success("Availability settings saved.");
-			setIsOpen(false);
-		} catch {
-			toast.error("Unable to save availability settings.");
-		} finally {
+		const [error] = await tryCatch<UpdateBookingSettingsResult>(
+			updateBookingSettings(toBookingSettingsDraft(draft))
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("Please sign in first.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have permission to update availability settings.");
+					break;
+
+				case "INVALID_BOOKING_SETTINGS":
+					toast.error("Check the availability settings and try again.");
+					break;
+
+				case "BOOKING_SETTINGS_UPDATE_FAILED":
+					toast.error("Failed to save availability settings.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong with saving availability settings.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsSaving(false);
+			return;
 		}
+
+		toast.success("Availability settings saved.");
+		setIsOpen(false);
+		setIsSaving(false);
 	}
 
 	function updateNumberSetting(key: NumberSettingKey, value: string) {
