@@ -480,12 +480,30 @@ export const deleteBookingInternal = internalMutation({
 
 export const deleteBooking = mutation({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-		await requireBookingInDb(ctx, args.bookingId);
-		await ctx.db.delete(args.bookingId);
+	handler: async (ctx, args): Promise<DeleteBookingResult> => {
+		const identity = await ctx.auth.getUserIdentity();
 
-		return { ok: true as const };
+		if (!identity) {
+			return err({ reason: "NOT_AUTHENTICATED" });
+		}
+
+		if (!isAdminIdentity(identity)) {
+			return err({ reason: "NOT_AUTHORIZED" });
+		}
+
+		const booking = await ctx.db.get(args.bookingId);
+
+		if (!booking) {
+			return err({ reason: "BOOKING_NOT_FOUND" });
+		}
+
+		try {
+			await ctx.db.delete(booking._id);
+		} catch {
+			return err({ reason: "BOOKING_DELETE_FAILED" });
+		}
+
+		return ok({ deleted: true });
 	}
 });
 

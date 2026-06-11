@@ -1,16 +1,17 @@
 "use node";
 
 import { ConvexError, v } from "convex/values";
+import { err, ok } from "../src/lib/result";
 import { api, internal } from "./_generated/api";
-import { action, internalAction } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import { action, type ActionCtx, internalAction } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
 	formatDateValue,
 	getLastBookableDate,
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
-import { requireAdmin } from "./lib/auth";
+import { isAdminIdentity, requireAdmin } from "./lib/auth";
 import {
 	buildEventWindow,
 	getAvailableTimeOptions,
@@ -27,10 +28,8 @@ import {
 	type AdminBookingUpdateResult,
 	updateBookingFromAdminWithGoogleCalendar
 } from "./lib/bookingAdminEdit";
-import {
-	buildBookingCalendarEventPayload,
-	deleteBookingCalendarEventIfExists
-} from "./lib/googleCalendarEvents";
+import { deleteBookingCalendarEvent } from "./lib/googleCalendarEventDeletion";
+import { buildBookingCalendarEventPayload } from "./lib/googleCalendarEvents";
 import { throwGoogleCalendarConvexError } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
@@ -55,6 +54,12 @@ type BookingInvoiceEmailErrorCode =
 	| "INVOICE_SEND_FAILED";
 
 type BookingInvoiceEmailErrorData = { code: BookingInvoiceEmailErrorCode };
+
+type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
+
+export type DeleteBookingFromAdminResult = Awaited<
+	ReturnType<typeof deleteBookingFromAdminHandler>
+>;
 
 interface AvailableBookingTimesResult {
 	timeZone: string;
@@ -238,37 +243,43 @@ export const sendBookingInvoiceForBooking = action({
 
 export const deleteBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args): Promise<{ ok: true }> => {
-		await requireAdmin(ctx);
-
-		const booking: Doc<"bookings"> | null = await ctx.runQuery(
-			internal.bookings.getBookingByIdInternal,
-			{ bookingId: args.bookingId }
-		);
-
-		if (!booking) {
-			throw new ConvexError<BookingCalendarErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
-
-		const client = getGoogleCalendarClient();
-		const calendarId = booking.googleCalendarId ?? client.calendarId;
-
-		try {
-			await deleteBookingCalendarEventIfExists({
-				booking,
-				calendar: client.calendar,
-				calendarId,
-				timeZone: client.timeZone
-			});
-
-			await ctx.runMutation(internal.bookings.deleteBookingInternal, { bookingId: args.bookingId });
-
-			return { ok: true as const };
-		} catch (error) {
-			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_DELETE_FAILED");
-		}
-	}
+	handler: deleteBookingFromAdminHandler
 });
+
+async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBookingFromAdminArgs) {
+	const identity = await ctx.auth.getUserIdentity();
+
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
+
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
+
+	const booking: Doc<"bookings"> | null = await ctx.runQuery(
+		internal.bookings.getBookingByIdInternal,
+		{ bookingId: args.bookingId }
+	);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	const [error] = await deleteBookingCalendarEvent({ booking });
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	try {
+		await ctx.runMutation(internal.bookings.deleteBookingInternal, { bookingId: args.bookingId });
+	} catch {
+		return err({ reason: "BOOKING_DELETE_FAILED" });
+	}
+
+	return ok({ deleted: true });
+}
 
 export const sendBookingReminderEmailForBooking = internalAction({
 	args: { bookingId: v.id("bookings") },

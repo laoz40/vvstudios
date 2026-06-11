@@ -6,23 +6,6 @@ function getConvexErrorCode(error: unknown) {
 	return "data" in error ? (error as { data?: { code?: string } }).data?.code : undefined;
 }
 
-export function getDeleteBookingErrorMessage(error: unknown) {
-	switch (getConvexErrorCode(error)) {
-		case "NOT_AUTHENTICATED":
-			return "You are not signed in.";
-		case "BOOKING_NOT_FOUND":
-			return "That booking no longer exists.";
-		case "GOOGLE_CALENDAR_EVENT_NOT_FOUND":
-			return "Could not find the Google Calendar event. Booking was not deleted.";
-		case "GOOGLE_CALENDAR_AUTH_FAILED":
-			return "Google Calendar authentication failed. Booking was not deleted.";
-		case "GOOGLE_CALENDAR_DELETE_FAILED":
-			return "Could not delete the Google Calendar event. Booking was not deleted.";
-		default:
-			return "Unable to delete booking.";
-	}
-}
-
 export function getBookingMutationErrorMessage(error: unknown) {
 	switch (getConvexErrorCode(error)) {
 		case "NOT_AUTHENTICATED":

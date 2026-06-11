@@ -24,6 +24,7 @@ import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { cn } from "#/lib/utils";
+import { tryCatch } from "#/lib/result";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -67,14 +68,14 @@ import {
 import {
 	getBookingInvoiceEmailErrorMessage,
 	getBookingMutationErrorMessage,
-	getBookingStatusMutationErrorMessage,
-	getDeleteBookingErrorMessage
+	getBookingStatusMutationErrorMessage
 } from "#studio/features/admin/lib/booking-action-errors";
 import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
+import type { DeleteBookingFromAdminResult } from "#convex/googleCalendar";
 
 type BookingRecord = Doc<"bookings">;
 
@@ -221,15 +222,63 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
 
-		try {
-			await deleteBooking({ bookingId: booking._id });
-			setIsDeleteDialogOpen(false);
-			toast.success("Booking deleted.");
-		} catch (error) {
-			toast.error(getDeleteBookingErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<DeleteBookingFromAdminResult>(
+			deleteBooking({ bookingId: booking._id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to delete bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "GOOGLE_CALENDAR_EVENT_NOT_FOUND":
+					toast.error("Could not find the Google Calendar event. Booking was not deleted.");
+					break;
+
+				case "GOOGLE_CALENDAR_AUTH_FAILED":
+					toast.error("Google Calendar authentication failed. Booking was not deleted.");
+					break;
+
+				case "BOOKING_DELETE_FAILED":
+					toast.error(
+						"The booking could not be deleted from the databse. Please try again."
+					);
+					break;
+
+				case "GOOGLE_CALENDAR_DELETE_FAILED":
+					toast.error("Google Calendar failed to delete the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_RATE_LIMITED":
+					toast.error("Google Calendar is busy right now. Wait a minute, then try deleting again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while deleting the booking. Please try again.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsDeleting(false);
+			return;
 		}
+
+		setIsDeleteDialogOpen(false);
+		toast.success("Booking deleted.");
+		setIsDeleting(false);
 	}
 
 	async function saveEditBooking(
