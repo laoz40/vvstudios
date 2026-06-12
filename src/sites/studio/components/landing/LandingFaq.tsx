@@ -1,21 +1,15 @@
-import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger
 } from "#/components/ui/accordion";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import { studioSite } from "#/config/sites";
 import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { ContactActions } from "#studio/components/contact/ContactActions";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
 
 export type LandingFaqProps = { id?: string };
-
-const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
 export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 	return (
@@ -38,24 +32,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 						/>
 					</div>
 
-					<div className="mt-7 flex w-full flex-wrap justify-center gap-4 md:mt-0 md:justify-start md:gap-6">
-						<AnimatedIconButton
-							className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
-							renderIcon={(iconRef) => (
-								<ArrowNarrowRightIcon
-									ref={iconRef}
-									size={24}
-									strokeWidth={3}
-									className="translate-y-px"
-								/>
-							)}>
-							<Link to={studioSite.routes.book}>{contactActionCopy.bookCta}</Link>
-						</AnimatedIconButton>
-						<FreeTourDialogButton
-							label={contactActionCopy.tourCta}
-							className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
-						/>
-					</div>
+					<ContactActions className="mt-7 md:mt-0 md:justify-start" />
 				</div>
 
 				<Accordion

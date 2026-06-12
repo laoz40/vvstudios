@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import { studioSite } from "#/config/sites";
 import { Image } from "@unpic/react";
 import { motion } from "motion/react";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { cn } from "#/lib/utils";
+import { ContactActions } from "#studio/components/contact/ContactActions";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
-import { cn } from "#/lib/utils";
 
 export interface PhotosSectionProps {
 	className?: string;
@@ -94,24 +90,7 @@ export function PhotosSection({
 						))}
 					</div>
 				</div>
-				<div className="mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
-					<AnimatedIconButton
-						className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
-						renderIcon={(iconRef) => (
-							<ArrowNarrowRightIcon
-								ref={iconRef}
-								size={24}
-								strokeWidth={3}
-								className="translate-y-px"
-							/>
-						)}>
-						<Link to={studioSite.routes.book}>{photosPageContent.bookCta}</Link>
-					</AnimatedIconButton>
-					<FreeTourDialogButton
-						label={photosPageContent.tourCta}
-						className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
-					/>
-				</div>
+				<ContactActions className="max-w-3xl" />
 			</motion.div>
 		</section>
 	);

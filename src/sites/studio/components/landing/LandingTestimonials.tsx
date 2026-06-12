@@ -1,20 +1,14 @@
-import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Star } from "lucide-react";
 import { motion } from "motion/react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import { studioSite } from "#/config/sites";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { ContactActions } from "#studio/components/contact/ContactActions";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
 
 const testimonialCopy = {
 	title: "Trusted by creators in Sydney",
-	bookCta: "Book session",
-	tourCta: "Take free tour",
 	reviews: [
 		{
 			quote:
@@ -112,24 +106,7 @@ export function LandingTestimonials() {
 							/>
 						</div>
 
-						<div className="flex w-full flex-wrap justify-center gap-4 md:justify-start md:gap-6">
-							<AnimatedIconButton
-								className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
-								renderIcon={(iconRef) => (
-									<ArrowNarrowRightIcon
-										ref={iconRef}
-										size={24}
-										strokeWidth={3}
-										className="translate-y-px"
-									/>
-								)}>
-								<Link to={studioSite.routes.book}>{testimonialCopy.bookCta}</Link>
-							</AnimatedIconButton>
-							<FreeTourDialogButton
-								label={testimonialCopy.tourCta}
-								className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
-							/>
-						</div>
+						<ContactActions className="md:justify-start" />
 					</div>
 				</div>
 			</motion.div>
