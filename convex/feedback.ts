@@ -24,9 +24,10 @@ async function submitFeedbackHandler(ctx: ActionCtx, args: SubmitFeedbackArgs) {
 		return err({ reason: "FEEDBACK_RATE_LIMITED" });
 	}
 
-	try {
-		await sendFeedbackEmailForMessage(message);
-	} catch {
+	const [emailError] = await sendFeedbackEmailForMessage(message);
+
+	if (emailError !== null) {
+		console.error("Feedback email send failed", { reason: emailError.reason });
 		return err({ reason: "SEND_FAILED" });
 	}
 

@@ -69,7 +69,7 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 
 	const { startDateTime } = eventWindow;
 
-	await sendReminderEmailForBookingDetails({
+	const [emailError] = await sendReminderEmailForBookingDetails({
 		name: booking.name,
 		email: booking.email,
 		date: booking.date,
@@ -79,6 +79,15 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 		duration: booking.duration,
 		addons: booking.addons
 	});
+
+	if (emailError !== null) {
+		console.error("Booking reminder email send failed", {
+			bookingId: booking._id,
+			bookingEmail: booking.email,
+			reason: emailError.reason
+		});
+		return err({ reason: "RESEND_SEND_FAILED" });
+	}
 
 	return ok({ sent: true });
 }
@@ -310,27 +319,20 @@ export const sendBookingReminderEmailForBooking = internalAction({
 
 		if (!claim.ok) return null;
 
-		try {
-			const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(claim.booking);
+		const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(claim.booking);
 
-			if (reminderEmailError !== null) {
-				await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
-					bookingId: args.bookingId,
-					failureCode: reminderEmailError.reason
-				});
-				return null;
-			}
-
-			await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
-				bookingId: args.bookingId,
-				now: Date.now()
-			});
-		} catch {
+		if (reminderEmailError !== null) {
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
 				bookingId: args.bookingId,
-				failureCode: "RESEND_SEND_FAILED"
+				failureCode: reminderEmailError.reason
 			});
+			return null;
 		}
+
+		await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
+			bookingId: args.bookingId,
+			now: Date.now()
+		});
 
 		return null;
 	}

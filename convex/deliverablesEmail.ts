@@ -28,19 +28,19 @@ async function sendDeliverablesEmailForRecord(
 		return err({ reason: "INVALID_DRIVE_LINK" });
 	}
 
-	try {
-		await sendDeliverablesEmail({
-			date: booking.date,
-			driveLink: parsedDriveLink,
-			email: booking.email,
-			emailVariant,
-			name: booking.name
-		});
-	} catch (error) {
+	const [emailError] = await sendDeliverablesEmail({
+		date: booking.date,
+		driveLink: parsedDriveLink,
+		email: booking.email,
+		emailVariant,
+		name: booking.name
+	});
+
+	if (emailError !== null) {
 		console.error("Manual booking deliverables email send failed", {
 			bookingId: booking._id,
 			bookingEmail: booking.email,
-			error
+			reason: emailError.reason
 		});
 		return err({ reason: "DELIVERABLES_SEND_FAILED" });
 	}
