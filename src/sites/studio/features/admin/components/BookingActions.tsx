@@ -4,7 +4,7 @@ import {
 	useState,
 	type ComponentProps,
 	type ReactNode,
-	type RefObject,
+	type RefObject
 } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { cn } from "#/lib/utils";
+import { tryCatch } from "#/lib/result";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -34,7 +35,7 @@ import {
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
+	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import {
 	Dialog,
@@ -42,15 +43,18 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
+import {
+	type DownloadAdminBookingInvoiceResult,
+	downloadAdminBookingInvoice
+} from "#studio/features/admin/lib/download-admin-booking-invoice";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
 	BookingEditDialog,
-	type BookingEditDraft,
+	type BookingEditDraft
 } from "#studio/features/admin/components/BookingEditDialog";
 import { BookingEditConfirmationDialog } from "#studio/features/admin/components/BookingEditConfirmationDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
@@ -62,25 +66,28 @@ import {
 	deliverableStatusDotClassNameMap,
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
-	type DeliverableStatus,
+	type DeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
-import {
-	getBookingInvoiceEmailErrorMessage,
-	getBookingMutationErrorMessage,
-	getBookingStatusMutationErrorMessage,
-	getDeleteBookingErrorMessage,
-} from "#studio/features/admin/lib/booking-action-errors";
-import { getBookingDeliverablesEmailErrorMessage } from "#studio/features/admin/lib/booking-email-errors";
+import type { SendBookingDeliverablesEmailResult } from "#convex/deliverablesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
+import type {
+	DeleteBookingFromAdminResult,
+	SendBookingInvoiceForBookingResult,
+	UpdateBookingFromAdminResult
+} from "#convex/googleCalendar";
+import type {
+	UpdateBookingEditStatusResult,
+	UpdateBookingPaidRemainingBalanceResult,
+	UpdateBookingRemainingBalanceAmountResult,
+	UpdateBookingStatusResult
+} from "#convex/bookings";
 
 type BookingRecord = Doc<"bookings">;
 
-export type BookingActionsProps = {
-	booking: BookingRecord;
-};
+export type BookingActionsProps = { booking: BookingRecord };
 
 type StatusCircleButtonProps = {
 	ariaLabel: string;
@@ -95,7 +102,7 @@ function StatusCircleButton({
 	className,
 	disabled,
 	isSelected,
-	onClick,
+	onClick
 }: StatusCircleButtonProps) {
 	return (
 		<button
@@ -106,7 +113,7 @@ function StatusCircleButton({
 			className={cn(
 				"size-5 rounded-full border border-transparent disabled:opacity-50",
 				className,
-				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover",
+				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover"
 			)}
 			onClick={onClick}
 		/>
@@ -156,17 +163,17 @@ function AnimatedDropdownMenuItem({
 
 export function BookingActions({ booking }: BookingActionsProps) {
 	const deleteBooking = useAction(api.googleCalendar.deleteBookingFromAdmin);
-	const sendBookingDeliverablesEmailForBooking = useAction(
-		api.deliverablesEmail.sendBookingDeliverablesEmailForBooking,
+	const sendBookingDeliverablesEmail = useAction(
+		api.deliverablesEmail.sendBookingDeliverablesEmail
 	);
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
 	const updateBookingPaidRemainingBalance = useMutation(
-		api.bookings.updateBookingPaidRemainingBalance,
+		api.bookings.updateBookingPaidRemainingBalance
 	);
 	const updateBookingRemainingBalanceAmount = useMutation(
-		api.bookings.updateBookingRemainingBalanceAmount,
+		api.bookings.updateBookingRemainingBalanceAmount
 	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -196,7 +203,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
-		booking.pendingPaymentCreatedAt,
+		booking.pendingPaymentCreatedAt
 	);
 	const isConfirmedBooking = booking.status === "confirmed";
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
@@ -211,7 +218,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
-		String(remainingBalanceAmount),
+		String(remainingBalanceAmount)
 	);
 
 	useEffect(() => {
@@ -223,20 +230,66 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
 
-		try {
-			await deleteBooking({ bookingId: booking._id });
-			setIsDeleteDialogOpen(false);
-			toast.success("Booking deleted.");
-		} catch (error) {
-			toast.error(getDeleteBookingErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<DeleteBookingFromAdminResult>(
+			deleteBooking({ bookingId: booking._id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to delete bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "GOOGLE_CALENDAR_EVENT_NOT_FOUND":
+					toast.error("Could not find the Google Calendar event. Booking was not deleted.");
+					break;
+
+				case "GOOGLE_CALENDAR_AUTH_FAILED":
+					toast.error("Google Calendar authentication failed. Booking was not deleted.");
+					break;
+
+				case "BOOKING_DELETE_FAILED":
+					toast.error("Could not delete the booking. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_DELETE_FAILED":
+					toast.error("Google Calendar failed to delete the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_RATE_LIMITED":
+					toast.error("Google Calendar is busy right now. Wait a minute, then try deleting again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while deleting the booking. Please try again.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsDeleting(false);
+			return;
 		}
+
+		setIsDeleteDialogOpen(false);
+		toast.success("Booking deleted.");
+		setIsDeleting(false);
 	}
 
 	async function saveEditBooking(
 		values: BookingEditDraft,
-		options?: { skipConfirmation?: boolean },
+		options?: { skipConfirmation?: boolean }
 	) {
 		const parsedValues = bookingSchema.safeParse({
 			name: values.name,
@@ -251,7 +304,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			addons: values.addons,
 			essentialEditQuantity: values.essentialEditQuantity,
 			clipsPackageQuantity: values.clipsPackageQuantity,
-			notes: values.notes,
+			notes: values.notes
 		});
 
 		if (!parsedValues.success) {
@@ -272,8 +325,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsSaving(true);
 
-		try {
-			const result = await updateBooking({
+		const [error, result] = await tryCatch<UpdateBookingFromAdminResult>(
+			updateBooking({
 				bookingId: booking._id,
 				name: parsedValues.data.name,
 				phone: parsedValues.data.phone,
@@ -287,23 +340,78 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				addons: parsedValues.data.addons,
 				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
 				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
-				notes: parsedValues.data.notes || undefined,
-			});
+				notes: parsedValues.data.notes || undefined
+			})
+		);
 
-			if (result.googleOutcome === "replacementCreated") {
-				setIsEditDialogOpen(false);
-				setIsReplacementEventDialogOpen(true);
-				toast.success("Booking updated. Replacement Calendar event created.");
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_INVALID_DATE":
+					toast.error("Enter a valid booking date.");
+					break;
+
+				case "BOOKING_INVALID_TIME":
+					toast.error("Enter a valid booking time.");
+					break;
+
+				case "BOOKING_TIME_UNAVAILABLE":
+					toast.error("That time is no longer available. Choose another time.");
+					break;
+
+				case "GOOGLE_CALENDAR_AUTH_FAILED":
+					toast.error("Google Calendar authentication failed. Booking was not updated.");
+					break;
+
+				case "GOOGLE_CALENDAR_CREATE_FAILED":
+					toast.error("Google Calendar failed to create the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_UPDATE_FAILED":
+					toast.error("Google Calendar failed to update the event. Please try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_RATE_LIMITED":
+					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
+					break;
+
+				case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the booking. Please try again.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
 
-			setIsEditDialogOpen(false);
-			toast.success("Booking updated.");
-		} catch (error) {
-			toast.error(getBookingMutationErrorMessage(error));
-		} finally {
 			setIsSaving(false);
+			return;
 		}
+
+		if (result.googleOutcome === "replacementCreated") {
+			setIsEditDialogOpen(false);
+			setIsReplacementEventDialogOpen(true);
+			toast.success("Booking updated. Replacement Calendar event created.");
+			setIsSaving(false);
+			return;
+		}
+
+		setIsEditDialogOpen(false);
+		toast.success("Booking updated.");
+		setIsSaving(false);
 	}
 
 	async function handleEditBooking(values: BookingEditDraft) {
@@ -332,39 +440,93 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
 		setIsUpdatingEditStatus(true);
 
-		try {
-			await updateBookingEditStatus({
-				bookingId: booking._id,
-				editStatus: nextEditStatus,
-			});
-			toast.success(
-				`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`,
-			);
-		} catch {
-			toast.error("Unable to update edit status.");
-		} finally {
+		const [error] = await tryCatch<UpdateBookingEditStatusResult>(
+			updateBookingEditStatus({ bookingId: booking._id, editStatus: nextEditStatus })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+					toast.error("Could not update the deliverables status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the deliverables status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingEditStatus(false);
+			return;
 		}
+
+		toast.success(
+			`Deliverable status changed to ${deliverableStatusLabelMap[nextEditStatus].toLowerCase()}.`
+		);
+		setIsUpdatingEditStatus(false);
 	}
 
 	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
-		try {
-			await updateBookingPaidRemainingBalance({
-				bookingId: booking._id,
-				paidRemainingBalance,
-			});
-			toast.success(
-				paidRemainingBalance
-					? "Remaining balance marked as paid."
-					: "Remaining balance marked as unpaid.",
-			);
-		} catch {
-			toast.error("Unable to update remaining balance payment status.");
-		} finally {
+		const [error] = await tryCatch<UpdateBookingPaidRemainingBalanceResult>(
+			updateBookingPaidRemainingBalance({ bookingId: booking._id, paidRemainingBalance })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED":
+					toast.error("Could not update the payment status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the payment status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingPaidRemainingBalance(false);
+			return;
 		}
+
+		toast.success(
+			paidRemainingBalance
+				? "Remaining balance marked as paid."
+				: "Remaining balance marked as unpaid."
+		);
+		setIsUpdatingPaidRemainingBalance(false);
 	}
 
 	async function handleSetRemainingBalanceAmount() {
@@ -377,18 +539,48 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsUpdatingRemainingBalanceAmount(true);
 
-		try {
-			await updateBookingRemainingBalanceAmount({
+		const [error] = await tryCatch<UpdateBookingRemainingBalanceAmountResult>(
+			updateBookingRemainingBalanceAmount({
 				bookingId: booking._id,
-				remainingBalanceAmount: parsedAmount,
-			});
-			setIsRemainingBalanceDialogOpen(false);
-			toast.success("Remaining balance updated.");
-		} catch {
-			toast.error("Unable to update remaining balance.");
-		} finally {
+				remainingBalanceAmount: parsedAmount
+			})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED":
+					toast.error("Could not update the remaining balance. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the remaining balance.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingRemainingBalanceAmount(false);
+			return;
 		}
+
+		setIsRemainingBalanceDialogOpen(false);
+		toast.success("Remaining balance updated.");
+		setIsUpdatingRemainingBalanceAmount(false);
 	}
 
 	async function handleToggleStatus() {
@@ -398,81 +590,220 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setIsUpdatingStatus(true);
 
-		try {
-			await updateBookingStatus({
-				bookingId: booking._id,
-				status: nextStatus,
-			});
-			toast.success(
-				nextStatus === "confirmed"
-					? "Booking marked as confirmed."
-					: "Booking marked as needs follow up.",
-			);
-		} catch (error) {
-			toast.error(getBookingStatusMutationErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<UpdateBookingStatusResult>(
+			updateBookingStatus({ bookingId: booking._id, status: nextStatus })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update bookings.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "INVALID_BOOKING_STATUS_TRANSITION":
+					toast.error("This booking status cannot be changed here.");
+					break;
+
+				case "BOOKING_STATUS_UPDATE_FAILED":
+					toast.error("Could not update the booking status. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the booking status.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsUpdatingStatus(false);
+			return;
 		}
+
+		toast.success(
+			nextStatus === "confirmed"
+				? "Booking marked as confirmed."
+				: "Booking marked as needs follow up."
+		);
+		setIsUpdatingStatus(false);
 	}
 
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
 
-		try {
-			const result = await downloadAdminBookingInvoice({
-				booking,
-				createdAt: booking.pendingPaymentCreatedAt,
-			});
+		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({ booking, createdAt: booking.pendingPaymentCreatedAt })
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(error.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
-			toast.success("Invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setIsDownloadingInvoice(false);
+			return;
 		}
+
+		toast.success("Invoice download started.");
+		setIsDownloadingInvoice(false);
 	}
 
 	async function handleEmailInvoice() {
 		setIsEmailingInvoice(true);
 
-		try {
-			await sendBookingInvoiceForBooking({
-				bookingId: booking._id,
-			});
-			setIsEmailInvoiceDialogOpen(false);
-			toast.success(`Invoice sent to ${booking.email}.`);
-		} catch (error) {
-			toast.error(getBookingInvoiceEmailErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<SendBookingInvoiceForBookingResult>(
+			sendBookingInvoiceForBooking({ bookingId: booking._id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to send invoice emails.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "INVOICE_SEND_FAILED":
+					toast.error("Unable to send invoice email.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending the invoice email.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsEmailingInvoice(false);
+			return;
 		}
+
+		setIsEmailInvoiceDialogOpen(false);
+		toast.success(`Invoice sent to ${booking.email}.`);
+		setIsEmailingInvoice(false);
 	}
 
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
 
-		try {
-			await sendBookingDeliverablesEmailForBooking({
+		const [emailError] = await tryCatch<SendBookingDeliverablesEmailResult>(
+			sendBookingDeliverablesEmail({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
-				emailVariant: deliverablesEmailVariantDraft,
-			});
-			await updateBookingEditStatus({
-				bookingId: booking._id,
-				editStatus: "completed",
-			});
-			setDeliverablesDriveLinkDraft("");
-			setIsDeliverablesEmailDialogOpen(false);
-			toast.success(`Deliverables email sent to ${booking.email}.`);
-		} catch (error) {
-			toast.error(getBookingDeliverablesEmailErrorMessage(error));
-		} finally {
+				emailVariant: deliverablesEmailVariantDraft
+			})
+		);
+
+		if (emailError !== null) {
+			switch (emailError.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to send deliverables emails.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "INVALID_DRIVE_LINK":
+					toast.error("Enter a valid Google Drive link.");
+					break;
+
+				case "DELIVERABLES_SEND_FAILED":
+					toast.error("Unable to send deliverables email.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending the deliverables email.");
+					break;
+
+				default: {
+					const _exhaustive: never = emailError;
+					return _exhaustive;
+				}
+			}
+
 			setIsEmailingDeliverables(false);
+			return;
 		}
+
+		const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
+			updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
+		);
+
+		if (statusError !== null) {
+			switch (statusError.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error(
+						"Deliverables email sent, but you need to sign in again to update the status."
+					);
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("Deliverables email sent, but you do not have access to update the status.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error(
+						"Deliverables email sent, but the booking could not be found in the database."
+					);
+					break;
+
+				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+					toast.error("Deliverables email sent, but the status could not be updated.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Deliverables email sent, but something went wrong updating the status.");
+					break;
+
+				default: {
+					const _exhaustive: never = statusError;
+					return _exhaustive;
+				}
+			}
+
+			setIsEmailingDeliverables(false);
+			return;
+		}
+
+		setDeliverablesDriveLinkDraft("");
+		setIsDeliverablesEmailDialogOpen(false);
+		toast.success(`Deliverables email sent to ${booking.email}.`);
+		setIsEmailingDeliverables(false);
 	}
 
 	return (

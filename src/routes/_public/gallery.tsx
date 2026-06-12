@@ -4,7 +4,7 @@ import { PhotosSection } from "#studio/components/photos/PhotosSection";
 
 export const Route = createFileRoute("/_public/gallery")({
 	head: () => buildSeoHead(seoMetadata.gallery),
-	component: GalleryRoute,
+	component: GalleryRoute
 });
 
 function GalleryRoute() {

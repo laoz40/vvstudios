@@ -9,35 +9,20 @@ const MailFilledIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = useCallback(async () => {
 			await animate(
 				".mail-open",
-				{
-					rotateX: -60,
-					transformOrigin: "50% 0%",
-				},
-				{
-					duration: 0.5,
-					ease: "easeInOut",
-				},
+				{ rotateX: -60, transformOrigin: "50% 0%" },
+				{ duration: 0.5, ease: "easeInOut" }
 			);
 		}, [animate]);
 
 		const stop = useCallback(() => {
 			animate(
 				".mail-open",
-				{
-					rotateX: 0,
-					transformOrigin: "50% 0%",
-				},
-				{
-					duration: 0.5,
-					ease: "easeInOut",
-				},
+				{ rotateX: 0, transformOrigin: "50% 0%" },
+				{ duration: 0.5, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -66,7 +51,7 @@ const MailFilledIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 MailFilledIcon.displayName = "MailFilledIcon";

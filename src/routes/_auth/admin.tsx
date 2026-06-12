@@ -5,13 +5,13 @@ import { buildNoIndexHead } from "#/lib/seo";
 
 const AdminPage = lazy(() =>
 	import("#studio/features/auth/components/AdminPage").then((module) => ({
-		default: module.AdminPage,
-	})),
+		default: module.AdminPage
+	}))
 );
 
 export const Route = createFileRoute("/_auth/admin")({
 	head: () => buildNoIndexHead("Admin Dashboard | VV Studios"),
-	component: AdminRoute,
+	component: AdminRoute
 });
 
 function AdminRoute() {

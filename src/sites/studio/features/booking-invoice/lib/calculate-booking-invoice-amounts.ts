@@ -4,7 +4,7 @@ import {
 	ADDON_PRICES,
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_CURRENCY,
-	DURATION_PRICES,
+	DURATION_PRICES
 } from "#studio/features/booking-invoice/lib/constants";
 import { sumMoney } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceMoneyAmounts } from "#studio/features/booking-invoice/lib/types";
@@ -22,7 +22,7 @@ export function getAddonQuantity(
 	quantities: Pick<
 		CalculateBookingInvoiceAmountsInput,
 		"clipsPackageQuantity" | "essentialEditQuantity"
-	> = {},
+	> = {}
 ) {
 	if (!isBookingAddon(addon)) {
 		return 0;
@@ -42,7 +42,7 @@ export function getAddonAmount(
 	quantities: Pick<
 		CalculateBookingInvoiceAmountsInput,
 		"clipsPackageQuantity" | "essentialEditQuantity"
-	> = {},
+	> = {}
 ) {
 	// Add-on total is unit price multiplied by the quantity rules above.
 	return isBookingAddon(addon) ? ADDON_PRICES[addon] * getAddonQuantity(addon, quantities) : 0;
@@ -63,7 +63,7 @@ export function calculateBookingInvoiceAmounts({
 	essentialEditQuantity,
 	clipsPackageQuantity,
 	includeBaseAmount = true,
-	includeDepositLineItem = true,
+	includeDepositLineItem = true
 }: CalculateBookingInvoiceAmountsInput): BookingInvoiceMoneyAmounts {
 	const baseAmount =
 		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
@@ -79,6 +79,6 @@ export function calculateBookingInvoiceAmounts({
 		currency: BOOKING_INVOICE_CURRENCY,
 		depositAmount,
 		subtotalAmount,
-		totalDueAmount,
+		totalDueAmount
 	};
 }

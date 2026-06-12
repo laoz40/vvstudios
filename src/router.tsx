@@ -14,8 +14,8 @@ export function getRouter() {
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 		defaultViewTransition: {
-			types: ({ toLocation }) => (toLocation.pathname === "/book" ? ["booking-slide-left"] : []),
-		},
+			types: ({ toLocation }) => (toLocation.pathname === "/book" ? ["booking-slide-left"] : [])
+		}
 	});
 
 	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });

@@ -10,21 +10,15 @@ import {
 	buildLocalBusinessJsonLd,
 	buildSeoHead,
 	buildWebSiteJsonLd,
-	seoMetadata,
+	seoMetadata
 } from "#/lib/seo";
 
 export const Route = createFileRoute("/_public/")({
 	head: () => ({
 		...buildSeoHead(seoMetadata.home),
 		scripts: [
-			{
-				type: "application/ld+json",
-				children: JSON.stringify(buildWebSiteJsonLd()),
-			},
-			{
-				type: "application/ld+json",
-				children: JSON.stringify(buildLocalBusinessJsonLd()),
-			},
+			{ type: "application/ld+json", children: JSON.stringify(buildWebSiteJsonLd()) },
+			{ type: "application/ld+json", children: JSON.stringify(buildLocalBusinessJsonLd()) },
 			{
 				type: "application/ld+json",
 				children: JSON.stringify(
@@ -33,14 +27,14 @@ export const Route = createFileRoute("/_public/")({
 							question: item.question,
 							answer: item.answerParts
 								.map((part) => `${"heading" in part ? part.heading : ""}${part.value}`)
-								.join("\n"),
-						})),
-					),
-				),
-			},
-		],
+								.join("\n")
+						}))
+					)
+				)
+			}
+		]
 	}),
-	component: HomeRoute,
+	component: HomeRoute
 });
 
 function HomeRoute() {

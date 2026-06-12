@@ -9,24 +9,20 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = useCallback(async () => {
 			await animate(
 				".pen-group",
-				{
-					x: [0, 1, -1, 1, -1, 0],
-					y: [0, -2, -4, -6, -8, -10],
-					rotate: [0, -6, -4, -6, -4, 0],
-				},
-				{ duration: 0.8, ease: "easeInOut" },
+				{ x: [0, 1, -1, 1, -1, 0], y: [0, -2, -4, -6, -8, -10], rotate: [0, -6, -4, -6, -4, 0] },
+				{ duration: 0.8, ease: "easeInOut" }
 			);
 
 			await animate(
 				".pen-slash",
 				{ pathLength: [0, 1], opacity: [0, 1] },
-				{ duration: 0.3, ease: "easeOut" },
+				{ duration: 0.3, ease: "easeOut" }
 			);
 
 			await animate(
 				".pen-slash",
 				{ pathLength: 0, opacity: 0 },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 
 			animate(".pen-group", { x: 0, y: 0, rotate: 0 }, { duration: 0.25, ease: "easeInOut" });
@@ -36,10 +32,7 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(".pen-group", { x: 0, y: 0, rotate: 0 }, { duration: 0.2, ease: "easeInOut" });
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -58,10 +51,7 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				onHoverEnd={stop}>
 				<motion.g
 					className="pen-group"
-					style={{
-						transformOrigin: "50% 50%",
-						transformBox: "fill-box",
-					}}>
+					style={{ transformOrigin: "50% 50%", transformBox: "fill-box" }}>
 					{/* Slash animation (pathLength works now) */}
 					<motion.path
 						className="pen-slash"
@@ -77,7 +67,7 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</motion.g>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 PenIcon.displayName = "PenIcon";

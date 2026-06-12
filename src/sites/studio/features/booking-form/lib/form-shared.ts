@@ -6,26 +6,18 @@ export const ADDON_OPTIONS = [
 	"Remote Podcast",
 	"4K UHD Recording",
 	"Essential Edit",
-	"Clips Package",
+	"Clips Package"
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
-export const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
+const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
 export const TIME_SECTIONS = [
-	{
-		key: "morning",
-		label: "Morning",
-		includes: (time: string) => time < "12:00",
-	},
+	{ key: "morning", label: "Morning", includes: (time: string) => time < "12:00" },
 	{
 		key: "afternoon",
 		label: "Afternoon",
-		includes: (time: string) => time >= "12:00" && time < "17:00",
+		includes: (time: string) => time >= "12:00" && time < "17:00"
 	},
-	{
-		key: "evening",
-		label: "Evening",
-		includes: (time: string) => time >= "17:00",
-	},
+	{ key: "evening", label: "Evening", includes: (time: string) => time >= "17:00" }
 ] as const;
 
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
@@ -51,7 +43,7 @@ export const bookingSchema = z
 				z
 					.string()
 					.max(50, "Name must be 50 characters or fewer.")
-					.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters."),
+					.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters.")
 			),
 		phone: z
 			.string()
@@ -66,7 +58,7 @@ export const bookingSchema = z
 				z
 					.string()
 					.max(50, "Account name must be 50 characters or fewer.")
-					.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters."),
+					.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters.")
 			),
 		abn: z
 			.string()
@@ -75,7 +67,7 @@ export const bookingSchema = z
 			.optional()
 			.transform((value) => value?.replace(/\s+/g, ""))
 			.refine((value) => !value || /^\d{11}$/.test(value), {
-				message: "ABN must be exactly 11 digits.",
+				message: "ABN must be exactly 11 digits."
 			}),
 		email: z
 			.string()
@@ -93,7 +85,7 @@ export const bookingSchema = z
 		addons: z.array(z.enum(ADDON_OPTIONS)),
 		essentialEditQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).optional(),
 		clipsPackageQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).optional(),
-		notes: z.string().trim().max(200, "Please keep this under 200 characters."),
+		notes: z.string().trim().max(200, "Please keep this under 200 characters.")
 	})
 	.superRefine((values, ctx) => {
 		// Editing add-ons are charged independently, so each selected editing add-on
@@ -102,7 +94,7 @@ export const bookingSchema = z
 			ctx.addIssue({
 				code: "custom",
 				message: "Number of essential edits is required.",
-				path: ["essentialEditQuantity"],
+				path: ["essentialEditQuantity"]
 			});
 		}
 
@@ -110,13 +102,12 @@ export const bookingSchema = z
 			ctx.addIssue({
 				code: "custom",
 				message: "Number of clips packages is required.",
-				path: ["clipsPackageQuantity"],
+				path: ["clipsPackageQuantity"]
 			});
 		}
 	});
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
-export type ParsedBookingFormValues = z.output<typeof bookingSchema>;
 
 export interface AvailableTimeSection {
 	key: TimeSectionKey;
@@ -137,7 +128,7 @@ export const INITIAL_FORM: BookingFormValues = {
 	addons: [],
 	essentialEditQuantity: "",
 	clipsPackageQuantity: "",
-	notes: "",
+	notes: ""
 };
 
 export function toFieldErrorObjects(errors: unknown[]) {

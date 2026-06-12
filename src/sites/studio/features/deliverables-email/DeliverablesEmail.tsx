@@ -15,14 +15,9 @@ export function DeliverablesEmail({
 	driveLink,
 	emailVariant,
 	name,
-	signoffName,
+	signoffName
 }: DeliverablesEmailProps) {
-	const props = {
-		bookingDate,
-		driveLink,
-		name,
-		signoffName,
-	};
+	const props = { bookingDate, driveLink, name, signoffName };
 
 	if (emailVariant === "first-time") {
 		return <FirstTimeDeliverablesEmail {...props} />;

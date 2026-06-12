@@ -4,19 +4,23 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ChevronDown } from "lucide-react";
-
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
+import type {
+	CloseEmbeddedCheckoutSessionResult,
+	CreateEmbeddedCheckoutSessionResult
+} from "#convex/stripe";
+import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
 import {
 	BookDevErrorPanel,
-	type BookDevErrorCode,
+	type BookDevErrorCode
 } from "#studio/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
 import {
 	BookingRecordingSpaceDurationSection,
-	BookingRecurringSessionsPrompt,
+	BookingRecurringSessionsPrompt
 } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
@@ -24,25 +28,21 @@ import { BookingSavedInfoBanner } from "#studio/features/booking-form/components
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
 	bookingFormContext,
-	type BookingFormApi,
+	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	bookingSchema,
 	INITIAL_FORM,
 	TIME_SECTIONS,
-	type TimeSectionKey,
+	type TimeSectionKey
 } from "#studio/features/booking-form/lib/form-shared";
-import {
-	getBookingErrorMessage,
-	getBookingSubmitFailureMessage,
-} from "#studio/features/booking-form/lib/booking-errors";
 import {
 	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
 	storeSavedBookingInfo,
 	toSavedBookingInfo,
-	type SavedBookingInfo,
+	type SavedBookingInfo
 } from "#studio/features/booking-form/lib/saved-booking-info";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -57,19 +57,19 @@ import {
 	getLastBookableDate,
 	parseDateValue,
 	parseMonthKey,
-	startOfToday,
+	startOfToday
 } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import {
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
-	isAvailabilityRateLimitedMessage,
 	isBookingDateDisabled,
 	mergeBookableRangeBusyWindows,
-	type BusyDayWindow,
+	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
+import { tryCatch } from "#/lib/result";
 
 interface EmbeddedCheckoutSession {
 	bookingId: Id<"bookings">;
@@ -87,25 +87,70 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 const termsDialogPendingError = new Error("terms-dialog-pending");
 const loadBookingPaymentModal = () =>
 	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
-		default: module.BookingPaymentModal,
+		default: module.BookingPaymentModal
 	}));
 const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
-	component: BookingPage,
+	component: BookingPage
 });
 
-const pageCopy = {
-	title: "Studio Hire Booking",
+const pageCopy = { title: "Studio Hire Booking" } as const;
+
+const BOOKING_PAGE_ERROR_MESSAGES = {
+	bookingEmailDomainInvalid:
+		"This email domain doesn't appear able to receive email. Please check for typos.",
+	bookingInvalidDate: "Choose a valid booking date.",
+	bookingInvalidDuration: "Choose a valid booking duration.",
+	bookingInvalidInput: "Some booking details were invalid. Please review the form and try again.",
+	bookingInvalidTime: "Choose a valid booking time.",
+	bookingRateLimited: "Too many booking attempts. Please try again in one minute.",
+	bookingTimeUnavailable: "That time was just taken. Please choose another available time.",
+	googleCalendarAuthFailed:
+		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
+	googleCalendarAvailabilityFailed:
+		"We couldn't load booking times right now. Please refresh or try again soon.",
+	googleCalendarRateLimited:
+		"Booking times are being checked too often. Please wait a minute, then try again.",
+	startCheckoutFailed: "Something went wrong while starting checkout.",
+	loadAvailabilityFailed: "Something went wrong while loading availability.",
+	unknown: "Something went wrong."
 } as const;
+
+function getDevBookingErrorMessage(code: BookDevErrorCode) {
+	switch (code) {
+		case "BOOKING_TIME_UNAVAILABLE":
+			return BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable;
+
+		case "BOOKING_INVALID_INPUT":
+			return BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput;
+
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
+
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
+
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
+
+		case "UNKNOWN":
+			return BOOKING_PAGE_ERROR_MESSAGES.unknown;
+
+		default: {
+			const _exhaustive: never = code;
+			return _exhaustive;
+		}
+	}
+}
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.createEmbeddedCheckoutSession,
+		api.stripe.createEmbeddedCheckoutSession
 	);
 	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.closeEmbeddedCheckoutSession,
+		api.stripe.closeEmbeddedCheckoutSession
 	);
 	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
@@ -128,7 +173,7 @@ function BookingPage() {
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<TimeSectionKey | null>(
-		null,
+		null
 	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
@@ -138,10 +183,7 @@ function BookingPage() {
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
-		validators: {
-			onBlur: bookingSchema,
-			onSubmit: bookingSchema,
-		},
+		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
 		onSubmit: async ({ value }) => {
 			const parsedValue = bookingSchema.parse(value);
 
@@ -155,31 +197,73 @@ function BookingPage() {
 			setIsSubmitting(true);
 
 			try {
-				const session = await createEmbeddedCheckoutSession({
-					name: parsedValue.name,
-					phone: parsedValue.phone,
-					accountName: parsedValue.accountName,
-					abn: parsedValue.abn || undefined,
-					email: parsedValue.email,
-					date: parsedValue.date,
-					time: parsedValue.time,
-					duration: parsedValue.duration,
-					service: parsedValue.service,
-					addons: parsedValue.addons,
-					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
-					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
-					notes: parsedValue.notes,
-				});
+				const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
+					createEmbeddedCheckoutSession({
+						name: parsedValue.name,
+						phone: parsedValue.phone,
+						accountName: parsedValue.accountName,
+						abn: parsedValue.abn || undefined,
+						email: parsedValue.email,
+						date: parsedValue.date,
+						time: parsedValue.time,
+						duration: parsedValue.duration,
+						service: parsedValue.service,
+						addons: parsedValue.addons,
+						essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
+						clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
+						notes: parsedValue.notes
+					})
+				);
 
-				if (!session.ok) {
-					toast.error(getBookingSubmitFailureMessage(session));
-					return;
+				if (error !== null) {
+					switch (error.reason) {
+						case "BOOKING_EMAIL_DOMAIN_INVALID":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingEmailDomainInvalid);
+							return;
+
+						case "BOOKING_INVALID_INPUT":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
+							return;
+
+						case "BOOKING_INVALID_DATE":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDate);
+							return;
+
+						case "BOOKING_INVALID_DURATION":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDuration);
+							return;
+
+						case "BOOKING_INVALID_TIME":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidTime);
+							return;
+
+						case "BOOKING_OUTSIDE_OPENING_HOURS":
+						case "BOOKING_TOO_FAR_AHEAD":
+						case "BOOKING_TOO_SOON":
+						case "BOOKING_TIME_UNAVAILABLE":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable);
+							return;
+
+						case "BOOKING_RATE_LIMITED":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
+							return;
+
+						case "STRIPE_SESSION_LINK_FAILED":
+						case "UNEXPECTED_ERROR":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.startCheckoutFailed);
+							return;
+
+						default: {
+							const _exhaustive: never = error;
+							return _exhaustive;
+						}
+					}
 				}
 
 				if (shouldSaveBookingInfo) {
 					const nextSavedBookingInfo = toSavedBookingInfo(
 						parsedValue,
-						preferredTimeSectionKey ?? "",
+						preferredTimeSectionKey ?? ""
 					);
 					storeSavedBookingInfo(nextSavedBookingInfo);
 					setSavedBookingInfo(nextSavedBookingInfo);
@@ -192,13 +276,11 @@ function BookingPage() {
 				setShowTermsDialog(false);
 
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
-			} catch (submissionError) {
-				toast.error(getBookingErrorMessage(submissionError));
 			} finally {
 				setIsSubmitting(false);
 				submitAfterTermsRef.current = false;
 			}
-		},
+		}
 	});
 	const formValues = useStore(formApi.store, (state) => state.values);
 	const selectedDate = parseDateValue(formValues.date);
@@ -216,7 +298,8 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited = isAvailabilityRateLimitedMessage(availabilityError);
+	const isAvailabilityRateLimited =
+		availabilityError === BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
 
 	// load availability rate limit key
 	useEffect(() => {
@@ -248,7 +331,7 @@ function BookingPage() {
 			}
 
 			setHasReachedCompleteBooking(
-				completeBookingButton.getBoundingClientRect().top <= window.innerHeight,
+				completeBookingButton.getBoundingClientRect().top <= window.innerHeight
 			);
 		};
 
@@ -268,6 +351,8 @@ function BookingPage() {
 			return;
 		}
 
+		const rateLimitKey = availabilityRateLimitKey;
+
 		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
@@ -279,32 +364,56 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void getBookableRangeBusyWindows({
-			rateLimitKey: availabilityRateLimitKey,
-		})
-			.then((result) => {
-				if (isCancelled) {
-					return;
+		async function loadAvailability() {
+			const [error, result] = await tryCatch<GetBookableRangeBusyWindowsResult>(
+				getBookableRangeBusyWindows({ rateLimitKey })
+			);
+
+			if (isCancelled) {
+				return;
+			}
+
+			if (error !== null) {
+				let errorMessage: string;
+
+				switch (error.reason) {
+					case "GOOGLE_CALENDAR_AUTH_FAILED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
+						break;
+
+					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
+						break;
+
+					case "GOOGLE_CALENDAR_RATE_LIMITED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
+						break;
+
+					case "UNEXPECTED_ERROR":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.loadAvailabilityFailed;
+						break;
+
+					default: {
+						const _exhaustive: never = error;
+						return _exhaustive;
+					}
 				}
 
-				setMonthlyBusyWindowsByMonth((current) =>
-					mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result }),
-				);
-			})
-			.catch((availabilityFetchError) => {
-				if (isCancelled) {
-					return;
-				}
+				console.error("Booking availability failed", { reason: error.reason });
 
-				const errorMessage = getBookingErrorMessage(availabilityFetchError);
 				setAvailabilityError(errorMessage);
 				toast.error(errorMessage);
-			})
-			.finally(() => {
-				if (!isCancelled) {
-					setIsLoadingMonthAvailability(false);
-				}
-			});
+				setIsLoadingMonthAvailability(false);
+				return;
+			}
+
+			setMonthlyBusyWindowsByMonth((current) =>
+				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
+			);
+			setIsLoadingMonthAvailability(false);
+		}
+
+		void loadAvailability();
 
 		return () => {
 			isCancelled = true;
@@ -313,15 +422,11 @@ function BookingPage() {
 		availabilityRateLimitKey,
 		bookableMonthKeys,
 		getBookableRangeBusyWindows,
-		monthlyBusyWindowsByMonth,
+		monthlyBusyWindowsByMonth
 	]);
 
 	const selectedBusyDay = formValues.date
-		? getSelectedBusyDay({
-				date: formValues.date,
-				monthlyBusyWindowsByMonth,
-				selectedMonth,
-			})
+		? getSelectedBusyDay({ date: formValues.date, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
 
 	const disabledDates = useMemo(() => {
@@ -334,7 +439,7 @@ function BookingPage() {
 				lastBookableDate,
 				monthlyBusyWindowsByMonth,
 				settings: availabilitySettings,
-				today,
+				today
 			});
 	}, [
 		currentTimestamp,
@@ -343,7 +448,7 @@ function BookingPage() {
 		lastBookableDate,
 		monthlyBusyWindowsByMonth,
 		availabilitySettings,
-		today,
+		today
 	]);
 
 	const availableTimes = useMemo<string[]>(() => {
@@ -366,7 +471,7 @@ function BookingPage() {
 			currentTimestamp,
 			dateValue: formValues.date,
 			duration: formValues.duration,
-			settings: availabilitySettings,
+			settings: availabilitySettings
 		});
 	}, [
 		currentTimestamp,
@@ -379,12 +484,12 @@ function BookingPage() {
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
-		selectedMonth,
+		selectedMonth
 	]);
 
 	const availableTimeSections = TIME_SECTIONS.map((section) => ({
 		...section,
-		times: availableTimes.filter(section.includes),
+		times: availableTimes.filter(section.includes)
 	})).filter((section) => section.times.length > 0);
 
 	const scrollToFirstError = () => {
@@ -399,20 +504,17 @@ function BookingPage() {
 				"accountName",
 				"abn",
 				"email",
-				"notes",
+				"notes"
 			];
 
 			for (const fieldName of fieldOrder) {
 				const fieldContainer = formRef.current?.querySelector<HTMLElement>(
-					`[data-field-name="${fieldName}"]`,
+					`[data-field-name="${fieldName}"]`
 				);
 				const fieldError = fieldContainer?.querySelector<HTMLElement>('[data-slot="field-error"]');
 
 				if (fieldContainer && fieldError) {
-					fieldContainer.scrollIntoView({
-						behavior: "smooth",
-						block: "center",
-					});
+					fieldContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 					return;
 				}
 			}
@@ -468,7 +570,7 @@ function BookingPage() {
 		isSelectedDateTooFarInFuture,
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
-		selectedMonth,
+		selectedMonth
 	]);
 
 	const handlePaymentModalClose = () => {
@@ -479,12 +581,39 @@ function BookingPage() {
 			return;
 		}
 
-		void closeEmbeddedCheckoutSession({
-			bookingId: activeCheckoutSession.bookingId,
-			stripeSessionId: activeCheckoutSession.stripeSessionId,
-		}).catch((closeCheckoutError) => {
-			toast.error(getBookingErrorMessage(closeCheckoutError));
-		});
+		void closeOpenCheckoutSession(activeCheckoutSession);
+	};
+
+	const closeOpenCheckoutSession = async (activeCheckoutSession: EmbeddedCheckoutSession) => {
+		const [error] = await tryCatch<CloseEmbeddedCheckoutSessionResult>(
+			closeEmbeddedCheckoutSession({
+				bookingId: activeCheckoutSession.bookingId,
+				stripeSessionId: activeCheckoutSession.stripeSessionId
+			})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "STRIPE_CHECKOUT_CLOSE_FAILED":
+					toast.error("Failed to close checkout.");
+					return;
+
+				case "STRIPE_SESSION_MISMATCH":
+					toast.error(
+						"We couldn’t close this checkout session safely. Please refresh the page and try again."
+					);
+					return;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while closing checkout.");
+					return;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+		}
 	};
 
 	const handleTermsConfirm = () => {
@@ -534,24 +663,18 @@ function BookingPage() {
 
 		scrollTarget?.scrollIntoView({
 			behavior: "smooth",
-			block: isDateTimeIncomplete ? "start" : "center",
+			block: isDateTimeIncomplete ? "start" : "center"
 		});
 	};
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
+		const errorMessage = getDevBookingErrorMessage(code);
+
 		if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
-			const errorMessage = getBookingErrorMessage({ data: { code } });
 			setAvailabilityError(errorMessage);
-			toast.error(errorMessage);
-			return;
 		}
 
-		if (code === "UNKNOWN") {
-			toast.error(getBookingErrorMessage(new Error("Something went wrong.")));
-			return;
-		}
-
-		toast.error(getBookingErrorMessage({ data: { code } }));
+		toast.error(errorMessage);
 	};
 
 	return (
@@ -586,7 +709,11 @@ function BookingPage() {
 							})
 							.catch((submissionError) => {
 								if (submissionError !== termsDialogPendingError) {
-									toast.error(getBookingErrorMessage(submissionError));
+									const message =
+										submissionError instanceof Error
+											? submissionError.message
+											: "Something went wrong.";
+									toast.error(message);
 								}
 							});
 					}}

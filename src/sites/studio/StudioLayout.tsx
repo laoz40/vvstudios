@@ -7,10 +7,7 @@ import { Footer } from "#studio/components/Footer";
 import { FooterImageReveal } from "#studio/components/FooterImageReveal";
 import { SiteNavbar } from "#studio/components/NavBar";
 
-export type StudioLayoutProps = {
-	children: ReactNode;
-	pathname: string;
-};
+export type StudioLayoutProps = { children: ReactNode; pathname: string };
 
 export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 	const useMinimalLayout =
@@ -34,7 +31,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 					style={{
 						backgroundImage: `url(${footerRevealImage})`,
 						scale: prefersReducedMotion ? 1 : footerImageScale,
-						y: prefersReducedMotion ? 0 : footerImageY,
+						y: prefersReducedMotion ? 0 : footerImageY
 					}}
 				/>
 			)}
@@ -48,7 +45,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 					useMinimalLayout
 						? "flex min-h-screen flex-col bg-background"
 						: "relative z-10 min-h-screen bg-background pt-18 md:pt-24",
-					!useMinimalLayout && !isHomePage && "page-spotlight-background",
+					!useMinimalLayout && !isHomePage && "page-spotlight-background"
 				)}>
 				{children}
 			</div>

@@ -10,50 +10,27 @@ const HashtagIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			// Animate horizontal lines
 			animate(
 				".line-horizontal",
-				{
-					scaleX: 1.1,
-					opacity: 0.7,
-				},
-				{
-					duration: 0.3,
-					ease: "easeOut",
-				},
+				{ scaleX: 1.1, opacity: 0.7 },
+				{ duration: 0.3, ease: "easeOut" }
 			);
 
 			// Animate vertical lines
 			animate(
 				".line-vertical",
-				{
-					scaleY: 1.1,
-					opacity: 0.7,
-				},
-				{
-					duration: 0.3,
-					delay: 0.1,
-					ease: "easeOut",
-				},
+				{ scaleY: 1.1, opacity: 0.7 },
+				{ duration: 0.3, delay: 0.1, ease: "easeOut" }
 			);
 		}, [animate]);
 
 		const stop = useCallback(async () => {
 			animate(
 				".line-horizontal, .line-vertical",
-				{
-					scaleX: 1,
-					scaleY: 1,
-					opacity: 1,
-				},
-				{
-					duration: 0.25,
-					ease: "easeInOut",
-				},
+				{ scaleX: 1, scaleY: 1, opacity: 1 },
+				{ duration: 0.25, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -97,7 +74,7 @@ const HashtagIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 HashtagIcon.displayName = "HashtagIcon";

@@ -10,7 +10,7 @@ const CopyIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			await animate(
 				".front-copy",
 				{ x: [0, 2, 0], y: [0, 2, 0] },
-				{ duration: 0.3, ease: "easeInOut" },
+				{ duration: 0.3, ease: "easeInOut" }
 			);
 		};
 
@@ -19,10 +19,7 @@ const CopyIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -63,7 +60,7 @@ const CopyIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 CopyIcon.displayName = "CopyIcon";

@@ -7,9 +7,7 @@ import { env } from "./env";
 
 const http = httpRouter();
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-	apiVersion: "2026-03-25.dahlia",
-});
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
 
 http.route({
 	path: "/stripe/webhook",
@@ -18,9 +16,7 @@ http.route({
 		const signature = req.headers.get("stripe-signature");
 
 		if (!signature) {
-			return new Response("Missing Stripe signature header", {
-				status: 400,
-			});
+			return new Response("Missing Stripe signature header", { status: 400 });
 		}
 
 		const body = await req.text();
@@ -31,9 +27,7 @@ http.route({
 			event = await stripe.webhooks.constructEventAsync(body, signature, env.STRIPE_WEBHOOK_SECRET);
 		} catch (error) {
 			console.error("Invalid Stripe webhook signature", error);
-			return new Response("Invalid Stripe webhook signature", {
-				status: 400,
-			});
+			return new Response("Invalid Stripe webhook signature", { status: 400 });
 		}
 
 		if (event.type === "checkout.session.completed") {
@@ -43,7 +37,7 @@ http.route({
 			if (!bookingId) {
 				console.error("Stripe checkout session missing bookingId metadata", {
 					eventId: event.id,
-					sessionId: session.id,
+					sessionId: session.id
 				});
 				return new Response("Missing bookingId metadata", { status: 400 });
 			}
@@ -53,35 +47,51 @@ http.route({
 					? session.payment_intent
 					: session.payment_intent?.id;
 
-			const result = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
+			const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
 				bookingId: bookingId as Id<"bookings">,
 				stripeSessionId: session.id,
 				stripePaymentIntentId,
-				stripeEventId: event.id,
+				stripeEventId: event.id
 			});
 
-			if (!result.ok) {
+			if (claimError !== null) {
 				console.error("Booking completion claim failed", {
 					eventId: event.id,
 					sessionId: session.id,
 					bookingId,
-					result,
+					claimError
 				});
 
 				return new Response("claim failed", { status: 200 });
 			}
 
-			if (result.outcome === "already_confirmed") {
+			if (claim.outcome === "already_confirmed") {
 				return new Response("already confirmed", { status: 200 });
 			}
 
-			if (result.outcome === "already_claimed") {
+			if (claim.outcome === "already_claimed") {
 				return new Response("already claimed", { status: 200 });
 			}
 
-			await ctx.runAction(internal.googleCalendar.completeClaimedBooking, {
-				bookingId: bookingId as Id<"bookings">,
-			});
+			const [completionError, completionResult] = await ctx.runAction(
+				internal.googleCalendar.completeClaimedBooking,
+				{ bookingId: bookingId as Id<"bookings"> }
+			);
+
+			if (completionError !== null) {
+				console.error("Booking completion failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					bookingId,
+					completionError
+				});
+
+				return new Response("completion failed", { status: 200 });
+			}
+
+			if (!completionResult.completed) {
+				return new Response(completionResult.outcome, { status: 200 });
+			}
 
 			return new Response("confirmed", { status: 200 });
 		}
@@ -90,14 +100,14 @@ http.route({
 			const session = event.data.object as Stripe.Checkout.Session;
 
 			await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
-				stripeSessionId: session.id,
+				stripeSessionId: session.id
 			});
 
 			return new Response("expired", { status: 200 });
 		}
 
 		return new Response("ignored", { status: 200 });
-	}),
+	})
 });
 
 export default http;

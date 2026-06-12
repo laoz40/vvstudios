@@ -3,47 +3,16 @@
 import { createHash } from "node:crypto";
 import { resolveMx } from "node:dns/promises";
 import Stripe from "stripe";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { action } from "./_generated/server";
+import { action, type ActionCtx } from "./_generated/server";
 import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
+import { err, ok, type Result } from "../src/lib/result";
 import { env } from "./env";
 
-type CreateEmbeddedCheckoutSessionResult =
-	| {
-			ok: true;
-			bookingId: Id<"bookings">;
-			clientSecret: string;
-			stripeSessionId: string;
-	  }
-	| {
-			ok: false;
-			code: "BOOKING_RATE_LIMITED";
-			retryAfter: number;
-	  }
-	| {
-			ok: false;
-			code: "BOOKING_EMAIL_DOMAIN_INVALID";
-	  };
-
-interface CloseEmbeddedCheckoutSessionResult {
-	ok: true;
-	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
-}
-
-type BookingValidationErrorData = {
-	code: "BOOKING_INVALID_INPUT" | "BOOKING_EMAIL_DOMAIN_INVALID";
-};
-
-type DeletePendingBookingResult =
-	| { ok: true; outcome: "abandoned" | "not_found" | "not_pending" }
-	| { ok: false; reason: "stripe_session_mismatch" };
-
 function getStripeClient() {
-	return new Stripe(env.STRIPE_SECRET_KEY, {
-		apiVersion: "2026-03-25.dahlia",
-	});
+	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
 }
 
 function getBookingSubmitRateLimitKey(email: string) {
@@ -65,6 +34,21 @@ async function emailDomainCanReceiveMail(email: string) {
 	}
 }
 
+type PendingBookingCreationResult = Result<
+	{ bookingId: Id<"bookings"> },
+	{
+		reason:
+			| "BOOKING_INVALID_DATE"
+			| "BOOKING_INVALID_DURATION"
+			| "BOOKING_INVALID_TIME"
+			| "BOOKING_OUTSIDE_OPENING_HOURS"
+			| "BOOKING_RATE_LIMITED"
+			| "BOOKING_TOO_FAR_AHEAD"
+			| "BOOKING_TOO_SOON";
+		retryAfter?: number;
+	}
+>;
+
 export const createEmbeddedCheckoutSession = action({
 	args: {
 		name: v.string(),
@@ -79,24 +63,65 @@ export const createEmbeddedCheckoutSession = action({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string()),
+		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args): Promise<CreateEmbeddedCheckoutSessionResult> => {
-		const parsedBooking = bookingSchema.safeParse(args);
-		if (!parsedBooking.success) {
-			throw new ConvexError<BookingValidationErrorData>({ code: "BOOKING_INVALID_INPUT" });
-		}
+	handler: (ctx, args) => createEmbeddedCheckoutSessionHandler(ctx, args)
+});
 
-		const booking = parsedBooking.data;
-		const isValidEmailDomain = await emailDomainCanReceiveMail(booking.email);
+// Creates a pending booking, opens a Stripe checkout session, then links both records.
+async function createEmbeddedCheckoutSessionHandler(
+	ctx: ActionCtx,
+	args: {
+		name: string;
+		phone: string;
+		accountName: string;
+		abn?: string;
+		email: string;
+		date: string;
+		time: string;
+		duration: string;
+		service: string;
+		addons: string[];
+		essentialEditQuantity?: string;
+		clipsPackageQuantity?: string;
+		notes?: string;
+	}
+): Promise<
+	Result<
+		{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
+		| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
+		| { reason: "BOOKING_INVALID_INPUT" }
+		| { reason: "BOOKING_INVALID_DATE" }
+		| { reason: "BOOKING_INVALID_DURATION" }
+		| { reason: "BOOKING_INVALID_TIME" }
+		| { reason: "BOOKING_OUTSIDE_OPENING_HOURS" }
+		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
+		| { reason: "BOOKING_TIME_UNAVAILABLE" }
+		| { reason: "BOOKING_TOO_FAR_AHEAD" }
+		| { reason: "BOOKING_TOO_SOON" }
+		| { reason: "STRIPE_SESSION_LINK_FAILED" }
+	>
+> {
+	// Validate the submitted form before creating anything in Convex or Stripe.
+	const parsedBooking = bookingSchema.safeParse(args);
 
-		if (!isValidEmailDomain) {
-			return { ok: false, code: "BOOKING_EMAIL_DOMAIN_INVALID" };
-		}
+	if (!parsedBooking.success) {
+		return err({ reason: "BOOKING_INVALID_INPUT" });
+	}
 
-		const stripe = getStripeClient();
+	// Reject emails whose domain has no mail records, so customers can receive booking emails.
+	const booking = parsedBooking.data;
+	const isValidEmailDomain = await emailDomainCanReceiveMail(booking.email);
 
-		const pendingBookingResult = await ctx.runMutation(internal.bookings.createPendingBooking, {
+	if (!isValidEmailDomain) {
+		return err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" });
+	}
+
+	const stripe = getStripeClient();
+	// Save the booking first so Stripe metadata can point back to it.
+	const pendingBookingResult: PendingBookingCreationResult = await ctx.runMutation(
+		internal.bookings.createPendingBooking,
+		{
 			submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email),
 			name: booking.name,
 			phone: booking.phone,
@@ -110,82 +135,98 @@ export const createEmbeddedCheckoutSession = action({
 			addons: booking.addons,
 			essentialEditQuantity: booking.essentialEditQuantity || undefined,
 			clipsPackageQuantity: booking.clipsPackageQuantity || undefined,
-			notes: booking.notes || undefined,
-		});
-
-		if (!pendingBookingResult.ok) {
-			return pendingBookingResult;
+			notes: booking.notes || undefined
 		}
+	);
+	// Some booking rules are checked inside createPendingBooking, such as time availability.
 
-		const bookingId = pendingBookingResult.bookingId;
-		const session = await stripe.checkout.sessions.create({
-			mode: "payment",
-			ui_mode: "embedded_page",
-			payment_method_types: ["card"],
-			return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
-			customer_email: booking.email,
-			metadata: {
-				bookingId,
-			},
-			line_items: [
-				{
-					price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID,
-					quantity: 1,
-				},
-				{
-					price: env.STRIPE_PROCESSING_FEE_PRICE_ID,
-					quantity: 1,
-				},
-			],
-		});
+	// Stop before Stripe checkout if the booking submit rate limit was hit.
+	const [pendingBookingError, pendingBooking] = pendingBookingResult;
 
-		if (!session.client_secret) {
-			throw new Error("Stripe checkout session missing client secret");
-		}
+	if (pendingBookingError !== null) {
+		return err({ reason: pendingBookingError.reason, retryAfter: pendingBookingError.retryAfter });
+	}
 
+	// Create the embedded Stripe checkout session for the deposit and processing fee.
+	const bookingId = pendingBooking.bookingId;
+	const session = await stripe.checkout.sessions.create({
+		mode: "payment",
+		ui_mode: "embedded_page",
+		payment_method_types: ["card"],
+		return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
+		customer_email: booking.email,
+		metadata: { bookingId },
+		line_items: [
+			{ price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID, quantity: 1 },
+			{ price: env.STRIPE_PROCESSING_FEE_PRICE_ID, quantity: 1 }
+		]
+	});
+
+	// Stripe should always return this for embedded checkout. If not, something is broken.
+	if (!session.client_secret) {
+		throw new Error("Stripe checkout session missing client secret");
+	}
+
+	// Store the Stripe session ID so webhooks and cleanup can match the payment to this booking.
+	try {
 		await ctx.runMutation(internal.bookings.setBookingStripeSessionId, {
 			bookingId,
-			stripeSessionId: session.id,
+			stripeSessionId: session.id
 		});
+	} catch {
+		return err({ reason: "STRIPE_SESSION_LINK_FAILED" });
+	}
 
-		return {
-			ok: true,
-			bookingId,
-			clientSecret: session.client_secret,
-			stripeSessionId: session.id,
-		};
-	},
-});
+	return ok({ bookingId, clientSecret: session.client_secret, stripeSessionId: session.id });
+}
+
+export type CreateEmbeddedCheckoutSessionResult = Awaited<
+	ReturnType<typeof createEmbeddedCheckoutSessionHandler>
+>;
 
 export const closeEmbeddedCheckoutSession = action({
-	args: {
-		bookingId: v.id("bookings"),
-		stripeSessionId: v.string(),
-	},
-	handler: async (ctx, args): Promise<CloseEmbeddedCheckoutSessionResult> => {
-		const stripe = getStripeClient();
-		const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
+	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
+	handler: (ctx, args) => closeEmbeddedCheckoutSessionHandler(ctx, args)
+});
 
-		if (session.status === "complete") {
-			return { ok: true as const, outcome: "already_complete" as const };
-		}
+async function closeEmbeddedCheckoutSessionHandler(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; stripeSessionId: string }
+): Promise<
+	Result<
+		{ outcome: "already_complete" | "abandoned" | "not_found" | "not_pending" },
+		{ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" } | { reason: "STRIPE_SESSION_MISMATCH" }
+	>
+> {
+	const stripe = getStripeClient();
+	let session: Stripe.Checkout.Session;
+
+	try {
+		session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
 
 		if (session.status === "open") {
 			await stripe.checkout.sessions.expire(args.stripeSessionId);
 		}
+	} catch {
+		return err({ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" });
+	}
 
-		const result: DeletePendingBookingResult = await ctx.runMutation(
-			internal.bookings.deletePendingBooking,
-			{
-				bookingId: args.bookingId,
-				stripeSessionId: args.stripeSessionId,
-			},
-		);
+	if (session.status === "complete") {
+		return ok({ outcome: "already_complete" });
+	}
 
-		if (!result.ok) {
-			throw new Error(result.reason);
-		}
+	const [deletePendingBookingError, deletePendingBooking] = await ctx.runMutation(
+		internal.bookings.deletePendingBooking,
+		{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
+	);
 
-		return { ok: true as const, outcome: result.outcome };
-	},
-});
+	if (deletePendingBookingError !== null) {
+		return err({ reason: "STRIPE_SESSION_MISMATCH" });
+	}
+
+	return ok({ outcome: deletePendingBooking.outcome });
+}
+
+export type CloseEmbeddedCheckoutSessionResult = Awaited<
+	ReturnType<typeof closeEmbeddedCheckoutSessionHandler>
+>;

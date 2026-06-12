@@ -6,7 +6,7 @@ import {
 	TableCell,
 	TableHead,
 	TableHeader,
-	TableRow,
+	TableRow
 } from "#/components/ui/table";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
@@ -56,7 +56,7 @@ function BookingSessionTable({
 	dateValue,
 	durationValue,
 	timeValue,
-	tone,
+	tone
 }: BookingSessionTableProps): ReactNode {
 	const valueClassName = tone === "destructive" ? "font-medium text-destructive" : "font-medium";
 	const headerClassName = "text-muted-foreground/80 text-sm font-medium";

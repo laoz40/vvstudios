@@ -9,13 +9,14 @@ import {
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
-	useReactTable,
+	useReactTable
 } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import CopyIcon from "#/components/ui/copy-icon";
 import TrashIcon from "#/components/ui/trash-icon";
@@ -27,7 +28,7 @@ import {
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuGroup,
-	DropdownMenuTrigger,
+	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 
 import { Label } from "#/components/ui/label";
@@ -38,7 +39,7 @@ import {
 	TableCell,
 	TableHead,
 	TableHeader,
-	TableRow,
+	TableRow
 } from "#/components/ui/table";
 import {
 	Dialog,
@@ -46,7 +47,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 
 import {
@@ -55,7 +56,7 @@ import {
 	SheetDescription,
 	SheetHeader,
 	SheetTitle,
-	SheetTrigger,
+	SheetTrigger
 } from "#/components/ui/sheet";
 import { BookingActions } from "#studio/features/admin/components/BookingActions";
 import {
@@ -64,7 +65,7 @@ import {
 	readStoredShowUpcomingOnly,
 	storeAdminDashboardSorting,
 	storeShowStaleBookings,
-	storeShowUpcomingOnly,
+	storeShowUpcomingOnly
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import {
 	bookingStatusBadgeClassNameMap,
@@ -73,12 +74,12 @@ import {
 	deliverableStatusBadgeClassNameMap,
 	deliverableStatusBadgeVariantMap,
 	deliverableStatusLabelMap,
-	getDeliverableStatus,
+	getDeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatAudAmount,
-	getRemainingBalanceAmount,
+	getRemainingBalanceAmount
 } from "#studio/features/admin/lib/remaining-balance";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
@@ -88,10 +89,11 @@ import {
 	formatBookingTimeLabel,
 	getBookingStartTimestamp,
 	getStartOfWeekTimestamp,
-	isUpcomingBooking,
+	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import { cn } from "#/lib/utils";
+import { tryCatch } from "#/lib/result";
 
 type BookingRecord = Doc<"bookings">;
 type AdminBookingRecord = BookingRecord;
@@ -109,7 +111,7 @@ export type AdminDashboardProps = {
 
 function AdminDashboardMenu({
 	email,
-	signOutControl,
+	signOutControl
 }: Pick<AdminDashboardProps, "email" | "signOutControl">) {
 	return (
 		<Sheet>
@@ -189,11 +191,7 @@ async function copyText(value: string, label: string) {
 		toast.error(`Unable to copy ${label}.`);
 	}
 }
-type CopyableTextProps = {
-	value: string;
-	label: string;
-	children: ReactNode;
-};
+type CopyableTextProps = { value: string; label: string; children: ReactNode };
 
 function CopyableText({ value, label, children }: CopyableTextProps) {
 	return (
@@ -229,7 +227,7 @@ function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 
 	const invoiceNumber = formatBookingInvoiceNumber(
 		row.original._id,
-		row.original.pendingPaymentCreatedAt,
+		row.original.pendingPaymentCreatedAt
 	);
 
 	return [
@@ -241,7 +239,7 @@ function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 		row.original.phone,
 		row.original.instagramHandle,
 		row.original.service,
-		row.original.date,
+		row.original.date
 	]
 		.filter((field): field is string => Boolean(field))
 		.some((field) => field.toLowerCase().includes(query));
@@ -257,7 +255,7 @@ function renderSortableHeader(label: string, column: Column<AdminBookingRecord>)
 			variant="ghost"
 			className={cn(
 				"px-0!",
-				sortDirection ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+				sortDirection ? "text-foreground" : "text-muted-foreground hover:text-foreground"
 			)}
 			onClick={() => column.toggleSorting(sortDirection === "asc")}>
 			<span>{label}</span>
@@ -306,7 +304,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 					) : null}
 				</div>
 			),
-			filterFn: (row, _columnId, value) => customerFilter(row, value),
+			filterFn: (row, _columnId, value) => customerFilter(row, value)
 		},
 		{
 			accessorKey: "status",
@@ -317,7 +315,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 					className={bookingStatusBadgeClassNameMap[row.original.status]}>
 					{bookingStatusLabelMap[row.original.status]}
 				</Badge>
-			),
+			)
 		},
 		{
 			id: "session",
@@ -337,7 +335,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						</p>
 					</div>
 				);
-			},
+			}
 		},
 		{
 			accessorKey: "service",
@@ -359,7 +357,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						<p className="text-sm text-muted-foreground">No add-ons</p>
 					)}
 				</div>
-			),
+			)
 		},
 		{
 			id: "contact",
@@ -396,7 +394,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						) : null}
 					</p>
 				</div>
-			),
+			)
 		},
 		{
 			accessorKey: "notes",
@@ -405,7 +403,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 				<p className="whitespace-normal text-sm text-muted-foreground">
 					{row.original.notes?.trim() || "No notes"}
 				</p>
-			),
+			)
 		},
 		{
 			accessorKey: "paidRemainingBalance",
@@ -423,7 +421,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						{isPaid ? "Paid" : remainingBalanceLabel}
 					</p>
 				);
-			},
+			}
 		},
 		{
 			id: "editStatus",
@@ -448,7 +446,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 						{deliverableStatusLabelMap[deliverableStatus]}
 					</Badge>
 				);
-			},
+			}
 		},
 		{
 			id: "createdAt",
@@ -458,13 +456,13 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 				<p className="min-w-44 font-medium whitespace-normal">
 					{formatBookingTimestamp(row.original.pendingPaymentCreatedAt)}
 				</p>
-			),
+			)
 		},
 		{
 			id: "actions",
 			enableHiding: false,
-			cell: ({ row }) => <BookingActions booking={row.original} />,
-		},
+			cell: ({ row }) => <BookingActions booking={row.original} />
+		}
 	];
 }
 
@@ -482,7 +480,7 @@ function AdminStatusMetric({
 	label,
 	value,
 	variant,
-	className,
+	className
 }: {
 	label: string;
 	value: string;
@@ -507,7 +505,7 @@ export function AdminDashboard({
 	email,
 	isLoadingMoreBookings,
 	loadMoreBookings,
-	signOutControl,
+	signOutControl
 }: AdminDashboardProps) {
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
 	const columns = useMemo(() => buildColumns(), []);
@@ -519,7 +517,7 @@ export function AdminDashboard({
 	const [isCleaningUp, setIsCleaningUp] = useState(false);
 	const staleCleanupBookings = useMemo(
 		() => bookings.filter((booking) => isStaleCleanupBooking(booking)),
-		[bookings],
+		[bookings]
 	);
 	useEffect(() => {
 		storeAdminDashboardSorting(sorting);
@@ -550,19 +548,45 @@ export function AdminDashboard({
 	async function handleCleanupOldBookings() {
 		setIsCleaningUp(true);
 
-		try {
-			const result = await cleanupOldBookings({});
-			setIsCleanupDialogOpen(false);
-			toast.success(
-				result.deletedCount === 1
-					? "Deleted 1 unconfirmed booking."
-					: `Deleted ${result.deletedCount} unconfirmed bookings.`,
-			);
-		} catch {
-			toast.error("Unable to clean up old bookings.");
-		} finally {
+		const [error, result] = await tryCatch<CleanupOldPendingAndExpiredBookingsResult>(
+			cleanupOldBookings({})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to clean up bookings.");
+					break;
+
+				case "BOOKING_CLEANUP_FAILED":
+					toast.error("Unable to clean up old bookings.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while cleaning up old bookings.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsCleaningUp(false);
+			return;
 		}
+
+		setIsCleanupDialogOpen(false);
+		toast.success(
+			result.deletedCount === 1
+				? "Deleted 1 unconfirmed booking."
+				: `Deleted ${result.deletedCount} unconfirmed bookings.`
+		);
+		setIsCleaningUp(false);
 	}
 
 	const table = useReactTable({
@@ -574,15 +598,8 @@ export function AdminDashboard({
 		getSortedRowModel: getSortedRowModel(),
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
-		initialState: {
-			pagination: {
-				pageSize: 12,
-			},
-		},
-		state: {
-			sorting,
-			columnFilters,
-		},
+		initialState: { pagination: { pageSize: 12 } },
+		state: { sorting, columnFilters }
 	});
 
 	const metrics = useMemo(() => {
@@ -607,8 +624,8 @@ export function AdminDashboard({
 				email_failed: 0,
 				expired: 0,
 				failed: 0,
-				pending_payment: 0,
-			},
+				pending_payment: 0
+			}
 		);
 
 		return counts;
@@ -621,16 +638,9 @@ export function AdminDashboard({
 					accumulator[booking.status] += 1;
 					return accumulator;
 				},
-				{
-					abandoned: 0,
-					confirmed: 0,
-					expired: 0,
-					email_failed: 0,
-					failed: 0,
-					pending_payment: 0,
-				},
+				{ abandoned: 0, confirmed: 0, expired: 0, email_failed: 0, failed: 0, pending_payment: 0 }
 			),
-		[staleCleanupBookings],
+		[staleCleanupBookings]
 	);
 
 	return (
@@ -783,7 +793,7 @@ export function AdminDashboard({
 														!showUpcomingOnly &&
 															isPastBooking &&
 															cell.column.id !== "editStatus" &&
-															"opacity-70",
+															"opacity-70"
 													)}>
 													{flexRender(cell.column.columnDef.cell, cell.getContext())}
 												</TableCell>

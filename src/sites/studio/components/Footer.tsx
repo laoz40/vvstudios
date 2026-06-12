@@ -6,7 +6,7 @@ import {
 	CONTACT_PHONE,
 	INSTAGRAM_URL,
 	STUDIO_ADDRESS,
-	STUDIO_ADDRESS_URL,
+	STUDIO_ADDRESS_URL
 } from "#/config/contact";
 import { GiveFeedbackDialog } from "#studio/components/GiveFeedbackDialog";
 
@@ -14,30 +14,16 @@ const footerContent = {
 	studioName: "VV Studios",
 	parentCompanyName: "Vertigo Visuals",
 	lead: "The best studio in South West Sydney",
-	contactAriaLabel: "Contact details",
+	contactAriaLabel: "Contact details"
 } as const;
 
 const footerContactItems = [
-	{
-		label: "Phone",
-		value: CONTACT_PHONE,
-		href: `tel:${CONTACT_PHONE}`,
-	},
-	{
-		label: "Email",
-		value: CONTACT_EMAIL,
-		href: `mailto:${CONTACT_EMAIL}`,
-	},
-	{
-		label: "Location",
-		value: STUDIO_ADDRESS,
-		href: STUDIO_ADDRESS_URL,
-	},
+	{ label: "Phone", value: CONTACT_PHONE, href: `tel:${CONTACT_PHONE}` },
+	{ label: "Email", value: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
+	{ label: "Location", value: STUDIO_ADDRESS, href: STUDIO_ADDRESS_URL }
 ] as const;
 
-const currentYear = new Date().toLocaleDateString(undefined, {
-	year: "numeric",
-});
+const currentYear = new Date().toLocaleDateString(undefined, { year: "numeric" });
 
 export function Footer() {
 	return (

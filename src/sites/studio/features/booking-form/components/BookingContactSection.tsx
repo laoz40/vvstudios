@@ -5,7 +5,7 @@ import {
 	FieldError,
 	FieldLabel,
 	FieldLegend,
-	FieldSet,
+	FieldSet
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
@@ -34,7 +34,7 @@ const sectionCopy = {
 	emailNote: "To receive your booking invoice.",
 	emailPlaceholder: "billing@example.com",
 	notesLegend: "Anything else?",
-	notesPlaceholder: "Let us know if you have any special requests or questions.",
+	notesPlaceholder: "Let us know if you have any special requests or questions."
 } as const;
 
 export function BookingContactSection() {

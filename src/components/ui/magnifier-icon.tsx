@@ -9,12 +9,8 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = async () => {
 			await animate(
 				".magnifier-group",
-				{
-					x: [0, 1, 0, -1, 0],
-					y: [0, -1, -2, -1, 0],
-					rotate: [0, -5, 5, -5, 0],
-				},
-				{ duration: 1, ease: "easeInOut" },
+				{ x: [0, 1, 0, -1, 0], y: [0, -1, -2, -1, 0], rotate: [0, -5, 5, -5, 0] },
+				{ duration: 1, ease: "easeInOut" }
 			);
 		};
 
@@ -22,10 +18,7 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(".magnifier-group", { x: 0, y: 0, rotate: 0 }, { duration: 0.2, ease: "easeOut" });
 		};
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		const handleHoverStart = () => {
 			start();
@@ -53,10 +46,7 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				{/* 🔁 Animate THIS group */}
 				<motion.g
 					className="magnifier-group"
-					style={{
-						transformOrigin: "13px 13px",
-						transformBox: "fill-box",
-					}}>
+					style={{ transformOrigin: "13px 13px", transformBox: "fill-box" }}>
 					<motion.path d="m21.393,18.565l7.021,7.021c.781.781.781,2.047,0,2.828h0c-.781.781-2.047.781-2.828,0l-7.021-7.021" />
 					<motion.circle
 						cx="13"
@@ -67,7 +57,7 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</motion.g>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 MagnifierIcon.displayName = "MagnifierIcon";

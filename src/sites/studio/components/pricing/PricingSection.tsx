@@ -33,7 +33,7 @@ const pricingPageCopy = {
 	addOnsTitle: "Production add-ons",
 	bookSessionLabel: "Book session",
 	bookingDepositNote:
-		"Only $50 booking deposit required to secure your time slot, which gets deducted from your total.",
+		"Only $50 booking deposit required to secure your time slot, which gets deducted from your total."
 } as const;
 
 const pricingSessions: readonly PricingSession[] = [
@@ -42,7 +42,7 @@ const pricingSessions: readonly PricingSession[] = [
 		price: "$200",
 		baseRatePrice: "$200",
 		description:
-			"Quick focused recording window. Best for solo episodes, voiceovers or short interviews.",
+			"Quick focused recording window. Best for solo episodes, voiceovers or short interviews."
 	},
 	{
 		label: "2 Hours",
@@ -50,15 +50,15 @@ const pricingSessions: readonly PricingSession[] = [
 		baseRatePrice: "$400",
 		savings: "Save $101",
 		description: "Balanced session for interviews, business podcasts and longer conversations.",
-		isMostPopular: true,
+		isMostPopular: true
 	},
 	{
 		label: "3 Hours",
 		price: "$399",
 		baseRatePrice: "$600",
 		savings: "Save $201",
-		description: "Extended time for deeper interviews, multiple guests or content batching.",
-	},
+		description: "Extended time for deeper interviews, multiple guests or content batching."
+	}
 ];
 
 const pricingAddOns: readonly PricingAddOn[] = [
@@ -67,29 +67,29 @@ const pricingAddOns: readonly PricingAddOn[] = [
 		price: "$59",
 		description:
 			"Record with guests anywhere in the world through Riverside.fm, while you get the professional studio look and cinematic lighting in your own recording.",
-		icon: Globe,
+		icon: Globe
 	},
 	{
 		label: "4K UHD recording",
 		price: "$49",
 		description:
 			"Our highest quality recording option. Ideal if you want extra clarity in the final video or plan to crop footage for social media without losing quality.",
-		icon: Video,
+		icon: Video
 	},
 	{
 		label: "Essential Edit",
 		price: "$99",
 		description:
 			"A clean edit of your full episode. We synchronise the audio and cut between camera angles so the final video feels smooth and ready to publish.",
-		icon: Scissors,
+		icon: Scissors
 	},
 	{
 		label: "Clips Package",
 		price: "$79",
 		description:
 			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",
-		icon: Smartphone,
-	},
+		icon: Smartphone
+	}
 ];
 
 export type PricingSectionProps = {
@@ -103,7 +103,7 @@ export function PricingSection({
 	headingLevel = "h2",
 	className,
 	compact = false,
-	fadeIn = false,
+	fadeIn = false
 }: PricingSectionProps) {
 	const HeadingTag = headingLevel;
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
@@ -113,7 +113,7 @@ export function PricingSection({
 			className={cn(
 				"px-4 pb-16 sm:pb-20 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
 				compact ? "" : "pt-0",
-				className,
+				className
 			)}>
 			<motion.div
 				className="flex w-full flex-col items-center gap-8 md:gap-12"
@@ -133,7 +133,7 @@ export function PricingSection({
 							key={session.label}
 							className={[
 								"bg-card relative flex h-full flex-col rounded-lg border p-4 sm:px-5 sm:py-6 shadow-xl",
-								session.isMostPopular ? "border-primary" : "border-border",
+								session.isMostPopular ? "border-primary" : "border-border"
 							]
 								.filter(Boolean)
 								.join(" ")}>

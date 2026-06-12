@@ -4,24 +4,32 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import type {
+	CreateCustomInvoiceResult,
+	ListCustomInvoicesForBookingResult
+} from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
-import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
+import {
+	type DownloadAdminBookingInvoiceResult,
+	downloadAdminBookingInvoice
+} from "#studio/features/admin/lib/download-admin-booking-invoice";
+import { tryCatch } from "#/lib/result";
 import {
 	Dialog,
 	DialogClose,
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
-	DURATION_PRICES,
+	DURATION_PRICES
 } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
@@ -31,11 +39,12 @@ import {
 	DURATION_OPTIONS,
 	SERVICES,
 	toDeliverableCountOption,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 type BookingRecord = Doc<"bookings">;
+type CustomInvoiceRecord = Doc<"customInvoices">;
 
 type CustomInvoiceDraft = {
 	service: BookingService | "";
@@ -75,14 +84,13 @@ function formatInvoiceTotal(input: {
 			: 0;
 	const addonsAmount = input.addons.reduce(
 		(total, addon) => total + getAddonAmount(addon, input),
-		0,
+		0
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 
-	return new Intl.NumberFormat("en-AU", {
-		style: "currency",
-		currency: "AUD",
-	}).format(Math.max(serviceAmount + addonsAmount - depositAmount, 0));
+	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
+		Math.max(serviceAmount + addonsAmount - depositAmount, 0)
+	);
 }
 
 type CustomInvoiceQuantityOptionsProps = {
@@ -98,7 +106,7 @@ function CustomInvoiceQuantityOptions({
 	idPrefix,
 	label,
 	onChange,
-	value,
+	value
 }: CustomInvoiceQuantityOptionsProps) {
 	return (
 		<section className="grid gap-3">
@@ -134,9 +142,10 @@ function CustomInvoiceQuantityOptions({
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
-	const customInvoices = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
-		bookingId: booking._id,
-	});
+	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
+		bookingId: booking._id
+	}) as ListCustomInvoicesForBookingResult | undefined;
+	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		duration: booking.duration as BookingFormValues["duration"],
@@ -144,7 +153,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		dueDate: booking.date,
-		includeDepositLineItem: false,
+		includeDepositLineItem: false
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
@@ -160,7 +169,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 				dueDate: booking.date,
-				includeDepositLineItem: false,
+				includeDepositLineItem: false
 			});
 		}
 	}, [
@@ -168,7 +177,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		booking.date,
 		booking.duration,
 		booking.essentialEditQuantity,
-		open,
+		open
 	]);
 
 	async function downloadCustomInvoice(input: {
@@ -185,8 +194,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	}) {
 		setDownloadingInvoiceId(input._id);
 
-		try {
-			const result = await downloadAdminBookingInvoice({
+		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({
 				booking,
 				addons: input.addons as BookingFormValues["addons"],
 				createdAt: input.createdAt,
@@ -196,19 +205,32 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
-				service: isBookingService(input.service) ? input.service : undefined,
-			});
+				service: isBookingService(input.service) ? input.service : undefined
+			})
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(error.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
-			toast.success("Custom invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setDownloadingInvoiceId(null);
+			return;
 		}
+
+		toast.success("Custom invoice download started.");
+		setDownloadingInvoiceId(null);
 	}
 
 	async function handleGenerateCustomInvoice() {
@@ -218,8 +240,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 		setIsGenerating(true);
 
-		try {
-			const customInvoice = await createCustomInvoice({
+		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
+			createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
 				service: draft.service || undefined,
@@ -227,10 +249,40 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				addons: draft.addons,
 				essentialEditQuantity: draft.essentialEditQuantity || undefined,
 				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
-				includeDepositLineItem: draft.includeDepositLineItem,
-			});
+				includeDepositLineItem: draft.includeDepositLineItem
+			})
+		);
 
-			const result = await downloadAdminBookingInvoice({
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("Please sign in first.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have permission to create custom invoices.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("This booking no longer exists.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong with creating the custom invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setIsGenerating(false);
+			return;
+		}
+
+		const [downloadError] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({
 				booking,
 				addons: draft.addons,
 				createdAt: customInvoice.createdAt,
@@ -240,20 +292,33 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
-				service: draft.service || undefined,
-			});
+				service: draft.service || undefined
+			})
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (downloadError !== null) {
+			switch (downloadError.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(downloadError.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = downloadError;
+					return _exhaustive;
+				}
 			}
-			onOpenChange(false);
-			toast.success("Custom invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setIsGenerating(false);
+			return;
 		}
+
+		onOpenChange(false);
+		toast.success("Custom invoice download started.");
+		setIsGenerating(false);
 	}
 
 	return (
@@ -341,8 +406,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 																			invoice.essentialEditQuantity ??
 																			booking.essentialEditQuantity,
 																		clipsPackageQuantity:
-																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
-																	}),
+																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+																	})
 																)
 																.join(", ")}`
 														: ""}
@@ -355,7 +420,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														essentialEditQuantity:
 															invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
 														clipsPackageQuantity:
-															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
 													})}
 												</span>
 											</div>
@@ -424,7 +489,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 											onCheckedChange={(checked) => {
 												setDraft((current) => ({
 													...current,
-													service: checked === true ? service : "",
+													service: checked === true ? service : ""
 												}));
 											}}
 										/>
@@ -442,10 +507,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						disabled={isGenerating}
 						idPrefix="custom-invoice-addon"
 						onChange={(nextValues) => {
-							setDraft((current) => ({
-								...current,
-								...nextValues,
-							}));
+							setDraft((current) => ({ ...current, ...nextValues }));
 						}}
 					/>
 
@@ -482,10 +544,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 								checked={draft.includeDepositLineItem}
 								disabled={isGenerating}
 								onCheckedChange={(checked) => {
-									setDraft((current) => ({
-										...current,
-										includeDepositLineItem: checked === true,
-									}));
+									setDraft((current) => ({ ...current, includeDepositLineItem: checked === true }));
 								}}
 							/>
 							<span className="font-medium">Include deposit paid</span>

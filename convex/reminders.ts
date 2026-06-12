@@ -39,7 +39,7 @@ export const sendDueBookingReminderEmails = internalAction({
 		const bookings = await ctx.runQuery(internal.bookings.listBookingsDueForReminderEmail, {
 			dayEnd,
 			dayStart,
-			limit: REMINDER_BATCH_SIZE,
+			limit: REMINDER_BATCH_SIZE
 		});
 
 		for (const booking of bookings) {
@@ -48,10 +48,10 @@ export const sendDueBookingReminderEmails = internalAction({
 			}
 
 			await ctx.runAction(internal.googleCalendar.sendBookingReminderEmailForBooking, {
-				bookingId: booking._id,
+				bookingId: booking._id
 			});
 		}
 
 		return null;
-	},
+	}
 });

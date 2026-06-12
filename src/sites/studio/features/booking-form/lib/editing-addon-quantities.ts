@@ -5,7 +5,7 @@ export type EditingAddonQuantities = {
 	clipsPackageQuantity?: string;
 };
 
-export function getEditingAddonQuantityField(addon: string) {
+function getEditingAddonQuantityField(addon: string) {
 	if (addon === "Essential Edit") {
 		return "essentialEditQuantity" as const;
 	}
@@ -20,7 +20,7 @@ export function getEditingAddonQuantityField(addon: string) {
 export function getEditingAddonQuantity(
 	addon: string,
 	quantities: EditingAddonQuantities = {},
-	fallbackQuantity = 0,
+	fallbackQuantity = 0
 ) {
 	const field = getEditingAddonQuantityField(addon);
 	const rawQuantity = field ? quantities[field] : undefined;
@@ -31,7 +31,7 @@ export function getEditingAddonQuantity(
 
 export function getEditingAddonQuantityForForm(
 	addon: BookingAddon,
-	quantities: EditingAddonQuantities,
+	quantities: EditingAddonQuantities
 ) {
 	return getEditingAddonQuantity(addon, quantities, 0);
 }

@@ -8,7 +8,7 @@ import {
 	Img,
 	Preview,
 	Section,
-	Text,
+	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 
@@ -23,7 +23,7 @@ export function RecurringDeliverablesEmail({
 	bookingDate,
 	driveLink,
 	name,
-	signoffName,
+	signoffName
 }: RecurringDeliverablesEmailProps) {
 	return (
 		<Html>
@@ -79,7 +79,7 @@ export function RecurringDeliverablesEmail({
 const body = {
 	fontFamily: '"Gabarito Variable", Helvetica, Arial, sans-serif',
 	margin: "0",
-	padding: "16px 16px",
+	padding: "16px 16px"
 };
 
 const container = {
@@ -88,7 +88,7 @@ const container = {
 	borderRadius: "12px",
 	margin: "0 auto",
 	maxWidth: "560px",
-	padding: "24px",
+	padding: "24px"
 };
 
 const heading = {
@@ -96,33 +96,22 @@ const heading = {
 	fontSize: "22px",
 	fontWeight: "700",
 	lineHeight: "28px",
-	margin: "0 0 16px",
+	margin: "0 0 16px"
 };
 
-const logo = {
-	display: "block",
-	margin: "0 auto 16px",
-};
+const logo = { display: "block", margin: "0 auto 16px" };
 
-const paragraph = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "0 0 12px",
-};
+const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
 const noteText = {
 	color: "#fafafa",
 	fontSize: "13px",
 	fontStyle: "italic",
 	lineHeight: "20px",
-	margin: "12px 0 24px",
+	margin: "12px 0 24px"
 };
 
-const buttonWrapper = {
-	margin: "28px 0",
-	textAlign: "center" as const,
-};
+const buttonWrapper = { margin: "28px 0", textAlign: "center" as const };
 
 const button = {
 	backgroundColor: "#f5c400",
@@ -131,20 +120,15 @@ const button = {
 	fontSize: "14px",
 	fontWeight: "600",
 	padding: "12px 18px",
-	textDecoration: "none",
+	textDecoration: "none"
 };
 
-const signoff = {
-	color: "#fafafa",
-	fontSize: "15px",
-	lineHeight: "24px",
-	margin: "24px 0 4px",
-};
+const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
 
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",
 	fontWeight: "700",
 	lineHeight: "24px",
-	margin: "0",
+	margin: "0"
 };

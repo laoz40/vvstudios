@@ -17,9 +17,9 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			size = 24,
 			color = "currentColor",
 			strokeWidth = 2,
-			className = "",
+			className = ""
 		},
-		ref,
+		ref
 	) => {
 		const [scope, animate] = useAnimate();
 
@@ -29,19 +29,15 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 				animate(
 					".trash-lid-upper",
 					{ rotate: -35, y: -6, x: -2 },
-					{ duration: 0.25, ease: "easeOut" },
-				),
+					{ duration: 0.25, ease: "easeOut" }
+				)
 			]);
 		}, [animate]);
 
 		const closeLid = useCallback(async () => {
 			await Promise.all([
 				animate(".trash-lid-lower", { rotate: 0, y: 0 }, { duration: 0.2, ease: "easeInOut" }),
-				animate(
-					".trash-lid-upper",
-					{ rotate: 0, y: 0, x: 0 },
-					{ duration: 0.2, ease: "easeInOut" },
-				),
+				animate(".trash-lid-upper", { rotate: 0, y: 0, x: 0 }, { duration: 0.2, ease: "easeInOut" })
 			]);
 		}, [animate]);
 
@@ -51,7 +47,7 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			await animate(
 				".trash-icon",
 				{ stroke: "#ef4444" },
-				{ duration: 0.2, delay: 0.1, ease: "easeInOut" },
+				{ duration: 0.2, delay: 0.1, ease: "easeInOut" }
 			);
 		}, [animate, dangerHover]);
 
@@ -61,7 +57,7 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			await animate(
 				".trash-icon",
 				{ stroke: "currentColor" },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 		}, [animate, dangerHover]);
 
@@ -80,7 +76,7 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 				await animate(
 					".trash-icon",
 					{ x: [0, -2, 2, -1, 0] },
-					{ duration: 0.25, ease: "easeInOut" },
+					{ duration: 0.25, ease: "easeInOut" }
 				);
 			}
 
@@ -89,10 +85,7 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			}
 		}, [shakeOnClick, keepOpenOnDelete, animate, openLid]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: openLid,
-			stopAnimation: closeLid,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: openLid, stopAnimation: closeLid }));
 
 		return (
 			<motion.svg
@@ -133,7 +126,7 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 TrashIcon.displayName = "TrashIcon";

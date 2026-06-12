@@ -7,7 +7,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { formatBookingDateMedium, formatBookingTimeLabel } from "#studio/lib/bookingdatetime";
 
@@ -30,7 +30,7 @@ export function BookingDeleteDialog({
 	sessionTime,
 	onOpenChange,
 	onConfirm,
-	isDeleting,
+	isDeleting
 }: BookingDeleteDialogProps) {
 	return (
 		<Dialog

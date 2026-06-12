@@ -18,6 +18,6 @@ export function formatAudAmount(amount: number) {
 	return new Intl.NumberFormat("en-AU", {
 		style: "currency",
 		currency: "AUD",
-		maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+		maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
 	}).format(amount);
 }

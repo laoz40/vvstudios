@@ -14,16 +14,16 @@ export const Route = createFileRoute("/_public/booking-expired")({
 		session_id:
 			typeof search.session_id === "string" && search.session_id.length > 0
 				? search.session_id
-				: undefined,
+				: undefined
 	}),
-	component: BookingExpiredPage,
+	component: BookingExpiredPage
 });
 
 function BookingExpiredPage() {
 	const { session_id: stripeSessionId } = Route.useSearch();
 	const booking = useQuery(
 		api.bookings.getBookingStatusByStripeSessionId,
-		stripeSessionId ? { stripeSessionId } : "skip",
+		stripeSessionId ? { stripeSessionId } : "skip"
 	);
 	const supportReference = booking
 		? Number.isFinite(booking.pendingPaymentCreatedAt)

@@ -26,14 +26,14 @@ const sizeClassNames: Record<ModalSize, string> = {
 	"2xl": "max-w-2xl",
 	"3xl": "max-w-3xl",
 	"5xl": "max-w-5xl",
-	"6xl": "max-w-6xl",
+	"6xl": "max-w-6xl"
 };
 
 function getFocusableElements(container: HTMLElement) {
 	return Array.from(
 		container.querySelectorAll<HTMLElement>(
-			'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), iframe, embed, object, [contenteditable="true"], [tabindex]:not([tabindex="-1"])',
-		),
+			'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), iframe, embed, object, [contenteditable="true"], [tabindex]:not([tabindex="-1"])'
+		)
 	).filter((element) => !element.hasAttribute("disabled") && !element.getAttribute("aria-hidden"));
 }
 
@@ -50,7 +50,7 @@ export function Modal({
 	open,
 	preventClose = false,
 	size = "md",
-	title,
+	title
 }: ModalProps) {
 	const titleId = useId();
 	const descriptionId = useId();
@@ -74,7 +74,7 @@ export function Modal({
 				}
 
 				const firstContentElement = getFocusableElements(dialog).find(
-					(element) => element !== closeButtonRef.current,
+					(element) => element !== closeButtonRef.current
 				);
 				firstContentElement?.focus();
 			});
@@ -168,7 +168,7 @@ export function Modal({
 					<div
 						className={cn(
 							"bg-background text-foreground ring-foreground/10 grid w-full gap-4 rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 sm:p-6",
-							className,
+							className
 						)}>
 						<div className={cn("flex flex-col gap-2 text-left", hideHeader && "sr-only")}>
 							<h2

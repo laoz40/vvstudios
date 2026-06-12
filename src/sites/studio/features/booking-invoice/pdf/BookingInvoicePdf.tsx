@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
 		fontFamily: "Helvetica",
 		fontSize: 10,
 		paddingHorizontal: 34,
-		paddingVertical: 32,
+		paddingVertical: 32
 	},
 	headerRow: {
 		alignItems: "flex-start",
@@ -199,261 +199,115 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		marginBottom: 18,
-		paddingBottom: 14,
+		paddingBottom: 14
 	},
-	logoWrap: {
-		marginLeft: -45,
-		paddingTop: -40,
-		width: 200,
-	},
-	logo: {
-		height: 96,
-		width: 174,
-	},
-	headerRight: {
-		alignItems: "flex-end",
-		maxWidth: 300,
-	},
-	invoiceTitle: {
-		fontSize: 18,
-		fontWeight: 700,
-		marginBottom: 6,
-		textAlign: "right",
-	},
-	businessDetailStrong: {
-		fontSize: 10,
-		fontWeight: 700,
-		lineHeight: 1.3,
-		textAlign: "right",
-	},
-	businessDetail: {
-		color: "#374151",
-		fontSize: 9,
-		lineHeight: 1.3,
-		textAlign: "right",
-	},
+	logoWrap: { marginLeft: -45, paddingTop: -40, width: 200 },
+	logo: { height: 96, width: 174 },
+	headerRight: { alignItems: "flex-end", maxWidth: 300 },
+	invoiceTitle: { fontSize: 18, fontWeight: 700, marginBottom: 6, textAlign: "right" },
+	businessDetailStrong: { fontSize: 10, fontWeight: 700, lineHeight: 1.3, textAlign: "right" },
+	businessDetail: { color: "#374151", fontSize: 9, lineHeight: 1.3, textAlign: "right" },
 	locationLink: {
 		color: "#374151",
 		fontSize: 9,
 		lineHeight: 1.3,
 		textAlign: "right",
-		textDecoration: "none",
+		textDecoration: "none"
 	},
-	metaRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginBottom: 14,
-	},
-	billToColumn: {
-		maxWidth: 270,
-		paddingRight: 16,
-		width: "55%",
-	},
-	invoiceInfoColumn: {
-		width: "40%",
-	},
-	sectionLabel: {
-		fontSize: 9,
-		fontWeight: 700,
-		marginBottom: 5,
-		textTransform: "uppercase",
-	},
-	customerName: {
-		fontSize: 12,
-		fontWeight: 700,
-		lineHeight: 1.35,
-		marginBottom: 2,
-	},
-	metaText: {
-		color: "#374151",
-		fontSize: 9,
-		lineHeight: 1.35,
-		marginBottom: 1,
-	},
-	infoRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginBottom: 4,
-	},
-	infoLabel: {
-		color: "#4b5563",
-		fontSize: 9,
-		fontWeight: 700,
-	},
-	infoValue: {
-		fontSize: 9,
-		maxWidth: 150,
-		textAlign: "right",
-	},
+	metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+	billToColumn: { maxWidth: 270, paddingRight: 16, width: "55%" },
+	invoiceInfoColumn: { width: "40%" },
+	sectionLabel: { fontSize: 9, fontWeight: 700, marginBottom: 5, textTransform: "uppercase" },
+	customerName: { fontSize: 12, fontWeight: 700, lineHeight: 1.35, marginBottom: 2 },
+	metaText: { color: "#374151", fontSize: 9, lineHeight: 1.35, marginBottom: 1 },
+	infoRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+	infoLabel: { color: "#4b5563", fontSize: 9, fontWeight: 700 },
+	infoValue: { fontSize: 9, maxWidth: 150, textAlign: "right" },
 	sessionSummaryRow: {
 		flexDirection: "row",
 		justifyContent: "flex-start",
 		marginBottom: 12,
 		paddingTop: 16,
-		paddingBottom: 2,
+		paddingBottom: 2
 	},
-	sessionSummaryItem: {
-		paddingRight: 24,
-	},
-	sessionSummaryItemRight: {
-		paddingRight: 0,
-	},
+	sessionSummaryItem: { paddingRight: 24 },
+	sessionSummaryItemRight: { paddingRight: 0 },
 	sessionSummaryLabel: {
 		color: "#4b5563",
 		fontSize: 9,
 		fontWeight: 700,
 		marginBottom: 2,
-		textTransform: "uppercase",
+		textTransform: "uppercase"
 	},
-	sessionSummaryValue: {
-		fontSize: 10,
-		fontWeight: 700,
-		lineHeight: 1.35,
-	},
-	table: {
-		borderColor: "#d1d5db",
-		borderStyle: "solid",
-		borderWidth: 1,
-		marginBottom: 12,
-	},
-	tableHeaderRow: {
-		backgroundColor: "#f3f4f6",
-	},
+	sessionSummaryValue: { fontSize: 10, fontWeight: 700, lineHeight: 1.35 },
+	table: { borderColor: "#d1d5db", borderStyle: "solid", borderWidth: 1, marginBottom: 12 },
+	tableHeaderRow: { backgroundColor: "#f3f4f6" },
 	tableRow: {
 		borderBottomColor: "#e5e7eb",
 		borderBottomStyle: "solid",
 		borderBottomWidth: 1,
 		flexDirection: "row",
-		minHeight: 26,
+		minHeight: 26
 	},
-	tableCell: {
-		fontSize: 8.5,
-		paddingHorizontal: 8,
-		paddingVertical: 6,
-	},
-	tableHeaderText: {
-		fontWeight: 700,
-	},
-	itemColumn: {
-		flexGrow: 1,
-		width: "52%",
-	},
-	qtyColumn: {
-		textAlign: "right",
-		width: "12%",
-	},
-	rateColumn: {
-		textAlign: "right",
-		width: "18%",
-	},
-	amountColumn: {
-		textAlign: "right",
-		width: "18%",
-	},
-	totalsWrap: {
-		alignSelf: "flex-end",
-		marginBottom: 18,
-		width: 226,
-	},
-	totalRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		paddingVertical: 2,
-	},
-	totalLabel: {
-		color: "#4b5563",
-		fontSize: 9,
-	},
-	totalValue: {
-		fontSize: 9,
-		fontWeight: 700,
-	},
+	tableCell: { fontSize: 8.5, paddingHorizontal: 8, paddingVertical: 6 },
+	tableHeaderText: { fontWeight: 700 },
+	itemColumn: { flexGrow: 1, width: "52%" },
+	qtyColumn: { textAlign: "right", width: "12%" },
+	rateColumn: { textAlign: "right", width: "18%" },
+	amountColumn: { textAlign: "right", width: "18%" },
+	totalsWrap: { alignSelf: "flex-end", marginBottom: 18, width: 226 },
+	totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2 },
+	totalLabel: { color: "#4b5563", fontSize: 9 },
+	totalValue: { fontSize: 9, fontWeight: 700 },
 	totalDueRow: {
 		backgroundColor: "#111827",
 		flexDirection: "row",
 		justifyContent: "space-between",
 		marginTop: 6,
 		paddingHorizontal: 10,
-		paddingVertical: 8,
+		paddingVertical: 8
 	},
-	totalDueLabel: {
-		color: "#ffffff",
-		fontSize: 12,
-		fontWeight: 700,
-		textTransform: "uppercase",
-	},
-	totalDueValue: {
-		color: "#ffffff",
-		fontSize: 12,
-		fontWeight: 700,
-	},
+	totalDueLabel: { color: "#ffffff", fontSize: 12, fontWeight: 700, textTransform: "uppercase" },
+	totalDueValue: { color: "#ffffff", fontSize: 12, fontWeight: 700 },
 	dueDateText: {
 		color: "#374151",
 		fontSize: 8.5,
 		lineHeight: 1.4,
 		marginTop: 6,
-		textAlign: "right",
+		textAlign: "right"
 	},
 	paymentSection: {
 		borderTopColor: "#d1d5db",
 		borderTopStyle: "solid",
 		borderTopWidth: 1,
 		marginBottom: 14,
-		paddingTop: 12,
+		paddingTop: 12
 	},
 	paymentColumns: {
 		alignItems: "flex-start",
 		flexDirection: "row",
-		justifyContent: "space-between",
+		justifyContent: "space-between"
 	},
 	paymentInstructionsGroup: {
 		borderLeftColor: "#111827",
 		borderLeftStyle: "solid",
 		borderLeftWidth: 2,
 		paddingLeft: 10,
-		width: "44%",
+		width: "44%"
 	},
-	paymentMethodsGroup: {
-		width: "44%",
-	},
-	paymentMethodGroup: {
-		width: "50%",
-	},
-	paymentMethodGroupSpaced: {
-		marginTop: 10,
-		width: "50%",
-	},
-	paymentMethodHeading: {
-		fontSize: 11,
-		fontWeight: 700,
-		lineHeight: 1.3,
-		marginBottom: 2,
-	},
-	paymentMethodText: {
-		color: "#374151",
-		fontSize: 9,
-		lineHeight: 1.35,
-	},
-	paymentNoteBlock: {
-		marginBottom: 6,
-	},
-	paymentNoteHeading: {
-		fontSize: 10,
-		fontWeight: 700,
-		lineHeight: 1.3,
-		marginBottom: 1,
-	},
-	paymentHelperText: {
-		color: "#6b7280",
-		fontSize: 8,
-		fontStyle: "italic",
-		lineHeight: 1.35,
-	},
+	paymentMethodsGroup: { width: "44%" },
+	paymentMethodGroup: { width: "50%" },
+	paymentMethodGroupSpaced: { marginTop: 10, width: "50%" },
+	paymentMethodHeading: { fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 },
+	paymentMethodText: { color: "#374151", fontSize: 9, lineHeight: 1.35 },
+	paymentNoteBlock: { marginBottom: 6 },
+	paymentNoteHeading: { fontSize: 10, fontWeight: 700, lineHeight: 1.3, marginBottom: 1 },
+	paymentHelperText: { color: "#6b7280", fontSize: 8, fontStyle: "italic", lineHeight: 1.35 },
 	notesSection: {
 		borderTopColor: "#e5e7eb",
 		borderTopStyle: "solid",
 		borderTopWidth: 1,
-		paddingTop: 10,
+		paddingTop: 10
 	},
 	cancellationLabel: {
 		color: "#374151",
@@ -461,13 +315,13 @@ const styles = StyleSheet.create({
 		fontStyle: "italic",
 		fontWeight: 700,
 		lineHeight: 1.35,
-		marginBottom: 1,
+		marginBottom: 1
 	},
 	notesText: {
 		color: "#6b7280",
 		fontSize: 8,
 		fontStyle: "italic",
 		lineHeight: 1.4,
-		marginBottom: 4,
-	},
+		marginBottom: 4
+	}
 });

@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
-
+import type { SaveBookingInstagramHandleResult } from "#convex/bookings";
+import { tryCatch } from "#/lib/result";
 export interface InstagramRepostPromptProps {
 	stripeSessionId: string;
 }
@@ -26,18 +27,41 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 
 		setIsSubmitting(true);
 
-		try {
-			await saveBookingInstagramHandle({
-				stripeSessionId,
-				instagramHandle: trimmedInstagramHandle,
-			});
-			setIsSubmitted(true);
-			toast.success("Thanks! We’ll keep an eye out for your post.");
-		} catch {
-			toast.error("Unable to save your Instagram handle. Please try again.");
-		} finally {
+		const [error] = await tryCatch<SaveBookingInstagramHandleResult>(
+			saveBookingInstagramHandle({ stripeSessionId, instagramHandle: trimmedInstagramHandle })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "BOOKING_NOT_FOUND":
+					toast.error("We could not find this booking. Please contact us if you need help.");
+					break;
+
+				case "BOOKING_NOT_CONFIRMED":
+					toast.error("We can only save Instagram handles for confirmed bookings.");
+					break;
+
+				case "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED":
+					toast.error("Could not save your Instagram handle. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while saving your Instagram handle.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsSubmitting(false);
+			return;
 		}
+
+		setIsSubmitted(true);
+		toast.success("Thanks! We’ll keep an eye out for your post.");
+		setIsSubmitting(false);
 	}
 
 	return (

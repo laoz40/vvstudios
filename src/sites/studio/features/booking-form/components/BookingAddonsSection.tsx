@@ -9,7 +9,7 @@ import {
 	FieldLabel,
 	FieldLegend,
 	FieldSet,
-	FieldTitle,
+	FieldTitle
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Modal } from "#studio/components/Modal";
@@ -21,7 +21,7 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	toFieldErrorObjects,
 	type BookingAddon,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 
 const [remotePodcastAddon, fourKAddon] = ADDON_OPTIONS;
@@ -39,7 +39,7 @@ function BookingAddonQuantityField({
 	formApi,
 	label,
 	description,
-	shouldShowFieldError,
+	shouldShowFieldError
 }: BookingAddonQuantityFieldProps) {
 	const FormField = formApi.Field;
 	return (

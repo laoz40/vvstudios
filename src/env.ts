@@ -2,9 +2,7 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
-	server: {
-		SERVER_URL: z.url().optional(),
-	},
+	server: { SERVER_URL: z.url().optional() },
 
 	/**
 	 * The prefix that client-side variables must have. This is enforced both at
@@ -18,7 +16,7 @@ export const env = createEnv({
 		VITE_FREE_TOUR_URL: z.url(),
 		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
 		VITE_CONVEX_URL: z.string().min(1),
-		VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
+		VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1)
 	},
 
 	/**
@@ -40,5 +38,5 @@ export const env = createEnv({
 	 * In order to solve these issues, we recommend that all new projects
 	 * explicitly specify this option as true.
 	 */
-	emptyStringAsUndefined: true,
+	emptyStringAsUndefined: true
 });

@@ -1,7 +1,7 @@
 export {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	BOOKING_TIME_OPTIONS,
-	type BookingAvailabilitySettings,
+	type BookingAvailabilitySettings
 } from "#studio/lib/bookingAvailabilitySettings";
 
 import {
@@ -11,7 +11,7 @@ import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	DEFAULT_BOOKING_END_TIME,
 	DEFAULT_BOOKING_START_TIME,
-	type BookingAvailabilitySettings,
+	type BookingAvailabilitySettings
 } from "#studio/lib/bookingAvailabilitySettings";
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
@@ -32,7 +32,7 @@ function getAvailableTimesForBusyPeriods({
 	duration,
 	eventBufferMinutes = BOOKING_EVENT_BUFFER_MINUTES,
 	endTime = DEFAULT_BOOKING_END_TIME,
-	startTime = DEFAULT_BOOKING_START_TIME,
+	startTime = DEFAULT_BOOKING_START_TIME
 }: {
 	busyPeriods: BusyPeriod[];
 	duration: string;
@@ -45,7 +45,7 @@ function getAvailableTimesForBusyPeriods({
 	const dayEndMinutes = parseTimeToMinutes(endTime);
 	const busyRanges = busyPeriods.map((period) => ({
 		endMinutes: Math.min(24 * 60, parseReadableTimeToMinutes(period.end) + eventBufferMinutes),
-		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes),
+		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes)
 	}));
 
 	return BOOKING_TIME_OPTIONS.filter((time) => {
@@ -74,7 +74,7 @@ export function parseMonthKey(monthKey: string) {
 
 export function formatDateValue(date: Date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-		date.getDate(),
+		date.getDate()
 	).padStart(2, "0")}`;
 }
 
@@ -97,9 +97,7 @@ export function formatBookingDate(dateValue: string) {
 		return dateValue;
 	}
 
-	return new Intl.DateTimeFormat("en-AU", {
-		dateStyle: "full",
-	}).format(date);
+	return new Intl.DateTimeFormat("en-AU", { dateStyle: "full" }).format(date);
 }
 
 export function formatBookingDateSummary(dateValue: string) {
@@ -112,7 +110,7 @@ export function formatBookingDateSummary(dateValue: string) {
 		day: "numeric",
 		month: "long",
 		weekday: "short",
-		year: "numeric",
+		year: "numeric"
 	}).format(date);
 }
 
@@ -122,11 +120,7 @@ export function formatBookingDateDots(dateValue: string) {
 		return "";
 	}
 
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	})
+	return new Intl.DateTimeFormat("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
 		.format(date)
 		.replaceAll("/", ".");
 }
@@ -134,12 +128,12 @@ export function formatBookingDateDots(dateValue: string) {
 const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeStyle: "short",
-	timeZone: "Australia/Sydney",
+	timeZone: "Australia/Sydney"
 });
 
 const bookingSydneyDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
-	timeZone: "Australia/Sydney",
+	timeZone: "Australia/Sydney"
 });
 
 function getDatePartsInSydney(date: Date) {
@@ -147,7 +141,7 @@ function getDatePartsInSydney(date: Date) {
 		day: "2-digit",
 		month: "2-digit",
 		timeZone: BOOKING_TIME_ZONE,
-		year: "numeric",
+		year: "numeric"
 	}).formatToParts(date);
 
 	const partValue = (type: string) => parts.find((part) => part.type === type)?.value;
@@ -155,7 +149,7 @@ function getDatePartsInSydney(date: Date) {
 	return {
 		day: Number(partValue("day")),
 		month: Number(partValue("month")),
-		year: Number(partValue("year")),
+		year: Number(partValue("year"))
 	};
 }
 
@@ -218,7 +212,7 @@ export function getAvailableTimesForDate({
 	currentTimestamp,
 	dateValue,
 	duration,
-	settings = DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	settings = DEFAULT_BOOKING_AVAILABILITY_SETTINGS
 }: {
 	busyPeriods: BusyPeriod[];
 	currentTimestamp: number;
@@ -241,7 +235,7 @@ export function getAvailableTimesForDate({
 		duration,
 		eventBufferMinutes: settings.eventBufferMinutes,
 		endTime: daySchedule.endTime,
-		startTime: daySchedule.startTime,
+		startTime: daySchedule.startTime
 	});
 	const earliestStartTimestamp = currentTimestamp + settings.leadTimeMinutes * 60 * 1000;
 
@@ -258,11 +252,7 @@ export function formatTimeValue(time: string) {
 		return time;
 	}
 
-	return new Intl.DateTimeFormat("en-AU", {
-		hour: "numeric",
-		hour12: true,
-		minute: "2-digit",
-	})
+	return new Intl.DateTimeFormat("en-AU", { hour: "numeric", hour12: true, minute: "2-digit" })
 		.format(new Date(2000, 0, 1, hours, minutes))
 		.replace(/\s?(am|pm)$/i, "$1");
 }
@@ -389,14 +379,20 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 	}
 
 	const [hours, minutes] = timeValue.split(":").map(Number);
-	return getUtcDateForZonedParts({
+	const [zonedTimeError, utcDate] = getUtcDateForZonedParts({
 		day: date.getDate(),
 		hours,
 		minutes,
 		month: date.getMonth() + 1,
 		timeZone,
-		year: date.getFullYear(),
+		year: date.getFullYear()
 	});
+
+	if (zonedTimeError !== null) {
+		return null;
+	}
+
+	return utcDate;
 }
 
 function parseReadableTimeToMinutes(time: string) {

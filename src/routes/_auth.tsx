@@ -3,13 +3,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const AuthRouteLayout = lazy(() =>
 	import("#studio/features/auth/components/AuthRouteLayout").then((module) => ({
-		default: module.AuthRouteLayout,
-	})),
+		default: module.AuthRouteLayout
+	}))
 );
 
-export const Route = createFileRoute("/_auth")({
-	component: AuthLayout,
-});
+export const Route = createFileRoute("/_auth")({ component: AuthLayout });
 
 function AuthLayout() {
 	return (

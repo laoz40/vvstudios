@@ -1,3 +1,5 @@
+import { err, ok, type Result } from "#/lib/result";
+
 const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 type ZonedDateTimeParts = {
@@ -27,7 +29,7 @@ function getTimeZoneFormatter(timeZone: string) {
 		month: "2-digit",
 		second: "2-digit",
 		timeZone,
-		year: "numeric",
+		year: "numeric"
 	});
 
 	timeZoneFormatterCache.set(timeZone, formatter);
@@ -38,7 +40,7 @@ function getTimeZoneFormatter(timeZone: string) {
 function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
 	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
 	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
+		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)])
 	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
 
 	return {
@@ -46,7 +48,7 @@ function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
 		hours: values.hour === 24 ? 0 : values.hour,
 		minutes: values.minute,
 		month: values.month,
-		year: values.year,
+		year: values.year
 	};
 }
 
@@ -62,8 +64,8 @@ export function getUtcDateForZonedParts({
 	minutes,
 	month,
 	timeZone,
-	year,
-}: ZonedDateTimeParts) {
+	year
+}: ZonedDateTimeParts): Result<Date, { reason: "INVALID_ZONED_TIME" }> {
 	const targetUtcMs = Date.UTC(year, month - 1, day, hours, minutes, 0, 0);
 	let guessUtcMs = targetUtcMs;
 
@@ -76,7 +78,7 @@ export function getUtcDateForZonedParts({
 			zonedParts.hours,
 			zonedParts.minutes,
 			0,
-			0,
+			0
 		);
 		const diffMs = targetUtcMs - currentUtcMs;
 
@@ -97,8 +99,8 @@ export function getUtcDateForZonedParts({
 		resolvedParts.hours !== hours ||
 		resolvedParts.minutes !== minutes
 	) {
-		throw new RangeError(`Invalid local time for time zone: ${timeZone}`);
+		return err({ reason: "INVALID_ZONED_TIME" });
 	}
 
-	return resolvedDate;
+	return ok(resolvedDate);
 }

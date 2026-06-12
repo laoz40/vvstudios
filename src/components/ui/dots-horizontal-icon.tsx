@@ -7,41 +7,18 @@ const DotsHorizontalIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = useCallback(async () => {
-			animate(
-				".dot-left",
-				{
-					x: [-2, 0],
-					scale: [1, 1.2, 1],
-				},
-				{
-					duration: 0.3,
-					ease: "easeOut",
-				},
-			);
+			animate(".dot-left", { x: [-2, 0], scale: [1, 1.2, 1] }, { duration: 0.3, ease: "easeOut" });
 
 			animate(
 				".dot-center",
-				{
-					scale: [1, 1.3, 1],
-				},
-				{
-					duration: 0.3,
-					delay: 0.1,
-					ease: "easeOut",
-				},
+				{ scale: [1, 1.3, 1] },
+				{ duration: 0.3, delay: 0.1, ease: "easeOut" }
 			);
 
 			animate(
 				".dot-right",
-				{
-					x: [2, 0],
-					scale: [1, 1.2, 1],
-				},
-				{
-					duration: 0.3,
-					delay: 0.2,
-					ease: "easeOut",
-				},
+				{ x: [2, 0], scale: [1, 1.2, 1] },
+				{ duration: 0.3, delay: 0.2, ease: "easeOut" }
 			);
 		}, [animate]);
 
@@ -49,14 +26,11 @@ const DotsHorizontalIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(
 				".dot-left, .dot-center, .dot-right",
 				{ x: 0, scale: 1 },
-				{ duration: 0.2, ease: "easeInOut" },
+				{ duration: 0.2, ease: "easeInOut" }
 			);
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -99,7 +73,7 @@ const DotsHorizontalIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				/>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 DotsHorizontalIcon.displayName = "DotsHorizontalIcon";

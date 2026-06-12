@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
@@ -10,12 +11,18 @@ import {
 	formatBookingDateShort,
 	formatBookingDateWithoutYear,
 	formatCalendarEventDate,
-	formatCalendarEventTime,
+	formatCalendarEventTime
 } from "./bookingCalendarTime";
+import {
+	createBookingInvoiceEmailArtifactsForBooking,
+	renderBookingInvoicePdfInNode
+} from "./bookingInvoiceArtifacts";
+import { err, ok, type Result } from "../../src/lib/result";
 
-interface ResendSendEmailSuccessResponse {
-	id: string;
-}
+type SendEmailResult = Result<
+	{ sent: true },
+	{ reason: "EMAIL_REQUEST_FAILED" } | { reason: "EMAIL_RESPONSE_FAILED" }
+>;
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -60,85 +67,57 @@ function escapeHtml(value: string) {
 		.replaceAll("'", "&#39;");
 }
 
-export async function sendBookingInvoiceEmail(args: {
-	to: string;
-	subject: string;
-	html: string;
-	attachment: {
-		content: Uint8Array;
-		contentType: string;
-		filename: string;
-	};
-}) {
-	const response = await fetch("https://api.resend.com/emails", {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
-			to: [args.to],
-			subject: args.subject,
-			html: args.html,
-			attachments: [
-				{
-					filename: args.attachment.filename,
-					content: Buffer.from(args.attachment.content).toString("base64"),
-					contentType: args.attachment.contentType,
-				},
-			],
-		}),
-	});
-
-	if (!response.ok) {
-		const errorBody = await response.text();
-		throw new Error(`Resend request failed (${response.status}): ${errorBody}`);
-	}
-
-	return (await response.json()) as ResendSendEmailSuccessResponse;
+interface EmailAttachment {
+	content: Uint8Array;
+	contentType: string;
+	filename: string;
 }
 
-export async function sendBookingReminderEmail(args: {
+async function sendEmail(args: {
 	to: string[];
 	subject: string;
 	html: string;
-}) {
-	return await sendEmail({
-		to: args.to,
-		subject: args.subject,
-		html: args.html,
-	});
-}
+	attachments?: EmailAttachment[];
+}): Promise<SendEmailResult> {
+	const attachments = args.attachments?.map((attachment) => ({
+		filename: attachment.filename,
+		content: Buffer.from(attachment.content).toString("base64"),
+		contentType: attachment.contentType
+	}));
 
-async function sendEmail(args: { to: string[]; subject: string; html: string }) {
-	const response = await fetch("https://api.resend.com/emails", {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
-			to: args.to,
-			subject: args.subject,
-			html: args.html,
-		}),
-	});
+	let response: Response;
 
-	if (!response.ok) {
-		const errorBody = await response.text();
-		throw new Error(`Resend request failed (${response.status}): ${errorBody}`);
+	try {
+		response = await fetch("https://api.resend.com/emails", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${env.RESEND_API_KEY}`,
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
+				to: args.to,
+				subject: args.subject,
+				html: args.html,
+				...(attachments ? { attachments } : {})
+			})
+		});
+	} catch {
+		return err({ reason: "EMAIL_REQUEST_FAILED" });
 	}
 
-	return (await response.json()) as ResendSendEmailSuccessResponse;
+	if (!response.ok) {
+		return err({ reason: "EMAIL_RESPONSE_FAILED" });
+	}
+
+	return ok({ sent: true });
 }
 
 export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
-		return null;
+		return ok({ sent: true });
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
@@ -154,25 +133,87 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 		service: args.service,
 		duration: args.duration,
 		addonsLine,
-		notes: args.notes,
+		notes: args.notes
 	});
 
 	return await sendEmail({
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
-		html,
+		html
 	});
+}
+
+export async function sendBookingInvoiceEmailsForBooking(
+	booking: Doc<"bookings">
+): Promise<Result<{ sent: true }, { reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }>> {
+	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
+		booking,
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
+	);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const { artifacts, booking: parsedBooking } = artifactsResult;
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(artifacts.data);
+
+	if (pdfError !== null) {
+		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [invoiceEmailError] = await sendEmail({
+		to: [booking.email],
+		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfContent }]
+	});
+
+	if (invoiceEmailError !== null) {
+		console.error("Booking invoice customer email send failed", {
+			bookingId: booking._id,
+			bookingEmail: booking.email,
+			reason: invoiceEmailError.reason
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [hostEmailError] = await sendBookingHostDetailsEmail({
+		invoiceNumber: artifacts.data.invoice.number,
+		name: parsedBooking.name,
+		email: parsedBooking.email,
+		phone: parsedBooking.phone,
+		accountName: parsedBooking.accountName,
+		abn: parsedBooking.abn,
+		date: parsedBooking.date,
+		time: parsedBooking.time,
+		service: parsedBooking.service,
+		duration: parsedBooking.duration,
+		addons: parsedBooking.addons,
+		notes: parsedBooking.notes
+	});
+
+	if (hostEmailError !== null) {
+		console.error("Booking invoice host email send failed", {
+			bookingId: booking._id,
+			reason: hostEmailError.reason
+		});
+	}
+
+	return ok({ sent: true });
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {
 	return await sendEmail({
 		to: [CONTACT_EMAIL],
-		subject: "New VV Studios website feedback",
+		subject: "New VV Studios feedback",
 		html: [
-			"<p>You received new website feedback from the VV Studios website.</p>",
+			"<p>You received new feedback from the VV Studios website.</p>",
 			"<p><strong>Message:</strong></p>",
-			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`,
-		].join(""),
+			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`
+		].join("")
 	});
 }
 
@@ -181,7 +222,7 @@ export async function sendBookingDeliverablesEmailForBooking({
 	driveLink,
 	email,
 	emailVariant,
-	name,
+	name
 }: SendBookingDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
@@ -190,14 +231,10 @@ export async function sendBookingDeliverablesEmailForBooking({
 		driveLink,
 		emailVariant,
 		name,
-		signoffName,
+		signoffName
 	});
 
-	return await sendEmail({
-		to: [email],
-		subject: "Your VV Studios Deliverables Folder",
-		html,
-	});
+	return await sendEmail({ to: [email], subject: "Your VV Studios Deliverables Folder", html });
 }
 
 export async function sendBookingReminderEmailForBooking({
@@ -208,7 +245,7 @@ export async function sendBookingReminderEmailForBooking({
 	timeZone,
 	service,
 	duration,
-	addons,
+	addons
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
@@ -222,13 +259,13 @@ export async function sendBookingReminderEmailForBooking({
 		duration,
 		name,
 		service,
-		signoffName,
+		signoffName
 	});
 
-	await sendBookingReminderEmail({
+	return await sendEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
-		html,
+		html
 	});
 }
 

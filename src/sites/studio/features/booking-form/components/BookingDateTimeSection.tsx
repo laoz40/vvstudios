@@ -10,7 +10,7 @@ import {
 	FieldLabel,
 	FieldLegend,
 	FieldSet,
-	FieldTitle,
+	FieldTitle
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Modal } from "#studio/components/Modal";
@@ -19,13 +19,13 @@ import {
 	getCardStateClassName,
 	getTextStateClassName,
 	sectionHeadingClassName,
-	transitionClassName,
+	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	toFieldErrorObjects,
 	type AvailableTimeSection,
 	type BookingFormValues,
-	type TimeSectionKey,
+	type TimeSectionKey
 } from "#studio/features/booking-form/lib/form-shared";
 import {
 	formatBookingDateSummary,
@@ -33,7 +33,7 @@ import {
 	formatDateValue,
 	formatTimeValue,
 	startOfMonth,
-	toOptionId,
+	toOptionId
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -48,7 +48,7 @@ const sectionCopy = {
 	modalCloseLabel: "Close dialog",
 	sessionSummaryTitle: "Session selected",
 	sessionSummaryDescription: "Review selected session time before continuing.",
-	sessionSummaryAction: "Confirm",
+	sessionSummaryAction: "Confirm"
 } as const;
 
 export interface BookingDateTimeSectionProps {
@@ -75,7 +75,7 @@ export function BookingDateTimeSection({
 	isViewingSelectedMonth,
 	onPreferredTimeSectionChange,
 	selectedDate,
-	setCalendarMonth,
+	setCalendarMonth
 }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
 	const formValues = useStore(formApi.store, (state) => state.values as BookingFormValues);
@@ -138,7 +138,7 @@ export function BookingDateTimeSection({
 												"w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1",
 											day: "aspect-auto p-0.5 md:p-1",
 											day_button:
-												"h-11 py-0 md:h-12 data-[selected-single=true]:!bg-primary data-[selected-single=true]:!text-primary-foreground xl:h-14 xl:text-lg!",
+												"h-11 py-0 md:h-12 data-[selected-single=true]:!bg-primary data-[selected-single=true]:!text-primary-foreground xl:h-14 xl:text-lg!"
 										}}
 										mode="single"
 										required
@@ -215,7 +215,7 @@ export function BookingDateTimeSection({
 												field.handleChange(value as BookingFormValues["time"]);
 												onPreferredTimeSectionChange?.(
 													availableTimeSections.find((section) => section.times.includes(value))
-														?.key ?? null,
+														?.key ?? null
 												);
 												field.handleBlur();
 											}}
@@ -246,7 +246,7 @@ export function BookingDateTimeSection({
 																	"pressable border-border bg-input/30 w-full! cursor-pointer flex-row! rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 																	transitionClassName,
 																	getCardStateClassName(isSelected),
-																	isSelected && "shadow-primary/20",
+																	isSelected && "shadow-primary/20"
 																)}>
 																<Field
 																	orientation="horizontal"
@@ -254,7 +254,7 @@ export function BookingDateTimeSection({
 																	<FieldTitle
 																		className={cn(
 																			"w-full justify-center whitespace-nowrap text-center text-base text-card-foreground font-semibold",
-																			getTextStateClassName(isSelected),
+																			getTextStateClassName(isSelected)
 																		)}>
 																		{formatTimeValue(time)}
 																	</FieldTitle>

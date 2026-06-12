@@ -1,7 +1,4 @@
-export type StudioLegalPageSection = {
-	body: string;
-	title: string;
-};
+export type StudioLegalPageSection = { body: string; title: string };
 
 export type StudioLegalPageProps = {
 	lastUpdated: string;

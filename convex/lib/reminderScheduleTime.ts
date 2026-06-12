@@ -1,12 +1,7 @@
 const HOURS_PER_DAY = 24;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export type TimeZoneDateParts = {
-	year: number;
-	month: number;
-	day: number;
-	hour: number;
-};
+export type TimeZoneDateParts = { year: number; month: number; day: number; hour: number };
 
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -22,7 +17,7 @@ const getDateTimeFormatter = (timeZone: string) => {
 		hour12: false,
 		month: "2-digit",
 		timeZone,
-		year: "numeric",
+		year: "numeric"
 	});
 
 	dateTimeFormatters.set(timeZone, formatter);
@@ -35,20 +30,20 @@ export const getTimeZoneDateParts = (date: Date, timeZone: string): TimeZoneDate
 		getDateTimeFormatter(timeZone)
 			.formatToParts(date)
 			.filter((part) => part.type !== "literal")
-			.map((part) => [part.type, Number(part.value)]),
+			.map((part) => [part.type, Number(part.value)])
 	);
 
 	return {
 		day: parts.day,
 		hour: parts.hour === HOURS_PER_DAY ? 0 : parts.hour,
 		month: parts.month,
-		year: parts.year,
+		year: parts.year
 	};
 };
 
 export const getUtcTimeForTimeZoneDateParts = (
 	{ year, month, day, hour }: TimeZoneDateParts,
-	timeZone: string,
+	timeZone: string
 ) => {
 	const utcGuess = Date.UTC(year, month - 1, day, hour);
 	const actualParts = getTimeZoneDateParts(new Date(utcGuess), timeZone);
@@ -57,7 +52,7 @@ export const getUtcTimeForTimeZoneDateParts = (
 		actualParts.year,
 		actualParts.month - 1,
 		actualParts.day,
-		actualParts.hour,
+		actualParts.hour
 	);
 
 	return utcGuess - (actualAsUtc - targetAsUtc);

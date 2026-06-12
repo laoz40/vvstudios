@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 const sectionCopy = {
 	description: "You can reuse your last saved booking information.",
 	reuseAction: "Reuse Last Booking Info",
-	removeAction: "Delete data?",
+	removeAction: "Delete data?"
 } as const;
 
 export interface BookingSavedInfoBannerProps {

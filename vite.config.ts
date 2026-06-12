@@ -8,9 +8,7 @@ import { nitro } from "nitro/vite";
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
-	server: {
-		allowedHosts: [".trycloudflare.com"],
-	},
+	server: { allowedHosts: [".trycloudflare.com"] },
 	plugins: [
 		tailwindcss(),
 		tanstackStart({
@@ -22,18 +20,15 @@ const config = defineConfig({
 						studioSite.routes.home,
 						studioSite.routes.pricing,
 						studioSite.routes.gallery,
-						studioSite.routes.contact,
-					].includes(path),
+						studioSite.routes.contact
+					].includes(path)
 			},
-			sitemap: {
-				enabled: true,
-				host: "https://vertigovisuals.com.au",
-			},
+			sitemap: { enabled: true, host: "https://vertigovisuals.com.au" }
 		}),
 		viteReact(),
 		nitro(),
-		babel({ presets: [reactCompilerPreset()] }),
-	],
+		babel({ presets: [reactCompilerPreset()] })
+	]
 });
 
 export default config;

@@ -1,79 +1,73 @@
 "use node";
 
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
+import { err, ok } from "../src/lib/result";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
+import { action, type ActionCtx } from "./_generated/server";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode,
+	renderBookingInvoicePdfInNode
 } from "./lib/bookingInvoiceArtifacts";
 
-type BookingInvoiceDownloadErrorData = {
-	code:
-		| "BOOKING_NOT_FOUND"
-		| "BOOKING_NOT_CONFIRMED"
-		| "INVOICE_DOWNLOAD_EXPIRED"
-		| "INVALID_BOOKING_DATA"
-		| "INVOICE_DOWNLOAD_FAILED";
-};
+type GetBookingInvoicePdfByStripeSessionIdArgs = { stripeSessionId: string };
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
 
 export const getBookingInvoicePdfByStripeSessionId = action({
-	args: {
-		stripeSessionId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const booking = await ctx.runQuery(internal.bookings.getBookingByStripeSessionIdInternal, {
-			stripeSessionId: args.stripeSessionId,
-		});
-
-		if (!booking) {
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
-
-		if (booking.status !== "confirmed" && booking.status !== "email_failed") {
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "BOOKING_NOT_CONFIRMED" });
-		}
-
-		const invoiceDownloadStartedAt =
-			booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt;
-
-		if (
-			!invoiceDownloadStartedAt ||
-			Date.now() - invoiceDownloadStartedAt > INVOICE_DOWNLOAD_EXPIRY_MS
-		) {
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({ code: "INVOICE_DOWNLOAD_EXPIRED" });
-		}
-
-		let artifacts: Awaited<
-			ReturnType<typeof createBookingInvoiceEmailArtifactsForBooking>
-		>["artifacts"];
-		let pdfContent: Awaited<ReturnType<typeof renderBookingInvoicePdfInNode>>;
-
-		try {
-			({ artifacts } = await createBookingInvoiceEmailArtifactsForBooking(
-				booking,
-				booking.pendingPaymentCreatedAt,
-			));
-			pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
-		} catch (error) {
-			if (error instanceof ConvexError) {
-				throw error;
-			}
-
-			throw new ConvexError<BookingInvoiceDownloadErrorData>({
-				code: "INVOICE_DOWNLOAD_FAILED",
-			});
-		}
-
-		return {
-			content: pdfContent.buffer.slice(
-				pdfContent.byteOffset,
-				pdfContent.byteOffset + pdfContent.byteLength,
-			),
-			contentType: artifacts.pdf.contentType,
-			filename: artifacts.pdf.filename,
-		};
-	},
+	args: { stripeSessionId: v.string() },
+	handler: (ctx, args) => getBookingInvoicePdfByStripeSessionIdHandler(ctx, args)
 });
+
+async function getBookingInvoicePdfByStripeSessionIdHandler(
+	ctx: ActionCtx,
+	args: GetBookingInvoicePdfByStripeSessionIdArgs
+) {
+	const booking = await ctx.runQuery(internal.bookings.getBookingByStripeSessionIdInternal, {
+		stripeSessionId: args.stripeSessionId
+	});
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" });
+	}
+
+	const invoiceCreatedAt =
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt;
+
+	if (!invoiceCreatedAt || Date.now() - invoiceCreatedAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
+		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
+	}
+
+	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
+		booking,
+		invoiceCreatedAt
+	);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
+
+	if (pdfError !== null) {
+		return err({ reason: "INVOICE_DOWNLOAD_FAILED" });
+	}
+
+	return ok({
+		content: pdfContent.buffer.slice(
+			pdfContent.byteOffset,
+			pdfContent.byteOffset + pdfContent.byteLength
+		),
+		contentType: artifactsResult.artifacts.pdf.contentType,
+		filename: artifactsResult.artifacts.pdf.filename
+	});
+}
+
+export type GetBookingInvoicePdfByStripeSessionIdResult = Awaited<
+	ReturnType<typeof getBookingInvoicePdfByStripeSessionIdHandler>
+>;

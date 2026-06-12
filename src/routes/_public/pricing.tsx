@@ -4,7 +4,7 @@ import { PricingSection } from "#studio/components/pricing/PricingSection";
 
 export const Route = createFileRoute("/_public/pricing")({
 	head: () => buildSeoHead(seoMetadata.pricing),
-	component: PricingRoute,
+	component: PricingRoute
 });
 
 function PricingRoute() {

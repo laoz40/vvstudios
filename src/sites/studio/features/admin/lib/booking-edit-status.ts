@@ -15,7 +15,7 @@ export const bookingStatusLabelMap: Record<BookingStatus, string> = {
 	email_failed: "Email failed",
 	expired: "Expired",
 	failed: "Needs follow up",
-	pending_payment: "Pending payment",
+	pending_payment: "Pending payment"
 };
 
 export const bookingStatusBadgeVariantMap: Record<
@@ -27,7 +27,7 @@ export const bookingStatusBadgeVariantMap: Record<
 	expired: "outline",
 	email_failed: "destructive",
 	failed: "destructive",
-	pending_payment: "secondary",
+	pending_payment: "secondary"
 };
 
 export const bookingStatusBadgeClassNameMap: Record<BookingStatus, string | undefined> = {
@@ -36,35 +36,31 @@ export const bookingStatusBadgeClassNameMap: Record<BookingStatus, string | unde
 	expired: "bg-muted text-muted-foreground",
 	email_failed: "bg-destructive text-primary-foreground",
 	failed: "bg-destructive text-primary-foreground",
-	pending_payment: "bg-primary text-primary-foreground",
+	pending_payment: "bg-primary text-primary-foreground"
 };
 
 export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
 	to_edit: "Not Sent",
 	editing: "Editing",
-	completed: "Sent",
+	completed: "Sent"
 };
 
 export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
-	completed: "bg-green text-primary-foreground",
+	completed: "bg-green text-primary-foreground"
 };
 
 export const deliverableStatusDotClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive",
 	editing: "bg-primary",
-	completed: "bg-green",
+	completed: "bg-green"
 };
 
 export const deliverableStatusBadgeVariantMap: Record<
 	DeliverableStatus,
 	ComponentProps<typeof Badge>["variant"]
-> = {
-	to_edit: "destructive",
-	editing: "default",
-	completed: "default",
-};
+> = { to_edit: "destructive", editing: "default", completed: "default" };
 
 export function getDeliverableStatus(booking: BookingRecord): DeliverableStatus {
 	return booking.editStatus ?? "to_edit";

@@ -1,52 +1,45 @@
-import { ConvexError, v } from "convex/values";
-import {
-	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	type BookingAvailabilitySettings,
-} from "../../src/sites/studio/lib/bookingAvailabilitySettings";
-
-export type BookingSettingsArgs = BookingAvailabilitySettings;
-
-export const DEFAULT_BOOKING_SETTINGS = DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-
-const dayScheduleValidator = v.object({
-	endTime: v.string(),
-	startTime: v.string(),
-});
-
-export const bookingSettingsArgs = {
-	eventBufferMinutes: v.number(),
-	leadTimeMinutes: v.number(),
-	maxDaysAhead: v.number(),
-	weekSchedule: v.array(dayScheduleValidator),
-};
-
-type BookingSettingsErrorData = {
-	code: "INVALID_BOOKING_SETTINGS" | "NOT_AUTHENTICATED";
-};
-
-export function assertAuthenticated(identity: unknown) {
-	if (!identity) {
-		throw new ConvexError<BookingSettingsErrorData>({ code: "NOT_AUTHENTICATED" });
-	}
-}
+import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
 
 function isValidTime(value: string) {
 	return /^([01]\d|2[0-3]):(00|30)$/.test(value);
 }
 
-export function validateBookingSettings(args: BookingSettingsArgs) {
+function getTimeMinutes(value: string) {
+	const [hours, minutes] = value.split(":").map(Number);
+
+	if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+		return null;
+	}
+
+	return hours * 60 + minutes;
+}
+
+function isValidScheduleWindow(startTime: string, endTime: string) {
+	if (!isValidTime(startTime) || !isValidTime(endTime)) {
+		return false;
+	}
+
+	const startMinutes = getTimeMinutes(startTime);
+	const endMinutes = getTimeMinutes(endTime);
+
+	return startMinutes !== null && endMinutes !== null && startMinutes < endMinutes;
+}
+
+export function isValidBookingSettings(args: BookingAvailabilitySettings) {
 	if (
 		args.weekSchedule.length !== 7 ||
 		args.leadTimeMinutes < 0 ||
 		args.eventBufferMinutes < 0 ||
 		args.maxDaysAhead < 1
 	) {
-		throw new ConvexError<BookingSettingsErrorData>({ code: "INVALID_BOOKING_SETTINGS" });
+		return false;
 	}
 
 	for (const schedule of Object.values(args.weekSchedule)) {
-		if (!isValidTime(schedule.startTime) || !isValidTime(schedule.endTime)) {
-			throw new ConvexError<BookingSettingsErrorData>({ code: "INVALID_BOOKING_SETTINGS" });
+		if (!isValidScheduleWindow(schedule.startTime, schedule.endTime)) {
+			return false;
 		}
 	}
+
+	return true;
 }

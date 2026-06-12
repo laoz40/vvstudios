@@ -4,9 +4,9 @@ type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_DELETE_FAILED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
-export type GoogleCalendarErrorCode<
-	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode,
-> = "GOOGLE_CALENDAR_AUTH_FAILED" | T;
+type GoogleCalendarErrorCode<
+	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode
+> = "GOOGLE_CALENDAR_AUTH_FAILED" | "GOOGLE_CALENDAR_RATE_LIMITED" | T;
 
 // narrow unknown thrown values before reading nested properties
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -16,7 +16,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 // map raw Google API errors to the app error codes we expose upstream
 export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
 	error: unknown,
-	fallbackCode: T,
+	fallbackCode: T
 ): GoogleCalendarErrorCode<T> {
 	if (!isObject(error)) {
 		return fallbackCode;
@@ -34,6 +34,10 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
 	}
 
+	if (status === 429) {
+		return "GOOGLE_CALENDAR_RATE_LIMITED";
+	}
+
 	return fallbackCode;
 }
 
@@ -46,21 +50,4 @@ export function isGoogleCalendarEventNotFoundError(error: unknown) {
 	const status = typeof response?.status === "number" ? response.status : null;
 
 	return status === 404 || status === 410;
-}
-
-// extract the most useful Google error fields for structured logging
-export function getGoogleCalendarErrorDetails(error: unknown) {
-	if (!isObject(error)) {
-		return { error };
-	}
-
-	const response = isObject(error.response) ? error.response : null;
-	const responseData = response && "data" in response ? response.data : undefined;
-
-	return {
-		message: typeof error.message === "string" ? error.message : undefined,
-		stack: typeof error.stack === "string" ? error.stack : undefined,
-		responseData,
-		status: typeof response?.status === "number" ? response.status : undefined,
-	};
 }

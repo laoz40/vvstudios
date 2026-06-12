@@ -13,15 +13,15 @@ import {
 	getFooterStateClassName,
 	getPillStateClassName,
 	sectionHeadingClassName,
-	transitionClassName,
+	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	toFieldErrorObjects,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import {
 	DURATION_PRICES,
-	formatBookingPrice,
+	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
@@ -37,7 +37,7 @@ const sectionCopy = {
 	requestCallDialogDescription: "Book a quick call to discuss recurring sessions and availability.",
 	requestCallDialogClose: "Close",
 	recordingSpaceNote:
-		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
+		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting."
 } as const;
 
 type DurationOption = {
@@ -55,15 +55,15 @@ const recordingSpaceOptions = [
 		title: "Table Setup",
 		capacity: "up to 4 people",
 		image: tableSetupImage,
-		imageAlt: "Podcast table setup with microphones and studio lighting",
+		imageAlt: "Podcast table setup with microphones and studio lighting"
 	},
 	{
 		value: "Armchair Setup" as const,
 		title: "Armchair Setup",
 		capacity: "up to 2 people",
 		image: armchairSetupImage,
-		imageAlt: "Podcast open setup with warm lamps and casual seating",
-	},
+		imageAlt: "Podcast open setup with warm lamps and casual seating"
+	}
 ] as const;
 
 const durationOptions: DurationOption[] = [
@@ -72,21 +72,21 @@ const durationOptions: DurationOption[] = [
 		label: "1 Hour",
 		originalPrice: "$200",
 		discountedPrice: formatBookingPrice(DURATION_PRICES["1h"]),
-		priceNote: "Standard rate",
+		priceNote: "Standard rate"
 	},
 	{
 		value: "2h" as const,
 		label: "2 Hours",
 		originalPrice: "$400",
 		discountedPrice: formatBookingPrice(DURATION_PRICES["2h"]),
-		badgeLabel: "MOST POPULAR",
+		badgeLabel: "MOST POPULAR"
 	},
 	{
 		value: "3h" as const,
 		label: "3 Hours",
 		originalPrice: "$600",
-		discountedPrice: formatBookingPrice(DURATION_PRICES["3h"]),
-	},
+		discountedPrice: formatBookingPrice(DURATION_PRICES["3h"])
+	}
 ] as const;
 
 export function BookingRecurringSessionsPrompt() {
@@ -168,7 +168,7 @@ export function BookingRecordingSpaceDurationSection() {
 													"pressable bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
 													transitionClassName,
 													getCardStateClassName(isSelected),
-													isSelected && "shadow-primary/20",
+													isSelected && "shadow-primary/20"
 												)}>
 												{option.badgeLabel ? (
 													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-semibold leading-none">
@@ -181,7 +181,7 @@ export function BookingRecordingSpaceDurationSection() {
 														<span
 															className={cn(
 																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
-																getPillStateClassName(true),
+																getPillStateClassName(true)
 															)}>
 															SELECTED
 														</span>
@@ -239,7 +239,7 @@ export function BookingRecordingSpaceDurationSection() {
 												"pressable peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
-												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
+												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20"
 											)}>
 											<div className="relative w-full overflow-hidden">
 												<Image
@@ -250,7 +250,7 @@ export function BookingRecordingSpaceDurationSection() {
 													height={1060}
 													className={cn(
 														"h-auto w-full transition-transform duration-300 group-hover:scale-105",
-														field.state.value === option.value && "scale-[1.02]",
+														field.state.value === option.value && "scale-[1.02]"
 													)}
 												/>
 												<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
@@ -259,7 +259,7 @@ export function BookingRecordingSpaceDurationSection() {
 												className={cn(
 													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5 md:group-hover:bg-primary/10",
 													getFooterStateClassName(field.state.value === option.value),
-													field.state.value === option.value && "md:bg-primary/10",
+													field.state.value === option.value && "md:bg-primary/10"
 												)}>
 												<p className="text-base font-semibold text-foreground">
 													{option.title}{" "}
@@ -270,7 +270,7 @@ export function BookingRecordingSpaceDurationSection() {
 												<span
 													className={cn(
 														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
-														getPillStateClassName(field.state.value === option.value),
+														getPillStateClassName(field.state.value === option.value)
 													)}>
 													{field.state.value === option.value ? "SELECTED" : "SELECT"}
 												</span>

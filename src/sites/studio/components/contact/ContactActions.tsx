@@ -1,17 +1,21 @@
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 import { Link } from "@tanstack/react-router";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
+import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
+import { cn } from "#/lib/utils";
+import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
 
-const contactActionCopy = {
-	bookCta: "Book session",
-	tourCta: "Take free tour",
-} as const;
+const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
-export function ContactActions() {
+type ContactActionsProps = { className?: string };
+
+export function ContactActions({ className }: ContactActionsProps) {
 	return (
-		<div className="mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6">
+		<div
+			className={cn(
+				"mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6",
+				className
+			)}>
 			<AnimatedIconButton
 				className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
 				renderIcon={(iconRef) => (

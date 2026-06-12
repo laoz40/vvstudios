@@ -4,7 +4,7 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
-	type BookingFormValues,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 
 const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
@@ -25,7 +25,7 @@ const savedBookingInfoSchema = z.object({
 	accountName: z.string(),
 	abn: z.string(),
 	email: z.string(),
-	notes: z.string(),
+	notes: z.string()
 });
 
 export type SavedBookingInfo = z.infer<typeof savedBookingInfoSchema>;
@@ -44,7 +44,7 @@ function parseSavedBookingInfo(rawValue: string | null) {
 
 export function toSavedBookingInfo(
 	values: BookingFormValues,
-	timeSectionKey: SavedBookingInfo["timeSectionKey"],
+	timeSectionKey: SavedBookingInfo["timeSectionKey"]
 ): SavedBookingInfo {
 	return {
 		service: values.service,
@@ -58,7 +58,7 @@ export function toSavedBookingInfo(
 		accountName: values.accountName,
 		abn: values.abn ?? "",
 		email: values.email,
-		notes: values.notes,
+		notes: values.notes
 	};
 }
 
@@ -73,7 +73,7 @@ function getLocalStorage() {
 export function getStoredSavedBookingInfo() {
 	try {
 		return parseSavedBookingInfo(
-			getLocalStorage()?.getItem(SAVED_BOOKING_INFO_STORAGE_KEY) ?? null,
+			getLocalStorage()?.getItem(SAVED_BOOKING_INFO_STORAGE_KEY) ?? null
 		);
 	} catch {
 		return null;

@@ -58,7 +58,7 @@ function AccordionTrigger({
 				data-slot="accordion-trigger"
 				className={cn(
 					"group flex flex-1 items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6",
-					className,
+					className
 				)}
 				{...props}
 				// Existing trigger event handlers run first so custom behavior is not replaced.
@@ -96,10 +96,7 @@ type AccordionContentProps = Omit<
 	React.ComponentProps<typeof AccordionPrimitive.Content>,
 	"asChild" | "forceMount"
 > &
-	HTMLMotionProps<"div"> & {
-		transition?: Transition;
-		keepRendered?: boolean;
-	};
+	HTMLMotionProps<"div"> & { transition?: Transition; keepRendered?: boolean };
 
 function AccordionContent({
 	className,
@@ -119,7 +116,7 @@ function AccordionContent({
 				transition={transition}
 				className={cn(
 					"max-w-5xl pb-5 text-sm leading-7 text-pretty text-muted-foreground md:pb-6 md:text-base",
-					className,
+					className
 				)}
 				{...props}>
 				{children}

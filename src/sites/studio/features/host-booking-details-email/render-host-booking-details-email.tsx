@@ -1,7 +1,7 @@
 import { render } from "@react-email/render";
 import {
 	HostBookingDetailsEmail,
-	type HostBookingDetailsEmailProps,
+	type HostBookingDetailsEmailProps
 } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 
 export async function renderHostBookingDetailsEmail(props: HostBookingDetailsEmailProps) {

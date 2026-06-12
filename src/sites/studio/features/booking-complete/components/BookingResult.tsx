@@ -3,11 +3,13 @@ import { useAction } from "convex/react";
 import { CircleX } from "lucide-react";
 import { toast } from "sonner";
 import CheckedIcon from "#/components/ui/checked-icon";
+import { tryCatch } from "#/lib/result";
+import { api } from "#convex/_generated/api";
+import type { GetBookingInvoicePdfByStripeSessionIdResult } from "#convex/invoices";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingDetails } from "#studio/features/booking-complete/components/BookingDetails";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { BookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
-import { api } from "#convex/_generated/api";
 
 export interface BookingResultProps {
 	booking: BookingStatus | null;
@@ -29,7 +31,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 export function BookingResult({
 	booking,
 	content,
-	stripeSessionId,
+	stripeSessionId
 }: BookingResultProps): ReactNode {
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
@@ -48,21 +50,50 @@ export function BookingResult({
 		setIsDownloadingInvoice(true);
 
 		try {
-			const invoice = await getBookingInvoicePdf({ stripeSessionId });
+			const [error, invoice] = await tryCatch<GetBookingInvoicePdfByStripeSessionIdResult>(
+				getBookingInvoicePdf({ stripeSessionId })
+			);
+
+			if (error !== null) {
+				switch (error.reason) {
+					case "BOOKING_NOT_FOUND":
+						toast.error("Unable to find this booking.");
+						return;
+
+					case "BOOKING_NOT_CONFIRMED":
+						toast.error("Invoice is only available for confirmed bookings.");
+						return;
+
+					case "INVOICE_DOWNLOAD_EXPIRED":
+						toast.error(
+							"Download link expired. Your invoice should be in your email — please check there."
+						);
+						return;
+
+					case "INVALID_BOOKING_DATA":
+						toast.error("Unable to generate invoice.");
+						return;
+
+					case "INVOICE_DOWNLOAD_FAILED":
+						toast.error("Unable to generate invoice.");
+						return;
+
+					case "UNEXPECTED_ERROR":
+						toast.error("Something went wrong with generating invoice.");
+						return;
+
+					default: {
+						const _exhaustive: never = error;
+						return _exhaustive;
+					}
+				}
+			}
+
 			const content = new Uint8Array(invoice.content);
 			const pdfBuffer = new ArrayBuffer(content.byteLength);
 			new Uint8Array(pdfBuffer).set(content);
 			downloadBlob(new Blob([pdfBuffer], { type: invoice.contentType }), invoice.filename);
 			toast.success("Invoice download started.");
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "";
-			const isExpired = message.includes("INVOICE_DOWNLOAD_EXPIRED");
-
-			toast.error(
-				isExpired
-					? "Download link expired. Your invoice should be in your email — please check there."
-					: "Unable to generate invoice.",
-			);
 		} finally {
 			setIsDownloadingInvoice(false);
 		}

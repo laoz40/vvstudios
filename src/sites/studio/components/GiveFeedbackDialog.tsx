@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { api } from "#convex/_generated/api";
+import type { SubmitFeedbackResult } from "#convex/feedback";
 import { Modal } from "#studio/components/Modal";
-
+import { tryCatch } from "#/lib/result";
 export function GiveFeedbackDialog(): ReactNode {
 	const [open, setOpen] = useState(false);
 	const [feedback, setFeedback] = useState("");
@@ -23,32 +24,40 @@ export function GiveFeedbackDialog(): ReactNode {
 
 		setIsSubmitting(true);
 
-		try {
-			await submitFeedback({ message: feedback });
-			setFeedback("");
-			setOpen(false);
-			toast.success("Thanks for your feedback!");
-		} catch (error) {
-			let errorCode: string | undefined;
+		const [error] = await tryCatch<SubmitFeedbackResult>(submitFeedback({ message: feedback }));
 
-			if (typeof error === "object" && error !== null && "data" in error) {
-				errorCode = (error as { data?: { code?: string } }).data?.code;
-			}
-
-			switch (errorCode) {
+		if (error !== null) {
+			switch (error.reason) {
 				case "INVALID_MESSAGE":
 					toast.error("Please enter some feedback before submitting.");
 					break;
+
 				case "FEEDBACK_RATE_LIMITED":
 					toast.error("You’re sending feedback too quickly. Please try again later.");
 					break;
+
 				case "SEND_FAILED":
-				default:
 					toast.error("We couldn’t send your feedback. Please try again.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending your feedback.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
-		} finally {
+
 			setIsSubmitting(false);
+			return;
 		}
+
+		setFeedback("");
+		setOpen(false);
+		toast.success("Thanks for your feedback!");
+		setIsSubmitting(false);
 	}
 
 	return (

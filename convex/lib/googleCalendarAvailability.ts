@@ -32,7 +32,7 @@ export async function getBusyWindows({
 	calendarIds,
 	date,
 	ignoredEvent,
-	timeZone,
+	timeZone
 }: GetBusyWindowsArgs): Promise<BusyWindow[]> {
 	const { timeMin, timeMax } = getAvailabilityRange(date);
 
@@ -42,7 +42,7 @@ export async function getBusyWindows({
 		ignoredEvent,
 		timeMax,
 		timeMin,
-		timeZone,
+		timeZone
 	});
 }
 
@@ -52,7 +52,7 @@ export async function getBusyWindowsInRange({
 	ignoredEvent,
 	timeMax,
 	timeMin,
-	timeZone,
+	timeZone
 }: GetBusyWindowsInRangeArgs): Promise<BusyWindow[]> {
 	const busyWindows: BusyWindow[] = [];
 
@@ -68,7 +68,7 @@ export async function getBusyWindowsInRange({
 				singleEvents: true,
 				timeMax,
 				timeMin,
-				timeZone,
+				timeZone
 			});
 
 			for (const event of response.data.items ?? []) {
@@ -96,7 +96,7 @@ export async function getBusyWindowsInRange({
 function shouldIgnoreBusyEvent({
 	calendarId,
 	event,
-	ignoredEvent,
+	ignoredEvent
 }: {
 	calendarId: string;
 	event: calendar_v3.Schema$Event;

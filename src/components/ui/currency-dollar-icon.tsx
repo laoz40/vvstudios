@@ -12,7 +12,7 @@ const CurrencyDollarIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			await animate(
 				".usd-line",
 				{ pathLength: 1, opacity: 1 },
-				{ duration: 0.25, ease: "easeOut" },
+				{ duration: 0.25, ease: "easeOut" }
 			);
 
 			await animate(".usd-main", { pathLength: 1, opacity: 1 }, { duration: 0.4, ease: "easeOut" });
@@ -26,10 +26,7 @@ const CurrencyDollarIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -79,7 +76,7 @@ const CurrencyDollarIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</svg>
 			</motion.div>
 		);
-	},
+	}
 );
 
 CurrencyDollarIcon.displayName = "CurrencyDollarIcon";

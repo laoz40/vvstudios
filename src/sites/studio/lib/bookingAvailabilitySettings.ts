@@ -1,4 +1,4 @@
-export interface BookingDaySchedule {
+interface BookingDaySchedule {
 	endTime: string;
 	startTime: string;
 }
@@ -30,12 +30,12 @@ const DEFAULT_BOOKING_WEEK_SCHEDULE: BookingDaySchedule[] = [
 	{ startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
 	{ startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
 	{ startTime: DEFAULT_BOOKING_START_TIME, endTime: DEFAULT_BOOKING_END_TIME },
-	{ startTime: DEFAULT_BOOKING_START_TIME, endTime: "21:00" },
+	{ startTime: DEFAULT_BOOKING_START_TIME, endTime: "21:00" }
 ];
 
 export const DEFAULT_BOOKING_AVAILABILITY_SETTINGS: BookingAvailabilitySettings = {
 	eventBufferMinutes: BOOKING_EVENT_BUFFER_MINUTES,
 	leadTimeMinutes: BOOKING_LEAD_TIME_MINUTES,
 	maxDaysAhead: BOOKING_MAX_DAYS_AHEAD,
-	weekSchedule: DEFAULT_BOOKING_WEEK_SCHEDULE,
+	weekSchedule: DEFAULT_BOOKING_WEEK_SCHEDULE
 };

@@ -9,12 +9,8 @@ const SendIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const start = useCallback(async () => {
 			await animate(
 				".send-icon",
-				{
-					x: [0, 24],
-					y: [0, -24],
-					opacity: [1, 0],
-				},
-				{ duration: 0.25, ease: "easeIn" },
+				{ x: [0, 24], y: [0, -24], opacity: [1, 0] },
+				{ duration: 0.25, ease: "easeIn" }
 			);
 
 			// instant reset
@@ -23,12 +19,8 @@ const SendIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			// come back
 			await animate(
 				".send-icon",
-				{
-					x: [-24, 0],
-					y: [24, 0],
-					opacity: [0, 1],
-				},
-				{ duration: 0.25, ease: "easeOut" },
+				{ x: [-24, 0], y: [24, 0], opacity: [0, 1] },
+				{ duration: 0.25, ease: "easeOut" }
 			);
 		}, [animate]);
 
@@ -36,10 +28,7 @@ const SendIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			animate(".send-icon", { x: 0, y: 0, opacity: 1 }, { duration: 0.2 });
 		}, [animate]);
 
-		useImperativeHandle(ref, () => ({
-			startAnimation: start,
-			stopAnimation: stop,
-		}));
+		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		return (
 			<motion.svg
@@ -70,7 +59,7 @@ const SendIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</motion.g>
 			</motion.svg>
 		);
-	},
+	}
 );
 
 SendIcon.displayName = "SendIcon";

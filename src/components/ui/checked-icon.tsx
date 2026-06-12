@@ -7,47 +7,11 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = async () => {
-			await animate(
-				"svg",
-				{
-					scale: 1.1,
-				},
-				{
-					duration: 0.1,
-					ease: "easeInOut",
-				},
-			);
-			await animate(
-				".check-icon",
-				{
-					pathLength: 0,
-				},
-				{
-					duration: 0.1,
-					ease: "easeInOut",
-				},
-			);
-			await animate(
-				".check-icon",
-				{
-					pathLength: 1,
-				},
-				{
-					duration: 0.4,
-					ease: "easeInOut",
-				},
-			);
+			await animate("svg", { scale: 1.1 }, { duration: 0.1, ease: "easeInOut" });
+			await animate(".check-icon", { pathLength: 0 }, { duration: 0.1, ease: "easeInOut" });
+			await animate(".check-icon", { pathLength: 1 }, { duration: 0.4, ease: "easeInOut" });
 
-			await animate(
-				"svg",
-				{
-					scale: 1,
-				},
-				{
-					duration: 0.2,
-					ease: "easeInOut",
-				},
-			);
+			await animate("svg", { scale: 1 }, { duration: 0.2, ease: "easeInOut" });
 		};
 
 		const stop = () => {
@@ -56,10 +20,7 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		};
 
 		useImperativeHandle(ref, () => {
-			return {
-				startAnimation: start,
-				stopAnimation: stop,
-			};
+			return { startAnimation: start, stopAnimation: stop };
 		});
 
 		const handleHoverStart = () => {
@@ -101,7 +62,7 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				</motion.svg>
 			</motion.span>
 		);
-	},
+	}
 );
 
 CheckedIcon.displayName = "CheckedIcon";

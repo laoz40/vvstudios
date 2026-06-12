@@ -5,7 +5,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
-	DialogTitle,
+	DialogTitle
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -30,7 +30,7 @@ export function RemainingBalanceDialog({
 	isSaving,
 	onOpenChange,
 	onValueChange,
-	onSave,
+	onSave
 }: RemainingBalanceDialogProps) {
 	return (
 		<Dialog
