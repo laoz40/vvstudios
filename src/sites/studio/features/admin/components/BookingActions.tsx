@@ -46,7 +46,10 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
+import {
+	type DownloadAdminBookingInvoiceResult,
+	downloadAdminBookingInvoice
+} from "#studio/features/admin/lib/download-admin-booking-invoice";
 import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
 import {
@@ -630,22 +633,32 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
 
-		try {
-			const result = await downloadAdminBookingInvoice({
-				booking,
-				createdAt: booking.pendingPaymentCreatedAt
-			});
+		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({ booking, createdAt: booking.pendingPaymentCreatedAt })
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(error.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
-			toast.success("Invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setIsDownloadingInvoice(false);
+			return;
 		}
+
+		toast.success("Invoice download started.");
+		setIsDownloadingInvoice(false);
 	}
 
 	async function handleEmailInvoice() {

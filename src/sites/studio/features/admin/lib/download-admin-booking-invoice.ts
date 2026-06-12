@@ -1,4 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
+import { err, ok, type Result } from "#/lib/result";
 import {
 	bookingSchema,
 	type BookingFormValues
@@ -18,9 +19,10 @@ export type DownloadAdminBookingInvoiceInput = {
 	service?: BookingService;
 };
 
-export type DownloadAdminBookingInvoiceResult =
-	| { success: true }
-	| { message: string; success: false };
+export type DownloadAdminBookingInvoiceResult = Result<
+	{ downloaded: true },
+	{ message: string; reason: "INVALID_INVOICE_INPUT" }
+>;
 
 export async function downloadAdminBookingInvoice({
 	booking,
@@ -54,10 +56,10 @@ export async function downloadAdminBookingInvoice({
 	});
 
 	if (!parsedBooking.success) {
-		return {
+		return err({
 			message: parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.",
-			success: false
-		};
+			reason: "INVALID_INVOICE_INPUT"
+		});
 	}
 
 	await downloadBookingInvoicePdf({
@@ -80,5 +82,5 @@ export async function downloadAdminBookingInvoice({
 		invoiceNumber
 	});
 
-	return { success: true };
+	return ok({ downloaded: true });
 }

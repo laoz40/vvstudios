@@ -4,11 +4,16 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { CreateCustomInvoiceResult } from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
-import { downloadAdminBookingInvoice } from "#studio/features/admin/lib/download-admin-booking-invoice";
+import {
+	type DownloadAdminBookingInvoiceResult,
+	downloadAdminBookingInvoice
+} from "#studio/features/admin/lib/download-admin-booking-invoice";
+import { tryCatch } from "#/lib/result";
 import {
 	Dialog,
 	DialogClose,
@@ -186,8 +191,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	}) {
 		setDownloadingInvoiceId(input._id);
 
-		try {
-			const result = await downloadAdminBookingInvoice({
+		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({
 				booking,
 				addons: input.addons as BookingFormValues["addons"],
 				createdAt: input.createdAt,
@@ -198,18 +203,31 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
 				service: isBookingService(input.service) ? input.service : undefined
-			});
+			})
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (error !== null) {
+			switch (error.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(error.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
 			}
-			toast.success("Custom invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setDownloadingInvoiceId(null);
+			return;
 		}
+
+		toast.success("Custom invoice download started.");
+		setDownloadingInvoiceId(null);
 	}
 
 	async function handleGenerateCustomInvoice() {
@@ -219,8 +237,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 		setIsGenerating(true);
 
-		try {
-			const customInvoice = await createCustomInvoice({
+		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
+			createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
 				service: draft.service || undefined,
@@ -229,9 +247,39 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: draft.essentialEditQuantity || undefined,
 				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
 				includeDepositLineItem: draft.includeDepositLineItem
-			});
+			})
+		);
 
-			const result = await downloadAdminBookingInvoice({
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("Please sign in first.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have permission to create custom invoices.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("This booking no longer exists.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong with creating the custom invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setIsGenerating(false);
+			return;
+		}
+
+		const [downloadError] = await tryCatch<DownloadAdminBookingInvoiceResult>(
+			downloadAdminBookingInvoice({
 				booking,
 				addons: draft.addons,
 				createdAt: customInvoice.createdAt,
@@ -242,19 +290,32 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
 				service: draft.service || undefined
-			});
+			})
+		);
 
-			if (!result.success) {
-				toast.error(result.message);
-				return;
+		if (downloadError !== null) {
+			switch (downloadError.reason) {
+				case "INVALID_INVOICE_INPUT":
+					toast.error(downloadError.message);
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = downloadError;
+					return _exhaustive;
+				}
 			}
-			onOpenChange(false);
-			toast.success("Custom invoice download started.");
-		} catch {
-			toast.error("Unable to generate invoice.");
-		} finally {
+
 			setIsGenerating(false);
+			return;
 		}
+
+		onOpenChange(false);
+		toast.success("Custom invoice download started.");
+		setIsGenerating(false);
 	}
 
 	return (
