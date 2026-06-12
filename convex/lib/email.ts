@@ -194,7 +194,6 @@ export async function sendBookingInvoiceEmailsForBooking(
 			bookingId: booking._id,
 			reason: hostEmailError.reason
 		});
-		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	return ok({ sent: true });
