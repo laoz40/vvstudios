@@ -1,4 +1,4 @@
-export interface BookingDaySchedule {
+interface BookingDaySchedule {
 	endTime: string;
 	startTime: string;
 }

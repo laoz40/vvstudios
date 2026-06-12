@@ -9,7 +9,7 @@ export const ADDON_OPTIONS = [
 	"Clips Package"
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
-export const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
+const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
 export const TIME_SECTIONS = [
 	{ key: "morning", label: "Morning", includes: (time: string) => time < "12:00" },
 	{
@@ -108,7 +108,6 @@ export const bookingSchema = z
 	});
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
-export type ParsedBookingFormValues = z.output<typeof bookingSchema>;
 
 export interface AvailableTimeSection {
 	key: TimeSectionKey;

@@ -5,7 +5,7 @@ export type EditingAddonQuantities = {
 	clipsPackageQuantity?: string;
 };
 
-export function getEditingAddonQuantityField(addon: string) {
+function getEditingAddonQuantityField(addon: string) {
 	if (addon === "Essential Edit") {
 		return "essentialEditQuantity" as const;
 	}
