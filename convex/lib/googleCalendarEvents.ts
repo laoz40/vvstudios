@@ -184,14 +184,20 @@ export async function deleteBookingCalendarEvent({
 
 		const foundEventId = foundEvent?.id ?? null;
 
-		if (foundEventId) {
-			await deleteCalendarEventIfFound(client.calendar, calendarId, foundEventId);
+		if (!foundEventId) {
+			return ok({ calendarEventDeleted: false });
 		}
 
-		return ok({ calendarEventDeleted: true });
+		const wasFoundEventDeleted = await deleteCalendarEventIfFound(
+			client.calendar,
+			calendarId,
+			foundEventId
+		);
+
+		return ok({ calendarEventDeleted: wasFoundEventDeleted });
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
-			return err({ reason: "GOOGLE_CALENDAR_EVENT_NOT_FOUND" });
+			return ok({ calendarEventDeleted: false });
 		}
 
 		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
