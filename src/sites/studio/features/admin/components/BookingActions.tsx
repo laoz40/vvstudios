@@ -68,7 +68,6 @@ import {
 	getDeliverableStatus,
 	type DeliverableStatus
 } from "#studio/features/admin/lib/booking-edit-status";
-import { getBookingInvoiceEmailErrorMessage } from "#studio/features/admin/lib/booking-action-errors";
 import type { SendBookingDeliverablesEmailResult } from "#convex/deliverablesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
@@ -76,6 +75,7 @@ import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 import type {
 	DeleteBookingFromAdminResult,
+	SendBookingInvoiceForBookingResult,
 	UpdateBookingFromAdminResult
 } from "#convex/googleCalendar";
 import type {
@@ -664,15 +664,45 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	async function handleEmailInvoice() {
 		setIsEmailingInvoice(true);
 
-		try {
-			await sendBookingInvoiceForBooking({ bookingId: booking._id });
-			setIsEmailInvoiceDialogOpen(false);
-			toast.success(`Invoice sent to ${booking.email}.`);
-		} catch (error) {
-			toast.error(getBookingInvoiceEmailErrorMessage(error));
-		} finally {
+		const [error] = await tryCatch<SendBookingInvoiceForBookingResult>(
+			sendBookingInvoiceForBooking({ bookingId: booking._id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to send invoice emails.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "INVOICE_SEND_FAILED":
+					toast.error("Unable to send invoice email.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending the invoice email.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsEmailingInvoice(false);
+			return;
 		}
+
+		setIsEmailInvoiceDialogOpen(false);
+		toast.success(`Invoice sent to ${booking.email}.`);
+		setIsEmailingInvoice(false);
 	}
 
 	async function handleEmailDeliverables() {

@@ -240,36 +240,54 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 
 export const cleanupOldPendingAndExpiredBookings = mutation({
 	args: {},
-	handler: async (ctx) => {
-		await requireAdmin(ctx);
+	handler: cleanupOldPendingAndExpiredBookingsHandler
+});
 
-		const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
-		let deletedCount = 0;
+async function cleanupOldPendingAndExpiredBookingsHandler(ctx: MutationCtx) {
+	const identity = await ctx.auth.getUserIdentity();
 
-		const pendingBookings = await ctx.db
-			.query("bookings")
-			.withIndex("by_status_and_pendingPaymentCreatedAt", (query) =>
-				query.eq("status", "pending_payment").lt("pendingPaymentCreatedAt", pendingPaymentCutoff)
-			)
-			.take(50);
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
 
-		const expiredOrAbandonedBookings = await Promise.all(
-			(["expired", "abandoned"] as const).map((status) =>
-				ctx.db
-					.query("bookings")
-					.withIndex("by_status_and_pendingPaymentCreatedAt", (query) => query.eq("status", status))
-					.take(50)
-			)
-		);
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
 
+	const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
+	let deletedCount = 0;
+
+	const pendingBookings = await ctx.db
+		.query("bookings")
+		.withIndex("by_status_and_pendingPaymentCreatedAt", (query) =>
+			query.eq("status", "pending_payment").lt("pendingPaymentCreatedAt", pendingPaymentCutoff)
+		)
+		.take(50);
+
+	const expiredOrAbandonedBookings = await Promise.all(
+		(["expired", "abandoned"] as const).map((status) =>
+			ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_pendingPaymentCreatedAt", (query) => query.eq("status", status))
+				.take(50)
+		)
+	);
+
+	try {
 		for (const booking of [...pendingBookings, ...expiredOrAbandonedBookings.flat()]) {
 			await ctx.db.delete(booking._id);
 			deletedCount += 1;
 		}
-
-		return { ok: true as const, deletedCount, pendingPaymentCutoff };
+	} catch {
+		return err({ reason: "BOOKING_CLEANUP_FAILED" });
 	}
-});
+
+	return ok({ deletedCount, pendingPaymentCutoff });
+}
+
+export type CleanupOldPendingAndExpiredBookingsResult = Awaited<
+	ReturnType<typeof cleanupOldPendingAndExpiredBookingsHandler>
+>;
 
 export const claimBookingCompletion = internalMutation({
 	args: {

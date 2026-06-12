@@ -5,7 +5,6 @@ import {
 	type BookingAvailabilitySettings,
 	type BusyPeriod
 } from "#studio/lib/bookingdatetime";
-import { getBookingErrorMessage } from "#studio/features/booking-form/lib/booking-errors";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 
 export interface BusyDayWindow {
@@ -53,12 +52,6 @@ export function mergeBookableRangeBusyWindows({
 			bookableMonthKeys.map((month) => [month, result.busyWindowsByMonth[month] ?? []] as const)
 		)
 	};
-}
-
-export function isAvailabilityRateLimitedMessage(availabilityError: string) {
-	return (
-		availabilityError === getBookingErrorMessage({ data: { code: "GOOGLE_CALENDAR_RATE_LIMITED" } })
-	);
 }
 
 export function getSelectedBusyDay({

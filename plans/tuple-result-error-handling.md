@@ -276,12 +276,31 @@ Helper naming preference: use behavior names like `deleteBookingCalendarEvent`, 
 - `convex/lib/email.ts` `sendBookingInvoiceEmailsForBooking` now returns tuple `Result` values for invoice data validation and email send failures.
 - Client `BookingResult.tsx` handles each invoice download error reason inline.
 
-Removed after conversion:
+### Admin invoice email
+
+- `convex/googleCalendar.ts` `sendBookingInvoiceForBooking` now returns tuple `Result` values for auth, booking lookup, email send, and invoice-email-sent marker failures.
+- Client `BookingActions.tsx` handles each invoice email error reason inline.
+
+### Public calendar availability
+
+- `convex/googleCalendar.ts` `getBookableRangeBusyWindows` and `getAvailableBookingTimes` now return tuple `Result` values for Google Calendar auth, availability, and rate-limit failures.
+- Client public booking page handles monthly availability errors inline.
+- Removed unused throwing Google Calendar Convex error mapper; shared Google Calendar error mapping now returns codes.
+
+### Admin cleanup old bookings
+
+- `convex/bookings.ts` `cleanupOldPendingAndExpiredBookings` now returns tuple `Result` values for auth and cleanup failures.
+- Client `AdminDashboard.tsx` handles cleanup errors inline.
+  Removed after conversion:
 
 - `UpdateBookingStatusErrorData`
 - `SaveBookingInstagramHandleErrorData`
 - `AdminAuthErrorCode` helper type
 - `getBookingStatusMutationErrorMessage` client helper
+- `getBookingMutationErrorMessage` client helper
+- `getBookingInvoiceEmailErrorMessage` client helper
+- `src/sites/studio/features/admin/lib/booking-action-errors.ts`
+- `src/sites/studio/features/booking-form/lib/booking-errors.ts`
 
 ## Rollout Targets
 
@@ -289,15 +308,8 @@ Continue converting one public client-facing function at a time.
 
 Next public client-facing targets:
 
-- `convex/googleCalendar.ts` `sendBookingInvoiceForBooking`
-  - Current expected `ConvexError` codes: `BOOKING_NOT_FOUND`, `INVOICE_SEND_FAILED`.
-  - Client: `src/sites/studio/features/admin/components/BookingActions.tsx`.
-- `convex/googleCalendar.ts` `getBookableRangeBusyWindows`
-  - Current expected Google Calendar availability/rate limit `ConvexError` codes.
-  - Check current clients before converting.
-- `convex/googleCalendar.ts` `getAvailableBookingTimes`
-  - Current expected Google Calendar availability `ConvexError` codes.
-  - Likely used by the public booking form flow.
+- Continue remaining public client-facing functions that still use throwing helpers or `try/catch` error-message helpers.
+- Then convert shared helper throws only where callers can safely consume tuple results.
 
 Shared/internal helpers still throwing and not necessarily required to convert:
 
@@ -305,7 +317,7 @@ Shared/internal helpers still throwing and not necessarily required to convert:
   - Keep for internal/server-only paths where throwing behavior is desired.
 - `convex/lib/bookingCalendarTime.ts` date/time validation helpers
   - These are shared validators used by multiple flows. Convert only when a public caller needs direct tuple results, or map their thrown `ConvexError`s at the boundary.
-- `convex/lib/googleCalendarErrors.ts` `throwGoogleCalendarConvexError`
+- `convex/lib/googleCalendarErrors.ts` Google Calendar error mapping
   - Still supports older Google Calendar actions. Remove or replace only after all callers move to tuple mapping.
 - `convex/lib/email.ts` Resend failure throw
   - Can stay as a low-level throw when callers catch and map to tuple errors.

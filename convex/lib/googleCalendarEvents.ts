@@ -1,4 +1,3 @@
-import { ConvexError } from "convex/values";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { err, ok } from "../../src/lib/result";
@@ -8,7 +7,10 @@ import {
 	formatCalendarEventDate,
 	formatCalendarEventTime
 } from "./bookingCalendarTime";
-import { isGoogleCalendarEventNotFoundError } from "./googleCalendarErrors";
+import {
+	getGoogleCalendarErrorCode,
+	isGoogleCalendarEventNotFoundError
+} from "./googleCalendarErrors";
 
 interface BookingCalendarEventDetails {
 	addons: string[];
@@ -169,27 +171,10 @@ export async function deleteBookingCalendarEvent({
 
 		return ok({ calendarEventDeleted: true });
 	} catch (error) {
-		if (error instanceof ConvexError) {
-			const code = (error.data as { code?: string }).code;
-
-			switch (code) {
-				case "GOOGLE_CALENDAR_AUTH_FAILED":
-					return err({ reason: "GOOGLE_CALENDAR_AUTH_FAILED" });
-
-				case "GOOGLE_CALENDAR_DELETE_FAILED":
-					return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
-
-				case "GOOGLE_CALENDAR_EVENT_NOT_FOUND":
-					return err({ reason: "GOOGLE_CALENDAR_EVENT_NOT_FOUND" });
-
-				case "GOOGLE_CALENDAR_RATE_LIMITED":
-					return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
-
-				default:
-					return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
-			}
+		if (isGoogleCalendarEventNotFoundError(error)) {
+			return err({ reason: "GOOGLE_CALENDAR_EVENT_NOT_FOUND" });
 		}
 
-		return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
+		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
 	}
 }

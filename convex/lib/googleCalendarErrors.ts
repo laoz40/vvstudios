@@ -1,14 +1,12 @@
-import { ConvexError } from "convex/values";
-
 type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
 	| "GOOGLE_CALENDAR_DELETE_FAILED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
 
-export type GoogleCalendarErrorCode<
+type GoogleCalendarErrorCode<
 	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode
-> = "GOOGLE_CALENDAR_AUTH_FAILED" | T;
+> = "GOOGLE_CALENDAR_AUTH_FAILED" | "GOOGLE_CALENDAR_RATE_LIMITED" | T;
 
 // narrow unknown thrown values before reading nested properties
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -36,22 +34,11 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
 	}
 
-	return fallbackCode;
-}
-
-export function throwGoogleCalendarConvexError<T extends GoogleCalendarFallbackErrorCode>(
-	error: unknown,
-	fallbackCode: T
-): never {
-	// if ConvexError, throw it
-	if (error instanceof ConvexError) {
-		throw error;
+	if (status === 429) {
+		return "GOOGLE_CALENDAR_RATE_LIMITED";
 	}
 
-	// else, throw a new ConvexError with the fallback code
-	const code = getGoogleCalendarErrorCode(error, fallbackCode);
-
-	throw new ConvexError({ code });
+	return fallbackCode;
 }
 
 export function isGoogleCalendarEventNotFoundError(error: unknown) {

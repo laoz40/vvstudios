@@ -16,6 +16,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter, Menu } from "lucide-react"
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import CopyIcon from "#/components/ui/copy-icon";
 import TrashIcon from "#/components/ui/trash-icon";
@@ -92,6 +93,7 @@ import {
 } from "#studio/lib/bookingdatetime";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import { cn } from "#/lib/utils";
+import { tryCatch } from "#/lib/result";
 
 type BookingRecord = Doc<"bookings">;
 type AdminBookingRecord = BookingRecord;
@@ -546,19 +548,45 @@ export function AdminDashboard({
 	async function handleCleanupOldBookings() {
 		setIsCleaningUp(true);
 
-		try {
-			const result = await cleanupOldBookings({});
-			setIsCleanupDialogOpen(false);
-			toast.success(
-				result.deletedCount === 1
-					? "Deleted 1 unconfirmed booking."
-					: `Deleted ${result.deletedCount} unconfirmed bookings.`
-			);
-		} catch {
-			toast.error("Unable to clean up old bookings.");
-		} finally {
+		const [error, result] = await tryCatch<CleanupOldPendingAndExpiredBookingsResult>(
+			cleanupOldBookings({})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to clean up bookings.");
+					break;
+
+				case "BOOKING_CLEANUP_FAILED":
+					toast.error("Unable to clean up old bookings.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while cleaning up old bookings.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
 			setIsCleaningUp(false);
+			return;
 		}
+
+		setIsCleanupDialogOpen(false);
+		toast.success(
+			result.deletedCount === 1
+				? "Deleted 1 unconfirmed booking."
+				: `Deleted ${result.deletedCount} unconfirmed bookings.`
+		);
+		setIsCleaningUp(false);
 	}
 
 	const table = useReactTable({

@@ -4,13 +4,13 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ChevronDown } from "lucide-react";
-
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
 } from "#convex/stripe";
+import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -36,7 +36,6 @@ import {
 	TIME_SECTIONS,
 	type TimeSectionKey
 } from "#studio/features/booking-form/lib/form-shared";
-import { getBookingErrorMessage } from "#studio/features/booking-form/lib/booking-errors";
 import {
 	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
@@ -65,7 +64,6 @@ import {
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
-	isAvailabilityRateLimitedMessage,
 	isBookingDateDisabled,
 	mergeBookableRangeBusyWindows,
 	type BusyDayWindow
@@ -99,6 +97,50 @@ export const Route = createFileRoute("/_public/book")({
 });
 
 const pageCopy = { title: "Studio Hire Booking" } as const;
+
+const BOOKING_PAGE_ERROR_MESSAGES = {
+	bookingEmailDomainInvalid:
+		"This email domain doesn't appear able to receive email. Please check for typos.",
+	bookingInvalidInput: "Some booking details were invalid. Please review the form and try again.",
+	bookingRateLimited: "Too many booking attempts. Please try again in one minute.",
+	bookingTimeUnavailable: "That time was just taken. Please choose another available time.",
+	googleCalendarAuthFailed:
+		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
+	googleCalendarAvailabilityFailed:
+		"We couldn't load booking times right now. Please refresh or try again soon.",
+	googleCalendarRateLimited:
+		"Booking times are being checked too often. Please wait a minute, then try again.",
+	startCheckoutFailed: "Something went wrong while starting checkout.",
+	loadAvailabilityFailed: "Something went wrong while loading availability.",
+	unknown: "Something went wrong."
+} as const;
+
+function getDevBookingErrorMessage(code: BookDevErrorCode) {
+	switch (code) {
+		case "BOOKING_TIME_UNAVAILABLE":
+			return BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable;
+
+		case "BOOKING_INVALID_INPUT":
+			return BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput;
+
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
+
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
+
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
+
+		case "UNKNOWN":
+			return BOOKING_PAGE_ERROR_MESSAGES.unknown;
+
+		default: {
+			const _exhaustive: never = code;
+			return _exhaustive;
+		}
+	}
+}
 
 function BookingPage() {
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
@@ -173,27 +215,23 @@ function BookingPage() {
 				if (error !== null) {
 					switch (error.reason) {
 						case "BOOKING_EMAIL_DOMAIN_INVALID":
-							toast.error(
-								"This email domain doesn't appear able to receive email. Please check for typos."
-							);
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingEmailDomainInvalid);
 							return;
 
 						case "BOOKING_INVALID_INPUT":
-							toast.error(
-								"Some booking details were invalid. Please review the form and try again."
-							);
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
 							return;
 
 						case "BOOKING_RATE_LIMITED":
-							toast.error("Too many booking attempts. Please try again in one minute.");
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
 							return;
 
 						case "BOOKING_TIME_UNAVAILABLE":
-							toast.error("That time was just taken. Please choose another available time.");
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable);
 							return;
 
 						case "UNEXPECTED_ERROR":
-							toast.error("Something went wrong while starting checkout.");
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.startCheckoutFailed);
 							return;
 
 						default: {
@@ -241,7 +279,8 @@ function BookingPage() {
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited = isAvailabilityRateLimitedMessage(availabilityError);
+	const isAvailabilityRateLimited =
+		availabilityError === BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
 
 	// load availability rate limit key
 	useEffect(() => {
@@ -293,6 +332,8 @@ function BookingPage() {
 			return;
 		}
 
+		const rateLimitKey = availabilityRateLimitKey;
+
 		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
@@ -304,30 +345,56 @@ function BookingPage() {
 		setAvailabilityError("");
 		setIsLoadingMonthAvailability(true);
 
-		void getBookableRangeBusyWindows({ rateLimitKey: availabilityRateLimitKey })
-			.then((result) => {
-				if (isCancelled) {
-					return;
+		async function loadAvailability() {
+			const [error, result] = await tryCatch<GetBookableRangeBusyWindowsResult>(
+				getBookableRangeBusyWindows({ rateLimitKey })
+			);
+
+			if (isCancelled) {
+				return;
+			}
+
+			if (error !== null) {
+				let errorMessage: string;
+
+				switch (error.reason) {
+					case "GOOGLE_CALENDAR_AUTH_FAILED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
+						break;
+
+					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
+						break;
+
+					case "GOOGLE_CALENDAR_RATE_LIMITED":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
+						break;
+
+					case "UNEXPECTED_ERROR":
+						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.loadAvailabilityFailed;
+						break;
+
+					default: {
+						const _exhaustive: never = error;
+						return _exhaustive;
+					}
 				}
 
-				setMonthlyBusyWindowsByMonth((current) =>
-					mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
-				);
-			})
-			.catch((availabilityFetchError) => {
-				if (isCancelled) {
-					return;
-				}
+				console.error("Booking availability failed", { reason: error.reason });
 
-				const errorMessage = getBookingErrorMessage(availabilityFetchError);
 				setAvailabilityError(errorMessage);
 				toast.error(errorMessage);
-			})
-			.finally(() => {
-				if (!isCancelled) {
-					setIsLoadingMonthAvailability(false);
-				}
-			});
+				setIsLoadingMonthAvailability(false);
+				return;
+			}
+
+			setMonthlyBusyWindowsByMonth((current) =>
+				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
+			);
+			setIsLoadingMonthAvailability(false);
+		}
+
+		void loadAvailability();
 
 		return () => {
 			isCancelled = true;
@@ -582,19 +649,13 @@ function BookingPage() {
 	};
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
+		const errorMessage = getDevBookingErrorMessage(code);
+
 		if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
-			const errorMessage = getBookingErrorMessage({ data: { code } });
 			setAvailabilityError(errorMessage);
-			toast.error(errorMessage);
-			return;
 		}
 
-		if (code === "UNKNOWN") {
-			toast.error(getBookingErrorMessage(new Error("Something went wrong.")));
-			return;
-		}
-
-		toast.error(getBookingErrorMessage({ data: { code } }));
+		toast.error(errorMessage);
 	};
 
 	return (
@@ -629,7 +690,11 @@ function BookingPage() {
 							})
 							.catch((submissionError) => {
 								if (submissionError !== termsDialogPendingError) {
-									toast.error(getBookingErrorMessage(submissionError));
+									const message =
+										submissionError instanceof Error
+											? submissionError.message
+											: "Something went wrong.";
+									toast.error(message);
 								}
 							});
 					}}

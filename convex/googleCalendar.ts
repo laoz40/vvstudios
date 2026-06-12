@@ -1,6 +1,6 @@
 "use node";
 
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
 import { api, internal } from "./_generated/api";
 import { action, type ActionCtx, internalAction } from "./_generated/server";
@@ -11,7 +11,7 @@ import {
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
-import { isAdminIdentity, requireAdmin } from "./lib/auth";
+import { isAdminIdentity } from "./lib/auth";
 import {
 	buildEventWindow,
 	type BookingAvailabilitySettings,
@@ -35,30 +35,11 @@ import {
 	buildBookingCalendarEventPayload,
 	deleteBookingCalendarEvent
 } from "./lib/googleCalendarEvents";
-import { throwGoogleCalendarConvexError } from "./lib/googleCalendarErrors";
+import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
 
-type BookingCalendarErrorCode =
-	| "BOOKING_TIME_UNAVAILABLE"
-	| "BOOKING_NOT_FOUND"
-	| "GOOGLE_CALENDAR_AUTH_FAILED"
-	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-	| "GOOGLE_CALENDAR_CREATE_FAILED"
-	| "GOOGLE_CALENDAR_DELETE_FAILED"
-	| "GOOGLE_CALENDAR_EVENT_NOT_FOUND"
-	| "GOOGLE_CALENDAR_RATE_LIMITED"
-	| "GOOGLE_CALENDAR_UPDATE_FAILED";
-
-type BookingCalendarErrorData = { code: BookingCalendarErrorCode };
-
-type BookingInvoiceEmailErrorCode =
-	| "NOT_AUTHENTICATED"
-	| "BOOKING_NOT_FOUND"
-	| "INVALID_BOOKING_DATA"
-	| "INVOICE_SEND_FAILED";
-
-type BookingInvoiceEmailErrorData = { code: BookingInvoiceEmailErrorCode };
+type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
 
@@ -66,20 +47,10 @@ export type DeleteBookingFromAdminResult = Awaited<
 	ReturnType<typeof deleteBookingFromAdminHandler>
 >;
 
-interface AvailableBookingTimesResult {
-	timeZone: string;
-	times: string[];
-}
-
 interface BusyDayWindowResult {
 	busyPeriods: Array<{ end: string; start: string }>;
 	date: string;
 	label: string;
-}
-
-interface BookableRangeBusyWindowsResult {
-	busyWindowsByMonth: Record<string, BusyDayWindowResult[]>;
-	timeZone: string;
 }
 
 async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
@@ -105,74 +76,85 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
-	handler: async (ctx, args): Promise<BookableRangeBusyWindowsResult> => {
-		try {
-			const globalRateLimitStatus = await rateLimiter.limit(
-				ctx,
-				"googleCalendarAvailabilityGlobal"
-			);
-			const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", {
-				key: args.rateLimitKey
-			});
-
-			if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
-				throw new ConvexError<BookingCalendarErrorData>({ code: "GOOGLE_CALENDAR_RATE_LIMITED" });
-			}
-
-			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
-			const today = startOfToday();
-			const startDate = formatDateValue(today);
-			const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
-			const { timeMin, timeMax } = getDateAvailabilityRange(startDate, endDate, timeZone);
-			const busyWindows = await getBusyWindowsInRange({
-				calendar,
-				calendarIds,
-				timeMax,
-				timeMin,
-				timeZone
-			});
-
-			const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
-
-			for (const busyDay of groupBusyWindowsByDay(busyWindows, timeZone)) {
-				const month = busyDay.date.slice(0, 7);
-				busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
-			}
-
-			return { busyWindowsByMonth, timeZone };
-		} catch (error) {
-			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-		}
-	}
+	handler: (ctx, args) => getBookableRangeBusyWindowsHandler(ctx, args)
 });
+
+async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLimitKey: string }) {
+	const globalRateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal");
+	const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", {
+		key: args.rateLimitKey
+	});
+
+	if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
+		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+	}
+
+	try {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+		const today = startOfToday();
+		const startDate = formatDateValue(today);
+		const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
+		const { timeMin, timeMax } = getDateAvailabilityRange(startDate, endDate, timeZone);
+		const busyWindows = await getBusyWindowsInRange({
+			calendar,
+			calendarIds,
+			timeMax,
+			timeMin,
+			timeZone
+		});
+
+		const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
+
+		for (const busyDay of groupBusyWindowsByDay(busyWindows, timeZone)) {
+			const month = busyDay.date.slice(0, 7);
+			busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
+		}
+
+		return ok({ busyWindowsByMonth, timeZone });
+	} catch (error) {
+		return err({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+		});
+	}
+}
+
+export type GetBookableRangeBusyWindowsResult = Awaited<
+	ReturnType<typeof getBookableRangeBusyWindowsHandler>
+>;
 
 export const getAvailableBookingTimes = action({
 	args: { date: v.string(), duration: v.string() },
-	handler: async (ctx, args): Promise<AvailableBookingTimesResult> => {
-		try {
-			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
-			const busyWindows = await getBusyWindows({
-				calendar,
-				calendarIds,
-				date: args.date,
-				timeZone
-			});
-			const times = getAvailableTimeOptions({
-				busyWindows,
-				date: args.date,
-				duration: args.duration,
-				eventBufferMinutes: settings.eventBufferMinutes,
-				timeZone
-			});
-
-			return { timeZone, times };
-		} catch (error) {
-			throwGoogleCalendarConvexError(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED");
-		}
-	}
+	handler: (ctx, args) => getAvailableBookingTimesHandler(ctx, args)
 });
+
+async function getAvailableBookingTimesHandler(
+	ctx: ActionCtx,
+	args: { date: string; duration: string }
+) {
+	try {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+		const busyWindows = await getBusyWindows({ calendar, calendarIds, date: args.date, timeZone });
+		const times = getAvailableTimeOptions({
+			busyWindows,
+			date: args.date,
+			duration: args.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			timeZone
+		});
+
+		return ok({ timeZone, times });
+	} catch (error) {
+		return err({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+		});
+	}
+}
+
+export type GetAvailableBookingTimesResult = Awaited<
+	ReturnType<typeof getAvailableBookingTimesHandler>
+>;
 
 export const updateBookingFromAdmin = action({
 	args: {
@@ -235,30 +217,52 @@ export type UpdateBookingFromAdminResult = Awaited<
 
 export const sendBookingInvoiceForBooking = action({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+	handler: (ctx, args) => sendBookingInvoiceForBookingHandler(ctx, args)
+});
 
-		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId
-		});
+async function sendBookingInvoiceForBookingHandler(
+	ctx: ActionCtx,
+	args: SendBookingInvoiceForBookingArgs
+) {
+	const identity = await ctx.auth.getUserIdentity();
 
-		if (!booking) {
-			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "BOOKING_NOT_FOUND" });
-		}
+	if (!identity) {
+		return err({ reason: "NOT_AUTHENTICATED" });
+	}
 
-		const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" });
+	}
 
-		if (emailError !== null) {
-			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: emailError.reason });
-		}
+	const booking: Doc<"bookings"> | null = await ctx.runQuery(
+		internal.bookings.getBookingByIdInternal,
+		{ bookingId: args.bookingId }
+	);
 
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+
+	if (emailError !== null) {
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	try {
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
 			bookingId: booking._id
 		});
-
-		return { ok: true as const };
+	} catch {
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
-});
+
+	return ok({ sent: true });
+}
+
+export type SendBookingInvoiceForBookingResult = Awaited<
+	ReturnType<typeof sendBookingInvoiceForBookingHandler>
+>;
 
 export const deleteBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
