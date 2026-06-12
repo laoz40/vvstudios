@@ -246,16 +246,17 @@ export const sendBookingInvoiceForBooking = action({
 			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "BOOKING_NOT_FOUND" });
 		}
 
-		try {
-			await sendBookingInvoiceEmailsForBooking(booking);
-			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
-				bookingId: booking._id
-			});
-			return { ok: true as const };
-		} catch (error) {
-			if (error instanceof ConvexError) throw error;
-			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: "INVOICE_SEND_FAILED" });
+		const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+
+		if (emailError !== null) {
+			throw new ConvexError<BookingInvoiceEmailErrorData>({ code: emailError.reason });
 		}
+
+		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
+			bookingId: booking._id
+		});
+
+		return { ok: true as const };
 	}
 });
 
@@ -388,9 +389,9 @@ export const completeClaimedBooking = internalAction({
 				googleCalendarId: calendarClient.calendarId
 			});
 
-			try {
-				await sendBookingInvoiceEmailsForBooking(booking);
-			} catch {
+			const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+
+			if (emailError !== null) {
 				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 					bookingId: booking._id
 				});

@@ -153,6 +153,12 @@ Client message preference: keep expected error messages inline in the component 
 
 Client switches should keep messages inline and obvious. If the same message mapping is truly reused by multiple clients, then a helper is okay.
 
+When one UI handler performs multiple operations, keep each operation's error handling separate. Do not wrap a tuple-result call and a later unrelated action in one broad `try/catch`. Handle the first `Result`, return on error, then handle the next operation with its own `Result` or small `try/catch`.
+
+If a shared client helper used by the converted flow has expected failures, prefer converting that helper to tuple `Result` too instead of keeping a parallel `{ success: boolean, message?: string }` API. Update all current callers in the same pass so there is one error-handling style for that helper.
+
+Keep creation and download responsibilities clear in handlers. For example, creating a custom invoice is a DB mutation, while downloading an invoice PDF is a separate client-side operation. They may stay as separate functions, but both should return typed tuple results when they have expected failures.
+
 ## Convex Mutation Safety
 
 Convex mutations commit when they return and roll back when they throw. Because `err(...)` returns, do expected failure checks before writes.
@@ -229,66 +235,46 @@ Helper naming preference: use behavior names like `deleteBookingCalendarEvent`, 
 
 ### Admin delete booking
 
-Delete booking currently uses tuple results across:
-
-1. `convex/googleCalendar.ts` public action `deleteBookingFromAdmin`.
-2. Auth check returns `NOT_AUTHENTICATED` / `NOT_AUTHORIZED`.
-3. Booking lookup returns `BOOKING_NOT_FOUND`.
-4. Calendar deletion helper returns Google Calendar tuple errors.
-5. Internal DB delete maps failures to `BOOKING_DELETE_FAILED`.
-6. Client handles all reasons plus `UNEXPECTED_ERROR` through `tryCatch<DeleteBookingFromAdminResult>(...)`.
+- `convex/googleCalendar.ts` `deleteBookingFromAdmin` now returns tuple `Result` values for auth, booking lookup, calendar deletion, and DB delete failures.
 
 ### Admin booking mutations
 
-The following `convex/bookings.ts` mutations now use tuple `Result` returns with inferred exported result types:
-
-- `updateBooking`
-  - Returns auth, booking lookup, and `BOOKING_UPDATE_FAILED` reasons.
-  - Client-side admin edit save still goes through `convex/googleCalendar.ts` `updateBookingFromAdmin`, so this direct mutation result type is available but not the main edit flow.
-- `updateBookingStatus`
-  - Returns auth, booking lookup, `INVALID_BOOKING_STATUS_TRANSITION`, and `BOOKING_STATUS_UPDATE_FAILED` reasons.
-  - Client handles reasons explicitly in `BookingActions.tsx`.
-- `updateBookingPaidRemainingBalance`
-  - Returns auth, booking lookup, and `BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED` reasons.
-  - Client handles reasons explicitly in `BookingActions.tsx`.
-- `updateBookingEditStatus`
-  - Returns auth, booking lookup, and `BOOKING_EDIT_STATUS_UPDATE_FAILED` reasons.
-  - Client handles reasons explicitly in `BookingActions.tsx`.
-  - Deliverables email flow sends the email first, then handles status update result errors separately.
-- `updateBookingRemainingBalanceAmount`
-  - Returns auth, booking lookup, and `BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED` reasons.
-  - Client handles reasons explicitly in `BookingActions.tsx`.
-- `saveBookingInstagramHandle`
-  - Returns `BOOKING_NOT_FOUND`, `BOOKING_NOT_CONFIRMED`, and `BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED` reasons.
-  - Client handles reasons explicitly in `InstagramRepostPrompt.tsx`.
+- `convex/bookings.ts` admin/public client-facing mutations now return tuple `Result` values for expected auth, booking lookup, validation/transition, and DB write failures.
+- Converted mutations: `updateBooking`, `updateBookingStatus`, `updateBookingPaidRemainingBalance`, `updateBookingEditStatus`, `updateBookingRemainingBalanceAmount`, and `saveBookingInstagramHandle`.
 
 ### Admin Google Calendar update booking
 
-- `convex/googleCalendar.ts` `updateBookingFromAdmin` now returns tuple `Result` values.
-- Auth and booking lookup return `NOT_AUTHENTICATED`, `NOT_AUTHORIZED`, and `BOOKING_NOT_FOUND`.
-- Google Calendar availability/create/update/auth/rate limit failures map to tuple reasons.
-- `convex/lib/bookingAdminEdit.ts` returns `err(...)` at the point failures happen instead of throwing `ConvexError` and translating later.
-- Client admin edit save handles `UpdateBookingFromAdminResult` explicitly in `BookingActions.tsx`.
+- `convex/googleCalendar.ts` `updateBookingFromAdmin` and related admin edit helpers now return tuple `Result` values for expected auth, booking lookup, calendar, and edit-save failures.
 
 ### Admin availability settings
 
-- `convex/bookingSettings.ts` `update` now returns tuple `Result` values.
-- Auth checks return `NOT_AUTHENTICATED` and `NOT_AUTHORIZED`.
-- Settings validation returns `INVALID_BOOKING_SETTINGS`.
-- DB write failures return `BOOKING_SETTINGS_UPDATE_FAILED`.
-- Client handles `UpdateBookingSettingsResult` explicitly in `AdminAvailabilitySettings.tsx`.
-- Uses direct existing settings types/constants instead of one-line wrapper aliases.
-- Uses an inline Convex handler wrapper to preserve generated argument inference without client-side `FunctionReference` casts.
+- `convex/bookingSettings.ts` `update` now returns tuple `Result` values for auth, settings validation, and DB write failures.
+- Keeps existing settings types/constants and uses an inline Convex handler wrapper to preserve generated argument inference.
 
 ### Admin deliverables email
 
-- `convex/deliverablesEmail.ts` `sendBookingDeliverablesEmail` now returns tuple `Result` values.
-- Auth checks return `NOT_AUTHENTICATED` and `NOT_AUTHORIZED`.
-- Booking lookup returns `BOOKING_NOT_FOUND`.
-- Invalid Drive links return `INVALID_DRIVE_LINK`.
-- Email send failures return `DELIVERABLES_SEND_FAILED`.
-- Client handles `SendBookingDeliverablesEmailResult` explicitly in `BookingActions.tsx`.
-- The old ConvexError-to-message helper `booking-email-errors.ts` was removed.
+- `convex/deliverablesEmail.ts` `sendBookingDeliverablesEmail` now returns tuple `Result` values for auth, booking lookup, Drive link validation, and email send failures.
+
+### Admin custom invoices
+
+- `convex/customInvoices.ts` `createCustomInvoice` now returns tuple `Result` values for auth and booking lookup failures.
+- Admin invoice PDF download helper now returns tuple `Result` values for expected validation failures.
+- Creation and PDF download are handled as separate operations with separate result handling.
+
+### Public booking checkout session
+
+- `convex/stripe.ts` embedded checkout create/close functions now return tuple `Result` values for expected input, rate-limit, availability, Stripe close, and session mismatch failures.
+
+### Public feedback submit
+
+- `convex/feedback.ts` `submit` now returns tuple `Result` values for empty message, rate-limit, and email send failures.
+
+### Public invoice PDF download
+
+- `convex/invoices.ts` `getBookingInvoicePdfByStripeSessionId` now returns tuple `Result` values for expected booking lookup, booking status, expiry, invoice data validation, and invoice generation failures.
+- `convex/lib/bookingInvoiceArtifacts.ts` `createBookingInvoiceEmailArtifactsForBooking` now returns tuple `Result` values for invoice data validation failures instead of throwing `ConvexError`.
+- `convex/lib/email.ts` `sendBookingInvoiceEmailsForBooking` now returns tuple `Result` values for invoice data validation and email send failures.
+- Client `BookingResult.tsx` handles each invoice download error reason inline.
 
 Removed after conversion:
 
@@ -297,39 +283,12 @@ Removed after conversion:
 - `AdminAuthErrorCode` helper type
 - `getBookingStatusMutationErrorMessage` client helper
 
-### Public booking checkout session
-
-- `convex/stripe.ts` `createEmbeddedCheckoutSession` now returns tuple `Result` values.
-- Invalid form input returns `BOOKING_INVALID_INPUT`.
-- Invalid email domains return `BOOKING_EMAIL_DOMAIN_INVALID`.
-- Booking rate limits return `BOOKING_RATE_LIMITED`.
-- Availability/input validation failures from pending booking creation map to `BOOKING_TIME_UNAVAILABLE` or `BOOKING_INVALID_INPUT`.
-- Client handles `CreateEmbeddedCheckoutSessionResult` through `tryCatch<CreateEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
-- `convex/stripe.ts` `closeEmbeddedCheckoutSession` now returns tuple `Result` values.
-- Stripe retrieve/expire failures return `STRIPE_CHECKOUT_CLOSE_FAILED`.
-- Pending booking delete mismatch returns `STRIPE_SESSION_MISMATCH`.
-- Client handles `CloseEmbeddedCheckoutSessionResult` through `tryCatch<CloseEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
-
-### Public feedback submit
-
-- `convex/feedback.ts` `submit` now returns tuple `Result` values.
-- Invalid empty messages return `INVALID_MESSAGE`.
-- Rate limits return `FEEDBACK_RATE_LIMITED`.
-- Email send failures return `SEND_FAILED`.
-- Client handles `SubmitFeedbackResult` through `tryCatch<SubmitFeedbackResult>(...)` in `GiveFeedbackDialog.tsx`.
-
 ## Rollout Targets
 
 Continue converting one public client-facing function at a time.
 
 Next public client-facing targets:
 
-- `convex/customInvoices.ts` `createCustomInvoice`
-  - Current expected `ConvexError` code: `BOOKING_NOT_FOUND`.
-  - Client: `src/sites/studio/features/admin/components/CustomInvoiceDialog.tsx`.
-- `convex/invoices.ts` `getBookingInvoicePdfByStripeSessionId`
-  - Current expected `ConvexError` codes: `BOOKING_NOT_FOUND`, `BOOKING_NOT_CONFIRMED`, `INVOICE_DOWNLOAD_EXPIRED`, `INVOICE_DOWNLOAD_FAILED`.
-  - Client: `src/sites/studio/features/booking-complete/components/BookingResult.tsx`.
 - `convex/googleCalendar.ts` `sendBookingInvoiceForBooking`
   - Current expected `ConvexError` codes: `BOOKING_NOT_FOUND`, `INVOICE_SEND_FAILED`.
   - Client: `src/sites/studio/features/admin/components/BookingActions.tsx`.
@@ -346,8 +305,6 @@ Shared/internal helpers still throwing and not necessarily required to convert:
   - Keep for internal/server-only paths where throwing behavior is desired.
 - `convex/lib/bookingCalendarTime.ts` date/time validation helpers
   - These are shared validators used by multiple flows. Convert only when a public caller needs direct tuple results, or map their thrown `ConvexError`s at the boundary.
-- `convex/lib/bookingInvoiceArtifacts.ts` invoice artifact validation
-  - Can stay throwing if treated as invalid internal booking data/invariant.
 - `convex/lib/googleCalendarErrors.ts` `throwGoogleCalendarConvexError`
   - Still supports older Google Calendar actions. Remove or replace only after all callers move to tuple mapping.
 - `convex/lib/email.ts` Resend failure throw

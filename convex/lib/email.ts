@@ -17,6 +17,7 @@ import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	renderBookingInvoicePdfInNode
 } from "./bookingInvoiceArtifacts";
+import { err, ok, type Result } from "../../src/lib/result";
 
 interface ResendSendEmailSuccessResponse {
 	id: string;
@@ -133,34 +134,49 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 	});
 }
 
-export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings">) {
-	const { artifacts, booking: parsedBooking } = await createBookingInvoiceEmailArtifactsForBooking(
+export async function sendBookingInvoiceEmailsForBooking(
+	booking: Doc<"bookings">
+): Promise<Result<{ sent: true }, { reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }>> {
+	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
 	);
-	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
 
-	await sendEmail({
-		to: [booking.email],
-		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfContent }]
-	});
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
 
-	await sendBookingHostDetailsEmail({
-		invoiceNumber: artifacts.data.invoice.number,
-		name: parsedBooking.name,
-		email: parsedBooking.email,
-		phone: parsedBooking.phone,
-		accountName: parsedBooking.accountName,
-		abn: parsedBooking.abn,
-		date: parsedBooking.date,
-		time: parsedBooking.time,
-		service: parsedBooking.service,
-		duration: parsedBooking.duration,
-		addons: parsedBooking.addons,
-		notes: parsedBooking.notes
-	});
+	const { artifacts, booking: parsedBooking } = artifactsResult;
+
+	try {
+		const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+
+		await sendEmail({
+			to: [booking.email],
+			subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
+			html: artifacts.emailHtml,
+			attachments: [{ ...artifacts.pdf, content: pdfContent }]
+		});
+
+		await sendBookingHostDetailsEmail({
+			invoiceNumber: artifacts.data.invoice.number,
+			name: parsedBooking.name,
+			email: parsedBooking.email,
+			phone: parsedBooking.phone,
+			accountName: parsedBooking.accountName,
+			abn: parsedBooking.abn,
+			date: parsedBooking.date,
+			time: parsedBooking.time,
+			service: parsedBooking.service,
+			duration: parsedBooking.duration,
+			addons: parsedBooking.addons,
+			notes: parsedBooking.notes
+		});
+	} catch {
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	return ok({ sent: true });
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {
