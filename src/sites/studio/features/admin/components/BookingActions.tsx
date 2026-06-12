@@ -248,10 +248,6 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					toast.error("That booking no longer exists.");
 					break;
 
-				case "GOOGLE_CALENDAR_EVENT_NOT_FOUND":
-					toast.error("Could not find the Google Calendar event. Booking was not deleted.");
-					break;
-
 				case "GOOGLE_CALENDAR_AUTH_FAILED":
 					toast.error("Google Calendar authentication failed. Booking was not deleted.");
 					break;
