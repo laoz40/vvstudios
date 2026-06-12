@@ -61,10 +61,22 @@ export function parseDurationMinutes(
 	return err({ reason: "BOOKING_INVALID_DURATION" });
 }
 
+function isValidDateParts(
+	year: number | undefined,
+	month: number | undefined,
+	day: number | undefined
+) {
+	return Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day);
+}
+
+function isValidTimeParts(hours: number | undefined, minutes: number | undefined) {
+	return Number.isFinite(hours) && Number.isFinite(minutes);
+}
+
 function parseDate(date: string): Result<DateParts, { reason: "BOOKING_INVALID_DATE" }> {
 	const [year, month, day] = date.split("-").map(Number);
 
-	if (!year || !month || !day) {
+	if (!isValidDateParts(year, month, day)) {
 		return err({ reason: "BOOKING_INVALID_DATE" });
 	}
 
@@ -74,7 +86,7 @@ function parseDate(date: string): Result<DateParts, { reason: "BOOKING_INVALID_D
 function parseTime(time: string): Result<TimeParts, { reason: "BOOKING_INVALID_TIME" }> {
 	const [hours, minutes] = time.split(":").map(Number);
 
-	if (hours === undefined || minutes === undefined) {
+	if (!isValidTimeParts(hours, minutes)) {
 		return err({ reason: "BOOKING_INVALID_TIME" });
 	}
 
@@ -203,7 +215,8 @@ export function isTimeSlotAvailable({
 // and still block time on the selected date
 function parseDateValue(value: string): Result<Date, { reason: "BOOKING_INVALID_DATE" }> {
 	const [year, month, day] = value.split("-").map(Number);
-	if (!year || !month || !day) {
+
+	if (!isValidDateParts(year, month, day)) {
 		return err({ reason: "BOOKING_INVALID_DATE" });
 	}
 
@@ -212,6 +225,11 @@ function parseDateValue(value: string): Result<Date, { reason: "BOOKING_INVALID_
 
 function parseTimeToMinutes(time: string) {
 	const [hours, minutes] = time.split(":").map(Number);
+
+	if (!isValidTimeParts(hours, minutes)) {
+		return null;
+	}
+
 	return hours * 60 + minutes;
 }
 
@@ -269,9 +287,14 @@ export function checkBookingMeetsAvailabilitySettings({
 	}
 
 	const startMinutes = parseTimeToMinutes(time);
-	const endMinutes = startMinutes + durationMinutes;
 	const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
 	const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
+
+	if (startMinutes === null || dayStartMinutes === null || dayEndMinutes === null) {
+		return err({ reason: "BOOKING_INVALID_TIME" });
+	}
+
+	const endMinutes = startMinutes + durationMinutes;
 
 	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
 		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" });
