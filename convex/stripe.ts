@@ -34,6 +34,21 @@ async function emailDomainCanReceiveMail(email: string) {
 	}
 }
 
+type PendingBookingCreationResult =
+	| { ok: true; bookingId: Id<"bookings"> }
+	| {
+			ok: false;
+			code:
+				| "BOOKING_INVALID_DATE"
+				| "BOOKING_INVALID_DURATION"
+				| "BOOKING_INVALID_TIME"
+				| "BOOKING_OUTSIDE_OPENING_HOURS"
+				| "BOOKING_RATE_LIMITED"
+				| "BOOKING_TOO_FAR_AHEAD"
+				| "BOOKING_TOO_SOON";
+			retryAfter?: number;
+	  };
+
 export const createEmbeddedCheckoutSession = action({
 	args: {
 		name: v.string(),
@@ -76,8 +91,14 @@ async function createEmbeddedCheckoutSessionHandler(
 		{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
 		| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
 		| { reason: "BOOKING_INVALID_INPUT" }
-		| { reason: "BOOKING_RATE_LIMITED"; retryAfter: number }
+		| { reason: "BOOKING_INVALID_DATE" }
+		| { reason: "BOOKING_INVALID_DURATION" }
+		| { reason: "BOOKING_INVALID_TIME" }
+		| { reason: "BOOKING_OUTSIDE_OPENING_HOURS" }
+		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 		| { reason: "BOOKING_TIME_UNAVAILABLE" }
+		| { reason: "BOOKING_TOO_FAR_AHEAD" }
+		| { reason: "BOOKING_TOO_SOON" }
 	>
 > {
 	// Validate the submitted form before creating anything in Convex or Stripe.
@@ -96,13 +117,10 @@ async function createEmbeddedCheckoutSessionHandler(
 	}
 
 	const stripe = getStripeClient();
-	let pendingBookingResult:
-		| { ok: true; bookingId: Id<"bookings"> }
-		| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };
-
 	// Save the booking first so Stripe metadata can point back to it.
-	try {
-		pendingBookingResult = await ctx.runMutation(internal.bookings.createPendingBooking, {
+	const pendingBookingResult: PendingBookingCreationResult = await ctx.runMutation(
+		internal.bookings.createPendingBooking,
+		{
 			submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email),
 			name: booking.name,
 			phone: booking.phone,
@@ -117,25 +135,9 @@ async function createEmbeddedCheckoutSessionHandler(
 			essentialEditQuantity: booking.essentialEditQuantity || undefined,
 			clipsPackageQuantity: booking.clipsPackageQuantity || undefined,
 			notes: booking.notes || undefined
-		});
-		// Some booking rules are checked inside createPendingBooking, such as time availability.
-	} catch (error) {
-		if (typeof error !== "object" || error === null || !("data" in error)) {
-			return err({ reason: "BOOKING_INVALID_INPUT" });
 		}
-
-		const data = error.data;
-
-		if (typeof data !== "object" || data === null || !("code" in data)) {
-			return err({ reason: "BOOKING_INVALID_INPUT" });
-		}
-
-		if (data.code === "BOOKING_TIME_UNAVAILABLE") {
-			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-		}
-
-		return err({ reason: "BOOKING_INVALID_INPUT" });
-	}
+	);
+	// Some booking rules are checked inside createPendingBooking, such as time availability.
 
 	// Stop before Stripe checkout if the booking submit rate limit was hit.
 	if (!pendingBookingResult.ok) {

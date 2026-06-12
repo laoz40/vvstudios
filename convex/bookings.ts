@@ -18,7 +18,18 @@ import { rateLimiter } from "./lib/rateLimits";
 
 type CreatePendingBookingResult =
 	| { ok: true; bookingId: Doc<"bookings">["_id"] }
-	| { ok: false; code: "BOOKING_RATE_LIMITED"; retryAfter: number };
+	| {
+			ok: false;
+			code:
+				| "BOOKING_INVALID_DATE"
+				| "BOOKING_INVALID_DURATION"
+				| "BOOKING_INVALID_TIME"
+				| "BOOKING_OUTSIDE_OPENING_HOURS"
+				| "BOOKING_RATE_LIMITED"
+				| "BOOKING_TOO_FAR_AHEAD"
+				| "BOOKING_TOO_SOON";
+			retryAfter?: number;
+	  };
 
 export const createPendingBooking = internalMutation({
 	args: {
@@ -39,13 +50,17 @@ export const createPendingBooking = internalMutation({
 	},
 	handler: async (ctx, args): Promise<CreatePendingBookingResult> => {
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		checkBookingMeetsAvailabilitySettings({
+		const [availabilityError] = checkBookingMeetsAvailabilitySettings({
 			date: args.date,
 			duration: args.duration,
 			settings,
 			time: args.time,
 			timeZone: env.GOOGLE_CALENDAR_TIMEZONE
 		});
+
+		if (availabilityError !== null) {
+			return { ok: false, code: availabilityError.reason };
+		}
 
 		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
 		const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", {
@@ -64,6 +79,16 @@ export const createPendingBooking = internalMutation({
 			return { ok: false, code: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter };
 		}
 
+		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
+			args.date,
+			args.time,
+			env.GOOGLE_CALENDAR_TIMEZONE
+		);
+
+		if (sessionStartError !== null) {
+			return { ok: false, code: sessionStartError.reason };
+		}
+
 		const bookingId = await ctx.db.insert("bookings", {
 			name: args.name,
 			phone: args.phone,
@@ -72,7 +97,7 @@ export const createPendingBooking = internalMutation({
 			email: args.email,
 			date: args.date,
 			time: args.time,
-			sessionStartAt: getBookingSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE),
+			sessionStartAt,
 			duration: args.duration,
 			service: args.service,
 			addons: args.addons,
@@ -568,11 +593,15 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 	},
 	handler: async (ctx, args) => {
 		const booking = await requireBookingInDb(ctx, args.bookingId);
-		const updatePatch = buildAdminBookingUpdatePatch({
+		const [updatePatchError, updatePatch] = buildAdminBookingUpdatePatch({
 			booking,
 			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
 			values: args
 		});
+
+		if (updatePatchError !== null) {
+			return { ok: false as const, reason: updatePatchError.reason };
+		}
 
 		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
 		// Failed bookings can be promoted after a Calendar event is created.
@@ -647,15 +676,18 @@ async function updateBookingHandler(ctx: MutationCtx, args: UpdateBookingArgs) {
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
+	const [updatePatchError, updatePatch] = buildAdminBookingUpdatePatch({
+		booking,
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		values: args
+	});
+
+	if (updatePatchError !== null) {
+		return err({ reason: "BOOKING_INVALID_INPUT" });
+	}
+
 	try {
-		await ctx.db.patch(
-			args.bookingId,
-			buildAdminBookingUpdatePatch({
-				booking,
-				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-				values: args
-			})
-		);
+		await ctx.db.patch(args.bookingId, updatePatch);
 	} catch {
 		return err({ reason: "BOOKING_UPDATE_FAILED" });
 	}

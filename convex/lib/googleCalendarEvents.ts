@@ -32,15 +32,21 @@ export function buildBookingCalendarEventPayload({
 	details,
 	time,
 	timeZone
-}: BuildBookingCalendarEventPayloadArgs): calendar_v3.Schema$Event {
-	const { startDateTime, endDateTime } = buildEventWindow(date, time, details.duration, timeZone);
+}: BuildBookingCalendarEventPayloadArgs) {
+	const [windowError, eventWindow] = buildEventWindow(date, time, details.duration, timeZone);
+
+	if (windowError !== null) {
+		return err(windowError);
+	}
+
+	const { startDateTime, endDateTime } = eventWindow;
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
 	const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	return {
+	return ok({
 		summary: `Studio Hire | ${details.name} | ${details.duration}`,
 		description: [
 			`Hello, ${details.name}!`,
@@ -64,7 +70,7 @@ export function buildBookingCalendarEventPayload({
 		end: { dateTime: endDateTime },
 		transparency: "opaque",
 		attendees: [{ email: details.email }]
-	};
+	} satisfies calendar_v3.Schema$Event);
 }
 
 type GoogleCalendarEventClient = {
@@ -99,12 +105,18 @@ async function findBookingCalendarEventIncludingDeclined({
 	calendarId: string;
 	timeZone: string;
 }) {
-	const { startDateTime, endDateTime } = buildEventWindow(
+	const [windowError, eventWindow] = buildEventWindow(
 		booking.date,
 		booking.time,
 		booking.duration,
 		timeZone
 	);
+
+	if (windowError !== null) {
+		return err(windowError);
+	}
+
+	const { startDateTime, endDateTime } = eventWindow;
 	const events = await calendar.events.list({
 		calendarId,
 		singleEvents: true,
@@ -114,7 +126,9 @@ async function findBookingCalendarEventIncludingDeclined({
 		timeMin: startDateTime
 	});
 
-	return events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null;
+	return ok(
+		events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null
+	);
 }
 
 async function deleteCalendarEventIfFound(
@@ -157,12 +171,17 @@ export async function deleteBookingCalendarEvent({
 		}
 
 		// Declined Calendar invites can be hidden from direct event lookup, so search the booking window before giving up.
-		const foundEvent = await findBookingCalendarEventIncludingDeclined({
+		const [findEventError, foundEvent] = await findBookingCalendarEventIncludingDeclined({
 			booking,
 			calendar: client.calendar,
 			calendarId,
 			timeZone: client.timeZone
 		});
+
+		if (findEventError !== null) {
+			return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
+		}
+
 		const foundEventId = foundEvent?.id ?? null;
 
 		if (foundEventId) {

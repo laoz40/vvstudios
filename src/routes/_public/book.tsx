@@ -222,12 +222,21 @@ function BookingPage() {
 							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
 							return;
 
-						case "BOOKING_RATE_LIMITED":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
+						case "BOOKING_INVALID_DATE":
+						case "BOOKING_INVALID_DURATION":
+						case "BOOKING_INVALID_TIME":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
 							return;
 
+						case "BOOKING_OUTSIDE_OPENING_HOURS":
+						case "BOOKING_TOO_FAR_AHEAD":
+						case "BOOKING_TOO_SOON":
 						case "BOOKING_TIME_UNAVAILABLE":
 							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable);
+							return;
+
+						case "BOOKING_RATE_LIMITED":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
 							return;
 
 						case "UNEXPECTED_ERROR":

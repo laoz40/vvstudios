@@ -55,12 +55,18 @@ interface BusyDayWindowResult {
 
 async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
 	const { timeZone } = getGoogleCalendarClient();
-	const { startDateTime } = buildEventWindow(
+	const [windowError, eventWindow] = buildEventWindow(
 		booking.date,
 		booking.time,
 		booking.duration,
 		timeZone
 	);
+
+	if (windowError !== null) {
+		return err(windowError);
+	}
+
+	const { startDateTime } = eventWindow;
 
 	await sendReminderEmailForBookingDetails({
 		name: booking.name,
@@ -72,6 +78,8 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 		duration: booking.duration,
 		addons: booking.addons
 	});
+
+	return ok({ sent: true });
 }
 
 export const getBookableRangeBusyWindows = action({
@@ -95,7 +103,13 @@ async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLi
 		const today = startOfToday();
 		const startDate = formatDateValue(today);
 		const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
-		const { timeMin, timeMax } = getDateAvailabilityRange(startDate, endDate, timeZone);
+		const [rangeError, availabilityRange] = getDateAvailabilityRange(startDate, endDate, timeZone);
+
+		if (rangeError !== null) {
+			return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+		}
+
+		const { timeMin, timeMax } = availabilityRange;
 		const busyWindows = await getBusyWindowsInRange({
 			calendar,
 			calendarIds,
@@ -317,7 +331,15 @@ export const sendBookingReminderEmailForBooking = internalAction({
 		if (!claim.ok) return null;
 
 		try {
-			await sendBookingReminderEmailForBookingRecord(claim.booking);
+			const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(claim.booking);
+
+			if (reminderEmailError !== null) {
+				await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
+					bookingId: args.bookingId,
+					failureCode: reminderEmailError.reason
+				});
+				return null;
+			}
 
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
 				bookingId: args.bookingId,
@@ -368,21 +390,28 @@ export const completeClaimedBooking = internalAction({
 				return null;
 			}
 
+			const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+				date: booking.date,
+				time: booking.time,
+				timeZone: calendarClient.timeZone,
+				details: {
+					addons: booking.addons,
+					name: booking.name,
+					duration: booking.duration,
+					email: booking.email,
+					service: booking.service
+				}
+			});
+
+			if (payloadError !== null) {
+				await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
+				return null;
+			}
+
 			const createdEvent = await calendarClient.calendar.events.insert({
 				calendarId: calendarClient.calendarId,
 				sendUpdates: "all",
-				requestBody: buildBookingCalendarEventPayload({
-					date: booking.date,
-					time: booking.time,
-					timeZone: calendarClient.timeZone,
-					details: {
-						addons: booking.addons,
-						name: booking.name,
-						duration: booking.duration,
-						email: booking.email,
-						service: booking.service
-					}
-				})
+				requestBody
 			});
 			const googleEventId = createdEvent.data.id ?? undefined;
 
