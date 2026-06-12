@@ -157,7 +157,13 @@ export async function sendBookingInvoiceEmailsForBooking(
 
 	const { artifacts, booking: parsedBooking } = artifactsResult;
 
-	const pdfContent = await renderBookingInvoicePdfInNode(artifacts.data);
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(artifacts.data);
+
+	if (pdfError !== null) {
+		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
 	const [invoiceEmailError] = await sendEmail({
 		to: [booking.email],
 		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,

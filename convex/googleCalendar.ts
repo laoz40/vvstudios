@@ -128,9 +128,15 @@ async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLi
 			timeZone
 		});
 
+		const [busyDaysError, busyDays] = groupBusyWindowsByDay(busyWindows, timeZone);
+
+		if (busyDaysError !== null) {
+			return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+		}
+
 		const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
 
-		for (const busyDay of groupBusyWindowsByDay(busyWindows, timeZone)) {
+		for (const busyDay of busyDays) {
 			const month = busyDay.date.slice(0, 7);
 			busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
 		}

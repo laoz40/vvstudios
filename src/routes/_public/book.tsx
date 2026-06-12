@@ -248,6 +248,7 @@ function BookingPage() {
 							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
 							return;
 
+						case "STRIPE_SESSION_LINK_FAILED":
 						case "UNEXPECTED_ERROR":
 							toast.error(BOOKING_PAGE_ERROR_MESSAGES.startCheckoutFailed);
 							return;

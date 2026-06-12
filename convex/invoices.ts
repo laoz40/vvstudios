@@ -50,11 +50,11 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 		return err(artifactsError);
 	}
 
-	let pdfContent: Awaited<ReturnType<typeof renderBookingInvoicePdfInNode>>;
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
 
-	try {
-		pdfContent = await renderBookingInvoicePdfInNode(artifactsResult.artifacts.data);
-	} catch {
+	if (pdfError !== null) {
 		return err({ reason: "INVOICE_DOWNLOAD_FAILED" });
 	}
 

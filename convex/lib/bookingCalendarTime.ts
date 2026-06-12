@@ -382,7 +382,10 @@ export function mergeBusyWindows(busyWindows: BusyWindow[]) {
 	return mergedWindows;
 }
 
-export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: string) {
+export function groupBusyWindowsByDay(
+	busyWindows: BusyWindow[],
+	timeZone: string
+): Result<BusyDayWindow[], Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
 	const mergedWindows = mergeBusyWindows(busyWindows);
 	const dayBuckets = new Map<string, BusyDayWindow>();
 
@@ -400,7 +403,7 @@ export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: strin
 			);
 
 			if (dayEndError !== null) {
-				break;
+				return err(dayEndError);
 			}
 
 			const dayEndMs = Date.parse(dayEndDate.toISOString());
@@ -419,7 +422,7 @@ export function groupBusyWindowsByDay(busyWindows: BusyWindow[], timeZone: strin
 		}
 	}
 
-	return Array.from(dayBuckets.values());
+	return ok(Array.from(dayBuckets.values()));
 }
 
 // turn google event dates into one normal datetime value we can compare (for all day events)

@@ -99,6 +99,7 @@ async function createEmbeddedCheckoutSessionHandler(
 		| { reason: "BOOKING_TIME_UNAVAILABLE" }
 		| { reason: "BOOKING_TOO_FAR_AHEAD" }
 		| { reason: "BOOKING_TOO_SOON" }
+		| { reason: "STRIPE_SESSION_LINK_FAILED" }
 	>
 > {
 	// Validate the submitted form before creating anything in Convex or Stripe.
@@ -167,10 +168,14 @@ async function createEmbeddedCheckoutSessionHandler(
 	}
 
 	// Store the Stripe session ID so webhooks and cleanup can match the payment to this booking.
-	await ctx.runMutation(internal.bookings.setBookingStripeSessionId, {
-		bookingId,
-		stripeSessionId: session.id
-	});
+	try {
+		await ctx.runMutation(internal.bookings.setBookingStripeSessionId, {
+			bookingId,
+			stripeSessionId: session.id
+		});
+	} catch {
+		return err({ reason: "STRIPE_SESSION_LINK_FAILED" });
+	}
 
 	return ok({ bookingId, clientSecret: session.client_secret, stripeSessionId: session.id });
 }
