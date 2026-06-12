@@ -310,17 +310,54 @@ Removed after conversion:
 - Pending booking delete mismatch returns `STRIPE_SESSION_MISMATCH`.
 - Client handles `CloseEmbeddedCheckoutSessionResult` through `tryCatch<CloseEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
 
+### Public feedback submit
+
+- `convex/feedback.ts` `submit` now returns tuple `Result` values.
+- Invalid empty messages return `INVALID_MESSAGE`.
+- Rate limits return `FEEDBACK_RATE_LIMITED`.
+- Email send failures return `SEND_FAILED`.
+- Client handles `SubmitFeedbackResult` through `tryCatch<SubmitFeedbackResult>(...)` in `GiveFeedbackDialog.tsx`.
+
 ## Rollout Targets
 
 Continue converting one public client-facing function at a time.
 
-Next targets to consider:
+Next public client-facing targets:
 
-- remaining `convex/deliverablesEmail.ts` actions, if any are added
-- other `convex/googleCalendar.ts` admin actions
-- remaining `convex/stripe.ts` public actions, if any are added
+- `convex/customInvoices.ts` `createCustomInvoice`
+  - Current expected `ConvexError` code: `BOOKING_NOT_FOUND`.
+  - Client: `src/sites/studio/features/admin/components/CustomInvoiceDialog.tsx`.
+- `convex/invoices.ts` `getBookingInvoicePdfByStripeSessionId`
+  - Current expected `ConvexError` codes: `BOOKING_NOT_FOUND`, `BOOKING_NOT_CONFIRMED`, `INVOICE_DOWNLOAD_EXPIRED`, `INVOICE_DOWNLOAD_FAILED`.
+  - Client: `src/sites/studio/features/booking-complete/components/BookingResult.tsx`.
+- `convex/googleCalendar.ts` `sendBookingInvoiceForBooking`
+  - Current expected `ConvexError` codes: `BOOKING_NOT_FOUND`, `INVOICE_SEND_FAILED`.
+  - Client: `src/sites/studio/features/admin/components/BookingActions.tsx`.
+- `convex/googleCalendar.ts` `getBookableRangeBusyWindows`
+  - Current expected Google Calendar availability/rate limit `ConvexError` codes.
+  - Check current clients before converting.
+- `convex/googleCalendar.ts` `getAvailableBookingTimes`
+  - Current expected Google Calendar availability `ConvexError` codes.
+  - Likely used by the public booking form flow.
 
-Do not convert the whole app in one pass.
+Shared/internal helpers still throwing and not necessarily required to convert:
+
+- `convex/lib/auth.ts` `requireAdmin` / `requireBookingInDb`
+  - Keep for internal/server-only paths where throwing behavior is desired.
+- `convex/lib/bookingCalendarTime.ts` date/time validation helpers
+  - These are shared validators used by multiple flows. Convert only when a public caller needs direct tuple results, or map their thrown `ConvexError`s at the boundary.
+- `convex/lib/bookingInvoiceArtifacts.ts` invoice artifact validation
+  - Can stay throwing if treated as invalid internal booking data/invariant.
+- `convex/lib/googleCalendarErrors.ts` `throwGoogleCalendarConvexError`
+  - Still supports older Google Calendar actions. Remove or replace only after all callers move to tuple mapping.
+- `convex/lib/email.ts` Resend failure throw
+  - Can stay as a low-level throw when callers catch and map to tuple errors.
+
+Plain unexpected/invariant throws that should probably stay as throws:
+
+- `convex/stripe.ts` `Stripe checkout session missing client secret`.
+- `convex/googleCalendar.ts` internal `completeClaimedBooking` errors: `Booking not found`, `Booking confirmation was not claimed`.
+  Do not convert the whole app in one pass.
 
 ## Checks
 

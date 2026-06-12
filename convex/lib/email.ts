@@ -166,9 +166,9 @@ export async function sendBookingInvoiceEmailsForBooking(booking: Doc<"bookings"
 export async function sendFeedbackEmailForMessage(message: string) {
 	return await sendEmail({
 		to: [CONTACT_EMAIL],
-		subject: "New VV Studios website feedback",
+		subject: "New VV Studios feedback",
 		html: [
-			"<p>You received new website feedback from the VV Studios website.</p>",
+			"<p>You received new feedback from the VV Studios website.</p>",
 			"<p><strong>Message:</strong></p>",
 			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`
 		].join("")
