@@ -358,68 +358,70 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: true, outcome: "already_completed" });
 	}
 
+	const settings = await ctx.runQuery(api.bookingSettings.get, {});
+	const calendarClient = getGoogleCalendarClient();
+
+	const canBeScheduled = await verifyBookingCanBeScheduled({
+		booking,
+		calendar: calendarClient.calendar,
+		calendarIds: calendarClient.calendarIds,
+		settings,
+		timeZone: calendarClient.timeZone
+	});
+
+	if (!canBeScheduled) {
+		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+		return ok({ completed: false, outcome: "booking_time_unavailable" });
+	}
+
+	const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+		date: booking.date,
+		time: booking.time,
+		timeZone: calendarClient.timeZone,
+		details: {
+			addons: booking.addons,
+			name: booking.name,
+			duration: booking.duration,
+			email: booking.email,
+			service: booking.service
+		}
+	});
+
+	if (payloadError !== null) {
+		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
+		return ok({ completed: false, outcome: "booking_invalid_input" });
+	}
+
+	let googleEventId: string | undefined;
+
 	try {
-		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		const calendarClient = getGoogleCalendarClient();
-
-		const canBeScheduled = await verifyBookingCanBeScheduled({
-			booking,
-			calendar: calendarClient.calendar,
-			calendarIds: calendarClient.calendarIds,
-			settings,
-			timeZone: calendarClient.timeZone
-		});
-
-		if (!canBeScheduled) {
-			await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
-			return ok({ completed: false, outcome: "booking_time_unavailable" });
-		}
-
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
-			date: booking.date,
-			time: booking.time,
-			timeZone: calendarClient.timeZone,
-			details: {
-				addons: booking.addons,
-				name: booking.name,
-				duration: booking.duration,
-				email: booking.email,
-				service: booking.service
-			}
-		});
-
-		if (payloadError !== null) {
-			await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
-			return ok({ completed: false, outcome: "booking_invalid_input" });
-		}
-
 		const createdEvent = await calendarClient.calendar.events.insert({
 			calendarId: calendarClient.calendarId,
 			sendUpdates: "all",
 			requestBody
 		});
-		const googleEventId = createdEvent.data.id ?? undefined;
-
-		await ctx.runMutation(internal.bookings.markBookingCompleted, {
-			bookingId: booking._id,
-			googleEventId,
-			googleCalendarId: calendarClient.calendarId
-		});
-
-		const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
-
-		if (emailError !== null) {
-			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
-				bookingId: booking._id
-			});
-		}
-
-		return ok({ completed: true, outcome: "completed" });
+		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
 		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
 
 		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
+
+	await ctx.runMutation(internal.bookings.markBookingCompleted, {
+		bookingId: booking._id,
+		googleEventId,
+		googleCalendarId: calendarClient.calendarId
+	});
+
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+
+	if (emailError !== null) {
+		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
+			bookingId: booking._id
+		});
+	}
+
+	return ok({ completed: true, outcome: "completed" });
 }
 
 export type CompleteClaimedBookingResult = Awaited<
