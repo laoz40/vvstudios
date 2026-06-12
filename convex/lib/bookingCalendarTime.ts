@@ -86,7 +86,11 @@ export function getUtcDateForZonedDateTime(
 	date: string,
 	time: string,
 	timeZone: string
-): Result<Date, Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
+): Result<
+	Date,
+	| Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
+	| { reason: "BOOKING_INVALID_TIME" }
+> {
 	const [dateError, dateParts] = parseDate(date);
 
 	if (dateError !== null) {
@@ -99,16 +103,20 @@ export function getUtcDateForZonedDateTime(
 		return err(timeError);
 	}
 
-	return ok(
-		getUtcDateForZonedParts({
-			day: dateParts.day,
-			hours: timeParts.hours,
-			minutes: timeParts.minutes,
-			month: dateParts.month,
-			timeZone,
-			year: dateParts.year
-		})
-	);
+	const [zonedTimeError, utcDate] = getUtcDateForZonedParts({
+		day: dateParts.day,
+		hours: timeParts.hours,
+		minutes: timeParts.minutes,
+		month: dateParts.month,
+		timeZone,
+		year: dateParts.year
+	});
+
+	if (zonedTimeError !== null) {
+		return err({ reason: "BOOKING_INVALID_TIME" });
+	}
+
+	return ok(utcDate);
 }
 
 export function buildEventWindow(

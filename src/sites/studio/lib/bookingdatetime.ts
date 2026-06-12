@@ -379,7 +379,7 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 	}
 
 	const [hours, minutes] = timeValue.split(":").map(Number);
-	return getUtcDateForZonedParts({
+	const [zonedTimeError, utcDate] = getUtcDateForZonedParts({
 		day: date.getDate(),
 		hours,
 		minutes,
@@ -387,6 +387,12 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 		timeZone,
 		year: date.getFullYear()
 	});
+
+	if (zonedTimeError !== null) {
+		return null;
+	}
+
+	return utcDate;
 }
 
 function parseReadableTimeToMinutes(time: string) {

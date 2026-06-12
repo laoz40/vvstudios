@@ -7,11 +7,13 @@ import {
 	internalMutation,
 	internalQuery,
 	mutation,
+	query,
 	type MutationCtx,
-	query
+	type QueryCtx
 } from "./_generated/server";
 import { env } from "./env";
-import { isAdminIdentity, requireAdmin, requireBookingInDb } from "./lib/auth";
+import { getAdminIdentity } from "./lib/auth";
+import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
@@ -114,16 +116,29 @@ export const createPendingBooking = internalMutation({
 
 export const getBookings = query({
 	args: { paginationOpts: paginationOptsValidator },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-
-		return await ctx.db
-			.query("bookings")
-			.withIndex("by_pendingPaymentCreatedAt")
-			.order("desc")
-			.paginate(args.paginationOpts);
-	}
+	handler: (ctx, args) => getBookingsHandler(ctx, args)
 });
+
+async function getBookingsHandler(
+	ctx: QueryCtx,
+	args: { paginationOpts: { numItems: number; cursor: string | null } }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const bookings = await ctx.db
+		.query("bookings")
+		.withIndex("by_pendingPaymentCreatedAt")
+		.order("desc")
+		.paginate(args.paginationOpts);
+
+	return ok(bookings);
+}
+
+export type GetBookingsResult = Awaited<ReturnType<typeof getBookingsHandler>>;
 
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
@@ -269,14 +284,10 @@ export const cleanupOldPendingAndExpiredBookings = mutation({
 });
 
 async function cleanupOldPendingAndExpiredBookingsHandler(ctx: MutationCtx) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
@@ -397,7 +408,11 @@ export const markBookingCompleted = internalMutation({
 		googleCalendarId: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.patch(args.bookingId, {
 			status: "confirmed",
@@ -407,47 +422,59 @@ export const markBookingCompleted = internalMutation({
 			bookingFailureCode: undefined
 		});
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
 export const markBookingInvoiceEmailFailed = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.patch(args.bookingId, {
 			status: "email_failed",
 			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
 		});
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
 export const markBookingInvoiceEmailSent = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
-		const booking = await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		if (booking.status !== "email_failed") {
-			return null;
+			return ok({ updated: false, reason: "BOOKING_NOT_EMAIL_FAILED" as const });
 		}
 
 		await ctx.db.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined });
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
 export const markBookingCompletionFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.patch(args.bookingId, { status: "failed", bookingFailureCode: args.failureCode });
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
@@ -476,7 +503,11 @@ export const claimBookingReminderEmail = internalMutation({
 export const markBookingReminderEmailSent = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.patch(args.bookingId, {
 			reminderEmailClaimedAt: undefined,
@@ -484,21 +515,25 @@ export const markBookingReminderEmailSent = internalMutation({
 			reminderEmailFailureCode: undefined
 		});
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
 export const markBookingReminderEmailFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.patch(args.bookingId, {
 			reminderEmailClaimedAt: undefined,
 			reminderEmailFailureCode: args.failureCode
 		});
 
-		return null;
+		return ok({ updated: true });
 	}
 });
 
@@ -528,7 +563,11 @@ export const deletePendingBooking = internalMutation({
 export const deleteBookingInternal = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
-		await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 
 		await ctx.db.delete(args.bookingId);
 
@@ -544,20 +583,16 @@ export const deleteBooking = mutation({
 type DeleteBookingArgs = { bookingId: Id<"bookings"> };
 
 async function deleteBookingHandler(ctx: MutationCtx, args: DeleteBookingArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
-	}
+	const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
-	const booking = await ctx.db.get(args.bookingId);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+	if (bookingError !== null) {
+		return err(bookingError);
 	}
 
 	try {
@@ -592,7 +627,11 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		confirmBooking: v.optional(v.boolean())
 	},
 	handler: async (ctx, args) => {
-		const booking = await requireBookingInDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
 		const [updatePatchError, updatePatch] = buildAdminBookingUpdatePatch({
 			booking,
 			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
@@ -660,14 +699,10 @@ type UpdateBookingArgs = {
 };
 
 async function updateBookingHandler(ctx: MutationCtx, args: UpdateBookingArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -711,14 +746,10 @@ type UpdateBookingStatusArgs = {
 };
 
 async function updateBookingStatusHandler(ctx: MutationCtx, args: UpdateBookingStatusArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -756,14 +787,10 @@ async function updateBookingPaidRemainingBalanceHandler(
 	ctx: MutationCtx,
 	args: UpdateBookingPaidRemainingBalanceArgs
 ) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -799,14 +826,10 @@ type UpdateBookingEditStatusArgs = {
 };
 
 async function updateBookingEditStatusHandler(ctx: MutationCtx, args: UpdateBookingEditStatusArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -842,14 +865,10 @@ async function updateBookingRemainingBalanceAmountHandler(
 	ctx: MutationCtx,
 	args: UpdateBookingRemainingBalanceAmountArgs
 ) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);

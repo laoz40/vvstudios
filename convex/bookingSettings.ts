@@ -3,7 +3,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { err, ok } from "../src/lib/result";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "../src/sites/studio/lib/bookingAvailabilitySettings";
 import type { BookingAvailabilitySettings } from "../src/sites/studio/lib/bookingAvailabilitySettings";
-import { isAdminIdentity } from "./lib/auth";
+import { getAdminIdentity } from "./lib/auth";
 import { isValidBookingSettings } from "./lib/bookingSettings";
 
 export const get = query({
@@ -28,14 +28,10 @@ export const update = mutation({
 });
 
 async function updateBookingSettingsHandler(ctx: MutationCtx, args: BookingAvailabilitySettings) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError, identity] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	if (!isValidBookingSettings(args)) {

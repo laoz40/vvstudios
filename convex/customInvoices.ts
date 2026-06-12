@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { err, ok } from "../src/lib/result";
-import { isAdminIdentity, requireAdmin } from "./lib/auth";
+import { getAdminIdentity } from "./lib/auth";
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -31,14 +31,10 @@ type CreateCustomInvoiceArgs = {
 };
 
 async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateCustomInvoiceArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError, identity] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
-	}
-
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -72,13 +68,28 @@ export type CreateCustomInvoiceResult = Awaited<ReturnType<typeof createCustomIn
 
 export const listCustomInvoicesForBooking = query({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
-
-		return await ctx.db
-			.query("customInvoices")
-			.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
-			.order("desc")
-			.collect();
-	}
+	handler: (ctx, args) => listCustomInvoicesForBookingHandler(ctx, args)
 });
+
+async function listCustomInvoicesForBookingHandler(
+	ctx: QueryCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const customInvoices = await ctx.db
+		.query("customInvoices")
+		.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
+		.order("desc")
+		.collect();
+
+	return ok(customInvoices);
+}
+
+export type ListCustomInvoicesForBookingResult = Awaited<
+	ReturnType<typeof listCustomInvoicesForBookingHandler>
+>;

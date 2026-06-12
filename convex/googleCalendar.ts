@@ -11,7 +11,8 @@ import {
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
-import { isAdminIdentity } from "./lib/auth";
+import { getAdminIdentity } from "./lib/auth";
+import { getBookingFromQuery } from "./lib/bookingLookup";
 import {
 	buildEventWindow,
 	type BookingAvailabilitySettings,
@@ -200,23 +201,16 @@ async function updateBookingFromAdminHandler(
 	ctx: ActionCtx,
 	args: AdminBookingUpdateArgs
 ): Promise<Result<AdminBookingUpdateResult, UpdateBookingFromAdminError>> {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
-	}
+	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
 
-	const booking: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.bookings.getBookingByIdInternal,
-		{ bookingId: args.bookingId }
-	);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+	if (bookingError !== null) {
+		return err(bookingError);
 	}
 
 	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
@@ -238,23 +232,16 @@ async function sendBookingInvoiceForBookingHandler(
 	ctx: ActionCtx,
 	args: SendBookingInvoiceForBookingArgs
 ) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
-	}
+	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
 
-	const booking: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.bookings.getBookingByIdInternal,
-		{ bookingId: args.bookingId }
-	);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+	if (bookingError !== null) {
+		return err(bookingError);
 	}
 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
@@ -284,23 +271,16 @@ export const deleteBookingFromAdmin = action({
 });
 
 async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBookingFromAdminArgs) {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
-	}
+	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
 
-	const booking: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.bookings.getBookingByIdInternal,
-		{ bookingId: args.bookingId }
-	);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+	if (bookingError !== null) {
+		return err(bookingError);
 	}
 
 	const client = getGoogleCalendarClient();
@@ -358,83 +338,88 @@ export const sendBookingReminderEmailForBooking = internalAction({
 
 export const completeClaimedBooking = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const booking = await ctx.runQuery(internal.bookings.getBookingByIdInternal, {
-			bookingId: args.bookingId
+	handler: (ctx, args) => completeClaimedBookingHandler(ctx, args)
+});
+
+async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
+	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+
+	if (bookingError !== null) {
+		return err(bookingError);
+	}
+
+	if (!booking.bookingConfirmationClaimedAt) {
+		return err({ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" });
+	}
+
+	if (booking.status === "confirmed" || booking.status === "email_failed") {
+		return ok({ completed: true, outcome: "already_completed" as const });
+	}
+
+	try {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		const calendarClient = getGoogleCalendarClient();
+
+		const canBeScheduled = await verifyBookingCanBeScheduled({
+			booking,
+			calendar: calendarClient.calendar,
+			calendarIds: calendarClient.calendarIds,
+			settings,
+			timeZone: calendarClient.timeZone
 		});
 
-		if (!booking) throw new Error("Booking not found");
-
-		if (!booking.bookingConfirmationClaimedAt) {
-			throw new Error("Booking confirmation was not claimed");
+		if (!canBeScheduled) {
+			await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+			return ok({ completed: false, outcome: "booking_time_unavailable" as const });
 		}
 
-		if (booking.status === "confirmed" || booking.status === "email_failed") {
-			return null;
+		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+			date: booking.date,
+			time: booking.time,
+			timeZone: calendarClient.timeZone,
+			details: {
+				addons: booking.addons,
+				name: booking.name,
+				duration: booking.duration,
+				email: booking.email,
+				service: booking.service
+			}
+		});
+
+		if (payloadError !== null) {
+			await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
+			return ok({ completed: false, outcome: "booking_invalid_input" as const });
 		}
 
-		try {
-			const settings = await ctx.runQuery(api.bookingSettings.get, {});
-			const calendarClient = getGoogleCalendarClient();
+		const createdEvent = await calendarClient.calendar.events.insert({
+			calendarId: calendarClient.calendarId,
+			sendUpdates: "all",
+			requestBody
+		});
+		const googleEventId = createdEvent.data.id ?? undefined;
 
-			const canBeScheduled = await verifyBookingCanBeScheduled({
-				booking,
-				calendar: calendarClient.calendar,
-				calendarIds: calendarClient.calendarIds,
-				settings,
-				timeZone: calendarClient.timeZone
+		await ctx.runMutation(internal.bookings.markBookingCompleted, {
+			bookingId: booking._id,
+			googleEventId,
+			googleCalendarId: calendarClient.calendarId
+		});
+
+		const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+
+		if (emailError !== null) {
+			await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
+				bookingId: booking._id
 			});
-
-			if (!canBeScheduled) {
-				await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
-				return null;
-			}
-
-			const [payloadError, requestBody] = buildBookingCalendarEventPayload({
-				date: booking.date,
-				time: booking.time,
-				timeZone: calendarClient.timeZone,
-				details: {
-					addons: booking.addons,
-					name: booking.name,
-					duration: booking.duration,
-					email: booking.email,
-					service: booking.service
-				}
-			});
-
-			if (payloadError !== null) {
-				await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
-				return null;
-			}
-
-			const createdEvent = await calendarClient.calendar.events.insert({
-				calendarId: calendarClient.calendarId,
-				sendUpdates: "all",
-				requestBody
-			});
-			const googleEventId = createdEvent.data.id ?? undefined;
-
-			// save confirmed status and Google event details.
-			await ctx.runMutation(internal.bookings.markBookingCompleted, {
-				bookingId: booking._id,
-				googleEventId,
-				googleCalendarId: calendarClient.calendarId
-			});
-
-			const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
-
-			if (emailError !== null) {
-				await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
-					bookingId: booking._id
-				});
-			}
-
-			return null;
-		} catch {
-			await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
-
-			return null;
 		}
+
+		return ok({ completed: true, outcome: "completed" as const });
+	} catch {
+		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
+
+		return ok({ completed: false, outcome: "google_calendar_create_failed" as const });
 	}
-});
+}
+
+export type CompleteClaimedBookingResult = Awaited<
+	ReturnType<typeof completeClaimedBookingHandler>
+>;

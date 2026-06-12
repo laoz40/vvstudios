@@ -2,10 +2,10 @@
 
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { internal } from "./_generated/api";
+import { getBookingFromQuery } from "./lib/bookingLookup";
 import { action, type ActionCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { isAdminIdentity } from "./lib/auth";
+import { getAdminIdentity } from "./lib/auth";
 import { sendBookingDeliverablesEmailForBooking as sendDeliverablesEmail } from "./lib/email";
 import { parseGoogleDriveLink } from "./lib/googleDriveLinks";
 
@@ -61,23 +61,16 @@ async function sendBookingDeliverablesEmailHandler(
 		| { reason: "DELIVERABLES_SEND_FAILED" }
 	>
 > {
-	const identity = await ctx.auth.getUserIdentity();
+	const [authError] = await getAdminIdentity(ctx);
 
-	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+	if (authError !== null) {
+		return err(authError);
 	}
 
-	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
-	}
+	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
 
-	const booking: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.bookings.getBookingByIdInternal,
-		{ bookingId: args.bookingId }
-	);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+	if (bookingError !== null) {
+		return err(bookingError);
 	}
 
 	return await sendDeliverablesEmailForRecord(booking, args.driveLink, args.emailVariant);

@@ -4,7 +4,10 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { CreateCustomInvoiceResult } from "#convex/customInvoices";
+import type {
+	CreateCustomInvoiceResult,
+	ListCustomInvoicesForBookingResult
+} from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
@@ -139,10 +142,10 @@ function CustomInvoiceQuantityOptions({
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
-	const customInvoices: CustomInvoiceRecord[] | undefined = useQuery(
-		api.customInvoices.listCustomInvoicesForBooking,
-		{ bookingId: booking._id }
-	);
+	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
+		bookingId: booking._id
+	}) as ListCustomInvoicesForBookingResult | undefined;
+	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		duration: booking.duration as BookingFormValues["duration"],

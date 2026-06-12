@@ -1,3 +1,5 @@
+import { err, ok, type Result } from "#/lib/result";
+
 const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 type ZonedDateTimeParts = {
@@ -63,7 +65,7 @@ export function getUtcDateForZonedParts({
 	month,
 	timeZone,
 	year
-}: ZonedDateTimeParts) {
+}: ZonedDateTimeParts): Result<Date, { reason: "INVALID_ZONED_TIME" }> {
 	const targetUtcMs = Date.UTC(year, month - 1, day, hours, minutes, 0, 0);
 	let guessUtcMs = targetUtcMs;
 
@@ -97,8 +99,8 @@ export function getUtcDateForZonedParts({
 		resolvedParts.hours !== hours ||
 		resolvedParts.minutes !== minutes
 	) {
-		throw new RangeError(`Invalid local time for time zone: ${timeZone}`);
+		return err({ reason: "INVALID_ZONED_TIME" });
 	}
 
-	return resolvedDate;
+	return ok(resolvedDate);
 }

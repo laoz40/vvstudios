@@ -73,9 +73,25 @@ http.route({
 				return new Response("already claimed", { status: 200 });
 			}
 
-			await ctx.runAction(internal.googleCalendar.completeClaimedBooking, {
-				bookingId: bookingId as Id<"bookings">
-			});
+			const [completionError, completionResult] = await ctx.runAction(
+				internal.googleCalendar.completeClaimedBooking,
+				{ bookingId: bookingId as Id<"bookings"> }
+			);
+
+			if (completionError !== null) {
+				console.error("Booking completion failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					bookingId,
+					completionError
+				});
+
+				return new Response("completion failed", { status: 200 });
+			}
+
+			if (!completionResult.completed) {
+				return new Response(completionResult.outcome, { status: 200 });
+			}
 
 			return new Response("confirmed", { status: 200 });
 		}
