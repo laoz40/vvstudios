@@ -34,19 +34,16 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 		return err({ reason: "BOOKING_NOT_CONFIRMED" });
 	}
 
-	const invoiceDownloadStartedAt =
+	const invoiceCreatedAt =
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt;
 
-	if (
-		!invoiceDownloadStartedAt ||
-		Date.now() - invoiceDownloadStartedAt > INVOICE_DOWNLOAD_EXPIRY_MS
-	) {
+	if (!invoiceCreatedAt || Date.now() - invoiceCreatedAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
 	}
 
 	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
-		booking.pendingPaymentCreatedAt
+		invoiceCreatedAt
 	);
 
 	if (artifactsError !== null) {
