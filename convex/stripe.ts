@@ -175,37 +175,53 @@ export type CreateEmbeddedCheckoutSessionResult = Awaited<
 	ReturnType<typeof createEmbeddedCheckoutSessionHandler>
 >;
 
+type DeletePendingBookingResult =
+	| { ok: true; outcome: "abandoned" | "not_found" | "not_pending" }
+	| { ok: false; reason: "stripe_session_mismatch" };
+
 export const closeEmbeddedCheckoutSession = action({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: async (
-		ctx,
-		args
-	): Promise<{
-		ok: true;
-		outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
-	}> => {
-		const stripe = getStripeClient();
-		const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
+	handler: (ctx, args) => closeEmbeddedCheckoutSessionHandler(ctx, args)
+});
 
-		if (session.status === "complete") {
-			return { ok: true as const, outcome: "already_complete" as const };
-		}
+async function closeEmbeddedCheckoutSessionHandler(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; stripeSessionId: string }
+): Promise<
+	Result<
+		{ outcome: "already_complete" | "abandoned" | "not_found" | "not_pending" },
+		{ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" } | { reason: "STRIPE_SESSION_MISMATCH" }
+	>
+> {
+	const stripe = getStripeClient();
+	let session: Stripe.Checkout.Session;
+
+	try {
+		session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
 
 		if (session.status === "open") {
 			await stripe.checkout.sessions.expire(args.stripeSessionId);
 		}
-
-		const result:
-			| { ok: true; outcome: "abandoned" | "not_found" | "not_pending" }
-			| { ok: false; reason: "stripe_session_mismatch" } = await ctx.runMutation(
-			internal.bookings.deletePendingBooking,
-			{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
-		);
-
-		if (!result.ok) {
-			throw new Error(result.reason);
-		}
-
-		return { ok: true as const, outcome: result.outcome };
+	} catch {
+		return err({ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" });
 	}
-});
+
+	if (session.status === "complete") {
+		return ok({ outcome: "already_complete" });
+	}
+
+	const result: DeletePendingBookingResult = await ctx.runMutation(
+		internal.bookings.deletePendingBooking,
+		{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
+	);
+
+	if (!result.ok) {
+		return err({ reason: "STRIPE_SESSION_MISMATCH" });
+	}
+
+	return ok({ outcome: result.outcome });
+}
+
+export type CloseEmbeddedCheckoutSessionResult = Awaited<
+	ReturnType<typeof closeEmbeddedCheckoutSessionHandler>
+>;

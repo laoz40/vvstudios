@@ -48,9 +48,13 @@ const [error] = await tryCatch<DeleteBookingResult>(deleteBooking({ bookingId })
 
 ## Result Type Style
 
-Prefer inferred result types from the real handler returns. Do **not** duplicate error codes in a separate manual union unless inference cannot work.
+Prefer inferred result types from the real handler returns. Do **not** duplicate error codes in a separate exported manual union unless inference cannot work.
 
 Avoid aliases that only rename an existing type or constant. If `BookingAvailabilitySettings` or `DEFAULT_BOOKING_AVAILABILITY_SETTINGS` already exists, use it directly instead of adding wrappers like `BookingSettingsArgs = BookingAvailabilitySettings` or `DEFAULT_BOOKING_SETTINGS = DEFAULT_BOOKING_AVAILABILITY_SETTINGS`.
+
+When a handler needs an explicit `Result` return type for TypeScript, inline the success and error shapes at that return type. Avoid extra top-level aliases like `SomeSuccess`, `SomeError`, or `SomeHandlerResult` unless they are reused or make a complex type much clearer.
+
+For one-off internal call results, prefer local inline annotations near the call instead of top-level aliases.
 Preferred order:
 
 1. Export the Convex function.
@@ -98,6 +102,8 @@ export type DeleteBookingResult = Awaited<ReturnType<typeof deleteBookingHandler
 
 The expected error codes live in the actual `return err({ reason: "..." })` lines. If a new `err(...)` return is added, the exported result type updates automatically.
 
+If a catch block maps thrown expected errors into `err(...)`, keep the mapping close to the catch with clear guard clauses. Avoid tiny one-off helper functions unless the mapping is reused.
+
 Convex typing preference: do not add temporary client-side `FunctionReference` casts to work around stale generated types. If Convex client types are stale, the user will run Convex codegen. If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler for result inference but use a small inline wrapper in the Convex function: `handler: (ctx, args) => namedHandler(ctx, args)`.
 
 ## Client Handling Style
@@ -144,6 +150,8 @@ If `error.reason` becomes plain `string`, import the inferred result type from t
 Toast preference: do not group specific expected write failures with `UNEXPECTED_ERROR`. Use a specific message for the known failure, such as “Failed to save availability settings.” Use a separate unexpected message, such as “Something went wrong with saving availability settings.”
 
 Client message preference: keep expected error messages inline in the component switch where the action is handled. Do not add external error-message helpers for one converted action unless the same mapping is reused by multiple clients.
+
+Client switches should keep messages inline and obvious. If the same message mapping is truly reused by multiple clients, then a helper is okay.
 
 ## Convex Mutation Safety
 
@@ -195,6 +203,8 @@ if (!booking) {
 ```
 
 Keep throwing helpers where throwing is desired, especially internal/server-only paths or impossible states.
+
+Unexpected invariant failures can still throw plain `Error`. Do not create a `ConvexError` code for failures the client should only treat as `UNEXPECTED_ERROR`, such as Stripe returning a successful embedded checkout session without a `client_secret`.
 
 ## Google Calendar / Node-only Helpers
 
@@ -295,6 +305,10 @@ Removed after conversion:
 - Booking rate limits return `BOOKING_RATE_LIMITED`.
 - Availability/input validation failures from pending booking creation map to `BOOKING_TIME_UNAVAILABLE` or `BOOKING_INVALID_INPUT`.
 - Client handles `CreateEmbeddedCheckoutSessionResult` through `tryCatch<CreateEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
+- `convex/stripe.ts` `closeEmbeddedCheckoutSession` now returns tuple `Result` values.
+- Stripe retrieve/expire failures return `STRIPE_CHECKOUT_CLOSE_FAILED`.
+- Pending booking delete mismatch returns `STRIPE_SESSION_MISMATCH`.
+- Client handles `CloseEmbeddedCheckoutSessionResult` through `tryCatch<CloseEmbeddedCheckoutSessionResult>(...)` in `src/routes/_public/book.tsx`.
 
 ## Rollout Targets
 
@@ -304,7 +318,7 @@ Next targets to consider:
 
 - remaining `convex/deliverablesEmail.ts` actions, if any are added
 - other `convex/googleCalendar.ts` admin actions
-- remaining `convex/stripe.ts` public actions, such as `closeEmbeddedCheckoutSession`
+- remaining `convex/stripe.ts` public actions, if any are added
 
 Do not convert the whole app in one pass.
 

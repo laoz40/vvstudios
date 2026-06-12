@@ -7,7 +7,10 @@ import { ChevronDown } from "lucide-react";
 
 import { toast } from "sonner";
 import type { Id } from "#convex/_generated/dataModel";
-import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
+import type {
+	CloseEmbeddedCheckoutSessionResult,
+	CreateEmbeddedCheckoutSessionResult
+} from "#convex/stripe";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -492,12 +495,39 @@ function BookingPage() {
 			return;
 		}
 
-		void closeEmbeddedCheckoutSession({
-			bookingId: activeCheckoutSession.bookingId,
-			stripeSessionId: activeCheckoutSession.stripeSessionId
-		}).catch((closeCheckoutError) => {
-			toast.error(getBookingErrorMessage(closeCheckoutError));
-		});
+		void closeOpenCheckoutSession(activeCheckoutSession);
+	};
+
+	const closeOpenCheckoutSession = async (activeCheckoutSession: EmbeddedCheckoutSession) => {
+		const [error] = await tryCatch<CloseEmbeddedCheckoutSessionResult>(
+			closeEmbeddedCheckoutSession({
+				bookingId: activeCheckoutSession.bookingId,
+				stripeSessionId: activeCheckoutSession.stripeSessionId
+			})
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "STRIPE_CHECKOUT_CLOSE_FAILED":
+					toast.error("Failed to close checkout.");
+					return;
+
+				case "STRIPE_SESSION_MISMATCH":
+					toast.error(
+						"We couldn’t close this checkout session safely. Please refresh the page and try again."
+					);
+					return;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while closing checkout.");
+					return;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+		}
 	};
 
 	const handleTermsConfirm = () => {
