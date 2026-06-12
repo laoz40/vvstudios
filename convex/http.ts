@@ -47,29 +47,29 @@ http.route({
 					? session.payment_intent
 					: session.payment_intent?.id;
 
-			const result = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
+			const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
 				bookingId: bookingId as Id<"bookings">,
 				stripeSessionId: session.id,
 				stripePaymentIntentId,
 				stripeEventId: event.id
 			});
 
-			if (!result.ok) {
+			if (claimError !== null) {
 				console.error("Booking completion claim failed", {
 					eventId: event.id,
 					sessionId: session.id,
 					bookingId,
-					result
+					claimError
 				});
 
 				return new Response("claim failed", { status: 200 });
 			}
 
-			if (result.outcome === "already_confirmed") {
+			if (claim.outcome === "already_confirmed") {
 				return new Response("already confirmed", { status: 200 });
 			}
 
-			if (result.outcome === "already_claimed") {
+			if (claim.outcome === "already_claimed") {
 				return new Response("already claimed", { status: 200 });
 			}
 

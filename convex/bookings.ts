@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { err, ok } from "../src/lib/result";
+import { err, ok, type Result } from "../src/lib/result";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -18,20 +18,20 @@ import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bo
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { rateLimiter } from "./lib/rateLimits";
 
-type CreatePendingBookingResult =
-	| { ok: true; bookingId: Doc<"bookings">["_id"] }
-	| {
-			ok: false;
-			code:
-				| "BOOKING_INVALID_DATE"
-				| "BOOKING_INVALID_DURATION"
-				| "BOOKING_INVALID_TIME"
-				| "BOOKING_OUTSIDE_OPENING_HOURS"
-				| "BOOKING_RATE_LIMITED"
-				| "BOOKING_TOO_FAR_AHEAD"
-				| "BOOKING_TOO_SOON";
-			retryAfter?: number;
-	  };
+type CreatePendingBookingResult = Result<
+	{ bookingId: Doc<"bookings">["_id"] },
+	{
+		reason:
+			| "BOOKING_INVALID_DATE"
+			| "BOOKING_INVALID_DURATION"
+			| "BOOKING_INVALID_TIME"
+			| "BOOKING_OUTSIDE_OPENING_HOURS"
+			| "BOOKING_RATE_LIMITED"
+			| "BOOKING_TOO_FAR_AHEAD"
+			| "BOOKING_TOO_SOON";
+		retryAfter?: number;
+	}
+>;
 
 export const createPendingBooking = internalMutation({
 	args: {
@@ -61,7 +61,7 @@ export const createPendingBooking = internalMutation({
 		});
 
 		if (availabilityError !== null) {
-			return { ok: false, code: availabilityError.reason };
+			return err({ reason: availabilityError.reason });
 		}
 
 		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
@@ -70,15 +70,11 @@ export const createPendingBooking = internalMutation({
 		});
 
 		if (!globalRateLimitStatus.ok) {
-			return {
-				ok: false,
-				code: "BOOKING_RATE_LIMITED",
-				retryAfter: globalRateLimitStatus.retryAfter
-			};
+			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: globalRateLimitStatus.retryAfter });
 		}
 
 		if (!rateLimitStatus.ok) {
-			return { ok: false, code: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter };
+			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
 		}
 
 		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
@@ -88,7 +84,7 @@ export const createPendingBooking = internalMutation({
 		);
 
 		if (sessionStartError !== null) {
-			return { ok: false, code: sessionStartError.reason };
+			return err({ reason: sessionStartError.reason });
 		}
 
 		const bookingId = await ctx.db.insert("bookings", {
@@ -110,7 +106,7 @@ export const createPendingBooking = internalMutation({
 			pendingPaymentCreatedAt: Date.now()
 		});
 
-		return { ok: true, bookingId };
+		return ok({ bookingId });
 	}
 });
 
@@ -261,20 +257,20 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 			.unique();
 
 		if (!booking) {
-			return { ok: false as const, reason: "not_found" as const };
+			return err({ reason: "BOOKING_NOT_FOUND" });
 		}
 
 		if (booking.status === "expired") {
-			return { ok: true as const, alreadyExpired: true as const };
+			return ok({ alreadyExpired: true });
 		}
 
 		if (booking.status !== "pending_payment") {
-			return { ok: false as const, reason: "invalid_status" as const, status: booking.status };
+			return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
 		}
 
 		await ctx.db.patch(booking._id, { status: "expired" });
 
-		return { ok: true as const, alreadyExpired: false as const };
+		return ok({ alreadyExpired: false });
 	}
 });
 
@@ -336,26 +332,26 @@ export const claimBookingCompletion = internalMutation({
 		const booking = await ctx.db.get(args.bookingId);
 
 		if (!booking) {
-			return { ok: false as const, reason: "not_found" as const };
+			return err({ reason: "BOOKING_NOT_FOUND" });
 		}
 
 		if (booking.stripeSessionId && booking.stripeSessionId !== args.stripeSessionId) {
-			return { ok: false as const, reason: "stripe_session_mismatch" as const };
+			return err({ reason: "STRIPE_SESSION_MISMATCH" });
 		}
 
 		switch (booking.status) {
 			case "confirmed":
 			case "email_failed":
-				return { ok: true as const, outcome: "already_confirmed" as const };
+				return ok({ outcome: "already_confirmed" });
 
 			case "expired":
-				return { ok: false as const, reason: "expired" as const };
+				return err({ reason: "BOOKING_EXPIRED" });
 
 			case "failed":
-				return { ok: false as const, reason: "failed" as const };
+				return err({ reason: "BOOKING_FAILED" });
 
 			case "abandoned":
-				return { ok: false as const, reason: "invalid_status" as const, status: booking.status };
+				return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
 
 			case "pending_payment":
 				break;
@@ -367,7 +363,7 @@ export const claimBookingCompletion = internalMutation({
 		}
 
 		if (booking.bookingConfirmationClaimedAt) {
-			return { ok: true as const, outcome: "already_claimed" as const };
+			return ok({ outcome: "already_claimed" });
 		}
 
 		const now = Date.now();
@@ -380,9 +376,8 @@ export const claimBookingCompletion = internalMutation({
 			stripePaymentIntentId: args.stripePaymentIntentId
 		});
 
-		return {
-			ok: true as const,
-			outcome: "claimed" as const,
+		return ok({
+			outcome: "claimed",
 			booking: {
 				_id: booking._id,
 				name: booking.name,
@@ -397,7 +392,7 @@ export const claimBookingCompletion = internalMutation({
 				addons: booking.addons,
 				notes: booking.notes
 			}
-		};
+		});
 	}
 });
 
@@ -454,7 +449,7 @@ export const markBookingInvoiceEmailSent = internalMutation({
 		}
 
 		if (booking.status !== "email_failed") {
-			return ok({ updated: false, reason: "BOOKING_NOT_EMAIL_FAILED" as const });
+			return ok({ updated: false, reason: "BOOKING_NOT_EMAIL_FAILED" });
 		}
 
 		await ctx.db.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined });
@@ -484,11 +479,11 @@ export const claimBookingReminderEmail = internalMutation({
 		const booking = await ctx.db.get(args.bookingId);
 
 		if (!booking || (booking.status !== "confirmed" && booking.status !== "email_failed")) {
-			return { ok: false as const, reason: "not_sendable" as const };
+			return err({ reason: "BOOKING_NOT_SENDABLE" });
 		}
 
 		if (booking.reminderEmailSentAt || booking.reminderEmailClaimedAt) {
-			return { ok: false as const, reason: "already_claimed_or_sent" as const };
+			return err({ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
@@ -496,7 +491,7 @@ export const claimBookingReminderEmail = internalMutation({
 			reminderEmailFailureCode: undefined
 		});
 
-		return { ok: true as const, booking };
+		return ok({ booking });
 	}
 });
 
@@ -543,20 +538,20 @@ export const deletePendingBooking = internalMutation({
 		const booking = await ctx.db.get(args.bookingId);
 
 		if (!booking) {
-			return { ok: true as const, outcome: "not_found" as const };
+			return ok({ outcome: "not_found" });
 		}
 
 		if (booking.stripeSessionId !== args.stripeSessionId) {
-			return { ok: false as const, reason: "stripe_session_mismatch" as const };
+			return err({ reason: "STRIPE_SESSION_MISMATCH" });
 		}
 
 		if (booking.status !== "pending_payment") {
-			return { ok: true as const, outcome: "not_pending" as const, status: booking.status };
+			return ok({ outcome: "not_pending", status: booking.status });
 		}
 
 		await ctx.db.patch(args.bookingId, { status: "abandoned" });
 
-		return { ok: true as const, outcome: "abandoned" as const };
+		return ok({ outcome: "abandoned" });
 	}
 });
 
@@ -571,7 +566,7 @@ export const deleteBookingInternal = internalMutation({
 
 		await ctx.db.delete(args.bookingId);
 
-		return { ok: true as const };
+		return ok({ deleted: true });
 	}
 });
 
@@ -639,7 +634,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		});
 
 		if (updatePatchError !== null) {
-			return { ok: false as const, reason: updatePatchError.reason };
+			return err(updatePatchError);
 		}
 
 		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
@@ -657,7 +652,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 				: {})
 		});
 
-		return { ok: true as const };
+		return ok({ saved: true });
 	}
 });
 

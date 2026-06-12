@@ -312,12 +312,12 @@ export const sendBookingReminderEmailForBooking = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		const claim = await ctx.runMutation(internal.bookings.claimBookingReminderEmail, {
+		const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingReminderEmail, {
 			bookingId: args.bookingId,
 			now
 		});
 
-		if (!claim.ok) return null;
+		if (claimError !== null) return null;
 
 		const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(claim.booking);
 
@@ -355,7 +355,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	}
 
 	if (booking.status === "confirmed" || booking.status === "email_failed") {
-		return ok({ completed: true, outcome: "already_completed" as const });
+		return ok({ completed: true, outcome: "already_completed" });
 	}
 
 	try {
@@ -372,7 +372,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 
 		if (!canBeScheduled) {
 			await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
-			return ok({ completed: false, outcome: "booking_time_unavailable" as const });
+			return ok({ completed: false, outcome: "booking_time_unavailable" });
 		}
 
 		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
@@ -390,7 +390,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 
 		if (payloadError !== null) {
 			await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
-			return ok({ completed: false, outcome: "booking_invalid_input" as const });
+			return ok({ completed: false, outcome: "booking_invalid_input" });
 		}
 
 		const createdEvent = await calendarClient.calendar.events.insert({
@@ -414,11 +414,11 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 			});
 		}
 
-		return ok({ completed: true, outcome: "completed" as const });
+		return ok({ completed: true, outcome: "completed" });
 	} catch {
 		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
 
-		return ok({ completed: false, outcome: "google_calendar_create_failed" as const });
+		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
 }
 

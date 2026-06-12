@@ -101,7 +101,10 @@ const pageCopy = { title: "Studio Hire Booking" } as const;
 const BOOKING_PAGE_ERROR_MESSAGES = {
 	bookingEmailDomainInvalid:
 		"This email domain doesn't appear able to receive email. Please check for typos.",
+	bookingInvalidDate: "Choose a valid booking date.",
+	bookingInvalidDuration: "Choose a valid booking duration.",
 	bookingInvalidInput: "Some booking details were invalid. Please review the form and try again.",
+	bookingInvalidTime: "Choose a valid booking time.",
 	bookingRateLimited: "Too many booking attempts. Please try again in one minute.",
 	bookingTimeUnavailable: "That time was just taken. Please choose another available time.",
 	googleCalendarAuthFailed:
@@ -223,9 +226,15 @@ function BookingPage() {
 							return;
 
 						case "BOOKING_INVALID_DATE":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDate);
+							return;
+
 						case "BOOKING_INVALID_DURATION":
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDuration);
+							return;
+
 						case "BOOKING_INVALID_TIME":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
+							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidTime);
 							return;
 
 						case "BOOKING_OUTSIDE_OPENING_HOURS":

@@ -235,6 +235,9 @@ export async function verifyBookingCanBeScheduled({
 
 export type AdminBookingUpdateError = {
 	reason:
+		| "BOOKING_INVALID_DATE"
+		| "BOOKING_INVALID_TIME"
+		| "BOOKING_NOT_FOUND"
 		| "BOOKING_TIME_UNAVAILABLE"
 		| "GOOGLE_CALENDAR_AUTH_FAILED"
 		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
@@ -383,12 +386,16 @@ async function promoteFailedBookingFromAdmin({
 	}
 
 	// Promote to confirmed and clear the previous failure code in the save mutation.
-	await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
 		...args,
 		confirmBooking: true,
 		googleCalendarId: client.calendarId,
 		googleEventId
 	});
+
+	if (saveError !== null) {
+		return err(saveError);
+	}
 
 	return ok({ ok: true, googleOutcome: "createdFromFailed" });
 }
@@ -427,11 +434,15 @@ async function saveReplacementGoogleEvent({
 		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
 	}
 
-	await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
 		...args,
 		googleCalendarId: client.calendarId,
 		googleEventId
 	});
+
+	if (saveError !== null) {
+		return err(saveError);
+	}
 
 	return ok({ ok: true, googleOutcome: "replacementCreated" });
 }
@@ -535,7 +546,14 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
 	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
-		await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+		const [saveError] = await ctx.runMutation(
+			internal.bookings.saveAdminBookingUpdateInternal,
+			args
+		);
+
+		if (saveError !== null) {
+			return err(saveError);
+		}
 
 		return ok({ ok: true });
 	}
@@ -551,7 +569,11 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 		return ok(replacementOutcome);
 	}
 
-	await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+
+	if (saveError !== null) {
+		return err(saveError);
+	}
 
 	return ok({ ok: true });
 }

@@ -358,6 +358,14 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					toast.error("That booking no longer exists.");
 					break;
 
+				case "BOOKING_INVALID_DATE":
+					toast.error("Enter a valid booking date.");
+					break;
+
+				case "BOOKING_INVALID_TIME":
+					toast.error("Enter a valid booking time.");
+					break;
+
 				case "BOOKING_TIME_UNAVAILABLE":
 					toast.error("That time is no longer available. Choose another time.");
 					break;

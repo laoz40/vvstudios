@@ -34,20 +34,20 @@ async function emailDomainCanReceiveMail(email: string) {
 	}
 }
 
-type PendingBookingCreationResult =
-	| { ok: true; bookingId: Id<"bookings"> }
-	| {
-			ok: false;
-			code:
-				| "BOOKING_INVALID_DATE"
-				| "BOOKING_INVALID_DURATION"
-				| "BOOKING_INVALID_TIME"
-				| "BOOKING_OUTSIDE_OPENING_HOURS"
-				| "BOOKING_RATE_LIMITED"
-				| "BOOKING_TOO_FAR_AHEAD"
-				| "BOOKING_TOO_SOON";
-			retryAfter?: number;
-	  };
+type PendingBookingCreationResult = Result<
+	{ bookingId: Id<"bookings"> },
+	{
+		reason:
+			| "BOOKING_INVALID_DATE"
+			| "BOOKING_INVALID_DURATION"
+			| "BOOKING_INVALID_TIME"
+			| "BOOKING_OUTSIDE_OPENING_HOURS"
+			| "BOOKING_RATE_LIMITED"
+			| "BOOKING_TOO_FAR_AHEAD"
+			| "BOOKING_TOO_SOON";
+		retryAfter?: number;
+	}
+>;
 
 export const createEmbeddedCheckoutSession = action({
 	args: {
@@ -140,12 +140,14 @@ async function createEmbeddedCheckoutSessionHandler(
 	// Some booking rules are checked inside createPendingBooking, such as time availability.
 
 	// Stop before Stripe checkout if the booking submit rate limit was hit.
-	if (!pendingBookingResult.ok) {
-		return err({ reason: pendingBookingResult.code, retryAfter: pendingBookingResult.retryAfter });
+	const [pendingBookingError, pendingBooking] = pendingBookingResult;
+
+	if (pendingBookingError !== null) {
+		return err({ reason: pendingBookingError.reason, retryAfter: pendingBookingError.retryAfter });
 	}
 
 	// Create the embedded Stripe checkout session for the deposit and processing fee.
-	const bookingId = pendingBookingResult.bookingId;
+	const bookingId = pendingBooking.bookingId;
 	const session = await stripe.checkout.sessions.create({
 		mode: "payment",
 		ui_mode: "embedded_page",
@@ -176,10 +178,6 @@ async function createEmbeddedCheckoutSessionHandler(
 export type CreateEmbeddedCheckoutSessionResult = Awaited<
 	ReturnType<typeof createEmbeddedCheckoutSessionHandler>
 >;
-
-type DeletePendingBookingResult =
-	| { ok: true; outcome: "abandoned" | "not_found" | "not_pending" }
-	| { ok: false; reason: "stripe_session_mismatch" };
 
 export const closeEmbeddedCheckoutSession = action({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
@@ -212,16 +210,16 @@ async function closeEmbeddedCheckoutSessionHandler(
 		return ok({ outcome: "already_complete" });
 	}
 
-	const result: DeletePendingBookingResult = await ctx.runMutation(
+	const [deletePendingBookingError, deletePendingBooking] = await ctx.runMutation(
 		internal.bookings.deletePendingBooking,
 		{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
 	);
 
-	if (!result.ok) {
+	if (deletePendingBookingError !== null) {
 		return err({ reason: "STRIPE_SESSION_MISMATCH" });
 	}
 
-	return ok({ outcome: result.outcome });
+	return ok({ outcome: deletePendingBooking.outcome });
 }
 
 export type CloseEmbeddedCheckoutSessionResult = Awaited<

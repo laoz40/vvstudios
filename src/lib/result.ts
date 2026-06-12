@@ -2,7 +2,7 @@ export type Result<S, E extends { reason: string }> =
 	| [error: E, data: null]
 	| [error: null, data: S];
 
-export function ok<S>(data: S): Result<S, never> {
+export function ok<const S>(data: S): Result<S, never> {
 	return [null, data];
 }
 
