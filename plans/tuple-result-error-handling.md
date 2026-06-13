@@ -186,31 +186,31 @@ try {
 }
 ```
 
-## Auth Style
+## Auth and Lookup Style
 
-For converted public client-facing functions, prefer non-throwing checks instead of `requireAdmin` / `requireBookingInDb`:
+For converted public client-facing functions, use shared non-throwing helpers for expected auth and lookup failures:
 
 ```ts
-const identity = await ctx.auth.getUserIdentity();
+const [authError, identity] = await getAdminIdentity(ctx);
 
-if (!identity) {
-	return err({ reason: "NOT_AUTHENTICATED" });
+if (authError !== null) {
+	return err(authError);
 }
 
-if (!isAdminIdentity(identity)) {
-	return err({ reason: "NOT_AUTHORIZED" });
-}
+const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
-const booking = await ctx.db.get(args.bookingId);
-
-if (!booking) {
-	return err({ reason: "BOOKING_NOT_FOUND" });
+if (bookingError !== null) {
+	return err(bookingError);
 }
 ```
 
-Keep throwing helpers where throwing is desired, especially internal/server-only paths or impossible states.
+Current shared helpers:
 
-Unexpected invariant failures can still throw plain `Error`. Do not create a `ConvexError` code for failures the client should only treat as `UNEXPECTED_ERROR`, such as Stripe returning a successful embedded checkout session without a `client_secret`.
+- `convex/lib/auth.ts` `getAdminIdentity`
+- `convex/lib/bookingLookup.ts` `getBookingFromDb`
+- `convex/lib/bookingLookup.ts` `getBookingFromQuery`
+
+Unexpected invariant/developer failures can still throw plain `Error`. Do not create a `ConvexError` code for failures the client should only treat as `UNEXPECTED_ERROR`, such as Stripe returning a successful embedded checkout session without a `client_secret`.
 
 ## Google Calendar / Node-only Helpers
 
@@ -231,7 +231,7 @@ Pattern implemented for delete booking:
 
 Helper naming preference: use behavior names like `deleteBookingCalendarEvent`, not `try...` or `...ForAdmin` unless the helper actually enforces admin behavior.
 
-## Converted Areas So Far
+## Converted Areas
 
 ### Admin delete booking
 
@@ -302,31 +302,18 @@ Helper naming preference: use behavior names like `deleteBookingCalendarEvent`, 
 - `src/sites/studio/features/admin/lib/booking-action-errors.ts`
 - `src/sites/studio/features/booking-form/lib/booking-errors.ts`
 
-## Rollout Targets
+## Future Guidance
 
-Continue converting one public client-facing function at a time.
+The tuple `Result` conversion is complete for the areas listed above. For future public/client-facing Convex functions:
 
-Next public client-facing targets:
-
-- Continue remaining public client-facing functions that still use throwing helpers or `try/catch` error-message helpers.
-- Then convert shared helper throws only where callers can safely consume tuple results.
-
-Shared/internal helpers still throwing and not necessarily required to convert:
-
-- `convex/lib/auth.ts` `requireAdmin` / `requireBookingInDb`
-  - Keep for internal/server-only paths where throwing behavior is desired.
-- `convex/lib/bookingCalendarTime.ts` date/time validation helpers
-  - These are shared validators used by multiple flows. Convert only when a public caller needs direct tuple results, or map their thrown `ConvexError`s at the boundary.
-- `convex/lib/googleCalendarErrors.ts` Google Calendar error mapping
-  - Still supports older Google Calendar actions. Remove or replace only after all callers move to tuple mapping.
-- `convex/lib/email.ts` Resend failure throw
-  - Can stay as a low-level throw when callers catch and map to tuple errors.
-
-Plain unexpected/invariant throws that should probably stay as throws:
-
-- `convex/stripe.ts` `Stripe checkout session missing client secret`.
-- `convex/googleCalendar.ts` internal `completeClaimedBooking` errors: `Booking not found`, `Booking confirmation was not claimed`.
-  Do not convert the whole app in one pass.
+- Return tuple `Result` values for expected auth, validation, lookup, rate-limit, third-party, and write failures.
+- Use `ok(...)`, `err(...)`, and `tryCatch(...)` from `src/lib/result.ts`.
+- Use `reason` as the stable error discriminator.
+- Prefer shared non-throwing helpers for expected auth and lookup failures.
+- Keep expected client messages inline in exhaustive `error.reason` switches unless reused by multiple clients.
+- Leave unexpected invariant/developer failures as throws.
+- Do not add temporary client-side `FunctionReference` casts for stale generated types; the user will run Convex codegen.
+- If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler but use an inline wrapper: `handler: (ctx, args) => namedHandler(ctx, args)`.
 
 ## Checks
 

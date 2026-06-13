@@ -13,10 +13,4 @@ __unconfig*
 todos.json
 .vercel
 
-.agents/
-
 tmp/
-
-# PLAN.md
-
-stripe-sample-code/
