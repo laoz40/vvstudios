@@ -53,13 +53,9 @@ Booking website for podcast studio.
 - Do not use nested ternaries and if statements
 - Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
 - Handle every union variant. Use `never` in the default case to force exhaustive switches.
-- Return `Result<T, E>` for expected failures. Do not hide recoverable errors behind exceptions.
-- Model failure cases as typed variants with a stable discriminator, such as `type`.
+- Model expected failures as typed variants with a stable discriminator. Use `reason` for tuple `Result` errors.
 - Treat boundary data as `unknown`: APIs, forms, storage, env vars, SDKs, URLs, and user input.
 - Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
-- Convert validated primitives into domain-specific types when the value has business rules.
-- Create domain types through validating factories like `tryFrom`. Use private constructors when possible.
-- Pass trusted domain types through internal code. Avoid raw primitives when the domain has rules.
 
 ### Tailwind
 
@@ -69,12 +65,16 @@ Booking website for podcast studio.
 
 ### Convex
 
-- For Convex code, always read `convex/_generated/ai/guidelines.md` first for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+- For Convex code, always read `convex/_generated/ai/guidelines.md` first.
 - Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*`
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
-
-#### Error handling
-
-- Prefer typed error flows with narrow `code` values
-- For Convex, throw `ConvexError` with structured `data.code` values and handle exact codes
-- Re-throw known `ConvexError`s and map unknown server errors to safe app error codes
+- Public/client-facing Convex functions should return tuple `Result<Success, Error>` for expected auth, validation, lookup, rate-limit, third-party, and write failures.
+- Use `ok(...)`, `err(...)`, and `tryCatch(...)` from `src/lib/result.ts`.
+- Expected failures return `err({ reason: "..." })`; unexpected invariant/developer failures may still throw.
+- Use shared non-throwing helpers for expected auth and lookup failures, such as `getAdminIdentity`, `getBookingFromDb`, and `getBookingFromQuery`.
+- Prefer inferred result types from handler returns, such as `Awaited<ReturnType<typeof handler>>`. Do not duplicate error-code unions unless needed.
+- Client handlers should switch on `error.reason` exhaustively and keep one-off messages inline.
+- Convex mutations commit when they return and roll back when they throw, so check expected failures before writes.
+- Avoid returning `err(...)` after partial writes unless those writes should commit.
+- Do not add temporary client-side `FunctionReference` casts for stale generated types. The user will run Convex codegen.
+- If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler but use an inline wrapper: `handler: (ctx, args) => namedHandler(ctx, args)`.
