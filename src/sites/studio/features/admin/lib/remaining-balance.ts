@@ -6,12 +6,25 @@ export type RemainingBalanceBooking = {
 	remainingBalanceAmount?: number;
 };
 
+export type RemainingBalancePaymentBooking = RemainingBalanceBooking & {
+	status: "confirmed" | "email_failed" | string;
+	paidRemainingBalance?: boolean;
+};
+
 function getDefaultRemainingBalanceAmount(booking: RemainingBalanceBooking) {
 	return calculateBookingInvoiceAmounts(booking).totalDueAmount;
 }
 
 export function getRemainingBalanceAmount(booking: RemainingBalanceBooking) {
 	return booking.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(booking);
+}
+
+export function hasUnpaidRemainingBalance(booking: RemainingBalancePaymentBooking) {
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		return false;
+	}
+
+	return booking.paidRemainingBalance !== true && getRemainingBalanceAmount(booking) > 0;
 }
 
 export function formatAudAmount(amount: number) {

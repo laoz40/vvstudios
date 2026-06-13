@@ -81,7 +81,8 @@ import {
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatAudAmount,
-	getRemainingBalanceAmount
+	getRemainingBalanceAmount,
+	hasUnpaidRemainingBalance
 } from "#studio/features/admin/lib/remaining-balance";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
@@ -532,7 +533,8 @@ export function AdminDashboard({
 			if (
 				showUpcomingOnly &&
 				!isUpcomingBooking(booking.date, booking.time) &&
-				!hasUnsentDeliverables(booking)
+				!hasUnsentDeliverables(booking) &&
+				!hasUnpaidRemainingBalance(booking)
 			) {
 				return false;
 			}
