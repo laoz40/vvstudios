@@ -720,13 +720,13 @@ export function AdminDashboard({
 											checked={showStaleBookings}
 											onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
 											onSelect={(event) => event.preventDefault()}>
-											Show incomplete bookings
+											Show unconfirmed bookings
 										</DropdownMenuCheckboxItem>
 										<DropdownMenuCheckboxItem
 											checked={showUpcomingOnly}
 											onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
 											onSelect={(event) => event.preventDefault()}>
-											Show only upcoming sessions
+											Show only due sessions
 										</DropdownMenuCheckboxItem>
 									</DropdownMenuGroup>
 								</DropdownMenuContent>
@@ -743,7 +743,7 @@ export function AdminDashboard({
 							<Label
 								htmlFor="show-stale-bookings"
 								className="text-sm font-medium text-foreground">
-								Show incomplete bookings
+								Show unconfirmed bookings
 							</Label>
 						</div>
 						<div className="flex items-center gap-2">
@@ -755,7 +755,7 @@ export function AdminDashboard({
 							<Label
 								htmlFor="show-upcoming-only"
 								className="text-sm font-medium text-foreground">
-								Show only upcoming sessions
+								Show only due sessions
 							</Label>
 						</div>
 					</div>
