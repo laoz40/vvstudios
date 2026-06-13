@@ -74,7 +74,9 @@ import {
 	deliverableStatusBadgeClassNameMap,
 	deliverableStatusBadgeVariantMap,
 	deliverableStatusLabelMap,
-	getDeliverableStatus
+	getDeliverableStatus,
+	hasUnsentDeliverables,
+	isDeliverableSession
 } from "#studio/features/admin/lib/booking-edit-status";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
@@ -427,13 +429,7 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			id: "editStatus",
 			header: "Deliverables",
 			cell: ({ row }) => {
-				const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
-
-				if (row.original.status !== "confirmed" && row.original.status !== "email_failed") {
-					return null;
-				}
-
-				if (!isPastBooking) {
+				if (!isDeliverableSession(row.original)) {
 					return null;
 				}
 
@@ -533,7 +529,11 @@ export function AdminDashboard({
 
 	const filteredBookings = useMemo(() => {
 		return bookings.filter((booking) => {
-			if (showUpcomingOnly && !isUpcomingBooking(booking.date, booking.time)) {
+			if (
+				showUpcomingOnly &&
+				!isUpcomingBooking(booking.date, booking.time) &&
+				!hasUnsentDeliverables(booking)
+			) {
 				return false;
 			}
 
@@ -784,16 +784,13 @@ export function AdminDashboard({
 									return (
 										<TableRow
 											key={row.id}
-											className={cn(!showUpcomingOnly && isPastBooking && "text-muted-foreground")}>
+											className={cn(isPastBooking && "text-muted-foreground")}>
 											{row.getVisibleCells().map((cell) => (
 												<TableCell
 													key={cell.id}
 													className={cn(
 														getColumnClassName(cell.column.id),
-														!showUpcomingOnly &&
-															isPastBooking &&
-															cell.column.id !== "editStatus" &&
-															"opacity-70"
+														isPastBooking && cell.column.id !== "editStatus" && "opacity-70"
 													)}>
 													{flexRender(cell.column.columnDef.cell, cell.getContext())}
 												</TableCell>

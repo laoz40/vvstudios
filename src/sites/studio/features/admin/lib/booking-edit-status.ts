@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { Badge } from "#/components/ui/badge";
+import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export const EDIT_STATUS_OPTIONS = ["to_edit", "editing", "completed"] as const;
 
@@ -64,4 +65,16 @@ export const deliverableStatusBadgeVariantMap: Record<
 
 export function getDeliverableStatus(booking: BookingRecord): DeliverableStatus {
 	return booking.editStatus ?? "to_edit";
+}
+
+export function isDeliverableSession(booking: BookingRecord) {
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		return false;
+	}
+
+	return !isUpcomingBooking(booking.date, booking.time);
+}
+
+export function hasUnsentDeliverables(booking: BookingRecord) {
+	return isDeliverableSession(booking) && getDeliverableStatus(booking) !== "completed";
 }
