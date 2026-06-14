@@ -30,12 +30,7 @@ import {
 	bookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
-import {
-	bookingSchema,
-	INITIAL_FORM,
-	TIME_SECTIONS,
-	type TimeSectionKey
-} from "#studio/features/booking-form/lib/form-shared";
+import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/form-shared";
 import {
 	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
@@ -172,9 +167,6 @@ function BookingPage() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
-	const [preferredTimeSectionKey, setPreferredTimeSectionKey] = useState<TimeSectionKey | null>(
-		null
-	);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
@@ -261,10 +253,7 @@ function BookingPage() {
 				}
 
 				if (shouldSaveBookingInfo) {
-					const nextSavedBookingInfo = toSavedBookingInfo(
-						parsedValue,
-						preferredTimeSectionKey ?? ""
-					);
+					const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
 					storeSavedBookingInfo(nextSavedBookingInfo);
 					setSavedBookingInfo(nextSavedBookingInfo);
 				} else {
@@ -317,7 +306,6 @@ function BookingPage() {
 
 		setSavedBookingInfo(nextSavedBookingInfo);
 		setShouldSaveBookingInfo(true);
-		setPreferredTimeSectionKey(nextSavedBookingInfo.timeSectionKey || null);
 	}, []);
 
 	// hide complete booking shortcut once its target is visible
@@ -487,11 +475,6 @@ function BookingPage() {
 		selectedMonth
 	]);
 
-	const availableTimeSections = TIME_SECTIONS.map((section) => ({
-		...section,
-		times: availableTimes.filter(section.includes)
-	})).filter((section) => section.times.length > 0);
-
 	const scrollToFirstError = () => {
 		requestAnimationFrame(() => {
 			const fieldOrder = [
@@ -637,7 +620,6 @@ function BookingPage() {
 		formApi.setFieldValue("abn", savedBookingInfo.abn);
 		formApi.setFieldValue("email", savedBookingInfo.email);
 		formApi.setFieldValue("notes", savedBookingInfo.notes);
-		setPreferredTimeSectionKey(savedBookingInfo.timeSectionKey || null);
 		setShowScrollToCompleteBooking(true);
 	};
 
@@ -726,14 +708,12 @@ function BookingPage() {
 							className="scroll-mt-32 sm:scroll-mt-40">
 							<BookingDateTimeSection
 								availabilityError={availabilityError}
-								availableTimeSections={availableTimeSections}
+								availableTimes={availableTimes}
 								calendarMonth={calendarMonth}
 								disabledDates={disabledDates}
 								isLoadingMonthAvailability={isLoadingMonthAvailability}
 								isSelectedDateInPast={isSelectedDateInPast}
 								isViewingSelectedMonth={isViewingSelectedMonth}
-								onPreferredTimeSectionChange={setPreferredTimeSectionKey}
-								preferredTimeSectionKey={preferredTimeSectionKey}
 								selectedDate={selectedDate}
 								setCalendarMonth={setCalendarMonth}
 							/>

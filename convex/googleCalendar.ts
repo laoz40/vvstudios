@@ -40,6 +40,7 @@ import {
 import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { rateLimiter } from "./lib/rateLimits";
+import type { RescheduleLinkLookupError } from "./bookingReschedule";
 
 type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
 
@@ -183,9 +184,75 @@ async function getAvailableBookingTimesHandler(
 	}
 }
 
+type GetAvailableRescheduleTimesSuccess = { timeZone: string; times: string[] };
 export type GetAvailableBookingTimesResult = Awaited<
 	ReturnType<typeof getAvailableBookingTimesHandler>
 >;
+
+type GetAvailableRescheduleTimesArgs = { date: string; token: string };
+
+export type GetAvailableRescheduleTimesError =
+	| RescheduleLinkLookupError
+	| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" };
+
+export const getAvailableRescheduleTimes = action({
+	args: { token: v.string(), date: v.string() },
+	handler: (ctx, args) => getAvailableRescheduleTimesHandler(ctx, args)
+});
+
+async function getAvailableRescheduleTimesHandler(
+	ctx: ActionCtx,
+	args: GetAvailableRescheduleTimesArgs
+): Promise<Result<GetAvailableRescheduleTimesSuccess, GetAvailableRescheduleTimesError>> {
+	const [lookupError, result] = await ctx.runQuery(
+		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		{ now: Date.now(), token: args.token }
+	);
+
+	if (lookupError !== null) {
+		return err(lookupError);
+	}
+
+	try {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+		const busyWindows = await getBusyWindows({
+			calendar,
+			calendarIds,
+			date: args.date,
+			ignoredEvent: {
+				calendarId: result.booking.googleCalendarId,
+				eventId: result.booking.googleEventId
+			},
+			timeZone
+		});
+		const times = getAvailableTimeOptions({
+			busyWindows,
+			date: args.date,
+			duration: result.booking.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			timeZone
+		});
+
+		return ok({ timeZone, times });
+	} catch (error) {
+		return err({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+		});
+	}
+}
+
+export type GetAvailableRescheduleTimesResult = Awaited<
+	ReturnType<typeof getAvailableRescheduleTimesHandler>
+>;
+
+type UpdateBookingFromAdminError =
+	| AdminBookingUpdateError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" };
 
 export const updateBookingFromAdmin = action({
 	args: {
@@ -206,12 +273,6 @@ export const updateBookingFromAdmin = action({
 	},
 	handler: updateBookingFromAdminHandler
 });
-
-type UpdateBookingFromAdminError =
-	| AdminBookingUpdateError
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" };
 
 async function updateBookingFromAdminHandler(
 	ctx: ActionCtx,

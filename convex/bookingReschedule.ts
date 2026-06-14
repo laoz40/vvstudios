@@ -1,7 +1,13 @@
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
 import { internal } from "./_generated/api";
-import { internalMutation, query, type ActionCtx, type QueryCtx } from "./_generated/server";
+import {
+	internalMutation,
+	internalQuery,
+	query,
+	type ActionCtx,
+	type QueryCtx
+} from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { env } from "./env";
 import { getBookingFromDb } from "./lib/bookingLookup";
@@ -10,7 +16,7 @@ import {
 	hashRescheduleToken,
 	markExistingActiveRescheduleLinksUsed,
 	buildRescheduleUrl,
-	getValidRescheduleLinkAndBooking
+	isRescheduleLinkExpired
 } from "./lib/bookingRescheduleLinks";
 
 interface GetRescheduleBookingByTokenArgs {
@@ -27,6 +33,28 @@ interface RescheduleBookingSummary {
 		name: string;
 	};
 	expiresAt: number;
+}
+
+export type RescheduleLinkLookupError =
+	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
+	| { reason: "RESCHEDULE_LINK_USED" }
+	| { reason: "RESCHEDULE_LINK_EXPIRED" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_RESCHEDULABLE" };
+
+interface ValidRescheduleLinkAndBooking {
+	booking: Doc<"bookings">;
+	link: Doc<"bookingRescheduleLinks">;
+}
+
+function isBookingReschedulable(booking: Doc<"bookings">, now: number) {
+	const isConfirmedBooking = booking.status === "confirmed" || booking.status === "email_failed";
+
+	if (!isConfirmedBooking) {
+		return false;
+	}
+
+	return now < booking.sessionStartAt;
 }
 
 export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc<"bookings">) {
@@ -51,17 +79,11 @@ export const getRescheduleBookingByToken = query({
 async function getRescheduleBookingByTokenHandler(
 	ctx: QueryCtx,
 	args: GetRescheduleBookingByTokenArgs
-): Promise<
-	Result<
-		RescheduleBookingSummary,
-		| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
-		| { reason: "RESCHEDULE_LINK_USED" }
-		| { reason: "RESCHEDULE_LINK_EXPIRED" }
-		| { reason: "BOOKING_NOT_FOUND" }
-		| { reason: "BOOKING_NOT_RESCHEDULABLE" }
-	>
-> {
-	const [lookupError, result] = await getValidRescheduleLinkAndBooking(ctx, args.token, Date.now());
+): Promise<Result<RescheduleBookingSummary, RescheduleLinkLookupError>> {
+	const [lookupError, result]: GetValidRescheduleLinkAndBookingResult = await ctx.runQuery(
+		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		{ now: Date.now(), token: args.token }
+	);
 
 	if (lookupError !== null) {
 		return err(lookupError);
@@ -84,6 +106,54 @@ async function getRescheduleBookingByTokenHandler(
 
 export type GetRescheduleBookingByTokenResult = Awaited<
 	ReturnType<typeof getRescheduleBookingByTokenHandler>
+>;
+
+export const getValidRescheduleLinkAndBookingInternal = internalQuery({
+	args: { token: v.string(), now: v.number() },
+	handler: (ctx, args) => getValidRescheduleLinkAndBookingInternalHandler(ctx, args)
+});
+
+async function getValidRescheduleLinkAndBookingInternalHandler(
+	ctx: QueryCtx,
+	args: { now: number; token: string }
+): Promise<Result<ValidRescheduleLinkAndBooking, RescheduleLinkLookupError>> {
+	const tokenHash = await hashRescheduleToken(args.token);
+	const link = await ctx.db
+		.query("bookingRescheduleLinks")
+		.withIndex("by_tokenHash", (q) => q.eq("tokenHash", tokenHash))
+		.unique();
+
+	if (link === null) {
+		return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+	}
+
+	if (link.status === "used") {
+		return err({ reason: "RESCHEDULE_LINK_USED" });
+	}
+
+	if (link.status === "expired") {
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+
+	const booking = await ctx.db.get(link.bookingId);
+
+	if (booking === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (isRescheduleLinkExpired(link, booking, args.now)) {
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+
+	if (!isBookingReschedulable(booking, args.now)) {
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+	}
+
+	return ok({ booking, link });
+}
+
+type GetValidRescheduleLinkAndBookingResult = Awaited<
+	ReturnType<typeof getValidRescheduleLinkAndBookingInternalHandler>
 >;
 
 export const createActiveRescheduleLinkInternal = internalMutation({

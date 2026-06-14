@@ -257,6 +257,26 @@ export function formatTimeValue(time: string) {
 		.replace(/\s?(am|pm)$/i, "$1");
 }
 
+export function formatBookingTimestampTime(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		hour: "numeric",
+		hour12: true,
+		minute: "2-digit",
+		timeZone: BOOKING_TIME_ZONE
+	})
+		.format(timestamp)
+		.replace(/\s?(am|pm)$/i, (_, meridiem: string) => meridiem.toUpperCase());
+}
+
+export function formatBookingTimestampDateLong(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		timeZone: BOOKING_TIME_ZONE,
+		year: "numeric"
+	}).format(timestamp);
+}
+
 export function formatBookingTimestamp(timestamp: number) {
 	return bookingSydneyDateTimeFormatter.format(timestamp);
 }
