@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
+import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
+import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
+import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/_public/reschedule/$token")({
@@ -8,15 +11,33 @@ export const Route = createFileRoute("/_public/reschedule/$token")({
 	component: RescheduleTestPage
 });
 
+function formatRescheduleExpiry(expiresAt: number) {
+	const expiryDate = new Date(expiresAt);
+	const time = new Intl.DateTimeFormat("en-AU", {
+		hour: "numeric",
+		hour12: true,
+		minute: "2-digit"
+	})
+		.format(expiryDate)
+		.replace(/\s?(am|pm)$/i, (_, meridiem: string) => meridiem.toUpperCase());
+	const date = new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		year: "numeric"
+	}).format(expiryDate);
+
+	return `${time}, ${date}`;
+}
+
 function RescheduleTestPage() {
 	const { token } = Route.useParams();
 	const result = useQuery(api.bookingReschedule.getRescheduleBookingByToken, { token });
 
 	if (result === undefined) {
 		return (
-			<main className="mx-auto max-w-2xl px-6 py-16">
-				<p className="text-muted-foreground">Checking reschedule link…</p>
-			</main>
+			<BookingStatusLayout showActions={false}>
+				<BookingProcessing label="Checking reschedule link" />
+			</BookingStatusLayout>
 		);
 	}
 
@@ -24,51 +45,62 @@ function RescheduleTestPage() {
 
 	if (error !== null) {
 		return (
-			<main className="mx-auto max-w-2xl px-6 py-16">
-				<h1 className="text-3xl font-semibold tracking-tight">Reschedule link unavailable</h1>
-				<p className="mt-4 text-muted-foreground">
-					This reschedule link is no longer valid. Please contact us if you need help changing your
-					booking.
-				</p>
-				<p className="mt-6 rounded-md border bg-muted p-4 text-sm text-muted-foreground">
-					Test error: {error.reason}
-				</p>
-			</main>
+			<BookingStatusLayout bookingStatus="failed">
+				<div>
+					<h1 className="text-4xl font-semibold tracking-tight">
+						This reschedule link is no longer valid.
+					</h1>
+					<p className="mt-4 text-muted-foreground">
+						Please use the reschedule button in your latest invoice email.
+					</p>
+				</div>
+			</BookingStatusLayout>
 		);
 	}
 
+	const formattedDate = formatBookingDate(data.booking.date);
+	const formattedTime = formatBookingTimeRange(data.booking.time, data.booking.duration);
+	const addonsLabel = data.booking.addons.length > 0 ? data.booking.addons.join(", ") : "None";
+	const expiresAtLabel = formatRescheduleExpiry(data.expiresAt);
+
 	return (
-		<main className="mx-auto max-w-2xl px-6 py-16">
-			<p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-				Test reschedule page
-			</p>
-			<h1 className="mt-3 text-3xl font-semibold tracking-tight">
-				Your booking can be rescheduled
-			</h1>
-			<div className="mt-8 space-y-3 rounded-lg border bg-card p-6 text-card-foreground">
-				<p>
-					<span className="font-medium">Name:</span> {data.booking.name}
-				</p>
-				<p>
-					<span className="font-medium">Date:</span> {data.booking.date}
-				</p>
-				<p>
-					<span className="font-medium">Time:</span> {data.booking.time}
-				</p>
-				<p>
-					<span className="font-medium">Duration:</span> {data.booking.duration}
-				</p>
-				<p>
-					<span className="font-medium">Service:</span> {data.booking.service}
-				</p>
-				<p>
-					<span className="font-medium">Addons:</span>{" "}
-					{data.booking.addons.length > 0 ? data.booking.addons.join(", ") : "None"}
-				</p>
-				<p className="text-sm text-muted-foreground">
-					Expires: {new Date(data.expiresAt).toLocaleString()}
-				</p>
+		<BookingStatusLayout
+			showActions={false}
+			className="max-w-4xl">
+			<div>
+				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
+					Reschedule your booking
+				</h1>
+
+				<h2 className="mt-6 text-sm font-medium text-muted-foreground">Existing booking</h2>
+				<div className="mt-2 rounded-lg border bg-card p-2 text-sm text-card-foreground">
+					<dl className="grid gap-2 md:grid-cols-2">
+						<div className="space-y-1">
+							<div className="flex gap-1.5">
+								<dt className="w-16 shrink-0 text-muted-foreground">Date</dt>
+								<dd className="font-medium">{formattedDate}</dd>
+							</div>
+							<div className="flex gap-1.5">
+								<dt className="w-16 shrink-0 text-muted-foreground">Time</dt>
+								<dd className="font-medium">{formattedTime}</dd>
+							</div>
+						</div>
+						<div className="space-y-1">
+							<div className="flex gap-1.5">
+								<dt className="w-16 shrink-0 text-muted-foreground">Service</dt>
+								<dd className="font-medium">
+									{data.booking.service} ({data.booking.duration})
+								</dd>
+							</div>
+							<div className="flex gap-1.5">
+								<dt className="w-16 shrink-0 text-muted-foreground">Add-ons</dt>
+								<dd className="font-medium">{addonsLabel}</dd>
+							</div>
+						</div>
+					</dl>
+				</div>
+				<p className="mt-2 text-center text-sm text-muted-foreground">Expires {expiresAtLabel}</p>
 			</div>
-		</main>
+		</BookingStatusLayout>
 	);
 }

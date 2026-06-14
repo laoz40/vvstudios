@@ -14,7 +14,8 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 		pathname === studioSite.routes.admin ||
 		pathname === studioSite.routes.login ||
 		pathname === studioSite.routes.bookingComplete ||
-		pathname === studioSite.routes.bookingExpired;
+		pathname === studioSite.routes.bookingExpired ||
+		pathname.startsWith("/reschedule/");
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const isHomePage = pathname === studioSite.routes.home;
 	const prefersReducedMotion = useReducedMotion();

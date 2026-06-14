@@ -10,26 +10,33 @@ import {
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
 import { studioSite } from "#/config/sites";
+import { cn } from "#/lib/utils";
 
 export interface BookingStatusLayoutProps {
 	bookingStatus?: BookingStatus["status"];
 	children: ReactNode;
 	showActions?: boolean;
 	stripeSessionId?: string | null;
+	className?: string;
 }
 
 export function BookingStatusLayout({
 	bookingStatus,
 	children,
 	showActions = true,
-	stripeSessionId
+	stripeSessionId,
+	className
 }: BookingStatusLayoutProps): ReactNode {
 	const primaryAction = bookingStatus === "failed" ? "contact" : "new_booking";
 	const showInstagramPrompt =
 		(bookingStatus === "confirmed" || bookingStatus === "email_failed") && Boolean(stripeSessionId);
 
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
+		<main
+			className={cn(
+				"mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10",
+				className
+			)}>
 			{children}
 			{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
 
