@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookingRescheduleLinks from "../bookingRescheduleLinks.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as bookings from "../bookings.js";
 import type * as crons from "../crons.js";
@@ -24,6 +25,7 @@ import type * as lib_bookingAdminEdit from "../lib/bookingAdminEdit.js";
 import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
 import type * as lib_bookingLookup from "../lib/bookingLookup.js";
+import type * as lib_bookingRescheduleLinks from "../lib/bookingRescheduleLinks.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
@@ -44,6 +46,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bookingRescheduleLinks: typeof bookingRescheduleLinks;
   bookingSettings: typeof bookingSettings;
   bookings: typeof bookings;
   crons: typeof crons;
@@ -59,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingCalendarTime": typeof lib_bookingCalendarTime;
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
   "lib/bookingLookup": typeof lib_bookingLookup;
+  "lib/bookingRescheduleLinks": typeof lib_bookingRescheduleLinks;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;

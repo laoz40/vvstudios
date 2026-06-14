@@ -19,6 +19,9 @@
 		"bun.lock",
 		"components/ui/**",
 		"convex/_generated/**",
-		"src/routeTree.gen.ts"
+		"src/routeTree.gen.ts",
+		"**/*.md",
+		"**/*.yaml",
+		"**/*.yml"
 	]
 }

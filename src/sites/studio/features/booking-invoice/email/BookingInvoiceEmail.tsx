@@ -90,6 +90,19 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							</Row>
 						</Section>
 					</Section>
+					{data.rescheduleUrl ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Need to change your time?</Text>
+							<Text style={paragraph}>
+								You can reschedule this booking using the private link below.
+							</Text>
+							<Button
+								href={data.rescheduleUrl}
+								style={button}>
+								Reschedule booking
+							</Button>
+						</Section>
+					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
 						<Text style={paragraph}>{data.branding.locationAddress}</Text>

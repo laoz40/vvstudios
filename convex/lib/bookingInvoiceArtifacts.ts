@@ -11,7 +11,8 @@ function createPdfFilename(invoiceNumber: string) {
 
 export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
-	createdAt: number
+	createdAt: number,
+	rescheduleUrl?: string
 ) {
 	const parsedBooking = bookingSchema.safeParse({
 		name: booking.name,
@@ -47,7 +48,8 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
-		createdAt
+		createdAt,
+		rescheduleUrl
 	});
 	const emailHtml = await renderBookingInvoiceEmail(data);
 
