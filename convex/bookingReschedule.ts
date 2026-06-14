@@ -47,14 +47,16 @@ interface ValidRescheduleLinkAndBooking {
 	link: Doc<"bookingRescheduleLinks">;
 }
 
-function isBookingReschedulable(booking: Doc<"bookings">, now: number) {
-	const isConfirmedBooking = booking.status === "confirmed" || booking.status === "email_failed";
-
-	if (!isConfirmedBooking) {
-		return false;
+function isBookingReschedulable(booking: Doc<"bookings">) {
+	if (booking.status === "confirmed" || booking.status === "email_failed") {
+		return true;
 	}
 
-	return now < booking.sessionStartAt;
+	return (
+		booking.status === "failed" &&
+		(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+			booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
+	);
 }
 
 export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc<"bookings">) {
@@ -145,7 +147,7 @@ async function getValidRescheduleLinkAndBookingInternalHandler(
 		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
-	if (!isBookingReschedulable(booking, args.now)) {
+	if (!isBookingReschedulable(booking)) {
 		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 

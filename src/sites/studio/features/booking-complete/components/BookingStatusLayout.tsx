@@ -18,6 +18,7 @@ export interface BookingStatusLayoutProps {
 	showActions?: boolean;
 	stripeSessionId?: string | null;
 	className?: string;
+	devPanel?: ReactNode;
 }
 
 export function BookingStatusLayout({
@@ -25,7 +26,8 @@ export function BookingStatusLayout({
 	children,
 	showActions = true,
 	stripeSessionId,
-	className
+	className,
+	devPanel = <BookingCompleteDevScenarioPanel />
 }: BookingStatusLayoutProps): ReactNode {
 	const primaryAction = bookingStatus === "failed" ? "contact" : "new_booking";
 	const showInstagramPrompt =
@@ -38,7 +40,7 @@ export function BookingStatusLayout({
 				className
 			)}>
 			{children}
-			{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
+			{import.meta.env.DEV ? devPanel : null}
 
 			{showActions ? (
 				<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

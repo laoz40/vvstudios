@@ -7,10 +7,17 @@ import { BookingStatusLayout } from "#studio/features/booking-complete/component
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import {
+	buildDevRescheduleBooking,
+	getDevRescheduleAvailability,
+	parseRescheduleSearch,
+	RescheduleDevScenarioPanel
+} from "#studio/components/booking/RescheduleDevScenarioPanel";
+import {
 	formatBookingDate,
 	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
+	formatDateValue,
 	parseDateValue,
 	startOfToday
 } from "#studio/lib/bookingdatetime";
@@ -20,14 +27,20 @@ import { buildNoIndexHead } from "#/lib/seo";
 type RescheduleLinkInvalidContent = { title: string; description: string };
 
 export const Route = createFileRoute("/_public/reschedule/$token")({
+	validateSearch: parseRescheduleSearch,
 	head: () => buildNoIndexHead("Reschedule Booking | VV Studios"),
 	component: ReschedulePage
 });
 
 function ReschedulePage() {
 	const { token } = Route.useParams();
+	const { dev_scenario: devScenario } = Route.useSearch();
+	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const getAvailableRescheduleTimes = useAction(api.googleCalendar.getAvailableRescheduleTimes);
-	const getRescheduleBooking = useQuery(api.bookingReschedule.getRescheduleBookingByToken, { token });
+	const liveRescheduleBooking = useQuery(
+		api.bookingReschedule.getRescheduleBookingByToken,
+		activeDevScenario ? "skip" : { token }
+	);
 	const [calendarMonth, setCalendarMonth] = useState(startOfToday);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
@@ -44,9 +57,14 @@ function ReschedulePage() {
 			setIsLoadingAvailability(true);
 			setAvailabilityError("");
 
-			const [error, data] = await tryCatch<GetAvailableRescheduleTimesResult>(
-				getAvailableRescheduleTimes({ date: dateValue, token })
-			);
+			const [error, data] = activeDevScenario
+				? (() => {
+						const devAvailability = getDevRescheduleAvailability(activeDevScenario);
+						return [devAvailability.error, { times: devAvailability.times }] as const;
+					})()
+				: await tryCatch<GetAvailableRescheduleTimesResult>(
+						getAvailableRescheduleTimes({ date: dateValue, token })
+					);
 
 			if (shouldSkipUpdate()) {
 				return;
@@ -121,9 +139,9 @@ function ReschedulePage() {
 				}
 			}
 
-			setAvailableTimes(data.times);
+			setAvailableTimes([...data.times]);
 		},
-		[getAvailableRescheduleTimes, token]
+		[getAvailableRescheduleTimes, token, activeDevScenario]
 	);
 	useEffect(() => {
 		if (!selectedDateValue) {
@@ -141,9 +159,23 @@ function ReschedulePage() {
 			isCancelled = true;
 		};
 	}, [loadAvailability, selectedDateValue]);
+	useEffect(() => {
+		if (!activeDevScenario) {
+			return;
+		}
+
+		setRescheduleLinkInvalidContent(null);
+		setSelectedTime("");
+		setSelectedDateValue(formatDateValue(startOfToday()));
+	}, [activeDevScenario]);
+	const getRescheduleBooking = activeDevScenario
+		? buildDevRescheduleBooking()
+		: liveRescheduleBooking;
 	if (getRescheduleBooking === undefined) {
 		return (
-			<BookingStatusLayout showActions={false}>
+			<BookingStatusLayout
+				showActions={false}
+				devPanel={<RescheduleDevScenarioPanel token={token} />}>
 				<BookingProcessing label="Checking reschedule link" />
 			</BookingStatusLayout>
 		);
@@ -151,20 +183,33 @@ function ReschedulePage() {
 
 	const [error, data] = getRescheduleBooking;
 
-	let invalidTitle = rescheduleLinkInvalidContent?.title ?? "";
-	let invalidDescription = rescheduleLinkInvalidContent?.description ?? "";
-
 	if (error !== null) {
-		invalidTitle = "This reschedule link is no longer valid.";
-		invalidDescription = "Please use the reschedule button in your latest invoice email.";
+		return (
+			<BookingStatusLayout
+				bookingStatus="failed"
+				devPanel={<RescheduleDevScenarioPanel token={token} />}>
+				<div>
+					<h1 className="text-4xl font-semibold tracking-tight">
+						This reschedule link is no longer valid.
+					</h1>
+					<p className="mt-4 text-muted-foreground">
+						Please use the reschedule button in your latest invoice email.
+					</p>
+				</div>
+			</BookingStatusLayout>
+		);
 	}
 
-	if (invalidTitle && invalidDescription) {
+	if (rescheduleLinkInvalidContent !== null) {
 		return (
-			<BookingStatusLayout bookingStatus="failed">
+			<BookingStatusLayout
+				bookingStatus="failed"
+				devPanel={<RescheduleDevScenarioPanel token={token} />}>
 				<div>
-					<h1 className="text-4xl font-semibold tracking-tight">{invalidTitle}</h1>
-					<p className="mt-4 text-muted-foreground">{invalidDescription}</p>
+					<h1 className="text-4xl font-semibold tracking-tight">
+						{rescheduleLinkInvalidContent.title}
+					</h1>
+					<p className="mt-4 text-muted-foreground">{rescheduleLinkInvalidContent.description}</p>
 				</div>
 			</BookingStatusLayout>
 		);
@@ -177,7 +222,8 @@ function ReschedulePage() {
 	return (
 		<BookingStatusLayout
 			showActions={false}
-			className="max-w-4xl">
+			className="max-w-4xl"
+			devPanel={<RescheduleDevScenarioPanel token={token} />}>
 			<div>
 				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
 					Reschedule your booking
