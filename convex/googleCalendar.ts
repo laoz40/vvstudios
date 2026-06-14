@@ -10,6 +10,7 @@ import {
 	getLastBookableDate,
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
+import { createRescheduleUrlForBooking } from "./bookingReschedule";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromQuery } from "./lib/bookingLookup";
@@ -259,7 +260,13 @@ async function sendBookingInvoiceForBookingHandler(
 		return err(bookingError);
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+
+	if (linkError !== null) {
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
 
 	if (emailError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
@@ -419,7 +426,16 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		googleCalendarId: calendarClient.calendarId
 	});
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking);
+	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+
+	if (linkError !== null) {
+		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
+			bookingId: booking._id
+		});
+		return ok({ completed: true, outcome: "completed" });
+	}
+
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
 
 	if (emailError !== null) {
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {

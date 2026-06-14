@@ -22,6 +22,7 @@ import { Route as PublicBookingCompleteRouteImport } from './routes/_public/book
 import { Route as PublicBookRouteImport } from './routes/_public/book'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as PublicRescheduleTokenRouteImport } from './routes/_public/reschedule.$token'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -87,6 +88,11 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthRoute,
 } as any)
+const PublicRescheduleTokenRoute = PublicRescheduleTokenRouteImport.update({
+  id: '/reschedule/$token',
+  path: '/reschedule/$token',
+  getParentRoute: () => PublicRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_public/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/_public/': typeof PublicIndexRoute
+  '/_public/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy-policy'
     | '/terms-and-conditions'
+    | '/reschedule/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy-policy'
     | '/terms-and-conditions'
+    | '/reschedule/$token'
   id:
     | '__root__'
     | '/_auth'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_public/privacy-policy'
     | '/_public/terms-and-conditions'
     | '/_public/'
+    | '/_public/reschedule/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_public/reschedule/$token': {
+      id: '/_public/reschedule/$token'
+      path: '/reschedule/$token'
+      fullPath: '/reschedule/$token'
+      preLoaderRoute: typeof PublicRescheduleTokenRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
@@ -297,6 +316,7 @@ interface PublicRouteChildren {
   PublicPrivacyPolicyRoute: typeof PublicPrivacyPolicyRoute
   PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicRescheduleTokenRoute: typeof PublicRescheduleTokenRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
@@ -309,6 +329,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicPrivacyPolicyRoute: PublicPrivacyPolicyRoute,
   PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
   PublicIndexRoute: PublicIndexRoute,
+  PublicRescheduleTokenRoute: PublicRescheduleTokenRoute,
 }
 
 const PublicRouteWithChildren =

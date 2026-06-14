@@ -9,7 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as bookingRescheduleLinks from "../bookingRescheduleLinks.js";
+import type * as bookingReschedule from "../bookingReschedule.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as bookings from "../bookings.js";
 import type * as crons from "../crons.js";
@@ -46,7 +46,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  bookingRescheduleLinks: typeof bookingRescheduleLinks;
+  bookingReschedule: typeof bookingReschedule;
   bookingSettings: typeof bookingSettings;
   bookings: typeof bookings;
   crons: typeof crons;
