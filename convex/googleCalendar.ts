@@ -17,6 +17,7 @@ import { getBookingFromQuery } from "./lib/bookingLookup";
 import {
 	buildEventWindow,
 	type BookingAvailabilitySettings,
+	checkBookingMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
 	groupBusyWindowsByDay
@@ -54,6 +55,55 @@ interface BusyDayWindowResult {
 	busyPeriods: Array<{ end: string; start: string }>;
 	date: string;
 	label: string;
+}
+
+type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
+
+async function getBookableRangeBusyWindowsFromGoogleCalendar({
+	ignoredEvent,
+	settings
+}: {
+	ignoredEvent?: IgnoredBusyEvent;
+	settings: BookingAvailabilitySettings;
+}): Promise<
+	Result<
+		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		{ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
+	>
+> {
+	const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
+	const today = startOfToday();
+	const startDate = formatDateValue(today);
+	const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
+	const [rangeError, availabilityRange] = getDateAvailabilityRange(startDate, endDate, timeZone);
+
+	if (rangeError !== null) {
+		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+	}
+
+	const { timeMin, timeMax } = availabilityRange;
+	const busyWindows = await getBusyWindowsInRange({
+		calendar,
+		calendarIds,
+		ignoredEvent,
+		timeMax,
+		timeMin,
+		timeZone
+	});
+	const [busyDaysError, busyDays] = groupBusyWindowsByDay(busyWindows, timeZone);
+
+	if (busyDaysError !== null) {
+		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+	}
+
+	const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
+
+	for (const busyDay of busyDays) {
+		const month = busyDay.date.slice(0, 7);
+		busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
+	}
+
+	return ok({ busyWindowsByMonth, timeZone });
 }
 
 async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
@@ -111,39 +161,15 @@ async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLi
 
 	try {
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		const { calendar, calendarIds, timeZone } = getGoogleCalendarClient();
-		const today = startOfToday();
-		const startDate = formatDateValue(today);
-		const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
-		const [rangeError, availabilityRange] = getDateAvailabilityRange(startDate, endDate, timeZone);
-
-		if (rangeError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
-		}
-
-		const { timeMin, timeMax } = availabilityRange;
-		const busyWindows = await getBusyWindowsInRange({
-			calendar,
-			calendarIds,
-			timeMax,
-			timeMin,
-			timeZone
+		const [availabilityError, availability] = await getBookableRangeBusyWindowsFromGoogleCalendar({
+			settings
 		});
 
-		const [busyDaysError, busyDays] = groupBusyWindowsByDay(busyWindows, timeZone);
-
-		if (busyDaysError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+		if (availabilityError !== null) {
+			return err(availabilityError);
 		}
 
-		const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
-
-		for (const busyDay of busyDays) {
-			const month = busyDay.date.slice(0, 7);
-			busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
-		}
-
-		return ok({ busyWindowsByMonth, timeZone });
+		return ok(availability);
 	} catch (error) {
 		return err({
 			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
@@ -197,6 +223,63 @@ export type GetAvailableRescheduleTimesError =
 	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" };
 
+type RescheduleLinkAndBookingLookupResult = Result<
+	{ booking: Doc<"bookings">; link: Doc<"bookingRescheduleLinks"> },
+	RescheduleLinkLookupError
+>;
+
+export const getRescheduleBookableRangeBusyWindows = action({
+	args: { token: v.string() },
+	handler: (ctx, args) => getRescheduleBookableRangeBusyWindowsHandler(ctx, args)
+});
+
+async function getRescheduleBookableRangeBusyWindowsHandler(
+	ctx: ActionCtx,
+	args: { token: string }
+): Promise<
+	Result<
+		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		| RescheduleLinkLookupError
+		| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
+		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
+		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
+	>
+> {
+	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
+		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		{ now: Date.now(), token: args.token }
+	);
+
+	if (lookupError !== null) {
+		return err(lookupError);
+	}
+
+	try {
+		const settings = await ctx.runQuery(api.bookingSettings.get, {});
+		const [availabilityError, availability] = await getBookableRangeBusyWindowsFromGoogleCalendar({
+			ignoredEvent: {
+				calendarId: result.booking.googleCalendarId,
+				eventId: result.booking.googleEventId
+			},
+			settings
+		});
+
+		if (availabilityError !== null) {
+			return err(availabilityError);
+		}
+
+		return ok(availability);
+	} catch (error) {
+		return err({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+		});
+	}
+}
+
+export type GetRescheduleBookableRangeBusyWindowsResult = Awaited<
+	ReturnType<typeof getRescheduleBookableRangeBusyWindowsHandler>
+>;
+
 export const getAvailableRescheduleTimes = action({
 	args: { token: v.string(), date: v.string() },
 	handler: (ctx, args) => getAvailableRescheduleTimesHandler(ctx, args)
@@ -228,12 +311,29 @@ async function getAvailableRescheduleTimesHandler(
 			},
 			timeZone
 		});
-		const times = getAvailableTimeOptions({
+		const calendarAvailableTimes = getAvailableTimeOptions({
 			busyWindows,
 			date: args.date,
 			duration: result.booking.duration,
 			eventBufferMinutes: settings.eventBufferMinutes,
 			timeZone
+		});
+		const now = Date.now();
+		const times = calendarAvailableTimes.filter((time) => {
+			const [availabilityError] = checkBookingMeetsAvailabilitySettings({
+				date: args.date,
+				duration: result.booking.duration,
+				now,
+				settings,
+				time,
+				timeZone
+			});
+
+			if (availabilityError !== null) {
+				return false;
+			}
+
+			return true;
 		});
 
 		return ok({ timeZone, times });

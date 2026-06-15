@@ -5,7 +5,6 @@ import {
 	type BookingAvailabilitySettings,
 	type BusyPeriod
 } from "#studio/lib/bookingdatetime";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 
 export interface BusyDayWindow {
 	busyPeriods: BusyPeriod[];
@@ -78,7 +77,7 @@ export function isBookingDateDisabled({
 }: {
 	currentTimestamp: number;
 	date: Date;
-	duration: BookingFormValues["duration"];
+	duration: string;
 	isAvailabilityRateLimited: boolean;
 	lastBookableDate: Date;
 	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;

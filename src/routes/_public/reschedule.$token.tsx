@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
-import type { GetAvailableRescheduleTimesResult } from "#convex/googleCalendar";
+import type {
+	GetAvailableRescheduleTimesResult,
+	GetRescheduleBookableRangeBusyWindowsResult
+} from "#convex/googleCalendar";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
@@ -13,14 +16,26 @@ import {
 	RescheduleDevScenarioPanel
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
 import {
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatBookingDate,
 	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatDateValue,
+	formatMonthKey,
+	getCurrentTimestamp,
+	getLastBookableDate,
 	parseDateValue,
+	parseMonthKey,
 	startOfToday
 } from "#studio/lib/bookingdatetime";
+import {
+	getBookableMonthKeys,
+	getUncachedMonthKeys,
+	isBookingDateDisabled,
+	mergeBookableRangeBusyWindows,
+	type BusyDayWindow
+} from "#studio/features/booking-form/lib/monthly-availability";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 
@@ -37,21 +52,45 @@ function ReschedulePage() {
 	const { dev_scenario: devScenario } = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const getAvailableRescheduleTimes = useAction(api.googleCalendar.getAvailableRescheduleTimes);
+	const getRescheduleBookableRangeBusyWindows = useAction(
+		api.googleCalendar.getRescheduleBookableRangeBusyWindows
+	);
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	const liveRescheduleBooking = useQuery(
 		api.bookingReschedule.getRescheduleBookingByToken,
 		activeDevScenario ? "skip" : { token }
 	);
-	const [calendarMonth, setCalendarMonth] = useState(startOfToday);
+	const [calendarMonth, setCalendarMonth] = useState(() =>
+		parseMonthKey(formatMonthKey(startOfToday()))
+	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
 	const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
+		Record<string, BusyDayWindow[]>
+	>({});
+	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
+	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 	const [rescheduleLinkInvalidContent, setRescheduleLinkInvalidContent] =
 		useState<RescheduleLinkInvalidContent | null>(null);
 	const selectedDate = parseDateValue(selectedDateValue);
 	const today = useMemo(() => startOfToday(), []);
 
+	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
+	const bookableStartDateValue = formatDateValue(today);
+	const bookableEndDateValue = formatDateValue(lastBookableDate);
+	const bookableMonthKeys = useMemo(() => {
+		const startDate = parseDateValue(bookableStartDateValue);
+		const endDate = parseDateValue(bookableEndDateValue);
+
+		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
+	}, [bookableStartDateValue, bookableEndDateValue]);
+	const visibleMonth = formatMonthKey(calendarMonth);
+	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
+	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
 	const loadAvailability = useCallback(
 		async (dateValue: string, shouldSkipUpdate: () => boolean) => {
 			setIsLoadingAvailability(true);
@@ -160,6 +199,64 @@ function ReschedulePage() {
 		};
 	}, [loadAvailability, selectedDateValue]);
 	useEffect(() => {
+		if (activeDevScenario) {
+			return;
+		}
+
+		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
+		if (uncachedMonthKeys.length === 0) {
+			setIsLoadingMonthAvailability(false);
+			return;
+		}
+
+		let isCancelled = false;
+		setIsLoadingMonthAvailability(true);
+
+		async function loadMonthAvailability() {
+			const [error, result] = await tryCatch<GetRescheduleBookableRangeBusyWindowsResult>(
+				getRescheduleBookableRangeBusyWindows({ token })
+			);
+
+			if (isCancelled) {
+				return;
+			}
+
+			setIsLoadingMonthAvailability(false);
+
+			if (error !== null) {
+				setAvailabilityError(
+					"Availability could not load right now. Please contact us and we’ll help you find a time."
+				);
+				return;
+			}
+
+			setMonthlyBusyWindowsByMonth((current) =>
+				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
+			);
+		}
+
+		void loadMonthAvailability();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [
+		activeDevScenario,
+		bookableMonthKeys,
+		getRescheduleBookableRangeBusyWindows,
+		monthlyBusyWindowsByMonth,
+		token
+	]);
+	useEffect(() => {
+		const interval = window.setInterval(() => {
+			setCurrentTimestamp(getCurrentTimestamp());
+		}, 60_000);
+
+		return () => {
+			window.clearInterval(interval);
+		};
+	}, []);
+	useEffect(() => {
 		if (!activeDevScenario) {
 			return;
 		}
@@ -217,7 +314,17 @@ function ReschedulePage() {
 	const formattedDate = formatBookingDate(data.booking.date);
 	const formattedTime = formatBookingTimeRange(data.booking.time, data.booking.duration);
 	const addonsLabel = data.booking.addons.length > 0 ? data.booking.addons.join(", ") : "None";
-	const disabledDates = (date: Date) => date < today;
+	const disabledDates = (date: Date) =>
+		isBookingDateDisabled({
+			currentTimestamp,
+			date,
+			duration: data.booking.duration,
+			isAvailabilityRateLimited: false,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			settings: availabilitySettings,
+			today
+		});
 
 	return (
 		<BookingStatusLayout
@@ -266,9 +373,9 @@ function ReschedulePage() {
 						calendarMonth={calendarMonth}
 						dateLabel="SESSION DATE *"
 						disabledDates={disabledDates}
-						isLoadingAvailability={isLoadingAvailability}
+						isLoadingAvailability={isLoadingAvailability || isLoadingMonthAvailability}
 						isSelectedDateInPast={false}
-						isViewingSelectedMonth
+						isViewingSelectedMonth={isViewingSelectedMonth}
 						onDateChange={(dateValue) => {
 							setSelectedDateValue(dateValue);
 							setSelectedTime("");
