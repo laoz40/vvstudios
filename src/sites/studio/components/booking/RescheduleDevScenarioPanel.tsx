@@ -1,7 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
-import type { GetRescheduleBookingByTokenResult } from "#convex/bookingReschedule";
+import { err, ok, type Result } from "#/lib/result";
+import type {
+	GetRescheduleBookingByTokenResult,
+	RescheduleLinkLookupError
+} from "#convex/bookingReschedule";
 
 const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Ready", value: "ready" },
@@ -28,6 +32,26 @@ export interface RescheduleSearch {
 }
 
 export type RescheduleBookingLookup = NonNullable<GetRescheduleBookingByTokenResult>;
+
+type DevRescheduleAvailabilityError =
+	| RescheduleLinkLookupError
+	| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" };
+
+type DevRescheduleAvailabilityResult = Result<
+	{ times: readonly string[] },
+	DevRescheduleAvailabilityError
+>;
+
+type DevRescheduleUpdateError =
+	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_TIME" }
+	| { reason: "BOOKING_TIME_UNAVAILABLE" }
+	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
+	| { reason: "UNEXPECTED_ERROR" };
+
+type DevRescheduleUpdateResult = Result<{ bookingId: string }, DevRescheduleUpdateError>;
 
 interface RescheduleDevScenarioPanelProps {
 	token: string;
@@ -68,103 +92,130 @@ export function buildDevRescheduleBooking(
 	devScenario: DevRescheduleScenario | undefined
 ): RescheduleBookingLookup {
 	if (devScenario === "link_not_found") {
-		return [{ reason: "RESCHEDULE_LINK_NOT_FOUND" }, null];
+		return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 	}
 
 	if (devScenario === "link_used") {
-		return [{ reason: "RESCHEDULE_LINK_USED" }, null];
+		return err({ reason: "RESCHEDULE_LINK_USED" });
 	}
 
 	if (devScenario === "link_expired") {
-		return [{ reason: "RESCHEDULE_LINK_EXPIRED" }, null];
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	if (devScenario === "booking_missing") {
-		return [{ reason: "BOOKING_NOT_FOUND" }, null];
+		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
 	if (devScenario === "not_reschedulable") {
-		return [{ reason: "BOOKING_NOT_RESCHEDULABLE" }, null];
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
-	return [
-		null,
-		{
-			booking: {
-				addons: ["Essential Edit", "Clips Package"],
-				date: "2026-05-12",
-				duration: "2h",
-				name: "Dev Customer",
-				service: "Table Setup",
-				time: "10:00"
-			},
-			expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7
-		}
-	];
+	return ok({
+		booking: {
+			addons: ["Essential Edit", "Clips Package"],
+			date: "2026-05-12",
+			duration: "2h",
+			name: "Dev Customer",
+			service: "Table Setup",
+			time: "10:00"
+		},
+		expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7
+	});
 }
 
-export function getDevRescheduleAvailability(devScenario: DevRescheduleScenario | undefined) {
+export function getDevRescheduleAvailability(
+	devScenario: DevRescheduleScenario | undefined
+): DevRescheduleAvailabilityResult {
 	if (devScenario === "link_not_found") {
-		return { error: { reason: "RESCHEDULE_LINK_NOT_FOUND" }, times: [] } as const;
+		return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 	}
 
 	if (devScenario === "link_used") {
-		return { error: { reason: "RESCHEDULE_LINK_USED" }, times: [] } as const;
+		return err({ reason: "RESCHEDULE_LINK_USED" });
 	}
 
 	if (devScenario === "link_expired") {
-		return { error: { reason: "RESCHEDULE_LINK_EXPIRED" }, times: [] } as const;
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	if (devScenario === "booking_missing") {
-		return { error: { reason: "BOOKING_NOT_FOUND" }, times: [] } as const;
+		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
 	if (devScenario === "not_reschedulable") {
-		return { error: { reason: "BOOKING_NOT_RESCHEDULABLE" }, times: [] } as const;
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
 	if (devScenario === "availability_error") {
-		return { error: { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }, times: [] } as const;
+		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
 	}
 
 	if (devScenario === "rate_limited") {
-		return { error: { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }, times: [] } as const;
+		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
 	}
 
 	if (devScenario === "no_times") {
-		return { error: null, times: [] } as const;
+		return ok({ times: [] });
 	}
 
-	return { error: null, times: ["09:00", "10:00", "13:00", "15:00"] } as const;
+	return ok({ times: ["09:00", "10:00", "13:00", "15:00"] });
 }
 
-export function getDevRescheduleUpdateError(devScenario: DevRescheduleScenario | undefined) {
+export function getDevRescheduleAvailabilityStatus(devScenario: DevRescheduleScenario | undefined) {
+	const [availabilityError, availability] = getDevRescheduleAvailability(devScenario);
+
+	if (availabilityError === null) {
+		return { kind: "ready", times: [...availability.times] } as const;
+	}
+
+	switch (availabilityError.reason) {
+		case "RESCHEDULE_LINK_NOT_FOUND":
+		case "RESCHEDULE_LINK_USED":
+		case "RESCHEDULE_LINK_EXPIRED":
+		case "BOOKING_NOT_FOUND":
+		case "BOOKING_NOT_RESCHEDULABLE":
+			return { kind: "linkStatus" } as const;
+
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return { kind: "availabilityError", error: availabilityError } as const;
+
+		default: {
+			const _exhaustive: never = availabilityError;
+			return _exhaustive;
+		}
+	}
+}
+
+export function getDevRescheduleUpdateResult(
+	devScenario: DevRescheduleScenario | undefined
+): DevRescheduleUpdateResult {
 	if (devScenario === "update_invalid_date") {
-		return { reason: "BOOKING_INVALID_DATE" } as const;
+		return err({ reason: "BOOKING_INVALID_DATE" });
 	}
 
 	if (devScenario === "update_invalid_time") {
-		return { reason: "BOOKING_INVALID_TIME" } as const;
+		return err({ reason: "BOOKING_INVALID_TIME" });
 	}
 
 	if (devScenario === "update_time_unavailable") {
-		return { reason: "BOOKING_TIME_UNAVAILABLE" } as const;
+		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 	}
 
 	if (devScenario === "update_calendar_error") {
-		return { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" } as const;
+		return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
 	}
 
 	if (devScenario === "update_rate_limited") {
-		return { reason: "GOOGLE_CALENDAR_RATE_LIMITED" } as const;
+		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
 	}
 
 	if (devScenario === "update_unexpected") {
-		return { reason: "UNEXPECTED_ERROR" } as const;
+		return err({ reason: "UNEXPECTED_ERROR" });
 	}
 
-	return null;
+	return ok({ bookingId: "dev-reschedule-booking" });
 }
 
 function parseDevRescheduleScenario(value: unknown): DevRescheduleScenario | undefined {

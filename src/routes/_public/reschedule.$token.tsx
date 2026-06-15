@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { api } from "#convex/_generated/api";
 import type {
-	GetAvailableRescheduleTimesResult,
 	GetRescheduleBookableRangeBusyWindowsResult,
 	RescheduleBookingResult
 } from "#convex/googleCalendar";
+import type { RescheduleLinkLookupError } from "#convex/bookingReschedule";
 import { studioSite } from "#/config/sites";
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import {
 	buildDevRescheduleBooking,
-	getDevRescheduleAvailability,
-	getDevRescheduleUpdateError,
+	getDevRescheduleAvailabilityStatus,
+	getDevRescheduleUpdateResult,
 	parseRescheduleSearch,
 	RescheduleDevScenarioPanel
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
@@ -28,6 +28,7 @@ import {
 	formatBookingTimestampTime,
 	formatDateValue,
 	formatMonthKey,
+	getAvailableTimesForDate,
 	getCurrentTimestamp,
 	getLastBookableDate,
 	parseDateValue,
@@ -36,15 +37,127 @@ import {
 } from "#studio/lib/bookingdatetime";
 import {
 	getBookableMonthKeys,
+	getSelectedBusyDay,
 	getUncachedMonthKeys,
 	isBookingDateDisabled,
 	mergeBookableRangeBusyWindows,
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 
 type RescheduleLinkInvalidContent = { title: string; description: string };
+
+function getInvalidMessage(
+	error: Extract<
+		NonNullable<GetRescheduleBookableRangeBusyWindowsResult[0]>,
+		RescheduleLinkLookupError
+	>
+): RescheduleLinkInvalidContent {
+	switch (error.reason) {
+		case "RESCHEDULE_LINK_NOT_FOUND":
+			return {
+				title: "This reschedule link could not be found.",
+				description: "Please use the reschedule button in your latest invoice email."
+			};
+
+		case "RESCHEDULE_LINK_USED":
+			return {
+				title: "This reschedule link has already been used.",
+				description: "Please use the newest reschedule link from your latest invoice email."
+			};
+
+		case "RESCHEDULE_LINK_EXPIRED":
+			return {
+				title: "This reschedule link has expired.",
+				description: "Please contact us if you still need to move your session."
+			};
+
+		case "BOOKING_NOT_FOUND":
+			return {
+				title: "We could not find this booking.",
+				description: "Please contact us and we’ll help you reschedule your session."
+			};
+
+		case "BOOKING_NOT_RESCHEDULABLE":
+			return {
+				title: "This booking can’t be rescheduled online.",
+				description: "Please contact us and we’ll help you with your booking."
+			};
+
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
+
+function getAvailabilityErrorMessage(
+	error:
+		| Exclude<
+				NonNullable<GetRescheduleBookableRangeBusyWindowsResult[0]>,
+				RescheduleLinkLookupError
+		  >
+		| UnexpectedError
+): string {
+	switch (error.reason) {
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+			return "Availability could not load right now. Please contact us and we’ll help you find a time.";
+
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return "Availability is temporarily busy. Please wait a moment and try again.";
+
+		case "UNEXPECTED_ERROR":
+			return "Something went wrong while loading availability. Please try again.";
+
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
+
+type RescheduleUpdateToastError =
+	| NonNullable<RescheduleBookingResult[0]>
+	| NonNullable<ReturnType<typeof getDevRescheduleUpdateResult>[0]>;
+
+function getRescheduleUpdateToastMessage(error: RescheduleUpdateToastError): string {
+	switch (error.reason) {
+		case "RESCHEDULE_LINK_NOT_FOUND":
+		case "RESCHEDULE_LINK_USED":
+		case "RESCHEDULE_LINK_EXPIRED":
+		case "BOOKING_NOT_FOUND":
+		case "BOOKING_NOT_RESCHEDULABLE":
+			return getInvalidMessage(error).title;
+
+		case "BOOKING_INVALID_DATE":
+			return "Please choose a valid date.";
+
+		case "BOOKING_INVALID_TIME":
+			return "Please choose a valid time.";
+
+		case "BOOKING_TIME_UNAVAILABLE":
+			return "That time is no longer available. Please choose another time.";
+
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+		case "GOOGLE_CALENDAR_CREATE_FAILED":
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+			return "We couldn’t update the calendar. Please contact us and we’ll help you.";
+
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return "Calendar is temporarily busy. Please wait a moment and try again.";
+
+		case "UNEXPECTED_ERROR":
+			return "Something went wrong while updating your booking.";
+
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
 
 export const Route = createFileRoute("/_public/reschedule/$token")({
 	validateSearch: parseRescheduleSearch,
@@ -57,7 +170,6 @@ function ReschedulePage() {
 	const { dev_scenario: devScenario } = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const navigate = useNavigate();
-	const getAvailableRescheduleTimes = useAction(api.googleCalendar.getAvailableRescheduleTimes);
 	const getRescheduleBookableRangeBusyWindows = useAction(
 		api.googleCalendar.getRescheduleBookableRangeBusyWindows
 	);
@@ -73,16 +185,15 @@ function ReschedulePage() {
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
-	const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 	const [availabilityError, setAvailabilityError] = useState("");
-	const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
 		Record<string, BusyDayWindow[]>
 	>({});
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
-	const [rescheduleLinkInvalidContent, setRescheduleLinkInvalidContent] =
-		useState<RescheduleLinkInvalidContent | null>(null);
+	const [invalidLinkMessage, setInvalidLinkMessage] = useState<RescheduleLinkInvalidContent | null>(
+		null
+	);
 	const [isUpdatingBooking, setIsUpdatingBooking] = useState(false);
 	const selectedDate = parseDateValue(selectedDateValue);
 	const today = useMemo(() => startOfToday(), []);
@@ -100,113 +211,20 @@ function ReschedulePage() {
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
 
-	const loadAvailability = useCallback(
-		async (dateValue: string, shouldSkipUpdate: () => boolean) => {
-			setIsLoadingAvailability(true);
-			setAvailabilityError("");
-
-			const [error, data] = activeDevScenario
-				? (() => {
-						const devAvailability = getDevRescheduleAvailability(activeDevScenario);
-						return [devAvailability.error, { times: devAvailability.times }] as const;
-					})()
-				: await tryCatch<GetAvailableRescheduleTimesResult>(
-						getAvailableRescheduleTimes({ date: dateValue, token })
-					);
-
-			if (shouldSkipUpdate()) {
-				return;
-			}
-
-			setIsLoadingAvailability(false);
-
-			if (error !== null) {
-				setAvailableTimes([]);
-
-				switch (error.reason) {
-					case "RESCHEDULE_LINK_NOT_FOUND":
-						setRescheduleLinkInvalidContent({
-							title: "This reschedule link could not be found.",
-							description: "Please use the reschedule button in your latest invoice email."
-						});
-						return;
-
-					case "RESCHEDULE_LINK_USED":
-						setRescheduleLinkInvalidContent({
-							title: "This reschedule link has already been used.",
-							description: "Please use the newest reschedule link from your latest invoice email."
-						});
-						return;
-
-					case "RESCHEDULE_LINK_EXPIRED":
-						setRescheduleLinkInvalidContent({
-							title: "This reschedule link has expired.",
-							description: "Please contact us if you still need to move your session."
-						});
-						return;
-
-					case "BOOKING_NOT_FOUND":
-						setRescheduleLinkInvalidContent({
-							title: "We could not find this booking.",
-							description: "Please contact us and we’ll help you reschedule your session."
-						});
-						return;
-
-					case "BOOKING_NOT_RESCHEDULABLE":
-						setRescheduleLinkInvalidContent({
-							title: "This booking can’t be rescheduled online.",
-							description: "Please contact us and we’ll help you with your booking."
-						});
-						return;
-
-					case "GOOGLE_CALENDAR_AUTH_FAILED":
-					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-						console.error("Failed to load reschedule availability", error);
-						setAvailabilityError(
-							"Availability could not load right now. Please contact us and we’ll help you find a time."
-						);
-						return;
-
-					case "GOOGLE_CALENDAR_RATE_LIMITED":
-						console.error("Failed to load reschedule availability", error);
-						setAvailabilityError(
-							"Availability is temporarily busy. Please wait a moment and try again."
-						);
-						return;
-
-					case "UNEXPECTED_ERROR":
-						setAvailabilityError(
-							"Something went wrong while loading availability. Please try again."
-						);
-						return;
-
-					default: {
-						const _exhaustive: never = error;
-						return _exhaustive;
-					}
-				}
-			}
-
-			setAvailableTimes([...data.times]);
-		},
-		[getAvailableRescheduleTimes, token, activeDevScenario]
-	);
 	useEffect(() => {
-		if (!selectedDateValue) {
-			setAvailableTimes([]);
-			setAvailabilityError("");
-			setIsLoadingAvailability(false);
+		if (!activeDevScenario) {
 			return;
 		}
 
-		let isCancelled = false;
+		const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
+		if (devAvailabilityStatus.kind !== "availabilityError") {
+			setAvailabilityError("");
+			return;
+		}
 
-		void loadAvailability(selectedDateValue, () => isCancelled);
+		setAvailabilityError(getAvailabilityErrorMessage(devAvailabilityStatus.error));
+	}, [activeDevScenario]);
 
-		return () => {
-			isCancelled = true;
-		};
-	}, [loadAvailability, selectedDateValue]);
 	useEffect(() => {
 		if (activeDevScenario) {
 			return;
@@ -233,10 +251,28 @@ function ReschedulePage() {
 			setIsLoadingMonthAvailability(false);
 
 			if (error !== null) {
-				setAvailabilityError(
-					"Availability could not load right now. Please contact us and we’ll help you find a time."
-				);
-				return;
+				switch (error.reason) {
+					case "RESCHEDULE_LINK_NOT_FOUND":
+					case "RESCHEDULE_LINK_USED":
+					case "RESCHEDULE_LINK_EXPIRED":
+					case "BOOKING_NOT_FOUND":
+					case "BOOKING_NOT_RESCHEDULABLE":
+						setInvalidLinkMessage(getInvalidMessage(error));
+						return;
+
+					case "GOOGLE_CALENDAR_AUTH_FAILED":
+					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+					case "GOOGLE_CALENDAR_RATE_LIMITED":
+					case "UNEXPECTED_ERROR":
+						console.error("Failed to load reschedule availability", error);
+						setAvailabilityError(getAvailabilityErrorMessage(error));
+						return;
+
+					default: {
+						const _exhaustive: never = error;
+						return _exhaustive;
+					}
+				}
 			}
 
 			setMonthlyBusyWindowsByMonth((current) =>
@@ -256,6 +292,7 @@ function ReschedulePage() {
 		monthlyBusyWindowsByMonth,
 		token
 	]);
+
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			setCurrentTimestamp(getCurrentTimestamp());
@@ -265,18 +302,21 @@ function ReschedulePage() {
 			window.clearInterval(interval);
 		};
 	}, []);
+
 	useEffect(() => {
 		if (!activeDevScenario) {
 			return;
 		}
 
-		setRescheduleLinkInvalidContent(null);
+		setInvalidLinkMessage(null);
 		setSelectedTime("");
 		setSelectedDateValue(formatDateValue(startOfToday()));
 	}, [activeDevScenario]);
+
 	const getRescheduleBooking = activeDevScenario
 		? buildDevRescheduleBooking(activeDevScenario)
 		: liveRescheduleBooking;
+
 	if (getRescheduleBooking === undefined) {
 		return (
 			<BookingStatusLayout
@@ -335,42 +375,14 @@ function ReschedulePage() {
 
 		try {
 			if (activeDevScenario) {
-				const devUpdateError = getDevRescheduleUpdateError(activeDevScenario);
+				const [devUpdateError, devUpdate] = getDevRescheduleUpdateResult(activeDevScenario);
 
 				if (devUpdateError !== null) {
-					switch (devUpdateError.reason) {
-						case "BOOKING_INVALID_DATE":
-							toast.error("Please choose a valid date.");
-							return;
-
-						case "BOOKING_INVALID_TIME":
-							toast.error("Please choose a valid time.");
-							return;
-
-						case "BOOKING_TIME_UNAVAILABLE":
-							toast.error("That time is no longer available. Please choose another time.");
-							return;
-
-						case "GOOGLE_CALENDAR_UPDATE_FAILED":
-							toast.error("We couldn’t update the calendar. Please contact us and we’ll help you.");
-							return;
-
-						case "GOOGLE_CALENDAR_RATE_LIMITED":
-							toast.error("Calendar is temporarily busy. Please wait a moment and try again.");
-							return;
-
-						case "UNEXPECTED_ERROR":
-							toast.error("Something went wrong while updating your booking.");
-							return;
-
-						default: {
-							const _exhaustive: never = devUpdateError;
-							return _exhaustive;
-						}
-					}
+					toast.error(getRescheduleUpdateToastMessage(devUpdateError));
+					return;
 				}
 
-				await navigateToRescheduleComplete("dev-reschedule-booking");
+				await navigateToRescheduleComplete(devUpdate.bookingId);
 				return;
 			}
 
@@ -379,59 +391,8 @@ function ReschedulePage() {
 			);
 
 			if (rescheduleError !== null) {
-				switch (rescheduleError.reason) {
-					case "RESCHEDULE_LINK_NOT_FOUND":
-						toast.error("This reschedule link could not be found.");
-						return;
-
-					case "RESCHEDULE_LINK_USED":
-						toast.error("This reschedule link has already been used.");
-						return;
-
-					case "RESCHEDULE_LINK_EXPIRED":
-						toast.error("This reschedule link has expired.");
-						return;
-
-					case "BOOKING_NOT_FOUND":
-						toast.error("We could not find this booking.");
-						return;
-
-					case "BOOKING_NOT_RESCHEDULABLE":
-						toast.error("This booking can’t be rescheduled online.");
-						return;
-
-					case "BOOKING_INVALID_DATE":
-						toast.error("Please choose a valid date.");
-						return;
-
-					case "BOOKING_INVALID_TIME":
-						toast.error("Please choose a valid time.");
-						return;
-
-					case "BOOKING_TIME_UNAVAILABLE":
-						toast.error("That time is no longer available. Please choose another time.");
-						return;
-
-					case "GOOGLE_CALENDAR_AUTH_FAILED":
-					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-					case "GOOGLE_CALENDAR_CREATE_FAILED":
-					case "GOOGLE_CALENDAR_UPDATE_FAILED":
-						toast.error("We couldn’t update the calendar. Please contact us and we’ll help you.");
-						return;
-
-					case "GOOGLE_CALENDAR_RATE_LIMITED":
-						toast.error("Calendar is temporarily busy. Please wait a moment and try again.");
-						return;
-
-					case "UNEXPECTED_ERROR":
-						toast.error("Something went wrong while updating your booking.");
-						return;
-
-					default: {
-						const _exhaustive: never = rescheduleError;
-						return _exhaustive;
-					}
-				}
+				toast.error(getRescheduleUpdateToastMessage(rescheduleError));
+				return;
 			}
 
 			await navigateToRescheduleComplete(result.bookingId);
@@ -440,16 +401,14 @@ function ReschedulePage() {
 		}
 	}
 
-	if (rescheduleLinkInvalidContent !== null) {
+	if (invalidLinkMessage !== null) {
 		return (
 			<BookingStatusLayout
 				bookingStatus="failed"
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
 				<div>
-					<h1 className="text-4xl font-semibold tracking-tight">
-						{rescheduleLinkInvalidContent.title}
-					</h1>
-					<p className="mt-4 text-muted-foreground">{rescheduleLinkInvalidContent.description}</p>
+					<h1 className="text-4xl font-semibold tracking-tight">{invalidLinkMessage.title}</h1>
+					<p className="mt-4 text-muted-foreground">{invalidLinkMessage.description}</p>
 				</div>
 			</BookingStatusLayout>
 		);
@@ -457,6 +416,40 @@ function ReschedulePage() {
 	const formattedDate = formatBookingDate(booking.date);
 	const formattedTime = formatBookingTimeRange(booking.time, booking.duration);
 	const addonsLabel = booking.addons.length > 0 ? booking.addons.join(", ") : "None";
+	const selectedBusyDay = selectedDateValue
+		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
+		: null;
+	const availableTimes = (() => {
+		if (activeDevScenario) {
+			const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
+			return devAvailabilityStatus.kind === "ready" ? [...devAvailabilityStatus.times] : [];
+		}
+
+		if (
+			!selectedDateValue ||
+			!selectedDate ||
+			selectedDate < today ||
+			selectedDate > lastBookableDate
+		) {
+			return [];
+		}
+
+		if (!isViewingSelectedMonth) {
+			return [];
+		}
+
+		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
+			return [];
+		}
+
+		return getAvailableTimesForDate({
+			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+			currentTimestamp,
+			dateValue: selectedDateValue,
+			duration: booking.duration,
+			settings: availabilitySettings
+		});
+	})();
 	const disabledDates = (date: Date) =>
 		isBookingDateDisabled({
 			currentTimestamp,
@@ -482,7 +475,7 @@ function ReschedulePage() {
 				<h2 className="mt-6 text-xs! md:text-sm! font-semibold tracking-widest uppercase">
 					Existing booking
 				</h2>
-				<div className="mt-2 rounded-lg border bg-card p-2 text-sm text-card-foreground">
+				<div className="mt-2 rounded-lg py-2 text-sm text-card-foreground">
 					<dl className="grid gap-2 md:grid-cols-2">
 						<div className="space-y-1">
 							<div className="flex gap-1.5">
@@ -509,14 +502,14 @@ function ReschedulePage() {
 					</dl>
 				</div>
 
-				<div className="mt-8">
+				<div className="mt-12">
 					<BookingDateTimePicker
 						availabilityError={availabilityError}
 						availableTimes={availableTimes}
 						calendarMonth={calendarMonth}
 						dateLabel="SESSION DATE *"
 						disabledDates={disabledDates}
-						isLoadingAvailability={isLoadingAvailability || isLoadingMonthAvailability}
+						isLoadingAvailability={isLoadingMonthAvailability}
 						isSelectedDateInPast={false}
 						isViewingSelectedMonth={isViewingSelectedMonth}
 						onDateChange={(dateValue) => {
@@ -535,13 +528,13 @@ function ReschedulePage() {
 				<div className="mt-6">
 					<Button
 						type="button"
-						className="w-full"
+						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
 						disabled={!selectedDateValue || !selectedTime || isUpdatingBooking}
 						onClick={handleUpdateBooking}>
 						UPDATE BOOKING
 					</Button>
 				</div>
-				<p className="mt-2 text-center text-sm text-muted-foreground">
+				<p className="mt-4 text-center text-xs text-muted-foreground">
 					Reschedule link expires {formatBookingTimestampTime(data.expiresAt)},{" "}
 					{formatBookingTimestampDateLong(data.expiresAt)}
 				</p>
