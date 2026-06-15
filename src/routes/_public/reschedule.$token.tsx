@@ -20,10 +20,9 @@ import {
 	parseRescheduleSearch,
 	RescheduleDevScenarioPanel
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
+import { RescheduleBookingSummary } from "#studio/components/booking/RescheduleBookingSummary";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	formatBookingDate,
-	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatDateValue,
@@ -44,6 +43,7 @@ import {
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
+import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 
@@ -425,9 +425,6 @@ function ReschedulePage() {
 			</BookingStatusLayout>
 		);
 	}
-	const formattedDate = formatBookingDate(booking.date);
-	const formattedTime = formatBookingTimeRange(booking.time, booking.duration);
-	const addonsLabel = booking.addons.length > 0 ? booking.addons.join(", ") : "None";
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
@@ -473,6 +470,11 @@ function ReschedulePage() {
 			settings: availabilitySettings,
 			today
 		});
+	const timeSelectionMessage = getBookingTimeSelectionMessage({
+		hasDate: Boolean(selectedDateValue),
+		hasDuration: true,
+		isViewingSelectedMonth
+	});
 
 	return (
 		<BookingStatusLayout
@@ -484,42 +486,19 @@ function ReschedulePage() {
 					Reschedule your booking
 				</h1>
 
-				<h2 className="mt-6 text-xs! md:text-sm! font-semibold tracking-widest uppercase">
-					Existing booking
-				</h2>
-				<div className="mt-2 rounded-lg py-2 text-sm text-card-foreground">
-					<dl className="grid gap-2 md:grid-cols-2">
-						<div className="space-y-1">
-							<div className="flex gap-1.5">
-								<dt className="w-16 shrink-0 text-muted-foreground">Date</dt>
-								<dd className="font-medium">{formattedDate}</dd>
-							</div>
-							<div className="flex gap-1.5">
-								<dt className="w-16 shrink-0 text-muted-foreground">Time</dt>
-								<dd className="font-medium">{formattedTime}</dd>
-							</div>
-						</div>
-						<div className="space-y-1">
-							<div className="flex gap-1.5">
-								<dt className="w-16 shrink-0 text-muted-foreground">Service</dt>
-								<dd className="font-medium">
-									{booking.service} ({booking.duration})
-								</dd>
-							</div>
-							<div className="flex gap-1.5">
-								<dt className="w-16 shrink-0 text-muted-foreground">Add-ons</dt>
-								<dd className="font-medium">{addonsLabel}</dd>
-							</div>
-						</div>
-					</dl>
-				</div>
+				<RescheduleBookingSummary
+					addons={booking.addons}
+					date={booking.date}
+					duration={booking.duration}
+					service={booking.service}
+					time={booking.time}
+				/>
 
 				<div className="mt-12">
 					<BookingDateTimePicker
 						availabilityError={availabilityError}
 						availableTimes={availableTimes}
 						calendarMonth={calendarMonth}
-						dateLabel="SESSION DATE *"
 						disabledDates={disabledDates}
 						isLoadingAvailability={isLoadingMonthAvailability}
 						isSelectedDateInPast={false}
@@ -532,8 +511,7 @@ function ReschedulePage() {
 						selectedDate={selectedDate}
 						selectedTime={selectedTime}
 						setCalendarMonth={setCalendarMonth}
-						shouldPromptSelectDate={!selectedDateValue}
-						timeLabel="SESSION TIME *"
+						timeSelectionMessage={timeSelectionMessage}
 					/>
 				</div>
 

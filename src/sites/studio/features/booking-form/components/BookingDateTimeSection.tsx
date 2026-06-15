@@ -6,14 +6,13 @@ import { Modal } from "#studio/components/Modal";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
+	getBookingTimeSelectionMessage,
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 const sectionCopy = {
-	dateLabel: "SESSION DATE *",
-	timeLabel: "SESSION TIME *",
 	modalCloseLabel: "Close dialog",
 	sessionSummaryTitle: "Session selected",
 	sessionSummaryDescription: "Review selected session time before continuing.",
@@ -47,6 +46,11 @@ export function BookingDateTimeSection({
 	const formValues = useStore(formApi.store, (state) => state.values as BookingFormValues);
 	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
+	const timeSelectionMessage = getBookingTimeSelectionMessage({
+		hasDate: Boolean(formValues.date),
+		hasDuration: Boolean(formValues.duration),
+		isViewingSelectedMonth
+	});
 	const bookingDateSummary = formValues.date
 		? formatBookingDateSummary(formValues.date)
 		: "No selected date";
@@ -104,8 +108,7 @@ export function BookingDateTimeSection({
 								selectedDate={selectedDate}
 								selectedTime={timeField.state.value}
 								setCalendarMonth={setCalendarMonth}
-								shouldPromptSelectDate={!formValues.date || !isViewingSelectedMonth}
-								shouldPromptSelectDuration={Boolean(formValues.date && !formValues.duration)}
+								timeSelectionMessage={timeSelectionMessage}
 								timeError={
 									timeField.state.meta.isBlurred || shouldShowFieldError ? (
 										<FieldError errors={toFieldErrorObjects(timeField.state.meta.errors)} />

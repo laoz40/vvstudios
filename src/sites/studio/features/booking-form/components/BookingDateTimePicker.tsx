@@ -15,6 +15,7 @@ import {
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
+import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
 import {
 	formatDateValue,
 	formatTimeValue,
@@ -24,9 +25,9 @@ import {
 import { cn } from "#/lib/utils";
 
 const copy = {
+	dateLabel: "SESSION DATE *",
+	timeLabel: "SESSION TIME *",
 	pastDatesUnavailable: "Past dates are unavailable.",
-	selectDatePrompt: "Select a date to view times.",
-	selectDurationPrompt: "Select a duration to view times.",
 	loadingAvailability: "Loading availability...",
 	noTimesAvailable: "No times available for this date."
 } as const;
@@ -36,7 +37,6 @@ export interface BookingDateTimePickerProps {
 	availableTimes: string[];
 	calendarMonth: Date;
 	dateError?: React.ReactNode;
-	dateLabel?: string;
 	disabledDates: (date: Date) => boolean;
 	isLoadingAvailability: boolean;
 	isSelectedDateInPast: boolean;
@@ -46,10 +46,8 @@ export interface BookingDateTimePickerProps {
 	selectedDate: Date | undefined;
 	selectedTime: string;
 	setCalendarMonth: (date: Date) => void;
-	shouldPromptSelectDuration?: boolean;
-	shouldPromptSelectDate: boolean;
 	timeError?: React.ReactNode;
-	timeLabel?: string;
+	timeSelectionMessage: BookingTimeSelectionMessage | null;
 }
 
 export function BookingDateTimePicker({
@@ -57,7 +55,6 @@ export function BookingDateTimePicker({
 	availableTimes,
 	calendarMonth,
 	dateError,
-	dateLabel = "SESSION DATE *",
 	disabledDates,
 	isLoadingAvailability,
 	isSelectedDateInPast,
@@ -67,12 +64,11 @@ export function BookingDateTimePicker({
 	selectedDate,
 	selectedTime,
 	setCalendarMonth,
-	shouldPromptSelectDuration = false,
-	shouldPromptSelectDate,
 	timeError,
-	timeLabel = "SESSION TIME *"
+	timeSelectionMessage
 }: BookingDateTimePickerProps) {
 	const hasAvailableTimes = availableTimes.length > 0;
+	const isTimeSelectionReady = !timeSelectionMessage;
 
 	return (
 		<div className="grid max-w-7xl gap-6 xl:grid-cols-3 xl:items-start xl:gap-4">
@@ -80,7 +76,7 @@ export function BookingDateTimePicker({
 				<Field
 					data-field-name="date"
 					className="gap-3">
-					<FieldLabel className={sectionHeadingClassName}>{dateLabel}</FieldLabel>
+					<FieldLabel className={sectionHeadingClassName}>{copy.dateLabel}</FieldLabel>
 					<div className="border-border flex overflow-hidden rounded-lg border bg-input/30 shadow-lg shadow-background/25 xl:h-128">
 						<Calendar
 							className="h-full bg-transparent p-5 xl:p-6 [--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
@@ -121,33 +117,24 @@ export function BookingDateTimePicker({
 				<FieldSet
 					data-field-name="time"
 					className="min-w-0 gap-3">
-					<FieldLegend className={sectionHeadingClassName}>{timeLabel}</FieldLegend>
-					{shouldPromptSelectDate ? (
-						<FieldDescription>{copy.selectDatePrompt}</FieldDescription>
-					) : null}
-					{shouldPromptSelectDuration ? (
-						<FieldDescription className="text-destructive">
-							{copy.selectDurationPrompt}
+					<FieldLegend className={sectionHeadingClassName}>{copy.timeLabel}</FieldLegend>
+					{timeSelectionMessage ? (
+						<FieldDescription
+							className={cn(timeSelectionMessage.variant === "error" && "text-destructive")}>
+							{timeSelectionMessage.text}
 						</FieldDescription>
 					) : null}
-					{!shouldPromptSelectDate &&
-					!shouldPromptSelectDuration &&
-					isViewingSelectedMonth &&
-					isSelectedDateInPast ? (
+					{isTimeSelectionReady && isViewingSelectedMonth && isSelectedDateInPast ? (
 						<FieldDescription>{copy.pastDatesUnavailable}</FieldDescription>
 					) : null}
-					{!shouldPromptSelectDate &&
-					!shouldPromptSelectDuration &&
-					isViewingSelectedMonth &&
-					isLoadingAvailability ? (
+					{isTimeSelectionReady && isViewingSelectedMonth && isLoadingAvailability ? (
 						<FieldDescription className="flex items-center gap-2">
 							<LoaderCircle className="size-4 animate-spin" />
 							{copy.loadingAvailability}
 						</FieldDescription>
 					) : null}
-					{!isLoadingAvailability &&
-					!shouldPromptSelectDate &&
-					!shouldPromptSelectDuration &&
+					{isTimeSelectionReady &&
+					!isLoadingAvailability &&
 					isViewingSelectedMonth &&
 					!isSelectedDateInPast &&
 					!hasAvailableTimes &&
@@ -161,12 +148,7 @@ export function BookingDateTimePicker({
 							<RadioGroup
 								value={selectedTime}
 								onValueChange={onTimeChange}
-								disabled={
-									shouldPromptSelectDate ||
-									shouldPromptSelectDuration ||
-									!isViewingSelectedMonth ||
-									isLoadingAvailability
-								}
+								disabled={!isTimeSelectionReady || !isViewingSelectedMonth || isLoadingAvailability}
 								className="flex flex-col gap-6">
 								<div className="grid grid-cols-1 gap-3">
 									{availableTimes.map((time) => {

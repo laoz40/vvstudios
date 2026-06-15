@@ -132,3 +132,28 @@ export function toFieldErrorObjects(errors: unknown[]) {
 		return [];
 	});
 }
+
+export interface BookingTimeSelectionMessage {
+	text: string;
+	variant: "default" | "error";
+}
+
+export function getBookingTimeSelectionMessage({
+	hasDate,
+	hasDuration,
+	isViewingSelectedMonth
+}: {
+	hasDate: boolean;
+	hasDuration: boolean;
+	isViewingSelectedMonth: boolean;
+}): BookingTimeSelectionMessage | null {
+	if (!hasDate || !isViewingSelectedMonth) {
+		return { text: "Select a date to view times.", variant: "default" };
+	}
+
+	if (!hasDuration) {
+		return { text: "Select a duration to view times.", variant: "error" };
+	}
+
+	return null;
+}
