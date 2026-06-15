@@ -1,6 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
-import { err, ok } from "../../src/lib/result";
+import { err, ok, type Result } from "../../src/lib/result";
 import type { Doc } from "../_generated/dataModel";
 import {
 	buildEventWindow,
@@ -12,7 +12,7 @@ import {
 	isGoogleCalendarEventNotFoundError
 } from "./googleCalendarErrors";
 
-interface BookingCalendarEventDetails {
+export interface BookingCalendarEventDetails {
 	addons: string[];
 	duration: string;
 	email: string;
@@ -73,8 +73,8 @@ export function buildBookingCalendarEventPayload({
 	} satisfies calendar_v3.Schema$Event);
 }
 
-type GoogleCalendarEventClient = {
-	calendar: calendar_v3.Calendar;
+export type GoogleCalendarEventClient = {
+	calendar: Pick<calendar_v3.Calendar, "events">;
 	calendarId: string;
 	timeZone: string;
 };
@@ -101,7 +101,7 @@ async function findBookingCalendarEventIncludingDeclined({
 	timeZone
 }: {
 	booking: Doc<"bookings">;
-	calendar: calendar_v3.Calendar;
+	calendar: Pick<calendar_v3.Calendar, "events">;
 	calendarId: string;
 	timeZone: string;
 }) {
@@ -132,7 +132,7 @@ async function findBookingCalendarEventIncludingDeclined({
 }
 
 async function deleteCalendarEventIfFound(
-	calendar: calendar_v3.Calendar,
+	calendar: Pick<calendar_v3.Calendar, "events">,
 	calendarId: string,
 	eventId: string
 ) {
@@ -201,5 +201,117 @@ export async function deleteBookingCalendarEvent({
 		}
 
 		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
+	}
+}
+
+export type BookingCalendarTimingUpdateError = {
+	reason:
+		| "GOOGLE_CALENDAR_AUTH_FAILED"
+		| "GOOGLE_CALENDAR_CREATE_FAILED"
+		| "GOOGLE_CALENDAR_RATE_LIMITED"
+		| "GOOGLE_CALENDAR_UPDATE_FAILED";
+};
+
+export type BookingCalendarTimingUpdateResult = {
+	googleCalendarId?: string;
+	googleEventId?: string;
+	outcome?: "replacementCreated";
+};
+
+export async function updateBookingCalendarEventTiming({
+	booking,
+	client,
+	date,
+	details,
+	time
+}: {
+	booking: Doc<"bookings">;
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: BookingCalendarEventDetails;
+	time: string;
+}): Promise<Result<BookingCalendarTimingUpdateResult, BookingCalendarTimingUpdateError>> {
+	// Confirmed bookings without a Google event link are left unchanged for now.
+	if (!booking.googleEventId || !booking.googleCalendarId) {
+		return ok({});
+	}
+
+	const googleCalendarId = booking.googleCalendarId;
+	const googleEventId = booking.googleEventId;
+
+	try {
+		const existingGoogleEvent = await client.calendar.events.get({
+			calendarId: googleCalendarId,
+			eventId: googleEventId
+		});
+
+		if (existingGoogleEvent.data.status === "cancelled") {
+			return createReplacementBookingCalendarEvent({ client, date, details, time });
+		}
+
+		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+			date,
+			details,
+			time,
+			timeZone: client.timeZone
+		});
+
+		if (payloadError !== null) {
+			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
+		}
+
+		await client.calendar.events.patch({
+			calendarId: googleCalendarId,
+			eventId: googleEventId,
+			sendUpdates: "all",
+			requestBody
+		});
+	} catch (error) {
+		if (isGoogleCalendarEventNotFoundError(error)) {
+			return createReplacementBookingCalendarEvent({ client, date, details, time });
+		}
+
+		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
+	}
+
+	return ok({});
+}
+
+async function createReplacementBookingCalendarEvent({
+	client,
+	date,
+	details,
+	time
+}: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: BookingCalendarEventDetails;
+	time: string;
+}) {
+	try {
+		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+			date,
+			details,
+			time,
+			timeZone: client.timeZone
+		});
+
+		if (payloadError !== null) {
+			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
+		}
+
+		const replacementEvent = await client.calendar.events.insert({
+			calendarId: client.calendarId,
+			sendUpdates: "all",
+			requestBody
+		});
+
+		return ok({
+			googleCalendarId: client.calendarId,
+			googleEventId: replacementEvent.data.id ?? undefined,
+			outcome: "replacementCreated" as const
+		});
+	} catch (error) {
+		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
 	}
 }

@@ -156,6 +156,34 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 	};
 }
 
+export const getPublicRescheduleCompleteBooking = query({
+	args: { bookingId: v.string() },
+	handler: (ctx, args) => getPublicRescheduleCompleteBookingHandler(ctx, args)
+});
+
+async function getPublicRescheduleCompleteBookingHandler(
+	ctx: QueryCtx,
+	args: { bookingId: string }
+) {
+	const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
+
+	if (bookingId === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	const booking = await ctx.db.get(bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	return ok(buildPublicBookingStatusResponse(booking));
+}
+
+export type GetPublicRescheduleCompleteBookingResult = Awaited<
+	ReturnType<typeof getPublicRescheduleCompleteBookingHandler>
+>;
+
 export const getBookingStatusByStripeSessionId = query({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) => {
@@ -650,6 +678,37 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 						bookingFailureCode: undefined
 					}
 				: {})
+		});
+
+		return ok({ saved: true });
+	}
+});
+
+export const saveClientBookingRescheduleInternal = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		date: v.string(),
+		time: v.string(),
+		sessionStartAt: v.number(),
+		googleCalendarId: v.optional(v.string()),
+		googleEventId: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			date: args.date,
+			time: args.time,
+			sessionStartAt: args.sessionStartAt,
+			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+			reminderEmailClaimedAt: undefined,
+			reminderEmailSentAt: undefined,
+			reminderEmailFailureCode: undefined
 		});
 
 		return ok({ saved: true });

@@ -13,6 +13,7 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PublicTermsAndConditionsRouteImport } from './routes/_public/terms-and-conditions'
+import { Route as PublicRescheduleCompleteRouteImport } from './routes/_public/reschedule-complete'
 import { Route as PublicPrivacyPolicyRouteImport } from './routes/_public/privacy-policy'
 import { Route as PublicPricingRouteImport } from './routes/_public/pricing'
 import { Route as PublicGalleryRouteImport } from './routes/_public/gallery'
@@ -41,6 +42,12 @@ const PublicTermsAndConditionsRoute =
   PublicTermsAndConditionsRouteImport.update({
     id: '/terms-and-conditions',
     path: '/terms-and-conditions',
+    getParentRoute: () => PublicRoute,
+  } as any)
+const PublicRescheduleCompleteRoute =
+  PublicRescheduleCompleteRouteImport.update({
+    id: '/reschedule-complete',
+    path: '/reschedule-complete',
     getParentRoute: () => PublicRoute,
   } as any)
 const PublicPrivacyPolicyRoute = PublicPrivacyPolicyRouteImport.update({
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof PublicGalleryRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
@@ -119,6 +127,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof PublicGalleryRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
@@ -135,6 +144,7 @@ export interface FileRoutesById {
   '/_public/gallery': typeof PublicGalleryRoute
   '/_public/pricing': typeof PublicPricingRoute
   '/_public/privacy-policy': typeof PublicPrivacyPolicyRoute
+  '/_public/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/_public/': typeof PublicIndexRoute
   '/_public/reschedule/$token': typeof PublicRescheduleTokenRoute
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/pricing'
     | '/privacy-policy'
+    | '/reschedule-complete'
     | '/terms-and-conditions'
     | '/reschedule/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/pricing'
     | '/privacy-policy'
+    | '/reschedule-complete'
     | '/terms-and-conditions'
     | '/reschedule/$token'
   id:
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/_public/gallery'
     | '/_public/pricing'
     | '/_public/privacy-policy'
+    | '/_public/reschedule-complete'
     | '/_public/terms-and-conditions'
     | '/_public/'
     | '/_public/reschedule/$token'
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/terms-and-conditions'
       fullPath: '/terms-and-conditions'
       preLoaderRoute: typeof PublicTermsAndConditionsRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/reschedule-complete': {
+      id: '/_public/reschedule-complete'
+      path: '/reschedule-complete'
+      fullPath: '/reschedule-complete'
+      preLoaderRoute: typeof PublicRescheduleCompleteRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/privacy-policy': {
@@ -314,6 +334,7 @@ interface PublicRouteChildren {
   PublicGalleryRoute: typeof PublicGalleryRoute
   PublicPricingRoute: typeof PublicPricingRoute
   PublicPrivacyPolicyRoute: typeof PublicPrivacyPolicyRoute
+  PublicRescheduleCompleteRoute: typeof PublicRescheduleCompleteRoute
   PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicRescheduleTokenRoute: typeof PublicRescheduleTokenRoute
@@ -327,6 +348,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicGalleryRoute: PublicGalleryRoute,
   PublicPricingRoute: PublicPricingRoute,
   PublicPrivacyPolicyRoute: PublicPrivacyPolicyRoute,
+  PublicRescheduleCompleteRoute: PublicRescheduleCompleteRoute,
   PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicRescheduleTokenRoute: PublicRescheduleTokenRoute,

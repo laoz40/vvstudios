@@ -11,11 +11,13 @@ import {
 	type BookingAvailabilitySettings
 } from "./bookingCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
-import { buildBookingCalendarEventPayload } from "./googleCalendarEvents";
 import {
-	getGoogleCalendarErrorCode,
-	isGoogleCalendarEventNotFoundError
-} from "./googleCalendarErrors";
+	buildBookingCalendarEventPayload,
+	type BookingCalendarEventDetails,
+	type BookingCalendarTimingUpdateResult,
+	updateBookingCalendarEventTiming
+} from "./googleCalendarEvents";
+import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
 
 type BookingEditValues = Pick<
 	Doc<"bookings">,
@@ -233,18 +235,16 @@ export async function verifyBookingCanBeScheduled({
 	});
 }
 
-export type AdminBookingUpdateError = {
-	reason:
-		| "BOOKING_INVALID_DATE"
-		| "BOOKING_INVALID_TIME"
-		| "BOOKING_NOT_FOUND"
-		| "BOOKING_TIME_UNAVAILABLE"
-		| "GOOGLE_CALENDAR_AUTH_FAILED"
-		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-		| "GOOGLE_CALENDAR_CREATE_FAILED"
-		| "GOOGLE_CALENDAR_RATE_LIMITED"
-		| "GOOGLE_CALENDAR_UPDATE_FAILED";
-};
+export type AdminBookingUpdateError =
+	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_TIME" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_TIME_UNAVAILABLE" }
+	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_CREATE_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
+	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" };
 
 export async function validateBookingTimingEdit({
 	bypassAvailabilitySettings = false,
@@ -400,109 +400,111 @@ async function promoteFailedBookingFromAdmin({
 	return ok({ ok: true, googleOutcome: "createdFromFailed" });
 }
 
-async function saveReplacementGoogleEvent({
-	args,
+export async function updateBookingTimingWithGoogleCalendar({
+	bypassAvailabilitySettings = false,
+	booking,
 	client,
-	ctx
+	date,
+	details,
+	duration,
+	settings,
+	time
+}: {
+	bypassAvailabilitySettings?: boolean;
+	booking: Doc<"bookings">;
+	client: AdminBookingGoogleCalendarClient;
+	date: string;
+	details: BookingCalendarEventDetails;
+	duration: string;
+	settings: BookingAvailabilitySettings;
+	time: string;
+}): Promise<
+	Result<BookingCalendarTimingUpdateResult & { sessionStartAt: number }, AdminBookingUpdateError>
+> {
+	const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(date, time, client.timeZone);
+
+	if (sessionStartError !== null) {
+		return err(sessionStartError);
+	}
+
+	const [timingError] = await validateBookingTimingEdit({
+		bypassAvailabilitySettings,
+		calendar: client.calendar,
+		calendarIds: client.calendarIds,
+		existing: {
+			date: booking.date,
+			duration: booking.duration,
+			googleCalendarId: booking.googleCalendarId,
+			googleEventId: booking.googleEventId,
+			time: booking.time
+		},
+		next: { date, duration, time },
+		settings,
+		timeZone: client.timeZone
+	});
+
+	if (timingError !== null) {
+		return err(timingError);
+	}
+
+	const [calendarError, calendarUpdate] = await updateBookingCalendarEventTiming({
+		booking,
+		client,
+		date,
+		details,
+		time
+	});
+
+	if (calendarError !== null) {
+		return err(calendarError);
+	}
+
+	return ok({ ...calendarUpdate, sessionStartAt });
+}
+
+async function updateConfirmedBookingGoogleEventOrCreateReplacement({
+	args,
+	booking,
+	client,
+	ctx,
+	settings
 }: {
 	args: AdminBookingUpdateArgs;
+	booking: Doc<"bookings">;
 	client: AdminBookingGoogleCalendarClient;
 	ctx: ActionCtx;
-}): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// If the linked Google event was deleted or cancelled, create a replacement and relink it.
-	let googleEventId: string | undefined;
+	settings: BookingAvailabilitySettings;
+}): Promise<Result<AdminBookingUpdateResult | null, AdminBookingUpdateError>> {
+	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
+		bypassAvailabilitySettings: true,
+		booking,
+		client,
+		date: args.date,
+		details: getAdminBookingEventDetails(args),
+		duration: args.duration,
+		settings,
+		time: args.time
+	});
 
-	try {
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
-			date: args.date,
-			details: getAdminBookingEventDetails(args),
-			time: args.time,
-			timeZone: client.timeZone
-		});
+	if (timingUpdateError !== null) {
+		return err(timingUpdateError);
+	}
 
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
-		}
-
-		const replacementEvent = await client.calendar.events.insert({
-			calendarId: client.calendarId,
-			sendUpdates: "all",
-			requestBody
-		});
-		googleEventId = replacementEvent.data.id ?? undefined;
-	} catch (error) {
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
+	if (!timingUpdate.googleEventId && !timingUpdate.googleCalendarId) {
+		return ok(null);
 	}
 
 	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
 		...args,
-		googleCalendarId: client.calendarId,
-		googleEventId
+		googleCalendarId: timingUpdate.googleCalendarId,
+		googleEventId: timingUpdate.googleEventId
 	});
 
 	if (saveError !== null) {
 		return err(saveError);
 	}
 
-	return ok({ ok: true, googleOutcome: "replacementCreated" });
-}
-async function updateConfirmedBookingGoogleEventOrCreateReplacement({
-	args,
-	booking,
-	client,
-	ctx
-}: {
-	args: AdminBookingUpdateArgs;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
-	ctx: ActionCtx;
-}): Promise<Result<AdminBookingUpdateResult | null, AdminBookingUpdateError>> {
-	// Confirmed bookings without a Google event link are left unchanged for now.
-	if (!booking.googleEventId || !booking.googleCalendarId) {
-		return ok(null);
-	}
-
-	const googleCalendarId = booking.googleCalendarId;
-	const googleEventId = booking.googleEventId;
-
-	try {
-		const existingGoogleEvent = await client.calendar.events.get({
-			calendarId: googleCalendarId,
-			eventId: googleEventId
-		});
-
-		// Cancelled Google events cannot be patched back into place, so create a replacement.
-		if (existingGoogleEvent.data.status === "cancelled") {
-			return saveReplacementGoogleEvent({ args, client, ctx });
-		}
-
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
-			date: args.date,
-			details: getAdminBookingEventDetails(args),
-			time: args.time,
-			timeZone: client.timeZone
-		});
-
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
-		}
-
-		await client.calendar.events.patch({
-			calendarId: googleCalendarId,
-			eventId: googleEventId,
-			sendUpdates: "all",
-			requestBody
-		});
-	} catch (error) {
-		// Missing/deleted Google events are repaired by creating and saving a replacement event.
-		if (isGoogleCalendarEventNotFoundError(error)) {
-			return saveReplacementGoogleEvent({ args, client, ctx });
-		}
-
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
-	}
-
-	return ok(null);
+	return ok({ ok: true, googleOutcome: timingUpdate.outcome });
 }
 
 export async function updateBookingFromAdminWithGoogleCalendar({
@@ -518,27 +520,6 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 	ctx: ActionCtx;
 	settings: BookingAvailabilitySettings;
 }): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// Validate timing edits before touching Google Calendar or saving booking changes.
-	const [timingError] = await validateBookingTimingEdit({
-		bypassAvailabilitySettings: true,
-		calendar: client.calendar,
-		calendarIds: client.calendarIds,
-		existing: {
-			date: booking.date,
-			duration: booking.duration,
-			googleCalendarId: booking.googleCalendarId,
-			googleEventId: booking.googleEventId,
-			time: booking.time
-		},
-		next: { date: args.date, duration: args.duration, time: args.time },
-		settings,
-		timeZone: client.timeZone
-	});
-
-	if (timingError !== null) {
-		return err(timingError);
-	}
-
 	// Failed bookings become confirmed when the edited slot can be scheduled.
 	if (booking.status === "failed") {
 		return promoteFailedBookingFromAdmin({ args, booking, client, ctx, settings });
@@ -546,6 +527,26 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
 	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		const [timingError] = await validateBookingTimingEdit({
+			bypassAvailabilitySettings: true,
+			calendar: client.calendar,
+			calendarIds: client.calendarIds,
+			existing: {
+				date: booking.date,
+				duration: booking.duration,
+				googleCalendarId: booking.googleCalendarId,
+				googleEventId: booking.googleEventId,
+				time: booking.time
+			},
+			next: { date: args.date, duration: args.duration, time: args.time },
+			settings,
+			timeZone: client.timeZone
+		});
+
+		if (timingError !== null) {
+			return err(timingError);
+		}
+
 		const [saveError] = await ctx.runMutation(
 			internal.bookings.saveAdminBookingUpdateInternal,
 			args
@@ -560,7 +561,13 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 
 	// Update the linked Google event. If it is missing/cancelled, this creates and saves a replacement.
 	const [replacementError, replacementOutcome] =
-		await updateConfirmedBookingGoogleEventOrCreateReplacement({ args, booking, client, ctx });
+		await updateConfirmedBookingGoogleEventOrCreateReplacement({
+			args,
+			booking,
+			client,
+			ctx,
+			settings
+		});
 	if (replacementError !== null) {
 		return err(replacementError);
 	}

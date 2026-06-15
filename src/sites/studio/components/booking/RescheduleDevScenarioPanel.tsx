@@ -12,7 +12,13 @@ const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Not Reschedulable", value: "not_reschedulable" },
 	{ label: "Availability Error", value: "availability_error" },
 	{ label: "Rate Limited", value: "rate_limited" },
-	{ label: "No Times", value: "no_times" }
+	{ label: "No Times", value: "no_times" },
+	{ label: "Update Invalid Date", value: "update_invalid_date" },
+	{ label: "Update Invalid Time", value: "update_invalid_time" },
+	{ label: "Update Time Unavailable", value: "update_time_unavailable" },
+	{ label: "Update Calendar Error", value: "update_calendar_error" },
+	{ label: "Update Rate Limited", value: "update_rate_limited" },
+	{ label: "Update Unexpected", value: "update_unexpected" }
 ] as const;
 
 export type DevRescheduleScenario = (typeof DEV_RESCHEDULE_SCENARIO_OPTIONS)[number]["value"];
@@ -58,7 +64,29 @@ export function parseRescheduleSearch(search: Record<string, unknown>): Reschedu
 	return { dev_scenario: parseDevRescheduleScenario(search.dev_scenario) };
 }
 
-export function buildDevRescheduleBooking(): RescheduleBookingLookup {
+export function buildDevRescheduleBooking(
+	devScenario: DevRescheduleScenario | undefined
+): RescheduleBookingLookup {
+	if (devScenario === "link_not_found") {
+		return [{ reason: "RESCHEDULE_LINK_NOT_FOUND" }, null];
+	}
+
+	if (devScenario === "link_used") {
+		return [{ reason: "RESCHEDULE_LINK_USED" }, null];
+	}
+
+	if (devScenario === "link_expired") {
+		return [{ reason: "RESCHEDULE_LINK_EXPIRED" }, null];
+	}
+
+	if (devScenario === "booking_missing") {
+		return [{ reason: "BOOKING_NOT_FOUND" }, null];
+	}
+
+	if (devScenario === "not_reschedulable") {
+		return [{ reason: "BOOKING_NOT_RESCHEDULABLE" }, null];
+	}
+
 	return [
 		null,
 		{
@@ -109,6 +137,34 @@ export function getDevRescheduleAvailability(devScenario: DevRescheduleScenario 
 	}
 
 	return { error: null, times: ["09:00", "10:00", "13:00", "15:00"] } as const;
+}
+
+export function getDevRescheduleUpdateError(devScenario: DevRescheduleScenario | undefined) {
+	if (devScenario === "update_invalid_date") {
+		return { reason: "BOOKING_INVALID_DATE" } as const;
+	}
+
+	if (devScenario === "update_invalid_time") {
+		return { reason: "BOOKING_INVALID_TIME" } as const;
+	}
+
+	if (devScenario === "update_time_unavailable") {
+		return { reason: "BOOKING_TIME_UNAVAILABLE" } as const;
+	}
+
+	if (devScenario === "update_calendar_error") {
+		return { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" } as const;
+	}
+
+	if (devScenario === "update_rate_limited") {
+		return { reason: "GOOGLE_CALENDAR_RATE_LIMITED" } as const;
+	}
+
+	if (devScenario === "update_unexpected") {
+		return { reason: "UNEXPECTED_ERROR" } as const;
+	}
+
+	return null;
 }
 
 function parseDevRescheduleScenario(value: unknown): DevRescheduleScenario | undefined {

@@ -32,7 +32,8 @@ import {
 	type AdminBookingUpdateError,
 	type AdminBookingUpdateResult,
 	verifyBookingCanBeScheduled,
-	updateBookingFromAdminWithGoogleCalendar
+	updateBookingFromAdminWithGoogleCalendar,
+	updateBookingTimingWithGoogleCalendar
 } from "./lib/bookingAdminEdit";
 import {
 	buildBookingCalendarEventPayload,
@@ -347,6 +348,110 @@ async function getAvailableRescheduleTimesHandler(
 export type GetAvailableRescheduleTimesResult = Awaited<
 	ReturnType<typeof getAvailableRescheduleTimesHandler>
 >;
+
+type RescheduleBookingArgs = { date: string; time: string; token: string };
+
+export const rescheduleBooking = action({
+	args: { token: v.string(), date: v.string(), time: v.string() },
+	handler: (ctx, args) => rescheduleBookingHandler(ctx, args)
+});
+
+async function rescheduleBookingHandler(
+	ctx: ActionCtx,
+	args: RescheduleBookingArgs
+): Promise<
+	Result<
+		{ bookingId: Id<"bookings">; warning?: "INVOICE_SEND_FAILED" },
+		RescheduleLinkLookupError | AdminBookingUpdateError
+	>
+> {
+	// Check that the reschedule link still exists, has not expired, and belongs to a booking.
+	const now = Date.now();
+	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
+		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		{ now, token: args.token }
+	);
+
+	if (lookupError !== null) {
+		return err(lookupError);
+	}
+
+	// Load the booking, Google Calendar client, and booking settings needed to move the event.
+	const { booking, link } = result;
+	const calendarClient = getGoogleCalendarClient();
+	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+	//
+	// Move the booking to the requested date and time in Google Calendar first.
+	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
+		booking,
+		client: calendarClient,
+		date: args.date,
+		details: {
+			addons: booking.addons,
+			duration: booking.duration,
+			email: booking.email,
+			name: booking.name,
+			service: booking.service
+		},
+		duration: booking.duration,
+		settings,
+		time: args.time
+	});
+
+	if (timingUpdateError !== null) {
+		return err(timingUpdateError);
+	}
+
+	// Save the new booking time and any Google Calendar ids returned by the update to Convex
+	const sessionStartAt = timingUpdate.sessionStartAt;
+	const googleCalendarId = timingUpdate.googleCalendarId;
+	const googleEventId = timingUpdate.googleEventId;
+
+	const [saveError] = await ctx.runMutation(internal.bookings.saveClientBookingRescheduleInternal, {
+		bookingId: booking._id,
+		date: args.date,
+		time: args.time,
+		sessionStartAt,
+		...(googleCalendarId ? { googleCalendarId } : {}),
+		...(googleEventId ? { googleEventId } : {})
+	});
+
+	if (saveError !== null) {
+		return err(saveError);
+	}
+
+	// Mark this reschedule link as used so it cannot be reused.
+	await ctx.runMutation(internal.bookingReschedule.markRescheduleLinkUsedInternal, {
+		linkId: link._id,
+		now: Date.now()
+	});
+
+	const updatedBooking = {
+		...booking,
+		date: args.date,
+		time: args.time,
+		sessionStartAt,
+		googleCalendarId: googleCalendarId ?? booking.googleCalendarId,
+		googleEventId: googleEventId ?? booking.googleEventId
+	};
+
+	// Create a fresh reschedule link, then send the updated booking emails.
+	const [linkCreateError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, updatedBooking);
+
+	if (linkCreateError !== null) {
+		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
+	}
+
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, rescheduleUrl);
+
+	if (emailError !== null) {
+		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
+	}
+
+	return ok({ bookingId: booking._id });
+}
+
+export type RescheduleBookingResult = Awaited<ReturnType<typeof rescheduleBookingHandler>>;
 
 type UpdateBookingFromAdminError =
 	| AdminBookingUpdateError
