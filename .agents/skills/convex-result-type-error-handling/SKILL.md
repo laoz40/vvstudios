@@ -88,6 +88,7 @@ Rules:
 - Inline one-off success/error shapes in return annotations when TypeScript needs help.
 - If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler but use `handler: (ctx, args) => namedHandler(ctx, args)`.
 - Do not add temporary client-side `FunctionReference` casts for stale generated types.
+- If exported result inference is unclear, inspect the backend handler return type and existing generated/public types before changing the client.
 
 ## Client handling style
 
@@ -117,7 +118,10 @@ if (error !== null) {
 
 Client rules:
 
+- Before editing a Result caller, compare against existing Result callers in the codebase.
 - If `error.reason` widens to `string`, import the inferred result type and call `tryCatch<ResultType>(...)`.
+- If `error.reason` widens to `string` or `error` becomes `any`, stop and trace the source type. Do not patch around it with casts, duplicate aliases, or local success/error unions.
+- Frontend callers should import the exported inferred Convex result type and pass it to `tryCatch<ResultType>(...)`; do not recreate success/error unions in the component.
 - Keep expected messages inline in the caller unless reused by multiple callers.
 - Do not group known expected write failures with `UNEXPECTED_ERROR`.
 - When one handler performs multiple operations, handle each operation separately instead of one broad `try/catch`.

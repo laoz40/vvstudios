@@ -13,6 +13,7 @@ const studioRoutes = {
 	home: withBasePath(studioBasePath, "/"),
 	book: withBasePath(studioBasePath, "/book"),
 	bookingComplete: withBasePath(studioBasePath, "/booking-complete"),
+	rescheduleComplete: withBasePath(studioBasePath, "/reschedule-complete"),
 	bookingExpired: withBasePath(studioBasePath, "/booking-expired"),
 	contact: withBasePath(studioBasePath, "/contact"),
 	gallery: withBasePath(studioBasePath, "/gallery"),

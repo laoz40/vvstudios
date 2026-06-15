@@ -11,12 +11,9 @@ const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
 
 const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
 
-const timeSectionKeySchema = z.enum(["morning", "afternoon", "evening"]).or(z.literal(""));
-
 const savedBookingInfoSchema = z.object({
 	service: z.union([z.literal(""), z.enum(SERVICES)]),
 	duration: z.union([z.literal(""), z.enum(DURATION_OPTIONS)]),
-	timeSectionKey: timeSectionKeySchema,
 	addons: z.array(z.enum(ADDON_OPTIONS)),
 	essentialEditQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).default(""),
 	clipsPackageQuantity: z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]).default(""),
@@ -42,14 +39,10 @@ function parseSavedBookingInfo(rawValue: string | null) {
 	}
 }
 
-export function toSavedBookingInfo(
-	values: BookingFormValues,
-	timeSectionKey: SavedBookingInfo["timeSectionKey"]
-): SavedBookingInfo {
+export function toSavedBookingInfo(values: BookingFormValues): SavedBookingInfo {
 	return {
 		service: values.service,
 		duration: values.duration,
-		timeSectionKey,
 		addons: [...values.addons],
 		essentialEditQuantity: values.essentialEditQuantity ?? "",
 		clipsPackageQuantity: values.clipsPackageQuantity ?? "",

@@ -26,6 +26,17 @@ export default defineSchema({
 		createdBy: v.optional(v.string())
 	}).index("by_bookingId", ["bookingId"]),
 
+	bookingRescheduleLinks: defineTable({
+		bookingId: v.id("bookings"),
+		tokenHash: v.string(),
+		status: v.union(v.literal("active"), v.literal("used"), v.literal("expired")),
+		expiresAt: v.number(),
+		usedAt: v.optional(v.number()),
+		createdAt: v.number()
+	})
+		.index("by_tokenHash", ["tokenHash"])
+		.index("by_bookingId_and_status", ["bookingId", "status"]),
+
 	bookings: defineTable({
 		// Booking form data
 		name: v.string(),

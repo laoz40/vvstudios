@@ -10,18 +10,7 @@ export const ADDON_OPTIONS = [
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
 const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
-export const TIME_SECTIONS = [
-	{ key: "morning", label: "Morning", includes: (time: string) => time < "12:00" },
-	{
-		key: "afternoon",
-		label: "Afternoon",
-		includes: (time: string) => time >= "12:00" && time < "17:00"
-	},
-	{ key: "evening", label: "Evening", includes: (time: string) => time >= "17:00" }
-] as const;
-
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
-export type TimeSectionKey = (typeof TIME_SECTIONS)[number]["key"];
 
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
 	return addons.some((addon) => EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number]));
@@ -109,12 +98,6 @@ export const bookingSchema = z
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
 
-export interface AvailableTimeSection {
-	key: TimeSectionKey;
-	label: string;
-	times: string[];
-}
-
 export const INITIAL_FORM: BookingFormValues = {
 	name: "",
 	phone: "",
@@ -148,4 +131,29 @@ export function toFieldErrorObjects(errors: unknown[]) {
 
 		return [];
 	});
+}
+
+export interface BookingTimeSelectionMessage {
+	text: string;
+	variant: "default" | "error";
+}
+
+export function getBookingTimeSelectionMessage({
+	hasDate,
+	hasDuration,
+	isViewingSelectedMonth
+}: {
+	hasDate: boolean;
+	hasDuration: boolean;
+	isViewingSelectedMonth: boolean;
+}): BookingTimeSelectionMessage | null {
+	if (!hasDate || !isViewingSelectedMonth) {
+		return { text: "Select a date to view times.", variant: "default" };
+	}
+
+	if (!hasDuration) {
+		return { text: "Select a duration to view times.", variant: "error" };
+	}
+
+	return null;
 }

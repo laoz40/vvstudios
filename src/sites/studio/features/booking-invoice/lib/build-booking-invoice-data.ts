@@ -144,6 +144,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			bsb: BOOKING_INVOICE_PAYMENT.bsb,
 			payId: BOOKING_INVOICE_PAYMENT.payId,
 			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel
-		}
+		},
+		rescheduleUrl: input.rescheduleUrl
 	};
 }

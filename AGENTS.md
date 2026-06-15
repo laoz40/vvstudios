@@ -56,6 +56,7 @@ Booking website for podcast studio.
 - Model expected failures as typed variants with a stable discriminator. Use `reason` for tuple `Result` errors.
 - Treat boundary data as `unknown`: APIs, forms, storage, env vars, SDKs, URLs, and user input.
 - Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
+- If a value unexpectedly becomes `any`, stop and trace the source type. Do not patch around it with casts, duplicate aliases, or local unions.
 
 ### Tailwind
 
@@ -66,15 +67,6 @@ Booking website for podcast studio.
 ### Convex
 
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
-- Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*`
-- Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible
-- Public/client-facing Convex functions should return tuple `Result<Success, Error>` for expected auth, validation, lookup, rate-limit, third-party, and write failures.
-- Use `ok(...)`, `err(...)`, and `tryCatch(...)` from `src/lib/result.ts`.
-- Expected failures return `err({ reason: "..." })`; unexpected invariant/developer failures may still throw.
-- Use shared non-throwing helpers for expected auth and lookup failures, such as `getAdminIdentity`, `getBookingFromDb`, and `getBookingFromQuery`.
-- Prefer inferred result types from handler returns, such as `Awaited<ReturnType<typeof handler>>`. Do not duplicate error-code unions unless needed.
-- Client handlers should switch on `error.reason` exhaustively and keep one-off messages inline.
-- Convex mutations commit when they return and roll back when they throw, so check expected failures before writes.
-- Avoid returning `err(...)` after partial writes unless those writes should commit.
-- Do not add temporary client-side `FunctionReference` casts for stale generated types. The user will run Convex codegen.
-- If a named handler causes Convex to infer args as `EmptyObject`, keep the named handler but use an inline wrapper: `handler: (ctx, args) => namedHandler(ctx, args)`.
+- For Convex client-facing errors, expected failures, or React handling of Convex responses, read the `convex-result-type-error-handling` skill first.
+- Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*` when they are shared or likely to be reused.
+- Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.

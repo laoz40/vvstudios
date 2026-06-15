@@ -16,7 +16,7 @@ import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
-import { rateLimiter } from "./lib/rateLimits";
+import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
@@ -64,17 +64,10 @@ export const createPendingBooking = internalMutation({
 			return err({ reason: availabilityError.reason });
 		}
 
-		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
-		const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", {
-			key: args.submitRateLimitKey
-		});
+		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
 
-		if (!globalRateLimitStatus.ok) {
-			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: globalRateLimitStatus.retryAfter });
-		}
-
-		if (!rateLimitStatus.ok) {
-			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
+		if (rateLimitError !== null) {
+			return err(rateLimitError);
 		}
 
 		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
@@ -155,6 +148,34 @@ function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 		clipsPackageQuantity: booking.clipsPackageQuantity
 	};
 }
+
+export const getPublicRescheduleCompleteBooking = query({
+	args: { bookingId: v.string() },
+	handler: (ctx, args) => getPublicRescheduleCompleteBookingHandler(ctx, args)
+});
+
+async function getPublicRescheduleCompleteBookingHandler(
+	ctx: QueryCtx,
+	args: { bookingId: string }
+) {
+	const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
+
+	if (bookingId === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	const booking = await ctx.db.get(bookingId);
+
+	if (!booking) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	return ok(buildPublicBookingStatusResponse(booking));
+}
+
+export type GetPublicRescheduleCompleteBookingResult = Awaited<
+	ReturnType<typeof getPublicRescheduleCompleteBookingHandler>
+>;
 
 export const getBookingStatusByStripeSessionId = query({
 	args: { stripeSessionId: v.string() },
@@ -650,6 +671,37 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 						bookingFailureCode: undefined
 					}
 				: {})
+		});
+
+		return ok({ saved: true });
+	}
+});
+
+export const saveClientBookingRescheduleInternal = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		date: v.string(),
+		time: v.string(),
+		sessionStartAt: v.number(),
+		googleCalendarId: v.optional(v.string()),
+		googleEventId: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (bookingError !== null) {
+			return err(bookingError);
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			date: args.date,
+			time: args.time,
+			sessionStartAt: args.sessionStartAt,
+			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+			reminderEmailClaimedAt: undefined,
+			reminderEmailSentAt: undefined,
+			reminderEmailFailureCode: undefined
 		});
 
 		return ok({ saved: true });

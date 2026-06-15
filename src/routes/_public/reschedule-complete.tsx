@@ -1,0 +1,110 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import type { GetPublicRescheduleCompleteBookingResult } from "#convex/bookings";
+import { buildNoIndexHead } from "#/lib/seo";
+import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
+import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
+import { RescheduleConfirmation } from "#studio/features/booking-complete/components/RescheduleConfirmation";
+import {
+	parseRescheduleCompleteSearch,
+	RescheduleCompleteDevScenarioPanel,
+	type DevRescheduleCompleteScenario
+} from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
+
+export const Route = createFileRoute("/_public/reschedule-complete")({
+	validateSearch: parseRescheduleCompleteSearch,
+	head: () => buildNoIndexHead("Reschedule Complete | VV Studios"),
+	component: RescheduleCompletePage
+});
+
+function RescheduleCompletePage() {
+	const { booking_id: bookingId, dev_scenario: devScenario } = Route.useSearch();
+	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
+	const liveBookingResult: GetPublicRescheduleCompleteBookingResult | undefined = useQuery(
+		api.bookings.getPublicRescheduleCompleteBooking,
+		bookingId && !activeDevScenario ? { bookingId } : "skip"
+	);
+	const bookingResult = activeDevScenario
+		? buildDevRescheduleCompleteBookingResult(activeDevScenario)
+		: liveBookingResult;
+
+	if (!bookingId && !activeDevScenario) {
+		return <RescheduleCompleteMissing />;
+	}
+
+	if (bookingResult === undefined) {
+		return (
+			<BookingStatusLayout devPanel={<RescheduleCompleteDevScenarioPanel />}>
+				<BookingProcessing label="Loading booking details" />
+			</BookingStatusLayout>
+		);
+	}
+
+	const [error, booking] = bookingResult;
+
+	if (error !== null) {
+		return <RescheduleCompleteMissing />;
+	}
+
+	return (
+		<BookingStatusLayout
+			bookingStatus="confirmed"
+			devPanel={<RescheduleCompleteDevScenarioPanel />}>
+			<RescheduleConfirmation
+				addons={booking.addons}
+				date={booking.date}
+				duration={booking.duration}
+				service={booking.service}
+				time={booking.time}
+			/>
+		</BookingStatusLayout>
+	);
+}
+
+function RescheduleCompleteMissing() {
+	return (
+		<BookingStatusLayout
+			bookingStatus="failed"
+			devPanel={<RescheduleCompleteDevScenarioPanel />}>
+			<div>
+				<h1 className="text-4xl font-semibold tracking-tight">Booking not found.</h1>
+				<p className="mt-4 text-muted-foreground">
+					We couldn’t find this rescheduled booking. Please contact us and we’ll help you.
+				</p>
+			</div>
+		</BookingStatusLayout>
+	);
+}
+
+function buildDevRescheduleCompleteBookingResult(
+	devScenario: DevRescheduleCompleteScenario
+): GetPublicRescheduleCompleteBookingResult | undefined {
+	if (devScenario === "loading") {
+		return undefined;
+	}
+
+	if (devScenario === "booking_not_found") {
+		return [{ reason: "BOOKING_NOT_FOUND" }, null];
+	}
+
+	return [
+		null,
+		{
+			_id: "dev-reschedule-booking" as Id<"bookings">,
+			status: "confirmed",
+			bookingConfirmedAt: Date.now(),
+			bookingFailureCode: undefined,
+			pendingPaymentCreatedAt: Date.now(),
+			paymentCompletedAt: Date.now(),
+			date: "2026-05-12",
+			time: "10:00",
+			duration: "2h",
+			service: "Table Setup",
+			addons: ["Essential Edit", "Clips Package"],
+			essentialEditQuantity: "1",
+			clipsPackageQuantity: "2"
+		}
+	];
+}

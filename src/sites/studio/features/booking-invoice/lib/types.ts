@@ -26,6 +26,7 @@ export interface BookingInvoiceBuilderInput {
 	createdAt?: number;
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
+	rescheduleUrl?: string;
 }
 
 export interface BookingInvoiceMoneyAmounts {
@@ -84,6 +85,7 @@ export interface BookingInvoiceData {
 		payId: string;
 		payIdLabel: string;
 	};
+	rescheduleUrl?: string;
 }
 
 export interface BookingInvoiceArtifacts {
