@@ -43,6 +43,7 @@ import {
 	mergeBookableRangeBusyWindows,
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
+import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 
@@ -146,6 +147,9 @@ function getRescheduleUpdateToastMessage(error: RescheduleUpdateToastError): str
 		case "GOOGLE_CALENDAR_UPDATE_FAILED":
 			return "We couldn’t update the calendar. Please contact us and we’ll help you.";
 
+		case "BOOKING_RATE_LIMITED":
+			return "Too many reschedule attempts. Please wait a moment and try again.";
+
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Calendar is temporarily busy. Please wait a moment and try again.";
 
@@ -185,6 +189,7 @@ function ReschedulePage() {
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
+	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState<string | null>(null);
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
 		Record<string, BusyDayWindow[]>
@@ -212,6 +217,10 @@ function ReschedulePage() {
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
 
 	useEffect(() => {
+		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
+	}, []);
+
+	useEffect(() => {
 		if (!activeDevScenario) {
 			return;
 		}
@@ -226,9 +235,11 @@ function ReschedulePage() {
 	}, [activeDevScenario]);
 
 	useEffect(() => {
-		if (activeDevScenario) {
+		if (activeDevScenario || !availabilityRateLimitKey) {
 			return;
 		}
+
+		const rateLimitKey = availabilityRateLimitKey;
 
 		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
@@ -241,7 +252,7 @@ function ReschedulePage() {
 
 		async function loadMonthAvailability() {
 			const [error, result] = await tryCatch<GetRescheduleBookableRangeBusyWindowsResult>(
-				getRescheduleBookableRangeBusyWindows({ token })
+				getRescheduleBookableRangeBusyWindows({ rateLimitKey, token })
 			);
 
 			if (isCancelled) {
@@ -286,6 +297,7 @@ function ReschedulePage() {
 			isCancelled = true;
 		};
 	}, [
+		availabilityRateLimitKey,
 		activeDevScenario,
 		bookableMonthKeys,
 		getRescheduleBookableRangeBusyWindows,

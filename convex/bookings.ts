@@ -16,7 +16,7 @@ import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
-import { rateLimiter } from "./lib/rateLimits";
+import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
@@ -64,17 +64,10 @@ export const createPendingBooking = internalMutation({
 			return err({ reason: availabilityError.reason });
 		}
 
-		const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
-		const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", {
-			key: args.submitRateLimitKey
-		});
+		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
 
-		if (!globalRateLimitStatus.ok) {
-			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: globalRateLimitStatus.retryAfter });
-		}
-
-		if (!rateLimitStatus.ok) {
-			return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
+		if (rateLimitError !== null) {
+			return err(rateLimitError);
 		}
 
 		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(

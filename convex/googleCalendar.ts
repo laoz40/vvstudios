@@ -1,5 +1,6 @@
 "use node";
 
+import { createHash } from "node:crypto";
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
 import { api, internal } from "./_generated/api";
@@ -41,8 +42,15 @@ import {
 } from "./lib/googleCalendarEvents";
 import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
-import { rateLimiter } from "./lib/rateLimits";
+import {
+	checkBookingSubmitRateLimit,
+	checkGoogleCalendarAvailabilityRateLimit
+} from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./bookingReschedule";
+
+function getBookingSubmitRateLimitKey(email: string) {
+	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
+}
 
 type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
 
@@ -151,13 +159,10 @@ export const getBookableRangeBusyWindows = action({
 });
 
 async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLimitKey: string }) {
-	const globalRateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal");
-	const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", {
-		key: args.rateLimitKey
-	});
+	const [rateLimitError] = await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey);
 
-	if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
-		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
 	}
 
 	try {
@@ -230,13 +235,13 @@ type RescheduleLinkAndBookingLookupResult = Result<
 >;
 
 export const getRescheduleBookableRangeBusyWindows = action({
-	args: { token: v.string() },
+	args: { token: v.string(), rateLimitKey: v.string() },
 	handler: (ctx, args) => getRescheduleBookableRangeBusyWindowsHandler(ctx, args)
 });
 
 async function getRescheduleBookableRangeBusyWindowsHandler(
 	ctx: ActionCtx,
-	args: { token: string }
+	args: { rateLimitKey: string; token: string }
 ): Promise<
 	Result<
 		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
@@ -253,6 +258,12 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 
 	if (lookupError !== null) {
 		return err(lookupError);
+	}
+
+	const [rateLimitError] = await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
 	}
 
 	try {
@@ -362,7 +373,9 @@ async function rescheduleBookingHandler(
 ): Promise<
 	Result<
 		{ bookingId: Id<"bookings">; warning?: "INVOICE_SEND_FAILED" },
-		RescheduleLinkLookupError | AdminBookingUpdateError
+		| RescheduleLinkLookupError
+		| AdminBookingUpdateError
+		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 	>
 > {
 	// Check that the reschedule link still exists, has not expired, and belongs to a booking.
@@ -374,6 +387,15 @@ async function rescheduleBookingHandler(
 
 	if (lookupError !== null) {
 		return err(lookupError);
+	}
+
+	const [rateLimitError] = await checkBookingSubmitRateLimit(
+		ctx,
+		getBookingSubmitRateLimitKey(result.booking.email)
+	);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
 	}
 
 	// Load the booking, Google Calendar client, and booking settings needed to move the event.
