@@ -1,6 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
+const rescheduleLinkInvalidationBatchSize = 100;
 const rescheduleTokenByteLength = 32;
 const hexRadix = 16;
 const hexByteLength = 2;
@@ -45,14 +46,20 @@ export async function markExistingActiveRescheduleLinksUsed(args: {
 	bookingId: Id<"bookings">;
 	now: number;
 }) {
-	const activeLinks = await args.ctx.db
-		.query("bookingRescheduleLinks")
-		.withIndex("by_bookingId_and_status", (q) =>
-			q.eq("bookingId", args.bookingId).eq("status", "active")
-		)
-		.take(100);
+	while (true) {
+		const activeLinks = await args.ctx.db
+			.query("bookingRescheduleLinks")
+			.withIndex("by_bookingId_and_status", (q) =>
+				q.eq("bookingId", args.bookingId).eq("status", "active")
+			)
+			.take(rescheduleLinkInvalidationBatchSize);
 
-	for (const link of activeLinks) {
-		await args.ctx.db.patch(link._id, { status: "used", usedAt: args.now });
+		if (activeLinks.length === 0) {
+			return;
+		}
+
+		for (const link of activeLinks) {
+			await args.ctx.db.patch(link._id, { status: "used", usedAt: args.now });
+		}
 	}
 }
