@@ -223,16 +223,23 @@ export async function updateBookingCalendarEventTiming({
 	client,
 	date,
 	details,
-	time
+	time,
+	createMissingEvent = false
 }: {
 	booking: Doc<"bookings">;
 	client: GoogleCalendarEventClient;
 	date: string;
 	details: BookingCalendarEventDetails;
 	time: string;
+	createMissingEvent?: boolean;
 }): Promise<Result<BookingCalendarTimingUpdateResult, BookingCalendarTimingUpdateError>> {
-	// Confirmed bookings without a Google event link are left unchanged for now.
+	// Some reschedulable failed bookings never created a Google event in the original flow.
+	// When requested, create that missing event before saving the new booking time.
 	if (!booking.googleEventId || !booking.googleCalendarId) {
+		if (createMissingEvent) {
+			return createReplacementBookingCalendarEvent({ client, date, details, time });
+		}
+
 		return ok({});
 	}
 

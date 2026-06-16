@@ -416,6 +416,7 @@ async function rescheduleBookingHandler(
 			service: booking.service
 		},
 		duration: booking.duration,
+		createMissingEvent: booking.status === "failed",
 		settings,
 		time: args.time
 	});
@@ -434,6 +435,7 @@ async function rescheduleBookingHandler(
 		date: args.date,
 		time: args.time,
 		sessionStartAt,
+		confirmBooking: booking.status === "failed",
 		...(googleCalendarId ? { googleCalendarId } : {}),
 		...(googleEventId ? { googleEventId } : {})
 	});
