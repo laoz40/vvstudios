@@ -255,11 +255,7 @@ export async function validateBookingTimingEdit({
 	settings,
 	timeZone
 }: ValidateBookingTimingEditArgs) {
-	if (
-		!didBookingTimingChange(existing, next) &&
-		existing.googleCalendarId &&
-		existing.googleEventId
-	) {
+	if (!didBookingTimingChange(existing, next)) {
 		return ok({ valid: true });
 	}
 
