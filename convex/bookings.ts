@@ -683,6 +683,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		date: v.string(),
 		time: v.string(),
 		sessionStartAt: v.number(),
+		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string())
 	},
@@ -701,7 +702,14 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
 			reminderEmailClaimedAt: undefined,
 			reminderEmailSentAt: undefined,
-			reminderEmailFailureCode: undefined
+			reminderEmailFailureCode: undefined,
+			...(args.confirmBooking
+				? {
+						status: "confirmed" as const,
+						bookingConfirmedAt: Date.now(),
+						bookingFailureCode: undefined
+					}
+				: {})
 		});
 
 		return ok({ saved: true });

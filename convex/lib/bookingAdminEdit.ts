@@ -407,6 +407,7 @@ export async function updateBookingTimingWithGoogleCalendar({
 	date,
 	details,
 	duration,
+	createMissingEvent = false,
 	settings,
 	time
 }: {
@@ -416,6 +417,7 @@ export async function updateBookingTimingWithGoogleCalendar({
 	date: string;
 	details: BookingCalendarEventDetails;
 	duration: string;
+	createMissingEvent?: boolean;
 	settings: BookingAvailabilitySettings;
 	time: string;
 }): Promise<
@@ -452,6 +454,7 @@ export async function updateBookingTimingWithGoogleCalendar({
 		client,
 		date,
 		details,
+		createMissingEvent,
 		time
 	});
 

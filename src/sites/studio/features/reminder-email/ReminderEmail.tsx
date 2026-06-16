@@ -18,6 +18,7 @@ export interface ReminderEmailProps {
 	bookingTime: string;
 	duration: string;
 	name: string;
+	rescheduleUrl?: string;
 	service: string;
 	signoffName: string;
 }
@@ -28,6 +29,7 @@ export function ReminderEmail({
 	bookingTime,
 	duration,
 	name,
+	rescheduleUrl,
 	service,
 	signoffName
 }: ReminderEmailProps) {
@@ -104,6 +106,19 @@ export function ReminderEmail({
 						</Text>
 					</Section>
 
+					{rescheduleUrl ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Need to change your time?</Text>
+							<Text style={paragraph}>
+								You can reschedule this booking using the private link below.
+							</Text>
+							<Button
+								href={rescheduleUrl}
+								style={button}>
+								Reschedule booking
+							</Button>
+						</Section>
+					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
 						<Text style={paragraph}>{BOOKING_INVOICE_BUSINESS.locationAddress}</Text>

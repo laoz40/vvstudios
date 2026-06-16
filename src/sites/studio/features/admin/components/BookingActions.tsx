@@ -12,6 +12,7 @@ import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
 import AmbulanceIcon from "#/components/ui/ambulance-icon";
+import ClockIcon from "#/components/ui/clock-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
 import CurrencyDollarIcon from "#/components/ui/currency-dollar-icon";
@@ -78,6 +79,7 @@ import type {
 	SendBookingInvoiceForBookingResult,
 	UpdateBookingFromAdminResult
 } from "#convex/googleCalendar";
+import type { CreateAdminRescheduleLinkResult } from "#convex/bookingReschedule";
 import type {
 	UpdateBookingEditStatusResult,
 	UpdateBookingPaidRemainingBalanceResult,
@@ -169,6 +171,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
+	const createAdminRescheduleLink = useMutation(api.bookingReschedule.createAdminRescheduleLink);
 	const updateBookingPaidRemainingBalance = useMutation(
 		api.bookings.updateBookingPaidRemainingBalance
 	);
@@ -188,11 +191,14 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = useState(false);
+	const [isRescheduleLinkDialogOpen, setIsRescheduleLinkDialogOpen] = useState(false);
+	const [generatedRescheduleUrl, setGeneratedRescheduleUrl] = useState<string | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const [isGeneratingRescheduleLink, setIsGeneratingRescheduleLink] = useState(false);
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
@@ -211,6 +217,13 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		isConfirmedBooking || booking.status === "failed" || booking.status === "email_failed";
 	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
 	const toggleStatusLabel = isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed";
+	const canGenerateRescheduleLink =
+		!isPastBooking &&
+		(booking.status === "confirmed" ||
+			booking.status === "email_failed" ||
+			(booking.status === "failed" &&
+				(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+					booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")));
 	const deliverableStatus = getDeliverableStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
@@ -709,6 +722,55 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		setIsEmailingInvoice(false);
 	}
 
+	async function handleGenerateRescheduleLink() {
+		setIsGeneratingRescheduleLink(true);
+
+		const [error, result] = await tryCatch<CreateAdminRescheduleLinkResult>(
+			createAdminRescheduleLink({ bookingId: booking._id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to create reschedule links.");
+					break;
+
+				case "BOOKING_NOT_FOUND":
+					toast.error("That booking no longer exists.");
+					break;
+
+				case "BOOKING_NOT_RESCHEDULABLE":
+					toast.error("This booking cannot be rescheduled online.");
+					break;
+
+				case "RESCHEDULE_LINK_EXPIRED":
+					toast.error("This booking is in the past, so a reschedule link cannot be created.");
+					break;
+
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while creating the reschedule link.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setIsGeneratingRescheduleLink(false);
+			return;
+		}
+
+		setGeneratedRescheduleUrl(result.rescheduleUrl);
+		void navigator.clipboard.writeText(result.rescheduleUrl);
+		toast.success("Reschedule link created and copied.");
+		setIsGeneratingRescheduleLink(false);
+	}
+
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
 
@@ -1031,6 +1093,23 @@ export function BookingActions({ booking }: BookingActionsProps) {
 									Copy database ID
 								</AnimatedDropdownMenuItem>
 							)}
+							<DropdownMenuSeparator />
+							<AnimatedDropdownMenuItem
+								disabled={!canGenerateRescheduleLink || isGeneratingRescheduleLink}
+								onSelect={() => {
+									setGeneratedRescheduleUrl(null);
+									setIsRescheduleLinkDialogOpen(true);
+								}}
+								renderIcon={(iconRef) => (
+									<ClockIcon
+										ref={iconRef}
+										size={16}
+										aria-hidden
+										className="shrink-0 text-current"
+									/>
+								)}>
+								Generate reschedule link
+							</AnimatedDropdownMenuItem>
 							{canToggleStatus ? (
 								<>
 									<DropdownMenuSeparator />
@@ -1085,6 +1164,59 @@ export function BookingActions({ booking }: BookingActionsProps) {
 					</AnimatedDropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+
+			<Dialog
+				open={isRescheduleLinkDialogOpen}
+				onOpenChange={setIsRescheduleLinkDialogOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Generate reschedule link?</DialogTitle>
+						<DialogDescription>
+							This will create a new reschedule link for {booking.name}. Any existing active
+							reschedule link they have will stop working.
+						</DialogDescription>
+					</DialogHeader>
+					{generatedRescheduleUrl ? (
+						<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
+							<span className="font-medium">New reschedule link</span>
+							<a
+								href={generatedRescheduleUrl}
+								target="_blank"
+								rel="noreferrer"
+								className="break-all text-muted-foreground underline underline-offset-4">
+								{generatedRescheduleUrl}
+							</a>
+						</div>
+					) : null}
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setIsRescheduleLinkDialogOpen(false)}>
+							{generatedRescheduleUrl ? "Close" : "Cancel"}
+						</Button>
+						{generatedRescheduleUrl ? (
+							<Button
+								type="button"
+								onClick={() => {
+									void navigator.clipboard.writeText(generatedRescheduleUrl);
+									toast.success("Reschedule link copied.");
+								}}>
+								Copy link
+							</Button>
+						) : (
+							<Button
+								type="button"
+								disabled={isGeneratingRescheduleLink}
+								onClick={() => {
+									void handleGenerateRescheduleLink();
+								}}>
+								{isGeneratingRescheduleLink ? "Generating..." : "Generate link"}
+							</Button>
+						)}
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<EmailInvoiceDialog
 				open={isEmailInvoiceDialogOpen}

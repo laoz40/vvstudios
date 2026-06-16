@@ -1,4 +1,4 @@
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
 const rescheduleLinkInvalidationBatchSize = 100;
@@ -39,6 +39,32 @@ export function isRescheduleLinkExpired(
 	now: number
 ) {
 	return now >= link.expiresAt || now >= booking.sessionStartAt;
+}
+
+export async function createActiveRescheduleLinkForBooking({
+	booking,
+	ctx,
+	expiresAt,
+	now
+}: {
+	booking: Doc<"bookings">;
+	ctx: MutationCtx;
+	expiresAt: number;
+	now: number;
+}) {
+	await markExistingActiveRescheduleLinksUsed({ ctx, bookingId: booking._id, now });
+
+	const token = generateRescheduleToken();
+	const tokenHash = await hashRescheduleToken(token);
+	const linkId = await ctx.db.insert("bookingRescheduleLinks", {
+		bookingId: booking._id,
+		tokenHash,
+		status: "active" as const,
+		expiresAt,
+		createdAt: now
+	});
+
+	return { linkId, token };
 }
 
 export async function markExistingActiveRescheduleLinksUsed(args: {

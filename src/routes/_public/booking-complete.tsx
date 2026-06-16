@@ -9,7 +9,10 @@ import {
 import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
 import { BookingResult } from "#studio/features/booking-complete/components/BookingResult";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
-import { getBookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
+import {
+	canCreateFailedBookingRescheduleLink,
+	getBookingResultContent
+} from "#studio/features/booking-complete/lib/booking-result-content";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
@@ -95,10 +98,11 @@ function BookingCompletePage(): ReactNode {
 	}
 
 	const resultContent = getBookingResultContent(booking);
-
+	const canCreateRescheduleLink = canCreateFailedBookingRescheduleLink(booking);
 	return (
 		<BookingStatusLayout
 			bookingStatus={booking.status}
+			canCreateRescheduleLink={canCreateRescheduleLink}
 			stripeSessionId={previewStripeSessionId}>
 			<BookingResult
 				booking={booking}

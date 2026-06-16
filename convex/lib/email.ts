@@ -30,6 +30,7 @@ interface SendBookingReminderEmailForBookingArgs {
 	date: string;
 	startDateTime: string;
 	timeZone: string;
+	rescheduleUrl?: string;
 	service: string;
 	duration: string;
 	addons: string[];
@@ -247,7 +248,8 @@ export async function sendBookingReminderEmailForBooking({
 	timeZone,
 	service,
 	duration,
-	addons
+	addons,
+	rescheduleUrl
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
@@ -261,6 +263,7 @@ export async function sendBookingReminderEmailForBooking({
 		duration,
 		name,
 		service,
+		rescheduleUrl,
 		signoffName
 	});
 
