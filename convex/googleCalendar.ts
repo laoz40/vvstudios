@@ -115,7 +115,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 	return ok({ busyWindowsByMonth, timeZone });
 }
 
-async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">) {
+async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking: Doc<"bookings">) {
 	const { timeZone } = getGoogleCalendarClient();
 	const [windowError, eventWindow] = buildEventWindow(
 		booking.date,
@@ -130,6 +130,12 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 
 	const { startDateTime } = eventWindow;
 
+	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+
+	if (linkError !== null) {
+		return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
+	}
+
 	const [emailError] = await sendReminderEmailForBookingDetails({
 		name: booking.name,
 		email: booking.email,
@@ -138,7 +144,8 @@ async function sendBookingReminderEmailForBookingRecord(booking: Doc<"bookings">
 		timeZone,
 		service: booking.service,
 		duration: booking.duration,
-		addons: booking.addons
+		addons: booking.addons,
+		rescheduleUrl
 	});
 
 	if (emailError !== null) {
@@ -622,7 +629,7 @@ export const sendBookingReminderEmailForBooking = internalAction({
 
 		if (claimError !== null) return null;
 
-		const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(claim.booking);
+		const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(ctx, claim.booking);
 
 		if (reminderEmailError !== null) {
 			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {

@@ -6,6 +6,7 @@ const previewProps = {
 	bookingTime: "10:00 AM",
 	duration: "2h",
 	name: "Alex Carter",
+	rescheduleUrl: "https://vvstudios.example/reschedule/sample-token",
 	service: "Table Setup",
 	signoffName: "Joseph"
 };
