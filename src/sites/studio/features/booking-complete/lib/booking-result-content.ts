@@ -14,7 +14,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 					return {
 						title: "We received your payment and need to adjust your booking time",
 						description:
-							"This time slot became unavailable while checkout was finishing. Please contact us and we’ll help move your booking to a time that works for you.",
+							"This time slot became unavailable while checkout was finishing. Please use the reschedule button below to pick a new time.",
 						isBookingCompletionFailure: true
 					};
 
@@ -22,7 +22,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 					return {
 						title: "We received your payment and need to confirm your booking manually",
 						description:
-							"Your payment went through, but the calendar event could not be created automatically. Please contact us and we’ll finalise the booking for you.",
+							"Your payment went through, but the calendar event could not be created automatically. Please use the reschedule button below to pick a time.",
 						isBookingCompletionFailure: true
 					};
 
@@ -68,4 +68,12 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 		default:
 			throw new Error(`Unhandled booking status: ${booking.status}`);
 	}
+}
+
+export function canCreateFailedBookingRescheduleLink(booking: BookingStatus): boolean {
+	return (
+		booking.status === "failed" &&
+		(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+			booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
+	);
 }

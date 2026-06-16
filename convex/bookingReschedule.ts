@@ -76,6 +76,53 @@ export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc
 	return ok(buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, link.token));
 }
 
+export const createPublicFailedBookingRescheduleLink = mutation({
+	args: { stripeSessionId: v.string() },
+	handler: (ctx, args) => createPublicFailedBookingRescheduleLinkHandler(ctx, args)
+});
+
+async function createPublicFailedBookingRescheduleLinkHandler(
+	ctx: MutationCtx,
+	args: { stripeSessionId: string }
+) {
+	const booking = await ctx.db
+		.query("bookings")
+		.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+		.unique();
+
+	if (booking === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (!isBookingReschedulable(booking)) {
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+	}
+
+	if (booking.status !== "failed") {
+		return err({ reason: "BOOKING_NOT_FAILED" });
+	}
+
+	if (booking.sessionStartAt <= Date.now()) {
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+
+	const now = Date.now();
+	const link = await createActiveRescheduleLinkForBooking({
+		ctx,
+		booking,
+		expiresAt: booking.sessionStartAt,
+		now
+	});
+
+	return ok({
+		rescheduleUrl: buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, link.token)
+	});
+}
+
+export type CreatePublicFailedBookingRescheduleLinkResult = Awaited<
+	ReturnType<typeof createPublicFailedBookingRescheduleLinkHandler>
+>;
+
 export const createAdminRescheduleLink = mutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) => createAdminRescheduleLinkHandler(ctx, args)
