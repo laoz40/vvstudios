@@ -377,7 +377,7 @@ function BookingPage() {
 					<div
 						ref={completeBookingButtonRef}
 						className="space-y-4">
-						<BookingSummary values={formValues} />
+						<BookingSummary />
 						<Button
 							type="submit"
 							className="mb-20 h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
