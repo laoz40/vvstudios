@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useStore } from "@tanstack/react-store";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
 } from "#convex/stripe";
-import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -32,7 +31,6 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-context";
 import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/form-shared";
 import {
-	getAvailabilityRateLimitKey,
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
 	storeSavedBookingInfo,
@@ -47,27 +45,14 @@ import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
-import {
-	formatDateValue,
-	formatMonthKey,
-	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
-	getAvailableTimesForDate,
-	getCurrentMonthKey,
-	getCurrentTimestamp,
-	getLastBookableDate,
-	parseDateValue,
-	parseMonthKey,
-	startOfToday
-} from "#studio/lib/bookingdatetime";
+import { getCurrentMonthKey, parseMonthKey } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import {
-	getBookableMonthKeys,
-	getSelectedBusyDay,
-	getUncachedMonthKeys,
-	isBookingDateDisabled,
-	mergeBookableRangeBusyWindows,
-	type BusyDayWindow
-} from "#studio/features/booking-form/lib/monthly-availability";
+	closeCheckoutToastMessages,
+	devBookingErrorMessages,
+	startCheckoutToastMessages
+} from "#studio/features/booking-form/lib/booking-page-errors";
+import { useBookingAvailability } from "#studio/features/booking-form/lib/use-booking-availability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { tryCatch } from "#/lib/result";
 
@@ -87,83 +72,34 @@ export const Route = createFileRoute("/_public/book")({
 
 const pageCopy = { title: "Studio Hire Booking" } as const;
 
-const BOOKING_PAGE_ERROR_MESSAGES = {
-	bookingEmailDomainInvalid:
-		"This email domain doesn't appear able to receive email. Please check for typos.",
-	bookingInvalidDate: "Choose a valid booking date.",
-	bookingInvalidDuration: "Choose a valid booking duration.",
-	bookingInvalidInput: "Some booking details were invalid. Please review the form and try again.",
-	bookingInvalidTime: "Choose a valid booking time.",
-	bookingRateLimited: "Too many booking attempts. Please try again in one minute.",
-	bookingTimeUnavailable: "That time was just taken. Please choose another available time.",
-	googleCalendarAuthFailed:
-		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
-	googleCalendarAvailabilityFailed:
-		"We couldn't load booking times right now. Please refresh or try again soon.",
-	googleCalendarRateLimited:
-		"Booking times are being checked too often. Please wait a minute, then try again.",
-	startCheckoutFailed: "Something went wrong while starting checkout.",
-	loadAvailabilityFailed: "Something went wrong while loading availability.",
-	unknown: "Something went wrong."
-} as const;
-
-function getDevBookingErrorMessage(code: BookDevErrorCode) {
-	switch (code) {
-		case "BOOKING_TIME_UNAVAILABLE":
-			return BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable;
-
-		case "BOOKING_INVALID_INPUT":
-			return BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput;
-
-		case "GOOGLE_CALENDAR_AUTH_FAILED":
-			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
-
-		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
-
-		case "GOOGLE_CALENDAR_RATE_LIMITED":
-			return BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
-
-		case "UNKNOWN":
-			return BOOKING_PAGE_ERROR_MESSAGES.unknown;
-
-		default: {
-			const _exhaustive: never = code;
-			return _exhaustive;
-		}
-	}
-}
-
 function BookingPage() {
+	// Convex actions
 	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
 		api.stripe.createEmbeddedCheckoutSession
 	);
 	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
 		api.stripe.closeEmbeddedCheckoutSession
 	);
-	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
-	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-	const today = startOfToday();
-	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
+
+	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 
-	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
-	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
-		Record<string, BusyDayWindow[]>
-	>({});
-	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState<string | null>(null);
-	const [availabilityError, setAvailabilityError] = useState("");
-	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
+	// Submission flow
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
+	const submitAfterTermsRef = useRef(false);
+
+	// Saved booking details
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
+	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
+
+	// Complete booking shortcut
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
-	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
-	const submitAfterTermsRef = useRef(false);
+
+	// Booking availability
+	const resetAvailabilityCalendarRef = useRef<() => void>(() => {});
 
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
@@ -200,48 +136,8 @@ function BookingPage() {
 				);
 
 				if (error !== null) {
-					switch (error.reason) {
-						case "BOOKING_EMAIL_DOMAIN_INVALID":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingEmailDomainInvalid);
-							return;
-
-						case "BOOKING_INVALID_INPUT":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidInput);
-							return;
-
-						case "BOOKING_INVALID_DATE":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDate);
-							return;
-
-						case "BOOKING_INVALID_DURATION":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidDuration);
-							return;
-
-						case "BOOKING_INVALID_TIME":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingInvalidTime);
-							return;
-
-						case "BOOKING_OUTSIDE_OPENING_HOURS":
-						case "BOOKING_TOO_FAR_AHEAD":
-						case "BOOKING_TOO_SOON":
-						case "BOOKING_TIME_UNAVAILABLE":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingTimeUnavailable);
-							return;
-
-						case "BOOKING_RATE_LIMITED":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.bookingRateLimited);
-							return;
-
-						case "STRIPE_SESSION_LINK_FAILED":
-						case "UNEXPECTED_ERROR":
-							toast.error(BOOKING_PAGE_ERROR_MESSAGES.startCheckoutFailed);
-							return;
-
-						default: {
-							const _exhaustive: never = error;
-							return _exhaustive;
-						}
-					}
+					toast.error(startCheckoutToastMessages[error.reason]);
+					return;
 				}
 
 				if (shouldSaveBookingInfo) {
@@ -255,36 +151,27 @@ function BookingPage() {
 
 				openPaymentModal(session);
 
-				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
+				resetAvailabilityCalendarRef.current();
 			} finally {
 				setIsSubmitting(false);
 				submitAfterTermsRef.current = false;
 			}
 		}
 	});
-	const formValues = useStore(formApi.store, (state) => state.values);
-	const selectedDate = parseDateValue(formValues.date);
+	const formValues = useSelector(formApi.store, (state) => state.values);
 	const isDateTimeIncomplete = !formValues.date || !formValues.time;
-	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
-	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
-	const bookableStartDateValue = formatDateValue(today);
-	const bookableEndDateValue = formatDateValue(lastBookableDate);
-	const bookableMonthKeys = useMemo(() => {
-		const startDate = parseDateValue(bookableStartDateValue);
-		const endDate = parseDateValue(bookableEndDateValue);
-
-		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
-	}, [bookableStartDateValue, bookableEndDateValue]);
-	const visibleMonth = formatMonthKey(calendarMonth);
-	const selectedMonth = formValues.date ? formValues.date.slice(0, 7) : visibleMonth;
-	const isViewingSelectedMonth = !formValues.date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited =
-		availabilityError === BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
-
-	// load availability rate limit key
-	useEffect(() => {
-		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
-	}, []);
+	const handleSelectedTimeInvalidated = useCallback(() => {
+		formApi.setFieldValue("time", "");
+	}, [formApi]);
+	const availability = useBookingAvailability({
+		date: formValues.date,
+		duration: formValues.duration,
+		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
+		selectedTime: formValues.time
+	});
+	resetAvailabilityCalendarRef.current = () => {
+		availability.setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
+	};
 
 	// load saved booking info
 	useEffect(() => {
@@ -324,148 +211,6 @@ function BookingPage() {
 		};
 	}, []);
 
-	// fetch calendar availability
-	useEffect(() => {
-		if (!availabilityRateLimitKey) {
-			return;
-		}
-
-		const rateLimitKey = availabilityRateLimitKey;
-
-		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
-		if (uncachedMonthKeys.length === 0) {
-			setAvailabilityError("");
-			setIsLoadingMonthAvailability(false);
-			return;
-		}
-
-		let isCancelled = false;
-		setAvailabilityError("");
-		setIsLoadingMonthAvailability(true);
-
-		async function loadAvailability() {
-			const [error, result] = await tryCatch<GetBookableRangeBusyWindowsResult>(
-				getBookableRangeBusyWindows({ rateLimitKey })
-			);
-
-			if (isCancelled) {
-				return;
-			}
-
-			if (error !== null) {
-				let errorMessage: string;
-
-				switch (error.reason) {
-					case "GOOGLE_CALENDAR_AUTH_FAILED":
-						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAuthFailed;
-						break;
-
-					case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarAvailabilityFailed;
-						break;
-
-					case "GOOGLE_CALENDAR_RATE_LIMITED":
-						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.googleCalendarRateLimited;
-						break;
-
-					case "UNEXPECTED_ERROR":
-						errorMessage = BOOKING_PAGE_ERROR_MESSAGES.loadAvailabilityFailed;
-						break;
-
-					default: {
-						const _exhaustive: never = error;
-						return _exhaustive;
-					}
-				}
-
-				console.error("Booking availability failed", { reason: error.reason });
-
-				setAvailabilityError(errorMessage);
-				toast.error(errorMessage);
-				setIsLoadingMonthAvailability(false);
-				return;
-			}
-
-			setMonthlyBusyWindowsByMonth((current) =>
-				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
-			);
-			setIsLoadingMonthAvailability(false);
-		}
-
-		void loadAvailability();
-
-		return () => {
-			isCancelled = true;
-		};
-	}, [
-		availabilityRateLimitKey,
-		bookableMonthKeys,
-		getBookableRangeBusyWindows,
-		monthlyBusyWindowsByMonth
-	]);
-
-	const selectedBusyDay = formValues.date
-		? getSelectedBusyDay({ date: formValues.date, monthlyBusyWindowsByMonth, selectedMonth })
-		: null;
-
-	const disabledDates = useMemo(() => {
-		return (date: Date) =>
-			isBookingDateDisabled({
-				currentTimestamp,
-				date,
-				duration: formValues.duration,
-				isAvailabilityRateLimited,
-				lastBookableDate,
-				monthlyBusyWindowsByMonth,
-				settings: availabilitySettings,
-				today
-			});
-	}, [
-		currentTimestamp,
-		formValues.duration,
-		isAvailabilityRateLimited,
-		lastBookableDate,
-		monthlyBusyWindowsByMonth,
-		availabilitySettings,
-		today
-	]);
-
-	const availableTimes = useMemo<string[]>(() => {
-		if (
-			!formValues.date ||
-			!formValues.duration ||
-			isSelectedDateInPast ||
-			isSelectedDateTooFarInFuture ||
-			!isViewingSelectedMonth
-		) {
-			return [];
-		}
-
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-			return [];
-		}
-
-		return getAvailableTimesForDate({
-			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
-			currentTimestamp,
-			dateValue: formValues.date,
-			duration: formValues.duration,
-			settings: availabilitySettings
-		});
-	}, [
-		currentTimestamp,
-		formValues.date,
-		formValues.duration,
-		availabilitySettings,
-		isLoadingMonthAvailability,
-		isSelectedDateInPast,
-		isSelectedDateTooFarInFuture,
-		isViewingSelectedMonth,
-		monthlyBusyWindowsByMonth,
-		selectedBusyDay,
-		selectedMonth
-	]);
-
 	const scrollToFirstError = () => {
 		requestAnimationFrame(() => {
 			const fieldOrder = [
@@ -495,58 +240,6 @@ function BookingPage() {
 		});
 	};
 
-	// keep time based availability fresh
-	useEffect(() => {
-		const interval = window.setInterval(() => {
-			setCurrentTimestamp(getCurrentTimestamp());
-		}, 60_000);
-
-		return () => {
-			window.clearInterval(interval);
-		};
-	}, []);
-
-	// clear invalid selected time
-	useEffect(() => {
-		if (
-			!formValues.date ||
-			isSelectedDateInPast ||
-			isSelectedDateTooFarInFuture ||
-			!isViewingSelectedMonth
-		) {
-			if (formValues.time) {
-				formApi.setFieldValue("time", "");
-			}
-			return;
-		}
-
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-			return;
-		}
-
-		if (availableTimes.length === 0) {
-			if (formValues.time) {
-				formApi.setFieldValue("time", "");
-			}
-			return;
-		}
-
-		if (formValues.time && !availableTimes.includes(formValues.time)) {
-			formApi.setFieldValue("time", "");
-		}
-	}, [
-		availableTimes,
-		formApi,
-		formValues.date,
-		formValues.time,
-		isLoadingMonthAvailability,
-		isSelectedDateInPast,
-		isSelectedDateTooFarInFuture,
-		isViewingSelectedMonth,
-		monthlyBusyWindowsByMonth,
-		selectedMonth
-	]);
-
 	const handlePaymentModalClose = (activeCheckoutSession: EmbeddedCheckoutSession) => {
 		void closeOpenCheckoutSession(activeCheckoutSession);
 	};
@@ -560,26 +253,8 @@ function BookingPage() {
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "STRIPE_CHECKOUT_CLOSE_FAILED":
-					toast.error("Failed to close checkout.");
-					return;
-
-				case "STRIPE_SESSION_MISMATCH":
-					toast.error(
-						"We couldn’t close this checkout session safely. Please refresh the page and try again."
-					);
-					return;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while closing checkout.");
-					return;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
+			toast.error(closeCheckoutToastMessages[error.reason]);
+			return;
 		}
 	};
 
@@ -634,10 +309,10 @@ function BookingPage() {
 	};
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
-		const errorMessage = getDevBookingErrorMessage(code);
+		const errorMessage = devBookingErrorMessages[code];
 
 		if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
-			setAvailabilityError(errorMessage);
+			availability.setAvailabilityError(errorMessage);
 		}
 
 		toast.error(errorMessage);
@@ -690,17 +365,7 @@ function BookingPage() {
 						<div
 							ref={dateTimeSectionRef}
 							className="scroll-mt-32 sm:scroll-mt-40">
-							<BookingDateTimeSection
-								availabilityError={availabilityError}
-								availableTimes={availableTimes}
-								calendarMonth={calendarMonth}
-								disabledDates={disabledDates}
-								isLoadingMonthAvailability={isLoadingMonthAvailability}
-								isSelectedDateInPast={isSelectedDateInPast}
-								isViewingSelectedMonth={isViewingSelectedMonth}
-								selectedDate={selectedDate}
-								setCalendarMonth={setCalendarMonth}
-							/>
+							<BookingDateTimeSection availability={availability} />
 						</div>
 						<BookingContactSection />
 					</FieldGroup>

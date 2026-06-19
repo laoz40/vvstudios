@@ -16,6 +16,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/lib/use-booking-availability";
 import {
 	formatDateValue,
 	formatTimeValue,
@@ -33,40 +34,35 @@ const copy = {
 } as const;
 
 export interface BookingDateTimePickerProps {
-	availabilityError?: string;
-	availableTimes: string[];
-	calendarMonth: Date;
+	availability: BookingAvailabilityPickerState;
 	dateError?: React.ReactNode;
-	disabledDates: (date: Date) => boolean;
-	isLoadingAvailability: boolean;
-	isSelectedDateInPast: boolean;
-	isViewingSelectedMonth: boolean;
 	onDateChange: (dateValue: string) => void;
 	onTimeChange: (time: string) => void;
-	selectedDate: Date | undefined;
 	selectedTime: string;
-	setCalendarMonth: (date: Date) => void;
 	timeError?: React.ReactNode;
 	timeSelectionMessage: BookingTimeSelectionMessage | null;
 }
 
 export function BookingDateTimePicker({
-	availabilityError = "",
-	availableTimes,
-	calendarMonth,
+	availability,
 	dateError,
-	disabledDates,
-	isLoadingAvailability,
-	isSelectedDateInPast,
-	isViewingSelectedMonth,
 	onDateChange,
 	onTimeChange,
-	selectedDate,
 	selectedTime,
-	setCalendarMonth,
 	timeError,
 	timeSelectionMessage
 }: BookingDateTimePickerProps) {
+	const {
+		availabilityError,
+		availableTimes,
+		calendarMonth,
+		disabledDates,
+		isLoadingMonthAvailability,
+		isSelectedDateInPast,
+		isViewingSelectedMonth,
+		selectedDate,
+		setCalendarMonth
+	} = availability;
 	const hasAvailableTimes = availableTimes.length > 0;
 	const isTimeSelectionReady = !timeSelectionMessage;
 
@@ -127,14 +123,14 @@ export function BookingDateTimePicker({
 					{isTimeSelectionReady && isViewingSelectedMonth && isSelectedDateInPast ? (
 						<FieldDescription>{copy.pastDatesUnavailable}</FieldDescription>
 					) : null}
-					{isTimeSelectionReady && isViewingSelectedMonth && isLoadingAvailability ? (
+					{isTimeSelectionReady && isViewingSelectedMonth && isLoadingMonthAvailability ? (
 						<FieldDescription className="flex items-center gap-2">
 							<LoaderCircle className="size-4 animate-spin" />
 							{copy.loadingAvailability}
 						</FieldDescription>
 					) : null}
 					{isTimeSelectionReady &&
-					!isLoadingAvailability &&
+					!isLoadingMonthAvailability &&
 					isViewingSelectedMonth &&
 					!isSelectedDateInPast &&
 					!hasAvailableTimes &&
@@ -148,7 +144,9 @@ export function BookingDateTimePicker({
 							<RadioGroup
 								value={selectedTime}
 								onValueChange={onTimeChange}
-								disabled={!isTimeSelectionReady || !isViewingSelectedMonth || isLoadingAvailability}
+								disabled={
+									!isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability
+								}
 								className="flex flex-col gap-6">
 								<div className="grid grid-cols-1 gap-3">
 									{availableTimes.map((time) => {

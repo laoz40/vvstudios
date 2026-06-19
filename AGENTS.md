@@ -19,6 +19,8 @@ Booking website for podcast studio.
 - Prefer clear sequencing, guard clauses, and early returns over clever compact code
 - Keep nesting shallow; avoid more than two levels of nested control flow
 - Replace long `if`/`else if` chains and large inline booleans with named helpers or discriminated outcomes when clearer
+- Preserve useful existing comments during refactors; do not delete comments just because code moved.
+- Update comments when behavior changes so they stay accurate.
 
 - run format and lint once changes are complete
 - do not run build or convex codegen
@@ -47,6 +49,9 @@ Booking website for podcast studio.
 ### Components and pages
 
 - Extract major or self-contained UI sections into separate component files instead of growing a single large component file
+- Group related React setup/state in clear sections instead of dumping many `useState`/`useRef` calls together.
+- Use short section comments for state groups, refs, actions, and derived values when a component has several related concerns.
+- Add short comments before `useEffect` blocks that explain what the effect does, especially in large components or pages.
 
 ### TypeScript
 
