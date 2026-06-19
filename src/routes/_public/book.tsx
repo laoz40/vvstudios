@@ -45,7 +45,6 @@ import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
-import { getCurrentMonthKey, parseMonthKey } from "#studio/lib/bookingdatetime";
 import { api } from "#convex/_generated/api";
 import {
 	closeCheckoutToastMessages,
@@ -69,8 +68,6 @@ export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
 	component: BookingPage
 });
-
-const pageCopy = { title: "Studio Hire Booking" } as const;
 
 function BookingPage() {
 	// Convex actions
@@ -98,9 +95,6 @@ function BookingPage() {
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 
-	// Booking availability
-	const resetAvailabilityCalendarRef = useRef<() => void>(() => {});
-
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
 		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
@@ -116,46 +110,41 @@ function BookingPage() {
 			submitAfterTermsRef.current = false;
 			setIsSubmitting(true);
 
-			try {
-				const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
-					createEmbeddedCheckoutSession({
-						name: parsedValue.name,
-						phone: parsedValue.phone,
-						accountName: parsedValue.accountName,
-						abn: parsedValue.abn || undefined,
-						email: parsedValue.email,
-						date: parsedValue.date,
-						time: parsedValue.time,
-						duration: parsedValue.duration,
-						service: parsedValue.service,
-						addons: parsedValue.addons,
-						essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
-						clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
-						notes: parsedValue.notes
-					})
-				);
+			const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
+				createEmbeddedCheckoutSession({
+					name: parsedValue.name,
+					phone: parsedValue.phone,
+					accountName: parsedValue.accountName,
+					abn: parsedValue.abn || undefined,
+					email: parsedValue.email,
+					date: parsedValue.date,
+					time: parsedValue.time,
+					duration: parsedValue.duration,
+					service: parsedValue.service,
+					addons: parsedValue.addons,
+					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
+					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
+					notes: parsedValue.notes
+				})
+			);
+			setIsSubmitting(false);
+			submitAfterTermsRef.current = false;
 
-				if (error !== null) {
-					toast.error(startCheckoutToastMessages[error.reason]);
-					return;
-				}
-
-				if (shouldSaveBookingInfo) {
-					const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
-					storeSavedBookingInfo(nextSavedBookingInfo);
-					setSavedBookingInfo(nextSavedBookingInfo);
-				} else {
-					removeStoredSavedBookingInfo();
-					setSavedBookingInfo(null);
-				}
-
-				openPaymentModal(session);
-
-				resetAvailabilityCalendarRef.current();
-			} finally {
-				setIsSubmitting(false);
-				submitAfterTermsRef.current = false;
+			if (error !== null) {
+				toast.error(startCheckoutToastMessages[error.reason]);
+				return;
 			}
+
+			if (shouldSaveBookingInfo) {
+				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
+				storeSavedBookingInfo(nextSavedBookingInfo);
+				setSavedBookingInfo(nextSavedBookingInfo);
+			} else {
+				removeStoredSavedBookingInfo();
+				setSavedBookingInfo(null);
+			}
+
+			openPaymentModal(session);
 		}
 	});
 	const formValues = useSelector(formApi.store, (state) => state.values);
@@ -169,9 +158,6 @@ function BookingPage() {
 		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
 		selectedTime: formValues.time
 	});
-	resetAvailabilityCalendarRef.current = () => {
-		availability.setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
-	};
 
 	// load saved booking info
 	useEffect(() => {
@@ -322,7 +308,7 @@ function BookingPage() {
 		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pt-8 pb-12 sm:pt-10">
 			<div className="space-y-3">
 				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
-					{pageCopy.title}
+					Studio Hire Booking
 				</h1>
 				<BookingRecurringSessionsPrompt />
 			</div>
