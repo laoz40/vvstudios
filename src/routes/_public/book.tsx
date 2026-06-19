@@ -5,7 +5,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import type { CloseEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -39,22 +38,15 @@ import {
 	termsDialogPendingError,
 	useBookingSubmit
 } from "#studio/features/booking-form/hooks/useBookingSubmit";
-import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
 import { api } from "#convex/_generated/api";
-import {
-	closeCheckoutToastMessages,
-	devBookingErrorMessages
-} from "#studio/features/booking-form/lib/booking-page-errors";
+import { devBookingErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
 import { useBookingAvailability } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
-import { tryCatch } from "#/lib/result";
-
-type CloseEmbeddedCheckoutSessionAction = ReturnType<
-	typeof useAction<typeof api.stripe.closeEmbeddedCheckoutSession>
->;
+import { useBookingCheckoutClose } from "#studio/features/booking-form/hooks/useBookingCheckoutClose";
+import { useCompleteBookingShortcut } from "#studio/features/booking-form/hooks/useCompleteBookingShortcut";
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -64,22 +56,14 @@ export const Route = createFileRoute("/_public/book")({
 function BookingPage() {
 	// Convex actions
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
-	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.closeEmbeddedCheckoutSession
-	);
+	const { handlePaymentModalClose } = useBookingCheckoutClose();
 
 	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
-	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
-	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 
 	// Saved booking details
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
-
-	// Complete booking shortcut
-	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
-	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 
 	const persistBookingInfoFromForm = useCallback(
 		(parsedValue: BookingFormValues) => {
@@ -121,6 +105,7 @@ function BookingPage() {
 		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
 		selectedTime: formValues.time
 	});
+	const completeBookingShortcut = useCompleteBookingShortcut(isDateTimeIncomplete);
 
 	// Load saved booking info from local storage.
 	useEffect(() => {
@@ -133,31 +118,6 @@ function BookingPage() {
 
 		setSavedBookingInfo(nextSavedBookingInfo);
 		setShouldSaveBookingInfo(true);
-	}, []);
-
-	// Hide the complete booking shortcut once its target is visible.
-	useEffect(() => {
-		const updateHasReachedCompleteBooking = () => {
-			const completeBookingButton = completeBookingButtonRef.current;
-
-			if (!completeBookingButton) {
-				setHasReachedCompleteBooking(false);
-				return;
-			}
-
-			setHasReachedCompleteBooking(
-				completeBookingButton.getBoundingClientRect().top <= window.innerHeight
-			);
-		};
-
-		updateHasReachedCompleteBooking();
-		window.addEventListener("scroll", updateHasReachedCompleteBooking, { passive: true });
-		window.addEventListener("resize", updateHasReachedCompleteBooking);
-
-		return () => {
-			window.removeEventListener("scroll", updateHasReachedCompleteBooking);
-			window.removeEventListener("resize", updateHasReachedCompleteBooking);
-		};
 	}, []);
 
 	const scrollToFirstError = () => {
@@ -189,24 +149,6 @@ function BookingPage() {
 		});
 	};
 
-	const handlePaymentModalClose = (activeCheckoutSession: EmbeddedCheckoutSession) => {
-		void closeOpenCheckoutSession(activeCheckoutSession);
-	};
-
-	const closeOpenCheckoutSession = async (activeCheckoutSession: EmbeddedCheckoutSession) => {
-		const [error] = await tryCatch<CloseEmbeddedCheckoutSessionResult>(
-			closeEmbeddedCheckoutSession({
-				bookingId: activeCheckoutSession.bookingId,
-				stripeSessionId: activeCheckoutSession.stripeSessionId
-			})
-		);
-
-		if (error !== null) {
-			toast.error(closeCheckoutToastMessages[error.reason]);
-			return;
-		}
-	};
-
 	const handleReuseSavedBookingInfo = () => {
 		if (!savedBookingInfo) {
 			return;
@@ -223,7 +165,7 @@ function BookingPage() {
 		formApi.setFieldValue("abn", savedBookingInfo.abn);
 		formApi.setFieldValue("email", savedBookingInfo.email);
 		formApi.setFieldValue("notes", savedBookingInfo.notes);
-		setShowScrollToCompleteBooking(true);
+		completeBookingShortcut.setShowScrollToCompleteBooking(true);
 	};
 
 	const handleRemoveSavedBookingInfo = () => {
@@ -239,17 +181,6 @@ function BookingPage() {
 			removeStoredSavedBookingInfo();
 			setSavedBookingInfo(null);
 		}
-	};
-
-	const handleScrollToCompleteBooking = () => {
-		const scrollTarget = isDateTimeIncomplete
-			? dateTimeSectionRef.current
-			: completeBookingButtonRef.current;
-
-		scrollTarget?.scrollIntoView({
-			behavior: "smooth",
-			block: isDateTimeIncomplete ? "start" : "center"
-		});
 	};
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
@@ -307,7 +238,7 @@ function BookingPage() {
 						<BookingRecordingSpaceDurationSection />
 						<BookingAddonsSection />
 						<div
-							ref={dateTimeSectionRef}
+							ref={completeBookingShortcut.dateTimeSectionRef}
 							className="scroll-mt-32 sm:scroll-mt-40">
 							<BookingDateTimeSection availability={availability} />
 						</div>
@@ -333,7 +264,7 @@ function BookingPage() {
 					</Field>
 
 					<div
-						ref={completeBookingButtonRef}
+						ref={completeBookingShortcut.completeBookingButtonRef}
 						className="space-y-4">
 						<BookingSummary />
 						<Button
@@ -351,7 +282,8 @@ function BookingPage() {
 				onTermsConfirm={bookingSubmit.handleTermsConfirm}
 			/>
 
-			{showScrollToCompleteBooking && !hasReachedCompleteBooking ? (
+			{completeBookingShortcut.showScrollToCompleteBooking &&
+			!completeBookingShortcut.hasReachedCompleteBooking ? (
 				<div className="fixed right-4 bottom-16 z-50 animate-in fade-in zoom-in-150 duration-200 sm:right-6 sm:bottom-6 motion-reduce:zoom-in-100">
 					<Button
 						type="button"
@@ -362,7 +294,7 @@ function BookingPage() {
 								: "Scroll to complete booking"
 						}
 						className="rounded-full shadow-md active:scale-95 motion-reduce:transition-none"
-						onClick={handleScrollToCompleteBooking}>
+						onClick={completeBookingShortcut.handleScrollToCompleteBooking}>
 						<ChevronDown className="size-6" />
 					</Button>
 				</div>
