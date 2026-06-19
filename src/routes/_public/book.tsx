@@ -23,6 +23,7 @@ import {
 	BookingRecurringSessionsPrompt
 } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
+import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
@@ -752,6 +753,7 @@ function BookingPage() {
 					</div>
 				</form>
 			</bookingFormContext.Provider>
+			<BookingModalHost />
 
 			{showScrollToCompleteBooking && !hasReachedCompleteBooking ? (
 				<div className="fixed right-4 bottom-16 z-50 animate-in fade-in zoom-in-150 duration-200 sm:right-6 sm:bottom-6 motion-reduce:zoom-in-100">

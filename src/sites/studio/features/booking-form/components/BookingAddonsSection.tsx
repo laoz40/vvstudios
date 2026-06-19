@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { AnimatePresence, motion } from "motion/react";
-import { Button } from "#/components/ui/button";
 import {
 	Field,
 	FieldDescription,
@@ -12,10 +10,10 @@ import {
 	FieldTitle
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { Modal } from "#studio/components/Modal";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import { openAddonCompatibilityModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
@@ -92,7 +90,6 @@ export function BookingAddonsSection() {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
-	const [isCompatibilityDialogOpen, setIsCompatibilityDialogOpen] = useState(false);
 	const FormField = formApi.Field;
 
 	return (
@@ -113,7 +110,7 @@ export function BookingAddonsSection() {
 
 						if (isIncompatibleSelection) {
 							nextAddons = nextAddons.filter((value) => value !== fourKAddon);
-							setIsCompatibilityDialogOpen(true);
+							openAddonCompatibilityModal();
 						}
 
 						field.handleChange(nextAddons as BookingFormValues["addons"]);
@@ -174,20 +171,6 @@ export function BookingAddonsSection() {
 					);
 				}}
 			</FormField>
-			<Modal
-				open={isCompatibilityDialogOpen}
-				onOpenChange={setIsCompatibilityDialogOpen}
-				title="4K isn't available for remote podcasts"
-				description="Remote Podcast runs through Riverside.fm using our studio setup, which doesn't support our 4K recording addon."
-				closeLabel="Close"
-				footer={
-					<Button
-						type="button"
-						onClick={() => setIsCompatibilityDialogOpen(false)}>
-						Got it
-					</Button>
-				}
-			/>
 		</>
 	);
 }
