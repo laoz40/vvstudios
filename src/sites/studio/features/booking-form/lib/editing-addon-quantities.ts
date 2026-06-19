@@ -1,4 +1,4 @@
-import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import { hasEditingAddon, type BookingAddon } from "#studio/features/booking-form/lib/form-shared";
 
 export type EditingAddonQuantities = {
 	essentialEditQuantity?: string;
@@ -29,10 +29,14 @@ export function getEditingAddonQuantity(
 	return Number.isInteger(quantity) && quantity > 0 ? quantity : fallbackQuantity;
 }
 
-export function getEditingAddonQuantityForForm(
+export function getBookingAddonQuantityForForm(
 	addon: BookingAddon,
 	quantities: EditingAddonQuantities
 ) {
+	if (!hasEditingAddon([addon])) {
+		return 1;
+	}
+
 	return getEditingAddonQuantity(addon, quantities, 0);
 }
 
