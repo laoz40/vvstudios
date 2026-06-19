@@ -147,6 +147,7 @@ function BookingPage() {
 			openPaymentModal(session);
 		}
 	});
+	// Derived form values and availability
 	const formValues = useSelector(formApi.store, (state) => state.values);
 	const isDateTimeIncomplete = !formValues.date || !formValues.time;
 	const handleSelectedTimeInvalidated = useCallback(() => {
@@ -159,7 +160,7 @@ function BookingPage() {
 		selectedTime: formValues.time
 	});
 
-	// load saved booking info
+	// Load saved booking info from local storage.
 	useEffect(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
@@ -172,7 +173,7 @@ function BookingPage() {
 		setShouldSaveBookingInfo(true);
 	}, []);
 
-	// hide complete booking shortcut once its target is visible
+	// Hide the complete booking shortcut once its target is visible.
 	useEffect(() => {
 		const updateHasReachedCompleteBooking = () => {
 			const completeBookingButton = completeBookingButtonRef.current;

@@ -164,6 +164,7 @@ function AnimatedDropdownMenuItem({
 }
 
 export function BookingActions({ booking }: BookingActionsProps) {
+	// Convex actions and mutations
 	const deleteBooking = useAction(api.googleCalendar.deleteBookingFromAdmin);
 	const sendBookingDeliverablesEmail = useAction(
 		api.deliverablesEmail.sendBookingDeliverablesEmail
@@ -179,34 +180,46 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		api.bookings.updateBookingRemainingBalanceAmount
 	);
 	const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
+
+	// Dialog visibility
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
-	const [pendingEditDraft, setPendingEditDraft] = useState<BookingEditDraft | null>(null);
-	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getBookingEditWarningState
-	> | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isRemainingBalanceDialogOpen, setIsRemainingBalanceDialogOpen] = useState(false);
 	const [isRescheduleLinkDialogOpen, setIsRescheduleLinkDialogOpen] = useState(false);
-	const [generatedRescheduleUrl, setGeneratedRescheduleUrl] = useState<string | null>(null);
+
+	// Edit confirmation state
+	const [pendingEditDraft, setPendingEditDraft] = useState<BookingEditDraft | null>(null);
+	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
+		typeof getBookingEditWarningState
+	> | null>(null);
+
+	// Async action status
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const [isGeneratingRescheduleLink, setIsGeneratingRescheduleLink] = useState(false);
-	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
-	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
-	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
-	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
 	const [isUpdatingEditStatus, setIsUpdatingEditStatus] = useState(false);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 	const [isUpdatingRemainingBalanceAmount, setIsUpdatingRemainingBalanceAmount] = useState(false);
 	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+	// Menu icon animation refs
+	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
+	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
+	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
+	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
+
+	// Generated dialog data
+	const [generatedRescheduleUrl, setGeneratedRescheduleUrl] = useState<string | null>(null);
+
+	// Booking display and permission flags
 	const customerBookingId = formatBookingInvoiceNumber(
 		booking._id,
 		booking.pendingPaymentCreatedAt
@@ -227,6 +240,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const deliverableStatus = getDeliverableStatus(booking);
 	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
 	const remainingBalanceAmount = getRemainingBalanceAmount(booking);
+
+	// Dialog form drafts
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
@@ -234,6 +249,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		String(remainingBalanceAmount)
 	);
 
+	// Keep the remaining balance draft fresh each time the dialog opens.
 	useEffect(() => {
 		if (isRemainingBalanceDialogOpen) {
 			setRemainingBalanceDraft(String(remainingBalanceAmount));

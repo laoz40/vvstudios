@@ -504,30 +504,42 @@ export function AdminDashboard({
 	loadMoreBookings,
 	signOutControl
 }: AdminDashboardProps) {
+	// Convex mutations
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
+
+	// Table setup and persisted filters
 	const columns = useMemo(() => buildColumns(), []);
 	const [sorting, setSorting] = useState<SortingState>(() => readStoredAdminDashboardSorting());
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
 	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
+
+	// Cleanup dialog state
 	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
 	const [isCleaningUp, setIsCleaningUp] = useState(false);
+
+	// Cleanup candidates
 	const staleCleanupBookings = useMemo(
 		() => bookings.filter((booking) => isStaleCleanupBooking(booking)),
 		[bookings]
 	);
+
+	// Persist table sorting changes.
 	useEffect(() => {
 		storeAdminDashboardSorting(sorting);
 	}, [sorting]);
 
+	// Persist the upcoming-only filter.
 	useEffect(() => {
 		storeShowUpcomingOnly(showUpcomingOnly);
 	}, [showUpcomingOnly]);
 
+	// Persist the stale-bookings filter.
 	useEffect(() => {
 		storeShowStaleBookings(showStaleBookings);
 	}, [showStaleBookings]);
 
+	// Visible booking rows after dashboard-level filters.
 	const filteredBookings = useMemo(() => {
 		return bookings.filter((booking) => {
 			if (
@@ -547,6 +559,7 @@ export function AdminDashboard({
 		});
 	}, [bookings, showStaleBookings, showUpcomingOnly]);
 
+	// Cleanup actions
 	async function handleCleanupOldBookings() {
 		setIsCleaningUp(true);
 
@@ -591,6 +604,7 @@ export function AdminDashboard({
 		setIsCleaningUp(false);
 	}
 
+	// React table instance
 	const table = useReactTable({
 		data: filteredBookings,
 		columns,
@@ -604,6 +618,7 @@ export function AdminDashboard({
 		state: { sorting, columnFilters }
 	});
 
+	// Dashboard summary values
 	const metrics = useMemo(() => {
 		const startOfWeekTimestamp = getStartOfWeekTimestamp();
 		const counts = filteredBookings.reduce(

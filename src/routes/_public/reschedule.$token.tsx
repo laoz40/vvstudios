@@ -98,6 +98,7 @@ function ReschedulePage() {
 		null
 	);
 	const [isUpdatingBooking, setIsUpdatingBooking] = useState(false);
+	// Derived date range values
 	const selectedDate = parseDateValue(selectedDateValue);
 	const today = useMemo(() => startOfToday(), []);
 
@@ -205,7 +206,7 @@ function ReschedulePage() {
 		token
 	]);
 
-	// Keep time-based availability fresh
+	// Keep time-based availability fresh for stale date checks.
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			setCurrentTimestamp(getCurrentTimestamp());
@@ -216,7 +217,7 @@ function ReschedulePage() {
 		};
 	}, []);
 
-	// Reset selection when switching dev scenarios
+	// Reset the selected slot when switching dev scenarios.
 	useEffect(() => {
 		if (!activeDevScenario) {
 			return;
@@ -227,6 +228,7 @@ function ReschedulePage() {
 		setSelectedDateValue(formatDateValue(startOfToday()));
 	}, [activeDevScenario]);
 
+	// Active booking source
 	const getRescheduleBooking = activeDevScenario
 		? buildDevRescheduleBooking(activeDevScenario)
 		: liveRescheduleBooking;
