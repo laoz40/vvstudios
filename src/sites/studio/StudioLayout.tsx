@@ -5,6 +5,7 @@ import { cn } from "#/lib/utils";
 import footerRevealImage from "#studio/assets/bg/landing-full.webp";
 import { Footer } from "#studio/components/Footer";
 import { FooterImageReveal } from "#studio/components/FooterImageReveal";
+import { ModalHost } from "#studio/components/ModalHost";
 import { SiteNavbar } from "#studio/components/NavBar";
 
 export type StudioLayoutProps = { children: ReactNode; pathname: string };
@@ -53,6 +54,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 			</div>
 			{useMinimalLayout ? null : <Footer />}
 			{useMinimalLayout ? null : <FooterImageReveal showCta={showFooterRevealCta} />}
+			{useMinimalLayout ? null : <ModalHost />}
 		</>
 	);
 }

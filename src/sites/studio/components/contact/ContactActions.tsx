@@ -3,7 +3,7 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 
 const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
@@ -28,7 +28,7 @@ export function ContactActions({ className }: ContactActionsProps) {
 				)}>
 				<Link to={studioSite.routes.book}>{contactActionCopy.bookCta}</Link>
 			</AnimatedIconButton>
-			<FreeTourDialogButton
+			<FreeTourModalButton
 				label={contactActionCopy.tourCta}
 				className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
 			/>

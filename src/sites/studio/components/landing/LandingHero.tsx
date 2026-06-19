@@ -10,7 +10,7 @@ import heroVideoMp4 from "#studio/assets/bg/landing.mp4";
 import heroVideoWebm from "#studio/assets/bg/landing.webm";
 import heroPoster from "#studio/assets/bg/landing-poster.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
-import { FreeTourDialogButton } from "#studio/components/FreeTourDialog";
+import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 import { STUDIO_ADDRESS_URL } from "#/config/contact";
 
 const heroCopy = {
@@ -110,7 +110,7 @@ export function LandingHero() {
 									<Link to={studioSite.routes.book}>{heroCopy.bookCta}</Link>
 								</AnimatedIconButton>
 
-								<FreeTourDialogButton
+								<FreeTourModalButton
 									label={heroCopy.tourCta}
 									className="h-auto flex-1 border-0 bg-card/50! px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-accent/80! md:flex-none"
 								/>
