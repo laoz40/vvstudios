@@ -13,6 +13,7 @@ Booking website for podcast studio.
   components, routes, or backend functions.
 - App behavior rules include things like permissions, statuses, validation, limits, and error mapping.
 - Avoid tiny helper files/functions for one-off logic
+- Avoid useless one-line wrappers; call or export the real function directly.
 - Optimize for readability and safe future changes over minimizing line count
 - Keep functions small and focused on one decision or operation
 - Prefer clear sequencing, guard clauses, and early returns over clever compact code
