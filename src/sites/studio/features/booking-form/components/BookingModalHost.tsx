@@ -20,6 +20,7 @@ export function BookingModalHost() {
 					footer={
 						<Button
 							type="button"
+							className="w-full"
 							onClick={closeBookingModal}>
 							Got it
 						</Button>
@@ -36,14 +37,12 @@ export function BookingModalHost() {
 					closeLabel="Close dialog"
 					className="gap-4 px-6 py-4 sm:px-8"
 					footer={
-						<div className="mt-4 flex w-full justify-center">
 							<Button
 								type="button"
-								className="min-w-36 font-semibold"
+								className="mt-4 w-full"
 								onClick={closeBookingModal}>
 								Confirm
 							</Button>
-						</div>
 					}>
 					<div className="space-y-2 text-center">
 						<p className="text-foreground text-3xl font-semibold tracking-tight">
