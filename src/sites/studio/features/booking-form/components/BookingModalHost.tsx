@@ -6,9 +6,9 @@ import {
 } from "#studio/features/booking-form/lib/booking-modal-store";
 
 export function BookingModalHost() {
-	const modal = useBookingModalStore((state) => state.modal);
+	const bookingModalState = useBookingModalStore((state) => state);
 
-	switch (modal) {
+	switch (bookingModalState.modal) {
 		case "addonCompatibility":
 			return (
 				<Modal
@@ -27,11 +27,40 @@ export function BookingModalHost() {
 				/>
 			);
 
+		case "sessionSummary":
+			return (
+				<Modal
+					open
+					onOpenChange={closeBookingModal}
+					title={<span className="text-muted-foreground block text-center text-lg font-medium">Selected Session</span>}
+					closeLabel="Close dialog"
+					className="gap-4 px-6 py-4 sm:px-8"
+					footer={
+						<div className="mt-4 flex w-full justify-center">
+							<Button
+								type="button"
+								className="min-w-36 font-semibold"
+								onClick={closeBookingModal}>
+								Confirm
+							</Button>
+						</div>
+					}>
+					<div className="space-y-2 text-center">
+						<p className="text-foreground text-3xl font-semibold tracking-tight">
+							{bookingModalState.dateSummary}
+						</p>
+						<p className="text-xl font-medium">
+							{bookingModalState.timeSummary}
+						</p>
+					</div>
+				</Modal>
+			);
+
 		case "none":
 			return null;
 
 		default: {
-			const _exhaustive: never = modal;
+			const _exhaustive: never = bookingModalState;
 			return _exhaustive;
 		}
 	}

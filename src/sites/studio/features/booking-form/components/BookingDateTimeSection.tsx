@@ -1,23 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
-import { Button } from "#/components/ui/button";
 import { FieldError } from "#/components/ui/field";
-import { Modal } from "#studio/components/Modal";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
+import { openSessionSummaryModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	getBookingTimeSelectionMessage,
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
-
-const sectionCopy = {
-	modalCloseLabel: "Close dialog",
-	sessionSummaryTitle: "Session selected",
-	sessionSummaryDescription: "Review selected session time before continuing.",
-	sessionSummaryAction: "Confirm"
-} as const;
 
 export interface BookingDateTimeSectionProps {
 	availabilityError: string;
@@ -59,7 +51,6 @@ export function BookingDateTimeSection({
 			? formatBookingTimeRange(formValues.time, formValues.duration)
 			: "No selected duration"
 		: "No selected time";
-	const [isSessionSummaryDialogOpen, setIsSessionSummaryDialogOpen] = useState(false);
 	const lastSessionSummarySelectionRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -75,8 +66,14 @@ export function BookingDateTimeSection({
 		}
 
 		lastSessionSummarySelectionRef.current = selectionKey;
-		setIsSessionSummaryDialogOpen(true);
-	}, [formValues.date, formValues.duration, formValues.time]);
+		openSessionSummaryModal({ dateSummary: bookingDateSummary, timeSummary: bookingTimeSummary });
+	}, [
+		bookingDateSummary,
+		bookingTimeSummary,
+		formValues.date,
+		formValues.duration,
+		formValues.time
+	]);
 
 	return (
 		<section className="flex flex-col mt-0 gap-6 md:gap-8">
@@ -129,28 +126,6 @@ export function BookingDateTimeSection({
 					Time: <span className="text-foreground font-medium">{bookingTimeSummary}</span>
 				</p>
 			</div> */}
-			<Modal
-				open={isSessionSummaryDialogOpen}
-				onOpenChange={setIsSessionSummaryDialogOpen}
-				title={sectionCopy.sessionSummaryTitle}
-				description={sectionCopy.sessionSummaryDescription}
-				closeLabel={sectionCopy.modalCloseLabel}
-				footer={
-					<Button
-						type="button"
-						onClick={() => setIsSessionSummaryDialogOpen(false)}>
-						{sectionCopy.sessionSummaryAction}
-					</Button>
-				}>
-				<div className="grid gap-3 rounded-lg border bg-card p-4 text-center">
-					<p className="text-foreground text-2xl font-semibold leading-tight">
-						{bookingDateSummary}
-					</p>
-					<p className="text-foreground text-2xl font-semibold leading-tight">
-						{bookingTimeSummary}
-					</p>
-				</div>
-			</Modal>
 		</section>
 	);
 }
