@@ -1,6 +1,6 @@
 ---
 name: zustand
-description: Implements feature-scoped Zustand stores that keep data in the store and expose actions as standalone exported functions. Use when adding or refactoring Zustand global state, reducing prop drilling, creating files named *store* in nearby lib directories, or moving feature state/actions out of React components.
+description: Use when adding/refactoring Zustand state, reducing prop drilling, creating or editing *store* files, moving feature state/actions out of React components, or centralizing feature modals in a Zustand modal host.
 ---
 
 # Zustand
@@ -19,6 +19,8 @@ Preferred pattern:
 - Action functions may use `useFeatureStore.setState((state) => ({ ... }))` for updates based on current state.
 - Components pass no-argument actions directly to handlers like `onClick={increment}`.
 
+
+Optional deeper pattern: when centralizing feature modals with a host component and discriminated `switch` states, also read [MODAL_HOST.md](MODAL_HOST.md).
 ## Store shape
 
 Create a small focused store file near the feature, for example:
