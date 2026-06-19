@@ -5,10 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import type {
-	CloseEmbeddedCheckoutSessionResult,
-	CreateEmbeddedCheckoutSessionResult
-} from "#convex/stripe";
+import type { CloseEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
@@ -19,17 +16,18 @@ import { BookingDateTimeSection } from "#studio/features/booking-form/components
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingRecurringSessionsPrompt } from "#studio/features/booking-form/components/BookingRecurringSessionsPrompt";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
-import {
-	BookingModalHost,
-	loadBookingPaymentModal
-} from "#studio/features/booking-form/components/BookingModalHost";
+import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
 	bookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
-import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/form-shared";
+import {
+	bookingSchema,
+	INITIAL_FORM,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/form-shared";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
@@ -38,9 +36,9 @@ import {
 	type SavedBookingInfo
 } from "#studio/features/booking-form/lib/saved-booking-info";
 import {
-	openPaymentModal,
-	openTermsModal
-} from "#studio/features/booking-form/lib/booking-modal-store";
+	termsDialogPendingError,
+	useBookingSubmit
+} from "#studio/features/booking-form/hooks/useBookingSubmit";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -48,21 +46,15 @@ import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
 import { api } from "#convex/_generated/api";
 import {
 	closeCheckoutToastMessages,
-	devBookingErrorMessages,
-	startCheckoutToastMessages
+	devBookingErrorMessages
 } from "#studio/features/booking-form/lib/booking-page-errors";
-import { useBookingAvailability } from "#studio/features/booking-form/lib/use-booking-availability";
+import { useBookingAvailability } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { tryCatch } from "#/lib/result";
 
-type CreateEmbeddedCheckoutSessionAction = ReturnType<
-	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
->;
 type CloseEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.closeEmbeddedCheckoutSession>
 >;
-
-const termsDialogPendingError = new Error("terms-dialog-pending");
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -71,9 +63,7 @@ export const Route = createFileRoute("/_public/book")({
 
 function BookingPage() {
 	// Convex actions
-	const createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction = useAction(
-		api.stripe.createEmbeddedCheckoutSession
-	);
+	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
 	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
 		api.stripe.closeEmbeddedCheckoutSession
 	);
@@ -83,10 +73,6 @@ function BookingPage() {
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 
-	// Submission flow
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const submitAfterTermsRef = useRef(false);
-
 	// Saved booking details
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
@@ -95,56 +81,32 @@ function BookingPage() {
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 
-	const formApi = useForm({
-		defaultValues: INITIAL_FORM,
-		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
-		onSubmit: async ({ value }) => {
-			const parsedValue = bookingSchema.parse(value);
-
-			if (!submitAfterTermsRef.current) {
-				openTermsModal();
-				void loadBookingPaymentModal();
-				throw termsDialogPendingError;
-			}
-
-			submitAfterTermsRef.current = false;
-			setIsSubmitting(true);
-
-			const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
-				createEmbeddedCheckoutSession({
-					name: parsedValue.name,
-					phone: parsedValue.phone,
-					accountName: parsedValue.accountName,
-					abn: parsedValue.abn || undefined,
-					email: parsedValue.email,
-					date: parsedValue.date,
-					time: parsedValue.time,
-					duration: parsedValue.duration,
-					service: parsedValue.service,
-					addons: parsedValue.addons,
-					essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
-					clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
-					notes: parsedValue.notes
-				})
-			);
-			setIsSubmitting(false);
-			submitAfterTermsRef.current = false;
-
-			if (error !== null) {
-				toast.error(startCheckoutToastMessages[error.reason]);
-				return;
-			}
-
+	const persistBookingInfoFromForm = useCallback(
+		(parsedValue: BookingFormValues) => {
 			if (shouldSaveBookingInfo) {
 				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
 				storeSavedBookingInfo(nextSavedBookingInfo);
 				setSavedBookingInfo(nextSavedBookingInfo);
-			} else {
-				removeStoredSavedBookingInfo();
-				setSavedBookingInfo(null);
+				return;
 			}
 
-			openPaymentModal(session);
+			removeStoredSavedBookingInfo();
+			setSavedBookingInfo(null);
+		},
+		[shouldSaveBookingInfo]
+	);
+
+	const bookingSubmit = useBookingSubmit({
+		createEmbeddedCheckoutSession,
+		formRef,
+		persistBookingInfoFromForm
+	});
+
+	const formApi = useForm({
+		defaultValues: INITIAL_FORM,
+		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
+		onSubmit: async ({ value }) => {
+			await bookingSubmit.handleSubmit(value);
 		}
 	});
 	// Derived form values and availability
@@ -245,11 +207,6 @@ function BookingPage() {
 		}
 	};
 
-	const handleTermsConfirm = () => {
-		submitAfterTermsRef.current = true;
-		formRef.current?.requestSubmit();
-	};
-
 	const handleReuseSavedBookingInfo = () => {
 		if (!savedBookingInfo) {
 			return;
@@ -331,7 +288,7 @@ function BookingPage() {
 							.handleSubmit()
 							.then(() => {
 								if (!formApi.state.isValid) {
-									submitAfterTermsRef.current = false;
+									bookingSubmit.resetTermsSubmit();
 									scrollToFirstError();
 								}
 							})
@@ -382,16 +339,16 @@ function BookingPage() {
 						<Button
 							type="submit"
 							className="mb-20 h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
-							disabled={isSubmitting}>
+							disabled={bookingSubmit.isSubmitting}>
 							COMPLETE BOOKING
 						</Button>
 					</div>
 				</form>
 			</bookingFormContext.Provider>
 			<BookingModalHost
-				isSubmitting={isSubmitting}
+				isSubmitting={bookingSubmit.isSubmitting}
 				onPaymentClose={handlePaymentModalClose}
-				onTermsConfirm={handleTermsConfirm}
+				onTermsConfirm={bookingSubmit.handleTermsConfirm}
 			/>
 
 			{showScrollToCompleteBooking && !hasReachedCompleteBooking ? (

@@ -5,7 +5,7 @@ import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
-import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
+import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 export interface PhotosSectionProps {
 	className?: string;

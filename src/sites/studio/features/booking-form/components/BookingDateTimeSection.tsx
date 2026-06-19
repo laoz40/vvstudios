@@ -9,7 +9,7 @@ import {
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
-import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/lib/use-booking-availability";
+import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export interface BookingDateTimeSectionProps {

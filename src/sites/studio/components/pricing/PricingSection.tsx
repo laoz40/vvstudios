@@ -9,7 +9,7 @@ import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
 import trioTalkingAtTableSetupImage from "#studio/assets/gallery/trio-talking-at-table-setup.webp";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
-import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
+import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 type PricingSession = {
 	label: string;

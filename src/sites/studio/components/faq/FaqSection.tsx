@@ -8,7 +8,7 @@ import {
 } from "#/components/ui/accordion";
 import { cn } from "#/lib/utils";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
-import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
+import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 type ContactFaqAnswerPart = { heading?: string; value: string };
 
