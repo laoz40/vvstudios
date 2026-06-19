@@ -18,10 +18,8 @@ import {
 import { Label } from "#/components/ui/label";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
-import {
-	BookingRecordingSpaceDurationSection,
-	BookingRecurringSessionsPrompt
-} from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
+import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
+import { BookingRecurringSessionsPrompt } from "#studio/features/booking-form/components/BookingRecurringSessionsPrompt";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";

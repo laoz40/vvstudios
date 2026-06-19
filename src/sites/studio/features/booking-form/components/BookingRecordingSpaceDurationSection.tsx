@@ -1,12 +1,9 @@
-import { useState } from "react";
 import { Image } from "@unpic/react";
 import { useStore } from "@tanstack/react-store";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
-import { Button } from "#/components/ui/button";
 import { FieldDescription, FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { env } from "#/env";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
@@ -25,17 +22,10 @@ import {
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
-import { Modal } from "#studio/components/Modal";
 
 const sectionCopy = {
 	recordingSpaceLabel: "RECORDING SPACE *",
 	durationLabel: "SESSION DURATION *",
-	recurringPromptPrefix: "Need recurring sessions?",
-	recurringPromptAction: "Request a call",
-	recurringPromptSuffix: "to lock in your slot at a discounted rate.",
-	requestCallDialogTitle: "Request a call",
-	requestCallDialogDescription: "Book a quick call to discuss recurring sessions and availability.",
-	requestCallDialogClose: "Close",
 	recordingSpaceNote:
 		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting."
 } as const;
@@ -88,45 +78,6 @@ const durationOptions: DurationOption[] = [
 		discountedPrice: formatBookingPrice(DURATION_PRICES["3h"])
 	}
 ] as const;
-
-export function BookingRecurringSessionsPrompt() {
-	const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
-
-	return (
-		<div className="text-left text-sm text-muted-foreground sm:text-center">
-			{sectionCopy.recurringPromptPrefix}{" "}
-			<Button
-				type="button"
-				variant="link"
-				className="accent-link text-foreground p-0 font-medium"
-				aria-haspopup="dialog"
-				aria-expanded={isRequestCallOpen}
-				onClick={() => {
-					setIsRequestCallOpen(true);
-				}}>
-				{sectionCopy.recurringPromptAction}
-			</Button>
-			<Modal
-				open={isRequestCallOpen}
-				onOpenChange={setIsRequestCallOpen}
-				title={sectionCopy.requestCallDialogTitle}
-				description={sectionCopy.requestCallDialogDescription}
-				closeLabel={sectionCopy.requestCallDialogClose}
-				initialFocus="content"
-				size="6xl"
-				className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-				<div className="overflow-hidden rounded-xl border bg-white">
-					<iframe
-						src={env.VITE_BOOKING_RECURRING_URL}
-						title={sectionCopy.requestCallDialogTitle}
-						className="block min-h-176 w-full border-0 bg-transparent"
-					/>
-				</div>
-			</Modal>{" "}
-			{sectionCopy.recurringPromptSuffix}
-		</div>
-	);
-}
 
 export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
