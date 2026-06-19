@@ -8,8 +8,8 @@ import {
 	ADDON_PRICES,
 	DURATION_PRICES,
 	formatBookingPrice,
-	getBookingTotal,
-	getEditingAddonQuantity
+	getBookingAddonQuantity,
+	getBookingTotal
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { type BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -57,7 +57,7 @@ export function BookingSummary({ values }: BookingSummaryProps) {
 							</div>
 						) : null}
 						{values.addons.map((addon) => {
-							const quantity = getEditingAddonQuantity(addon, values);
+							const quantity = getBookingAddonQuantity(addon, values);
 							const lineTotal = ADDON_PRICES[addon] * quantity;
 
 							return (
