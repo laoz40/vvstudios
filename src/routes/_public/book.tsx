@@ -1,11 +1,10 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import type { Id } from "#convex/_generated/dataModel";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
@@ -21,8 +20,10 @@ import { BookingDateTimeSection } from "#studio/features/booking-form/components
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingRecurringSessionsPrompt } from "#studio/features/booking-form/components/BookingRecurringSessionsPrompt";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
-import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
-import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
+import {
+	BookingModalHost,
+	loadBookingPaymentModal
+} from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
@@ -38,6 +39,11 @@ import {
 	toSavedBookingInfo,
 	type SavedBookingInfo
 } from "#studio/features/booking-form/lib/saved-booking-info";
+import {
+	openPaymentModal,
+	openTermsModal
+} from "#studio/features/booking-form/lib/booking-modal-store";
+import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
@@ -65,12 +71,6 @@ import {
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { tryCatch } from "#/lib/result";
 
-interface EmbeddedCheckoutSession {
-	bookingId: Id<"bookings">;
-	clientSecret: string;
-	stripeSessionId: string;
-}
-
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
 >;
@@ -79,11 +79,6 @@ type CloseEmbeddedCheckoutSessionAction = ReturnType<
 >;
 
 const termsDialogPendingError = new Error("terms-dialog-pending");
-const loadBookingPaymentModal = () =>
-	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
-		default: module.BookingPaymentModal
-	}));
-const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -146,7 +141,6 @@ function BookingPage() {
 	const closeEmbeddedCheckoutSession: CloseEmbeddedCheckoutSessionAction = useAction(
 		api.stripe.closeEmbeddedCheckoutSession
 	);
-	const [checkoutSession, setCheckoutSession] = useState<EmbeddedCheckoutSession | null>(null);
 	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
@@ -164,7 +158,6 @@ function BookingPage() {
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [showTermsDialog, setShowTermsDialog] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
@@ -179,7 +172,7 @@ function BookingPage() {
 			const parsedValue = bookingSchema.parse(value);
 
 			if (!submitAfterTermsRef.current) {
-				setShowTermsDialog(true);
+				openTermsModal();
 				void loadBookingPaymentModal();
 				throw termsDialogPendingError;
 			}
@@ -260,8 +253,7 @@ function BookingPage() {
 					setSavedBookingInfo(null);
 				}
 
-				setCheckoutSession(session);
-				setShowTermsDialog(false);
+				openPaymentModal(session);
 
 				setCalendarMonth(parseMonthKey(getCurrentMonthKey()));
 			} finally {
@@ -555,14 +547,7 @@ function BookingPage() {
 		selectedMonth
 	]);
 
-	const handlePaymentModalClose = () => {
-		const activeCheckoutSession = checkoutSession;
-		setCheckoutSession(null);
-
-		if (!activeCheckoutSession) {
-			return;
-		}
-
+	const handlePaymentModalClose = (activeCheckoutSession: EmbeddedCheckoutSession) => {
 		void closeOpenCheckoutSession(activeCheckoutSession);
 	};
 
@@ -751,7 +736,11 @@ function BookingPage() {
 					</div>
 				</form>
 			</bookingFormContext.Provider>
-			<BookingModalHost />
+			<BookingModalHost
+				isSubmitting={isSubmitting}
+				onPaymentClose={handlePaymentModalClose}
+				onTermsConfirm={handleTermsConfirm}
+			/>
 
 			{showScrollToCompleteBooking && !hasReachedCompleteBooking ? (
 				<div className="fixed right-4 bottom-16 z-50 animate-in fade-in zoom-in-150 duration-200 sm:right-6 sm:bottom-6 motion-reduce:zoom-in-100">
@@ -768,22 +757,6 @@ function BookingPage() {
 						<ChevronDown className="size-6" />
 					</Button>
 				</div>
-			) : null}
-
-			<TermsDialog
-				open={showTermsDialog}
-				isSubmitting={isSubmitting}
-				onConfirm={handleTermsConfirm}
-				onOpenChange={setShowTermsDialog}
-			/>
-
-			{checkoutSession ? (
-				<Suspense fallback={null}>
-					<BookingPaymentModal
-						clientSecret={checkoutSession.clientSecret}
-						onClose={handlePaymentModalClose}
-					/>
-				</Suspense>
 			) : null}
 		</main>
 	);

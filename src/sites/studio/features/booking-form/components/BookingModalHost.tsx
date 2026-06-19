@@ -1,12 +1,32 @@
+import { Suspense, lazy } from "react";
+
 import { Button } from "#/components/ui/button";
 import { env } from "#/env";
 import { Modal } from "#studio/components/Modal";
+import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
+import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 import {
 	closeBookingModal,
 	useBookingModalStore
 } from "#studio/features/booking-form/lib/booking-modal-store";
 
-export function BookingModalHost() {
+export const loadBookingPaymentModal = () =>
+	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
+		default: module.BookingPaymentModal
+	}));
+const BookingPaymentModal = lazy(loadBookingPaymentModal);
+
+interface BookingModalHostProps {
+	isSubmitting: boolean;
+	onPaymentClose: (checkoutSession: EmbeddedCheckoutSession) => void;
+	onTermsConfirm: () => void;
+}
+
+export function BookingModalHost({
+	isSubmitting,
+	onPaymentClose,
+	onTermsConfirm
+}: BookingModalHostProps) {
 	const bookingModalState = useBookingModalStore((state) => state);
 
 	switch (bookingModalState.modal) {
@@ -27,6 +47,20 @@ export function BookingModalHost() {
 						</Button>
 					}
 				/>
+			);
+
+		case "payment":
+			return (
+				<Suspense fallback={null}>
+					<BookingPaymentModal
+						clientSecret={bookingModalState.checkoutSession.clientSecret}
+						onClose={() => {
+							const activeCheckoutSession = bookingModalState.checkoutSession;
+							closeBookingModal();
+							onPaymentClose(activeCheckoutSession);
+						}}
+					/>
+				</Suspense>
 			);
 
 		case "requestCall":
@@ -77,6 +111,20 @@ export function BookingModalHost() {
 						<p className="text-xl font-medium">{bookingModalState.timeSummary}</p>
 					</div>
 				</Modal>
+			);
+
+		case "terms":
+			return (
+				<TermsDialog
+					open
+					isSubmitting={isSubmitting}
+					onConfirm={onTermsConfirm}
+					onOpenChange={(open) => {
+						if (!open) {
+							closeBookingModal();
+						}
+					}}
+				/>
 			);
 
 		case "none":
