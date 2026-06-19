@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
@@ -22,18 +22,7 @@ import {
 	bookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
-import {
-	bookingSchema,
-	INITIAL_FORM,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
-import {
-	getStoredSavedBookingInfo,
-	removeStoredSavedBookingInfo,
-	storeSavedBookingInfo,
-	toSavedBookingInfo,
-	type SavedBookingInfo
-} from "#studio/features/booking-form/lib/saved-booking-info";
+import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/form-shared";
 import {
 	termsDialogPendingError,
 	useBookingSubmit
@@ -47,6 +36,8 @@ import { useBookingAvailability } from "#studio/features/booking-form/hooks/useB
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { useBookingCheckoutClose } from "#studio/features/booking-form/hooks/useBookingCheckoutClose";
 import { useCompleteBookingShortcut } from "#studio/features/booking-form/hooks/useCompleteBookingShortcut";
+import { useSavedBookingInfo } from "#studio/features/booking-form/hooks/useSavedBookingInfo";
+import { scrollToFirstBookingFormError } from "#studio/features/booking-form/lib/form-error-scroll";
 
 export const Route = createFileRoute("/_public/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -61,31 +52,6 @@ function BookingPage() {
 	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
 
-	// Saved booking details
-	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
-	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
-
-	const persistBookingInfoFromForm = useCallback(
-		(parsedValue: BookingFormValues) => {
-			if (shouldSaveBookingInfo) {
-				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
-				storeSavedBookingInfo(nextSavedBookingInfo);
-				setSavedBookingInfo(nextSavedBookingInfo);
-				return;
-			}
-
-			removeStoredSavedBookingInfo();
-			setSavedBookingInfo(null);
-		},
-		[shouldSaveBookingInfo]
-	);
-
-	const bookingSubmit = useBookingSubmit({
-		createEmbeddedCheckoutSession,
-		formRef,
-		persistBookingInfoFromForm
-	});
-
 	const formApi = useForm({
 		defaultValues: INITIAL_FORM,
 		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
@@ -93,12 +59,14 @@ function BookingPage() {
 			await bookingSubmit.handleSubmit(value);
 		}
 	});
+
 	// Derived form values and availability
 	const formValues = useSelector(formApi.store, (state) => state.values);
 	const isDateTimeIncomplete = !formValues.date || !formValues.time;
 	const handleSelectedTimeInvalidated = useCallback(() => {
 		formApi.setFieldValue("time", "");
 	}, [formApi]);
+
 	const availability = useBookingAvailability({
 		date: formValues.date,
 		duration: formValues.duration,
@@ -107,81 +75,16 @@ function BookingPage() {
 	});
 	const completeBookingShortcut = useCompleteBookingShortcut(isDateTimeIncomplete);
 
-	// Load saved booking info from local storage.
-	useEffect(() => {
-		const nextSavedBookingInfo = getStoredSavedBookingInfo();
+	const savedBookingInfo = useSavedBookingInfo({
+		formApi: formApi as unknown as BookingFormApi,
+		onReuseSavedBookingInfo: () => completeBookingShortcut.setShowScrollToCompleteBooking(true)
+	});
 
-		if (!nextSavedBookingInfo) {
-			removeStoredSavedBookingInfo();
-			return;
-		}
-
-		setSavedBookingInfo(nextSavedBookingInfo);
-		setShouldSaveBookingInfo(true);
-	}, []);
-
-	const scrollToFirstError = () => {
-		requestAnimationFrame(() => {
-			const fieldOrder = [
-				"service",
-				"duration",
-				"date",
-				"time",
-				"name",
-				"phone",
-				"accountName",
-				"abn",
-				"email",
-				"notes"
-			];
-
-			for (const fieldName of fieldOrder) {
-				const fieldContainer = formRef.current?.querySelector<HTMLElement>(
-					`[data-field-name="${fieldName}"]`
-				);
-				const fieldError = fieldContainer?.querySelector<HTMLElement>('[data-slot="field-error"]');
-
-				if (fieldContainer && fieldError) {
-					fieldContainer.scrollIntoView({ behavior: "smooth", block: "center" });
-					return;
-				}
-			}
-		});
-	};
-
-	const handleReuseSavedBookingInfo = () => {
-		if (!savedBookingInfo) {
-			return;
-		}
-
-		formApi.setFieldValue("service", savedBookingInfo.service);
-		formApi.setFieldValue("duration", savedBookingInfo.duration);
-		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
-		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
-		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
-		formApi.setFieldValue("name", savedBookingInfo.name);
-		formApi.setFieldValue("phone", savedBookingInfo.phone);
-		formApi.setFieldValue("accountName", savedBookingInfo.accountName);
-		formApi.setFieldValue("abn", savedBookingInfo.abn);
-		formApi.setFieldValue("email", savedBookingInfo.email);
-		formApi.setFieldValue("notes", savedBookingInfo.notes);
-		completeBookingShortcut.setShowScrollToCompleteBooking(true);
-	};
-
-	const handleRemoveSavedBookingInfo = () => {
-		removeStoredSavedBookingInfo();
-		setSavedBookingInfo(null);
-		setShouldSaveBookingInfo(false);
-	};
-
-	const handleSaveBookingInfoChange = (checked: boolean) => {
-		setShouldSaveBookingInfo(checked);
-
-		if (!checked) {
-			removeStoredSavedBookingInfo();
-			setSavedBookingInfo(null);
-		}
-	};
+	const bookingSubmit = useBookingSubmit({
+		createEmbeddedCheckoutSession,
+		formRef,
+		persistBookingInfoFromForm: savedBookingInfo.persistBookingInfoFromForm
+	});
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
 		const errorMessage = devBookingErrorMessages[code];
@@ -202,10 +105,10 @@ function BookingPage() {
 				<BookingRecurringSessionsPrompt />
 			</div>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
-			{savedBookingInfo ? (
+			{savedBookingInfo.savedBookingInfo ? (
 				<BookingSavedInfoBanner
-					onRemove={handleRemoveSavedBookingInfo}
-					onReuse={handleReuseSavedBookingInfo}
+					onRemove={savedBookingInfo.handleRemoveSavedBookingInfo}
+					onReuse={savedBookingInfo.handleReuseSavedBookingInfo}
 				/>
 			) : null}
 
@@ -220,7 +123,7 @@ function BookingPage() {
 							.then(() => {
 								if (!formApi.state.isValid) {
 									bookingSubmit.resetTermsSubmit();
-									scrollToFirstError();
+									scrollToFirstBookingFormError(formRef);
 								}
 							})
 							.catch((submissionError) => {
@@ -250,9 +153,11 @@ function BookingPage() {
 						className="items-center! gap-2">
 						<Checkbox
 							id="save-booking-info"
-							checked={shouldSaveBookingInfo}
+							checked={savedBookingInfo.shouldSaveBookingInfo}
 							className="size-5 rounded-full data-[state=checked]:border-transparent"
-							onCheckedChange={(checked) => handleSaveBookingInfoChange(checked === true)}
+							onCheckedChange={(checked) =>
+								savedBookingInfo.handleSaveBookingInfoChange(checked === true)
+							}
 						/>
 						<FieldContent className="justify-center gap-0">
 							<Label
