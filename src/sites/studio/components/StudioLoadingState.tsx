@@ -1,10 +1,4 @@
-import { type ReactNode } from "react";
-
-export function BookingProcessing({
-	label = "Checking booking status"
-}: {
-	label?: string;
-}): ReactNode {
+export function StudioLoadingState({ label }: { label: string }) {
 	return (
 		<section className="flex flex-col items-center justify-center gap-4 py-20 text-center">
 			<div

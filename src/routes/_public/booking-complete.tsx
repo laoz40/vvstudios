@@ -6,7 +6,7 @@ import {
 	buildDevBooking,
 	parseBookingCompleteSearch
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
-import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingResult } from "#studio/features/booking-complete/components/BookingResult";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import {
@@ -60,7 +60,7 @@ function BookingCompletePage(): ReactNode {
 	if (isLoading) {
 		return (
 			<BookingStatusLayout showActions={false}>
-				<BookingProcessing />
+				<StudioLoadingState label="Checking booking status" />
 			</BookingStatusLayout>
 		);
 	}
@@ -83,7 +83,7 @@ function BookingCompletePage(): ReactNode {
 	if (booking.status === "pending_payment") {
 		return (
 			<BookingStatusLayout showActions={false}>
-				<BookingProcessing />
+				<StudioLoadingState label="Checking booking status" />
 			</BookingStatusLayout>
 		);
 	}

@@ -4,7 +4,7 @@ import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { GetPublicRescheduleCompleteBookingResult } from "#convex/bookings";
 import { buildNoIndexHead } from "#/lib/seo";
-import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { RescheduleConfirmation } from "#studio/features/booking-complete/components/RescheduleConfirmation";
 import {
@@ -37,7 +37,7 @@ function RescheduleCompletePage() {
 	if (bookingResult === undefined) {
 		return (
 			<BookingStatusLayout devPanel={<RescheduleCompleteDevScenarioPanel />}>
-				<BookingProcessing label="Loading booking details" />
+				<StudioLoadingState label="Loading booking details" />
 			</BookingStatusLayout>
 		);
 	}

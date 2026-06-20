@@ -10,6 +10,7 @@ import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 
 const ADMIN_BOOKINGS_PAGE_SIZE = 500;
 
@@ -74,13 +75,7 @@ function AdminAccessGate() {
 function AdminLoadingState({ label }: { label: string }) {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12">
-			<section className="flex flex-col items-center justify-center gap-4 text-center">
-				<div
-					className="size-10 animate-spin rounded-full border-2 border-muted border-t-primary"
-					aria-hidden="true"
-				/>
-				<span className="text-2xl font-semibold">{label}</span>
-			</section>
+			<StudioLoadingState label={label} />
 		</main>
 	);
 }
