@@ -8,7 +8,7 @@ import {
 	STUDIO_ADDRESS,
 	STUDIO_ADDRESS_URL
 } from "#/config/contact";
-import { GiveFeedbackDialog } from "#studio/components/GiveFeedbackDialog";
+import { GiveFeedbackModalButton } from "#studio/components/GiveFeedbackModal";
 
 const footerContent = {
 	studioName: "VV Studios",
@@ -78,7 +78,7 @@ export function Footer() {
 					<Separator className="mb-4" />
 					<div className="flex items-start justify-between gap-6 pt-0 sm:items-center">
 						<div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-							<GiveFeedbackDialog />
+							<GiveFeedbackModalButton />
 							<Link
 								className="accent-link text-sm"
 								to={studioSite.routes.termsAndConditions}>

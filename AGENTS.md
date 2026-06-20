@@ -13,11 +13,14 @@ Booking website for podcast studio.
   components, routes, or backend functions.
 - App behavior rules include things like permissions, statuses, validation, limits, and error mapping.
 - Avoid tiny helper files/functions for one-off logic
+- Avoid useless one-line wrappers; call or export the real function directly.
 - Optimize for readability and safe future changes over minimizing line count
 - Keep functions small and focused on one decision or operation
 - Prefer clear sequencing, guard clauses, and early returns over clever compact code
 - Keep nesting shallow; avoid more than two levels of nested control flow
 - Replace long `if`/`else if` chains and large inline booleans with named helpers or discriminated outcomes when clearer
+- Preserve useful existing comments during refactors; do not delete comments just because code moved.
+- Update comments when behavior changes so they stay accurate.
 
 - run format and lint once changes are complete
 - do not run build or convex codegen
@@ -46,6 +49,9 @@ Booking website for podcast studio.
 ### Components and pages
 
 - Extract major or self-contained UI sections into separate component files instead of growing a single large component file
+- Group related React setup/state in clear sections instead of dumping many `useState`/`useRef` calls together.
+- Use short section comments for state groups, refs, actions, and derived values when a component has several related concerns.
+- Add short comments before `useEffect` blocks that explain what the effect does, especially in large components or pages.
 
 ### TypeScript
 

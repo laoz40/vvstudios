@@ -43,7 +43,7 @@ type DevRescheduleAvailabilityResult = Result<
 	DevRescheduleAvailabilityError
 >;
 
-type DevRescheduleUpdateError =
+export type DevRescheduleUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }

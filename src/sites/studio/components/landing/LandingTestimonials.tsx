@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
-import { useFadeInAnimation } from "#studio/lib/useFadeInAnimation";
+import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 const testimonialCopy = {
 	title: "Trusted by creators in Sydney",

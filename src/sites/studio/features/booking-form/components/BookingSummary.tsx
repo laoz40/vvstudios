@@ -1,3 +1,4 @@
+import { useSelector } from "@tanstack/react-store";
 import {
 	Accordion,
 	AccordionContent,
@@ -11,23 +12,12 @@ import {
 	getBookingAddonQuantity,
 	getBookingTotal
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { type BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
+import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
-export interface BookingSummaryProps {
-	values: Pick<
-		BookingFormValues,
-		| "addons"
-		| "clipsPackageQuantity"
-		| "date"
-		| "duration"
-		| "essentialEditQuantity"
-		| "service"
-		| "time"
-	>;
-}
-
-export function BookingSummary({ values }: BookingSummaryProps) {
+export function BookingSummary() {
+	const formApi = useBookingFormContext();
+	const values = useSelector(formApi.store, (state) => state.values);
 	const durationCost = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const total = getBookingTotal(values);
 	const bookingLabel = [values.service, values.duration].filter(Boolean).join(" ");
