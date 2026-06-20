@@ -1,10 +1,12 @@
+import { createElement } from "react";
+import { render } from "@react-email/render";
 import type { Doc } from "../_generated/dataModel";
 import { CONTACT_EMAIL } from "../../src/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
-import { renderDeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/render-deliverables-email";
+import { DeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/DeliverablesEmail";
 import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
-import { renderHostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/render-host-booking-details-email";
-import { renderReminderEmail } from "../../src/sites/studio/features/reminder-email/render-reminder-email";
+import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
+import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
 import { env } from "../env";
 import {
 	formatBookingDateLong,
@@ -122,20 +124,22 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
-	const html = await renderHostBookingDetailsEmail({
-		invoiceNumber: args.invoiceNumber,
-		name: args.name,
-		email: args.email,
-		phone: args.phone,
-		accountName: args.accountName,
-		abn: args.abn,
-		date: formatBookingDateLong(args.date),
-		time: args.time,
-		service: args.service,
-		duration: args.duration,
-		addonsLine,
-		notes: args.notes
-	});
+	const html = await render(
+		createElement(HostBookingDetailsEmail, {
+			invoiceNumber: args.invoiceNumber,
+			name: args.name,
+			email: args.email,
+			phone: args.phone,
+			accountName: args.accountName,
+			abn: args.abn,
+			date: formatBookingDateLong(args.date),
+			time: args.time,
+			service: args.service,
+			duration: args.duration,
+			addonsLine,
+			notes: args.notes
+		})
+	);
 
 	return await sendEmail({
 		to: hostEmails,
@@ -229,13 +233,15 @@ export async function sendBookingDeliverablesEmailForBooking({
 }: SendBookingDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-	const html = await renderDeliverablesEmail({
-		bookingDate: formatBookingDateWithoutYear(date),
-		driveLink,
-		emailVariant,
-		name,
-		signoffName
-	});
+	const html = await render(
+		createElement(DeliverablesEmail, {
+			bookingDate: formatBookingDateWithoutYear(date),
+			driveLink,
+			emailVariant,
+			name,
+			signoffName
+		})
+	);
 
 	return await sendEmail({ to: [email], subject: "Your VV Studios Deliverables Folder", html });
 }
@@ -256,16 +262,18 @@ export async function sendBookingReminderEmailForBooking({
 	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-	const html = await renderReminderEmail({
-		addonsLine,
-		bookingDate,
-		bookingTime,
-		duration,
-		name,
-		service,
-		rescheduleUrl,
-		signoffName
-	});
+	const html = await render(
+		createElement(ReminderEmail, {
+			addonsLine,
+			bookingDate,
+			bookingTime,
+			duration,
+			name,
+			service,
+			rescheduleUrl,
+			signoffName
+		})
+	);
 
 	return await sendEmail({
 		to: [email, ...getHostEmails()],
