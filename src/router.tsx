@@ -1,24 +1,14 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { getContext } from "./integrations/tanstack-query/root-provider";
-
 export function getRouter() {
-	const context = getContext();
-
 	const router = createTanStackRouter({
 		routeTree,
-		context,
 		scrollRestoration: false,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
-		defaultViewTransition: {
-			types: ({ toLocation }) => (toLocation.pathname === "/book" ? ["booking-slide-left"] : [])
-		}
+		defaultViewTransition: true
 	});
-
-	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });
 
 	return router;
 }
