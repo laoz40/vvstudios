@@ -1,4 +1,4 @@
-import { getEditingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import type {
 	BookingAddon,
 	BookingFormValues
@@ -20,7 +20,7 @@ export function formatBookingPrice(price: number) {
 	return `$${price}`;
 }
 
-export { getEditingAddonQuantityForForm as getEditingAddonQuantity };
+export { getBookingAddonQuantityForForm as getBookingAddonQuantity };
 
 export function getBookingTotal(
 	values: Pick<
@@ -30,7 +30,7 @@ export function getBookingTotal(
 ) {
 	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const addonsTotal = values.addons.reduce((total, addon) => {
-		return total + ADDON_PRICES[addon] * getEditingAddonQuantityForForm(addon, values);
+		return total + ADDON_PRICES[addon] * getBookingAddonQuantityForForm(addon, values);
 	}, 0);
 
 	return durationTotal + addonsTotal;
