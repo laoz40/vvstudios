@@ -1,7 +1,7 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
 
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import HomeIcon from "#/components/ui/home-icon";
@@ -10,6 +10,9 @@ import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+
+const ADMIN_BOOKINGS_PAGE_SIZE = 500;
 
 export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
@@ -72,24 +75,7 @@ function AdminAccessGate() {
 function AdminLoadingState({ label }: { label: string }) {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12">
-			<section className="flex flex-col items-center justify-center gap-4 text-center">
-				<div
-					className="size-10 animate-spin rounded-full border-2 border-muted border-t-primary"
-					aria-hidden="true"
-				/>
-				<span className="text-2xl font-semibold">{label}</span>
-			</section>
-		</main>
-	);
-}
-
-function AdminErrorState({ label }: { label: string }) {
-	return (
-		<main className="grid min-h-dvh place-items-center px-6 py-12">
-			<section className="flex flex-col items-center justify-center gap-4 text-center">
-				<h1 className="text-2xl font-semibold">{label}</h1>
-				<p className="max-w-md text-muted-foreground">Please refresh or sign in again.</p>
-			</section>
+			<StudioLoadingState label={label} />
 		</main>
 	);
 }
@@ -150,29 +136,25 @@ function AdminForbiddenPage() {
 }
 
 function AdminPageContent() {
-	const bookingsResult = useQuery(api.bookings.getBookings, {
-		paginationOpts: { cursor: null, numItems: 500 }
-	});
+	const bookings = usePaginatedQuery(
+		api.bookings.getBookings,
+		{},
+		{ initialNumItems: ADMIN_BOOKINGS_PAGE_SIZE }
+	);
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	if (bookingsResult === undefined) {
+	if (bookings.status === "LoadingFirstPage") {
 		return <AdminLoadingState label="Loading bookings" />;
-	}
-
-	const [bookingsError, bookingsPage] = bookingsResult;
-
-	if (bookingsError !== null) {
-		return <AdminErrorState label="Could not load bookings" />;
 	}
 
 	return (
 		<AdminDashboard
-			bookings={bookingsPage.page}
-			canLoadMoreBookings={false}
+			bookings={bookings.results}
+			canLoadMoreBookings={bookings.status === "CanLoadMore"}
 			email={email ?? null}
-			isLoadingMoreBookings={false}
-			loadMoreBookings={() => undefined}
+			isLoadingMoreBookings={bookings.status === "LoadingMore"}
+			loadMoreBookings={() => bookings.loadMore(ADMIN_BOOKINGS_PAGE_SIZE)}
 			signOutControl={
 				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<AnimatedIconButton

@@ -99,7 +99,6 @@ import { cn } from "#/lib/utils";
 import { tryCatch } from "#/lib/result";
 
 type BookingRecord = Doc<"bookings">;
-type AdminBookingRecord = BookingRecord;
 
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
@@ -219,7 +218,7 @@ function CopyableText({ value, label, children }: CopyableTextProps) {
 	);
 }
 
-function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
+function customerFilter(row: { original: BookingRecord }, value: unknown) {
 	const query = String(value ?? "")
 		.trim()
 		.toLowerCase();
@@ -248,7 +247,7 @@ function customerFilter(row: { original: AdminBookingRecord }, value: unknown) {
 		.some((field) => field.toLowerCase().includes(query));
 }
 
-function renderSortableHeader(label: string, column: Column<AdminBookingRecord>) {
+function renderSortableHeader(label: string, column: Column<BookingRecord>) {
 	const sortDirection = column.getIsSorted();
 	const SortIcon =
 		sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
@@ -270,7 +269,7 @@ function renderSortableHeader(label: string, column: Column<AdminBookingRecord>)
 	);
 }
 
-function buildColumns(): ColumnDef<AdminBookingRecord>[] {
+function buildColumns(): ColumnDef<BookingRecord>[] {
 	return [
 		{
 			accessorKey: "name",
@@ -461,16 +460,6 @@ function buildColumns(): ColumnDef<AdminBookingRecord>[] {
 			cell: ({ row }) => <BookingActions booking={row.original} />
 		}
 	];
-}
-
-function AdminMetricCard({ value }: { value: number }) {
-	return (
-		<div className="flex items-center">
-			<p className="text-sm text-muted-foreground">
-				{value} {value === 1 ? "booking" : "bookings"} made this week
-			</p>
-		</div>
-	);
 }
 
 function AdminStatusMetric({
@@ -717,7 +706,9 @@ export function AdminDashboard({
 							className="w-full md:w-sm"
 						/>
 						<div className="flex items-center justify-between gap-3 md:contents">
-							<AdminMetricCard value={metrics.thisWeek} />
+							<p className="text-sm text-muted-foreground">
+								{metrics.thisWeek} {metrics.thisWeek === 1 ? "booking" : "bookings"} made this week
+							</p>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -820,9 +811,7 @@ export function AdminDashboard({
 									<TableCell
 										colSpan={table.getVisibleLeafColumns().length}
 										className="h-24 text-center text-muted-foreground">
-										{bookings.length === 0
-											? "No bookings yet. L business."
-											: "No bookings yet. L business."}
+										No bookings yet. L business.
 									</TableCell>
 								</TableRow>
 							)}

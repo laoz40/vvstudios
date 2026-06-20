@@ -87,9 +87,3 @@ export interface BookingInvoiceData {
 	};
 	rescheduleUrl?: string;
 }
-
-export interface BookingInvoiceArtifacts {
-	data: BookingInvoiceData;
-	emailHtml: string;
-	pdf: { content: Uint8Array; contentType: "application/pdf"; filename: string };
-}

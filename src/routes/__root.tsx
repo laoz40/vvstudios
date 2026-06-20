@@ -1,10 +1,9 @@
 import { type ReactNode } from "react";
-import type { QueryClient } from "@tanstack/react-query";
 import {
 	HeadContent,
 	Link,
 	Scripts,
-	createRootRouteWithContext,
+	createRootRoute,
 	useRouterState
 } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
@@ -20,11 +19,7 @@ import { Toaster } from "#/components/ui/sonner";
 import appCss from "../styles.css?url";
 import studioCss from "../sites/studio/styles.css?url";
 
-interface MyRouterContext {
-	queryClient: QueryClient;
-}
-
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+export const Route = createRootRoute({
 	notFoundComponent: NotFoundPage,
 	head: () => ({
 		meta: [

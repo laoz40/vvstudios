@@ -9,7 +9,7 @@ import type {
 	RescheduleBookingResult
 } from "#convex/googleCalendar";
 import { studioSite } from "#/config/sites";
-import { BookingProcessing } from "#studio/features/booking-complete/components/BookingProcessing";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import {
@@ -238,7 +238,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<BookingProcessing label="Checking reschedule link" />
+				<StudioLoadingState label="Checking reschedule link" />
 			</BookingStatusLayout>
 		);
 	}
@@ -250,7 +250,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<BookingProcessing label="Updating booking" />
+				<StudioLoadingState label="Updating booking" />
 			</BookingStatusLayout>
 		);
 	}
