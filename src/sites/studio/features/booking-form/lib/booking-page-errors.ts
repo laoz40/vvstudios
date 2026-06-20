@@ -13,8 +13,12 @@ const bookingPageErrorMessages = {
 	BOOKING_INVALID_DURATION: "Choose a valid booking duration.",
 	BOOKING_INVALID_INPUT: "Some booking details were invalid. Please review the form and try again.",
 	BOOKING_INVALID_TIME: "Choose a valid booking time.",
+	BOOKING_OUTSIDE_OPENING_HOURS:
+		"That time is outside our opening hours. Please choose another time.",
 	BOOKING_RATE_LIMITED: "Too many booking attempts. Please try again in one minute.",
 	BOOKING_TIME_UNAVAILABLE: "That time was just taken. Please choose another available time.",
+	BOOKING_TOO_FAR_AHEAD: "That date is too far ahead. Please choose a closer date.",
+	BOOKING_TOO_SOON: "That time is too soon. Please choose a later slot.",
 	CLOSE_CHECKOUT_FAILED: "Something went wrong while closing checkout.",
 	GOOGLE_CALENDAR_AUTH_FAILED:
 		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
@@ -53,11 +57,11 @@ export const startCheckoutToastMessages = {
 	BOOKING_INVALID_DURATION: bookingPageErrorMessages.BOOKING_INVALID_DURATION,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_INVALID_TIME: bookingPageErrorMessages.BOOKING_INVALID_TIME,
-	BOOKING_OUTSIDE_OPENING_HOURS: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
+	BOOKING_OUTSIDE_OPENING_HOURS: bookingPageErrorMessages.BOOKING_OUTSIDE_OPENING_HOURS,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
-	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
-	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
+	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
+	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
 	STRIPE_SESSION_LINK_FAILED: bookingPageErrorMessages.START_CHECKOUT_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
