@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -115,19 +115,17 @@ async function getBookingsHandler(
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
-		return err(authError);
+		throw new ConvexError(authError);
 	}
 
-	const bookings = await ctx.db
+	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
+	// Auth failures throw above so the hook can keep native cursor/page handling.
+	return await ctx.db
 		.query("bookings")
 		.withIndex("by_pendingPaymentCreatedAt")
 		.order("desc")
 		.paginate(args.paginationOpts);
-
-	return ok(bookings);
 }
-
-export type GetBookingsResult = Awaited<ReturnType<typeof getBookingsHandler>>;
 
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
