@@ -14,16 +14,19 @@ const initialState: BookingModalState = { modal: "none" };
 
 export const useBookingModalStore = create<BookingModalState>(() => initialState);
 
+// Zustand merges setState by default. Use replacement mode to discard stale fields
+// from previous modal variants and keep BookingModalState's union invariant valid.
+
 export function openAddonCompatibilityModal() {
-	useBookingModalStore.setState({ modal: "addonCompatibility" });
+	useBookingModalStore.setState({ modal: "addonCompatibility" }, true);
 }
 
 export function openPaymentModal(checkoutSession: EmbeddedCheckoutSession) {
-	useBookingModalStore.setState({ modal: "payment", checkoutSession });
+	useBookingModalStore.setState({ modal: "payment", checkoutSession }, true);
 }
 
 export function openRequestCallModal() {
-	useBookingModalStore.setState({ modal: "requestCall" });
+	useBookingModalStore.setState({ modal: "requestCall" }, true);
 }
 
 export function openSessionSummaryModal({
@@ -33,13 +36,13 @@ export function openSessionSummaryModal({
 	dateSummary: string;
 	timeSummary: string;
 }) {
-	useBookingModalStore.setState({ modal: "sessionSummary", dateSummary, timeSummary });
+	useBookingModalStore.setState({ modal: "sessionSummary", dateSummary, timeSummary }, true);
 }
 
 export function openTermsModal() {
-	useBookingModalStore.setState({ modal: "terms" });
+	useBookingModalStore.setState({ modal: "terms" }, true);
 }
 
 export function closeBookingModal() {
-	useBookingModalStore.setState(initialState);
+	useBookingModalStore.setState(initialState, true);
 }
