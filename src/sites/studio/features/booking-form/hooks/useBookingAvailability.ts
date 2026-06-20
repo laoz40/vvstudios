@@ -234,10 +234,14 @@ export function useBookingAvailability({
 
 	// Clear selected time when it is no longer valid
 	useEffect(() => {
-		if (!date || isSelectedDateInPast || isSelectedDateTooFarInFuture || !isViewingSelectedMonth) {
+		if (!date || isSelectedDateInPast || isSelectedDateTooFarInFuture) {
 			if (selectedTime) {
 				onSelectedTimeInvalidated();
 			}
+			return;
+		}
+
+		if (!isViewingSelectedMonth) {
 			return;
 		}
 
