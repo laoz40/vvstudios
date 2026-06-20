@@ -50,7 +50,9 @@ function BookingAddonQuantityField({
 			className="overflow-hidden">
 			<FormField name={fieldName}>
 				{(quantityField) => (
-					<Field className="gap-3 pt-2">
+					<Field
+						data-field-name={fieldName}
+						className="gap-3 pt-2">
 						<div className="space-y-2">
 							<div className="flex flex-wrap items-center gap-x-5 gap-y-3">
 								<FieldTitle className="text-base">{label}:</FieldTitle>

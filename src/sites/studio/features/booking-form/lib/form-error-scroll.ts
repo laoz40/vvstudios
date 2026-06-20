@@ -1,6 +1,9 @@
 const BOOKING_FORM_ERROR_FIELD_ORDER = [
 	"service",
 	"duration",
+	"addons",
+	"essentialEditQuantity",
+	"clipsPackageQuantity",
 	"date",
 	"time",
 	"name",
