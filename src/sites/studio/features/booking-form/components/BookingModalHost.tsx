@@ -79,6 +79,8 @@ export function BookingModalHost({
 							src={env.VITE_BOOKING_RECURRING_URL}
 							title="Request a call"
 							className="block min-h-176 w-full border-0 bg-transparent"
+							sandbox="allow-scripts allow-same-origin allow-popups"
+							referrerPolicy="strict-origin-when-cross-origin"
 						/>
 					</div>
 				</Modal>

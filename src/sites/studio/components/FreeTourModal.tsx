@@ -52,6 +52,8 @@ export function FreeTourModal() {
 					src={env.VITE_FREE_TOUR_URL}
 					title={photosPageContent.tourIframeTitle}
 					className="block min-h-176 w-full border-0 bg-transparent"
+					sandbox="allow-scripts allow-same-origin allow-popups"
+					referrerPolicy="strict-origin-when-cross-origin"
 				/>
 			</div>
 		</Modal>
