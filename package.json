@@ -17,6 +17,7 @@
 		"preview": "vite preview",
 		"format": "oxfmt .",
 		"lint": "oxlint .",
+		"typecheck": "tsc --noEmit",
 		"email:preview": "email dev --dir ./scripts",
 		"pdf:preview": "bun run scripts/preview-booking-invoice-pdf.ts"
 	},
@@ -72,7 +73,7 @@
 		"oxfmt": "^0.53.0",
 		"oxlint": "^1.68.0",
 		"react-email": "^6.5.0",
-		"typescript": "^6.0.3",
+		"typescript": "rc",
 		"vite": "^8.0.16"
 	},
 	"pnpm": {
