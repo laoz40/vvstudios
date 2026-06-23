@@ -56,6 +56,7 @@ interface SendBookingHostDetailsEmailArgs {
 interface SendBookingDeliverablesEmailArgs {
 	date: string;
 	driveLink: string;
+	editorNotes?: string;
 	email: string;
 	emailVariant: DeliverablesEmailVariant;
 	name: string;
@@ -227,6 +228,7 @@ export async function sendFeedbackEmailForMessage(message: string) {
 export async function sendBookingDeliverablesEmailForBooking({
 	date,
 	driveLink,
+	editorNotes,
 	email,
 	emailVariant,
 	name
@@ -237,6 +239,7 @@ export async function sendBookingDeliverablesEmailForBooking({
 		createElement(DeliverablesEmail, {
 			bookingDate: formatBookingDateWithoutYear(date),
 			driveLink,
+			editorNotes: editorNotes?.trim() || undefined,
 			emailVariant,
 			name,
 			signoffName

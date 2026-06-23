@@ -243,6 +243,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 	// Dialog form drafts
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
+	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState("");
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
@@ -794,6 +795,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			sendBookingDeliverablesEmail({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
+				editorNotes: deliverablesEditorNotesDraft,
 				emailVariant: deliverablesEmailVariantDraft
 			})
 		);
@@ -875,6 +877,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 
 		setDeliverablesDriveLinkDraft("");
+		setDeliverablesEditorNotesDraft("");
 		setIsDeliverablesEmailDialogOpen(false);
 		toast.success(`Deliverables email sent to ${booking.email}.`);
 		setIsEmailingDeliverables(false);
@@ -1251,9 +1254,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				bookingId={booking._id}
 				bookingName={booking.name}
 				driveLink={deliverablesDriveLinkDraft}
+				editorNotes={deliverablesEditorNotesDraft}
 				emailVariant={deliverablesEmailVariantDraft}
 				isSending={isEmailingDeliverables}
 				onDriveLinkChange={setDeliverablesDriveLinkDraft}
+				onEditorNotesChange={setDeliverablesEditorNotesDraft}
 				onEmailVariantChange={setDeliverablesEmailVariantDraft}
 				onOpenChange={setIsDeliverablesEmailDialogOpen}
 				onSend={() => {
