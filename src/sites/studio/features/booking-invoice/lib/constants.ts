@@ -10,6 +10,7 @@ export const DURATION_PRICES: Record<BookingDuration, number> = { "1h": 200, "2h
 
 export const ADDON_PRICES: Record<BookingAddon, number> = {
 	"4K UHD Recording": 49,
+	Teleprompter: 29,
 	"Clips Package": 79,
 	"Essential Edit": 99,
 	"Remote Podcast": 59

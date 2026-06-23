@@ -5,6 +5,7 @@ export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 export const ADDON_OPTIONS = [
 	"Remote Podcast",
 	"4K UHD Recording",
+	"Teleprompter",
 	"Essential Edit",
 	"Clips Package"
 ] as const;

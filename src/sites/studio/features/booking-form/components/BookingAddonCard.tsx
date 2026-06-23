@@ -18,12 +18,16 @@ import {
 	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
-import { Globe, Scissors, Smartphone, Video } from "lucide-react";
+import { Globe, Scissors, ScrollText, Smartphone, Video } from "lucide-react";
 
 const addonCardCopy = {
 	"4K UHD Recording": {
 		description: "Highest quality recording, perfect for cropping without losing clarity.",
 		icon: Video
+	},
+	Teleprompter: {
+		description: "Displays your script in front of the camera to improve your delivery.",
+		icon: ScrollText
 	},
 	"Essential Edit": {
 		description: "Professionally synchronised audio; clean cuts between camera angles.",
