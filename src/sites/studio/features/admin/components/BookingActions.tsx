@@ -246,6 +246,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState("");
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
+	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
+		useState(true);
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
 		String(remainingBalanceAmount)
 	);
@@ -836,6 +838,16 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			return;
 		}
 
+		if (!markDeliverablesAsSentAfterSending) {
+			setDeliverablesDriveLinkDraft("");
+			setDeliverablesEditorNotesDraft("");
+			setMarkDeliverablesAsSentAfterSending(true);
+			setIsDeliverablesEmailDialogOpen(false);
+			toast.success(`Deliverables email sent to ${booking.email}.`);
+			setIsEmailingDeliverables(false);
+			return;
+		}
+
 		const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
 			updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
 		);
@@ -878,6 +890,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 		setDeliverablesDriveLinkDraft("");
 		setDeliverablesEditorNotesDraft("");
+		setMarkDeliverablesAsSentAfterSending(true);
 		setIsDeliverablesEmailDialogOpen(false);
 		toast.success(`Deliverables email sent to ${booking.email}.`);
 		setIsEmailingDeliverables(false);
@@ -1257,9 +1270,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				editorNotes={deliverablesEditorNotesDraft}
 				emailVariant={deliverablesEmailVariantDraft}
 				isSending={isEmailingDeliverables}
+				markAsSentAfterSending={markDeliverablesAsSentAfterSending}
 				onDriveLinkChange={setDeliverablesDriveLinkDraft}
 				onEditorNotesChange={setDeliverablesEditorNotesDraft}
 				onEmailVariantChange={setDeliverablesEmailVariantDraft}
+				onMarkAsSentAfterSendingChange={setMarkDeliverablesAsSentAfterSending}
 				onOpenChange={setIsDeliverablesEmailDialogOpen}
 				onSend={() => {
 					void handleEmailDeliverables();

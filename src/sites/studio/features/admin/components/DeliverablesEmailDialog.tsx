@@ -1,5 +1,6 @@
 import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
 import {
 	Dialog,
 	DialogClose,
@@ -24,9 +25,11 @@ export type DeliverablesEmailDialogProps = {
 	editorNotes: string;
 	emailVariant: DeliverablesEmailVariant;
 	isSending: boolean;
+	markAsSentAfterSending: boolean;
 	onDriveLinkChange: (driveLink: string) => void;
 	onEditorNotesChange: (editorNotes: string) => void;
 	onEmailVariantChange: (emailVariant: DeliverablesEmailVariant) => void;
+	onMarkAsSentAfterSendingChange: (markAsSentAfterSending: boolean) => void;
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
@@ -40,9 +43,11 @@ export function DeliverablesEmailDialog({
 	editorNotes,
 	emailVariant,
 	isSending,
+	markAsSentAfterSending,
 	onDriveLinkChange,
 	onEditorNotesChange,
 	onEmailVariantChange,
+	onMarkAsSentAfterSendingChange,
 	onOpenChange,
 	onSend,
 	open
@@ -134,6 +139,20 @@ export function DeliverablesEmailDialog({
 							onChange={(event) => onEditorNotesChange(event.target.value)}
 							disabled={isSending}
 						/>
+					</Field>
+
+					<Field orientation="horizontal">
+						<Checkbox
+							id={`deliverables-mark-sent-${bookingId}`}
+							checked={markAsSentAfterSending}
+							onCheckedChange={(checked) => {
+								onMarkAsSentAfterSendingChange(checked === true);
+							}}
+							disabled={isSending}
+						/>
+						<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
+							Mark deliverables as sent after sending
+						</FieldLabel>
 					</Field>
 				</FieldGroup>
 
