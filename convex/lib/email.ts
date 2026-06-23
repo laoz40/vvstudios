@@ -246,7 +246,11 @@ export async function sendBookingDeliverablesEmailForBooking({
 		})
 	);
 
-	return await sendEmail({ to: [email], subject: "Your VV Studios Deliverables Folder", html });
+	return await sendEmail({
+		to: [email],
+		subject: `Your VV Studios Deliverables Folder - ${formatBookingDateShort(date)}`,
+		html
+	});
 }
 
 export async function sendBookingReminderEmailForBooking({
