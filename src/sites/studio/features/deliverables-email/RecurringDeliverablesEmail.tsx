@@ -15,6 +15,7 @@ import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/c
 export interface RecurringDeliverablesEmailProps {
 	bookingDate: string;
 	driveLink: string;
+	editorNotes?: string;
 	name: string;
 	signoffName: string;
 }
@@ -22,6 +23,7 @@ export interface RecurringDeliverablesEmailProps {
 export function RecurringDeliverablesEmail({
 	bookingDate,
 	driveLink,
+	editorNotes,
 	name,
 	signoffName
 }: RecurringDeliverablesEmailProps) {
@@ -63,6 +65,12 @@ export function RecurringDeliverablesEmail({
 						Please note: Files are typically stored and available for 7 days after delivery, after
 						which they may be archived or removed as part of our storage cycle.
 					</Text>
+					{editorNotes ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Editor notes</Text>
+							<Text style={editorNotesText}>{editorNotes}</Text>
+						</Section>
+					) : null}
 					<Text style={paragraph}>
 						Let me know if you need anything else, and feel free to leave any feedback once
 						you&apos;ve had a look.
@@ -110,6 +118,17 @@ const noteText = {
 	lineHeight: "20px",
 	margin: "12px 0 24px"
 };
+const section = { margin: "0 0 20px" };
+
+const sectionTitle = {
+	color: "#f5c400",
+	fontSize: "13px",
+	fontWeight: "600",
+	margin: "0 0 8px",
+	textTransform: "uppercase" as const
+};
+
+const editorNotesText = { ...paragraph, margin: "4px 0 12px", whiteSpace: "pre-line" as const };
 
 const buttonWrapper = { margin: "28px 0", textAlign: "center" as const };
 

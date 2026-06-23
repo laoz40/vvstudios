@@ -12,12 +12,14 @@ import { parseGoogleDriveLink } from "./lib/googleDriveLinks";
 type SendBookingDeliverablesEmailArgs = {
 	bookingId: Id<"bookings">;
 	driveLink: string;
+	editorNotes?: string;
 	emailVariant: "first-time" | "recurring";
 };
 
 async function sendDeliverablesEmailForRecord(
 	booking: Doc<"bookings">,
 	driveLink: string,
+	editorNotes: string | undefined,
 	emailVariant: "first-time" | "recurring"
 ): Promise<
 	Result<{ sent: true }, { reason: "INVALID_DRIVE_LINK" } | { reason: "DELIVERABLES_SEND_FAILED" }>
@@ -31,6 +33,7 @@ async function sendDeliverablesEmailForRecord(
 	const [emailError] = await sendDeliverablesEmail({
 		date: booking.date,
 		driveLink: parsedDriveLink,
+		editorNotes,
 		email: booking.email,
 		emailVariant,
 		name: booking.name
@@ -73,7 +76,12 @@ async function sendBookingDeliverablesEmailHandler(
 		return err(bookingError);
 	}
 
-	return await sendDeliverablesEmailForRecord(booking, args.driveLink, args.emailVariant);
+	return await sendDeliverablesEmailForRecord(
+		booking,
+		args.driveLink,
+		args.editorNotes,
+		args.emailVariant
+	);
 }
 
 export type SendBookingDeliverablesEmailResult = Awaited<
@@ -84,6 +92,7 @@ export const sendBookingDeliverablesEmail = action({
 	args: {
 		bookingId: v.id("bookings"),
 		driveLink: v.string(),
+		editorNotes: v.optional(v.string()),
 		emailVariant: v.union(v.literal("first-time"), v.literal("recurring"))
 	},
 	handler: sendBookingDeliverablesEmailHandler

@@ -1,5 +1,6 @@
 import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
 import {
 	Dialog,
 	DialogClose,
@@ -10,6 +11,7 @@ import {
 } from "#/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
+import { Textarea } from "#/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
 import type { Doc } from "#convex/_generated/dataModel";
@@ -20,10 +22,14 @@ export type DeliverablesEmailDialogProps = {
 	bookingId: Doc<"bookings">["_id"];
 	bookingName: string;
 	driveLink: string;
+	editorNotes: string;
 	emailVariant: DeliverablesEmailVariant;
 	isSending: boolean;
+	markAsSentAfterSending: boolean;
 	onDriveLinkChange: (driveLink: string) => void;
+	onEditorNotesChange: (editorNotes: string) => void;
 	onEmailVariantChange: (emailVariant: DeliverablesEmailVariant) => void;
+	onMarkAsSentAfterSendingChange: (markAsSentAfterSending: boolean) => void;
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
@@ -34,10 +40,14 @@ export function DeliverablesEmailDialog({
 	bookingId,
 	bookingName,
 	driveLink,
+	editorNotes,
 	emailVariant,
 	isSending,
+	markAsSentAfterSending,
 	onDriveLinkChange,
+	onEditorNotesChange,
 	onEmailVariantChange,
+	onMarkAsSentAfterSendingChange,
 	onOpenChange,
 	onSend,
 	open
@@ -116,6 +126,33 @@ export function DeliverablesEmailDialog({
 							onChange={(event) => onDriveLinkChange(event.target.value)}
 							disabled={isSending}
 						/>
+					</Field>
+
+					<Field>
+						<FieldLabel htmlFor={`deliverables-editor-notes-${bookingId}`}>
+							Editor notes (optional)
+						</FieldLabel>
+						<Textarea
+							id={`deliverables-editor-notes-${bookingId}`}
+							placeholder="Add any notes for the customer..."
+							value={editorNotes}
+							onChange={(event) => onEditorNotesChange(event.target.value)}
+							disabled={isSending}
+						/>
+					</Field>
+
+					<Field orientation="horizontal">
+						<Checkbox
+							id={`deliverables-mark-sent-${bookingId}`}
+							checked={markAsSentAfterSending}
+							onCheckedChange={(checked) => {
+								onMarkAsSentAfterSendingChange(checked === true);
+							}}
+							disabled={isSending}
+						/>
+						<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
+							Mark deliverables as sent after sending
+						</FieldLabel>
 					</Field>
 				</FieldGroup>
 

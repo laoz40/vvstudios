@@ -243,8 +243,11 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 	// Dialog form drafts
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
+	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState("");
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
+	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
+		useState(true);
 	const [remainingBalanceDraft, setRemainingBalanceDraft] = useState(
 		String(remainingBalanceAmount)
 	);
@@ -794,6 +797,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 			sendBookingDeliverablesEmail({
 				bookingId: booking._id,
 				driveLink: deliverablesDriveLinkDraft,
+				editorNotes: deliverablesEditorNotesDraft,
 				emailVariant: deliverablesEmailVariantDraft
 			})
 		);
@@ -830,6 +834,16 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				}
 			}
 
+			setIsEmailingDeliverables(false);
+			return;
+		}
+
+		if (!markDeliverablesAsSentAfterSending) {
+			setDeliverablesDriveLinkDraft("");
+			setDeliverablesEditorNotesDraft("");
+			setMarkDeliverablesAsSentAfterSending(true);
+			setIsDeliverablesEmailDialogOpen(false);
+			toast.success(`Deliverables email sent to ${booking.email}.`);
 			setIsEmailingDeliverables(false);
 			return;
 		}
@@ -875,6 +889,8 @@ export function BookingActions({ booking }: BookingActionsProps) {
 		}
 
 		setDeliverablesDriveLinkDraft("");
+		setDeliverablesEditorNotesDraft("");
+		setMarkDeliverablesAsSentAfterSending(true);
 		setIsDeliverablesEmailDialogOpen(false);
 		toast.success(`Deliverables email sent to ${booking.email}.`);
 		setIsEmailingDeliverables(false);
@@ -1251,10 +1267,14 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				bookingId={booking._id}
 				bookingName={booking.name}
 				driveLink={deliverablesDriveLinkDraft}
+				editorNotes={deliverablesEditorNotesDraft}
 				emailVariant={deliverablesEmailVariantDraft}
 				isSending={isEmailingDeliverables}
+				markAsSentAfterSending={markDeliverablesAsSentAfterSending}
 				onDriveLinkChange={setDeliverablesDriveLinkDraft}
+				onEditorNotesChange={setDeliverablesEditorNotesDraft}
 				onEmailVariantChange={setDeliverablesEmailVariantDraft}
+				onMarkAsSentAfterSendingChange={setMarkDeliverablesAsSentAfterSending}
 				onOpenChange={setIsDeliverablesEmailDialogOpen}
 				onSend={() => {
 					void handleEmailDeliverables();

@@ -17,6 +17,7 @@ import { DELIVERABLES_REVIEW_URL } from "#studio/features/deliverables-email/lib
 export interface FirstTimeDeliverablesEmailProps {
 	bookingDate: string;
 	driveLink: string;
+	editorNotes?: string;
 	name: string;
 	signoffName: string;
 }
@@ -24,6 +25,7 @@ export interface FirstTimeDeliverablesEmailProps {
 export function FirstTimeDeliverablesEmail({
 	bookingDate,
 	driveLink,
+	editorNotes,
 	name,
 	signoffName
 }: FirstTimeDeliverablesEmailProps) {
@@ -106,6 +108,12 @@ export function FirstTimeDeliverablesEmail({
 							would help the studio a ton!
 						</Text>
 					</Section>
+					{editorNotes ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Editor notes</Text>
+							<Text style={editorNotesText}>{editorNotes}</Text>
+						</Section>
+					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>Contact</Text>
 						<Text style={contactParagraph}>
@@ -162,6 +170,7 @@ const section = { margin: "0 0 20px" };
 const compactSection = { margin: "0 0 16px" };
 
 const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
+const editorNotesText = { ...paragraph, margin: "4px 0 12px", whiteSpace: "pre-line" as const };
 
 const sectionTitle = {
 	color: "#f5c400",
