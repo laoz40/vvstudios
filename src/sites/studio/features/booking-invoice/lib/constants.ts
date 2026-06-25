@@ -24,10 +24,10 @@ export const BOOKING_INVOICE_BUSINESS = {
 	locationAddress: STUDIO_ADDRESS,
 	locationLabel: "VV Studios",
 	locationUrl: STUDIO_ADDRESS_URL,
-	logoUrl: "https://vertigovisuals.com.au/icons/studio/android-chrome-192x192.png",
+	logoUrl: "https://vertigovisuals.au/icons/studio/android-chrome-192x192.png",
 	ownerName: "Joseph Gerges",
-	websiteLabel: "vertigovisuals.com.au",
-	websiteUrl: "https://vertigovisuals.com.au"
+	websiteLabel: "vertigovisuals.au",
+	websiteUrl: "https://vertigovisuals.au"
 } as const;
 
 export const BOOKING_INVOICE_PAYMENT = {

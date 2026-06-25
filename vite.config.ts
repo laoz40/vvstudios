@@ -23,7 +23,7 @@ const config = defineConfig({
 						studioSite.routes.contact
 					].includes(path)
 			},
-			sitemap: { enabled: true, host: "https://vertigovisuals.com.au" }
+			sitemap: { enabled: true, host: "https://vertigovisuals.au" }
 		}),
 		viteReact(),
 		nitro(),
