@@ -128,6 +128,10 @@ function customerFilter(row: { original: BookingRecord }, value: unknown) {
 		row.original.accountName,
 		row.original.phone,
 		row.original.instagramHandle,
+		// Let users include the @ symbol when searching for displayed handles.
+		row.original.instagramHandle
+			? formatInstagramHandle(row.original.instagramHandle)
+			: null,
 		row.original.service,
 		row.original.date
 	]
