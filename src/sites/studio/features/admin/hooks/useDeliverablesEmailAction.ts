@@ -8,6 +8,12 @@ import type { SendBookingDeliverablesEmailResult } from "#convex/deliverablesEma
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
+type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
+
+type UpdateBookingEditStatusError = NonNullable<
+	Awaited<ReturnType<typeof tryCatch<UpdateBookingEditStatusResult>>>[0]
+>;
+
 export function useDeliverablesEmailAction(booking: BookingRecord) {
 	const sendBookingDeliverablesEmail = useAction(
 		api.deliverablesEmail.sendBookingDeliverablesEmail
@@ -21,9 +27,16 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 		useState<DeliverablesEmailVariant>("first-time");
 	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
 		useState(true);
+	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
+		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
 
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
+
+		if (deliverablesEmailSendState.status === "status-repair") {
+			await repairDeliverablesStatusAfterEmailSent("Deliverables status updated.");
+			return;
+		}
 
 		const [emailError] = await tryCatch<SendBookingDeliverablesEmailResult>(
 			sendBookingDeliverablesEmail({
@@ -71,50 +84,55 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 			return;
 		}
 
+		await repairDeliverablesStatusAfterEmailSent(`Deliverables email sent to ${booking.email}.`);
+	}
+
+	async function repairDeliverablesStatusAfterEmailSent(successMessage: string) {
 		const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
 			updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
 		);
 
 		if (statusError !== null) {
-			switch (statusError.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error(
-						"Deliverables email sent, but you need to sign in again to update the status."
-					);
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("Deliverables email sent, but you do not have access to update the status.");
-					break;
-				case "BOOKING_NOT_FOUND":
-					toast.error(
-						"Deliverables email sent, but the booking could not be found in the database."
-					);
-					break;
-				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
-					toast.error("Deliverables email sent, but the status could not be updated.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Deliverables email sent, but something went wrong updating the status.");
-					break;
-				default: {
-					const _exhaustive: never = statusError;
-					return _exhaustive;
-				}
-			}
-
+			showStatusUpdateError(statusError);
+			setDeliverablesEmailSendState({ status: "status-repair" });
 			setIsEmailingDeliverables(false);
 			return;
 		}
 
 		resetDeliverablesEmailDialog();
-		toast.success(`Deliverables email sent to ${booking.email}.`);
+		toast.success(successMessage);
 		setIsEmailingDeliverables(false);
+	}
+
+	function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
+		switch (statusError.reason) {
+			case "NOT_AUTHENTICATED":
+				toast.error("Deliverables email sent, but you need to sign in again to update the status.");
+				break;
+			case "NOT_AUTHORIZED":
+				toast.error("Deliverables email sent, but you do not have access to update the status.");
+				break;
+			case "BOOKING_NOT_FOUND":
+				toast.error("Deliverables email sent, but the booking could not be found in the database.");
+				break;
+			case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+				toast.error("Deliverables email sent, but the status could not be updated.");
+				break;
+			case "UNEXPECTED_ERROR":
+				toast.error("Deliverables email sent, but something went wrong updating the status.");
+				break;
+			default: {
+				const _exhaustive: never = statusError;
+				return _exhaustive;
+			}
+		}
 	}
 
 	function resetDeliverablesEmailDialog() {
 		setDeliverablesDriveLinkDraft("");
 		setDeliverablesEditorNotesDraft("");
 		setMarkDeliverablesAsSentAfterSending(true);
+		setDeliverablesEmailSendState({ status: "ready-to-send" });
 		setIsDeliverablesEmailDialogOpen(false);
 	}
 
