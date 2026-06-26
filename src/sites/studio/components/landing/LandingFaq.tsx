@@ -5,6 +5,7 @@ import {
 	AccordionItem,
 	AccordionTrigger
 } from "#/components/ui/accordion";
+import { cn } from "#/lib/utils";
 import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
@@ -18,9 +19,15 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 			className="px-4 pb-16 md:px-12 md:pb-20 lg:px-24 xl:px-32 2xl:px-48"
 			containerClassName="w-full"
 			fadeIn>
-			<div className="mt-6 grid w-full gap-10 md:mt-10 md:grid-cols-2 md:items-start">
-				<div className="order-2 flex w-full flex-col gap-6 md:order-1">
-					<div className="h-80 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-128">
+			<div className={cn("grid gap-10 md:grid-cols-2 md:items-start", "w-full", "mt-6 md:mt-10")}>
+				<div className={cn("order-2 flex flex-col gap-6 md:order-1", "w-full")}>
+					<div
+						className={cn(
+							"overflow-hidden",
+							"h-80 md:h-128",
+							"rounded-lg bg-card",
+							"shadow-xl shadow-background/40"
+						)}>
 						<Image
 							src={behindTheScenesWideImage}
 							alt="Behind the scenes view of VV Studios podcast studio hire space in Sydney"

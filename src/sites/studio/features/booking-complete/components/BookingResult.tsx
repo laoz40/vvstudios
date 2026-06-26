@@ -4,6 +4,7 @@ import { CircleX } from "lucide-react";
 import { toast } from "sonner";
 import CheckedIcon from "#/components/ui/checked-icon";
 import { tryCatch } from "#/lib/result";
+import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { GetBookingInvoicePdfByStripeSessionIdResult } from "#convex/invoices";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
@@ -130,7 +131,13 @@ export function BookingResult({
 						)}
 						<button
 							type="button"
-							className="accent-link inline bg-transparent p-0 text-base font-medium leading-normal text-foreground disabled:pointer-events-none disabled:opacity-50"
+							className={cn(
+								// Invoice download link style
+								"accent-link",
+								"inline bg-transparent p-0",
+								"text-base font-medium leading-normal text-foreground",
+								"disabled:pointer-events-none disabled:opacity-50"
+							)}
 							disabled={isDownloadingInvoice}
 							onClick={handleDownloadInvoice}>
 							{isDownloadingInvoice ? "generating invoice..." : "here"}

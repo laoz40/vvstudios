@@ -13,11 +13,17 @@ export function ContactActions({ className }: ContactActionsProps) {
 	return (
 		<div
 			className={cn(
-				"mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center gap-4 md:mt-12 md:gap-6",
+				"mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center",
+				"gap-4 md:mt-12 md:gap-6",
 				className
 			)}>
 			<AnimatedIconButton
-				className="h-auto min-w-56 flex-1 basis-full gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 md:basis-0"
+				className={cn(
+					"h-auto min-w-56 flex-1 basis-full justify-center md:basis-0",
+					"gap-1.5 px-8 py-3",
+					"text-base font-medium",
+					"shadow-lg shadow-primary/45"
+				)}
 				renderIcon={(iconRef) => (
 					<ArrowNarrowRightIcon
 						ref={iconRef}
@@ -30,7 +36,12 @@ export function ContactActions({ className }: ContactActionsProps) {
 			</AnimatedIconButton>
 			<FreeTourModalButton
 				label={contactActionCopy.tourCta}
-				className="h-auto min-w-56 flex-1 basis-full border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25 md:basis-0"
+				className={cn(
+					"h-auto min-w-56 flex-1 basis-full md:basis-0",
+					"px-8 py-3",
+					"text-base font-medium!",
+					"border-0 shadow-md shadow-background/25"
+				)}
 			/>
 		</div>
 	);

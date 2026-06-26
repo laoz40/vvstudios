@@ -2,6 +2,7 @@ import { Image } from "@unpic/react";
 import { Star } from "lucide-react";
 import { motion } from "motion/react";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
+import { cn } from "#/lib/utils";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
@@ -52,7 +53,11 @@ export function LandingTestimonials() {
 			aria-labelledby="landing-testimonials-title"
 			className="px-4 pt-28 pb-16 md:px-12 md:pt-40 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
 			<motion.div
-				className="flex w-full flex-col items-start gap-10 text-left md:items-center md:text-center"
+				className={cn(
+					"flex flex-col items-start gap-10 md:items-center",
+					"w-full",
+					"text-left md:text-center"
+				)}
 				{...fadeInAnimation}>
 				<h2
 					id="landing-testimonials-title"
@@ -60,8 +65,16 @@ export function LandingTestimonials() {
 					{testimonialCopy.title}
 				</h2>
 
-				<div className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
-					<div className="relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:hidden">
+				<div
+					className={cn("grid gap-10 md:grid-cols-2 md:items-stretch", "w-full", "md:text-left")}>
+					<div
+						className={cn(
+							"relative",
+							"overflow-hidden md:hidden",
+							"h-80 w-full",
+							"rounded-lg bg-card",
+							"shadow-xl shadow-background/40"
+						)}>
 						<Image
 							src={girlSingingImage}
 							alt="Creator singing into a microphone at VV Studios Sydney"
@@ -73,18 +86,33 @@ export function LandingTestimonials() {
 						/>
 					</div>
 
-					<div className="flex w-full flex-col items-center gap-10 md:order-2 md:h-full md:items-start">
+					<div
+						className={cn(
+							"flex flex-col items-center gap-10 md:order-2 md:items-start",
+							"w-full md:h-full"
+						)}>
 						<div className="grid w-full gap-4 text-left md:gap-6">
 							{testimonialCopy.reviews.map((review) => (
 								<Card
 									key={review.author}
-									className="h-full gap-4 rounded-lg border-border/80 bg-card/80 py-6 shadow-lg shadow-background/20">
+									className={cn(
+										"gap-4",
+										"h-full",
+										"py-6",
+										"rounded-lg border-border/80 bg-card/80",
+										"shadow-lg shadow-background/20"
+									)}>
 									<CardContent className="px-6">
 										<blockquote className="text-base leading-7 text-pretty italic md:text-xl md:leading-9">
 											“{review.quote}”
 										</blockquote>
 									</CardContent>
-									<CardFooter className="flex items-center gap-3 px-6 text-base font-medium text-muted-foreground">
+									<CardFooter
+										className={cn(
+											"flex items-center gap-3",
+											"px-6",
+											"text-base font-medium text-muted-foreground"
+										)}>
 										<span>- {review.author}</span>
 										<StarRating />
 									</CardFooter>
@@ -93,8 +121,16 @@ export function LandingTestimonials() {
 						</div>
 					</div>
 
-					<div className="flex w-full flex-col gap-6 md:order-1 md:h-full md:justify-between">
-						<div className="relative hidden min-h-0 w-full flex-1 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:block">
+					<div
+						className={cn("flex flex-col gap-6 md:order-1 md:justify-between", "w-full md:h-full")}>
+						<div
+							className={cn(
+								"relative",
+								"hidden overflow-hidden md:block",
+								"min-h-0 w-full flex-1",
+								"rounded-lg bg-card",
+								"shadow-xl shadow-background/40"
+							)}>
 							<Image
 								src={girlSingingImage}
 								alt="Creator singing into a microphone at VV Studios Sydney"

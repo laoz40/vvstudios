@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Image } from "@unpic/react";
 import micImage from "#studio/assets/mic.webp";
 import { CONTACT_EMAIL, CONTACT_PHONE } from "#/config/contact";
+import { cn } from "#/lib/utils";
 
 const contactCardCopy = {
 	title: "Contact",
@@ -109,10 +110,20 @@ export function ContactCard() {
 					width={1600}
 					height={1836}
 					layout="constrained"
-					className="contact-card__image h-auto w-full object-cover"
+					className={cn(
+						// Contact card image styling
+						"contact-card__image",
+						"h-auto w-full object-cover"
+					)}
 				/>
-				<div className="contact-card__content absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8">
-					<h1 className="font-brand text-4xl tracking-tight md:text-6xl uppercase">
+				<div
+					className={cn(
+						// Contact card content overlay
+						"contact-card__content",
+						"absolute inset-x-0 bottom-0",
+						"px-6 py-6 sm:px-8 sm:py-8"
+					)}>
+					<h1 className="font-brand text-4xl tracking-tight uppercase md:text-6xl">
 						{contactCardCopy.title}
 					</h1>
 
@@ -129,7 +140,12 @@ export function ContactCard() {
 								<dd className="min-w-0">
 									<a
 										href={item.href}
-										className="contact-link block text-base font-medium wrap-break-word md:text-lg">
+										className={cn(
+											// Contact link underline animation
+											"contact-link",
+											"block wrap-break-word",
+											"text-base font-medium md:text-lg"
+										)}>
 										{item.value}
 									</a>
 								</dd>

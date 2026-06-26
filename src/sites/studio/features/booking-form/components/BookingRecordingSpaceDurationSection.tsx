@@ -1,5 +1,5 @@
 import { Image } from "@unpic/react";
-import { useStore } from "@tanstack/react-store";
+import { useSelector } from "@tanstack/react-store";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { FieldDescription, FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
@@ -81,7 +81,7 @@ const durationOptions: DurationOption[] = [
 
 export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
-	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
+	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	return (
@@ -116,13 +116,23 @@ export function BookingRecordingSpaceDurationSection() {
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"pressable bg-input/30 peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative flex cursor-pointer items-center justify-between rounded-lg border px-4 py-6 shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2",
+													"pressable relative flex cursor-pointer items-center justify-between rounded-lg border bg-input/30",
+													"px-4 py-6",
+													"shadow-lg shadow-background/25",
+													"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+													"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 													transitionClassName,
 													getCardStateClassName(isSelected),
 													isSelected && "shadow-primary/20"
 												)}>
 												{option.badgeLabel ? (
-													<span className="bg-primary text-primary-foreground absolute -top-2 -right-2 rounded-full px-3 py-1 text-[10px] font-semibold leading-none">
+													<span
+														className={cn(
+															"absolute -top-2 -right-2 rounded-full",
+															"px-3 py-1",
+															"text-[10px] leading-none font-semibold",
+															"bg-primary text-primary-foreground"
+														)}>
 														{option.badgeLabel}
 													</span>
 												) : null}
@@ -131,7 +141,11 @@ export function BookingRecordingSpaceDurationSection() {
 													{isSelected ? (
 														<span
 															className={cn(
-																"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+																"absolute top-1/2 left-full ml-2 -translate-y-1/2",
+																"inline-flex items-center justify-center rounded-lg border",
+																"px-2.5 py-0.5",
+																"text-xs font-medium tracking-wider",
+																"shadow-md transition-all duration-200 ease-in sm:hidden",
 																getPillStateClassName(true)
 															)}>
 															SELECTED
@@ -187,7 +201,11 @@ export function BookingRecordingSpaceDurationSection() {
 										<label
 											htmlFor={`service-${toOptionId(option.value)}`}
 											className={cn(
-												"pressable peer-focus-visible:border-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 md:hover:bg-primary/5",
+												"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
+												"shadow-lg shadow-background/25",
+												"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+												"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+												"md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
 												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20"
@@ -208,7 +226,10 @@ export function BookingRecordingSpaceDurationSection() {
 											</div>
 											<div
 												className={cn(
-													"pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-3 py-1 backdrop-blur-[3px] md:static md:px-3 md:py-1.5 md:group-hover:bg-primary/10",
+													"pointer-events-none absolute inset-x-0 bottom-0 z-10",
+													"flex items-center justify-between gap-2",
+													"px-3 py-1 md:static md:px-3 md:py-1.5",
+													"backdrop-blur-[3px] md:group-hover:bg-primary/10",
 													getFooterStateClassName(field.state.value === option.value),
 													field.state.value === option.value && "md:bg-primary/10"
 												)}>
@@ -220,7 +241,10 @@ export function BookingRecordingSpaceDurationSection() {
 												</p>
 												<span
 													className={cn(
-														"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in md:min-h-8 md:px-3 md:py-1",
+														"inline-flex items-center justify-center rounded-lg border",
+														"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
+														"text-xs font-medium tracking-wider",
+														"shadow-md transition-all duration-200 ease-in",
 														getPillStateClassName(field.state.value === option.value)
 													)}>
 													{field.state.value === option.value ? "SELECTED" : "SELECT"}
@@ -230,7 +254,7 @@ export function BookingRecordingSpaceDurationSection() {
 									</div>
 								))}
 							</RadioGroup>
-							<FieldDescription className="text-pretty italic mt-2!">
+							<FieldDescription className="mt-2! text-pretty italic">
 								{sectionCopy.recordingSpaceNote}
 							</FieldDescription>
 							{field.state.meta.isBlurred || shouldShowFieldError ? (

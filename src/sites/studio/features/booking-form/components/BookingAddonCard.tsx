@@ -62,7 +62,10 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 			htmlFor={addonId}
 			data-state={checked ? "checked" : "unchecked"}
 			className={cn(
-				"pressable has-focus-visible:border-primary has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background w-full cursor-pointer rounded-lg border bg-input/30 shadow-lg shadow-background/25",
+				"pressable w-full cursor-pointer rounded-lg border bg-input/30",
+				"shadow-lg shadow-background/25",
+				"has-focus-visible:border-primary has-focus-visible:ring-2 has-focus-visible:ring-ring",
+				"has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background",
 				transitionClassName,
 				getCardStateClassName(checked),
 				checked && "shadow-primary/20"
@@ -87,7 +90,11 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 							{checked ? (
 								<span
 									className={cn(
-										"absolute left-full top-1/2 ml-2 inline-flex -translate-y-1/2 items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:hidden",
+										"absolute left-full top-1/2 ml-2 -translate-y-1/2",
+										"inline-flex items-center justify-center rounded-lg border",
+										"px-2.5 py-0.5",
+										"text-xs font-medium tracking-wider",
+										"shadow-md transition-all duration-200 ease-in sm:hidden",
 										getPillStateClassName(true)
 									)}>
 									SELECTED
@@ -101,13 +108,20 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 					{checked ? (
 						<span
 							className={cn(
-								"hidden items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in sm:inline-flex md:min-h-8 md:px-3 md:py-1",
+								"hidden items-center justify-center rounded-lg border sm:inline-flex",
+								"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
+								"text-xs font-medium tracking-wider",
+								"shadow-md transition-all duration-200 ease-in",
 								getPillStateClassName(true)
 							)}>
 							SELECTED
 						</span>
 					) : null}
-					<span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-primary sm:static sm:translate-y-0">
+					<span
+						className={cn(
+							"absolute right-4 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0",
+							"text-lg font-semibold text-primary"
+						)}>
 						+{formatBookingPrice(ADDON_PRICES[addon])}
 					</span>
 				</div>

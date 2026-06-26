@@ -12,6 +12,7 @@ import heroPoster from "#studio/assets/bg/landing-poster.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 import { STUDIO_ADDRESS_URL } from "#/config/contact";
+import { cn } from "#/lib/utils";
 
 const heroCopy = {
 	eyebrow: "From Vertigo Visuals",
@@ -73,7 +74,12 @@ export function LandingHero() {
 					</video>
 				</motion.div>
 
-				<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
+				<div
+					className={cn(
+						"absolute inset-0 -z-10",
+						"bg-linear-to-br from-background/60 via-background/40 to-background/80"
+					)}
+				/>
 
 				<motion.div
 					className="absolute inset-0 z-10"
@@ -82,7 +88,11 @@ export function LandingHero() {
 						opacity: prefersReducedMotion ? 1 : heroTextOpacity,
 						y: prefersReducedMotion ? 0 : heroTextY
 					}}>
-					<div className="absolute inset-x-4 bottom-6 max-w-xl sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60">
+					<div
+						className={cn(
+							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60",
+							"max-w-xl"
+						)}>
 						<div className="landing-hero-reveal flex flex-col gap-2 md:max-w-xl">
 							<p className="text-primary text-xs font-semibold tracking-widest uppercase md:text-sm">
 								{heroCopy.eyebrow}
@@ -92,13 +102,24 @@ export function LandingHero() {
 								className="font-brand text-[2.75rem] leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-20">
 								{heroCopy.title}
 							</h1>
-							<p className="text-muted-foreground mt-1 text-sm leading-relaxed text-pretty md:text-base md:mt-4 md:max-w-lg">
+							<p
+								className={cn(
+									"md:max-w-lg",
+									"mt-1 md:mt-4",
+									"text-muted-foreground text-sm leading-relaxed text-pretty md:text-base"
+								)}>
 								{heroCopy.lead}
 							</p>
 
 							<div className="mt-4 flex w-full flex-wrap gap-3 md:mt-4">
 								<AnimatedIconButton
-									className="h-auto flex-1 gap-1.5 px-6! py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none"
+									className={cn(
+										"flex-1 gap-1.5 md:flex-none",
+										"h-auto",
+										"px-6! py-3",
+										"text-base font-medium",
+										"shadow-lg shadow-primary/45"
+									)}
 									renderIcon={(iconRef) => (
 										<ArrowNarrowRightIcon
 											ref={iconRef}
@@ -112,7 +133,14 @@ export function LandingHero() {
 
 								<FreeTourModalButton
 									label={heroCopy.tourCta}
-									className="h-auto flex-1 border-0 bg-card/50! px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-accent/80! md:flex-none"
+									className={cn(
+										"flex-1 md:flex-none",
+										"h-auto",
+										"px-8 py-3",
+										"text-base font-medium!",
+										"border-0 bg-card/50! hover:bg-accent/80!",
+										"shadow-md shadow-background/25"
+									)}
 								/>
 							</div>
 
@@ -124,14 +152,26 @@ export function LandingHero() {
 								<Button
 									asChild
 									variant="link"
-									className="h-auto px-0 py-0 text-left whitespace-normal text-muted-foreground hover:text-foreground">
+									className={cn(
+										"h-auto",
+										"px-0 py-0",
+										"text-left whitespace-normal text-muted-foreground hover:text-foreground"
+									)}>
 									<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 								</Button>
 							</div>
 						</div>
 					</div>
 
-					<div className="landing-hero-reveal landing-hero-reveal--delayed absolute right-8 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base">
+					<div
+						className={cn(
+							// Hero reveal animation
+							"landing-hero-reveal landing-hero-reveal--delayed",
+							"absolute right-8 bottom-8 left-auto",
+							"hidden items-center gap-2 md:inline-flex",
+							"py-2",
+							"text-sm text-muted-foreground md:text-base"
+						)}>
 						<MapPin
 							className="text-primary"
 							aria-hidden

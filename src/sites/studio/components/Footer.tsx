@@ -8,6 +8,7 @@ import {
 	STUDIO_ADDRESS,
 	STUDIO_ADDRESS_URL
 } from "#/config/contact";
+import { cn } from "#/lib/utils";
 import { GiveFeedbackModalButton } from "#studio/components/GiveFeedbackModal";
 
 const footerContent = {
@@ -27,14 +28,19 @@ const currentYear = new Date().toLocaleDateString(undefined, { year: "numeric" }
 
 export function Footer() {
 	return (
-		<footer className="relative z-20 bg-neutral-950 px-4 py-10 sm:py-12 md:px-12 lg:px-24 xl:px-32 2xl:px-48">
+		<footer
+			className={cn(
+				"relative z-20",
+				"px-4 py-10 sm:py-12 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
+				"bg-neutral-950"
+			)}>
 			<div className="flex w-full flex-col gap-6">
 				<div className="flex flex-col gap-6 text-left">
 					<div className="space-y-2">
 						<p className="text-foreground text-xl font-black tracking-wide">
 							{footerContent.studioName}
 						</p>
-						<p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+						<p className="max-w-md text-sm leading-relaxed text-muted-foreground">
 							{footerContent.lead}
 						</p>
 					</div>
@@ -46,8 +52,8 @@ export function Footer() {
 							{footerContactItems.map((item) => (
 								<li
 									key={item.label}
-									className="text-muted-foreground flex flex-col items-start gap-1">
-									<span className="text-primary text-xs font-semibold tracking-widest uppercase">
+									className="flex flex-col items-start gap-1 text-muted-foreground">
+									<span className="text-xs font-semibold tracking-widest text-primary uppercase">
 										{item.label}
 									</span>
 									<a
@@ -59,8 +65,8 @@ export function Footer() {
 							))}
 						</ul>
 
-						<div className="text-muted-foreground flex flex-col items-end gap-1 text-right text-sm">
-							<span className="text-primary text-xs font-semibold tracking-widest uppercase">
+						<div className="flex flex-col items-end gap-1 text-right text-sm text-muted-foreground">
+							<span className="text-xs font-semibold tracking-widest text-primary uppercase">
 								Socials
 							</span>
 							<a
@@ -90,7 +96,7 @@ export function Footer() {
 								Privacy Policy
 							</Link>
 						</div>
-						<p className="text-muted-foreground text-right text-sm font-medium">
+						<p className="text-right text-sm font-medium text-muted-foreground">
 							&copy; {currentYear} {footerContent.parentCompanyName}
 						</p>
 					</div>

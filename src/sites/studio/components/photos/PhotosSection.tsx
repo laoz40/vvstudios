@@ -38,18 +38,6 @@ export function PhotosSection({
 	}, []);
 
 	const galleryImages = isMobile && mobileImages ? mobileImages : images;
-	const galleryClassName =
-		layout === "threeFeature"
-			? "flex w-full flex-col gap-6 lg:flex-row"
-			: "w-full columns-1 gap-6 sm:columns-2 xl:columns-3";
-	const figureClassName =
-		layout === "threeFeature"
-			? "lg:flex-1"
-			: "mb-6 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40";
-	const imageClassName =
-		layout === "threeFeature"
-			? "block h-auto w-full rounded-lg shadow-xl shadow-background/40"
-			: "block h-auto w-full";
 	const heading =
 		headingLevel === "h1" ? (
 			<h1 className={landingSectionHeadingClassName}>{photosPageContent.title}</h1>
@@ -63,15 +51,25 @@ export function PhotosSection({
 				<div className="mx-auto flex w-full flex-col items-center gap-8 md:gap-10">
 					<div className="max-w-4xl space-y-4 text-left md:text-center">
 						{heading}
-						<p className="text-base leading-7 text-pretty text-muted-foreground md:text-lg">
+						<p className="text-pretty text-base leading-7 text-muted-foreground md:text-lg">
 							{photosPageContent.lead}
 						</p>
 					</div>
-					<div className={galleryClassName}>
+					<div
+						className={cn(
+							"w-full",
+							layout === "threeFeature"
+								? "flex flex-col gap-6 lg:flex-row"
+								: "columns-1 gap-6 sm:columns-2 xl:columns-3"
+						)}>
 						{galleryImages.map((image, index) => (
 							<figure
 								key={image.src}
-								className={figureClassName}>
+								className={cn(
+									layout === "threeFeature"
+										? "lg:flex-1"
+										: "mb-6 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40"
+								)}>
 								<Image
 									src={image.src}
 									alt={image.alt}
@@ -79,7 +77,10 @@ export function PhotosSection({
 									width={image.width}
 									height={image.height}
 									loading={index < 3 ? "eager" : "lazy"}
-									className={imageClassName}
+									className={cn(
+										"block h-auto w-full",
+										layout === "threeFeature" && "rounded-lg shadow-xl shadow-background/40"
+									)}
 								/>
 								{layout === "threeFeature" && image.caption ? (
 									<figcaption className="pt-3 text-center text-base text-foreground md:text-lg">

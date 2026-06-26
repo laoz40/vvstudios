@@ -14,6 +14,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
+import { cn } from "#/lib/utils";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	ADDON_OPTIONS,
@@ -106,7 +107,13 @@ function EditingQuantityOptions({
 						<label
 							key={count}
 							htmlFor={optionId}
-							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							className={cn(
+								"flex cursor-pointer items-center gap-3",
+								"p-3",
+								"rounded-lg border",
+								"transition-colors",
+								"has-checked:border-primary has-checked:bg-primary/5"
+							)}>
 							<RadioGroupItem
 								id={optionId}
 								value={count}
@@ -148,7 +155,7 @@ export function BookingEditDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="flex max-h-dvh flex-col overflow-hidden sm:max-w-4xl"
+				className={cn("flex max-h-dvh flex-col", "overflow-hidden", "sm:max-w-4xl")}
 				onInteractOutside={(event) => {
 					if (isSaving) {
 						event.preventDefault();
@@ -180,7 +187,11 @@ export function BookingEditDialog({
 				</DialogHeader>
 
 				<form
-					className="flex min-h-0 flex-col gap-6 overflow-y-auto overscroll-contain pr-4"
+					className={cn(
+						"flex min-h-0 flex-col gap-6",
+						"overflow-y-auto overscroll-contain",
+						"pr-4"
+					)}
 					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();
@@ -313,7 +324,13 @@ export function BookingEditDialog({
 									<label
 										key={duration}
 										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										className={cn(
+											"flex cursor-pointer items-center gap-3",
+											"p-3",
+											"rounded-lg border",
+											"transition-colors",
+											"has-checked:border-primary has-checked:bg-primary/5"
+										)}>
 										<RadioGroupItem
 											id={optionId}
 											value={duration}
@@ -341,7 +358,13 @@ export function BookingEditDialog({
 									<label
 										key={service}
 										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										className={cn(
+											"flex cursor-pointer items-center gap-3",
+											"p-3",
+											"rounded-lg border",
+											"transition-colors",
+											"has-checked:border-primary has-checked:bg-primary/5"
+										)}>
 										<RadioGroupItem
 											id={optionId}
 											value={service}

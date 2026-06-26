@@ -91,7 +91,8 @@ export function BookingStatusLayout({
 	return (
 		<main
 			className={cn(
-				"mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10",
+				"mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center",
+				"gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10",
 				className
 			)}>
 			{children}
@@ -104,7 +105,12 @@ export function BookingStatusLayout({
 							{canCreateRescheduleLink && stripeSessionId ? (
 								<AnimatedIconButton
 									size="lg"
-									className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+									className={cn(
+										"h-auto w-full sm:w-auto",
+										"px-8 py-3",
+										"text-base font-medium",
+										"shadow-lg shadow-primary/45"
+									)}
 									disabled={isCreatingRescheduleLink}
 									renderIcon={(iconRef) => (
 										<ArrowNarrowRightIcon
@@ -124,7 +130,9 @@ export function BookingStatusLayout({
 							<AnimatedIconButton
 								size="lg"
 								className={cn(
-									"h-auto w-full px-8 py-3 text-base font-medium sm:w-auto",
+									"h-auto w-full sm:w-auto",
+									"px-8 py-3",
+									"text-base font-medium",
 									canCreateRescheduleLink && stripeSessionId
 										? "border-none shadow-md shadow-background/25"
 										: "shadow-lg shadow-primary/45"
@@ -150,7 +158,12 @@ export function BookingStatusLayout({
 						<>
 							<AnimatedIconButton
 								size="lg"
-								className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+								className={cn(
+									"h-auto w-full sm:w-auto",
+									"px-8 py-3",
+									"text-base font-medium",
+									"shadow-lg shadow-primary/45"
+								)}
 								renderIcon={(iconRef) => (
 									<ArrowNarrowRightIcon
 										ref={iconRef}
@@ -163,7 +176,12 @@ export function BookingStatusLayout({
 							</AnimatedIconButton>
 							<AnimatedIconButton
 								size="lg"
-								className="border-none h-auto w-full px-8 py-3 text-base font-medium shadow-md shadow-background/25 sm:w-auto"
+								className={cn(
+									"h-auto w-full sm:w-auto",
+									"px-8 py-3",
+									"text-base font-medium",
+									"border-none shadow-md shadow-background/25"
+								)}
 								variant="outline"
 								iconPosition="before"
 								renderIcon={(iconRef) => (
