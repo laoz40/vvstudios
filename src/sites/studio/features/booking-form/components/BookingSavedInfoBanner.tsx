@@ -1,4 +1,5 @@
 import { Button } from "#/components/ui/button";
+import { cn } from "#/lib/utils";
 
 const sectionCopy = {
 	description: "You can reuse your last saved booking information.",
@@ -13,13 +14,23 @@ export interface BookingSavedInfoBannerProps {
 
 export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBannerProps) {
 	return (
-		<section className="flex flex-col gap-4 rounded-lg border border-primary/80 bg-card px-4 py-4 shadow-lg shadow-primary/20 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+		<section
+			className={cn(
+				"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+				"rounded-lg border border-primary/80 bg-card",
+				"px-4 py-4 sm:px-6",
+				"shadow-lg shadow-primary/20"
+			)}>
 			<p className="text-sm text-foreground">
 				{sectionCopy.description}{" "}
 				<Button
 					type="button"
 					variant="link"
-					className="accent-link inline h-auto p-0 align-baseline text-sm text-muted-foreground underline-offset-4"
+					className={cn(
+						"accent-link",
+						"inline h-auto p-0 align-baseline",
+						"text-sm text-muted-foreground underline-offset-4"
+					)}
 					onClick={onRemove}>
 					{sectionCopy.removeAction}
 				</Button>
@@ -27,7 +38,12 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 			<Button
 				type="button"
 				size="default"
-				className="w-full px-6 text-sm! font-semibold shadow-lg shadow-primary/45 sm:w-auto"
+				className={cn(
+					"w-full sm:w-auto",
+					"px-6",
+					"text-sm! font-semibold",
+					"shadow-lg shadow-primary/45"
+				)}
 				onClick={onReuse}>
 				{sectionCopy.reuseAction}
 			</Button>

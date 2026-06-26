@@ -73,9 +73,19 @@ export function BookingDateTimePicker({
 					data-field-name="date"
 					className="gap-3">
 					<FieldLabel className={sectionHeadingClassName}>{copy.dateLabel}</FieldLabel>
-					<div className="flex overflow-hidden rounded-lg border border-border bg-input/30 shadow-lg shadow-background/25 xl:h-128">
+					<div
+						className={cn(
+							"flex overflow-hidden xl:h-128",
+							"rounded-lg border border-border bg-input/30",
+							"shadow-lg shadow-background/25"
+						)}>
 						<Calendar
-							className="h-full bg-transparent p-5 xl:p-6 [--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
+							className={cn(
+								"h-full",
+								"p-5 xl:p-6",
+								"bg-transparent",
+								"[--cell-size:--spacing(12)] xl:[--cell-size:--spacing(16)]"
+							)}
 							classNames={{
 								months: "relative flex h-full w-full flex-col gap-4 md:flex-row",
 								month: "flex h-full w-full min-w-0 flex-col gap-3",
@@ -99,12 +109,19 @@ export function BookingDateTimePicker({
 									"aria-disabled:opacity-50"
 								),
 								month_caption: "flex h-10 w-full items-center justify-center px-10",
-								caption_label:
-									"font-medium select-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+								caption_label: cn(
+									"font-medium",
+									"select-none outline-none",
+									"focus-visible:ring-2 focus-visible:ring-primary",
+									"focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+								),
 								table: "w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1",
 								day: "aspect-auto p-0.5 md:p-1",
-								day_button:
-									"h-11 py-0 md:h-12 data-[selected-single=true]:!bg-primary data-[selected-single=true]:!text-primary-foreground xl:h-14 xl:text-lg!"
+								day_button: cn(
+									"h-11 py-0 md:h-12 xl:h-14 xl:text-lg!",
+									"data-[selected-single=true]:!bg-primary",
+									"data-[selected-single=true]:!text-primary-foreground"
+								)
 							}}
 							mode="single"
 							required
@@ -194,7 +211,10 @@ export function BookingDateTimePicker({
 													)}>
 													<Field
 														orientation="horizontal"
-														className="relative h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
+														className={cn(
+															"relative h-14 w-full items-center justify-center",
+															"rounded-lg px-3.5 py-2"
+														)}>
 														<FieldTitle
 															className={cn(
 																"w-full justify-center text-center",

@@ -118,7 +118,12 @@ export function PricingSection({
 			<motion.div
 				className="flex w-full flex-col items-center gap-8 md:gap-12"
 				{...fadeInAnimation}>
-				<div className="flex w-full flex-col items-start gap-5 pb-2 text-left md:items-center md:text-center">
+				<div
+					className={cn(
+						"flex w-full flex-col items-start md:items-center",
+						"gap-5 pb-2",
+						"text-left md:text-center"
+					)}>
 					<HeadingTag className={landingSectionHeadingClassName}>
 						{pricingPageCopy.title}
 					</HeadingTag>

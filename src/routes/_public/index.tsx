@@ -12,6 +12,7 @@ import {
 	buildWebSiteJsonLd,
 	seoMetadata
 } from "#/lib/seo";
+import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_public/")({
 	head: () => ({
@@ -42,7 +43,12 @@ function HomeRoute() {
 		// Cancels StudioLayout's top padding so the landing hero starts behind the navbar.
 		<main className="-mt-18 md:-mt-24">
 			<LandingHero />
-			<div className="landing-page-content-overlap page-spotlight-background relative z-10 flex flex-col gap-16 md:gap-20">
+			<div
+				className={cn(
+					// Landing content overlap and spotlight
+					"landing-page-content-overlap page-spotlight-background",
+					"relative z-10 flex flex-col gap-16 md:gap-20"
+				)}>
 				<LandingTestimonials />
 				<LandingGallery />
 				<PricingSection

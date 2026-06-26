@@ -45,6 +45,7 @@ import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/s
 import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
+import { cn } from "#/lib/utils";
 import {
 	getAvailabilityErrorMessage,
 	getInvalidMessage,
@@ -426,7 +427,11 @@ function ReschedulePage() {
 				<div className="mt-6">
 					<Button
 						type="button"
-						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
+						className={cn(
+							"h-12 w-full rounded-lg",
+							"text-base font-bold! tracking-wider",
+							"shadow-lg shadow-primary/45"
+						)}
 						disabled={!selectedDateValue || !selectedTime || isUpdatingBooking}
 						onClick={handleUpdateBooking}>
 						UPDATE BOOKING

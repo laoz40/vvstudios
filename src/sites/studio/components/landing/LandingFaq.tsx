@@ -39,13 +39,13 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 						/>
 					</div>
 
-					<ContactActions className={cn("md:justify-start", "mt-7 md:mt-0")} />
+					<ContactActions className="mt-7 md:mt-0 md:justify-start" />
 				</div>
 
 				<Accordion
 					type="single"
 					collapsible
-					className={cn("order-1 md:order-2", "w-full")}>
+					className="order-1 w-full md:order-2">
 					{faqSectionCopy.items.map((item) => (
 						<AccordionItem
 							key={item.question}

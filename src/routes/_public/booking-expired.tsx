@@ -7,6 +7,7 @@ import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
+import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_public/booking-expired")({
 	head: () => buildNoIndexHead("Booking Session Expired | VV Studios"),
@@ -32,7 +33,11 @@ function BookingExpiredPage() {
 		: null;
 
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
+		<main
+			className={cn(
+				"mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center",
+				"gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10"
+			)}>
 			<section className="flex flex-col gap-8">
 				<div className="space-y-4">
 					<h1 className="text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl">
@@ -53,7 +58,12 @@ function BookingExpiredPage() {
 				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					<AnimatedIconButton
 						size="lg"
-						className="h-auto w-full px-8 py-3 text-base font-medium shadow-lg shadow-primary/45 sm:w-auto"
+						className={cn(
+							"h-auto w-full sm:w-auto",
+							"px-8 py-3",
+							"text-base font-medium",
+							"shadow-lg shadow-primary/45"
+						)}
 						renderIcon={(iconRef) => (
 							<ArrowNarrowRightIcon
 								ref={iconRef}
@@ -66,7 +76,12 @@ function BookingExpiredPage() {
 					</AnimatedIconButton>
 					<AnimatedIconButton
 						size="lg"
-						className="border-none h-auto w-full px-8 py-3 text-base font-medium shadow-md shadow-background/25 sm:w-auto"
+						className={cn(
+							"h-auto w-full sm:w-auto",
+							"px-8 py-3",
+							"text-base font-medium",
+							"border-none shadow-md shadow-background/25"
+						)}
 						variant="outline"
 						iconPosition="before"
 						renderIcon={(iconRef) => (
