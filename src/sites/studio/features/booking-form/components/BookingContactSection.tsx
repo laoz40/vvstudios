@@ -1,4 +1,4 @@
-import { useStore } from "@tanstack/react-store";
+import { useSelector } from "@tanstack/react-store";
 import {
 	Field,
 	FieldDescription,
@@ -39,7 +39,7 @@ const sectionCopy = {
 
 export function BookingContactSection() {
 	const formApi = useBookingFormContext();
-	const submissionAttempts = useStore(formApi.store, (state) => state.submissionAttempts);
+	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	return (

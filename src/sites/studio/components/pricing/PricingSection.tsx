@@ -112,7 +112,7 @@ export function PricingSection({
 		<section
 			className={cn(
 				"px-4 pb-16 sm:pb-20 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
-				compact ? "" : "pt-0",
+				!compact && "pt-0",
 				className
 			)}>
 			<motion.div
@@ -131,19 +131,26 @@ export function PricingSection({
 					{pricingSessions.map((session) => (
 						<article
 							key={session.label}
-							className={[
-								"bg-card relative flex h-full flex-col rounded-lg border p-4 sm:px-5 sm:py-6 shadow-xl",
+							className={cn(
+								"relative flex h-full flex-col rounded-lg border bg-card",
+								"p-4 sm:px-5 sm:py-6",
+								"shadow-xl",
 								session.isMostPopular ? "border-primary" : "border-border"
-							]
-								.filter(Boolean)
-								.join(" ")}>
+							)}>
 							{session.isMostPopular ? (
-								<span className="bg-primary text-primary-foreground absolute top-0 left-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-md px-3 py-1 text-xs font-bold tracking-wide whitespace-nowrap uppercase">
+								<span
+									className={cn(
+										"absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2",
+										"inline-flex items-center rounded-md",
+										"px-3 py-1",
+										"text-xs font-bold tracking-wide whitespace-nowrap uppercase",
+										"bg-primary text-primary-foreground"
+									)}>
 									Most popular
 								</span>
 							) : null}
 							<div className="flex flex-1 flex-col space-y-2">
-								<h3 className="text-foreground text-lg sm:text-2xl font-semibold">
+								<h3 className="text-lg font-semibold text-foreground sm:text-2xl">
 									{session.label}
 								</h3>
 								<p className="text-4xl leading-none sm:text-5xl">{session.price}</p>
@@ -161,13 +168,17 @@ export function PricingSection({
 									)}
 								</div>
 
-								<p className="mt-2 text-muted-foreground text-sm leading-relaxed sm:text-base">
+								<p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
 									{session.description}
 								</p>
 
 								<div className="mt-auto pt-6 sm:pt-8">
 									<AnimatedIconButton
-										className="w-full justify-center py-5 gap-1.5 text-base font-medium shadow-lg shadow-primary/45"
+										className={cn(
+											"w-full justify-center gap-1.5 py-5",
+											"text-base font-medium",
+											"shadow-lg shadow-primary/45"
+										)}
 										renderIcon={(iconRef) => (
 											<ArrowNarrowRightIcon
 												ref={iconRef}
@@ -192,8 +203,8 @@ export function PricingSection({
 
 				<div className="mt-8 w-full space-y-4 md:mt-24">
 					<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
-						<div className="flex w-full flex-col gap-8 md:gap-12 text-left">
-							<h2 className="ml-0 md:ml-16 font-brand text-3xl leading-none uppercase md:text-5xl">
+						<div className="flex w-full flex-col gap-8 text-left md:gap-12">
+							<h2 className="ml-0 font-brand text-3xl leading-none uppercase md:ml-16 md:text-5xl">
 								{pricingPageCopy.addOnsTitle}
 							</h2>
 
@@ -205,7 +216,7 @@ export function PricingSection({
 										<div
 											key={addOn.label}
 											className="flex h-full w-full gap-4">
-											<div className="hidden w-12 shrink-0 self-stretch items-center justify-center text-primary md:flex">
+											<div className="hidden w-12 shrink-0 items-center justify-center text-primary md:flex">
 												<Icon
 													aria-hidden="true"
 													className="size-12"
@@ -216,7 +227,7 @@ export function PricingSection({
 													<h3 className="text-base font-medium">{addOn.label}</h3>
 													<p className="text-primary text-base font-medium">{addOn.price}</p>
 												</div>
-												<p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
+												<p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
 													{addOn.description}
 												</p>
 											</div>
@@ -226,7 +237,12 @@ export function PricingSection({
 							</div>
 						</div>
 
-						<div className="relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full md:max-w-2xl md:justify-self-end">
+						<div
+							className={cn(
+								"relative h-80 w-full overflow-hidden md:h-full md:max-w-2xl md:justify-self-end",
+								"rounded-lg bg-card",
+								"shadow-xl shadow-background/40"
+							)}>
 							<Image
 								src={trioTalkingAtTableSetupImage}
 								alt="Trio talking at the VV Studios podcast studio table setup in Sydney"

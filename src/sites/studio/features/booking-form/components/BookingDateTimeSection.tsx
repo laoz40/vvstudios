@@ -59,7 +59,7 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 	]);
 
 	return (
-		<section className="flex flex-col mt-0 gap-6 md:gap-8">
+		<section className="mt-0 flex flex-col gap-6 md:gap-8">
 			<formApi.Field name="date">
 				{(dateField) => (
 					<formApi.Field name="time">
