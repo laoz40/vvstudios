@@ -924,7 +924,13 @@ export function BookingActions({ booking }: BookingActionsProps) {
 								href={`mailto:${booking.email}`}
 								aria-label="Email customer"
 								title="Email customer"
-								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								className={cn(
+									"flex size-8 items-center justify-center",
+									"rounded-sm",
+									"text-muted-foreground",
+									"hover:bg-accent hover:text-accent-foreground",
+									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								)}
 								onPointerEnter={() => emailIconRef.current?.startAnimation()}
 								onPointerLeave={() => emailIconRef.current?.stopAnimation()}
 								onFocus={() => emailIconRef.current?.startAnimation()}
@@ -940,7 +946,13 @@ export function BookingActions({ booking }: BookingActionsProps) {
 									href={`tel:${booking.phone}`}
 									aria-label="Call customer"
 									title="Call customer"
-									className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className={cn(
+										"flex size-8 items-center justify-center",
+										"rounded-sm",
+										"text-muted-foreground",
+										"hover:bg-accent hover:text-accent-foreground",
+										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									)}
 									onPointerEnter={() => phoneIconRef.current?.startAnimation()}
 									onPointerLeave={() => phoneIconRef.current?.stopAnimation()}
 									onFocus={() => phoneIconRef.current?.startAnimation()}

@@ -1,5 +1,6 @@
 import { Checkbox } from "#/components/ui/checkbox";
 import { Label } from "#/components/ui/label";
+import { cn } from "#/lib/utils";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
 import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -37,7 +38,13 @@ export function AdminAddonOptions({
 						<label
 							key={addon}
 							htmlFor={optionId}
-							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							className={cn(
+								"flex cursor-pointer items-center gap-3",
+								"p-3",
+								"rounded-lg border",
+								"transition-colors",
+								"has-checked:border-primary has-checked:bg-primary/5"
+							)}>
 							<Checkbox
 								id={optionId}
 								checked={isChecked}

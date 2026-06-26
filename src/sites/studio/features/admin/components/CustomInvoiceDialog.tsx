@@ -27,6 +27,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { cn } from "#/lib/utils";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
 	DURATION_PRICES
@@ -120,7 +121,13 @@ function CustomInvoiceQuantityOptions({
 						<label
 							key={count}
 							htmlFor={optionId}
-							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							className={cn(
+								"flex cursor-pointer items-center gap-3",
+								"p-3",
+								"rounded-lg border",
+								"transition-colors",
+								"has-checked:border-primary has-checked:bg-primary/5"
+							)}>
 							<Checkbox
 								id={optionId}
 								checked={isChecked}
@@ -393,7 +400,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 									{customInvoices.map((invoice) => (
 										<li
 											key={invoice._id}
-											className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+											className={cn(
+												"flex flex-col gap-2",
+												"sm:flex-row sm:items-center sm:justify-between"
+											)}>
 											<div className="grid gap-1">
 												<span className="font-medium">{invoice.invoiceNumber}</span>
 												<span className="text-muted-foreground">
@@ -450,7 +460,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 									<label
 										key={duration}
 										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										className={cn(
+											"flex cursor-pointer items-center gap-3",
+											"p-3",
+											"rounded-lg border",
+											"transition-colors",
+											"has-checked:border-primary has-checked:bg-primary/5"
+										)}>
 										<Checkbox
 											id={optionId}
 											checked={isChecked}
@@ -481,7 +497,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 									<label
 										key={service}
 										htmlFor={optionId}
-										className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+										className={cn(
+											"flex cursor-pointer items-center gap-3",
+											"p-3",
+											"rounded-lg border",
+											"transition-colors",
+											"has-checked:border-primary has-checked:bg-primary/5"
+										)}>
 										<Checkbox
 											id={optionId}
 											checked={isChecked}
@@ -538,7 +560,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						<Label>Deposit</Label>
 						<label
 							htmlFor="custom-invoice-include-deposit"
-							className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5">
+							className={cn(
+								"flex cursor-pointer items-center gap-3",
+								"p-3",
+								"rounded-lg border",
+								"transition-colors",
+								"has-checked:border-primary has-checked:bg-primary/5"
+							)}>
 							<Checkbox
 								id="custom-invoice-include-deposit"
 								checked={draft.includeDepositLineItem}

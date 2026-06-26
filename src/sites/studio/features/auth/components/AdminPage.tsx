@@ -2,7 +2,6 @@ import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
-
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import HomeIcon from "#/components/ui/home-icon";
 import LogoutIcon from "#/components/ui/logout-icon";

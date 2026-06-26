@@ -1,6 +1,5 @@
 import { Suspense, lazy } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";

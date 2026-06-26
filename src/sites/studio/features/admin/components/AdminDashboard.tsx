@@ -204,7 +204,13 @@ function CopyableText({ value, label, children }: CopyableTextProps) {
 				size="icon-sm"
 				variant="ghost"
 				aria-label={`Copy ${label}`}
-				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				className={cn(
+					"inline-flex size-5 shrink-0 items-center justify-center",
+					"rounded-sm",
+					"text-muted-foreground",
+					"hover:text-foreground",
+					"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				)}
 				renderIcon={(iconRef) => (
 					<CopyIcon
 						ref={iconRef}
@@ -650,7 +656,12 @@ export function AdminDashboard({
 	);
 
 	return (
-		<main className="relative flex min-h-screen flex-col gap-5 bg-card p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+		<main
+			className={cn(
+				"relative flex min-h-screen flex-col gap-5 md:gap-6",
+				"bg-card",
+				"p-3 pb-8 md:p-4 lg:px-6"
+			)}>
 			<div className="absolute top-3 right-3 md:hidden">
 				<AdminDashboardMenu
 					email={email}
@@ -659,10 +670,19 @@ export function AdminDashboard({
 			</div>
 			<section className="flex flex-col gap-4 pr-14 md:gap-5 md:pr-0">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 xl:items-center xl:gap-10">
+					<div
+						className={cn(
+							"flex flex-col gap-3",
+							"sm:flex-row sm:items-start sm:justify-between sm:gap-4",
+							"xl:items-center xl:gap-10"
+						)}>
 						<h1
 							title="It would look better if the text were bigger. What do you think, Joseph?"
-							className="font-brand text-4xl leading-none font-medium uppercase text-foreground cursor-help md:text-[10rem]">
+							className={cn(
+								"cursor-help",
+								"font-brand text-4xl md:text-[10rem] leading-none font-medium uppercase",
+								"text-foreground"
+							)}>
 							Bookings Dashboard
 						</h1>
 						<div className="flex flex-wrap items-start gap-x-4 gap-y-2 sm:flex-col sm:gap-2">
@@ -821,7 +841,11 @@ export function AdminDashboard({
 
 				<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
 					<div className="flex flex-wrap items-center gap-3 md:gap-6">
-						<div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start md:gap-6">
+						<div
+							className={cn(
+								"flex w-full items-center justify-between gap-3",
+								"md:w-auto md:justify-start md:gap-6"
+							)}>
 							<p className="text-sm text-muted-foreground">
 								Showing {table.getFilteredRowModel().rows.length}{" "}
 								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
