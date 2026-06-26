@@ -19,6 +19,26 @@ export function getRemainingBalanceAmount(booking: RemainingBalanceBooking) {
 	return booking.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(booking);
 }
 
+type RemainingBalanceAmountParseResult =
+	| { status: "valid"; amount: number }
+	| { status: "invalid" };
+
+export function parseRemainingBalanceAmountDraft(draft: string): RemainingBalanceAmountParseResult {
+	const trimmedDraft = draft.trim();
+
+	if (trimmedDraft === "") {
+		return { status: "invalid" };
+	}
+
+	const amount = Number(trimmedDraft);
+
+	if (!Number.isFinite(amount) || amount < 0) {
+		return { status: "invalid" };
+	}
+
+	return { status: "valid", amount };
+}
+
 export function hasUnpaidRemainingBalance(booking: RemainingBalancePaymentBooking) {
 	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
 		return false;

@@ -7,7 +7,10 @@ import type {
 	UpdateBookingPaidRemainingBalanceResult,
 	UpdateBookingRemainingBalanceAmountResult
 } from "#convex/bookings";
-import { getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
+import {
+	getRemainingBalanceAmount,
+	parseRemainingBalanceAmountDraft
+} from "#studio/features/admin/lib/remaining-balance";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 
 export function usePaymentActions(booking: BookingRecord) {
@@ -77,9 +80,9 @@ export function usePaymentActions(booking: BookingRecord) {
 	}
 
 	async function handleSetRemainingBalanceAmount() {
-		const parsedAmount = Number(remainingBalanceDraft);
+		const parsedAmount = parseRemainingBalanceAmountDraft(remainingBalanceDraft);
 
-		if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+		if (parsedAmount.status === "invalid") {
 			toast.error("Enter a valid remaining balance.");
 			return;
 		}
@@ -89,7 +92,7 @@ export function usePaymentActions(booking: BookingRecord) {
 		const [error] = await tryCatch<UpdateBookingRemainingBalanceAmountResult>(
 			updateBookingRemainingBalanceAmount({
 				bookingId: booking._id,
-				remainingBalanceAmount: parsedAmount
+				remainingBalanceAmount: parsedAmount.amount
 			})
 		);
 
