@@ -8,7 +8,7 @@ import {
 	getBookingTimeSelectionMessage,
 	toFieldErrorObjects,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 

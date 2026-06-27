@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,

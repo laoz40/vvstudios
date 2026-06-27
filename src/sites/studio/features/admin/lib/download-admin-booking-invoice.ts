@@ -3,7 +3,7 @@ import { err, ok, type Result } from "#/lib/result";
 import {
 	bookingSchema,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 export type DownloadAdminBookingInvoiceInput = {

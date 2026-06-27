@@ -7,7 +7,7 @@ import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
 import type { BookingEditDraft } from "#studio/features/admin/components/BookingEditDialog";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
-import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
+import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 
 export function useEditAction(booking: BookingRecord) {
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);

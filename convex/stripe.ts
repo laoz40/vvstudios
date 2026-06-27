@@ -1,37 +1,17 @@
 "use node";
 
-import { createHash } from "node:crypto";
-import { resolveMx } from "node:dns/promises";
 import Stripe from "stripe";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
-import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/form-shared";
+import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import { err, ok, type Result } from "../src/lib/result";
 import { env } from "./env";
+import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 
 function getStripeClient() {
 	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
-}
-
-function getBookingSubmitRateLimitKey(email: string) {
-	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
-}
-
-async function emailDomainCanReceiveMail(email: string) {
-	const domain = email.trim().toLowerCase().split("@").at(-1);
-
-	if (!domain) {
-		return false;
-	}
-
-	try {
-		const mxRecords = await resolveMx(domain);
-		return mxRecords.length > 0;
-	} catch {
-		return false;
-	}
 }
 
 type PendingBookingCreationResult = Result<

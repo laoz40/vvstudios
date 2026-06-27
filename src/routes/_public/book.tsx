@@ -22,7 +22,7 @@ import {
 	bookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
-import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/form-shared";
+import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	termsDialogPendingError,
 	useBookingSubmit

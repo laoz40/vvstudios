@@ -175,7 +175,6 @@ export default defineSchema({
 			})
 		)
 	})
-		.index("by_status_and_createdAt", ["status", "createdAt"])
 		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 });

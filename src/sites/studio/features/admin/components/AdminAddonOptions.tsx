@@ -1,8 +1,8 @@
 import { Checkbox } from "#/components/ui/checkbox";
 import { Label } from "#/components/ui/label";
 import { cn } from "#/lib/utils";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type AdminAddonOptionsProps = {

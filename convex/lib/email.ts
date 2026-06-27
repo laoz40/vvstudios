@@ -17,7 +17,9 @@ import {
 } from "./bookingCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode
+	createMultiBookingInvoiceArtifacts,
+	renderBookingInvoicePdfInNode,
+	type MultiBookingInvoiceSource
 } from "./bookingInvoiceArtifacts";
 import { err, ok, type Result } from "../../src/lib/result";
 
@@ -211,6 +213,48 @@ export async function sendBookingInvoiceEmailsForBooking(
 	}
 
 	return ok({ sent: true });
+}
+
+export async function sendMultiBookingInvoiceEmail(
+	multiBooking: MultiBookingInvoiceSource
+): Promise<
+	Result<
+		{ invoiceNumber: string; sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }
+	>
+> {
+	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
+
+	if (pdfError !== null) {
+		console.error("Multi-booking invoice PDF render failed", { multiBookingId: multiBooking._id });
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [invoiceEmailError] = await sendEmail({
+		to: [multiBooking.email],
+		subject: `Your ${multiBooking.packageSize}-Pack Studio Booking Invoice`,
+		html: artifactsResult.artifacts.emailHtml,
+		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }]
+	});
+
+	if (invoiceEmailError !== null) {
+		console.error("Multi-booking invoice customer email send failed", {
+			multiBookingId: multiBooking._id,
+			bookingEmail: multiBooking.email,
+			reason: invoiceEmailError.reason
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {

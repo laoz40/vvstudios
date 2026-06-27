@@ -21,7 +21,7 @@ import {
 	toFieldErrorObjects,
 	type BookingAddon,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 const [remotePodcastAddon, fourKAddon] = ADDON_OPTIONS;
 

@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
+import { getMultiBookingInvoiceDueAt } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -17,6 +18,7 @@ import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
+import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
@@ -100,6 +102,106 @@ export const createPendingBooking = internalMutation({
 		});
 
 		return ok({ bookingId });
+	}
+});
+
+type CreatePendingMultiBookingResult = Result<
+	{ multiBooking: MultiBookingInvoiceSource },
+	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | { reason: "PACKAGE_CREATE_FAILED" }
+>;
+
+export const createPendingMultiBooking = internalMutation({
+	args: {
+		submitRateLimitKey: v.string(),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		duration: v.string(),
+		service: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
+		currency: v.literal("AUD"),
+		singleSessionAmount: v.number(),
+		packageSubtotalAmount: v.number(),
+		discountPercent: v.number(),
+		discountAmount: v.number(),
+		totalDueAmount: v.number()
+	},
+	handler: async (ctx, args): Promise<CreatePendingMultiBookingResult> => {
+		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
+
+		if (rateLimitError !== null) {
+			return err(rateLimitError);
+		}
+
+		const createdAt = Date.now();
+		const invoiceDueAt = getMultiBookingInvoiceDueAt(createdAt);
+		const multiBooking = {
+			name: args.name,
+			phone: args.phone,
+			accountName: args.accountName,
+			...(args.abn !== undefined ? { abn: args.abn } : {}),
+			email: args.email,
+			duration: args.duration,
+			service: args.service,
+			addons: args.addons,
+			...(args.essentialEditQuantity !== undefined
+				? { essentialEditQuantity: args.essentialEditQuantity }
+				: {}),
+			...(args.clipsPackageQuantity !== undefined
+				? { clipsPackageQuantity: args.clipsPackageQuantity }
+				: {}),
+			...(args.notes !== undefined ? { notes: args.notes } : {}),
+			packageSize: args.packageSize,
+			currency: args.currency,
+			singleSessionAmount: args.singleSessionAmount,
+			packageSubtotalAmount: args.packageSubtotalAmount,
+			discountPercent: args.discountPercent,
+			discountAmount: args.discountAmount,
+			totalDueAmount: args.totalDueAmount,
+			status: "pending_payment" as const,
+			createdAt,
+			invoiceDueAt,
+			invoiceEmailStatus: "pending" as const,
+			sessions: Array.from({ length: args.packageSize }, (_, index) => ({ slotNumber: index + 1 }))
+		};
+
+		try {
+			const multiBookingId = await ctx.db.insert("multiBookingPackages", multiBooking);
+
+			return ok({ multiBooking: { _id: multiBookingId, ...multiBooking } });
+		} catch {
+			return err({ reason: "PACKAGE_CREATE_FAILED" });
+		}
+	}
+});
+
+export const markMultiBookingInvoiceEmailAttempt = internalMutation({
+	args: {
+		multiBookingId: v.id("multiBookingPackages"),
+		invoiceNumber: v.optional(v.string()),
+		status: v.union(v.literal("sent"), v.literal("failed")),
+		failureCode: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const now = Date.now();
+		const status = args.status === "sent" ? "pending_payment" : "invoice_email_failed";
+
+		await ctx.db.patch(args.multiBookingId, {
+			invoiceNumber: args.invoiceNumber,
+			invoiceEmailStatus: args.status,
+			invoiceEmailSentAt: args.status === "sent" ? now : undefined,
+			invoiceEmailFailureCode: args.failureCode,
+			lastInvoiceEmailAttemptAt: now,
+			status
+		});
+
+		return ok({ updated: true });
 	}
 });
 

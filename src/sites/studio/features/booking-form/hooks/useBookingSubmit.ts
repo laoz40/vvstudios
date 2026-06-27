@@ -7,7 +7,7 @@ import { loadBookingPaymentModal } from "#studio/features/booking-form/component
 import {
 	bookingSchema,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	openPaymentModal,
 	openTermsModal

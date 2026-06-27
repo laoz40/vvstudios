@@ -1,5 +1,5 @@
 import { getEditingAddonQuantity } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { hasEditingAddon } from "#studio/features/booking-form/lib/form-shared";
+import { hasEditingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	BOOKING_INVOICE_CURRENCY,

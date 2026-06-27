@@ -5,7 +5,7 @@ import {
 	DURATION_OPTIONS,
 	SERVICES,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
 

@@ -22,12 +22,18 @@ export interface BookingInvoiceEmailProps {
 
 export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
-	const paymentInstruction = data.notes.paymentNote.replace(` ${receiptNote}`, "");
+	const isPackageInvoice = Boolean(data.package);
+	const paymentInstruction = isPackageInvoice
+		? data.notes.paymentNote
+		: data.notes.paymentNote.replace(` ${receiptNote}`, "");
 	const formattedSessionTime = formatTimeValue(data.booking.time);
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 	const bookingDescription = data.booking.service
-		? `Your ${data.booking.service.toLowerCase()} session`
+		? `Your ${data.booking.service.toLowerCase()} ${isPackageInvoice ? "package" : "session"}`
 		: "Your invoice";
+	const introText = isPackageInvoice
+		? `${bookingDescription} invoice is attached. Once payment is confirmed, we will email your private scheduling link.`
+		: `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
 
 	return (
 		<Html>
@@ -54,11 +60,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						/>
 					) : null}
 					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
-					<Text style={paragraph}>
-						{bookingDescription} on <strong>{data.booking.bookingDateLabel}</strong> at{" "}
-						<strong>{formattedSessionTime}</strong> has been booked. Your fully itemised invoice is
-						attached to this email.
-					</Text>
+					<Text style={paragraph}>{introText}</Text>
 					<Section style={section}>
 						<Text style={sectionTitle}>Balance due</Text>
 						<Section style={summaryCard}>
@@ -67,10 +69,10 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						</Section>
 					</Section>
 					<Section style={section}>
-						<Text style={sectionTitle}>Payment</Text>
+						<Text style={sectionTitle}>{isPackageInvoice ? "Payment terms" : "Payment"}</Text>
 						<Section style={paymentNoticeCard}>
 							<Text style={noticeLine}>{paymentInstruction}</Text>
-							<Text style={noteText}>*{receiptNote}</Text>
+							{isPackageInvoice ? null : <Text style={noteText}>*{receiptNote}</Text>}
 						</Section>
 						<Section style={paymentCard}>
 							<Row>

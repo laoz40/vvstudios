@@ -15,7 +15,7 @@ import {
 import {
 	toFieldErrorObjects,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	DURATION_PRICES,
 	formatBookingPrice

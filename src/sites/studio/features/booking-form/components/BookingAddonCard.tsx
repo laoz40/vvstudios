@@ -12,7 +12,7 @@ import {
 	getPillStateClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	formatBookingPrice

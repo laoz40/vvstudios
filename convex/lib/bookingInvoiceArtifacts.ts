@@ -1,13 +1,44 @@
 import { err, ok } from "../../src/lib/result";
 import type { Doc } from "../_generated/dataModel";
-import { bookingSchema } from "../../src/sites/studio/features/booking-form/lib/form-shared";
-import { buildBookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import {
+	bookingSchema,
+	multiBookingFormSchema
+} from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
+import {
+	buildBookingInvoiceData,
+	buildMultiBookingInvoiceData
+} from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
 import type { BookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/types";
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
 }
+
+export type MultiBookingInvoiceSource = Pick<
+	Doc<"multiBookingPackages">,
+	| "_id"
+	| "name"
+	| "phone"
+	| "accountName"
+	| "abn"
+	| "email"
+	| "duration"
+	| "service"
+	| "addons"
+	| "essentialEditQuantity"
+	| "clipsPackageQuantity"
+	| "notes"
+	| "packageSize"
+	| "createdAt"
+	| "invoiceDueAt"
+	| "invoiceNumber"
+	| "singleSessionAmount"
+	| "packageSubtotalAmount"
+	| "discountPercent"
+	| "discountAmount"
+	| "totalDueAmount"
+>;
 
 export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
@@ -60,6 +91,61 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
 		},
 		booking: parsedBooking.data
+	});
+}
+
+export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBookingInvoiceSource) {
+	const parsedMultiBooking = multiBookingFormSchema.safeParse({
+		name: multiBooking.name,
+		phone: multiBooking.phone,
+		accountName: multiBooking.accountName,
+		abn: multiBooking.abn,
+		email: multiBooking.email,
+		duration: multiBooking.duration,
+		service: multiBooking.service,
+		addons: multiBooking.addons,
+		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
+		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
+		notes: multiBooking.notes ?? "",
+		packageSize: multiBooking.packageSize
+	});
+
+	if (!parsedMultiBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" });
+	}
+
+	const multiBookingData = parsedMultiBooking.data;
+	const data = buildMultiBookingInvoiceData({
+		bookingId: multiBooking._id,
+		name: multiBookingData.name,
+		phone: multiBookingData.phone,
+		accountName: multiBookingData.accountName,
+		abn: multiBookingData.abn,
+		email: multiBookingData.email,
+		duration: multiBookingData.duration,
+		service: multiBookingData.service,
+		addons: multiBookingData.addons,
+		essentialEditQuantity: multiBookingData.essentialEditQuantity || undefined,
+		clipsPackageQuantity: multiBookingData.clipsPackageQuantity || undefined,
+		createdAt: multiBooking.createdAt,
+		invoiceDueAt: multiBooking.invoiceDueAt,
+		invoiceNumber: multiBooking.invoiceNumber,
+		packageSize: multiBooking.packageSize,
+		currency: "AUD",
+		singleSessionAmount: multiBooking.singleSessionAmount,
+		packageSubtotalAmount: multiBooking.packageSubtotalAmount,
+		discountPercent: multiBooking.discountPercent,
+		discountAmount: multiBooking.discountAmount,
+		totalDueAmount: multiBooking.totalDueAmount
+	});
+	const emailHtml = await renderBookingInvoiceEmail(data);
+
+	return ok({
+		artifacts: {
+			data,
+			emailHtml,
+			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
+		}
 	});
 }
 

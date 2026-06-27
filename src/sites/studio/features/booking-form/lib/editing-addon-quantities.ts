@@ -1,4 +1,7 @@
-import { hasEditingAddon, type BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import {
+	hasEditingAddon,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export type EditingAddonQuantities = {
 	essentialEditQuantity?: string;

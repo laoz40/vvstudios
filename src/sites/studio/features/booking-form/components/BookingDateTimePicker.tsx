@@ -15,7 +15,7 @@ import {
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import {
 	formatDateValue,

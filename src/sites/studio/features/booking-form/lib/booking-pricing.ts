@@ -4,7 +4,7 @@ import {
 	DURATION_OPTIONS,
 	type BookingAddon,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 
@@ -23,19 +23,19 @@ export const ADDON_PRICES = {
 	"Remote Podcast": 59
 } as const satisfies Record<BookingAddon, number>;
 
-export const MULTI_BOOKING_PACKAGES = {
+export const MULTI_BOOKING_PLANS = {
 	4: { discountPercent: 5, validityMonths: 2 },
 	8: { discountPercent: 10, validityMonths: 4 },
 	12: { discountPercent: 15, validityMonths: 6 }
 } as const;
 
-export type MultiBookingPackageSize = keyof typeof MULTI_BOOKING_PACKAGES;
+export type MultiBookingSize = keyof typeof MULTI_BOOKING_PLANS;
 
-export type MultiBookingPackageAmounts = {
+export type MultiBookingAmounts = {
 	currency: typeof BOOKING_INVOICE_CURRENCY;
 	discountAmount: number;
 	discountPercent: number;
-	packageSize: MultiBookingPackageSize;
+	packageSize: MultiBookingSize;
 	packageSubtotalAmount: number;
 	singleSessionAmount: number;
 	totalDueAmount: number;
@@ -44,7 +44,7 @@ export type MultiBookingPackageAmounts = {
 export type MultiBookingPricingValues = Pick<
 	BookingFormValues,
 	"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
-> & { packageSize: MultiBookingPackageSize };
+> & { packageSize: MultiBookingSize };
 
 const MULTI_BOOKING_INVOICE_DUE_DAYS = 14;
 
@@ -72,20 +72,18 @@ export function getBookingTotal(
 	return durationTotal + addonsTotal;
 }
 
-export function calculateMultiBookingPackageAmounts(
+export function calculateMultiBookingAmounts(
 	values: MultiBookingPricingValues
-): MultiBookingPackageAmounts {
-	const packageConfig = MULTI_BOOKING_PACKAGES[values.packageSize];
+): MultiBookingAmounts {
+	const plan = MULTI_BOOKING_PLANS[values.packageSize];
 	const singleSessionAmount = getBookingTotal(values);
 	const packageSubtotalAmount = singleSessionAmount * values.packageSize;
-	const discountAmount = roundMoneyAmount(
-		packageSubtotalAmount * (packageConfig.discountPercent / 100)
-	);
+	const discountAmount = roundMoneyAmount(packageSubtotalAmount * (plan.discountPercent / 100));
 
 	return {
 		currency: BOOKING_INVOICE_CURRENCY,
 		discountAmount,
-		discountPercent: packageConfig.discountPercent,
+		discountPercent: plan.discountPercent,
 		packageSize: values.packageSize,
 		packageSubtotalAmount,
 		singleSessionAmount,
@@ -97,11 +95,8 @@ export function getMultiBookingInvoiceDueAt(createdAt: number) {
 	return createdAt + MULTI_BOOKING_INVOICE_DUE_DAYS * 24 * 60 * 60 * 1000;
 }
 
-export function getMultiBookingPackageExpiresAt(
-	paidAt: number,
-	packageSize: MultiBookingPackageSize
-) {
-	const packageConfig = MULTI_BOOKING_PACKAGES[packageSize];
+export function getMultiBookingExpiresAt(paidAt: number, packageSize: MultiBookingSize) {
+	const plan = MULTI_BOOKING_PLANS[packageSize];
 
-	return addMonths(paidAt, packageConfig.validityMonths).getTime();
+	return addMonths(paidAt, plan.validityMonths).getTime();
 }

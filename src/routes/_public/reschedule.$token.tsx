@@ -42,7 +42,7 @@ import {
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
-import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
+import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";

@@ -3,7 +3,7 @@ import { studioSite } from "#/config/sites";
 import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { api } from "#convex/_generated/api";
 
 const DEV_SCENARIO_OPTIONS = [

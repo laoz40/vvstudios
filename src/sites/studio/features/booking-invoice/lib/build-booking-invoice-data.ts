@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES, DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,
@@ -146,5 +146,137 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel
 		},
 		rescheduleUrl: input.rescheduleUrl
+	};
+}
+
+export function buildMultiBookingInvoiceData(input: {
+	abn?: string;
+	accountName: string;
+	addons: BookingInvoiceBuilderInput["addons"];
+	bookingId: BookingInvoiceBuilderInput["bookingId"];
+	clipsPackageQuantity?: string;
+	createdAt: number;
+	currency: "AUD";
+	discountAmount: number;
+	discountPercent: number;
+	duration: BookingInvoiceBuilderInput["duration"];
+	email: string;
+	essentialEditQuantity?: string;
+	invoiceDueAt: number;
+	invoiceNumber?: string;
+	name: string;
+	packageSize: number;
+	packageSubtotalAmount: number;
+	phone: string;
+	service: NonNullable<BookingInvoiceBuilderInput["service"]>;
+	singleSessionAmount: number;
+	totalDueAmount: number;
+}): BookingInvoiceData {
+	const invoiceDateLabel = format(input.createdAt, "d MMMM yyyy");
+	const dueDate = format(input.invoiceDueAt, "yyyy-MM-dd");
+	const dueDateLabel = format(input.invoiceDueAt, "d MMMM yyyy");
+	const addonsSummary =
+		input.addons.length > 0
+			? input.addons
+					.map((addon) => {
+						const quantity = getAddonQuantity(addon, {
+							essentialEditQuantity: input.essentialEditQuantity,
+							clipsPackageQuantity: input.clipsPackageQuantity
+						});
+						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
+
+						return `${addon}${quantityLabel}`;
+					})
+					.join(", ")
+			: "No add-ons selected";
+	const addonQuantities = {
+		essentialEditQuantity: input.essentialEditQuantity,
+		clipsPackageQuantity: input.clipsPackageQuantity
+	};
+	const baseSessionAmount = DURATION_PRICES[input.duration];
+	const addonLineItems: BookingInvoiceLineItem[] = input.addons.map((addon) => {
+		const quantityPerSession = getAddonQuantity(addon, addonQuantities);
+		const totalQuantity = input.packageSize * quantityPerSession;
+
+		return {
+			amount: getAddonAmount(addon, addonQuantities) * input.packageSize,
+			description: `${addon} add-on`,
+			quantity: totalQuantity,
+			rate: ADDON_PRICES[addon]
+		};
+	});
+	const multiBookingLineItems: BookingInvoiceLineItem[] = [
+		{
+			amount: baseSessionAmount * input.packageSize,
+			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
+			quantity: input.packageSize,
+			rate: baseSessionAmount
+		},
+		...addonLineItems,
+		{
+			amount: -input.discountAmount,
+			description: `${input.discountPercent}% package discount`,
+			quantity: 1,
+			rate: -input.discountAmount
+		}
+	];
+
+	return {
+		amounts: {
+			addonsAmount: 0,
+			baseAmount: input.packageSubtotalAmount,
+			currency: input.currency,
+			depositAmount: 0,
+			subtotalAmount: input.packageSubtotalAmount,
+			totalDueAmount: input.totalDueAmount
+		},
+		booking: {
+			addons: input.addons,
+			addonsSummary,
+			bookingDate: "unscheduled",
+			bookingDateLabel: "To be scheduled after payment",
+			duration: input.duration,
+			service: input.service,
+			time: "To be scheduled"
+		},
+		branding: {
+			businessName: BOOKING_INVOICE_BUSINESS.businessName,
+			contactEmail: BOOKING_INVOICE_BUSINESS.contactEmail,
+			locationAddress: BOOKING_INVOICE_BUSINESS.locationAddress,
+			locationLabel: BOOKING_INVOICE_BUSINESS.locationLabel,
+			locationUrl: BOOKING_INVOICE_BUSINESS.locationUrl,
+			logoUrl: BOOKING_INVOICE_BUSINESS.logoUrl,
+			ownerName: BOOKING_INVOICE_BUSINESS.ownerName,
+			websiteLabel: BOOKING_INVOICE_BUSINESS.websiteLabel,
+			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl
+		},
+		customer: {
+			abn: input.abn,
+			accountName: input.accountName,
+			email: input.email,
+			name: input.name,
+			phone: input.phone
+		},
+		invoice: {
+			dueDate,
+			dueDateLabel,
+			invoiceDate: new Date(input.createdAt).toISOString(),
+			invoiceDateLabel,
+			number: input.invoiceNumber ?? formatBookingInvoiceNumber(input.bookingId, input.createdAt),
+			title: BOOKING_INVOICE_TITLE
+		},
+		lineItems: multiBookingLineItems,
+		notes: {
+			cancellationPolicy: BOOKING_INVOICE_NOTES.multiBookingCancellationPolicy,
+			paymentNote: BOOKING_INVOICE_NOTES.multiBookingPaymentNote
+		},
+		package: { size: input.packageSize },
+		payment: {
+			accountNumber: BOOKING_INVOICE_PAYMENT.accountNumber,
+			bankTransferLabel: BOOKING_INVOICE_PAYMENT.bankTransferLabel,
+			bsb: BOOKING_INVOICE_PAYMENT.bsb,
+			payId: BOOKING_INVOICE_PAYMENT.payId,
+			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel
+		}
 	};
 }

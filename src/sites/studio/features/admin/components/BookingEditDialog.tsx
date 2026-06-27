@@ -23,7 +23,7 @@ import {
 	SERVICES,
 	toDeliverableCountOption,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
 

@@ -11,7 +11,7 @@ import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
-import { toFieldErrorObjects } from "#studio/features/booking-form/lib/form-shared";
+import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-form-model";
 
 const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";

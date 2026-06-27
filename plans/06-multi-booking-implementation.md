@@ -46,16 +46,21 @@ Add paid package bookings for 4, 8, and 12 studio sessions. Customers submit a p
 ## Implementation Steps
 
 ### Step 1: Add shared package rules and pricing helpers
+_Done in commit `7425eb1`._
 
-Create shared package constants/helpers near existing booking pricing code, for example:
+Added shared package pricing rules in `src/sites/studio/features/booking-form/lib/booking-pricing.ts`:
 
-- `MULTI_BOOKING_PACKAGES`
-- `getMultiBookingPackageConfig(packageSize)`
+- `MULTI_BOOKING_PACKAGES` with 4/8/12 package discounts and validity months
 - `calculateMultiBookingPackageAmounts(values)`
 - `getMultiBookingInvoiceDueAt(createdAt)`
 - `getMultiBookingPackageExpiresAt(paidAt, packageSize)`
 
-Reuse existing duration/add-on pricing and editing add-on quantity helpers.
+Implementation notes:
+
+- Reuses existing duration/add-on pricing and editing add-on quantity helpers.
+- Duration prices, add-on prices, and invoice currency now live with booking pricing utilities as the shared source of truth.
+- Invoice code imports shared pricing constants directly instead of duplicating them.
+- No `getMultiBookingPackageConfig` helper was added because direct `MULTI_BOOKING_PACKAGES[packageSize]` access is simpler.
 
 Check after step:
 
@@ -63,60 +68,61 @@ Check after step:
 - Discounts are applied after multiplying full session total.
 - Existing single-booking pricing stays unchanged.
 
-### Step 2: Add Convex schema for package records and session slots
+### Step 2: Add Convex schema for package records and package-linked bookings
+_Done in commit `72473a6`._
 
-Update `convex/schema.ts` with new tables instead of overloading `bookings` too much:
+Update `convex/schema.ts` without duplicating scheduled-session data:
 
-- `multiBookingPackages`
-  - customer/contact fields
-  - duration/service/add-ons/notes
-  - package size, discount percent, totals
+- Add optional package link fields to `bookings`:
+  - `multiBookingPackageId`
+  - `multiBookingSlotNumber`
+- Keep scheduled package sessions as normal `bookings` rows so they reuse existing date/time, Google Calendar, reminder, and admin booking behavior.
+- Add `multiBookingPackages` for package-level state:
+  - customer/contact fields used before any sessions are scheduled
+  - duration/service/add-ons/notes copied from the package request
+  - package size, discount percent, and invoice totals
   - status: `pending_payment`, `paid`, `invoice_email_failed`, `schedule_email_failed`, `cancelled`
-  - `createdAt`, `invoiceDueAt`, `paidAt`, `expiresAt`
-  - `hiddenAt` for filtered hidden overdue packages
+  - `createdAt`, `invoiceDueAt`, `paidAt`, `expiresAt`, `hiddenAt`, `cancelledAt`
   - invoice metadata/email status fields
-  - schedule link token hash/status fields or relation to separate link table
-- `multiBookingSessions`
-  - `packageId`
-  - `slotNumber`
-  - status: `unscheduled`, `confirmed`, `cancelled`
-  - optional `bookingId`
-  - optional date/time/sessionStartAt
-  - optional Google Calendar fields if not stored only on booking
-
-Add indexes for admin lists and public token lookup.
+  - schedule link token hash/status fields
+  - bounded `sessions` array with `slotNumber`, optional `bookingId`, `scheduledAt`, and `cancelledAt`
+- Do **not** add a separate `multiBookingSessions` table in v1. Package size is capped at 12, and full scheduled-session data lives on linked `bookings`.
+- Add indexes for package-linked bookings, admin package lists, invoice due dates, and public schedule token lookup.
 
 Check after step:
 
-- Schema models package-level payment separately from per-session scheduling.
-- No unbounded session arrays inside package docs.
+- Package-level payment is modeled separately from per-session scheduling.
+- Scheduled package sessions can appear in normal admin bookings because they are normal `bookings` rows.
+- Package session slots only point to linked bookings; they do not duplicate date/time/calendar fields.
 - Existing bookings table remains compatible.
 
 ### Step 3: Build backend package creation flow
+Added Convex action/mutation flow in `convex/multiBookings.ts` and `convex/bookings.ts`:
 
-Add Convex action/mutation flow, likely in `convex/multiBookings.ts`:
+- `createMultiBookingRequest` validates package form input with `multiBookingFormSchema`.
+- Checks email domain with shared `emailDomainCanReceiveMail`, reused by the Stripe booking flow.
+- Rate-limits package submission with shared `getBookingSubmitRateLimitKey` and existing rate limit helpers.
+- Calculates package amounts before creating the package.
+- Inserts one `multiBookingPackages` row as `pending_payment`.
+- Stores 4/8/12 unscheduled session slot entries in the package `sessions` array.
+- Generates invoice artifacts with `createMultiBookingInvoiceArtifacts` and package invoice data from `buildMultiBookingInvoiceData`.
+- Auto-sends the package invoice email with a rendered PDF attachment.
+- Stores invoice email success/failure state with `markMultiBookingInvoiceEmailAttempt`.
 
-- Validate package form input with a package-specific schema.
-- Check email domain like the Stripe booking flow.
-- Rate-limit package submission using existing rate limit helpers.
-- Insert package as `pending_payment`.
-- Insert 4/8/12 unscheduled session slot rows.
-- Generate invoice artifacts using existing invoice PDF/email infrastructure, adapted for package invoices.
-- Auto-send package invoice email.
-- Store invoice email success/failure state.
+Helper/function names:
 
-Helper names:
-
-- `createPendingMultiBookingPackage`
-- `createMultiBookingSessionSlots`
+- `createMultiBookingRequest`
+- `createPendingMultiBooking`
+- `markMultiBookingInvoiceEmailAttempt`
 - `sendMultiBookingInvoiceEmail`
+- `createMultiBookingInvoiceArtifacts`
 - `buildMultiBookingInvoiceData`
 
 Check after step:
 
-- Submitting a package creates one package and the correct number of slots.
+- Submitting a package creates one package with the correct number of unscheduled session slots.
 - Invoice email is attempted immediately.
-- Failed invoice email does not create duplicate packages on retry.
+- Failed invoice email keeps the package record and marks the invoice email attempt as failed.
 
 ### Step 4: Add booking form multi-booking mode
 
