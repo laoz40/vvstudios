@@ -1,11 +1,17 @@
+import { addMonths } from "date-fns";
 import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type {
-	BookingAddon,
-	BookingFormValues
+import {
+	DURATION_OPTIONS,
+	type BookingAddon,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/form-shared";
 
+export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
+
+type BookingDuration = (typeof DURATION_OPTIONS)[number];
+
 export const DURATION_PRICES = { "1h": 200, "2h": 299, "3h": 399 } as const satisfies Record<
-	Exclude<BookingFormValues["duration"], "">,
+	BookingDuration,
 	number
 >;
 
@@ -16,6 +22,35 @@ export const ADDON_PRICES = {
 	"Clips Package": 79,
 	"Remote Podcast": 59
 } as const satisfies Record<BookingAddon, number>;
+
+export const MULTI_BOOKING_PACKAGES = {
+	4: { discountPercent: 5, validityMonths: 2 },
+	8: { discountPercent: 10, validityMonths: 4 },
+	12: { discountPercent: 15, validityMonths: 6 }
+} as const;
+
+export type MultiBookingPackageSize = keyof typeof MULTI_BOOKING_PACKAGES;
+
+export type MultiBookingPackageAmounts = {
+	currency: typeof BOOKING_INVOICE_CURRENCY;
+	discountAmount: number;
+	discountPercent: number;
+	packageSize: MultiBookingPackageSize;
+	packageSubtotalAmount: number;
+	singleSessionAmount: number;
+	totalDueAmount: number;
+};
+
+export type MultiBookingPricingValues = Pick<
+	BookingFormValues,
+	"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
+> & { packageSize: MultiBookingPackageSize };
+
+const MULTI_BOOKING_INVOICE_DUE_DAYS = 14;
+
+function roundMoneyAmount(amount: number) {
+	return Math.round(amount * 100) / 100;
+}
 
 export function formatBookingPrice(price: number) {
 	return `$${price}`;
@@ -35,4 +70,38 @@ export function getBookingTotal(
 	}, 0);
 
 	return durationTotal + addonsTotal;
+}
+
+export function calculateMultiBookingPackageAmounts(
+	values: MultiBookingPricingValues
+): MultiBookingPackageAmounts {
+	const packageConfig = MULTI_BOOKING_PACKAGES[values.packageSize];
+	const singleSessionAmount = getBookingTotal(values);
+	const packageSubtotalAmount = singleSessionAmount * values.packageSize;
+	const discountAmount = roundMoneyAmount(
+		packageSubtotalAmount * (packageConfig.discountPercent / 100)
+	);
+
+	return {
+		currency: BOOKING_INVOICE_CURRENCY,
+		discountAmount,
+		discountPercent: packageConfig.discountPercent,
+		packageSize: values.packageSize,
+		packageSubtotalAmount,
+		singleSessionAmount,
+		totalDueAmount: roundMoneyAmount(packageSubtotalAmount - discountAmount)
+	};
+}
+
+export function getMultiBookingInvoiceDueAt(createdAt: number) {
+	return createdAt + MULTI_BOOKING_INVOICE_DUE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+export function getMultiBookingPackageExpiresAt(
+	paidAt: number,
+	packageSize: MultiBookingPackageSize
+) {
+	const packageConfig = MULTI_BOOKING_PACKAGES[packageSize];
+
+	return addMonths(paidAt, packageConfig.validityMonths).getTime();
 }

@@ -1,6 +1,6 @@
 import { format } from "date-fns";
+import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import {
-	ADDON_PRICES,
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,
 	BOOKING_INVOICE_NOTES,

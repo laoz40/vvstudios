@@ -1,20 +1,6 @@
 import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
-import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
-import type { BookingDuration } from "#studio/features/booking-invoice/lib/types";
-
 export const BOOKING_INVOICE_TITLE = "Tax Invoice";
-export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 export const BOOKING_DEPOSIT_AMOUNT = 50;
-
-export const DURATION_PRICES: Record<BookingDuration, number> = { "1h": 200, "2h": 299, "3h": 399 };
-
-export const ADDON_PRICES: Record<BookingAddon, number> = {
-	"4K UHD Recording": 49,
-	Teleprompter: 29,
-	"Clips Package": 79,
-	"Essential Edit": 99,
-	"Remote Podcast": 59
-};
 
 export const BOOKING_INVOICE_BUSINESS = {
 	abn: "97 592 829 541",

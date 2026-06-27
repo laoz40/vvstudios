@@ -28,10 +28,8 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { cn } from "#/lib/utils";
-import {
-	BOOKING_DEPOSIT_AMOUNT,
-	DURATION_PRICES
-} from "#studio/features/booking-invoice/lib/constants";
+import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
