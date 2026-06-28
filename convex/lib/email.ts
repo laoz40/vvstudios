@@ -154,7 +154,12 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 export async function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
 	rescheduleUrl?: string
-): Promise<Result<{ sent: true }, { reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }>> {
+): Promise<
+	Result<
+		{ sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
+	>
+> {
 	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
@@ -220,7 +225,7 @@ export async function sendMultiBookingInvoiceEmail(
 ): Promise<
 	Result<
 		{ invoiceNumber: string; sent: true },
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
 	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking);

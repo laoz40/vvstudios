@@ -82,7 +82,11 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		createdAt,
 		rescheduleUrl
 	});
-	const emailHtml = await renderBookingInvoiceEmail(data);
+	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
+
+	if (emailHtmlError !== null) {
+		return err(emailHtmlError);
+	}
 
 	return ok({
 		artifacts: {
@@ -138,7 +142,11 @@ export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBook
 		discountAmount: multiBooking.discountAmount,
 		totalDueAmount: multiBooking.totalDueAmount
 	});
-	const emailHtml = await renderBookingInvoiceEmail(data);
+	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
+
+	if (emailHtmlError !== null) {
+		return err(emailHtmlError);
+	}
 
 	return ok({
 		artifacts: {

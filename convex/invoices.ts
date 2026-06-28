@@ -47,6 +47,10 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 	);
 
 	if (artifactsError !== null) {
+		if (artifactsError.reason === "INVOICE_EMAIL_RENDER_FAILED") {
+			return err({ reason: "INVOICE_DOWNLOAD_FAILED" });
+		}
+
 		return err(artifactsError);
 	}
 
