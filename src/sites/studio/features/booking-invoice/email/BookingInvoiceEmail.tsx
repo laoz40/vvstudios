@@ -34,6 +34,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const introText = isPackageInvoice
 		? `${bookingDescription} invoice is attached. Once payment is confirmed, we will email your private scheduling link.`
 		: `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
+	const invoiceDescription = isPackageInvoice ? "package invoice" : "booking invoice";
 
 	return (
 		<Html>
@@ -44,7 +45,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 				/>
 			</Head>
 			<Preview>
-				Studio booking confirmed! Your invoice is ready with a balance due of{" "}
+				Studio booking confirmed! Your {invoiceDescription} is ready with a balance due of{" "}
 				{formatAud(data.amounts.totalDueAmount)}.
 			</Preview>
 			<Body style={body}>
