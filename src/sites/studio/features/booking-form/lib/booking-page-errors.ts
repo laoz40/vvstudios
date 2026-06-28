@@ -1,4 +1,5 @@
 import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
+import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
@@ -39,8 +40,10 @@ type StartCheckoutToastError =
 	| UnexpectedError;
 
 type CloseCheckoutToastError = NonNullable<CloseEmbeddedCheckoutSessionResult[0]> | UnexpectedError;
-
 type AvailabilityToastError = NonNullable<GetBookableRangeBusyWindowsResult[0]> | UnexpectedError;
+type CreateMultiBookingToastError =
+	| NonNullable<CreateMultiBookingRequestResult[0]>
+	| UnexpectedError;
 
 export const devBookingErrorMessages = {
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
@@ -65,6 +68,14 @@ export const startCheckoutToastMessages = {
 	STRIPE_SESSION_LINK_FAILED: bookingPageErrorMessages.START_CHECKOUT_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
+
+export const createMultiBookingToastMessages = {
+	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
+	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
+	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
+	PACKAGE_CREATE_FAILED: "Something went wrong while creating your package request.",
+	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
+} satisfies Record<CreateMultiBookingToastError["reason"], string>;
 
 export const closeCheckoutToastMessages = {
 	STRIPE_CHECKOUT_CLOSE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CLOSE_FAILED,

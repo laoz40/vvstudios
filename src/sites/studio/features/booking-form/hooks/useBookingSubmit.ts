@@ -1,26 +1,35 @@
 import { useRef, useState, type RefObject } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
+import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
 import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import { api } from "#convex/_generated/api";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	bookingSchema,
+	multiBookingFormSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	openPaymentModal,
 	openTermsModal
 } from "#studio/features/booking-form/lib/booking-modal-store";
-import { startCheckoutToastMessages } from "#studio/features/booking-form/lib/booking-page-errors";
+import {
+	createMultiBookingToastMessages,
+	startCheckoutToastMessages
+} from "#studio/features/booking-form/lib/booking-page-errors";
 import { tryCatch } from "#/lib/result";
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
 >;
+type CreateMultiBookingRequestAction = ReturnType<
+	typeof useAction<typeof api.multiBookings.createMultiBookingRequest>
+>;
 
 interface UseBookingSubmitOptions {
 	createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction;
+	createMultiBookingRequest: CreateMultiBookingRequestAction;
 	formRef: RefObject<HTMLFormElement | null>;
 	persistBookingInfoFromForm: (values: BookingFormValues) => void;
 }
@@ -29,6 +38,7 @@ export const termsDialogPendingError = new Error("terms-dialog-pending");
 
 export function useBookingSubmit({
 	createEmbeddedCheckoutSession,
+	createMultiBookingRequest,
 	formRef,
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
@@ -40,13 +50,51 @@ export function useBookingSubmit({
 
 		if (!submitAfterTermsRef.current) {
 			openTermsModal();
-			void loadBookingPaymentModal();
+
+			if (parsedValue.bookingMode === "single") {
+				void loadBookingPaymentModal();
+			}
+
 			throw termsDialogPendingError;
 		}
 
 		submitAfterTermsRef.current = false;
 
 		if (parsedValue.bookingMode === "multi") {
+			const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
+			setIsSubmitting(true);
+
+			const [error, result] = await tryCatch<CreateMultiBookingRequestResult>(
+				createMultiBookingRequest({
+					name: multiBookingValue.name,
+					phone: multiBookingValue.phone,
+					accountName: multiBookingValue.accountName,
+					abn: multiBookingValue.abn || undefined,
+					email: multiBookingValue.email,
+					duration: multiBookingValue.duration,
+					service: multiBookingValue.service,
+					addons: multiBookingValue.addons,
+					essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
+					clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
+					notes: multiBookingValue.notes || undefined,
+					packageSize: multiBookingValue.packageSize
+				})
+			);
+			setIsSubmitting(false);
+
+			if (error !== null) {
+				toast.error(createMultiBookingToastMessages[error.reason]);
+				return;
+			}
+
+			persistBookingInfoFromForm(parsedValue);
+
+			if (result.invoiceEmailStatus === "failed") {
+				toast.success("Your package request was saved. Our team will follow up with the invoice.");
+				return;
+			}
+
+			toast.success("Package request received. Please check your email for the invoice.");
 			return;
 		}
 
