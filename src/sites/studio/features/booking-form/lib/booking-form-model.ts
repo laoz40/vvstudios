@@ -76,7 +76,11 @@ const service = z
 	.refine((value) => value !== "", "Recording space is required.");
 
 const deliverableCountOption = z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]);
-const addons = z.array(z.enum(ADDON_OPTIONS));
+const addons = z
+	.array(z.enum(ADDON_OPTIONS))
+	.refine((value) => new Set(value).size === value.length, {
+		message: "Duplicate add-ons are not allowed."
+	});
 const notes = z.string().trim().max(200, "Please keep this under 200 characters.");
 const multiBookingSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
 
