@@ -97,7 +97,6 @@ async function createMultiBookingRequestHandler(
 			clipsPackageQuantity: multiBooking.clipsPackageQuantity || undefined,
 			notes: multiBooking.notes || undefined,
 			packageSize: multiBooking.packageSize,
-			currency: amounts.currency,
 			singleSessionAmount: amounts.singleSessionAmount,
 			packageSubtotalAmount: amounts.packageSubtotalAmount,
 			discountPercent: amounts.discountPercent,

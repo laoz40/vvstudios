@@ -1,5 +1,9 @@
 import { format } from "date-fns";
-import { ADDON_PRICES, DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	ADDON_PRICES,
+	BOOKING_INVOICE_CURRENCY,
+	DURATION_PRICES
+} from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,
@@ -156,7 +160,6 @@ export function buildMultiBookingInvoiceData(input: {
 	bookingId: BookingInvoiceBuilderInput["bookingId"];
 	clipsPackageQuantity?: string;
 	createdAt: number;
-	currency: "AUD";
 	discountAmount: number;
 	discountPercent: number;
 	duration: BookingInvoiceBuilderInput["duration"];
@@ -225,7 +228,7 @@ export function buildMultiBookingInvoiceData(input: {
 		amounts: {
 			addonsAmount: 0,
 			baseAmount: input.packageSubtotalAmount,
-			currency: input.currency,
+			currency: BOOKING_INVOICE_CURRENCY,
 			depositAmount: 0,
 			subtotalAmount: input.packageSubtotalAmount,
 			totalDueAmount: input.totalDueAmount

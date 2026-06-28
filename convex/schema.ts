@@ -129,8 +129,7 @@ export default defineSchema({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 
-		// Package invoice amounts
-		currency: v.string(),
+		// Package invoice amount snapshot
 		singleSessionAmount: v.number(),
 		packageSubtotalAmount: v.number(),
 		discountPercent: v.number(),

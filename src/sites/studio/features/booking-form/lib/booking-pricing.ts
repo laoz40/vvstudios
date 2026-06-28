@@ -32,7 +32,6 @@ export const MULTI_BOOKING_PLANS = {
 export type MultiBookingSize = keyof typeof MULTI_BOOKING_PLANS;
 
 export type MultiBookingAmounts = {
-	currency: typeof BOOKING_INVOICE_CURRENCY;
 	discountAmount: number;
 	discountPercent: number;
 	packageSize: MultiBookingSize;
@@ -81,7 +80,6 @@ export function calculateMultiBookingAmounts(
 	const discountAmount = roundMoneyAmount(packageSubtotalAmount * (plan.discountPercent / 100));
 
 	return {
-		currency: BOOKING_INVOICE_CURRENCY,
 		discountAmount,
 		discountPercent: plan.discountPercent,
 		packageSize: values.packageSize,

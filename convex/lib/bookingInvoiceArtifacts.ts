@@ -135,7 +135,6 @@ export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBook
 		invoiceDueAt: multiBooking.invoiceDueAt,
 		invoiceNumber: multiBooking.invoiceNumber,
 		packageSize: multiBooking.packageSize,
-		currency: "AUD",
 		singleSessionAmount: multiBooking.singleSessionAmount,
 		packageSubtotalAmount: multiBooking.packageSubtotalAmount,
 		discountPercent: multiBooking.discountPercent,
