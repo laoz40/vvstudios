@@ -31,8 +31,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const bookingDescription = data.booking.service
 		? `Your ${data.booking.service.toLowerCase()} ${isPackageInvoice ? "package" : "session"}`
 		: "Your invoice";
+	const packageDescription = data.package
+		? `Your ${data.package.size} session package invoice`
+		: "Your package invoice";
 	const introText = isPackageInvoice
-		? `${bookingDescription} invoice is attached. Once payment is confirmed, we will email your private scheduling link.`
+		? `${packageDescription} is attached. Once payment is confirmed, we will email your private scheduling link.`
 		: `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
 	const invoiceDescription = isPackageInvoice ? "package invoice" : "booking invoice";
 

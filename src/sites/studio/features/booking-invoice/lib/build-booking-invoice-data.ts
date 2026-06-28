@@ -48,7 +48,7 @@ function buildMultiBookingInvoiceLineItems(input: {
 	return [
 		{
 			amount: input.baseSessionAmount * input.packageSize,
-			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
+			description: `${input.service} Podcast Studio Hire (${input.duration})`,
 			quantity: input.packageSize,
 			rate: input.baseSessionAmount
 		},
@@ -111,7 +111,7 @@ export function createStoredAmountMultiBookingInvoiceLineItemSnapshot(input: {
 	return [
 		{
 			amount: input.packageSubtotalAmount,
-			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
+			description: `${input.service} Podcast Studio Hire (${input.duration})`,
 			quantity: input.packageSize,
 			rate: input.singleSessionAmount
 		},
