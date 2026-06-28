@@ -1,4 +1,6 @@
 const BOOKING_FORM_ERROR_FIELD_ORDER = [
+	"bookingMode",
+	"packageSize",
 	"service",
 	"duration",
 	"addons",

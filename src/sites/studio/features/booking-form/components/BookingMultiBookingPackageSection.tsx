@@ -5,6 +5,7 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
+	bookingSchema,
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -52,6 +53,11 @@ export function BookingMultiBookingPackageSection() {
 								const packageSizeNote = selectedPackageOption
 									? `The ${selectedPackageOption.packageSize} session package will be valid for ${selectedPackageOption.validityMonths} months.`
 									: "Package size affects how long you have to select and use your session dates.";
+								const zodErrors = shouldShowFieldError
+									? (bookingSchema
+											.safeParse(formValues)
+											.error?.issues.filter((issue) => issue.path[0] === "packageSize") ?? [])
+									: [];
 
 								return (
 									<FieldSet data-field-name="packageSize">
@@ -110,13 +116,15 @@ export function BookingMultiBookingPackageSection() {
 												);
 											})}
 										</RadioGroup>
-										{field.state.meta.isBlurred || shouldShowFieldError ? (
-											<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
-										) : null}
 										<p className="text-sm italic text-muted-foreground">
 											Scheduling is available after full payment. Session duration and addons do not
 											change between sessions. {packageSizeNote}
 										</p>
+										{field.state.meta.isBlurred || shouldShowFieldError ? (
+											<FieldError
+												errors={toFieldErrorObjects([...field.state.meta.errors, ...zodErrors])}
+											/>
+										) : null}
 									</FieldSet>
 								);
 							}}
