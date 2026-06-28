@@ -1,4 +1,3 @@
-import { addMonths } from "date-fns";
 import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	DURATION_OPTIONS,
@@ -24,9 +23,9 @@ export const ADDON_PRICES = {
 } as const satisfies Record<BookingAddon, number>;
 
 export const MULTI_BOOKING_PLANS = {
-	4: { discountPercent: 5, validityMonths: 2 },
-	8: { discountPercent: 10, validityMonths: 4 },
-	12: { discountPercent: 15, validityMonths: 6 }
+	4: { discountPercent: 5, validityDays: 60 },
+	8: { discountPercent: 10, validityDays: 120 },
+	12: { discountPercent: 15, validityDays: 180 }
 } as const;
 
 export type MultiBookingSize = keyof typeof MULTI_BOOKING_PLANS;
@@ -46,6 +45,7 @@ export type MultiBookingPricingValues = Pick<
 > & { packageSize: MultiBookingSize };
 
 const MULTI_BOOKING_INVOICE_DUE_DAYS = 14;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function roundMoneyAmount(amount: number) {
 	return Math.round(amount * 100) / 100;
@@ -90,11 +90,11 @@ export function calculateMultiBookingAmounts(
 }
 
 export function getMultiBookingInvoiceDueAt(createdAt: number) {
-	return createdAt + MULTI_BOOKING_INVOICE_DUE_DAYS * 24 * 60 * 60 * 1000;
+	return createdAt + MULTI_BOOKING_INVOICE_DUE_DAYS * MILLISECONDS_PER_DAY;
 }
 
 export function getMultiBookingExpiresAt(paidAt: number, packageSize: MultiBookingSize) {
 	const plan = MULTI_BOOKING_PLANS[packageSize];
 
-	return addMonths(paidAt, plan.validityMonths).getTime();
+	return paidAt + plan.validityDays * MILLISECONDS_PER_DAY;
 }
