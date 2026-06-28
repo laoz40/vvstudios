@@ -182,23 +182,41 @@ export const createPendingMultiBooking = internalMutation({
 });
 
 export const markMultiBookingInvoiceEmailAttempt = internalMutation({
-	args: {
-		multiBookingId: v.id("multiBookingPackages"),
-		invoiceNumber: v.optional(v.string()),
-		status: v.union(v.literal("sent"), v.literal("failed")),
-		failureCode: v.optional(v.string())
-	},
+	args: v.union(
+		v.object({
+			multiBookingId: v.id("multiBookingPackages"),
+			invoiceNumber: v.string(),
+			status: v.literal("sent")
+		}),
+		v.object({
+			multiBookingId: v.id("multiBookingPackages"),
+			failureCode: v.string(),
+			status: v.literal("failed")
+		})
+	),
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		const status = args.status === "sent" ? "pending_payment" : "invoice_email_failed";
+
+		if (args.status === "sent") {
+			await ctx.db.patch(args.multiBookingId, {
+				invoiceNumber: args.invoiceNumber,
+				invoiceEmailStatus: args.status,
+				invoiceEmailSentAt: now,
+				invoiceEmailFailureCode: undefined,
+				lastInvoiceEmailAttemptAt: now,
+				status: "pending_payment"
+			});
+
+			return ok({ updated: true });
+		}
 
 		await ctx.db.patch(args.multiBookingId, {
-			invoiceNumber: args.invoiceNumber,
+			invoiceNumber: undefined,
 			invoiceEmailStatus: args.status,
-			invoiceEmailSentAt: args.status === "sent" ? now : undefined,
+			invoiceEmailSentAt: undefined,
 			invoiceEmailFailureCode: args.failureCode,
 			lastInvoiceEmailAttemptAt: now,
-			status
+			status: "invoice_email_failed"
 		});
 
 		return ok({ updated: true });
