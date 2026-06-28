@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
 import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
+import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "../src/lib/result";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
@@ -83,6 +84,16 @@ async function createMultiBookingRequestHandler(
 	}
 
 	const amounts = calculateMultiBookingAmounts(multiBooking);
+	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
+		addons: multiBooking.addons,
+		clipsPackageQuantity: multiBooking.clipsPackageQuantity || undefined,
+		discountAmount: amounts.discountAmount,
+		discountPercent: amounts.discountPercent,
+		duration: multiBooking.duration,
+		essentialEditQuantity: multiBooking.essentialEditQuantity || undefined,
+		packageSize: multiBooking.packageSize,
+		service: multiBooking.service
+	});
 	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
 		await ctx.runMutation(internal.bookings.createPendingMultiBooking, {
 			name: multiBooking.name,
@@ -101,7 +112,8 @@ async function createMultiBookingRequestHandler(
 			packageSubtotalAmount: amounts.packageSubtotalAmount,
 			discountPercent: amounts.discountPercent,
 			discountAmount: amounts.discountAmount,
-			totalDueAmount: amounts.totalDueAmount
+			totalDueAmount: amounts.totalDueAmount,
+			invoiceLineItems
 		});
 
 	if (pendingMultiBookingError !== null) {

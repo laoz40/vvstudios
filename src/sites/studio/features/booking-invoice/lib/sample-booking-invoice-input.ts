@@ -2,6 +2,7 @@ import {
 	calculateMultiBookingAmounts,
 	getMultiBookingInvoiceDueAt
 } from "#studio/features/booking-form/lib/booking-pricing";
+import { createMultiBookingInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { BookingInvoiceBuilderInput } from "#studio/features/booking-invoice/lib/types";
 
 export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
@@ -33,6 +34,11 @@ const SAMPLE_MULTI_BOOKING_PRICING = {
 	packageSize: 8 as const
 };
 const SAMPLE_MULTI_BOOKING_AMOUNTS = calculateMultiBookingAmounts(SAMPLE_MULTI_BOOKING_PRICING);
+const SAMPLE_MULTI_BOOKING_LINE_ITEMS = createMultiBookingInvoiceLineItemSnapshot({
+	...SAMPLE_MULTI_BOOKING_PRICING,
+	discountAmount: SAMPLE_MULTI_BOOKING_AMOUNTS.discountAmount,
+	discountPercent: SAMPLE_MULTI_BOOKING_AMOUNTS.discountPercent
+});
 
 export const SAMPLE_MULTI_BOOKING_INVOICE_INPUT = {
 	bookingId: "preview-package-001" as BookingInvoiceBuilderInput["bookingId"],
@@ -45,5 +51,6 @@ export const SAMPLE_MULTI_BOOKING_INVOICE_INPUT = {
 	invoiceDueAt: getMultiBookingInvoiceDueAt(SAMPLE_MULTI_BOOKING_CREATED_AT),
 	invoiceNumber: "VV-20260419-PACK",
 	...SAMPLE_MULTI_BOOKING_PRICING,
-	...SAMPLE_MULTI_BOOKING_AMOUNTS
+	...SAMPLE_MULTI_BOOKING_AMOUNTS,
+	invoiceLineItems: SAMPLE_MULTI_BOOKING_LINE_ITEMS
 };

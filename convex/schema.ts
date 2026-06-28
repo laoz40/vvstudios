@@ -1,6 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+const bookingInvoiceLineItemsValidator = v.array(
+	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
+);
 export default defineSchema({
 	bookingSettings: defineTable({
 		key: v.string(),
@@ -135,6 +138,7 @@ export default defineSchema({
 		discountPercent: v.number(),
 		discountAmount: v.number(),
 		totalDueAmount: v.number(),
+		invoiceLineItems: v.optional(bookingInvoiceLineItemsValidator),
 
 		// Package/payment lifecycle
 		status: v.union(

@@ -36,6 +36,94 @@ export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: numbe
 	return `VV-${datePart}-${suffix}`;
 }
 
+function buildMultiBookingInvoiceLineItems(input: {
+	addonLineItems: BookingInvoiceLineItem[];
+	baseSessionAmount: number;
+	discountAmount: number;
+	discountPercent: number;
+	duration: BookingInvoiceBuilderInput["duration"];
+	packageSize: number;
+	service: NonNullable<BookingInvoiceBuilderInput["service"]>;
+}): BookingInvoiceLineItem[] {
+	return [
+		{
+			amount: input.baseSessionAmount * input.packageSize,
+			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
+			quantity: input.packageSize,
+			rate: input.baseSessionAmount
+		},
+		...input.addonLineItems,
+		{
+			amount: -input.discountAmount,
+			description: `${input.discountPercent}% package discount`,
+			quantity: 1,
+			rate: -input.discountAmount
+		}
+	];
+}
+
+export function createMultiBookingInvoiceLineItemSnapshot(input: {
+	addons: BookingInvoiceBuilderInput["addons"];
+	clipsPackageQuantity?: string;
+	discountAmount: number;
+	discountPercent: number;
+	duration: BookingInvoiceBuilderInput["duration"];
+	essentialEditQuantity?: string;
+	packageSize: number;
+	service: NonNullable<BookingInvoiceBuilderInput["service"]>;
+}): BookingInvoiceLineItem[] {
+	const addonQuantities = {
+		essentialEditQuantity: input.essentialEditQuantity,
+		clipsPackageQuantity: input.clipsPackageQuantity
+	};
+	const addonLineItems = input.addons.map((addon) => {
+		const quantityPerSession = getAddonQuantity(addon, addonQuantities);
+		const totalQuantity = input.packageSize * quantityPerSession;
+
+		return {
+			amount: getAddonAmount(addon, addonQuantities) * input.packageSize,
+			description: `${addon} add-on`,
+			quantity: totalQuantity,
+			rate: ADDON_PRICES[addon]
+		};
+	});
+
+	return buildMultiBookingInvoiceLineItems({
+		addonLineItems,
+		baseSessionAmount: DURATION_PRICES[input.duration],
+		discountAmount: input.discountAmount,
+		discountPercent: input.discountPercent,
+		duration: input.duration,
+		packageSize: input.packageSize,
+		service: input.service
+	});
+}
+
+export function createStoredAmountMultiBookingInvoiceLineItemSnapshot(input: {
+	discountAmount: number;
+	discountPercent: number;
+	duration: BookingInvoiceBuilderInput["duration"];
+	packageSize: number;
+	packageSubtotalAmount: number;
+	service: NonNullable<BookingInvoiceBuilderInput["service"]>;
+	singleSessionAmount: number;
+}): BookingInvoiceLineItem[] {
+	return [
+		{
+			amount: input.packageSubtotalAmount,
+			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
+			quantity: input.packageSize,
+			rate: input.singleSessionAmount
+		},
+		{
+			amount: -input.discountAmount,
+			description: `${input.discountPercent}% package discount`,
+			quantity: 1,
+			rate: -input.discountAmount
+		}
+	];
+}
+
 export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): BookingInvoiceData {
 	const amounts = calculateBookingInvoiceAmounts({
 		duration: input.duration,
@@ -166,13 +254,13 @@ export function buildMultiBookingInvoiceData(input: {
 	email: string;
 	essentialEditQuantity?: string;
 	invoiceDueAt: number;
+	invoiceLineItems: BookingInvoiceLineItem[];
 	invoiceNumber?: string;
 	name: string;
 	packageSize: number;
 	packageSubtotalAmount: number;
 	phone: string;
 	service: NonNullable<BookingInvoiceBuilderInput["service"]>;
-	singleSessionAmount: number;
 	totalDueAmount: number;
 }): BookingInvoiceData {
 	const invoiceDateLabel = format(input.createdAt, "d MMMM yyyy");
@@ -192,37 +280,7 @@ export function buildMultiBookingInvoiceData(input: {
 					})
 					.join(", ")
 			: "No add-ons selected";
-	const addonQuantities = {
-		essentialEditQuantity: input.essentialEditQuantity,
-		clipsPackageQuantity: input.clipsPackageQuantity
-	};
-	const baseSessionAmount = DURATION_PRICES[input.duration];
-	const addonLineItems: BookingInvoiceLineItem[] = input.addons.map((addon) => {
-		const quantityPerSession = getAddonQuantity(addon, addonQuantities);
-		const totalQuantity = input.packageSize * quantityPerSession;
-
-		return {
-			amount: getAddonAmount(addon, addonQuantities) * input.packageSize,
-			description: `${addon} add-on`,
-			quantity: totalQuantity,
-			rate: ADDON_PRICES[addon]
-		};
-	});
-	const multiBookingLineItems: BookingInvoiceLineItem[] = [
-		{
-			amount: baseSessionAmount * input.packageSize,
-			description: `${input.packageSize}-pack ${input.service} Podcast Studio Hire (${input.duration})`,
-			quantity: input.packageSize,
-			rate: baseSessionAmount
-		},
-		...addonLineItems,
-		{
-			amount: -input.discountAmount,
-			description: `${input.discountPercent}% package discount`,
-			quantity: 1,
-			rate: -input.discountAmount
-		}
-	];
+	const multiBookingLineItems = input.invoiceLineItems;
 
 	return {
 		amounts: {

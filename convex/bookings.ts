@@ -20,6 +20,13 @@ import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 
+const bookingInvoiceLineItemValidator = v.object({
+	amount: v.number(),
+	description: v.string(),
+	quantity: v.number(),
+	rate: v.number()
+});
+
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
 	{
@@ -124,7 +131,8 @@ export const createPendingMultiBooking = internalMutation({
 		packageSubtotalAmount: v.number(),
 		discountPercent: v.number(),
 		discountAmount: v.number(),
-		totalDueAmount: v.number()
+		totalDueAmount: v.number(),
+		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
 	},
 	handler: async (ctx, args): Promise<CreatePendingMultiBookingResult> => {
 		const createdAt = Date.now();
@@ -151,6 +159,7 @@ export const createPendingMultiBooking = internalMutation({
 			discountPercent: args.discountPercent,
 			discountAmount: args.discountAmount,
 			totalDueAmount: args.totalDueAmount,
+			invoiceLineItems: args.invoiceLineItems,
 			status: "pending_payment" as const,
 			createdAt,
 			invoiceDueAt,
@@ -169,20 +178,22 @@ export const createPendingMultiBooking = internalMutation({
 });
 
 export const markMultiBookingInvoiceEmailAttempt = internalMutation({
-	args: v.union(
-		v.object({
-			multiBookingId: v.id("multiBookingPackages"),
-			invoiceNumber: v.string(),
-			status: v.literal("sent")
-		}),
-		v.object({
-			multiBookingId: v.id("multiBookingPackages"),
-			failureCode: v.string(),
-			status: v.literal("failed")
-		})
-	),
+	args: {
+		multiBookingId: v.id("multiBookingPackages"),
+		status: v.union(v.literal("sent"), v.literal("failed")),
+		invoiceNumber: v.optional(v.string()),
+		failureCode: v.optional(v.string())
+	},
 	handler: async (ctx, args) => {
 		const now = Date.now();
+
+		if (args.status === "sent" && args.invoiceNumber === undefined) {
+			return err({ reason: "INVOICE_NUMBER_REQUIRED" });
+		}
+
+		if (args.status === "failed" && args.failureCode === undefined) {
+			return err({ reason: "INVOICE_FAILURE_CODE_REQUIRED" });
+		}
 
 		if (args.status === "sent") {
 			await ctx.db.patch(args.multiBookingId, {

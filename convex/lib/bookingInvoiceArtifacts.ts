@@ -6,10 +6,14 @@ import {
 } from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
 	buildBookingInvoiceData,
-	buildMultiBookingInvoiceData
+	buildMultiBookingInvoiceData,
+	createStoredAmountMultiBookingInvoiceLineItemSnapshot
 } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
-import type { BookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/types";
+import type {
+	BookingInvoiceData,
+	BookingInvoiceLineItem
+} from "../../src/sites/studio/features/booking-invoice/lib/types";
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
@@ -38,7 +42,7 @@ export type MultiBookingInvoiceSource = Pick<
 	| "discountPercent"
 	| "discountAmount"
 	| "totalDueAmount"
->;
+> & { invoiceLineItems?: BookingInvoiceLineItem[] };
 
 export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
@@ -119,6 +123,18 @@ export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBook
 	}
 
 	const multiBookingData = parsedMultiBooking.data;
+
+	const invoiceLineItems =
+		multiBooking.invoiceLineItems ??
+		createStoredAmountMultiBookingInvoiceLineItemSnapshot({
+			discountAmount: multiBooking.discountAmount,
+			discountPercent: multiBooking.discountPercent,
+			duration: multiBookingData.duration,
+			packageSize: multiBooking.packageSize,
+			packageSubtotalAmount: multiBooking.packageSubtotalAmount,
+			service: multiBookingData.service,
+			singleSessionAmount: multiBooking.singleSessionAmount
+		});
 	const data = buildMultiBookingInvoiceData({
 		bookingId: multiBooking._id,
 		name: multiBookingData.name,
@@ -135,11 +151,11 @@ export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBook
 		invoiceDueAt: multiBooking.invoiceDueAt,
 		invoiceNumber: multiBooking.invoiceNumber,
 		packageSize: multiBooking.packageSize,
-		singleSessionAmount: multiBooking.singleSessionAmount,
 		packageSubtotalAmount: multiBooking.packageSubtotalAmount,
 		discountPercent: multiBooking.discountPercent,
 		discountAmount: multiBooking.discountAmount,
-		totalDueAmount: multiBooking.totalDueAmount
+		totalDueAmount: multiBooking.totalDueAmount,
+		invoiceLineItems
 	});
 	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
 
