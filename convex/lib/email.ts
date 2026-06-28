@@ -253,7 +253,6 @@ export async function sendMultiBookingInvoiceEmail(
 	if (invoiceEmailError !== null) {
 		console.error("Multi-booking invoice customer email send failed", {
 			multiBookingId: multiBooking._id,
-			bookingEmail: multiBooking.email,
 			reason: invoiceEmailError.reason
 		});
 		return err({ reason: "INVOICE_SEND_FAILED" });

@@ -22,10 +22,8 @@ type PendingBookingCreationResult = Result<
 			| "BOOKING_INVALID_DURATION"
 			| "BOOKING_INVALID_TIME"
 			| "BOOKING_OUTSIDE_OPENING_HOURS"
-			| "BOOKING_RATE_LIMITED"
 			| "BOOKING_TOO_FAR_AHEAD"
 			| "BOOKING_TOO_SOON";
-		retryAfter?: number;
 	}
 >;
 
@@ -89,20 +87,27 @@ async function createEmbeddedCheckoutSessionHandler(
 		return err({ reason: "BOOKING_INVALID_INPUT" });
 	}
 
-	// Reject emails whose domain has no mail records, so customers can receive booking emails.
 	const booking = parsedBooking.data;
+	const [rateLimitError] = await ctx.runMutation(
+		internal.bookings.checkBookingSubmitRateLimitInternal,
+		{ submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email) }
+	);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
+	}
+
+	// Reject emails whose domain has no mail records, so customers can receive booking emails.
 	const isValidEmailDomain = await emailDomainCanReceiveMail(booking.email);
 
 	if (!isValidEmailDomain) {
 		return err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" });
 	}
-
 	const stripe = getStripeClient();
 	// Save the booking first so Stripe metadata can point back to it.
 	const pendingBookingResult: PendingBookingCreationResult = await ctx.runMutation(
 		internal.bookings.createPendingBooking,
 		{
-			submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email),
 			name: booking.name,
 			phone: booking.phone,
 			accountName: booking.accountName,
@@ -120,11 +125,11 @@ async function createEmbeddedCheckoutSessionHandler(
 	);
 	// Some booking rules are checked inside createPendingBooking, such as time availability.
 
-	// Stop before Stripe checkout if the booking submit rate limit was hit.
+	// Stop before Stripe checkout if creating the pending booking failed.
 	const [pendingBookingError, pendingBooking] = pendingBookingResult;
 
 	if (pendingBookingError !== null) {
-		return err({ reason: pendingBookingError.reason, retryAfter: pendingBookingError.retryAfter });
+		return err(pendingBookingError);
 	}
 
 	// Create the embedded Stripe checkout session for the deposit and processing fee.

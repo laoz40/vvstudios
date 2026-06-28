@@ -28,16 +28,18 @@ type CreatePendingBookingResult = Result<
 			| "BOOKING_INVALID_DURATION"
 			| "BOOKING_INVALID_TIME"
 			| "BOOKING_OUTSIDE_OPENING_HOURS"
-			| "BOOKING_RATE_LIMITED"
 			| "BOOKING_TOO_FAR_AHEAD"
 			| "BOOKING_TOO_SOON";
-		retryAfter?: number;
 	}
 >;
 
+export const checkBookingSubmitRateLimitInternal = internalMutation({
+	args: { submitRateLimitKey: v.string() },
+	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
+});
+
 export const createPendingBooking = internalMutation({
 	args: {
-		submitRateLimitKey: v.string(),
 		name: v.string(),
 		phone: v.string(),
 		accountName: v.string(),
@@ -64,12 +66,6 @@ export const createPendingBooking = internalMutation({
 
 		if (availabilityError !== null) {
 			return err({ reason: availabilityError.reason });
-		}
-
-		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
-
-		if (rateLimitError !== null) {
-			return err(rateLimitError);
 		}
 
 		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
@@ -107,12 +103,11 @@ export const createPendingBooking = internalMutation({
 
 type CreatePendingMultiBookingResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
-	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | { reason: "PACKAGE_CREATE_FAILED" }
+	{ reason: "PACKAGE_CREATE_FAILED" }
 >;
 
 export const createPendingMultiBooking = internalMutation({
 	args: {
-		submitRateLimitKey: v.string(),
 		name: v.string(),
 		phone: v.string(),
 		accountName: v.string(),
@@ -133,12 +128,6 @@ export const createPendingMultiBooking = internalMutation({
 		totalDueAmount: v.number()
 	},
 	handler: async (ctx, args): Promise<CreatePendingMultiBookingResult> => {
-		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
-
-		if (rateLimitError !== null) {
-			return err(rateLimitError);
-		}
-
 		const createdAt = Date.now();
 		const invoiceDueAt = getMultiBookingInvoiceDueAt(createdAt);
 		const multiBooking = {

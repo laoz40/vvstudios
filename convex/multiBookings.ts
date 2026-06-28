@@ -13,7 +13,7 @@ import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 
 type PendingMultiBookingCreationResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
-	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | { reason: "PACKAGE_CREATE_FAILED" }
+	{ reason: "PACKAGE_CREATE_FAILED" }
 >;
 
 export const createMultiBookingRequest = action({
@@ -67,6 +67,15 @@ async function createMultiBookingRequestHandler(
 
 	const multiBooking = parsedMultiBooking.data;
 
+	const [rateLimitError] = await ctx.runMutation(
+		internal.bookings.checkBookingSubmitRateLimitInternal,
+		{ submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email) }
+	);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
+	}
+
 	const isValidEmailDomain = await emailDomainCanReceiveMail(multiBooking.email);
 
 	if (!isValidEmailDomain) {
@@ -76,7 +85,6 @@ async function createMultiBookingRequestHandler(
 	const amounts = calculateMultiBookingAmounts(multiBooking);
 	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
 		await ctx.runMutation(internal.bookings.createPendingMultiBooking, {
-			submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email),
 			name: multiBooking.name,
 			phone: multiBooking.phone,
 			accountName: multiBooking.accountName,
