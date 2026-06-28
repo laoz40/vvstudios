@@ -50,17 +50,17 @@ _Done in commit `7425eb1`._
 
 Added shared package pricing rules in `src/sites/studio/features/booking-form/lib/booking-pricing.ts`:
 
-- `MULTI_BOOKING_PACKAGES` with 4/8/12 package discounts and validity months
-- `calculateMultiBookingPackageAmounts(values)`
+- `MULTI_BOOKING_PLANS` with 4/8/12 package discounts and validity days
+- `calculateMultiBookingAmounts(values)`
 - `getMultiBookingInvoiceDueAt(createdAt)`
-- `getMultiBookingPackageExpiresAt(paidAt, packageSize)`
+- `getMultiBookingExpiresAt(paidAt, packageSize)`
 
 Implementation notes:
 
 - Reuses existing duration/add-on pricing and editing add-on quantity helpers.
 - Duration prices, add-on prices, and invoice currency now live with booking pricing utilities as the shared source of truth.
 - Invoice code imports shared pricing constants directly instead of duplicating them.
-- No `getMultiBookingPackageConfig` helper was added because direct `MULTI_BOOKING_PACKAGES[packageSize]` access is simpler.
+- No `getMultiBookingPackageConfig` helper was added because direct `MULTI_BOOKING_PLANS[packageSize]` access is simpler.
 
 Check after step:
 
@@ -126,72 +126,118 @@ Check after step:
 
 ### Step 4: Add booking form multi-booking mode
 
-Update booking form UI/state:
+Build on the Step 1 shared form/pricing work instead of adding another parallel model:
 
-- Add single vs multi-booking choice.
-- In multi mode, hide date/time picker.
-- Show package selector for 4/8/12.
-- Keep duration, service, add-ons, contact fields, notes, and terms modal.
-- Submit multi mode to the new package creation action instead of Stripe checkout.
-- Show success message telling customer to check email for invoice.
+- Add a single vs multi-booking choice to the existing booking form.
+- In multi mode, hide date/time picker and remove date/time from submitted values.
+- Show package selector for 4/8/12 using `MULTI_BOOKING_PLANS`.
+- Show the calculated package subtotal, discount, and total using `calculateMultiBookingAmounts(values)`.
+- Keep duration, service, add-ons, contact fields, notes, and the same terms modal gate.
+- Validate multi mode with `multiBookingFormSchema`.
+- Submit multi mode to `api.multiBookings.createMultiBookingRequest` instead of Stripe checkout.
+- Handle the Result reasons already returned by Step 3:
+  - `BOOKING_INVALID_INPUT`
+  - `BOOKING_EMAIL_DOMAIN_INVALID`
+  - `BOOKING_RATE_LIMITED`
+  - `PACKAGE_CREATE_FAILED`
+- On success, show a message telling the customer to check email for the invoice.
+- If `invoiceEmailStatus` is `failed`, still show success for the saved request, but say the team will follow up with the invoice.
 
 Check after step:
 
 - Single booking still opens Stripe checkout.
 - Multi-booking submits without date/time.
-- Terms modal still appears before submit.
+- Terms modal still appears before both submit paths.
+- Package totals match the invoice math from Step 3.
 - Form validation errors are clear for both modes.
 
-### Step 5: Add admin package dashboard section
+### Step 5: Add admin package backend and dashboard section
 
-Add package admin UI separate from normal bookings:
+Add admin package UI separate from normal bookings. Use the existing `multiBookingPackages` table/status fields from Step 2:
 
-- Pending/overdue/hidden filters.
-- Show package customer, package size, total, due date, status, invoice email status.
-- Actions:
-  - mark paid
-  - resend invoice
-  - hide/unhide overdue package
-  - cancel unpaid package
-  - retry scheduling-link email if failed
+- `pending_payment` = invoice sent or awaiting payment.
+- `invoice_email_failed` = package exists, invoice email failed, still unpaid.
+- `paid` = paid and scheduling link email sent.
+- `schedule_email_failed` = paid, but scheduling link email failed.
+- `cancelled` = unpaid package cancelled by admin.
+
+Backend functions to add:
+
+- List packages for admin with filters for pending, overdue, hidden, paid/email-failed, and cancelled.
+- Resend invoice for unpaid packages by reusing `sendMultiBookingInvoiceEmail` and `markMultiBookingInvoiceEmailAttempt`.
+- Hide/unhide overdue package by patching `hiddenAt`.
+- Cancel unpaid packages only (`pending_payment` or `invoice_email_failed`).
+- Mark package paid.
+- Retry scheduling-link email for `schedule_email_failed`.
+
+Dashboard should show:
+
+- customer/contact summary
+- package size
+- service/duration/add-ons
+- total due
+- due date
+- payment/status
+- invoice email status/failure
+- schedule email status/failure when relevant
+- scheduled slot progress from `sessions`
 
 When marking paid:
 
-- Set `paidAt` and `expiresAt`.
-- Create/activate scheduling token.
+- Set `paidAt`.
+- Set `expiresAt` with `getMultiBookingExpiresAt(paidAt, packageSize)` from Step 1.
+- Generate one public schedule token, store only `scheduleTokenHash`, and set `scheduleLinkStatus: "active"`.
 - Send scheduling-link email.
-- If email fails, keep paid and set `schedule_email_failed`.
+- If scheduling email succeeds, set status to `paid`.
+- If scheduling email fails, keep `paidAt`, `expiresAt`, and active token, then set status to `schedule_email_failed`.
 
 Check after step:
 
 - Pending package list does not mix with normal booking list.
+- `invoice_email_failed` packages still appear as unpaid and actionable.
 - Overdue means `now > invoiceDueAt` and unpaid.
 - Hidden overdue packages are only hidden by filter, not deleted.
 - Mark paid is still allowed after due date.
+- Cancel is blocked after payment.
 
 ### Step 6: Build package scheduling link backend
 
-Add public queries/actions for token-based scheduling:
+Add public token-based queries/actions in `convex/multiBookings.ts` or a nearby package-specific Convex file. Keep sensitive admin-only helpers private/internal.
+
+Suggested public functions:
 
 - `getMultiBookingPackageByToken`
 - `getMultiBookingBookableRangeBusyWindows`
 - `saveMultiBookingSessionSlot`
 - `clearMultiBookingSessionSlot`
 
+Use the Step 2 schema shape:
+
+- Package slots are entries in `multiBookingPackages.sessions`.
+- Slot identity is `slotNumber`, not `sessionId`.
+- Full scheduled-session data lives on normal `bookings` rows.
+- Linked bookings use `multiBookingPackageId` and `multiBookingSlotNumber`.
+
 Rules:
 
-- Token must be active and not expired.
-- If expired, return package-link-expired and do not show package details.
-- Bookable end date is package `expiresAt` date.
-- Availability checks must include existing Google Calendar busy windows.
-- Rescheduling a slot should ignore its own current event.
-- Customer edits/clears only allowed until 24 hours before session start.
+- Token lookup uses `scheduleTokenHash`; never store or compare raw token values.
+- Token must belong to a paid package: `paid` or `schedule_email_failed`.
+- `scheduleLinkStatus` must be `active`.
+- Package must have `expiresAt`, and `Date.now()` must be before it.
+- If expired, return a package-link-expired result and do not return package details.
+- Bookable end date is the package `expiresAt` date.
+- Package scheduling can ignore normal `maxDaysAhead`, but must still respect opening hours, duration validity, lead time, buffers, and Google Calendar busy windows.
+- Rescheduling a slot should ignore its own current Google Calendar event.
+- Customer edits/clears only allowed until 24 hours before that session start.
+- Same-day multiple package sessions are allowed when separate time slots are free.
 
 Check after step:
 
 - Public link cannot access unpaid packages.
 - Expired link hides the whole package page.
 - Same-day multiple sessions work when separate time slots are free.
+- Slot updates are keyed by `slotNumber`.
+- Result errors have stable `reason` values for the UI to handle exhaustively.
 
 ### Step 7: Build package scheduling page
 
@@ -199,17 +245,20 @@ Create a public route like:
 
 - `src/routes/_public/multi-booking.$token.tsx`
 
-Reuse the existing reschedule page/date-time picker patterns where possible.
+Reuse the existing reschedule page/date-time picker patterns where possible, but use package-specific backend functions because package scheduling can book past the normal max-days-ahead limit.
 
 UI should show:
 
 - package summary
 - expiry date
-- session slots `Session 1 of 8`, etc.
-- unscheduled/scheduled/cancelled states
+- session progress, e.g. `3 of 8 scheduled`
+- slots labelled from `slotNumber`, e.g. `Session 3 of 8`
+- unscheduled/scheduled/cancelled states from `sessions`
 - per-slot date/time picker
 - per-slot save button
 - clear button for scheduled future sessions
+- locked state for past or within-24-hour sessions
+- expired-link state that hides package details
 
 Check after step:
 
@@ -217,65 +266,76 @@ Check after step:
 - Revisiting link shows saved slots.
 - Customer can edit or clear future sessions.
 - Past or within-24-hour sessions are locked.
+- Expired packages do not leak customer/package details.
 
 ### Step 8: Create/update bookings and Google Calendar per saved slot
 
 When a slot is saved:
 
-- Create or update a normal `bookings` record for that session.
-- Mark booking as `confirmed` without Stripe fields.
-- Link booking to `multiBookingPackageId` and `multiBookingSessionId`.
-- Store package label data needed for admin display.
-- Create/update Google Calendar event.
-- Send save/change email.
+- Create or update a normal `bookings` row for that package session.
+- Set booking `status` to `confirmed` without Stripe fields.
+- Set required booking timestamps safely, including `pendingPaymentCreatedAt` and `bookingConfirmedAt`.
+- Link booking with `multiBookingPackageId` and `multiBookingSlotNumber`.
+- Do **not** use `multiBookingSessionId` or stored slot labels; compute labels from `slotNumber` and `packageSize`.
+- Patch that session entry with `bookingId` and `scheduledAt`.
+- Create/update Google Calendar event and store `googleEventId`/`googleCalendarId` on the booking.
+- Send scheduled/rescheduled customer email.
 
 When a slot is cleared:
 
-- Cancel/delete Google Calendar event.
-- Mark linked booking/session as cancelled history.
+- Cancel/delete the Google Calendar event.
+- Keep cancelled history.
+- Patch that session entry with `cancelledAt`.
+- Prevent reminder emails for the cleared booking.
 - Send clear email.
+
+Schema follow-up needed before clear support:
+
+- Step 2 did not add a cancelled booking status.
+- Add `cancelled` to `bookings.status` before using cleared package bookings, or introduce another explicit field that reminder/admin queries can use to exclude cleared sessions.
+- Prefer adding `cancelled` because it is clear and keeps reminder filtering simple.
+- Update admin booking cards and reminder queries so only active confirmed package sessions appear as upcoming bookings.
 
 Check after step:
 
 - Scheduled package sessions appear in normal admin bookings.
-- Admin booking card shows package tag.
+- Admin booking card computes package tag like `Package 3/8` from `multiBookingSlotNumber` and package size.
 - Calendar events are created, updated, and cancelled correctly.
-- Reminder job still picks up confirmed package sessions.
+- Cleared sessions do not receive reminders.
+- Existing reminder job still picks up confirmed package sessions.
 
-### Step 9: Add email templates
+### Step 9: Add remaining email templates
 
-Add email templates/renderers for:
+The package invoice email/PDF path already exists from Step 3 through `sendMultiBookingInvoiceEmail` and `createMultiBookingInvoiceArtifacts`. Add the remaining package-specific emails:
 
-- package invoice email
 - package scheduling-link email
 - package session scheduled confirmation
 - package session rescheduled confirmation
 - package session cleared confirmation
 
-Reuse invoice PDF/email primitives where possible.
+Reuse existing booking email primitives where possible.
 
 Check after step:
 
-- Emails include package/customer details.
 - Scheduling email includes expiry date and public link.
 - Session emails include date/time/timezone and package slot label.
+- Failed scheduling email keeps package paid and exposes retry in admin.
 
 ### Step 10: Add migration/backfill safety
 
-Because this adds tables and possibly optional fields on `bookings`, plan schema rollout carefully:
+Most initial schema work is already done in Step 2. Keep rollout focused on small additive follow-ups:
 
-- Add new tables first.
-- Add optional booking link fields only if needed:
-  - `multiBookingPackageId`
-  - `multiBookingSessionId`
-  - `multiBookingSlotLabel`
+- Existing `bookings` package fields are optional, so no booking backfill is needed.
+- If Step 8 adds `cancelled` to `bookings.status`, update all status unions/render paths before writing that status.
 - Keep existing booking flows working with missing package fields.
+- Keep package labels computed from `multiBookingSlotNumber` + package size; do not add `multiBookingSlotLabel` unless a later UI needs a frozen label.
+- No separate `multiBookingSessions` table is needed in v1 because package size is capped at 12.
 
 Check after step:
 
 - Existing bookings query/render paths tolerate missing package fields.
-- No existing booking data needs immediate migration.
-
+- Existing non-package booking data needs no immediate migration.
+- Reminder queries ignore cancelled/cleared package sessions.
 ## Final Checks
 
 - Run format and lint.

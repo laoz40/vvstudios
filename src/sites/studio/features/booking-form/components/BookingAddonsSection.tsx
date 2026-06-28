@@ -1,5 +1,5 @@
 import { useSelector } from "@tanstack/react-store";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
 	Field,
 	FieldDescription,
@@ -13,7 +13,10 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import {
+	getRevealMotionProps,
+	sectionHeadingClassName
+} from "#studio/features/booking-form/lib/booking-form-styles";
 import { openAddonCompatibilityModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	ADDON_OPTIONS,
@@ -41,13 +44,12 @@ function BookingAddonQuantityField({
 	shouldShowFieldError
 }: BookingAddonQuantityFieldProps) {
 	const FormField = formApi.Field;
+	const shouldReduceMotion = useReducedMotion();
+	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
 	return (
 		<motion.div
 			key={fieldName}
-			initial={{ height: 0, opacity: 0, y: -8 }}
-			animate={{ height: "auto", opacity: 1, y: 0 }}
-			exit={{ height: 0, opacity: 0, y: -8 }}
-			transition={{ duration: 0.2, ease: "easeOut" }}
+			{...revealMotionProps}
 			className="overflow-hidden">
 			<FormField name={fieldName}>
 				{(quantityField) => (

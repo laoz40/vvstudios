@@ -12,7 +12,6 @@ export const env = createEnv({
 
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
-		VITE_BOOKING_RECURRING_URL: z.url(),
 		VITE_FREE_TOUR_URL: z.url(),
 		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
 		VITE_CONVEX_URL: z.string().min(1),

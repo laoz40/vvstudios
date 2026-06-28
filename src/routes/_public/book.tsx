@@ -10,10 +10,11 @@ import {
 	type BookDevErrorCode
 } from "#studio/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
+import { BookingModeSection } from "#studio/features/booking-form/components/BookingModeSection";
+import { BookingMultiBookingPackageSection } from "#studio/features/booking-form/components/BookingMultiBookingPackageSection";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
-import { BookingRecurringSessionsPrompt } from "#studio/features/booking-form/components/BookingRecurringSessionsPrompt";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
@@ -63,7 +64,8 @@ function BookingPage() {
 
 	// Derived form values and availability
 	const formValues = useSelector(formApi.store, (state) => state.values);
-	const isDateTimeIncomplete = !formValues.date || !formValues.time;
+	const isDateTimeIncomplete =
+		formValues.bookingMode === "single" && (!formValues.date || !formValues.time);
 	const handleSelectedTimeInvalidated = useCallback(() => {
 		formApi.setFieldValue("time", "");
 	}, [formApi]);
@@ -100,11 +102,10 @@ function BookingPage() {
 	return (
 		<main
 			className={cn("mx-auto flex min-h-dvh max-w-4xl flex-col", "gap-8 px-4 pt-8 pb-12 sm:pt-10")}>
-			<div className="space-y-3">
+			<div>
 				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
 					Studio Hire Booking
 				</h1>
-				<BookingRecurringSessionsPrompt />
 			</div>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
 			{savedBookingInfo.savedBookingInfo ? (
@@ -140,13 +141,19 @@ function BookingPage() {
 					}}
 					className="flex flex-col gap-10">
 					<FieldGroup className="flex flex-col gap-8 md:gap-12">
+						<div>
+							<BookingModeSection />
+							<BookingMultiBookingPackageSection />
+						</div>
 						<BookingRecordingSpaceDurationSection />
 						<BookingAddonsSection />
-						<div
-							ref={completeBookingShortcut.dateTimeSectionRef}
-							className="scroll-mt-32 sm:scroll-mt-40">
-							<BookingDateTimeSection availability={availability} />
-						</div>
+						{formValues.bookingMode === "single" ? (
+							<div
+								ref={completeBookingShortcut.dateTimeSectionRef}
+								className="scroll-mt-32 sm:scroll-mt-40">
+								<BookingDateTimeSection availability={availability} />
+							</div>
+						) : null}
 						<BookingContactSection />
 					</FieldGroup>
 

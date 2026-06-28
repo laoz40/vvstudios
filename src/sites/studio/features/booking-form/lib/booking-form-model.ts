@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+export const BOOKING_MODES = ["single", "multi"] as const;
 export const SERVICES = ["Table Setup", "Armchair Setup"] as const;
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 export const ADDON_OPTIONS = [
@@ -67,6 +68,9 @@ const email = z
 	.min(1, "Email is required.")
 	.pipe(z.email("Please enter a valid email address."));
 
+const bookingMode = z
+	.union([z.literal(""), z.enum(BOOKING_MODES)])
+	.refine((value) => value !== "", { message: "Booking type is required." });
 const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
@@ -82,7 +86,8 @@ const addons = z
 		message: "Duplicate add-ons are not allowed."
 	});
 const notes = z.string().trim().max(200, "Please keep this under 200 characters.");
-const multiBookingSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
+const requiredMultiBookingSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
+const optionalMultiBookingSize = z.union([z.literal(""), requiredMultiBookingSize]);
 
 const sharedBookingFields = {
 	name,
@@ -128,15 +133,35 @@ function validateEditingAddonQuantities(
 export const bookingSchema = z
 	.object({
 		...sharedBookingFields,
-		date: z.string().min(1, "Date is required."),
-		time: z.string().min(1, "Time is required.")
+		bookingMode,
+		packageSize: optionalMultiBookingSize,
+		date: z.string(),
+		time: z.string()
 	})
-	.superRefine(validateEditingAddonQuantities);
+	.superRefine((values, ctx) => {
+		validateEditingAddonQuantities(values, ctx);
+
+		if (values.bookingMode === "multi" && !values.packageSize) {
+			ctx.addIssue({ code: "custom", message: "Package size is required.", path: ["packageSize"] });
+		}
+
+		if (values.bookingMode !== "single") {
+			return;
+		}
+
+		if (!values.date) {
+			ctx.addIssue({ code: "custom", message: "Date is required.", path: ["date"] });
+		}
+
+		if (!values.time) {
+			ctx.addIssue({ code: "custom", message: "Time is required.", path: ["time"] });
+		}
+	});
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const multiBookingFormSchema = z
-	.object({ ...sharedBookingFields, packageSize: multiBookingSize })
+	.object({ ...sharedBookingFields, packageSize: requiredMultiBookingSize })
 	.superRefine(validateEditingAddonQuantities);
 
 export type MultiBookingFormValues = z.input<typeof multiBookingFormSchema>;
@@ -147,6 +172,8 @@ export const INITIAL_FORM: BookingFormValues = {
 	accountName: "",
 	abn: "",
 	email: "",
+	bookingMode: "single",
+	packageSize: "",
 	date: "",
 	time: "",
 	duration: "",

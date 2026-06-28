@@ -30,6 +30,10 @@ export const MULTI_BOOKING_PLANS = {
 
 export type MultiBookingSize = keyof typeof MULTI_BOOKING_PLANS;
 
+export function isMultiBookingSize(value: unknown): value is MultiBookingSize {
+	return typeof value === "number" && value in MULTI_BOOKING_PLANS;
+}
+
 export type MultiBookingAmounts = {
 	discountAmount: number;
 	discountPercent: number;

@@ -117,8 +117,7 @@ export function BookingRecordingSpaceDurationSection() {
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
 													"pressable relative flex cursor-pointer items-center justify-between rounded-lg border bg-input/30",
-													"px-4 py-6",
-													"shadow-lg shadow-background/25",
+													"gap-3 p-4 shadow-lg shadow-background/25",
 													"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
 													"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 													transitionClassName,
@@ -136,32 +135,29 @@ export function BookingRecordingSpaceDurationSection() {
 														{option.badgeLabel}
 													</span>
 												) : null}
-												<p className="relative inline-flex w-fit whitespace-nowrap text-base font-semibold leading-none">
-													{option.label}
-													{isSelected ? (
-														<span
-															className={cn(
-																"absolute top-1/2 left-full ml-2 -translate-y-1/2",
-																"inline-flex items-center justify-center rounded-lg border",
-																"px-2.5 py-0.5",
-																"text-xs font-medium tracking-wider",
-																"shadow-md transition-all duration-200 ease-in sm:hidden",
-																getPillStateClassName(true)
-															)}>
-															SELECTED
-														</span>
-													) : null}
-												</p>
-												<div className="flex items-end gap-1 whitespace-nowrap">
-													{hasDiscount ? (
-														<p className="text-muted-foreground text-xs line-through leading-none">
-															{option.originalPrice}
+												<div>
+													<p className="text-lg font-semibold text-foreground">{option.label}</p>
+													<div className="flex items-baseline gap-1.5 whitespace-nowrap">
+														<p className="text-sm font-semibold text-primary">
+															{option.discountedPrice}
 														</p>
-													) : null}
-													<p className="text-primary text-base font-semibold leading-none">
-														{option.discountedPrice}
-													</p>
+														{hasDiscount ? (
+															<p className="text-sm font-light text-muted-foreground line-through">
+																{option.originalPrice}
+															</p>
+														) : null}
+													</div>
 												</div>
+												{isSelected ? (
+													<span
+														className={cn(
+															"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
+															"text-xs font-medium tracking-wider shadow-md",
+															getPillStateClassName(true)
+														)}>
+														SELECTED
+													</span>
+												) : null}
 											</label>
 										</div>
 									);

@@ -1,7 +1,6 @@
 import { Suspense, lazy } from "react";
 
 import { Button } from "#/components/ui/button";
-import { env } from "#/env";
 import { Modal } from "#studio/components/Modal";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
@@ -61,29 +60,6 @@ export function BookingModalHost({
 						}}
 					/>
 				</Suspense>
-			);
-
-		case "requestCall":
-			return (
-				<Modal
-					open
-					onOpenChange={closeBookingModal}
-					title="Request a call"
-					description="Book a quick call to discuss recurring sessions and availability."
-					closeLabel="Close"
-					initialFocus="content"
-					size="6xl"
-					className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-					<div className="overflow-hidden rounded-xl border bg-white">
-						<iframe
-							src={env.VITE_BOOKING_RECURRING_URL}
-							title="Request a call"
-							className="block min-h-176 w-full border-0 bg-transparent"
-							sandbox="allow-scripts allow-same-origin allow-popups"
-							referrerPolicy="strict-origin-when-cross-origin"
-						/>
-					</div>
-				</Modal>
 			);
 
 		case "sessionSummary":

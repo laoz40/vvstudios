@@ -45,8 +45,12 @@ export function useBookingSubmit({
 		}
 
 		submitAfterTermsRef.current = false;
-		setIsSubmitting(true);
 
+		if (parsedValue.bookingMode === "multi") {
+			return;
+		}
+
+		setIsSubmitting(true);
 		const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
 			createEmbeddedCheckoutSession({
 				name: parsedValue.name,
