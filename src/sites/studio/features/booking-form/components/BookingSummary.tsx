@@ -31,6 +31,7 @@ export function BookingSummary() {
 		isMultiBooking && isMultiBookingSize(values.packageSize)
 			? calculateMultiBookingAmounts({ ...values, packageSize: values.packageSize })
 			: null;
+	const isWaitingForMultiBookingPackage = isMultiBooking && !multiBookingAmounts;
 	const sessionQuantity = multiBookingAmounts?.packageSize ?? 1;
 	const durationLineTotal = durationCost * sessionQuantity;
 	const bookingLabel = [values.service, values.duration].filter(Boolean).join(" ");
@@ -51,7 +52,7 @@ export function BookingSummary() {
 				</AccordionTrigger>
 				<AccordionContent className="pb-3 text-sm leading-normal">
 					<div className="space-y-2">
-						{showBookingLine ? (
+						{showBookingLine && !isWaitingForMultiBookingPackage ? (
 							<div className="flex items-start justify-between gap-4">
 								<p className="text-muted-foreground">
 									{formatQuantityLabel(sessionQuantity, bookingLabel || "Session")}
@@ -92,6 +93,10 @@ export function BookingSummary() {
 									You can schedule session dates after payment.
 								</p>
 							</>
+						) : isWaitingForMultiBookingPackage ? (
+							<p className="border-t border-border pt-2 text-sm italic leading-snug text-muted-foreground">
+								Select a package size to see your package total.
+							</p>
 						) : (
 							<>
 								<div className="flex items-center justify-between border-t border-border pt-2 font-semibold text-foreground">
