@@ -11,7 +11,7 @@ import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
 import { SessionsDashboard } from "#studio/features/admin/components/SessionsDashboard";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 
-const ADMIN_BOOKINGS_PAGE_SIZE = 500;
+const ADMIN_PAGE_SIZE = 500;
 
 export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
@@ -138,7 +138,12 @@ function AdminPageContent() {
 	const bookings = usePaginatedQuery(
 		api.bookings.getBookings,
 		{},
-		{ initialNumItems: ADMIN_BOOKINGS_PAGE_SIZE }
+		{ initialNumItems: ADMIN_PAGE_SIZE }
+	);
+	const packages = usePaginatedQuery(
+		api.bookings.listMultiBookingPackages,
+		{},
+		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
@@ -151,9 +156,14 @@ function AdminPageContent() {
 		<SessionsDashboard
 			bookings={bookings.results}
 			canLoadMoreBookings={bookings.status === "CanLoadMore"}
+			canLoadMorePackages={packages.status === "CanLoadMore"}
 			email={email ?? null}
 			isLoadingMoreBookings={bookings.status === "LoadingMore"}
-			loadMoreBookings={() => bookings.loadMore(ADMIN_BOOKINGS_PAGE_SIZE)}
+			isLoadingMorePackages={packages.status === "LoadingMore"}
+			isLoadingPackages={packages.status === "LoadingFirstPage"}
+			loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
+			loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+			packages={packages.results}
 			signOutControl={
 				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<AnimatedIconButton

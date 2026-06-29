@@ -221,6 +221,23 @@ export const markMultiBookingInvoiceEmailAttempt = internalMutation({
 	}
 });
 
+export const listMultiBookingPackages = query({
+	args: { paginationOpts: paginationOptsValidator },
+	handler: async (ctx, args) => {
+		const [authError] = await getAdminIdentity(ctx);
+
+		if (authError !== null) {
+			throw new ConvexError(authError);
+		}
+
+		return await ctx.db
+			.query("multiBookingPackages")
+			.withIndex("by_createdAt")
+			.order("desc")
+			.paginate(args.paginationOpts);
+	}
+});
+
 export const getBookings = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: (ctx, args) => getBookingsHandler(ctx, args)

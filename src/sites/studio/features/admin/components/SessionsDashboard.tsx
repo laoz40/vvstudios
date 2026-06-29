@@ -14,6 +14,7 @@ import { ListFilter, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
+import type { Doc } from "#convex/_generated/dataModel";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import TrashIcon from "#/components/ui/trash-icon";
 import { Button } from "#/components/ui/button";
@@ -77,9 +78,14 @@ import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 export type SessionsDashboardProps = {
 	bookings: BookingRecord[];
 	canLoadMoreBookings: boolean;
+	canLoadMorePackages: boolean;
 	email: string | null;
 	isLoadingMoreBookings: boolean;
+	isLoadingMorePackages: boolean;
+	isLoadingPackages: boolean;
 	loadMoreBookings: () => void;
+	loadMorePackages: () => void;
+	packages: Doc<"multiBookingPackages">[];
 	signOutControl: ReactNode;
 };
 
@@ -118,9 +124,14 @@ function DashboardMenu({
 export function SessionsDashboard({
 	bookings,
 	canLoadMoreBookings,
+	canLoadMorePackages,
 	email,
 	isLoadingMoreBookings,
+	isLoadingMorePackages,
+	isLoadingPackages,
 	loadMoreBookings,
+	loadMorePackages,
+	packages,
 	signOutControl
 }: SessionsDashboardProps) {
 	// Convex mutations
@@ -475,7 +486,13 @@ export function SessionsDashboard({
 					</div>
 				</section>
 			) : (
-				<PackagesDashboard />
+				<PackagesDashboard
+					packages={packages}
+					canLoadMorePackages={canLoadMorePackages}
+					isLoadingMorePackages={isLoadingMorePackages}
+					isLoadingPackages={isLoadingPackages}
+					loadMorePackages={loadMorePackages}
+				/>
 			)}
 
 			<Dialog

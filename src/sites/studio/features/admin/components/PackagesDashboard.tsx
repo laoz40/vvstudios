@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowDown, MoreHorizontal } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,6 +10,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -21,25 +21,29 @@ import {
 	TableRow
 } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
+import type { Doc } from "#convex/_generated/dataModel";
 import {
 	filterAdminPackages,
 	getAdminPackageStatusLabel,
 	isAdminPackageOverdue,
+	mapMultiBookingPackageToAdminRow,
 	type AdminPackageFilters,
 	type AdminPackageRow,
 	type AdminPackageStatus
 } from "#studio/features/admin/lib/admin-packages";
-import { formatBookingTimestamp } from "#studio/lib/bookingdatetime";
+import {
+	formatBookingTimestamp,
+	formatBookingTimestampDateLong
+} from "#studio/lib/bookingdatetime";
 
-const packageRows: AdminPackageRow[] = [];
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
-type PackageSortDirection = "asc" | "desc";
 
 const statusBadgeClassNames: Record<AdminPackageStatus, string> = {
 	pending_payment: "bg-primary text-primary-foreground",
 	invoice_email_failed: "bg-destructive text-primary-foreground",
 	paid: "bg-green text-primary-foreground",
-	schedule_email_failed: "bg-destructive text-primary-foreground"
+	schedule_email_failed: "bg-destructive text-primary-foreground",
+	cancelled: "bg-muted text-muted-foreground"
 };
 
 function PackageFilterCheckbox({
@@ -91,7 +95,7 @@ function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
 				className="w-56 touch-manipulation">
 				<DropdownMenuGroup>
 					{canSendInvoice ? <DropdownMenuItem disabled>Send invoice</DropdownMenuItem> : null}
-					{isOverdue ? <DropdownMenuItem disabled>Archive</DropdownMenuItem> : null}
+					{isOverdue ? <DropdownMenuItem disabled>Hide overdue</DropdownMenuItem> : null}
 					{canSendSchedulingLink ? (
 						<DropdownMenuItem disabled>Send scheduling link</DropdownMenuItem>
 					) : null}
@@ -104,57 +108,42 @@ function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
 	);
 }
 
-function formatPackageDueDate(invoiceDueAt: number) {
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "short",
-		year: "numeric"
-	}).format(new Date(invoiceDueAt));
-}
-
-function renderCreatedHeader(
-	sortDirection: PackageSortDirection,
-	onSortDirectionChange: (sortDirection: PackageSortDirection) => void
-) {
-	const SortIcon =
-		sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
-
-	return (
-		<Button
-			variant="ghost"
-			className="px-0! text-foreground"
-			onClick={() => onSortDirectionChange(sortDirection === "asc" ? "desc" : "asc")}>
-			<span>Created</span>
-			<SortIcon
-				data-icon="inline-end"
-				className="opacity-100"
-			/>
-		</Button>
-	);
-}
-
-export function PackagesDashboard() {
+export function PackagesDashboard({
+	canLoadMorePackages,
+	isLoadingMorePackages,
+	isLoadingPackages,
+	loadMorePackages,
+	packages
+}: {
+	canLoadMorePackages: boolean;
+	isLoadingMorePackages: boolean;
+	isLoadingPackages: boolean;
+	loadMorePackages: () => void;
+	packages: Doc<"multiBookingPackages">[];
+}) {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>({
+		hideCancelled: true,
+		hideHidden: true,
 		hidePaid: true,
 		hideOverdue: false,
 		hideEmailIssues: false,
 		searchQuery: ""
 	});
-	const [createdSortDirection, setCreatedSortDirection] = useState<PackageSortDirection>("desc");
 
-	// Visible package rows after dashboard-level filters and created-date sorting.
+	// Visible package rows after dashboard-level filters. The backend returns newest first.
 	const visiblePackages = useMemo(() => {
-		return [...filterAdminPackages(packageRows, filters)].sort((firstPackage, secondPackage) => {
+		const rows = packages.map(mapMultiBookingPackageToAdminRow);
+		return filterAdminPackages(rows, filters).sort((firstPackage, secondPackage) => {
 			const createdComparison = firstPackage.createdAt - secondPackage.createdAt;
 
 			if (createdComparison !== 0) {
-				return createdSortDirection === "asc" ? createdComparison : -createdComparison;
+				return -createdComparison;
 			}
 
 			return firstPackage.customerName.localeCompare(secondPackage.customerName);
 		});
-	}, [createdSortDirection, filters]);
+	}, [filters, packages]);
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
 		setFilters((currentFilters) => ({ ...currentFilters, [key]: checked }));
@@ -162,6 +151,10 @@ export function PackagesDashboard() {
 
 	function updateSearchQuery(searchQuery: string) {
 		setFilters((currentFilters) => ({ ...currentFilters, searchQuery }));
+	}
+
+	if (isLoadingPackages) {
+		return <p className="text-sm text-muted-foreground">Loading package requests...</p>;
 	}
 
 	return (
@@ -187,6 +180,18 @@ export function PackagesDashboard() {
 						onCheckedChange={(checked) => updateFilter("hideOverdue", checked)}
 					/>
 					<PackageFilterCheckbox
+						id="hide-hidden-packages"
+						label="Hide hidden"
+						checked={filters.hideHidden}
+						onCheckedChange={(checked) => updateFilter("hideHidden", checked)}
+					/>
+					<PackageFilterCheckbox
+						id="hide-cancelled-packages"
+						label="Hide cancelled"
+						checked={filters.hideCancelled}
+						onCheckedChange={(checked) => updateFilter("hideCancelled", checked)}
+					/>
+					<PackageFilterCheckbox
 						id="hide-email-issue-packages"
 						label="Hide errors"
 						checked={filters.hideEmailIssues}
@@ -199,17 +204,25 @@ export function PackagesDashboard() {
 				<Table className="min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-36">Customer</TableHead>
-							<TableHead className="w-52">Status</TableHead>
-							<TableHead className="w-40">Package</TableHead>
-							<TableHead className="w-56 md:w-36">Contact</TableHead>
-							<TableHead className="w-56">Notes</TableHead>
-							<TableHead className="w-40">Due</TableHead>
-							<TableHead className="w-32">Total</TableHead>
-							<TableHead className="w-36 md:w-20">
-								{renderCreatedHeader(createdSortDirection, setCreatedSortDirection)}
+							<TableHead className="w-44">Customer</TableHead>
+							<TableHead className="w-28">Status</TableHead>
+							<TableHead className="w-24">Package</TableHead>
+							<TableHead className="w-44">Contact</TableHead>
+							<TableHead className="w-54">Notes</TableHead>
+							<TableHead className="w-24">Due/Expiry</TableHead>
+							<TableHead className="w-20">Total</TableHead>
+							<TableHead className="w-36">
+								<Button
+									variant="ghost"
+									className="px-0! text-foreground">
+									<span>Created</span>
+									<ArrowDown
+										data-icon="inline-end"
+										className="opacity-100"
+									/>
+								</Button>
 							</TableHead>
-							<TableHead className="w-64 text-right" />
+							<TableHead className="w-6" />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -220,14 +233,17 @@ export function PackagesDashboard() {
 								return (
 									<TableRow key={packageRow.id}>
 										<TableCell>
-											<div className="flex flex-col gap-1 whitespace-normal">
-												<p className="font-medium text-foreground">{packageRow.customerName}</p>
-											</div>
+											<p className="font-medium text-foreground">{packageRow.customerName}</p>
 										</TableCell>
 										<TableCell>
-											<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
-												{getAdminPackageStatusLabel(packageRow.status)}
-											</Badge>
+											<div className="flex flex-wrap gap-2">
+												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
+													{getAdminPackageStatusLabel(packageRow.status)}
+												</Badge>
+												{packageRow.hiddenAt !== undefined ? (
+													<Badge variant="outline">Hidden</Badge>
+												) : null}
+											</div>
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col gap-1">
@@ -252,13 +268,13 @@ export function PackagesDashboard() {
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col gap-1">
-												<span>{formatPackageDueDate(packageRow.invoiceDueAt)}</span>
+												<span>{formatBookingTimestampDateLong(packageRow.invoiceDueAt)}</span>
 												{isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
 											</div>
 										</TableCell>
 										<TableCell>{packageRow.totalDueLabel}</TableCell>
 										<TableCell>
-											<p className="min-w-44 font-medium whitespace-normal">
+											<p className="font-medium whitespace-normal">
 												{formatBookingTimestamp(packageRow.createdAt)}
 											</p>
 										</TableCell>
@@ -273,13 +289,25 @@ export function PackagesDashboard() {
 								<TableCell
 									colSpan={9}
 									className="h-24 text-center text-muted-foreground">
-									No package requests. L business.
+									No package requests.
 								</TableCell>
 							</TableRow>
 						)}
 					</TableBody>
 				</Table>
 			</div>
+
+			{canLoadMorePackages || isLoadingMorePackages ? (
+				<div className="flex justify-end">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={loadMorePackages}
+						disabled={isLoadingMorePackages}>
+						{isLoadingMorePackages ? "Loading..." : "Load more"}
+					</Button>
+				</div>
+			) : null}
 		</section>
 	);
 }
