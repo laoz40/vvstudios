@@ -133,7 +133,7 @@ function renderCreatedHeader(
 	);
 }
 
-export function AdminPackagesDashboard() {
+export function PackagesDashboard() {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>({
 		hidePaid: true,

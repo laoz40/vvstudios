@@ -8,7 +8,7 @@ import LogoutIcon from "#/components/ui/logout-icon";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
-import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard";
+import { SessionsDashboard } from "#studio/features/admin/components/SessionsDashboard";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 
 const ADMIN_BOOKINGS_PAGE_SIZE = 500;
@@ -148,7 +148,7 @@ function AdminPageContent() {
 	}
 
 	return (
-		<AdminDashboard
+		<SessionsDashboard
 			bookings={bookings.results}
 			canLoadMoreBookings={bookings.status === "CanLoadMore"}
 			email={email ?? null}

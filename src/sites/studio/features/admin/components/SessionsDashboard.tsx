@@ -56,25 +56,25 @@ import { cn } from "#/lib/utils";
 import { tryCatch } from "#/lib/result";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import {
-	buildAdminDashboardColumns,
+	buildSessionsDashboardColumns,
 	getColumnClassName
-} from "#studio/features/admin/components/AdminDashboardColumns";
-import { AdminPackagesDashboard } from "#studio/features/admin/components/AdminPackagesDashboard";
+} from "#studio/features/admin/components/SessionsDashboardColumns";
+import { PackagesDashboard } from "#studio/features/admin/components/PackagesDashboard";
 import {
-	readStoredAdminDashboardSorting,
+	readStoredSessionsDashboardSorting,
 	readStoredShowStaleBookings,
 	readStoredShowUpcomingOnly,
-	storeAdminDashboardSorting,
+	storeSessionsDashboardSorting,
 	storeShowStaleBookings,
 	storeShowUpcomingOnly
-} from "#studio/features/admin/lib/admin-dashboard-preferences";
+} from "#studio/features/admin/lib/sessions-dashboard-preferences";
 import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
 import { hasUnsentDeliverables } from "#studio/features/admin/lib/booking-edit-status";
 import { isStaleCleanupBooking } from "#studio/features/admin/lib/admin-bookings";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 
-export type AdminDashboardProps = {
+export type SessionsDashboardProps = {
 	bookings: BookingRecord[];
 	canLoadMoreBookings: boolean;
 	email: string | null;
@@ -83,12 +83,12 @@ export type AdminDashboardProps = {
 	signOutControl: ReactNode;
 };
 
-type AdminDashboardView = "bookings" | "packages";
+type DashboardView = "sessions" | "packages";
 
-function AdminDashboardMenu({
+function DashboardMenu({
 	email,
 	signOutControl
-}: Pick<AdminDashboardProps, "email" | "signOutControl">) {
+}: Pick<SessionsDashboardProps, "email" | "signOutControl">) {
 	return (
 		<Sheet>
 			<SheetTrigger asChild>
@@ -115,23 +115,23 @@ function AdminDashboardMenu({
 	);
 }
 
-export function AdminDashboard({
+export function SessionsDashboard({
 	bookings,
 	canLoadMoreBookings,
 	email,
 	isLoadingMoreBookings,
 	loadMoreBookings,
 	signOutControl
-}: AdminDashboardProps) {
+}: SessionsDashboardProps) {
 	// Convex mutations
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
 
 	// Dashboard view
-	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
+	const [activeView, setActiveView] = useState<DashboardView>("sessions");
 
 	// Table setup and persisted filters
-	const columns = useMemo(() => buildAdminDashboardColumns(), []);
-	const [sorting, setSorting] = useState<SortingState>(() => readStoredAdminDashboardSorting());
+	const columns = useMemo(() => buildSessionsDashboardColumns(), []);
+	const [sorting, setSorting] = useState<SortingState>(() => readStoredSessionsDashboardSorting());
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
 	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
@@ -148,7 +148,7 @@ export function AdminDashboard({
 
 	// Persist table sorting changes.
 	useEffect(() => {
-		storeAdminDashboardSorting(sorting);
+		storeSessionsDashboardSorting(sorting);
 	}, [sorting]);
 
 	// Persist the upcoming-only filter.
@@ -253,7 +253,7 @@ export function AdminDashboard({
 	);
 
 	function handleDashboardViewChange(value: string) {
-		if (value === "bookings" || value === "packages") {
+		if (value === "sessions" || value === "packages") {
 			setActiveView(value);
 		}
 	}
@@ -266,7 +266,7 @@ export function AdminDashboard({
 				"p-3 pb-8 md:p-4 lg:px-6"
 			)}>
 			<div className="absolute top-3 right-3 md:hidden">
-				<AdminDashboardMenu
+				<DashboardMenu
 					email={email}
 					signOutControl={signOutControl}
 				/>
@@ -277,7 +277,7 @@ export function AdminDashboard({
 						value={activeView}
 						onValueChange={handleDashboardViewChange}>
 						<TabsList variant="line">
-							<TabsTrigger value="bookings">Sessions</TabsTrigger>
+							<TabsTrigger value="sessions">Sessions</TabsTrigger>
 							<TabsTrigger value="packages">Packages</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -291,7 +291,7 @@ export function AdminDashboard({
 				</div>
 			</section>
 
-			{activeView === "bookings" ? (
+			{activeView === "sessions" ? (
 				<section className="flex flex-col gap-4">
 					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 						<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -475,7 +475,7 @@ export function AdminDashboard({
 					</div>
 				</section>
 			) : (
-				<AdminPackagesDashboard />
+				<PackagesDashboard />
 			)}
 
 			<Dialog

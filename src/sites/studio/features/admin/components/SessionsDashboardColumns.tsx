@@ -159,7 +159,7 @@ function renderSortableHeader(label: string, column: Column<BookingRecord>) {
 	);
 }
 
-export function buildAdminDashboardColumns(): ColumnDef<BookingRecord>[] {
+export function buildSessionsDashboardColumns(): ColumnDef<BookingRecord>[] {
 	return [
 		{
 			accessorKey: "name",
