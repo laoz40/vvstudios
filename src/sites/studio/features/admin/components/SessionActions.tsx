@@ -1,5 +1,5 @@
-import { BookingActionsDialogs } from "#studio/features/admin/components/BookingActionsDialogs";
-import { BookingActionsMenu } from "#studio/features/admin/components/BookingActionsMenu";
+import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
+import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
 import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -12,9 +12,9 @@ import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
-export type BookingActionsProps = { booking: BookingRecord };
+export type SessionActionsProps = { booking: BookingRecord };
 
-export function BookingActions({ booking }: BookingActionsProps) {
+export function SessionActions({ booking }: SessionActionsProps) {
 	const isConfirmedBooking = booking.status === "confirmed";
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const canToggleStatus =
@@ -40,7 +40,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 
 	return (
 		<>
-			<BookingActionsMenu
+			<SessionActionsMenu
 				booking={booking}
 				details={details}
 				deleteAction={deleteAction}
@@ -51,7 +51,7 @@ export function BookingActions({ booking }: BookingActionsProps) {
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
 			/>
-			<BookingActionsDialogs
+			<SessionActionsDialogs
 				booking={booking}
 				details={details}
 				deleteAction={deleteAction}

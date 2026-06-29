@@ -82,7 +82,6 @@ export type SessionsDashboardProps = {
 	email: string | null;
 	isLoadingMoreBookings: boolean;
 	isLoadingMorePackages: boolean;
-	isLoadingPackages: boolean;
 	loadMoreBookings: () => void;
 	loadMorePackages: () => void;
 	packages: Doc<"multiBookingPackages">[];
@@ -128,7 +127,6 @@ export function SessionsDashboard({
 	email,
 	isLoadingMoreBookings,
 	isLoadingMorePackages,
-	isLoadingPackages,
 	loadMoreBookings,
 	loadMorePackages,
 	packages,
@@ -490,7 +488,6 @@ export function SessionsDashboard({
 					packages={packages}
 					canLoadMorePackages={canLoadMorePackages}
 					isLoadingMorePackages={isLoadingMorePackages}
-					isLoadingPackages={isLoadingPackages}
 					loadMorePackages={loadMorePackages}
 				/>
 			)}

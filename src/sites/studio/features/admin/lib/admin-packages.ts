@@ -1,6 +1,10 @@
 import type { Doc } from "#convex/_generated/dataModel";
 
-export type AdminPackageStatus = Doc<"multiBookingPackages">["status"];
+export type AdminPackageStatus =
+	| "pending_payment"
+	| "paid"
+	| "invoice_email_failed"
+	| "schedule_email_failed";
 
 export type AdminPackageRow = {
 	id: Doc<"multiBookingPackages">["_id"];
@@ -14,14 +18,22 @@ export type AdminPackageRow = {
 	duration: string;
 	addons: string[];
 	totalDueLabel: string;
+	isPaid: boolean;
 	invoiceDueAt: number;
+	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
 	hiddenAt?: number;
 };
 
+export type AdminPackageDashboardDate =
+	| { kind: "package_expiry"; timestamp: number }
+	| { kind: "payment_due"; timestamp: number }
+	| { kind: "missing_package_expiry" };
+
+export type AdminPackagePendingAction = "archive" | "invoice" | "payment" | null;
+
 export type AdminPackageFilters = {
-	hideCancelled: boolean;
 	hideEmailIssues: boolean;
 	hideHidden: boolean;
 	hideOverdue: boolean;
@@ -43,9 +55,6 @@ export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 		case "schedule_email_failed":
 			return "Scheduling link failed";
 
-		case "cancelled":
-			return "Cancelled";
-
 		default: {
 			const _exhaustive: never = status;
 			return _exhaustive;
@@ -56,11 +65,7 @@ export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 export function isAdminPackageOverdue(
 	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "status">
 ) {
-	if (
-		packageRow.status === "paid" ||
-		packageRow.status === "schedule_email_failed" ||
-		packageRow.status === "cancelled"
-	) {
+	if (packageRow.status === "paid" || packageRow.status === "schedule_email_failed") {
 		return false;
 	}
 
@@ -69,6 +74,50 @@ export function isAdminPackageOverdue(
 
 export function hasAdminPackageEmailIssue(status: AdminPackageStatus) {
 	return status === "invoice_email_failed" || status === "schedule_email_failed";
+}
+
+export function getAdminPackageDashboardDate(
+	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid">
+): AdminPackageDashboardDate {
+	if (!packageRow.isPaid) {
+		return { kind: "payment_due", timestamp: packageRow.invoiceDueAt };
+	}
+
+	if (packageRow.expiresAt === undefined) {
+		return { kind: "missing_package_expiry" };
+	}
+
+	return { kind: "package_expiry", timestamp: packageRow.expiresAt };
+}
+
+export function getPackagePaymentActionLabel(
+	packageRow: Pick<AdminPackageRow, "isPaid">,
+	pendingAction: AdminPackagePendingAction
+) {
+	if (pendingAction === "payment") {
+		return "Updating payment...";
+	}
+
+	if (packageRow.isPaid) {
+		return "Mark unpaid";
+	}
+
+	return "Mark paid";
+}
+
+export function getPackageArchiveActionLabel(
+	packageRow: Pick<AdminPackageRow, "hiddenAt">,
+	pendingAction: AdminPackagePendingAction
+) {
+	if (pendingAction === "archive") {
+		return "Updating archive...";
+	}
+
+	if (packageRow.hiddenAt === undefined) {
+		return "Archive";
+	}
+
+	return "Unarchive";
 }
 
 export function mapMultiBookingPackageToAdminRow(
@@ -90,7 +139,11 @@ export function mapMultiBookingPackageToAdminRow(
 		duration: multiBookingPackage.duration,
 		addons: multiBookingPackage.addons,
 		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
+		isPaid:
+			multiBookingPackage.status === "paid" ||
+			multiBookingPackage.status === "schedule_email_failed",
 		invoiceDueAt: multiBookingPackage.invoiceDueAt,
+		expiresAt: multiBookingPackage.expiresAt,
 		createdAt: multiBookingPackage.createdAt,
 		status: multiBookingPackage.status,
 		hiddenAt: multiBookingPackage.hiddenAt
@@ -132,10 +185,6 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPackageFilters) {
 	return rows.filter((packageRow) => {
 		if (filters.hideHidden && packageRow.hiddenAt !== undefined) {
-			return false;
-		}
-
-		if (filters.hideCancelled && packageRow.status === "cancelled") {
 			return false;
 		}
 

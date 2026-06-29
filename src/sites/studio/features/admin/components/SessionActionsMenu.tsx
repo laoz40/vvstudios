@@ -1,4 +1,4 @@
-import { useRef, type ComponentProps, type ReactNode, type RefObject } from "react";
+import { useRef } from "react";
 import { Button } from "#/components/ui/button";
 import AmbulanceIcon from "#/components/ui/ambulance-icon";
 import ClockIcon from "#/components/ui/clock-icon";
@@ -18,7 +18,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
-	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuSub,
@@ -26,6 +25,8 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
+import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
 import {
 	EDIT_STATUS_OPTIONS,
 	deliverableStatusDotClassNameMap,
@@ -41,7 +42,7 @@ import type { usePaymentActions } from "#studio/features/admin/hooks/usePaymentA
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
-type BookingActionsMenuProps = {
+type SessionActionsMenuProps = {
 	booking: BookingRecord;
 	details: BookingActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
@@ -53,79 +54,7 @@ type BookingActionsMenuProps = {
 	statusActions: ReturnType<typeof useStatusActions>;
 };
 
-type StatusCircleButtonProps = {
-	ariaLabel: string;
-	className: string;
-	disabled?: boolean;
-	isSelected: boolean;
-	onClick: () => void;
-};
-
-function StatusCircleButton({
-	ariaLabel,
-	className,
-	disabled,
-	isSelected,
-	onClick
-}: StatusCircleButtonProps) {
-	return (
-		<button
-			type="button"
-			aria-label={ariaLabel}
-			title={ariaLabel}
-			disabled={disabled}
-			className={cn(
-				"size-5 rounded-full border border-transparent disabled:opacity-50",
-				className,
-				isSelected && "ring-2 ring-accent-foreground ring-offset-2 ring-offset-popover"
-			)}
-			onClick={onClick}
-		/>
-	);
-}
-
-type AnimatedDropdownMenuItemProps = ComponentProps<typeof DropdownMenuItem> & {
-	children: ReactNode;
-	renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
-};
-
-function AnimatedDropdownMenuItem({
-	children,
-	renderIcon,
-	onBlur,
-	onFocus,
-	onPointerEnter,
-	onPointerLeave,
-	...props
-}: AnimatedDropdownMenuItemProps) {
-	const iconRef = useRef<AnimatedIconHandle | null>(null);
-
-	return (
-		<DropdownMenuItem
-			{...props}
-			onPointerEnter={(event) => {
-				onPointerEnter?.(event);
-				iconRef.current?.startAnimation();
-			}}
-			onPointerLeave={(event) => {
-				onPointerLeave?.(event);
-				iconRef.current?.stopAnimation();
-			}}
-			onFocus={(event) => {
-				onFocus?.(event);
-				iconRef.current?.startAnimation();
-			}}
-			onBlur={(event) => {
-				onBlur?.(event);
-				iconRef.current?.stopAnimation();
-			}}>
-			{renderIcon(iconRef)}
-			<span>{children}</span>
-		</DropdownMenuItem>
-	);
-}
-
-export function BookingActionsMenu({
+export function SessionActionsMenu({
 	booking,
 	details,
 	deleteAction,
@@ -135,7 +64,7 @@ export function BookingActionsMenu({
 	paymentActions,
 	rescheduleAction,
 	statusActions
-}: BookingActionsMenuProps) {
+}: SessionActionsMenuProps) {
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
@@ -153,7 +82,7 @@ export function BookingActionsMenu({
 					onPointerLeave={() => menuIconRef.current?.stopAnimation()}
 					onFocus={() => menuIconRef.current?.startAnimation()}
 					onBlur={() => menuIconRef.current?.stopAnimation()}>
-					<span className="sr-only">Open booking actions</span>
+					<span className="sr-only">Open session actions</span>
 					<DotsHorizontalIcon
 						ref={menuIconRef}
 						aria-hidden

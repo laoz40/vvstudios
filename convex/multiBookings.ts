@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
 import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
@@ -11,6 +11,7 @@ import { err, ok, type Result } from "../src/lib/result";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
+import { getAdminIdentity } from "./lib/auth";
 
 type PendingMultiBookingCreationResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
@@ -145,4 +146,57 @@ async function createMultiBookingRequestHandler(
 
 export type CreateMultiBookingRequestResult = Awaited<
 	ReturnType<typeof createMultiBookingRequestHandler>
+>;
+
+export const resendMultiBookingInvoiceEmail = action({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: (ctx, args) => resendMultiBookingInvoiceEmailHandler(ctx, args)
+});
+
+async function resendMultiBookingInvoiceEmailHandler(
+	ctx: ActionCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
+		internal.bookings.getMultiBookingPackageByIdInternal,
+		{ multiBookingId: args.multiBookingId }
+	);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "invoice_email_failed") {
+		return err({ reason: "PACKAGE_NOT_UNPAID" });
+	}
+
+	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(multiBooking);
+
+	if (invoiceEmailError !== null) {
+		await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+			multiBookingId: multiBooking._id,
+			status: "failed",
+			failureCode: invoiceEmailError.reason
+		});
+
+		return err({ reason: "PACKAGE_INVOICE_EMAIL_FAILED" });
+	}
+
+	await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+		multiBookingId: multiBooking._id,
+		invoiceNumber: invoiceEmail.invoiceNumber,
+		status: "sent"
+	});
+
+	return ok({ sent: true });
+}
+
+export type ResendMultiBookingInvoiceEmailResult = Awaited<
+	ReturnType<typeof resendMultiBookingInvoiceEmailHandler>
 >;

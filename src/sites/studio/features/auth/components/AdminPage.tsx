@@ -148,8 +148,8 @@ function AdminPageContent() {
 	const { user } = useUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	if (bookings.status === "LoadingFirstPage") {
-		return <AdminLoadingState label="Loading bookings" />;
+	if (bookings.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
+		return <AdminLoadingState label="Loading admin dashboard" />;
 	}
 
 	return (
@@ -160,7 +160,6 @@ function AdminPageContent() {
 			email={email ?? null}
 			isLoadingMoreBookings={bookings.status === "LoadingMore"}
 			isLoadingMorePackages={packages.status === "LoadingMore"}
-			isLoadingPackages={packages.status === "LoadingFirstPage"}
 			loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
 			loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
 			packages={packages.results}

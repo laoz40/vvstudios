@@ -7,7 +7,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
 import { cn } from "#/lib/utils";
-import { BookingActions } from "#studio/features/admin/components/BookingActions";
+import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import {
 	bookingStatusBadgeClassNameMap,
 	bookingStatusBadgeVariantMap,
@@ -309,9 +309,7 @@ export function buildSessionsDashboardColumns(): ColumnDef<BookingRecord>[] {
 				const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(row.original));
 
 				return (
-					<p className={isPaid ? "text-green" : "text-destructive"}>
-						{isPaid ? "Paid" : remainingBalanceLabel}
-					</p>
+					<p className={isPaid ? "text-green" : "text-destructive"}>{remainingBalanceLabel}</p>
 				);
 			}
 		},
@@ -347,7 +345,7 @@ export function buildSessionsDashboardColumns(): ColumnDef<BookingRecord>[] {
 		{
 			id: "actions",
 			enableHiding: false,
-			cell: ({ row }) => <BookingActions booking={row.original} />
+			cell: ({ row }) => <SessionActions booking={row.original} />
 		}
 	];
 }

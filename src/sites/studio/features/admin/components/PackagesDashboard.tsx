@@ -1,15 +1,9 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, MoreHorizontal } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuTrigger
-} from "#/components/ui/dropdown-menu";
+import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
@@ -21,9 +15,11 @@ import {
 	TableRow
 } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
+
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	filterAdminPackages,
+	getAdminPackageDashboardDate,
 	getAdminPackageStatusLabel,
 	isAdminPackageOverdue,
 	mapMultiBookingPackageToAdminRow,
@@ -42,8 +38,7 @@ const statusBadgeClassNames: Record<AdminPackageStatus, string> = {
 	pending_payment: "bg-primary text-primary-foreground",
 	invoice_email_failed: "bg-destructive text-primary-foreground",
 	paid: "bg-green text-primary-foreground",
-	schedule_email_failed: "bg-destructive text-primary-foreground",
-	cancelled: "bg-muted text-muted-foreground"
+	schedule_email_failed: "bg-destructive text-primary-foreground"
 };
 
 function PackageFilterCheckbox({
@@ -73,57 +68,56 @@ function PackageFilterCheckbox({
 	);
 }
 
-function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
-	const isOverdue = isAdminPackageOverdue(packageRow);
-	const canSendInvoice =
-		packageRow.status === "pending_payment" || packageRow.status === "invoice_email_failed";
-	const canSendSchedulingLink = packageRow.status === "schedule_email_failed";
+function PackageDashboardDateCell({
+	isOverdue,
+	packageRow
+}: {
+	isOverdue: boolean;
+	packageRow: AdminPackageRow;
+}) {
+	const dashboardDate = getAdminPackageDashboardDate(packageRow);
 
-	return (
-		<DropdownMenu modal={false}>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					className="touch-manipulation">
-					<span className="sr-only">Open package actions</span>
-					<MoreHorizontal aria-hidden />
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				align="end"
-				className="w-56 touch-manipulation">
-				<DropdownMenuGroup>
-					{canSendInvoice ? <DropdownMenuItem disabled>Send invoice</DropdownMenuItem> : null}
-					{isOverdue ? <DropdownMenuItem disabled>Hide overdue</DropdownMenuItem> : null}
-					{canSendSchedulingLink ? (
-						<DropdownMenuItem disabled>Send scheduling link</DropdownMenuItem>
-					) : null}
-					{!canSendInvoice && !isOverdue && !canSendSchedulingLink ? (
-						<DropdownMenuItem disabled>No actions available</DropdownMenuItem>
-					) : null}
-				</DropdownMenuGroup>
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
+	switch (dashboardDate.kind) {
+		case "payment_due":
+			return (
+				<div className="flex flex-col gap-1">
+					<span>{formatBookingTimestampDateLong(dashboardDate.timestamp)}</span>
+					<span className="text-xs text-muted-foreground">Payment due</span>
+					{isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
+				</div>
+			);
+
+		case "package_expiry":
+			return (
+				<div className="flex flex-col gap-1">
+					<span>{formatBookingTimestampDateLong(dashboardDate.timestamp)}</span>
+					<span className="text-xs text-muted-foreground">Package expiry</span>
+				</div>
+			);
+
+		case "missing_package_expiry":
+			return <span className="text-muted-foreground">Expiry not set</span>;
+
+		default: {
+			const _exhaustive: never = dashboardDate;
+			return _exhaustive;
+		}
+	}
 }
 
 export function PackagesDashboard({
 	canLoadMorePackages,
 	isLoadingMorePackages,
-	isLoadingPackages,
 	loadMorePackages,
 	packages
 }: {
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
-	isLoadingPackages: boolean;
 	loadMorePackages: () => void;
 	packages: Doc<"multiBookingPackages">[];
 }) {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>({
-		hideCancelled: true,
 		hideHidden: true,
 		hidePaid: true,
 		hideOverdue: false,
@@ -153,10 +147,6 @@ export function PackagesDashboard({
 		setFilters((currentFilters) => ({ ...currentFilters, searchQuery }));
 	}
 
-	if (isLoadingPackages) {
-		return <p className="text-sm text-muted-foreground">Loading package requests...</p>;
-	}
-
 	return (
 		<section className="flex flex-col gap-4">
 			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -181,15 +171,9 @@ export function PackagesDashboard({
 					/>
 					<PackageFilterCheckbox
 						id="hide-hidden-packages"
-						label="Hide hidden"
+						label="Hide archived"
 						checked={filters.hideHidden}
 						onCheckedChange={(checked) => updateFilter("hideHidden", checked)}
-					/>
-					<PackageFilterCheckbox
-						id="hide-cancelled-packages"
-						label="Hide cancelled"
-						checked={filters.hideCancelled}
-						onCheckedChange={(checked) => updateFilter("hideCancelled", checked)}
 					/>
 					<PackageFilterCheckbox
 						id="hide-email-issue-packages"
@@ -209,9 +193,9 @@ export function PackagesDashboard({
 							<TableHead className="w-24">Package</TableHead>
 							<TableHead className="w-44">Contact</TableHead>
 							<TableHead className="w-54">Notes</TableHead>
-							<TableHead className="w-24">Due/Expiry</TableHead>
-							<TableHead className="w-20">Total</TableHead>
-							<TableHead className="w-36">
+							<TableHead className="w-28">Due / Expiry</TableHead>
+							<TableHead className="w-24">Amount</TableHead>
+							<TableHead className="w-32">
 								<Button
 									variant="ghost"
 									className="px-0! text-foreground">
@@ -240,9 +224,6 @@ export function PackagesDashboard({
 												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
 													{getAdminPackageStatusLabel(packageRow.status)}
 												</Badge>
-												{packageRow.hiddenAt !== undefined ? (
-													<Badge variant="outline">Hidden</Badge>
-												) : null}
 											</div>
 										</TableCell>
 										<TableCell>
@@ -267,12 +248,16 @@ export function PackagesDashboard({
 											</p>
 										</TableCell>
 										<TableCell>
-											<div className="flex flex-col gap-1">
-												<span>{formatBookingTimestampDateLong(packageRow.invoiceDueAt)}</span>
-												{isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
-											</div>
+											<PackageDashboardDateCell
+												packageRow={packageRow}
+												isOverdue={isOverdue}
+											/>
 										</TableCell>
-										<TableCell>{packageRow.totalDueLabel}</TableCell>
+										<TableCell>
+											<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
+												{packageRow.totalDueLabel}
+											</p>
+										</TableCell>
 										<TableCell>
 											<p className="font-medium whitespace-normal">
 												{formatBookingTimestamp(packageRow.createdAt)}

@@ -1,7 +1,10 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { getMultiBookingInvoiceDueAt } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
+import {
+	getMultiBookingExpiresAt,
+	getMultiBookingInvoiceDueAt
+} from "../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -237,6 +240,97 @@ export const listMultiBookingPackages = query({
 			.paginate(args.paginationOpts);
 	}
 });
+
+export const archiveMultiBookingPackage = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), archived: v.boolean() },
+	handler: (ctx, args) => archiveMultiBookingPackageHandler(ctx, args)
+});
+
+async function archiveMultiBookingPackageHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; archived: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.patch(args.multiBookingId, { hiddenAt: args.archived ? Date.now() : undefined });
+	} catch {
+		return err({ reason: "PACKAGE_ARCHIVE_FAILED" });
+	}
+
+	return ok({ archived: args.archived });
+}
+
+export type ArchiveMultiBookingPackageResult = Awaited<
+	ReturnType<typeof archiveMultiBookingPackageHandler>
+>;
+
+export const markMultiBookingPackagePaymentStatus = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), paid: v.boolean() },
+	handler: (ctx, args) => markMultiBookingPackagePaymentStatusHandler(ctx, args)
+});
+
+async function markMultiBookingPackagePaymentStatusHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; paid: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (!args.paid) {
+		try {
+			await ctx.db.patch(args.multiBookingId, {
+				paidAt: undefined,
+				expiresAt: undefined,
+				scheduleTokenHash: undefined,
+				scheduleLinkStatus: undefined,
+				status:
+					multiBooking.invoiceEmailStatus === "failed" ? "invoice_email_failed" : "pending_payment"
+			});
+		} catch {
+			return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
+		}
+
+		return ok({ paid: false });
+	}
+
+	const paidAt = Date.now();
+
+	try {
+		await ctx.db.patch(args.multiBookingId, {
+			paidAt,
+			expiresAt: getMultiBookingExpiresAt(paidAt, multiBooking.packageSize),
+			status: "paid"
+		});
+	} catch {
+		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ paid: true });
+}
+
+export type MarkMultiBookingPackagePaymentStatusResult = Awaited<
+	ReturnType<typeof markMultiBookingPackagePaymentStatusHandler>
+>;
 
 export const getBookings = query({
 	args: { paginationOpts: paginationOptsValidator },

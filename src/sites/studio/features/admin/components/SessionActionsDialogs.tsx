@@ -23,7 +23,7 @@ import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceA
 import type { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 
-type BookingActionsDialogsProps = {
+type SessionActionsDialogsProps = {
 	booking: BookingRecord;
 	details: BookingActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
@@ -34,7 +34,7 @@ type BookingActionsDialogsProps = {
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 };
 
-export function BookingActionsDialogs({
+export function SessionActionsDialogs({
 	booking,
 	details,
 	deleteAction,
@@ -43,7 +43,7 @@ export function BookingActionsDialogs({
 	invoiceActions,
 	paymentActions,
 	rescheduleAction
-}: BookingActionsDialogsProps) {
+}: SessionActionsDialogsProps) {
 	return (
 		<>
 			<Dialog

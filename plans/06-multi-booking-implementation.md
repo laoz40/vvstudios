@@ -81,8 +81,8 @@ Update `convex/schema.ts` without duplicating scheduled-session data:
   - customer/contact fields used before any sessions are scheduled
   - duration/service/add-ons/notes copied from the package request
   - package size, discount percent, and invoice totals
-  - status: `pending_payment`, `paid`, `invoice_email_failed`, `schedule_email_failed`, `cancelled`
-  - `createdAt`, `invoiceDueAt`, `paidAt`, `expiresAt`, `hiddenAt`, `cancelledAt`
+  - status: `pending_payment`, `paid`, `invoice_email_failed`, `schedule_email_failed`
+  - `createdAt`, `invoiceDueAt`, `paidAt`, `expiresAt`, `hiddenAt`
   - invoice metadata/email status fields
   - schedule link token hash/status fields
   - bounded `sessions` array with `slotNumber`, optional `bookingId`, `scheduledAt`, and `cancelledAt`
@@ -159,14 +159,12 @@ Add admin package UI separate from normal bookings. Use the existing `multiBooki
 - `invoice_email_failed` = package exists, invoice email failed, still unpaid.
 - `paid` = paid and scheduling link email sent.
 - `schedule_email_failed` = paid, but scheduling link email failed.
-- `cancelled` = unpaid package cancelled by admin.
 
 Backend functions to add:
 
-- List packages for admin with filters for pending, overdue, hidden, paid/email-failed, and cancelled.
+- List packages for admin with filters for pending, overdue, archived, paid/email-failed.
 - Resend invoice for unpaid packages by reusing `sendMultiBookingInvoiceEmail` and `markMultiBookingInvoiceEmailAttempt`.
-- Hide/unhide overdue package by patching `hiddenAt`.
-- Cancel unpaid packages only (`pending_payment` or `invoice_email_failed`).
+- Archive/unarchive package by patching `hiddenAt`.
 - Mark package paid.
 - Retry scheduling-link email for `schedule_email_failed`.
 
