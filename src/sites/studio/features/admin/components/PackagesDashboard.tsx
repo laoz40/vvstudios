@@ -27,6 +27,7 @@ import {
 	type AdminPackageRow,
 	type AdminPackageStatus
 } from "#studio/features/admin/lib/admin-packages";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatBookingTimestamp,
 	formatBookingTimestampDateLong
@@ -190,7 +191,8 @@ export function PackagesDashboard({
 						<TableRow>
 							<TableHead className="w-44">Customer</TableHead>
 							<TableHead className="w-28">Status</TableHead>
-							<TableHead className="w-24">Package</TableHead>
+							<TableHead className="w-28">Package</TableHead>
+							<TableHead className="w-44">Service</TableHead>
 							<TableHead className="w-44">Contact</TableHead>
 							<TableHead className="w-54">Notes</TableHead>
 							<TableHead className="w-28">Due / Expiry</TableHead>
@@ -237,6 +239,24 @@ export function PackagesDashboard({
 											</div>
 										</TableCell>
 										<TableCell>
+											<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
+												<p className="font-medium">{packageRow.service} ({packageRow.duration})</p>
+												{packageRow.addons.length > 0 ? (
+													<div className="flex flex-wrap gap-1">
+														{packageRow.addons.map((addon) => (
+															<Badge
+																key={addon}
+																variant="outline">
+																{formatEditingAddonLabel(addon, packageRow)}
+															</Badge>
+														))}
+													</div>
+												) : (
+													<p className="text-sm text-muted-foreground">No add-ons</p>
+												)}
+											</div>
+										</TableCell>
+										<TableCell>
 											<div className="flex flex-col gap-1 whitespace-normal">
 												<p className="break-all font-medium">{packageRow.customerEmail}</p>
 												<p className="text-sm">{packageRow.customerPhone}</p>
@@ -272,9 +292,9 @@ export function PackagesDashboard({
 						) : (
 							<TableRow>
 								<TableCell
-									colSpan={9}
+									colSpan={10}
 									className="h-24 text-center text-muted-foreground">
-									No package requests.
+									No package requests. L business.
 								</TableCell>
 							</TableRow>
 						)}
