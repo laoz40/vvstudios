@@ -17,6 +17,8 @@ export type AdminPackageRow = {
 	service: string;
 	duration: string;
 	addons: string[];
+	clipsPackageQuantity?: string;
+	essentialEditQuantity?: string;
 	totalDueLabel: string;
 	isPaid: boolean;
 	invoiceDueAt: number;
@@ -138,6 +140,8 @@ export function mapMultiBookingPackageToAdminRow(
 		service: multiBookingPackage.service,
 		duration: multiBookingPackage.duration,
 		addons: multiBookingPackage.addons,
+		clipsPackageQuantity: multiBookingPackage.clipsPackageQuantity,
+		essentialEditQuantity: multiBookingPackage.essentialEditQuantity,
 		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
 		isPaid:
 			multiBookingPackage.status === "paid" ||
@@ -151,9 +155,11 @@ export function mapMultiBookingPackageToAdminRow(
 }
 
 function formatPackageAmount(amount: number) {
-	return new Intl.NumberFormat("en-AU", { currency: "AUD", style: "currency" }).format(
-		amount / 100
-	);
+	return new Intl.NumberFormat("en-AU", {
+		currency: "AUD",
+		maximumFractionDigits: 2,
+		style: "currency"
+	}).format(amount);
 }
 
 function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) {
