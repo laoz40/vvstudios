@@ -44,7 +44,7 @@ export type MultiBookingInvoiceSource = Pick<
 	| "totalDueAmount"
 > & { invoiceLineItems?: BookingInvoiceLineItem[] };
 
-export async function createBookingInvoiceEmailArtifactsForBooking(
+export function createBookingInvoiceArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
 	rescheduleUrl?: string
@@ -86,20 +86,40 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 		createdAt,
 		rescheduleUrl
 	});
-	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
+		},
+		booking: parsedBooking.data
+	});
+}
+
+export async function createBookingInvoiceEmailArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	rescheduleUrl?: string
+) {
+	const [artifactsError, artifactsResult] = createBookingInvoiceArtifactsForBooking(
+		booking,
+		createdAt,
+		rescheduleUrl
+	);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(
+		artifactsResult.artifacts.data
+	);
 
 	if (emailHtmlError !== null) {
 		return err(emailHtmlError);
 	}
 
-	return ok({
-		artifacts: {
-			data,
-			emailHtml,
-			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
-		},
-		booking: parsedBooking.data
-	});
+	return ok({ ...artifactsResult, artifacts: { ...artifactsResult.artifacts, emailHtml } });
 }
 
 export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBookingInvoiceSource) {

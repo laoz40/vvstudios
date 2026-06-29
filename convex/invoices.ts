@@ -5,7 +5,7 @@ import { err, ok } from "../src/lib/result";
 import { internal } from "./_generated/api";
 import { action, type ActionCtx } from "./_generated/server";
 import {
-	createBookingInvoiceEmailArtifactsForBooking,
+	createBookingInvoiceArtifactsForBooking,
 	renderBookingInvoicePdfInNode
 } from "./lib/bookingInvoiceArtifacts";
 
@@ -41,16 +41,12 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
 	}
 
-	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
+	const [artifactsError, artifactsResult] = createBookingInvoiceArtifactsForBooking(
 		booking,
 		invoiceCreatedAt
 	);
 
 	if (artifactsError !== null) {
-		if (artifactsError.reason === "INVOICE_EMAIL_RENDER_FAILED") {
-			return err({ reason: "INVOICE_DOWNLOAD_FAILED" });
-		}
-
 		return err(artifactsError);
 	}
 
