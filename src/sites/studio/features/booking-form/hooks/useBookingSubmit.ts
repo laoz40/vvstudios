@@ -72,7 +72,6 @@ export function useBookingSubmit({
 
 		if (parsedValue.bookingMode === "multi") {
 			const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
-			closeBookingModal();
 
 			isSubmittingRef.current = true;
 			setIsSubmitting(true);
@@ -103,6 +102,7 @@ export function useBookingSubmit({
 
 			persistBookingInfoFromForm(parsedValue);
 			setHasCompletedMultiBooking(true);
+			closeBookingModal();
 			await navigate({
 				to: studioSite.routes.bookingComplete,
 				search: {

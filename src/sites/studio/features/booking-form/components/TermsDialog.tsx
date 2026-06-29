@@ -1,3 +1,4 @@
+import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Modal } from "#studio/components/Modal";
 
@@ -70,6 +71,7 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 						className="rounded-lg"
 						disabled={isSubmitting}
 						onClick={onConfirm}>
+						{isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{confirmButtonLabel}
 					</Button>
 				</>
