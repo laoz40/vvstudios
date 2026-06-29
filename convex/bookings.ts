@@ -361,6 +361,43 @@ export type SaveBookingInstagramHandleResult = Awaited<
 	ReturnType<typeof saveBookingInstagramHandleHandler>
 >;
 
+export const saveMultiBookingInstagramHandle = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
+	handler: saveMultiBookingInstagramHandleHandler
+});
+
+type SaveMultiBookingInstagramHandleArgs = {
+	multiBookingId: Id<"multiBookingPackages">;
+	instagramHandle: string;
+};
+
+async function saveMultiBookingInstagramHandleHandler(
+	ctx: MutationCtx,
+	args: SaveMultiBookingInstagramHandleArgs
+) {
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "paid") {
+		return err({ reason: "PACKAGE_NOT_ACTIVE" });
+	}
+
+	try {
+		await ctx.db.patch(multiBooking._id, { instagramHandle: args.instagramHandle });
+	} catch {
+		return err({ reason: "PACKAGE_INSTAGRAM_HANDLE_SAVE_FAILED" });
+	}
+
+	return ok({ saved: true });
+}
+
+export type SaveMultiBookingInstagramHandleResult = Awaited<
+	ReturnType<typeof saveMultiBookingInstagramHandleHandler>
+>;
+
 export const getBookingByIdInternal = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
@@ -375,6 +412,13 @@ export const getBookingByStripeSessionIdInternal = internalQuery({
 			.query("bookings")
 			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
 			.unique();
+	}
+});
+
+export const getMultiBookingPackageByIdInternal = internalQuery({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.multiBookingId);
 	}
 });
 

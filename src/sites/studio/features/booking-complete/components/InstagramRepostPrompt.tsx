@@ -4,17 +4,34 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
-import type { SaveBookingInstagramHandleResult } from "#convex/bookings";
+import type { Id } from "#convex/_generated/dataModel";
+import type {
+	SaveBookingInstagramHandleResult,
+	SaveMultiBookingInstagramHandleResult
+} from "#convex/bookings";
 import { tryCatch } from "#/lib/result";
+
+type InstagramRepostTarget =
+	| { kind: "booking"; stripeSessionId: string }
+	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
+
+type BookingInstagramSaveErrorReason =
+	| NonNullable<SaveBookingInstagramHandleResult[0]>["reason"]
+	| "UNEXPECTED_ERROR";
+type MultiBookingInstagramSaveErrorReason =
+	| NonNullable<SaveMultiBookingInstagramHandleResult[0]>["reason"]
+	| "UNEXPECTED_ERROR";
+
 export interface InstagramRepostPromptProps {
-	stripeSessionId: string;
+	target: InstagramRepostTarget;
 }
 
-export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPromptProps): ReactNode {
+export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): ReactNode {
 	const [instagramHandle, setInstagramHandle] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const saveBookingInstagramHandle = useMutation(api.bookings.saveBookingInstagramHandle);
+	const saveMultiBookingInstagramHandle = useMutation(api.bookings.saveMultiBookingInstagramHandle);
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
 		event.preventDefault();
@@ -27,34 +44,9 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 
 		setIsSubmitting(true);
 
-		const [error] = await tryCatch<SaveBookingInstagramHandleResult>(
-			saveBookingInstagramHandle({ stripeSessionId, instagramHandle: trimmedInstagramHandle })
-		);
+		const wasSaved = await saveInstagramHandle(trimmedInstagramHandle);
 
-		if (error !== null) {
-			switch (error.reason) {
-				case "BOOKING_NOT_FOUND":
-					toast.error("We could not find this booking. Please contact us if you need help.");
-					break;
-
-				case "BOOKING_NOT_CONFIRMED":
-					toast.error("We can only save Instagram handles for confirmed bookings.");
-					break;
-
-				case "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED":
-					toast.error("Could not save your Instagram handle. Please try again.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while saving your Instagram handle.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
+		if (!wasSaved) {
 			setIsSubmitting(false);
 			return;
 		}
@@ -62,6 +54,38 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 		setIsSubmitted(true);
 		toast.success("Thanks! We’ll keep an eye out for your post.");
 		setIsSubmitting(false);
+	}
+
+	async function saveInstagramHandle(trimmedInstagramHandle: string): Promise<boolean> {
+		if (target.kind === "multiBooking") {
+			const [error] = await tryCatch<SaveMultiBookingInstagramHandleResult>(
+				saveMultiBookingInstagramHandle({
+					instagramHandle: trimmedInstagramHandle,
+					multiBookingId: target.multiBookingId
+				})
+			);
+
+			if (error !== null) {
+				handleMultiBookingSaveError(error.reason);
+				return false;
+			}
+
+			return true;
+		}
+
+		const [error] = await tryCatch<SaveBookingInstagramHandleResult>(
+			saveBookingInstagramHandle({
+				stripeSessionId: target.stripeSessionId,
+				instagramHandle: trimmedInstagramHandle
+			})
+		);
+
+		if (error !== null) {
+			handleBookingSaveError(error.reason);
+			return false;
+		}
+
+		return true;
 	}
 
 	return (
@@ -94,4 +118,38 @@ export function InstagramRepostPrompt({ stripeSessionId }: InstagramRepostPrompt
 			</div>
 		</section>
 	);
+}
+
+function handleBookingSaveError(reason: BookingInstagramSaveErrorReason) {
+	switch (reason) {
+		case "BOOKING_NOT_FOUND":
+			toast.error("We could not find this booking. Please contact us if you need help.");
+			return;
+		case "BOOKING_NOT_CONFIRMED":
+			toast.error("We can only save Instagram handles for confirmed bookings.");
+			return;
+		case "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED":
+			toast.error("Could not save your Instagram handle. Please try again.");
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong while saving your Instagram handle.");
+			return;
+	}
+}
+
+function handleMultiBookingSaveError(reason: MultiBookingInstagramSaveErrorReason) {
+	switch (reason) {
+		case "PACKAGE_NOT_FOUND":
+			toast.error("We could not find this package request. Please contact us if you need help.");
+			return;
+		case "PACKAGE_NOT_ACTIVE":
+			toast.error("We can only save Instagram handles for active package requests.");
+			return;
+		case "PACKAGE_INSTAGRAM_HANDLE_SAVE_FAILED":
+			toast.error("Could not save your Instagram handle. Please try again.");
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong while saving your Instagram handle.");
+			return;
+	}
 }

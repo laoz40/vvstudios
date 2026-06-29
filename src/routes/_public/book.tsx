@@ -9,6 +9,7 @@ import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
 } from "#studio/components/booking/BookDevErrorPanel";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { Label } from "#/components/ui/label";
 import { BookingModeSection } from "#studio/features/booking-form/components/BookingModeSection";
 import { BookingMultiBookingPackageSection } from "#studio/features/booking-form/components/BookingMultiBookingPackageSection";
@@ -19,6 +20,7 @@ import { BookingAddonsSection } from "#studio/features/booking-form/components/B
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
+import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import {
 	bookingFormContext,
 	type BookingFormApi
@@ -100,6 +102,14 @@ function BookingPage() {
 
 		toast.error(errorMessage);
 	};
+
+	if (bookingSubmit.isSubmitting && formValues.bookingMode === "multi") {
+		return (
+			<BookingStatusLayout showActions={false}>
+				<StudioLoadingState label="Creating package request" />
+			</BookingStatusLayout>
+		);
+	}
 
 	return (
 		<main
@@ -190,8 +200,8 @@ function BookingPage() {
 								"text-base font-bold! tracking-wider",
 								"shadow-lg shadow-primary/45"
 							)}
-							disabled={bookingSubmit.isSubmitting}>
-							COMPLETE BOOKING
+							disabled={bookingSubmit.isSubmitting || bookingSubmit.hasCompletedMultiBooking}>
+							{bookingSubmit.hasCompletedMultiBooking ? "REQUEST SENT" : "COMPLETE BOOKING"}
 						</Button>
 					</div>
 				</form>

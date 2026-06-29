@@ -1,9 +1,11 @@
 import { useRef, useState, type RefObject } from "react";
 import { useAction } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
 import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import { api } from "#convex/_generated/api";
+import { studioSite } from "#/config/sites";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	bookingSchema,
@@ -11,6 +13,7 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
+	closeBookingModal,
 	openPaymentModal,
 	openTermsModal
 } from "#studio/features/booking-form/lib/booking-modal-store";
@@ -43,9 +46,16 @@ export function useBookingSubmit({
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [hasCompletedMultiBooking, setHasCompletedMultiBooking] = useState(false);
+	const isSubmittingRef = useRef(false);
 	const submitAfterTermsRef = useRef(false);
+	const navigate = useNavigate();
 
 	const handleSubmit = async (value: BookingFormValues) => {
+		if (isSubmittingRef.current || hasCompletedMultiBooking) {
+			return;
+		}
+
 		const parsedValue = bookingSchema.parse(value);
 
 		if (!submitAfterTermsRef.current) {
@@ -62,6 +72,9 @@ export function useBookingSubmit({
 
 		if (parsedValue.bookingMode === "multi") {
 			const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
+			closeBookingModal();
+
+			isSubmittingRef.current = true;
 			setIsSubmitting(true);
 
 			const [error, result] = await tryCatch<CreateMultiBookingRequestResult>(
@@ -80,6 +93,7 @@ export function useBookingSubmit({
 					packageSize: multiBookingValue.packageSize
 				})
 			);
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 
 			if (error !== null) {
@@ -88,16 +102,18 @@ export function useBookingSubmit({
 			}
 
 			persistBookingInfoFromForm(parsedValue);
-
-			if (result.invoiceEmailStatus === "failed") {
-				toast.success("Your package request was saved. Our team will follow up with the invoice.");
-				return;
-			}
-
-			toast.success("Package request received. Please check your email for the invoice.");
+			setHasCompletedMultiBooking(true);
+			await navigate({
+				to: studioSite.routes.bookingComplete,
+				search: {
+					multi_booking_id: result.multiBookingId,
+					package_size: multiBookingValue.packageSize
+				}
+			});
 			return;
 		}
 
+		isSubmittingRef.current = true;
 		setIsSubmitting(true);
 		const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
 			createEmbeddedCheckoutSession({
@@ -116,6 +132,7 @@ export function useBookingSubmit({
 				notes: parsedValue.notes
 			})
 		);
+		isSubmittingRef.current = false;
 		setIsSubmitting(false);
 		submitAfterTermsRef.current = false;
 
@@ -129,6 +146,10 @@ export function useBookingSubmit({
 	};
 
 	const handleTermsConfirm = () => {
+		if (isSubmittingRef.current || submitAfterTermsRef.current || hasCompletedMultiBooking) {
+			return;
+		}
+
 		submitAfterTermsRef.current = true;
 		formRef.current?.requestSubmit();
 	};
@@ -137,5 +158,11 @@ export function useBookingSubmit({
 		submitAfterTermsRef.current = false;
 	};
 
-	return { handleSubmit, handleTermsConfirm, isSubmitting, resetTermsSubmit };
+	return {
+		handleSubmit,
+		handleTermsConfirm,
+		hasCompletedMultiBooking,
+		isSubmitting,
+		resetTermsSubmit
+	};
 }

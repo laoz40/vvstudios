@@ -11,9 +11,11 @@ import { BookingResult } from "#studio/features/booking-complete/components/Book
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import {
 	canCreateFailedBookingRescheduleLink,
-	getBookingResultContent
+	getBookingResultContent,
+	getMultiBookingResultContent
 } from "#studio/features/booking-complete/lib/booking-result-content";
 import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 
@@ -24,7 +26,12 @@ export const Route = createFileRoute("/_public/booking-complete")({
 });
 
 function BookingCompletePage(): ReactNode {
-	const { dev_scenario: devScenario, session_id: stripeSessionId } = Route.useSearch();
+	const {
+		dev_scenario: devScenario,
+		multi_booking_id: multiBookingId,
+		package_size: packageSize,
+		session_id: stripeSessionId
+	} = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 	const usableStripeSessionId =
 		stripeSessionId && stripeSessionId !== "{CHECKOUT_SESSION_ID}" ? stripeSessionId : null;
@@ -39,6 +46,31 @@ function BookingCompletePage(): ReactNode {
 		usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null);
 	const isLoading =
 		!activeDevScenario && Boolean(usableStripeSessionId) && liveBooking === undefined;
+
+	if ((multiBookingId && packageSize) || activeDevScenario === "package_request") {
+		const previewPackageSize = packageSize ?? 8;
+		return (
+			<BookingStatusLayout
+				bookingStatus="confirmed"
+				instagramPromptTarget={{
+					kind: "multiBooking",
+					multiBookingId: (multiBookingId ??
+						"dev-multi-booking-package") as Id<"multiBookingPackages">
+				}}
+				stripeSessionId={null}>
+				<BookingResult
+					booking={null}
+					content={getMultiBookingResultContent(previewPackageSize)}
+					invoiceDownloadTarget={{
+						kind: "multiBooking",
+						multiBookingId: (multiBookingId ??
+							"dev-multi-booking-package") as Id<"multiBookingPackages">
+					}}
+					showBookingDetails={false}
+				/>
+			</BookingStatusLayout>
+		);
+	}
 
 	if (!stripeSessionId && !activeDevScenario) {
 		return (
@@ -107,7 +139,11 @@ function BookingCompletePage(): ReactNode {
 			<BookingResult
 				booking={booking}
 				content={resultContent}
-				stripeSessionId={previewStripeSessionId}
+				invoiceDownloadTarget={
+					previewStripeSessionId
+						? { kind: "booking", stripeSessionId: previewStripeSessionId }
+						: undefined
+				}
 			/>
 		</BookingStatusLayout>
 	);

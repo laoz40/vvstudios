@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Modal } from "#studio/components/Modal";
 
@@ -6,7 +5,6 @@ const dialogTitle = "Terms & Conditions";
 const dialogDescription = "Please review these terms before completing your booking.";
 const cancelButtonLabel = "Cancel";
 const confirmButtonLabel = "Agree & Book";
-const loadingLabel = "Preparing...";
 
 export const terms = [
 	{
@@ -72,14 +70,7 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 						className="rounded-lg"
 						disabled={isSubmitting}
 						onClick={onConfirm}>
-						{isSubmitting ? (
-							<span className="flex items-center justify-center gap-2">
-								<LoaderCircle className="size-4 animate-spin" />
-								<span>{loadingLabel}</span>
-							</span>
-						) : (
-							confirmButtonLabel
-						)}
+						{confirmButtonLabel}
 					</Button>
 				</>
 			}>
