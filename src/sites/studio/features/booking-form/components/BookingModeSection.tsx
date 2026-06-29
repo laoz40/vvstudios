@@ -5,8 +5,7 @@ import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	BOOKING_MODES,
-	toFieldErrorObjects,
-	type BookingFormValues
+	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getCardStateClassName,
@@ -43,7 +42,8 @@ export function BookingModeSection() {
 					<RadioGroup
 						value={field.state.value}
 						onValueChange={(value) => {
-							const bookingMode = value as BookingFormValues["bookingMode"];
+							const bookingMode = BOOKING_MODES.find((mode) => mode === value);
+							if (!bookingMode) return;
 							field.handleChange(bookingMode);
 							field.handleBlur();
 
