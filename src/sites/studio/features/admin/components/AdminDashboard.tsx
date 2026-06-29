@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
 	type ColumnFiltersState,
 	type SortingState,
@@ -16,7 +16,6 @@ import { api } from "#convex/_generated/api";
 import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import TrashIcon from "#/components/ui/trash-icon";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import {
@@ -44,6 +43,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import {
 	Sheet,
 	SheetContent,
@@ -59,6 +59,7 @@ import {
 	buildAdminDashboardColumns,
 	getColumnClassName
 } from "#studio/features/admin/components/AdminDashboardColumns";
+import { AdminPackagesDashboard } from "#studio/features/admin/components/AdminPackagesDashboard";
 import {
 	readStoredAdminDashboardSorting,
 	readStoredShowStaleBookings,
@@ -70,7 +71,7 @@ import {
 import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
 import { hasUnsentDeliverables } from "#studio/features/admin/lib/booking-edit-status";
 import { isStaleCleanupBooking } from "#studio/features/admin/lib/admin-bookings";
-import { getStartOfWeekTimestamp, isUpcomingBooking } from "#studio/lib/bookingdatetime";
+import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 
 export type AdminDashboardProps = {
@@ -81,6 +82,8 @@ export type AdminDashboardProps = {
 	loadMoreBookings: () => void;
 	signOutControl: ReactNode;
 };
+
+type AdminDashboardView = "bookings" | "packages";
 
 function AdminDashboardMenu({
 	email,
@@ -112,29 +115,6 @@ function AdminDashboardMenu({
 	);
 }
 
-function AdminStatusMetric({
-	label,
-	value,
-	variant,
-	className
-}: {
-	label: string;
-	value: string;
-	variant?: ComponentProps<typeof Badge>["variant"];
-	className?: string;
-}) {
-	return (
-		<div className="flex w-fit items-center justify-between gap-2 md:w-28 md:gap-0">
-			<Badge
-				variant={variant ?? "outline"}
-				className={cn("text-sm", className)}>
-				{label}
-			</Badge>
-			<p className="text-lg font-medium text-foreground">{value}</p>
-		</div>
-	);
-}
-
 export function AdminDashboard({
 	bookings,
 	canLoadMoreBookings,
@@ -145,6 +125,9 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
 	// Convex mutations
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
+
+	// Dashboard view
+	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 
 	// Table setup and persisted filters
 	const columns = useMemo(() => buildAdminDashboardColumns(), []);
@@ -257,36 +240,6 @@ export function AdminDashboard({
 		state: { sorting, columnFilters }
 	});
 
-	// Dashboard summary values
-	const metrics = useMemo(() => {
-		const startOfWeekTimestamp = getStartOfWeekTimestamp();
-		const counts = filteredBookings.reduce(
-			(accumulator, booking) => {
-				accumulator.total += 1;
-				accumulator[booking.status] += 1;
-				if (
-					(booking.status === "confirmed" || booking.status === "email_failed") &&
-					booking.pendingPaymentCreatedAt >= startOfWeekTimestamp
-				) {
-					accumulator.thisWeek += 1;
-				}
-				return accumulator;
-			},
-			{
-				total: 0,
-				thisWeek: 0,
-				abandoned: 0,
-				confirmed: 0,
-				email_failed: 0,
-				expired: 0,
-				failed: 0,
-				pending_payment: 0
-			}
-		);
-
-		return counts;
-	}, [filteredBookings]);
-
 	const staleCounts = useMemo(
 		() =>
 			staleCleanupBookings.reduce(
@@ -298,6 +251,12 @@ export function AdminDashboard({
 			),
 		[staleCleanupBookings]
 	);
+
+	function handleDashboardViewChange(value: string) {
+		if (value === "bookings" || value === "packages") {
+			setActiveView(value);
+		}
+	}
 
 	return (
 		<main
@@ -314,237 +273,210 @@ export function AdminDashboard({
 			</div>
 			<section className="flex flex-col gap-4 pr-14 md:gap-5 md:pr-0">
 				<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div
-						className={cn(
-							"flex flex-col gap-3",
-							"sm:flex-row sm:items-start sm:justify-between sm:gap-4",
-							"xl:items-center xl:gap-10"
-						)}>
-						<h1
-							title="It would look better if the text were bigger. What do you think, Joseph?"
-							className={cn(
-								"cursor-help",
-								"font-brand text-4xl md:text-[10rem] leading-none font-medium uppercase",
-								"text-foreground"
-							)}>
-							Bookings Dashboard
-						</h1>
-						<div className="flex flex-wrap items-start gap-x-4 gap-y-2 sm:flex-col sm:gap-2">
-							<AdminStatusMetric
-								label="Confirmed"
-								value={String(metrics.confirmed)}
-								variant="default"
-								className="bg-green text-primary-foreground"
-							/>
-							<AdminStatusMetric
-								label="Pending"
-								value={String(metrics.pending_payment)}
-								variant="secondary"
-								className="bg-primary text-primary-foreground"
-							/>
-							<AdminStatusMetric
-								label="Failed"
-								value={String(metrics.failed)}
-								variant="destructive"
-								className="bg-destructive text-primary-foreground"
-							/>
-						</div>
-					</div>
-					<div className="hidden flex-col items-start gap-3 md:flex md:items-end">
-						<p className="text-sm text-muted-foreground">Signed in as {email ?? "Unknown user"}.</p>
+					<Tabs
+						value={activeView}
+						onValueChange={handleDashboardViewChange}>
+						<TabsList variant="line">
+							<TabsTrigger value="bookings">Sessions</TabsTrigger>
+							<TabsTrigger value="packages">Packages</TabsTrigger>
+						</TabsList>
+					</Tabs>
+
+					<div className="hidden md:block">
 						<div className="flex flex-wrap items-center gap-2">
 							<AdminAvailabilitySettings />
-							{signOutControl}
+							<span title={`Signed in as ${email ?? "Unknown user"}`}>{signOutControl}</span>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4">
-				<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-						<Input
-							placeholder="Search bookings..."
-							value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-							onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
-							className="w-full md:w-sm"
-						/>
-						<div className="flex items-center justify-between gap-3 md:contents">
-							<p className="text-sm text-muted-foreground">
-								{metrics.thisWeek} {metrics.thisWeek === 1 ? "booking" : "bookings"} made this week
-							</p>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										className="md:hidden">
-										<ListFilter aria-hidden />
-										Filters
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuGroup>
-										<DropdownMenuCheckboxItem
-											checked={showStaleBookings}
-											onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
-											onSelect={(event) => event.preventDefault()}>
-											Show unconfirmed bookings
-										</DropdownMenuCheckboxItem>
-										<DropdownMenuCheckboxItem
-											checked={showUpcomingOnly}
-											onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
-											onSelect={(event) => event.preventDefault()}>
-											Show only due sessions
-										</DropdownMenuCheckboxItem>
-									</DropdownMenuGroup>
-								</DropdownMenuContent>
-							</DropdownMenu>
+			{activeView === "bookings" ? (
+				<section className="flex flex-col gap-4">
+					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+						<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+							<Input
+								placeholder="Search sessions..."
+								value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+								onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
+								className="w-full md:w-sm"
+							/>
+							<div className="flex items-center justify-end gap-3 md:contents">
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="md:hidden">
+											<ListFilter aria-hidden />
+											Filters
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuGroup>
+											<DropdownMenuCheckboxItem
+												checked={showStaleBookings}
+												onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
+												onSelect={(event) => event.preventDefault()}>
+												Show unconfirmed sessions
+											</DropdownMenuCheckboxItem>
+											<DropdownMenuCheckboxItem
+												checked={showUpcomingOnly}
+												onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
+												onSelect={(event) => event.preventDefault()}>
+												Show only due sessions
+											</DropdownMenuCheckboxItem>
+										</DropdownMenuGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						</div>
+						<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
+							<div className="flex items-center gap-2">
+								<Checkbox
+									id="show-stale-bookings"
+									checked={showStaleBookings}
+									onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
+								/>
+								<Label
+									htmlFor="show-stale-bookings"
+									className="text-sm font-medium text-foreground">
+									Show unconfirmed sessions
+								</Label>
+							</div>
+							<div className="flex items-center gap-2">
+								<Checkbox
+									id="show-upcoming-only"
+									checked={showUpcomingOnly}
+									onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
+								/>
+								<Label
+									htmlFor="show-upcoming-only"
+									className="text-sm font-medium text-foreground">
+									Show only due sessions
+								</Label>
+							</div>
 						</div>
 					</div>
-					<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
-						<div className="flex items-center gap-2">
-							<Checkbox
-								id="show-stale-bookings"
-								checked={showStaleBookings}
-								onCheckedChange={(checked) => setShowStaleBookings(checked === true)}
-							/>
-							<Label
-								htmlFor="show-stale-bookings"
-								className="text-sm font-medium text-foreground">
-								Show unconfirmed bookings
-							</Label>
-						</div>
-						<div className="flex items-center gap-2">
-							<Checkbox
-								id="show-upcoming-only"
-								checked={showUpcomingOnly}
-								onCheckedChange={(checked) => setShowUpcomingOnly(checked === true)}
-							/>
-							<Label
-								htmlFor="show-upcoming-only"
-								className="text-sm font-medium text-foreground">
-								Show only due sessions
-							</Label>
-						</div>
+
+					<div className="overflow-x-auto border-y">
+						<Table className="min-w-6xl table-fixed">
+							<TableHeader>
+								{table.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => (
+											<TableHead
+												key={header.id}
+												className={getColumnClassName(header.column.id)}>
+												{header.isPlaceholder
+													? null
+													: flexRender(header.column.columnDef.header, header.getContext())}
+											</TableHead>
+										))}
+									</TableRow>
+								))}
+							</TableHeader>
+							<TableBody>
+								{table.getRowModel().rows.length > 0 ? (
+									table.getRowModel().rows.map((row) => {
+										const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
+
+										return (
+											<TableRow
+												key={row.id}
+												className={cn(isPastBooking && "text-muted-foreground")}>
+												{row.getVisibleCells().map((cell) => (
+													<TableCell
+														key={cell.id}
+														className={cn(
+															getColumnClassName(cell.column.id),
+															isPastBooking && cell.column.id !== "editStatus" && "opacity-70"
+														)}>
+														{flexRender(cell.column.columnDef.cell, cell.getContext())}
+													</TableCell>
+												))}
+											</TableRow>
+										);
+									})
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={table.getVisibleLeafColumns().length}
+											className="h-24 text-center text-muted-foreground">
+											No bookings yet. L business.
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
 					</div>
-				</div>
 
-				<div className="overflow-x-auto border-y">
-					<Table className="min-w-6xl table-fixed">
-						<TableHeader>
-							{table.getHeaderGroups().map((headerGroup) => (
-								<TableRow key={headerGroup.id}>
-									{headerGroup.headers.map((header) => (
-										<TableHead
-											key={header.id}
-											className={getColumnClassName(header.column.id)}>
-											{header.isPlaceholder
-												? null
-												: flexRender(header.column.columnDef.header, header.getContext())}
-										</TableHead>
-									))}
-								</TableRow>
-							))}
-						</TableHeader>
-						<TableBody>
-							{table.getRowModel().rows.length > 0 ? (
-								table.getRowModel().rows.map((row) => {
-									const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
-
-									return (
-										<TableRow
-											key={row.id}
-											className={cn(isPastBooking && "text-muted-foreground")}>
-											{row.getVisibleCells().map((cell) => (
-												<TableCell
-													key={cell.id}
-													className={cn(
-														getColumnClassName(cell.column.id),
-														isPastBooking && cell.column.id !== "editStatus" && "opacity-70"
-													)}>
-													{flexRender(cell.column.columnDef.cell, cell.getContext())}
-												</TableCell>
-											))}
-										</TableRow>
-									);
-								})
-							) : (
-								<TableRow>
-									<TableCell
-										colSpan={table.getVisibleLeafColumns().length}
-										className="h-24 text-center text-muted-foreground">
-										No bookings yet. L business.
-									</TableCell>
-								</TableRow>
-							)}
-						</TableBody>
-					</Table>
-				</div>
-
-				<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
-					<div className="flex flex-wrap items-center gap-3 md:gap-6">
-						<div
-							className={cn(
-								"flex w-full items-center justify-between gap-3",
-								"md:w-auto md:justify-start md:gap-6"
-							)}>
-							<p className="text-sm text-muted-foreground">
-								Showing {table.getFilteredRowModel().rows.length}{" "}
-								{table.getFilteredRowModel().rows.length === 1 ? "booking" : "bookings"} ·{" "}
-								{bookings.length} {bookings.length === 1 ? "booking" : "bookings"} loaded
-							</p>
-							<AnimatedIconButton
-								variant="ghost"
-								size="sm"
-								className="text-sm! hover:text-destructive"
-								disabled={isCleaningUp || staleCleanupBookings.length === 0}
-								aria-label="Clean up unconfirmed bookings"
-								onClick={() => setIsCleanupDialogOpen(true)}
-								iconPosition="before"
-								renderIcon={(iconRef) => (
-									<TrashIcon
-										ref={iconRef}
-										aria-hidden
-									/>
+					<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
+						<div className="flex flex-wrap items-center gap-3 md:gap-6">
+							<div
+								className={cn(
+									"flex w-full items-center justify-between gap-3",
+									"md:w-auto md:justify-start md:gap-6"
 								)}>
-								<button type="button">
-									<span className="hidden md:inline">Clean up unconfirmed bookings</span>
-								</button>
-							</AnimatedIconButton>
+								<p className="text-sm text-muted-foreground">
+									Showing {table.getFilteredRowModel().rows.length}{" "}
+									{table.getFilteredRowModel().rows.length === 1 ? "session" : "sessions"} ·{" "}
+									{bookings.length} {bookings.length === 1 ? "session" : "sessions"} loaded
+								</p>
+								<AnimatedIconButton
+									variant="ghost"
+									size="sm"
+									className="text-sm! hover:text-destructive"
+									disabled={isCleaningUp || staleCleanupBookings.length === 0}
+									aria-label="Clean up unconfirmed bookings"
+									onClick={() => setIsCleanupDialogOpen(true)}
+									iconPosition="before"
+									renderIcon={(iconRef) => (
+										<TrashIcon
+											ref={iconRef}
+											aria-hidden
+										/>
+									)}>
+									<button type="button">
+										<span className="hidden md:inline">Clean up unconfirmed bookings</span>
+									</button>
+								</AnimatedIconButton>
+							</div>
+							{canLoadMoreBookings || isLoadingMoreBookings ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={loadMoreBookings}
+									disabled={isLoadingMoreBookings}>
+									{isLoadingMoreBookings ? "Loading..." : "Load more"}
+								</Button>
+							) : null}
 						</div>
-						{canLoadMoreBookings || isLoadingMoreBookings ? (
+						<div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
+							<p className="text-sm text-muted-foreground">
+								Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+							</p>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={loadMoreBookings}
-								disabled={isLoadingMoreBookings}>
-								{isLoadingMoreBookings ? "Loading..." : "Load more"}
+								onClick={() => table.previousPage()}
+								disabled={!table.getCanPreviousPage()}>
+								Previous
 							</Button>
-						) : null}
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => table.nextPage()}
+								disabled={!table.getCanNextPage()}>
+								Next
+							</Button>
+						</div>
 					</div>
-					<div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
-						<p className="text-sm text-muted-foreground">
-							Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-						</p>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => table.previousPage()}
-							disabled={!table.getCanPreviousPage()}>
-							Previous
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => table.nextPage()}
-							disabled={!table.getCanNextPage()}>
-							Next
-						</Button>
-					</div>
-				</div>
-			</section>
+				</section>
+			) : (
+				<AdminPackagesDashboard />
+			)}
 
 			<Dialog
 				open={isCleanupDialogOpen}

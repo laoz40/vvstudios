@@ -158,7 +158,7 @@ function AdminPageContent() {
 				<SignOutButton redirectUrl={studioSite.routes.login}>
 					<AnimatedIconButton
 						type="button"
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						iconPosition="before"
 						renderIcon={(iconRef) => (

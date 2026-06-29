@@ -139,7 +139,7 @@ export function AdminAvailabilitySettings() {
 			<DialogTrigger asChild>
 				<AnimatedIconButton
 					type="button"
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					iconPosition="before"
 					renderIcon={(iconRef) => (
