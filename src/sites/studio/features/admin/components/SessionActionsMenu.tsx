@@ -230,7 +230,7 @@ export function SessionActionsMenu({
 						{details.isConfirmedBooking ? (
 							<>
 								<AnimatedDropdownMenuItem
-									onClick={() => navigator.clipboard.writeText(details.customerBookingId)}
+									onSelect={() => navigator.clipboard.writeText(details.customerBookingId)}
 									renderIcon={(iconRef) => (
 										<HashtagIcon
 											ref={iconRef}
@@ -242,7 +242,7 @@ export function SessionActionsMenu({
 									Copy invoice number
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
-									onClick={() => navigator.clipboard.writeText(String(booking._id))}
+									onSelect={() => navigator.clipboard.writeText(String(booking._id))}
 									renderIcon={(iconRef) => (
 										<Stack3Icon
 											ref={iconRef}
@@ -309,7 +309,7 @@ export function SessionActionsMenu({
 							</>
 						) : (
 							<AnimatedDropdownMenuItem
-								onClick={() => navigator.clipboard.writeText(String(booking._id))}
+								onSelect={() => navigator.clipboard.writeText(String(booking._id))}
 								renderIcon={(iconRef) => (
 									<Stack3Icon
 										ref={iconRef}

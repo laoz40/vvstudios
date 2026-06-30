@@ -475,7 +475,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent className="w-60 touch-manipulation">
 							<AnimatedDropdownMenuItem
-								onClick={() => navigator.clipboard.writeText(invoiceNumber)}
+								onSelect={() => navigator.clipboard.writeText(invoiceNumber)}
 								renderIcon={(iconRef) => (
 									<HashtagIcon
 										ref={iconRef}
@@ -487,7 +487,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 								Copy invoice number
 							</AnimatedDropdownMenuItem>
 							<AnimatedDropdownMenuItem
-								onClick={() => navigator.clipboard.writeText(String(packageRow.id))}
+								onSelect={() => navigator.clipboard.writeText(String(packageRow.id))}
 								renderIcon={(iconRef) => (
 									<Stack3Icon
 										ref={iconRef}
