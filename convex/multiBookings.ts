@@ -287,7 +287,6 @@ type RetryMultiBookingSchedulingEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
 
-
 export const retryMultiBookingSchedulingEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
 	handler: (ctx, args) => retryMultiBookingSchedulingEmailHandler(ctx, args)

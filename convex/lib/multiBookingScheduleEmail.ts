@@ -39,7 +39,7 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
 	}
 
-	// Email was sent successfully, so record the successful status on the package.
+	// Known edge case: see convex/googleCalendar.ts:573.
 	const [statusUpdateError] = await ctx.runMutation(
 		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
 		{ multiBookingId: args.multiBookingId, status: "sent" }

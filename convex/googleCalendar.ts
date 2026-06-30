@@ -467,6 +467,7 @@ async function rescheduleBookingHandler(
 	};
 
 	// Create a fresh reschedule link, then send the updated booking emails.
+	// Known edge case: see convex/googleCalendar.ts:573.
 	const [linkCreateError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, updatedBooking);
 
 	if (linkCreateError !== null) {
@@ -569,6 +570,10 @@ async function sendBookingInvoiceForBookingHandler(
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
+	// Known edge case: the email can send successfully, then this final Convex write can fail.
+	// A retry creates a new link, which makes the link in the first email stop working.
+	// We accept this because it needs a very specific failure after the email is already sent,
+	// and the admin can send the customer the newest email/link if it ever happens.
 	try {
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
 			bookingId: booking._id
@@ -723,6 +728,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		googleCalendarId: calendarClient.calendarId
 	});
 
+	// Known edge case: see convex/googleCalendar.ts:573.
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 
 	if (linkError !== null) {
