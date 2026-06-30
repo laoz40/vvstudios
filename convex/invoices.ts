@@ -93,6 +93,10 @@ async function getMultiBookingInvoicePdfByIdHandler(
 		return err({ reason: "PACKAGE_INVOICE_NOT_AVAILABLE" });
 	}
 
+	if (Date.now() - multiBooking.createdAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
+		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
+	}
+
 	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking);
 
 	if (artifactsError !== null) {

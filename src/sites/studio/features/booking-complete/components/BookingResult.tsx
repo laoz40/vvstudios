@@ -209,6 +209,11 @@ function handleMultiBookingInvoiceError(reason: MultiBookingInvoiceErrorReason) 
 		case "PACKAGE_INVOICE_NOT_AVAILABLE":
 			toast.error("Invoice is not available for this package request.");
 			return;
+		case "INVOICE_DOWNLOAD_EXPIRED":
+			toast.error(
+				"Download link expired. Your invoice should be in your email — please check there."
+			);
+			return;
 		case "INVALID_BOOKING_DATA":
 			toast.error("Unable to generate invoice.");
 			return;
