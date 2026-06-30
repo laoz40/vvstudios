@@ -13,20 +13,19 @@ import type {
 	RefreshPackageScheduleTokenInternalResult
 } from "./bookings";
 import { env } from "./env";
-import { sendMultiBookingInvoiceEmail, sendMultiBookingScheduleEmail } from "./lib/email";
+import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { getAdminIdentity } from "./lib/auth";
+import {
+	buildMultiBookingScheduleUrl,
+	sendAndRecordMultiBookingScheduleEmail
+} from "./lib/multiBookingScheduleEmail";
 
 type PendingMultiBookingCreationResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
 	{ reason: "PACKAGE_CREATE_FAILED" }
 >;
-
-function buildMultiBookingScheduleUrl(baseUrl: string, token: string) {
-	const url = new URL(`/multi-booking/${encodeURIComponent(token)}`, baseUrl);
-	return url.toString();
-}
 
 export const createMultiBookingRequest = action({
 	args: {
@@ -105,6 +104,7 @@ async function createMultiBookingRequestHandler(
 		packageSize: multiBooking.packageSize,
 		service: multiBooking.service
 	});
+
 	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
 		await ctx.runMutation(internal.bookings.createPendingMultiBooking, {
 			name: multiBooking.name,
@@ -221,16 +221,6 @@ type ConfirmPackagePaymentError =
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" };
 
-type RetryMultiBookingSchedulingEmailError =
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
-	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
-
 export const confirmPackagePayment = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
 	handler: (ctx, args) => confirmPackagePaymentHandler(ctx, args)
@@ -261,41 +251,42 @@ async function confirmPackagePaymentHandler(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		paymentResult.token
 	);
-	const [scheduleEmailError] = await sendMultiBookingScheduleEmail({
-		addons: paymentResult.multiBooking.addons,
-		clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
-		duration: paymentResult.multiBooking.duration,
-		email: paymentResult.multiBooking.email,
-		essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
-		expiresAt: paymentResult.expiresAt,
-		name: paymentResult.multiBooking.name,
-		packageSize: paymentResult.multiBooking.packageSize,
-		scheduleUrl,
-		service: paymentResult.multiBooking.service
+
+	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
+		multiBookingId: args.multiBookingId,
+		email: {
+			addons: paymentResult.multiBooking.addons,
+			clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
+			duration: paymentResult.multiBooking.duration,
+			email: paymentResult.multiBooking.email,
+			essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
+			expiresAt: paymentResult.expiresAt,
+			name: paymentResult.multiBooking.name,
+			packageSize: paymentResult.multiBooking.packageSize,
+			scheduleUrl,
+			service: paymentResult.multiBooking.service
+		}
 	});
 
 	if (scheduleEmailError !== null) {
-		await ctx.runMutation(internal.bookings.markMultiBookingScheduleEmailAttemptInternal, {
-			multiBookingId: args.multiBookingId,
-			status: "failed"
-		});
-
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
-	}
-
-	const [statusUpdateError] = await ctx.runMutation(
-		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
-		{ multiBookingId: args.multiBookingId, status: "sent" }
-	);
-
-	if (statusUpdateError !== null) {
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+		return err(scheduleEmailError);
 	}
 
 	return ok({ paid: true, scheduleEmailStatus: "sent" as const });
 }
 
 export type ConfirmPackagePaymentResult = Awaited<ReturnType<typeof confirmPackagePaymentHandler>>;
+
+type RetryMultiBookingSchedulingEmailError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
+	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
+
 
 export const retryMultiBookingSchedulingEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
@@ -325,35 +316,25 @@ async function retryMultiBookingSchedulingEmailHandler(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		tokenResult.token
 	);
-	const [scheduleEmailError] = await sendMultiBookingScheduleEmail({
-		addons: tokenResult.multiBooking.addons,
-		clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
-		duration: tokenResult.multiBooking.duration,
-		email: tokenResult.multiBooking.email,
-		essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
-		expiresAt: tokenResult.expiresAt,
-		name: tokenResult.multiBooking.name,
-		packageSize: tokenResult.multiBooking.packageSize,
-		scheduleUrl,
-		service: tokenResult.multiBooking.service
+
+	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
+		multiBookingId: args.multiBookingId,
+		email: {
+			addons: tokenResult.multiBooking.addons,
+			clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
+			duration: tokenResult.multiBooking.duration,
+			email: tokenResult.multiBooking.email,
+			essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
+			expiresAt: tokenResult.expiresAt,
+			name: tokenResult.multiBooking.name,
+			packageSize: tokenResult.multiBooking.packageSize,
+			scheduleUrl,
+			service: tokenResult.multiBooking.service
+		}
 	});
 
 	if (scheduleEmailError !== null) {
-		await ctx.runMutation(internal.bookings.markMultiBookingScheduleEmailAttemptInternal, {
-			multiBookingId: args.multiBookingId,
-			status: "failed"
-		});
-
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
-	}
-
-	const [statusUpdateError] = await ctx.runMutation(
-		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
-		{ multiBookingId: args.multiBookingId, status: "sent" }
-	);
-
-	if (statusUpdateError !== null) {
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+		return err(scheduleEmailError);
 	}
 
 	return ok({ sent: true });

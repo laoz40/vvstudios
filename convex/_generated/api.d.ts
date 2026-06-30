@@ -34,6 +34,7 @@ import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_googleCalendarEvents from "../lib/googleCalendarEvents.js";
 import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
+import type * as lib_multiBookingScheduleEmail from "../lib/multiBookingScheduleEmail.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as multiBookings from "../multiBookings.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
   "lib/googleCalendarEvents": typeof lib_googleCalendarEvents;
   "lib/googleDriveLinks": typeof lib_googleDriveLinks;
+  "lib/multiBookingScheduleEmail": typeof lib_multiBookingScheduleEmail;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   multiBookings: typeof multiBookings;
