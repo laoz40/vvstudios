@@ -89,10 +89,6 @@ async function getMultiBookingInvoicePdfByIdHandler(
 		return err({ reason: "PACKAGE_NOT_FOUND" });
 	}
 
-	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "invoice_email_failed") {
-		return err({ reason: "PACKAGE_INVOICE_NOT_AVAILABLE" });
-	}
-
 	if (Date.now() - multiBooking.createdAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
 	}
