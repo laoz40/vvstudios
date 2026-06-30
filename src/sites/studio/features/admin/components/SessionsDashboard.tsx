@@ -1,16 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-	type ColumnFiltersState,
-	type SortingState,
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable
-} from "@tanstack/react-table";
 import { useMutation } from "convex/react";
-import { ListFilter, Menu } from "lucide-react";
+import { ArrowDown, ArrowUp, ListFilter, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
@@ -18,6 +8,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import TrashIcon from "#/components/ui/trash-icon";
 import { Button } from "#/components/ui/button";
+import { Badge } from "#/components/ui/badge";
 import { Checkbox } from "#/components/ui/checkbox";
 import {
 	DropdownMenu,
@@ -56,10 +47,12 @@ import {
 import { cn } from "#/lib/utils";
 import { tryCatch } from "#/lib/result";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
+import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import {
-	buildSessionsDashboardColumns,
-	getColumnClassName
-} from "#studio/features/admin/components/SessionsDashboardColumns";
+	CopyableText,
+	customerFilter,
+	formatInstagramHandle
+} from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackagesDashboard } from "#studio/features/admin/components/PackagesDashboard";
 import {
 	readStoredSessionsDashboardSorting,
@@ -69,10 +62,32 @@ import {
 	storeShowStaleBookings,
 	storeShowUpcomingOnly
 } from "#studio/features/admin/lib/sessions-dashboard-preferences";
-import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
-import { hasUnsentDeliverables } from "#studio/features/admin/lib/booking-edit-status";
+import {
+	formatAudAmount,
+	getRemainingBalanceAmount,
+	hasUnpaidRemainingBalance
+} from "#studio/features/admin/lib/remaining-balance";
+import {
+	bookingStatusBadgeClassNameMap,
+	bookingStatusBadgeVariantMap,
+	bookingStatusLabelMap,
+	deliverableStatusBadgeClassNameMap,
+	deliverableStatusBadgeVariantMap,
+	deliverableStatusLabelMap,
+	getDeliverableStatus,
+	hasUnsentDeliverables,
+	isDeliverableSession
+} from "#studio/features/admin/lib/booking-edit-status";
 import { isStaleCleanupBooking } from "#studio/features/admin/lib/admin-bookings";
-import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import {
+	formatBookingDateMedium,
+	formatBookingRelativeDate,
+	formatBookingTimestamp,
+	formatBookingTimeLabel,
+	getBookingStartTimestamp,
+	isUpcomingBooking
+} from "#studio/lib/bookingdatetime";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 
 export type SessionsDashboardProps = {
@@ -139,9 +154,17 @@ export function SessionsDashboard({
 	const [activeView, setActiveView] = useState<DashboardView>("sessions");
 
 	// Table setup and persisted filters
-	const columns = useMemo(() => buildSessionsDashboardColumns(), []);
-	const [sorting, setSorting] = useState<SortingState>(() => readStoredSessionsDashboardSorting());
-	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	type SessionSortId = "name" | "session" | "createdAt";
+	type SessionSorting = { id: SessionSortId; desc: boolean }[];
+
+	const [sorting, setSorting] = useState<SessionSorting>(() => {
+		return readStoredSessionsDashboardSorting().filter(
+			(sort): sort is SessionSorting[number] =>
+				sort.id === "name" || sort.id === "session" || sort.id === "createdAt"
+		);
+	});
+	const [searchQuery, setSearchQuery] = useState("");
+	const [pageIndex, setPageIndex] = useState(0);
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
 	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
 
@@ -170,9 +193,18 @@ export function SessionsDashboard({
 		storeShowStaleBookings(showStaleBookings);
 	}, [showStaleBookings]);
 
+	// Reset pagination when visible rows change.
+	useEffect(() => {
+		setPageIndex(0);
+	}, [searchQuery, showStaleBookings, showUpcomingOnly]);
+
 	// Visible booking rows after dashboard-level filters.
 	const filteredBookings = useMemo(() => {
 		return bookings.filter((booking) => {
+			if (!customerFilter({ original: booking }, searchQuery)) {
+				return false;
+			}
+
 			if (
 				showUpcomingOnly &&
 				!isUpcomingBooking(booking.date, booking.time) &&
@@ -188,7 +220,80 @@ export function SessionsDashboard({
 
 			return true;
 		});
-	}, [bookings, showStaleBookings, showUpcomingOnly]);
+	}, [bookings, searchQuery, showStaleBookings, showUpcomingOnly]);
+
+	const sortedBookings = useMemo(() => {
+		const activeSort = sorting[0];
+
+		if (!activeSort) {
+			return filteredBookings;
+		}
+
+		return [...filteredBookings].sort((firstBooking, secondBooking) => {
+			let comparison = 0;
+
+			switch (activeSort.id) {
+				case "name":
+					comparison = firstBooking.name.localeCompare(secondBooking.name);
+					break;
+
+				case "session":
+					comparison =
+						getBookingStartTimestamp(firstBooking.date, firstBooking.time) -
+						getBookingStartTimestamp(secondBooking.date, secondBooking.time);
+					break;
+
+				case "createdAt":
+					comparison = firstBooking.pendingPaymentCreatedAt - secondBooking.pendingPaymentCreatedAt;
+					break;
+
+				default: {
+					const _exhaustive: never = activeSort.id;
+					return _exhaustive;
+				}
+			}
+
+			return activeSort.desc ? -comparison : comparison;
+		});
+	}, [filteredBookings, sorting]);
+
+	const pageSize = 12;
+	const pageCount = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
+	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+
+	function updateSorting(id: SessionSortId) {
+		setSorting((currentSorting) => {
+			const currentSort = currentSorting[0];
+
+			if (currentSort?.id === id) {
+				return [{ id, desc: !currentSort.desc }];
+			}
+
+			return [{ id, desc: false }];
+		});
+	}
+
+	function renderSortButton(label: string, id: SessionSortId) {
+		const activeSort = sorting[0];
+		const isActive = activeSort?.id === id;
+		const SortIcon = activeSort?.desc ? ArrowDown : ArrowUp;
+
+		return (
+			<Button
+				variant="ghost"
+				className={cn(
+					"px-0!",
+					isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+				)}
+				onClick={() => updateSorting(id)}>
+				<span>{label}</span>
+				<SortIcon
+					data-icon="inline-end"
+					className={cn(isActive ? "opacity-100" : "opacity-60")}
+				/>
+			</Button>
+		);
+	}
 
 	// Cleanup actions
 	async function handleCleanupOldBookings() {
@@ -234,20 +339,6 @@ export function SessionsDashboard({
 		);
 		setIsCleaningUp(false);
 	}
-
-	// React table instance
-	const table = useReactTable({
-		data: filteredBookings,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		onSortingChange: setSorting,
-		onColumnFiltersChange: setColumnFilters,
-		initialState: { pagination: { pageSize: 12 } },
-		state: { sorting, columnFilters }
-	});
 
 	const staleCounts = useMemo(
 		() =>
@@ -306,8 +397,8 @@ export function SessionsDashboard({
 						<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 							<Input
 								placeholder="Search sessions..."
-								value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-								onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
+								value={searchQuery}
+								onChange={(event) => setSearchQuery(event.target.value)}
 								className="w-full md:w-sm"
 							/>
 							<div className="flex items-center justify-end gap-3 md:contents">
@@ -372,46 +463,181 @@ export function SessionsDashboard({
 					<div className="overflow-x-auto border-y">
 						<Table className="min-w-6xl table-fixed">
 							<TableHeader>
-								{table.getHeaderGroups().map((headerGroup) => (
-									<TableRow key={headerGroup.id}>
-										{headerGroup.headers.map((header) => (
-											<TableHead
-												key={header.id}
-												className={getColumnClassName(header.column.id)}>
-												{header.isPlaceholder
-													? null
-													: flexRender(header.column.columnDef.header, header.getContext())}
-											</TableHead>
-										))}
-									</TableRow>
-								))}
+								<TableRow>
+									<TableHead className="w-36">{renderSortButton("Customer", "name")}</TableHead>
+									<TableHead className="w-24 md:w-16">Status</TableHead>
+									<TableHead className="w-28 md:w-16">
+										{renderSortButton("Session", "session")}
+									</TableHead>
+									<TableHead className="w-44">Service</TableHead>
+									<TableHead className="w-56 md:w-36">Contact</TableHead>
+									<TableHead className="w-56">Notes</TableHead>
+									<TableHead className="w-16 md:w-8">Due</TableHead>
+									<TableHead className="w-24 md:w-16">Deliverables</TableHead>
+									<TableHead className="w-36 md:w-20">
+										{renderSortButton("Created", "createdAt")}
+									</TableHead>
+									<TableHead className="w-12 md:w-6" />
+								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{table.getRowModel().rows.length > 0 ? (
-									table.getRowModel().rows.map((row) => {
-										const isPastBooking = !isUpcomingBooking(row.original.date, row.original.time);
+								{paginatedBookings.length > 0 ? (
+									paginatedBookings.map((booking) => {
+										const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
+										const relativeDateLabel = formatBookingRelativeDate(booking.date);
+										const isRemainingBalancePaid = booking.paidRemainingBalance === true;
+										const remainingBalanceLabel = formatAudAmount(
+											getRemainingBalanceAmount(booking)
+										);
+										const showRemainingBalance =
+											booking.status === "confirmed" || booking.status === "email_failed";
+										const deliverableStatus = isDeliverableSession(booking)
+											? getDeliverableStatus(booking)
+											: null;
 
 										return (
 											<TableRow
-												key={row.id}
+												key={booking._id}
 												className={cn(isPastBooking && "text-muted-foreground")}>
-												{row.getVisibleCells().map((cell) => (
-													<TableCell
-														key={cell.id}
-														className={cn(
-															getColumnClassName(cell.column.id),
-															isPastBooking && cell.column.id !== "editStatus" && "opacity-70"
-														)}>
-														{flexRender(cell.column.columnDef.cell, cell.getContext())}
-													</TableCell>
-												))}
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<div className="flex flex-col gap-1 whitespace-normal">
+														<p className="font-medium">
+															<CopyableText
+																value={booking.name}
+																label="customer name">
+																{booking.name}
+															</CopyableText>
+														</p>
+														{booking.accountName || booking.abn ? (
+															<p className="text-sm">
+																{booking.accountName ? (
+																	<CopyableText
+																		value={booking.accountName}
+																		label="account name">
+																		{booking.accountName}
+																	</CopyableText>
+																) : null}
+																{booking.abn ? (
+																	<>
+																		{booking.accountName ? " · " : ""}
+																		<CopyableText
+																			value={booking.abn}
+																			label="ABN">
+																			{booking.abn}
+																		</CopyableText>
+																	</>
+																) : null}
+															</p>
+														) : null}
+													</div>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<Badge
+														variant={bookingStatusBadgeVariantMap[booking.status]}
+														className={bookingStatusBadgeClassNameMap[booking.status]}>
+														{bookingStatusLabelMap[booking.status]}
+													</Badge>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<div
+														className="flex cursor-help flex-col gap-1 whitespace-normal"
+														title={relativeDateLabel}>
+														<p className="font-medium">{formatBookingDateMedium(booking.date)}</p>
+														<p className="text-sm">
+															{formatBookingTimeLabel(booking.time)}
+															{booking.duration ? ` · ${booking.duration}` : ""}
+														</p>
+													</div>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
+														<p className="font-medium">{booking.service}</p>
+														{booking.addons.length > 0 ? (
+															<div className="flex flex-wrap gap-1">
+																{booking.addons.map((addon) => (
+																	<Badge
+																		key={addon}
+																		variant="outline">
+																		{formatEditingAddonLabel(addon, booking)}
+																	</Badge>
+																))}
+															</div>
+														) : (
+															<p className="text-sm text-muted-foreground">No add-ons</p>
+														)}
+													</div>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<div className="flex flex-col gap-1 whitespace-normal">
+														<p className="break-all font-medium">
+															<CopyableText
+																value={booking.email}
+																label="email">
+																{booking.email}
+															</CopyableText>
+														</p>
+														<p className="text-sm">
+															{booking.phone ? (
+																<CopyableText
+																	value={booking.phone}
+																	label="phone number">
+																	{booking.phone}
+																</CopyableText>
+															) : (
+																<span>No phone provided</span>
+															)}
+															{booking.instagramHandle ? (
+																<>
+																	{" · "}
+																	<CopyableText
+																		value={formatInstagramHandle(booking.instagramHandle)}
+																		label="Instagram handle">
+																		{formatInstagramHandle(booking.instagramHandle)}
+																	</CopyableText>
+																</>
+															) : null}
+														</p>
+													</div>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<p className="whitespace-normal text-sm text-muted-foreground">
+														{booking.notes?.trim() || "No notes"}
+													</p>
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													{showRemainingBalance ? (
+														<p
+															className={
+																isRemainingBalancePaid ? "text-green" : "text-destructive"
+															}>
+															{remainingBalanceLabel}
+														</p>
+													) : null}
+												</TableCell>
+												<TableCell>
+													{deliverableStatus ? (
+														<Badge
+															variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+															className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+															{deliverableStatusLabelMap[deliverableStatus]}
+														</Badge>
+													) : null}
+												</TableCell>
+												<TableCell className={cn(isPastBooking && "opacity-70")}>
+													<p className="min-w-44 font-medium whitespace-normal">
+														{formatBookingTimestamp(booking.pendingPaymentCreatedAt)}
+													</p>
+												</TableCell>
+												<TableCell>
+													<SessionActions booking={booking} />
+												</TableCell>
 											</TableRow>
 										);
 									})
 								) : (
 									<TableRow>
 										<TableCell
-											colSpan={table.getVisibleLeafColumns().length}
+											colSpan={10}
 											className="h-24 text-center text-muted-foreground">
 											No bookings yet. L business.
 										</TableCell>
@@ -429,9 +655,9 @@ export function SessionsDashboard({
 									"md:w-auto md:justify-start md:gap-6"
 								)}>
 								<p className="text-sm text-muted-foreground">
-									Showing {table.getFilteredRowModel().rows.length}{" "}
-									{table.getFilteredRowModel().rows.length === 1 ? "session" : "sessions"} ·{" "}
-									{bookings.length} {bookings.length === 1 ? "session" : "sessions"} loaded
+									Showing {filteredBookings.length}{" "}
+									{filteredBookings.length === 1 ? "session" : "sessions"} · {bookings.length}{" "}
+									{bookings.length === 1 ? "session" : "sessions"} loaded
 								</p>
 								<AnimatedIconButton
 									variant="ghost"
@@ -464,20 +690,24 @@ export function SessionsDashboard({
 						</div>
 						<div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
 							<p className="text-sm text-muted-foreground">
-								Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+								Page {pageIndex + 1} of {pageCount}
 							</p>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => table.previousPage()}
-								disabled={!table.getCanPreviousPage()}>
+								onClick={() =>
+									setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1))
+								}
+								disabled={pageIndex === 0}>
 								Previous
 							</Button>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => table.nextPage()}
-								disabled={!table.getCanNextPage()}>
+								onClick={() =>
+									setPageIndex((currentPageIndex) => Math.min(pageCount - 1, currentPageIndex + 1))
+								}
+								disabled={pageIndex >= pageCount - 1}>
 								Next
 							</Button>
 						</div>

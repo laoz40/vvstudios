@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
@@ -125,20 +125,21 @@ export function PackagesDashboard({
 		hideEmailIssues: false,
 		searchQuery: ""
 	});
+	const [isCreatedSortDescending, setIsCreatedSortDescending] = useState(true);
 
-	// Visible package rows after dashboard-level filters. The backend returns newest first.
+	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
 		const rows = packages.map(mapPackageToAdminRow);
 		return filterAdminPackages(rows, filters).sort((firstPackage, secondPackage) => {
 			const createdComparison = firstPackage.createdAt - secondPackage.createdAt;
 
 			if (createdComparison !== 0) {
-				return -createdComparison;
+				return isCreatedSortDescending ? -createdComparison : createdComparison;
 			}
 
 			return firstPackage.customerName.localeCompare(secondPackage.customerName);
 		});
-	}, [filters, packages]);
+	}, [filters, isCreatedSortDescending, packages]);
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
 		setFilters((currentFilters) => ({ ...currentFilters, [key]: checked }));
@@ -189,26 +190,34 @@ export function PackagesDashboard({
 				<Table className="min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-44">Customer</TableHead>
+							<TableHead className="w-42">Customer</TableHead>
 							<TableHead className="w-28">Status</TableHead>
-							<TableHead className="w-28">Package</TableHead>
+							<TableHead className="w-20">Package</TableHead>
 							<TableHead className="w-44">Service</TableHead>
-							<TableHead className="w-44">Contact</TableHead>
-							<TableHead className="w-54">Notes</TableHead>
+							<TableHead className="w-40">Contact</TableHead>
+							<TableHead className="w-48">Notes</TableHead>
 							<TableHead className="w-28">Due / Expiry</TableHead>
-							<TableHead className="w-24">Amount</TableHead>
-							<TableHead className="w-32">
+							<TableHead className="w-20">Amount</TableHead>
+							<TableHead className="w-28">
 								<Button
 									variant="ghost"
-									className="px-0! text-foreground">
+									className="px-0! text-foreground"
+									onClick={() => setIsCreatedSortDescending((isDescending) => !isDescending)}>
 									<span>Created</span>
-									<ArrowDown
-										data-icon="inline-end"
-										className="opacity-100"
-									/>
+									{isCreatedSortDescending ? (
+										<ArrowDown
+											data-icon="inline-end"
+											className="opacity-100"
+										/>
+									) : (
+										<ArrowUp
+											data-icon="inline-end"
+											className="opacity-100"
+										/>
+									)}
 								</Button>
 							</TableHead>
-							<TableHead className="w-6" />
+							<TableHead className="w-8" />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
