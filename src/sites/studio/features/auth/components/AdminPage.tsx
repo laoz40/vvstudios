@@ -1,15 +1,18 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
-import { Image } from "@unpic/react";
+import { useState } from "react";
 import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import HomeIcon from "#/components/ui/home-icon";
 import LogoutIcon from "#/components/ui/logout-icon";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
-import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
-import { SessionsDashboard } from "#studio/features/admin/components/SessionsDashboard";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { StudioErrorPage } from "#studio/components/StudioErrorPage";
+import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
+import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
+import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
+import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 
 const ADMIN_PAGE_SIZE = 500;
 
@@ -81,28 +84,11 @@ function AdminLoadingState({ label }: { label: string }) {
 
 function AdminForbiddenPage() {
 	return (
-		<main className="px-6 text-center md:px-10">
-			<div className="mx-auto flex max-w-3xl flex-col items-center gap-8">
-				<Image
-					src={logoAnimatedYellow}
-					alt="VV Studios"
-					width={200}
-					height={200}
-					layout="fixed"
-					loading="eager"
-					className="size-[50vh] shrink-0"
-				/>
-
-				<div className="space-y-4">
-					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-						Admin access required.
-					</h1>
-					<p className="mx-auto max-w-xl text-base text-muted-foreground">
-						This account does not have permission to view the admin dashboard.
-					</p>
-				</div>
-
-				<div className="flex flex-col gap-3 sm:flex-row">
+		<StudioErrorPage
+			title="Admin access required."
+			description="This account does not have permission to view the admin dashboard."
+			actions={
+				<>
 					<AnimatedIconButton
 						size="lg"
 						iconPosition="before"
@@ -128,9 +114,9 @@ function AdminForbiddenPage() {
 							<button type="button">Sign out</button>
 						</AnimatedIconButton>
 					</SignOutButton>
-				</div>
-			</div>
-		</main>
+				</>
+			}
+		/>
 	);
 }
 
@@ -146,6 +132,7 @@ function AdminPageContent() {
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const { user } = useUser();
+	const [activeView, setActiveView] = useState<AdminDashboardView>("sessions");
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
 	if (bookings.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
@@ -153,33 +140,25 @@ function AdminPageContent() {
 	}
 
 	return (
-		<SessionsDashboard
-			bookings={bookings.results}
-			canLoadMoreBookings={bookings.status === "CanLoadMore"}
-			canLoadMorePackages={packages.status === "CanLoadMore"}
+		<AdminDashboardShell
+			activeView={activeView}
 			email={email ?? null}
-			isLoadingMoreBookings={bookings.status === "LoadingMore"}
-			isLoadingMorePackages={packages.status === "LoadingMore"}
-			loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
-			loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
-			packages={packages.results}
-			signOutControl={
-				<SignOutButton redirectUrl={studioSite.routes.login}>
-					<AnimatedIconButton
-						type="button"
-						variant="ghost"
-						size="sm"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<LogoutIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<button type="button">Sign out</button>
-					</AnimatedIconButton>
-				</SignOutButton>
-			}
-		/>
+			onActiveViewChange={setActiveView}>
+			{activeView === "sessions" ? (
+				<SessionsTable
+					bookings={bookings.results}
+					canLoadMoreBookings={bookings.status === "CanLoadMore"}
+					isLoadingMoreBookings={bookings.status === "LoadingMore"}
+					loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
+				/>
+			) : (
+				<PackagesTable
+					packages={packages.results}
+					canLoadMorePackages={packages.status === "CanLoadMore"}
+					isLoadingMorePackages={packages.status === "LoadingMore"}
+					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+				/>
+			)}
+		</AdminDashboardShell>
 	);
 }

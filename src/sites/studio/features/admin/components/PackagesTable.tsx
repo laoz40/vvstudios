@@ -42,34 +42,7 @@ const statusBadgeClassNames: Record<AdminPackageStatus, string> = {
 	schedule_email_failed: "bg-destructive text-primary-foreground"
 };
 
-function PackageFilterCheckbox({
-	checked,
-	id,
-	label,
-	onCheckedChange
-}: {
-	checked: boolean;
-	id: string;
-	label: string;
-	onCheckedChange: (checked: boolean) => void;
-}) {
-	return (
-		<div className="flex items-center gap-2">
-			<Checkbox
-				id={id}
-				checked={checked}
-				onCheckedChange={(nextChecked) => onCheckedChange(nextChecked === true)}
-			/>
-			<Label
-				htmlFor={id}
-				className="text-sm font-medium text-foreground">
-				{label}
-			</Label>
-		</div>
-	);
-}
-
-function PackageDashboardDateCell({
+function PackageTableDateCell({
 	isOverdue,
 	packageRow
 }: {
@@ -106,7 +79,7 @@ function PackageDashboardDateCell({
 	}
 }
 
-export function PackagesDashboard({
+export function PackagesTable({
 	canLoadMorePackages,
 	isLoadingMorePackages,
 	loadMorePackages,
@@ -159,30 +132,54 @@ export function PackagesDashboard({
 					className="w-full md:w-sm"
 				/>
 				<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
-					<PackageFilterCheckbox
-						id="hide-paid-packages"
-						label="Hide paid"
-						checked={filters.hidePaid}
-						onCheckedChange={(checked) => updateFilter("hidePaid", checked)}
-					/>
-					<PackageFilterCheckbox
-						id="hide-overdue-packages"
-						label="Hide overdue"
-						checked={filters.hideOverdue}
-						onCheckedChange={(checked) => updateFilter("hideOverdue", checked)}
-					/>
-					<PackageFilterCheckbox
-						id="hide-hidden-packages"
-						label="Hide archived"
-						checked={filters.hideHidden}
-						onCheckedChange={(checked) => updateFilter("hideHidden", checked)}
-					/>
-					<PackageFilterCheckbox
-						id="hide-email-issue-packages"
-						label="Hide errors"
-						checked={filters.hideEmailIssues}
-						onCheckedChange={(checked) => updateFilter("hideEmailIssues", checked)}
-					/>
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="hide-paid-packages"
+							checked={filters.hidePaid}
+							onCheckedChange={(checked) => updateFilter("hidePaid", checked === true)}
+						/>
+						<Label
+							htmlFor="hide-paid-packages"
+							className="text-sm font-medium text-foreground">
+							Hide paid
+						</Label>
+					</div>
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="hide-overdue-packages"
+							checked={filters.hideOverdue}
+							onCheckedChange={(checked) => updateFilter("hideOverdue", checked === true)}
+						/>
+						<Label
+							htmlFor="hide-overdue-packages"
+							className="text-sm font-medium text-foreground">
+							Hide overdue
+						</Label>
+					</div>
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="hide-hidden-packages"
+							checked={filters.hideHidden}
+							onCheckedChange={(checked) => updateFilter("hideHidden", checked === true)}
+						/>
+						<Label
+							htmlFor="hide-hidden-packages"
+							className="text-sm font-medium text-foreground">
+							Hide archived
+						</Label>
+					</div>
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="hide-email-issue-packages"
+							checked={filters.hideEmailIssues}
+							onCheckedChange={(checked) => updateFilter("hideEmailIssues", checked === true)}
+						/>
+						<Label
+							htmlFor="hide-email-issue-packages"
+							className="text-sm font-medium text-foreground">
+							Hide errors
+						</Label>
+					</div>
 				</div>
 			</div>
 
@@ -279,7 +276,7 @@ export function PackagesDashboard({
 											</p>
 										</TableCell>
 										<TableCell>
-											<PackageDashboardDateCell
+											<PackageTableDateCell
 												packageRow={packageRow}
 												isOverdue={isOverdue}
 											/>
