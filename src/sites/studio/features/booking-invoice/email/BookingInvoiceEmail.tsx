@@ -109,15 +109,17 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							</Button>
 						</Section>
 					) : null}
-					<Section style={section}>
-						<Text style={sectionTitle}>Studio location</Text>
-						<Text style={paragraph}>{data.branding.locationAddress}</Text>
-						<Button
-							href={data.branding.locationUrl}
-							style={button}>
-							View directions
-						</Button>
-					</Section>
+					{isPackageInvoice ? null : (
+						<Section style={section}>
+							<Text style={sectionTitle}>Studio location</Text>
+							<Text style={paragraph}>{data.branding.locationAddress}</Text>
+							<Button
+								href={data.branding.locationUrl}
+								style={secondaryButton}>
+								View directions
+							</Button>
+						</Section>
+					)}
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{data.branding.businessName}</Text>
@@ -242,6 +244,8 @@ const button = {
 	padding: "12px 18px",
 	textDecoration: "none"
 };
+
+const secondaryButton = { ...button, color: "#fafafa", backgroundColor: "#212121" };
 
 const signoff = { color: "#fafafa", fontSize: "15px", margin: "24px 0 4px" };
 

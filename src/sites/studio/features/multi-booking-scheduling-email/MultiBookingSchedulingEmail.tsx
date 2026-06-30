@@ -12,27 +12,27 @@ import {
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 
-export interface ReminderEmailProps {
+export interface MultiBookingSchedulingEmailProps {
 	addonsLine: string;
-	bookingDate: string;
-	bookingTime: string;
 	duration: string;
+	expiresAtLabel: string;
 	name: string;
-	rescheduleUrl?: string;
+	packageSize: 4 | 8 | 12;
+	scheduleUrl: string;
 	service: string;
 	signoffName: string;
 }
 
-export function ReminderEmail({
+export function MultiBookingSchedulingEmail({
 	addonsLine,
-	bookingDate,
-	bookingTime,
 	duration,
+	expiresAtLabel,
 	name,
-	rescheduleUrl,
+	packageSize,
+	scheduleUrl,
 	service,
 	signoffName
-}: ReminderEmailProps) {
+}: MultiBookingSchedulingEmailProps) {
 	return (
 		<Html>
 			<Head>
@@ -41,7 +41,7 @@ export function ReminderEmail({
 					name="format-detection"
 				/>
 			</Head>
-			<Preview>Your studio session is scheduled for tomorrow at {bookingTime}.</Preview>
+			<Preview>{`Schedule your ${packageSize} session studio package.`}</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
@@ -53,19 +53,26 @@ export function ReminderEmail({
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>Hello {name},</Heading>
+
+					<Heading style={heading}>Good news, {name}!</Heading>
 					<Text style={paragraph}>
-						This is a reminder that your studio session is scheduled for tomorrow.
+						Your {packageSize} session studio package can be scheduled. Use your private link below
+						to choose your session dates and times:
 					</Text>
 
+					<Section style={ctaSection}>
+						<Button
+							href={scheduleUrl}
+							style={button}>
+							Schedule Your Sessions Here
+						</Button>
+						<Text style={ctaExpiry}>Available until {expiresAtLabel}</Text>
+					</Section>
+
 					<Section style={section}>
-						<Text style={sectionTitle}>Session date</Text>
-						<Section style={summaryCard}>
-							<Text style={primaryDetail}>{bookingDate}</Text>
-							<Text style={secondaryDetail}>{bookingTime}</Text>
-						</Section>
-						<Text style={arrivalReminder}>
-							Please arrive <strong>15 minutes early</strong> to maximise your recording time.
+						<Text style={note}>
+							You can book sessions one at a time and return later using this link. Sessions can be
+							rescheduled or cleared up to 24 hours before the session start.
 						</Text>
 					</Section>
 
@@ -85,41 +92,6 @@ export function ReminderEmail({
 					</Section>
 
 					<Section style={section}>
-						<Text style={sectionTitle}>Payment reminder</Text>
-						<Text style={paragraph}>
-							Please be advised that if your session has not yet been paid for, payment is required
-							before the conclusion of your appointment.
-						</Text>
-					</Section>
-
-					<Section style={section}>
-						<Text style={sectionTitle}>What to expect</Text>
-						<Text style={detailLine}>
-							<strong>Parking:</strong> Available in the driveway or directly across the road
-						</Text>
-						<Text style={detailLine}>
-							<strong>Facilities:</strong> Bathroom is available on-site before we begin
-						</Text>
-						<Text style={detailLine}>
-							<strong>Refreshments:</strong> Bottled refrigerated water is provided, along with
-							complimentary sweets
-						</Text>
-					</Section>
-
-					{rescheduleUrl ? (
-						<Section style={section}>
-							<Text style={sectionTitle}>Need to change your time?</Text>
-							<Text style={paragraph}>
-								You can reschedule this booking using the private link below.
-							</Text>
-							<Button
-								href={rescheduleUrl}
-								style={button}>
-								Reschedule booking
-							</Button>
-						</Section>
-					) : null}
-					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
 						<Text style={paragraph}>{BOOKING_INVOICE_BUSINESS.locationAddress}</Text>
 						<Button
@@ -128,6 +100,7 @@ export function ReminderEmail({
 							View directions
 						</Button>
 					</Section>
+
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
@@ -164,38 +137,11 @@ const logo = { display: "block", margin: "0 auto 16px" };
 
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
-const summaryCard = {
-	backgroundColor: "#383838",
-	border: "1px solid #454545",
-	borderRadius: "12px",
-	margin: "0",
-	padding: "16px"
-};
-
-const primaryDetail = {
-	color: "#fafafa",
-	fontSize: "24px",
-	fontWeight: "700",
-	lineHeight: "28px",
-	margin: "0 0 4px"
-};
-
-const secondaryDetail = {
-	color: "#f5c400",
-	fontSize: "24px",
-	fontWeight: "700",
-	lineHeight: "28px",
-	margin: "0"
-};
-
-const arrivalReminder = {
-	color: "#fafafa",
-	fontSize: "14px",
-	lineHeight: "20px",
-	margin: "8px 0 0"
-};
-
 const section = { margin: "0 0 24px" };
+
+const ctaSection = { ...section, textAlign: "center" as const, margin: "24px 0" };
+
+const ctaExpiry = { color: "#b8b8b8", fontSize: "12px", lineHeight: "18px", margin: "8px 0 0" };
 
 const sectionTitle = {
 	color: "#f5c400",
@@ -213,6 +159,8 @@ const detailsCard = {
 };
 
 const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 8px" };
+
+const note = { ...detailLine, color: "#d0d0d0", fontStyle: "italic" };
 
 const button = {
 	backgroundColor: "#f5c400",

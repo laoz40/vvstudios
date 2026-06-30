@@ -176,8 +176,6 @@ Dashboard should show:
 - total due
 - due date
 - payment/status
-- invoice email status/failure
-- schedule email status/failure when relevant
 - scheduled slot progress from `sessions`
 
 When marking paid:

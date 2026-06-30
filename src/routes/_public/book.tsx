@@ -11,7 +11,7 @@ import {
 } from "#studio/components/booking/BookDevErrorPanel";
 import { Label } from "#/components/ui/label";
 import { BookingModeSection } from "#studio/features/booking-form/components/BookingModeSection";
-import { BookingMultiBookingPackageSection } from "#studio/features/booking-form/components/BookingMultiBookingPackageSection";
+import { BookingPackageSection } from "#studio/features/booking-form/components/BookingPackageSection";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
@@ -145,7 +145,7 @@ function BookingPage() {
 					<FieldGroup className="flex flex-col gap-8 md:gap-12">
 						<div>
 							<BookingModeSection />
-							<BookingMultiBookingPackageSection />
+							<BookingPackageSection />
 						</div>
 						<BookingRecordingSpaceDurationSection />
 						<BookingAddonsSection />

@@ -6,6 +6,7 @@ import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/bookin
 import { DeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/DeliverablesEmail";
 import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
+import { MultiBookingSchedulingEmail } from "../../src/sites/studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
 import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
 import { env } from "../env";
 import {
@@ -22,6 +23,7 @@ import {
 	type MultiBookingInvoiceSource
 } from "./bookingInvoiceArtifacts";
 import { err, ok, type Result } from "../../src/lib/result";
+import { formatEditingAddonLabel } from "../../src/sites/studio/features/booking-form/lib/editing-addon-quantities";
 
 type SendEmailResult = Result<
 	{ sent: true },
@@ -64,6 +66,19 @@ interface SendBookingDeliverablesEmailArgs {
 	name: string;
 }
 
+interface SendMultiBookingScheduleEmailArgs {
+	addons: string[];
+	clipsPackageQuantity?: string;
+	duration: string;
+	email: string;
+	essentialEditQuantity?: string;
+	expiresAt: number;
+	name: string;
+	packageSize: 4 | 8 | 12;
+	scheduleUrl: string;
+	service: string;
+}
+
 function escapeHtml(value: string) {
 	return value
 		.replaceAll("&", "&amp;")
@@ -77,6 +92,32 @@ interface EmailAttachment {
 	content: Uint8Array;
 	contentType: string;
 	filename: string;
+}
+
+function formatTimestampDateLong(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		dateStyle: "long",
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
+	}).format(new Date(timestamp));
+}
+
+function formatAddonsLine(args: {
+	addons: string[];
+	clipsPackageQuantity?: string;
+	essentialEditQuantity?: string;
+}) {
+	if (args.addons.length === 0) {
+		return "None";
+	}
+
+	return args.addons
+		.map((addon) =>
+			formatEditingAddonLabel(addon, {
+				clipsPackageQuantity: args.clipsPackageQuantity,
+				essentialEditQuantity: args.essentialEditQuantity
+			})
+		)
+		.join(", ");
 }
 
 async function sendEmail(args: {
@@ -245,7 +286,7 @@ export async function sendMultiBookingInvoiceEmail(
 
 	const [invoiceEmailError] = await sendEmail({
 		to: [multiBooking.email],
-		subject: `Your ${multiBooking.packageSize}-Pack Studio Booking Invoice`,
+		subject: `Your ${multiBooking.packageSize} Pack Studio Booking Invoice`,
 		html: artifactsResult.artifacts.emailHtml,
 		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }]
 	});
@@ -259,6 +300,59 @@ export async function sendMultiBookingInvoiceEmail(
 	}
 
 	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
+}
+
+export async function sendMultiBookingScheduleEmail({
+	addons,
+	clipsPackageQuantity,
+	duration,
+	email,
+	essentialEditQuantity,
+	expiresAt,
+	name,
+	packageSize,
+	scheduleUrl,
+	service
+}: SendMultiBookingScheduleEmailArgs): Promise<
+	Result<{ sent: true }, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
+> {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
+	let html: string;
+
+	try {
+		html = await render(
+			createElement(MultiBookingSchedulingEmail, {
+				addonsLine: formatAddonsLine({ addons, clipsPackageQuantity, essentialEditQuantity }),
+				duration,
+				expiresAtLabel: formatTimestampDateLong(expiresAt),
+				name,
+				packageSize,
+				scheduleUrl,
+				service,
+				signoffName
+			})
+		);
+	} catch {
+		return err({ reason: "SCHEDULE_EMAIL_RENDER_FAILED" });
+	}
+
+	const [scheduleEmailError] = await sendEmail({
+		to: [email],
+		subject: `Schedule Your ${packageSize} Pack Studio Sessions`,
+		html
+	});
+
+	if (scheduleEmailError !== null) {
+		console.error("Multi-booking schedule email send failed", {
+			email,
+			reason: scheduleEmailError.reason
+		});
+		return err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" });
+	}
+
+	return ok({ sent: true });
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {

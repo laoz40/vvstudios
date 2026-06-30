@@ -81,7 +81,7 @@ async function getMultiBookingInvoicePdfByIdHandler(
 	ctx: ActionCtx,
 	args: GetMultiBookingInvoicePdfByIdArgs
 ) {
-	const multiBooking = await ctx.runQuery(internal.bookings.getMultiBookingPackageByIdInternal, {
+	const multiBooking = await ctx.runQuery(internal.bookings.getPackageByIdInternal, {
 		multiBookingId: args.multiBookingId
 	});
 

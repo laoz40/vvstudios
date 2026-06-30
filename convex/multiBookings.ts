@@ -8,7 +8,12 @@ import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booki
 import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "../src/lib/result";
-import { sendMultiBookingInvoiceEmail } from "./lib/email";
+import type {
+	MarkPackagePaidAndCreateScheduleTokenInternalResult,
+	RefreshPackageScheduleTokenInternalResult
+} from "./bookings";
+import { env } from "./env";
+import { sendMultiBookingInvoiceEmail, sendMultiBookingScheduleEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { getAdminIdentity } from "./lib/auth";
@@ -17,6 +22,11 @@ type PendingMultiBookingCreationResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
 	{ reason: "PACKAGE_CREATE_FAILED" }
 >;
+
+function buildMultiBookingScheduleUrl(baseUrl: string, token: string) {
+	const url = new URL(`/multi-booking/${encodeURIComponent(token)}`, baseUrl);
+	return url.toString();
+}
 
 export const createMultiBookingRequest = action({
 	args: {
@@ -164,7 +174,7 @@ async function resendMultiBookingInvoiceEmailHandler(
 	}
 
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.bookings.getMultiBookingPackageByIdInternal,
+		internal.bookings.getPackageByIdInternal,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -199,4 +209,156 @@ async function resendMultiBookingInvoiceEmailHandler(
 
 export type ResendMultiBookingInvoiceEmailResult = Awaited<
 	ReturnType<typeof resendMultiBookingInvoiceEmailHandler>
+>;
+
+type ConfirmPackagePaymentError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_ALREADY_PAID" }
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_NOT_UNPAID" }
+	| { reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" };
+
+type RetryMultiBookingSchedulingEmailError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
+	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
+
+export const confirmPackagePayment = action({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: (ctx, args) => confirmPackagePaymentHandler(ctx, args)
+});
+
+async function confirmPackagePaymentHandler(
+	ctx: ActionCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+): Promise<Result<{ paid: true; scheduleEmailStatus: "sent" }, ConfirmPackagePaymentError>> {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const paidAt = Date.now();
+	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenInternalResult =
+		await ctx.runMutation(internal.bookings.markPackagePaidAndCreateScheduleTokenInternal, {
+			multiBookingId: args.multiBookingId,
+			paidAt
+		});
+
+	if (paymentError !== null) {
+		return err(paymentError);
+	}
+
+	const scheduleUrl = buildMultiBookingScheduleUrl(
+		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
+		paymentResult.token
+	);
+	const [scheduleEmailError] = await sendMultiBookingScheduleEmail({
+		addons: paymentResult.multiBooking.addons,
+		clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
+		duration: paymentResult.multiBooking.duration,
+		email: paymentResult.multiBooking.email,
+		essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
+		expiresAt: paymentResult.expiresAt,
+		name: paymentResult.multiBooking.name,
+		packageSize: paymentResult.multiBooking.packageSize,
+		scheduleUrl,
+		service: paymentResult.multiBooking.service
+	});
+
+	if (scheduleEmailError !== null) {
+		await ctx.runMutation(internal.bookings.markMultiBookingScheduleEmailAttemptInternal, {
+			multiBookingId: args.multiBookingId,
+			status: "failed"
+		});
+
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
+	}
+
+	const [statusUpdateError] = await ctx.runMutation(
+		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
+		{ multiBookingId: args.multiBookingId, status: "sent" }
+	);
+
+	if (statusUpdateError !== null) {
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ paid: true, scheduleEmailStatus: "sent" as const });
+}
+
+export type ConfirmPackagePaymentResult = Awaited<ReturnType<typeof confirmPackagePaymentHandler>>;
+
+export const retryMultiBookingSchedulingEmail = action({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: (ctx, args) => retryMultiBookingSchedulingEmailHandler(ctx, args)
+});
+
+async function retryMultiBookingSchedulingEmailHandler(
+	ctx: ActionCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+): Promise<Result<{ sent: true }, RetryMultiBookingSchedulingEmailError>> {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const [tokenError, tokenResult]: RefreshPackageScheduleTokenInternalResult =
+		await ctx.runMutation(internal.bookings.refreshPackageScheduleTokenInternal, {
+			multiBookingId: args.multiBookingId
+		});
+
+	if (tokenError !== null) {
+		return err(tokenError);
+	}
+
+	const scheduleUrl = buildMultiBookingScheduleUrl(
+		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
+		tokenResult.token
+	);
+	const [scheduleEmailError] = await sendMultiBookingScheduleEmail({
+		addons: tokenResult.multiBooking.addons,
+		clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
+		duration: tokenResult.multiBooking.duration,
+		email: tokenResult.multiBooking.email,
+		essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
+		expiresAt: tokenResult.expiresAt,
+		name: tokenResult.multiBooking.name,
+		packageSize: tokenResult.multiBooking.packageSize,
+		scheduleUrl,
+		service: tokenResult.multiBooking.service
+	});
+
+	if (scheduleEmailError !== null) {
+		await ctx.runMutation(internal.bookings.markMultiBookingScheduleEmailAttemptInternal, {
+			multiBookingId: args.multiBookingId,
+			status: "failed"
+		});
+
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
+	}
+
+	const [statusUpdateError] = await ctx.runMutation(
+		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
+		{ multiBookingId: args.multiBookingId, status: "sent" }
+	);
+
+	if (statusUpdateError !== null) {
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ sent: true });
+}
+
+export type RetryMultiBookingSchedulingEmailResult = Awaited<
+	ReturnType<typeof retryMultiBookingSchedulingEmailHandler>
 >;

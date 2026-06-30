@@ -141,7 +141,7 @@ function AdminPageContent() {
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const packages = usePaginatedQuery(
-		api.bookings.listMultiBookingPackages,
+		api.bookings.listPackages,
 		{},
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);

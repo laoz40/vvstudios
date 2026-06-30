@@ -150,7 +150,10 @@ export function SessionActionsMenu({
 							<StatusCircleButton
 								ariaLabel="Mark balance unpaid"
 								className="bg-destructive"
-								disabled={paymentActions.isUpdatingPaidRemainingBalance}
+								disabled={
+									paymentActions.isUpdatingPaidRemainingBalance ||
+									!paymentActions.isPaidRemainingBalance
+								}
 								isSelected={!paymentActions.isPaidRemainingBalance}
 								onClick={() => {
 									void paymentActions.handleSetPaidRemainingBalance(false);
@@ -159,7 +162,10 @@ export function SessionActionsMenu({
 							<StatusCircleButton
 								ariaLabel="Mark balance paid"
 								className="bg-green"
-								disabled={paymentActions.isUpdatingPaidRemainingBalance}
+								disabled={
+									paymentActions.isUpdatingPaidRemainingBalance ||
+									paymentActions.isPaidRemainingBalance
+								}
 								isSelected={paymentActions.isPaidRemainingBalance}
 								onClick={() => {
 									void paymentActions.handleSetPaidRemainingBalance(true);
@@ -180,7 +186,9 @@ export function SessionActionsMenu({
 									key={option}
 									ariaLabel={deliverableStatusLabelMap[option]}
 									className={deliverableStatusDotClassNameMap[option]}
-									disabled={statusActions.isUpdatingEditStatus}
+									disabled={
+										statusActions.isUpdatingEditStatus || statusActions.deliverableStatus === option
+									}
 									isSelected={statusActions.deliverableStatus === option}
 									onClick={() => {
 										void statusActions.handleUpdateEditStatus(option);
@@ -272,7 +280,7 @@ export function SessionActionsMenu({
 											className="shrink-0 text-current"
 										/>
 									)}>
-									Email invoice to customer
+									Email invoice
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
 									onSelect={() => invoiceActions.setIsCustomInvoiceDialogOpen(true)}

@@ -27,7 +27,7 @@ const packageSizeOptions = Object.entries(MULTI_BOOKING_PLANS).map(([packageSize
 	validityMonths: Math.round(plan.validityDays / 30)
 }));
 
-export function BookingMultiBookingPackageSection() {
+export function BookingPackageSection() {
 	const formApi = useBookingFormContext();
 	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);

@@ -22,7 +22,7 @@ import {
 	getAdminPackageDashboardDate,
 	getAdminPackageStatusLabel,
 	isAdminPackageOverdue,
-	mapMultiBookingPackageToAdminRow,
+	mapPackageToAdminRow,
 	type AdminPackageFilters,
 	type AdminPackageRow,
 	type AdminPackageStatus
@@ -119,8 +119,8 @@ export function PackagesDashboard({
 }) {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>({
-		hideHidden: true,
-		hidePaid: true,
+		hideHidden: false,
+		hidePaid: false,
 		hideOverdue: false,
 		hideEmailIssues: false,
 		searchQuery: ""
@@ -128,7 +128,7 @@ export function PackagesDashboard({
 
 	// Visible package rows after dashboard-level filters. The backend returns newest first.
 	const visiblePackages = useMemo(() => {
-		const rows = packages.map(mapMultiBookingPackageToAdminRow);
+		const rows = packages.map(mapPackageToAdminRow);
 		return filterAdminPackages(rows, filters).sort((firstPackage, secondPackage) => {
 			const createdComparison = firstPackage.createdAt - secondPackage.createdAt;
 
@@ -240,7 +240,9 @@ export function PackagesDashboard({
 										</TableCell>
 										<TableCell>
 											<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
-												<p className="font-medium">{packageRow.service} ({packageRow.duration})</p>
+												<p className="font-medium">
+													{packageRow.service} ({packageRow.duration})
+												</p>
 												{packageRow.addons.length > 0 ? (
 													<div className="flex flex-wrap gap-1">
 														{packageRow.addons.map((addon) => (

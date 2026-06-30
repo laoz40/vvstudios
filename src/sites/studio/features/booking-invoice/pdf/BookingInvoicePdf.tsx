@@ -23,7 +23,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 	}
 
 	if (isPackageInvoice) {
-		sessionSummary = `${packageDetails.size}-pack · ${data.booking.service} · ${data.booking.duration}`;
+		sessionSummary = `${packageDetails.size} pack · ${data.booking.service} · ${data.booking.duration}`;
 	}
 
 	return (

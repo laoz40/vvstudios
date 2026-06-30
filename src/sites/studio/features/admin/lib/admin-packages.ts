@@ -33,7 +33,7 @@ export type AdminPackageDashboardDate =
 	| { kind: "payment_due"; timestamp: number }
 	| { kind: "missing_package_expiry" };
 
-export type AdminPackagePendingAction = "archive" | "invoice" | "payment" | null;
+export type AdminPackagePendingAction = "archive" | "invoice" | "payment" | "scheduleEmail" | null;
 
 export type AdminPackageFilters = {
 	hideEmailIssues: boolean;
@@ -122,7 +122,7 @@ export function getPackageArchiveActionLabel(
 	return "Unarchive";
 }
 
-export function mapMultiBookingPackageToAdminRow(
+export function mapPackageToAdminRow(
 	multiBookingPackage: Doc<"multiBookingPackages">
 ): AdminPackageRow {
 	const bookedSessions = multiBookingPackage.sessions.filter(
