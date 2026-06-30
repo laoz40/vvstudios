@@ -33,7 +33,13 @@ export type AdminPackageDashboardDate =
 	| { kind: "payment_due"; timestamp: number }
 	| { kind: "missing_package_expiry" };
 
-export type AdminPackagePendingAction = "archive" | "invoice" | "payment" | "scheduleEmail" | null;
+export type AdminPackagePendingAction =
+	| "archive"
+	| "download"
+	| "invoice"
+	| "payment"
+	| "scheduleEmail"
+	| null;
 
 export type AdminPackageFilters = {
 	hideEmailIssues: boolean;

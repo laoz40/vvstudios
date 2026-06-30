@@ -15,6 +15,7 @@ import type { BookingStatus } from "#studio/components/booking/BookingCompleteDe
 import { BookingDetails } from "#studio/features/booking-complete/components/BookingDetails";
 import type { BookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type InvoiceDownloadTarget =
 	| { kind: "booking"; stripeSessionId: string }
@@ -32,17 +33,6 @@ export interface BookingResultProps {
 	content: BookingResultContent;
 	invoiceDownloadTarget?: InvoiceDownloadTarget;
 	showBookingDetails?: boolean;
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-
-	link.href = url;
-	link.download = filename;
-	link.click();
-
-	URL.revokeObjectURL(url);
 }
 
 export function BookingResult({
@@ -205,9 +195,6 @@ function handleMultiBookingInvoiceError(reason: MultiBookingInvoiceErrorReason) 
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("Unable to find this package request.");
-			return;
-		case "PACKAGE_INVOICE_NOT_AVAILABLE":
-			toast.error("Invoice is not available for this package request.");
 			return;
 		case "INVOICE_DOWNLOAD_EXPIRED":
 			toast.error(

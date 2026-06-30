@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
+import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
@@ -23,6 +24,7 @@ import { cn } from "#/lib/utils";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/bookings";
+import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import type {
 	ConfirmPackagePaymentResult,
 	ResendMultiBookingInvoiceEmailResult,
@@ -38,11 +40,13 @@ import {
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
 	const resendInvoice = useAction(api.multiBookings.resendMultiBookingInvoiceEmail);
 	const confirmPackagePayment = useAction(api.multiBookings.confirmPackagePayment);
 	const retrySchedulingEmail = useAction(api.multiBookings.retryMultiBookingSchedulingEmail);
+	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const archivePackage = useMutation(api.bookings.archivePackage);
 	const markPaymentStatus = useMutation(api.bookings.markPackagePaymentStatus);
 
@@ -63,6 +67,48 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
 
+	async function handleDownloadInvoice() {
+		setPendingAction("download");
+
+		const [error, invoice] = await tryCatch<GetAdminMultiBookingInvoicePdfByIdResult>(
+			getAdminPackageInvoicePdf({ multiBookingId: packageRow.id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to download package invoices.");
+					break;
+
+				case "PACKAGE_NOT_FOUND":
+					toast.error("This package no longer exists.");
+					break;
+
+				case "INVALID_BOOKING_DATA":
+				case "INVOICE_DOWNLOAD_FAILED":
+				case "INVOICE_EMAIL_RENDER_FAILED":
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate package invoice.");
+					break;
+
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setPendingAction(null);
+			return;
+		}
+
+		downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
+		toast.success("Package invoice download started.");
+		setPendingAction(null);
+	}
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
@@ -467,6 +513,19 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 											{pendingAction === "invoice" ? "Sending invoice..." : "Email invoice"}
 										</AnimatedDropdownMenuItem>
 									) : null}
+									<AnimatedDropdownMenuItem
+										disabled={isActionPending}
+										onSelect={() => void handleDownloadInvoice()}
+										renderIcon={(iconRef) => (
+											<DownloadIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										{pendingAction === "download" ? "Generating invoice..." : "Download invoice"}
+									</AnimatedDropdownMenuItem>
 									{canSendNewSchedulingLink ? (
 										<AnimatedDropdownMenuItem
 											disabled={isActionPending}
