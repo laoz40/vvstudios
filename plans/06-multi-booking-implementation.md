@@ -200,12 +200,12 @@ Check after step:
 
 Add public token-based queries/actions in `convex/multiBookings.ts` or a nearby package-specific Convex file. Keep sensitive admin-only helpers private/internal.
 
-Suggested public functions:
+Suggested public functions (prefer shorter `package` names in this package-specific API instead of long `multiBooking` names):
 
-- `getMultiBookingPackageByToken`
-- `getMultiBookingBookableRangeBusyWindows`
-- `saveMultiBookingSessionSlot`
-- `clearMultiBookingSessionSlot`
+- `getPackageByToken`
+- `getPackageBusyWindows`
+- `savePackageSlot`
+- `clearPackageSlot`
 
 Use the Step 2 schema shape:
 
@@ -222,8 +222,10 @@ Rules:
 - Package must have `expiresAt`, and `Date.now()` must be before it.
 - If expired, return a package-link-expired result and do not return package details.
 - Bookable end date is the package `expiresAt` date.
+- Do not duplicate Google Calendar busy-window logic. Reuse the existing busy-window helper path and make the shared range helper accept an explicit end date/date range override.
+- Normal booking availability should keep using `today + maxDaysAhead`; package scheduling should pass the package expiry as the end date so it can book beyond normal `maxDaysAhead`.
+- Busy windows are the same Google Calendar blockers regardless of package mode. Session duration only changes the available start-time calculation after busy windows are loaded.
 - Package scheduling can ignore normal `maxDaysAhead`, but must still respect opening hours, duration validity, lead time, buffers, and Google Calendar busy windows.
-- Rescheduling a slot should ignore its own current Google Calendar event.
 - Customer edits/clears only allowed until 24 hours before that session start.
 - Same-day multiple package sessions are allowed when separate time slots are free.
 
@@ -241,7 +243,7 @@ Create a public route like:
 
 - `src/routes/_public/multi-booking.$token.tsx`
 
-Reuse the existing reschedule page/date-time picker patterns where possible, but use package-specific backend functions because package scheduling can book past the normal max-days-ahead limit.
+Reuse the existing reschedule page/date-time picker patterns where possible, but use package-specific backend function wrappers because package scheduling can book past the normal max-days-ahead limit. The underlying Google Calendar busy-window loading should stay shared.
 
 UI should show:
 

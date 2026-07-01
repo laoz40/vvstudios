@@ -18,9 +18,11 @@ import { getBookingFromQuery } from "./lib/bookingLookup";
 import {
 	buildEventWindow,
 	type BookingAvailabilitySettings,
+	type BusyDayWindow,
 	checkBookingMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
+	groupBusyDaysByMonth,
 	groupBusyWindowsByDay
 } from "./lib/bookingCalendarTime";
 import {
@@ -60,12 +62,6 @@ export type DeleteBookingFromAdminResult = Awaited<
 	ReturnType<typeof deleteBookingFromAdminHandler>
 >;
 
-interface BusyDayWindowResult {
-	busyPeriods: Array<{ end: string; start: string }>;
-	date: string;
-	label: string;
-}
-
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
 async function getBookableRangeBusyWindowsFromGoogleCalendar({
@@ -76,7 +72,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 	settings: BookingAvailabilitySettings;
 }): Promise<
 	Result<
-		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 		{ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
 	>
 > {
@@ -105,14 +101,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
 	}
 
-	const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
-
-	for (const busyDay of busyDays) {
-		const month = busyDay.date.slice(0, 7);
-		busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
-	}
-
-	return ok({ busyWindowsByMonth, timeZone });
+	return ok({ busyWindowsByMonth: groupBusyDaysByMonth(busyDays), timeZone });
 }
 
 async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking: Doc<"bookings">) {

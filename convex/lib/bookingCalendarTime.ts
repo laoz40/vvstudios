@@ -246,6 +246,7 @@ function addDays(date: Date, days: number) {
 export function checkBookingMeetsAvailabilitySettings({
 	date,
 	duration,
+	latestBookableDate,
 	now = Date.now(),
 	settings,
 	time,
@@ -253,6 +254,7 @@ export function checkBookingMeetsAvailabilitySettings({
 }: {
 	date: string;
 	duration: string;
+	latestBookableDate?: Date;
 	now?: number;
 	settings: BookingAvailabilitySettings;
 	time: string;
@@ -265,7 +267,7 @@ export function checkBookingMeetsAvailabilitySettings({
 	}
 
 	const today = startOfToday(new Date(now));
-	const lastBookableDate = addDays(today, settings.maxDaysAhead);
+	const lastBookableDate = latestBookableDate ?? addDays(today, settings.maxDaysAhead);
 
 	if (bookingDate < today) {
 		return err({ reason: "BOOKING_TOO_SOON" });
@@ -423,6 +425,17 @@ export function groupBusyWindowsByDay(
 	}
 
 	return ok(Array.from(dayBuckets.values()));
+}
+
+export function groupBusyDaysByMonth(busyDays: BusyDayWindow[]) {
+	const busyWindowsByMonth: Record<string, BusyDayWindow[]> = {};
+
+	for (const busyDay of busyDays) {
+		const month = busyDay.date.slice(0, 7);
+		busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
+	}
+
+	return busyWindowsByMonth;
 }
 
 // turn google event dates into one normal datetime value we can compare (for all day events)
