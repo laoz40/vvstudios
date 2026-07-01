@@ -222,6 +222,10 @@ export function AdminAvailabilitySettings() {
 							</div>
 						))}
 					</div>
+
+					<span className="text-sm text-muted-foreground">
+						Set a day to 12am–12am to close that day.
+					</span>
 				</div>
 
 				<DialogFooter>

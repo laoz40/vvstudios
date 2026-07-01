@@ -19,6 +19,11 @@ function isValidScheduleWindow(startTime: string, endTime: string) {
 		return false;
 	}
 
+	// Treat 00:00 to 00:00 as a closed day instead of a zero-length opening.
+	if (startTime === "00:00" && endTime === "00:00") {
+		return true;
+	}
+
 	const startMinutes = getTimeMinutes(startTime);
 	const endMinutes = getTimeMinutes(endTime);
 
