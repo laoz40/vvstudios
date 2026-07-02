@@ -435,6 +435,9 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 												size="sm"
 												disabled={downloadingInvoiceId === invoice._id}
 												onClick={() => void downloadCustomInvoice(invoice)}>
+												{downloadingInvoiceId === invoice._id ? (
+													<LoaderCircle className="size-4 animate-spin" />
+												) : null}
 												{downloadingInvoiceId === invoice._id ? "Downloading..." : "Download"}
 											</Button>
 										</li>

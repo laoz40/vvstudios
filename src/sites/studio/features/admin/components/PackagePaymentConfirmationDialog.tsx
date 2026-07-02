@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -52,6 +54,7 @@ export function PackagePaymentConfirmationDialog({
 					<Button
 						disabled={isConfirming}
 						onClick={onConfirm}>
+						{isConfirming ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isConfirming ? "Confirming..." : "Confirm payment"}
 					</Button>
 				</DialogFooter>

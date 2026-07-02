@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -69,6 +71,7 @@ export function RemainingBalanceDialog({
 						type="button"
 						onClick={onSave}
 						disabled={isSaving}>
+						{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isSaving ? "Saving..." : "Save balance"}
 					</Button>
 				</DialogFooter>

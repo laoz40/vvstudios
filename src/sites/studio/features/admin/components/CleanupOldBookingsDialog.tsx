@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -58,6 +60,7 @@ export function CleanupOldBookingsDialog({
 						variant="destructive"
 						onClick={onConfirm}
 						disabled={isCleaningUp || staleCleanupBookingsCount === 0}>
+						{isCleaningUp ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isCleaningUp ? "Deleting..." : "Delete unconfirmed bookings"}
 					</Button>
 				</DialogFooter>

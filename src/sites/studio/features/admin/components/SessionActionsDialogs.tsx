@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -89,6 +91,9 @@ export function SessionActionsDialogs({
 								onClick={() => {
 									void rescheduleAction.handleGenerateRescheduleLink();
 								}}>
+								{rescheduleAction.isGeneratingRescheduleLink ? (
+									<LoaderCircle className="size-4 animate-spin" />
+								) : null}
 								{rescheduleAction.isGeneratingRescheduleLink ? "Generating..." : "Generate link"}
 							</Button>
 						)}

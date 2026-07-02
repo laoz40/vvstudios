@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import {
 	Accordion,
 	AccordionContent,
@@ -169,6 +171,9 @@ export function PackageSessionsAccordion({
 
 											onRequestClearSlot(session.slotNumber, booking.date);
 										}}>
+										{clearingSlotNumber === session.slotNumber ? (
+											<LoaderCircle className="size-4 animate-spin" />
+										) : null}
 										{clearingSlotNumber === session.slotNumber ? "UNSCHEDULING..." : "UNSCHEDULE"}
 									</Button>
 								) : null}
@@ -186,6 +191,9 @@ export function PackageSessionsAccordion({
 										savingSlotNumber !== null
 									}
 									onClick={onRequestSaveSlot}>
+									{savingSlotNumber === session.slotNumber ? (
+										<LoaderCircle className="size-4 animate-spin" />
+									) : null}
 									{savingSlotNumber === session.slotNumber ? "CONFIRMING..." : "CONFIRM SESSION"}
 								</Button>
 							</div>

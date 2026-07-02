@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -88,6 +90,7 @@ export function BookingEditConfirmationDialog({
 						type="button"
 						disabled={isSaving}
 						onClick={onConfirm}>
+						{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isSaving ? "Saving..." : "Save changes"}
 					</Button>
 				</DialogFooter>

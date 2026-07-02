@@ -72,7 +72,7 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 						disabled={isSubmitting}
 						onClick={onConfirm}>
 						{isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{confirmButtonLabel}
+						{isSubmitting ? "Booking..." : confirmButtonLabel}
 					</Button>
 				</>
 			}>

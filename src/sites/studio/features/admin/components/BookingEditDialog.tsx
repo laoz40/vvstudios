@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
@@ -437,6 +438,7 @@ export function BookingEditDialog({
 						<Button
 							type="submit"
 							disabled={isSaving}>
+							{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isSaving ? "Saving..." : "I am sure I want to make permanent changes"}
 						</Button>
 					</DialogFooter>

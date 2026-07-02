@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -105,6 +105,7 @@ export function BookingDeleteDialog({
 							void onConfirm();
 						}}
 						disabled={isDeleting}>
+						{isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isDeleting ? "Deleting..." : "I am sure I want to permanently delete this booking"}
 					</Button>
 				</DialogFooter>
