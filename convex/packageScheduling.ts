@@ -15,8 +15,6 @@ import { api } from "./_generated/api";
 import { getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import { getTimeZoneDateKey } from "../src/sites/studio/lib/zonedDateTime";
 
-const PACKAGE_SLOT_EDIT_LOCK_MS = 24 * 60 * 60 * 1000;
-
 export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INVALID" }
 	| { reason: "PACKAGE_LINK_EXPIRED" }
@@ -28,7 +26,7 @@ export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
 type PackageSlotLookupError =
 	| ValidPackageByTokenError
 	| { reason: "PACKAGE_SLOT_NOT_FOUND" }
-	| { reason: "PACKAGE_SLOT_LOCKED" };
+	| { reason: "PACKAGE_SLOT_DATE_REACHED" };
 
 type PackageSessionView = {
 	booking: null | { date: string; sessionStartAt: number; time: string };
@@ -280,8 +278,9 @@ async function getEditablePackageSlot(
 
 	if (slot.bookingId) {
 		const booking = await ctx.db.get(slot.bookingId);
-		if (booking && booking.sessionStartAt - now < PACKAGE_SLOT_EDIT_LOCK_MS) {
-			return err({ reason: "PACKAGE_SLOT_LOCKED" });
+		const todayDateKey = getTimeZoneDateKey(new Date(now), env.GOOGLE_CALENDAR_TIMEZONE);
+		if (booking && booking.date <= todayDateKey) {
+			return err({ reason: "PACKAGE_SLOT_DATE_REACHED" });
 		}
 	}
 

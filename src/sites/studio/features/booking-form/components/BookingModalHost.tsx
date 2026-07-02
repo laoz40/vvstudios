@@ -17,13 +17,17 @@ const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 interface BookingModalHostProps {
 	isSubmitting: boolean;
+	onPackageSlotConfirm?: () => void;
 	onPaymentClose: (checkoutSession: EmbeddedCheckoutSession) => void;
+	onRescheduleConfirm?: () => void;
 	onTermsConfirm: () => void;
 }
 
 export function BookingModalHost({
 	isSubmitting,
+	onPackageSlotConfirm,
 	onPaymentClose,
+	onRescheduleConfirm,
 	onTermsConfirm
 }: BookingModalHostProps) {
 	const bookingModalState = useBookingModalStore((state) => state);
@@ -81,6 +85,116 @@ export function BookingModalHost({
 							onClick={closeBookingModal}>
 							Confirm
 						</Button>
+					}>
+					<div className="space-y-2 text-center">
+						<p className="text-foreground text-3xl font-semibold tracking-tight">
+							{bookingModalState.dateSummary}
+						</p>
+						<p className="text-xl font-medium">{bookingModalState.timeSummary}</p>
+					</div>
+				</Modal>
+			);
+
+		case "packageSlotConfirmation": {
+			const isConfirmingSession = bookingModalState.type === "save";
+			const confirmLabel = isConfirmingSession ? "Confirm Session" : "Unschedule";
+			const submittingLabel = isConfirmingSession ? "Confirming..." : "Unscheduling...";
+
+			return (
+				<Modal
+					open
+					onOpenChange={(open) => {
+						if (!open && !isSubmitting) {
+							closeBookingModal();
+						}
+					}}
+					title={
+						<span className="block text-center text-lg font-medium text-muted-foreground">
+							{isConfirmingSession ? "Selected Session" : "Unschedule Session"}
+						</span>
+					}
+					closeLabel="Close dialog"
+					preventClose={isSubmitting}
+					className="gap-4 px-6 py-4 sm:px-8"
+					footer={
+						<div className="mt-4 flex w-full flex-col-reverse gap-2 sm:flex-row">
+							<Button
+								type="button"
+								variant="secondary"
+								className="flex-1"
+								disabled={isSubmitting}
+								onClick={closeBookingModal}>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								variant={isConfirmingSession ? "default" : "destructive"}
+								className="flex-1"
+								disabled={isSubmitting || !onPackageSlotConfirm}
+								onClick={onPackageSlotConfirm}>
+								{isSubmitting ? submittingLabel : confirmLabel}
+							</Button>
+						</div>
+					}>
+					<div className="space-y-3 text-center">
+						{isConfirmingSession ? (
+							<>
+								<p className="text-foreground text-3xl font-semibold tracking-tight">
+									{bookingModalState.dateSummary}
+								</p>
+								<p className="text-xl font-medium">{bookingModalState.timeSummary}</p>
+							</>
+						) : (
+							<div className="space-y-2 text-center">
+								<p className="text-foreground text-2xl font-semibold tracking-tight">
+									{bookingModalState.dateSummary}
+								</p>
+								<p className="text-muted-foreground text-balance leading-6">
+									This will remove this session from the calendar. You can pick a new date again
+									later.
+								</p>
+							</div>
+						)}
+					</div>
+				</Modal>
+			);
+		}
+
+		case "rescheduleConfirmation":
+			return (
+				<Modal
+					open
+					onOpenChange={(open) => {
+						if (!open && !isSubmitting) {
+							closeBookingModal();
+						}
+					}}
+					title={
+						<span className="block text-center text-lg font-medium text-muted-foreground">
+							Selected Session
+						</span>
+					}
+					closeLabel="Close dialog"
+					preventClose={isSubmitting}
+					className="gap-4 px-6 py-4 sm:px-8"
+					footer={
+						<div className="flex w-full flex-col-reverse gap-2 sm:flex-row">
+							<Button
+								type="button"
+								variant="secondary"
+								className="flex-1"
+								disabled={isSubmitting}
+								onClick={closeBookingModal}>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								className="flex-1"
+								disabled={isSubmitting || !onRescheduleConfirm}
+								onClick={onRescheduleConfirm}>
+								{isSubmitting ? "Updating..." : "Update Booking"}
+							</Button>
+						</div>
 					}>
 					<div className="space-y-2 text-center">
 						<p className="text-foreground text-3xl font-semibold tracking-tight">

@@ -247,11 +247,11 @@ Reuse the existing reschedule page/date-time picker patterns where possible, but
 
 UI should show:
 
-- package summary
-- expiry date
+- package/session summary
 - session progress, e.g. `3 of 8 scheduled`
 - slots labelled from `slotNumber`, e.g. `Session 3 of 8`
 - unscheduled/scheduled/cancelled states from `sessions`
+- expiry date
 - per-slot date/time picker
 - per-slot save button
 - clear button for scheduled future sessions

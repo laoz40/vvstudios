@@ -7,6 +7,23 @@ export type BookingModalState =
 	| { modal: "addonCompatibility" }
 	| { modal: "payment"; checkoutSession: EmbeddedCheckoutSession }
 	| { modal: "sessionSummary"; dateSummary: string; timeSummary: string }
+	| {
+			date: string;
+			dateSummary: string;
+			modal: "packageSlotConfirmation";
+			slotNumber: number;
+			time: string;
+			timeSummary: string;
+			type: "save";
+	  }
+	| { dateSummary: string; modal: "packageSlotConfirmation"; slotNumber: number; type: "clear" }
+	| {
+			modal: "rescheduleConfirmation";
+			date: string;
+			dateSummary: string;
+			time: string;
+			timeSummary: string;
+	  }
 	| { modal: "terms" };
 
 const initialState: BookingModalState = { modal: "none" };
@@ -32,6 +49,18 @@ export function openSessionSummaryModal({
 	timeSummary: string;
 }) {
 	useBookingModalStore.setState({ modal: "sessionSummary", dateSummary, timeSummary }, true);
+}
+
+export function openPackageSlotConfirmationModal(
+	confirmation: Extract<BookingModalState, { modal: "packageSlotConfirmation" }>
+) {
+	useBookingModalStore.setState(confirmation, true);
+}
+
+export function openRescheduleConfirmationModal(
+	confirmation: Extract<BookingModalState, { modal: "rescheduleConfirmation" }>
+) {
+	useBookingModalStore.setState(confirmation, true);
 }
 
 export function openTermsModal() {

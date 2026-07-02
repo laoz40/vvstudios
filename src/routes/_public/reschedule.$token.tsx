@@ -12,6 +12,7 @@ import { studioSite } from "#/config/sites";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	buildDevRescheduleBooking,
 	getDevRescheduleAvailabilityStatus,
@@ -21,7 +22,14 @@ import {
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
 import { RescheduleBookingSummary } from "#studio/components/booking/RescheduleBookingSummary";
 import {
+	closeBookingModal,
+	openRescheduleConfirmationModal,
+	useBookingModalStore
+} from "#studio/features/booking-form/lib/booking-modal-store";
+import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	formatBookingDateSummary,
+	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatDateValue,
@@ -282,9 +290,25 @@ function ReschedulePage() {
 		});
 	}
 
-	async function handleUpdateBooking(): Promise<void> {
+	function handleRequestUpdateBooking(): void {
 		if (!selectedDateValue || !selectedTime) {
 			toast.error("Please choose a new date and time first.");
+			return;
+		}
+
+		openRescheduleConfirmationModal({
+			date: selectedDateValue,
+			dateSummary: formatBookingDateSummary(selectedDateValue),
+			modal: "rescheduleConfirmation",
+			time: selectedTime,
+			timeSummary: formatBookingTimeRange(selectedTime, booking.duration)
+		});
+	}
+
+	async function handleConfirmUpdateBooking(): Promise<void> {
+		const confirmation = useBookingModalStore.getState();
+
+		if (confirmation.modal !== "rescheduleConfirmation") {
 			return;
 		}
 
@@ -299,12 +323,13 @@ function ReschedulePage() {
 					return;
 				}
 
+				closeBookingModal();
 				await navigateToRescheduleComplete(devUpdate.bookingId);
 				return;
 			}
 
 			const [rescheduleError, result] = await tryCatch<RescheduleBookingResult>(
-				rescheduleBooking({ date: selectedDateValue, time: selectedTime, token })
+				rescheduleBooking({ date: confirmation.date, time: confirmation.time, token })
 			);
 
 			if (rescheduleError !== null) {
@@ -312,6 +337,7 @@ function ReschedulePage() {
 				return;
 			}
 
+			closeBookingModal();
 			await navigateToRescheduleComplete(result.bookingId);
 		} finally {
 			setIsUpdatingBooking(false);
@@ -433,7 +459,7 @@ function ReschedulePage() {
 							"shadow-lg shadow-primary/45"
 						)}
 						disabled={!selectedDateValue || !selectedTime || isUpdatingBooking}
-						onClick={handleUpdateBooking}>
+						onClick={handleRequestUpdateBooking}>
 						UPDATE BOOKING
 					</Button>
 				</div>
@@ -442,6 +468,12 @@ function ReschedulePage() {
 					{formatBookingTimestampDateLong(data.expiresAt)}
 				</p>
 			</div>
+			<BookingModalHost
+				isSubmitting={isUpdatingBooking}
+				onPaymentClose={() => {}}
+				onRescheduleConfirm={handleConfirmUpdateBooking}
+				onTermsConfirm={() => {}}
+			/>
 		</BookingStatusLayout>
 	);
 }

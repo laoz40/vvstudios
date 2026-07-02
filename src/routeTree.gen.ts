@@ -24,6 +24,7 @@ import { Route as PublicBookRouteImport } from './routes/_public/book'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as PublicRescheduleTokenRouteImport } from './routes/_public/reschedule.$token'
+import { Route as PublicMultiBookingTokenRouteImport } from './routes/_public/multi-booking.$token'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -100,6 +101,11 @@ const PublicRescheduleTokenRoute = PublicRescheduleTokenRouteImport.update({
   path: '/reschedule/$token',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicMultiBookingTokenRoute = PublicMultiBookingTokenRouteImport.update({
+  id: '/multi-booking/$token',
+  path: '/multi-booking/$token',
+  getParentRoute: () => PublicRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/multi-booking/$token': typeof PublicMultiBookingTokenRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesByTo {
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/multi-booking/$token': typeof PublicMultiBookingTokenRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesById {
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_public/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/_public/': typeof PublicIndexRoute
+  '/_public/multi-booking/$token': typeof PublicMultiBookingTokenRoute
   '/_public/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRouteTypes {
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/reschedule-complete'
     | '/terms-and-conditions'
+    | '/multi-booking/$token'
     | '/reschedule/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/reschedule-complete'
     | '/terms-and-conditions'
+    | '/multi-booking/$token'
     | '/reschedule/$token'
   id:
     | '__root__'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/_public/reschedule-complete'
     | '/_public/terms-and-conditions'
     | '/_public/'
+    | '/_public/multi-booking/$token'
     | '/_public/reschedule/$token'
   fileRoutesById: FileRoutesById
 }
@@ -311,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicRescheduleTokenRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/multi-booking/$token': {
+      id: '/_public/multi-booking/$token'
+      path: '/multi-booking/$token'
+      fullPath: '/multi-booking/$token'
+      preLoaderRoute: typeof PublicMultiBookingTokenRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
@@ -337,6 +356,7 @@ interface PublicRouteChildren {
   PublicRescheduleCompleteRoute: typeof PublicRescheduleCompleteRoute
   PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicMultiBookingTokenRoute: typeof PublicMultiBookingTokenRoute
   PublicRescheduleTokenRoute: typeof PublicRescheduleTokenRoute
 }
 
@@ -351,6 +371,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicRescheduleCompleteRoute: PublicRescheduleCompleteRoute,
   PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
   PublicIndexRoute: PublicIndexRoute,
+  PublicMultiBookingTokenRoute: PublicMultiBookingTokenRoute,
   PublicRescheduleTokenRoute: PublicRescheduleTokenRoute,
 }
 

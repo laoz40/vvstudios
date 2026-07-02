@@ -17,6 +17,7 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 		pathname === studioSite.routes.bookingComplete ||
 		pathname === studioSite.routes.rescheduleComplete ||
 		pathname === studioSite.routes.bookingExpired ||
+		pathname.startsWith("/multi-booking/") ||
 		pathname.startsWith("/reschedule/");
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const isHomePage = pathname === studioSite.routes.home;

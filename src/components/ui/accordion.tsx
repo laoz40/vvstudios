@@ -78,7 +78,7 @@ function AccordionTrigger({
 					props.onBlur?.(event);
 					stopIconAnimation();
 				}}>
-				<span className="leading-snug">{children}</span>
+				<span className="w-full leading-snug">{children}</span>
 				{/* The icon keeps its own Motion animation. The trigger only starts and stops it. */}
 				{showArrow ? (
 					<DownChevron
