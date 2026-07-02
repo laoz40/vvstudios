@@ -48,3 +48,10 @@ export function formatEditingAddonLabel(addon: string, quantities: EditingAddonQ
 
 	return quantity > 1 ? `${quantity} x ${addon}` : addon;
 }
+
+export function formatEditingAddonList(
+	addons: readonly string[],
+	quantities: EditingAddonQuantities
+) {
+	return addons.map((addon) => formatEditingAddonLabel(addon, quantities)).join(", ");
+}

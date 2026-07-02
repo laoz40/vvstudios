@@ -65,6 +65,59 @@ export function getSelectedBusyDay({
 	return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === date) ?? null;
 }
 
+export function getBookableAvailableTimes({
+	currentTimestamp,
+	duration,
+	isLoadingMonthAvailability,
+	isViewingSelectedMonth,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	selectedBusyDay,
+	selectedDate,
+	selectedDateValue,
+	selectedMonth,
+	settings,
+	today
+}: {
+	currentTimestamp: number;
+	duration: string;
+	isLoadingMonthAvailability: boolean;
+	isViewingSelectedMonth: boolean;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
+	selectedBusyDay: BusyDayWindow | null;
+	selectedDate: Date | undefined;
+	selectedDateValue: string;
+	selectedMonth: string;
+	settings: BookingAvailabilitySettings;
+	today: Date;
+}) {
+	if (
+		!selectedDateValue ||
+		!selectedDate ||
+		selectedDate < today ||
+		selectedDate > lastBookableDate
+	) {
+		return [];
+	}
+
+	if (!isViewingSelectedMonth) {
+		return [];
+	}
+
+	if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
+		return [];
+	}
+
+	return getAvailableTimesForDate({
+		busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+		currentTimestamp,
+		dateValue: selectedDateValue,
+		duration,
+		settings
+	});
+}
+
 export function isBookingDateDisabled({
 	currentTimestamp,
 	date,

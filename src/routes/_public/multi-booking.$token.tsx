@@ -2,13 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
-import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger
-} from "#/components/ui/accordion";
-import { Button } from "#/components/ui/button";
 import { api } from "#convex/_generated/api";
 import type {
 	ClearPackageSlotResult,
@@ -17,12 +10,11 @@ import type {
 } from "#convex/packageScheduling";
 import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
-import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
-import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
-import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
+import { PackageScheduleSummary } from "#studio/features/booking-form/components/PackageScheduleSummary";
+import { PackageSessionsAccordion } from "#studio/features/booking-form/components/PackageSessionsAccordion";
 import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
-import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	closeBookingModal,
 	openPackageSlotConfirmationModal,
@@ -35,6 +27,7 @@ import {
 	getSavePackageSlotToastMessage
 } from "#studio/features/booking-form/lib/package-scheduling-errors";
 import {
+	BOOKING_TIME_ZONE,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatBookingDateSummary,
 	formatBookingTimeRange,
@@ -42,14 +35,13 @@ import {
 	formatBookingTimestampTime,
 	formatDateValue,
 	formatMonthKey,
-	formatTimeValue,
-	getAvailableTimesForDate,
 	getCurrentTimestamp,
 	parseDateValue,
 	parseMonthKey,
 	startOfToday
 } from "#studio/lib/bookingdatetime";
 import {
+	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	isBookingDateDisabled,
@@ -59,12 +51,7 @@ import {
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
-import { cn } from "#/lib/utils";
 import { getTimeZoneDateKey } from "#studio/lib/zonedDateTime";
-
-const BOOKING_TIME_ZONE = "Australia/Sydney";
-
-type PackageScheduleData = NonNullable<GetPackageByTokenResult[1]>;
 
 export const Route = createFileRoute("/_public/multi-booking/$token")({
 	head: () => buildNoIndexHead("Schedule Package Sessions | VV Studios"),
@@ -109,7 +96,7 @@ function PackageScheduleContent({
 	packageData,
 	token
 }: {
-	packageData: PackageScheduleData;
+	packageData: NonNullable<GetPackageByTokenResult[1]>;
 	token: string;
 }) {
 	// Convex functions
@@ -152,12 +139,6 @@ function PackageScheduleContent({
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
-	const activeSession = packageData.sessions.find(
-		(session) => session.slotNumber === activeSlotNumber
-	);
-	const scheduledSessions = packageData.sessions.filter(
-		(session) => session.booking !== null && !session.cancelledAt
-	).length;
 
 	// Load the saved availability rate limit key.
 	useEffect(() => {
@@ -230,6 +211,15 @@ function PackageScheduleContent({
 		setActiveSlotNumber(slotNumber);
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedTime(time ?? "");
+	}
+
+	function handleCloseSlot() {
+		setActiveSlotNumber(null);
+	}
+
+	function handleDateChange(dateValue: string) {
+		setSelectedDateValue(dateValue);
+		setSelectedTime("");
 	}
 
 	function handleRequestSaveSlot() {
@@ -328,18 +318,18 @@ function PackageScheduleContent({
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
-	const availableTimes = getPackageAvailableTimes({
-		availabilitySettings,
+	const availableTimes = getBookableAvailableTimes({
 		currentTimestamp,
+		duration: packageData.duration,
 		isLoadingMonthAvailability,
 		isViewingSelectedMonth,
 		lastBookableDate,
 		monthlyBusyWindowsByMonth,
-		packageDuration: packageData.duration,
 		selectedBusyDay,
 		selectedDate,
 		selectedDateValue,
 		selectedMonth,
+		settings: availabilitySettings,
 		today
 	});
 	const disabledDates = (date: Date) =>
@@ -369,6 +359,7 @@ function PackageScheduleContent({
 		selectedDate,
 		setCalendarMonth
 	};
+	const todayDateKey = getTimeZoneDateKey(new Date(currentTimestamp), BOOKING_TIME_ZONE);
 
 	return (
 		<BookingStatusLayout
@@ -379,171 +370,25 @@ function PackageScheduleContent({
 					Schedule your sessions
 				</h1>
 
-				<section className="mt-6 text-sm text-card-foreground">
-					<h2 className="text-xs! font-semibold uppercase tracking-widest md:text-sm!">
-						Package session details
-					</h2>
-					<dl className="mt-4 grid gap-2 md:grid-cols-3">
-						<div className="flex gap-8">
-							<dt className="shrink-0 text-muted-foreground">Table setup</dt>
-							<dd className="font-medium">
-								{packageData.service} ({packageData.duration})
-							</dd>
-						</div>
-						<div className="flex gap-8 md:col-span-2">
-							<dt className="shrink-0 text-muted-foreground">Add-ons</dt>
-							<dd className="font-medium">{formatPackageAddons(packageData)}</dd>
-						</div>
-					</dl>
-				</section>
+				<PackageScheduleSummary packageData={packageData} />
 
-				<Accordion
-					type="single"
-					collapsible
-					className="mt-12 grid gap-4"
-					value={activeSlotNumber === null ? "" : String(activeSlotNumber)}
-					onValueChange={(value) => {
-						if (!value) {
-							setActiveSlotNumber(null);
-							return;
-						}
-
-						const slotNumber = Number(value);
-						const session = packageData.sessions.find(
-							(packageSession) => packageSession.slotNumber === slotNumber
-						);
-						handleChooseSlot(
-							slotNumber,
-							session?.cancelledAt ? undefined : session?.booking?.date,
-							session?.cancelledAt ? undefined : session?.booking?.time
-						);
-					}}>
-					<div className="flex flex-row justify-between">
-						<h2 className="text-primary text-xs! font-semibold uppercase tracking-widest md:text-sm!">Your Sessions</h2>
-						<p className="text-sm text-muted-foreground">
-							{scheduledSessions} of {packageData.packageSize} sessions scheduled
-						</p>
-					</div>
-
-					{packageData.sessions.map((session) => {
-						const booking = session.cancelledAt ? null : session.booking;
-						const isSessionDateReached = Boolean(
-							booking &&
-							booking.date <= getTimeZoneDateKey(new Date(currentTimestamp), BOOKING_TIME_ZONE)
-						);
-						const isActive = activeSlotNumber === session.slotNumber;
-						const canEdit = !isSessionDateReached;
-						const canClear = Boolean(booking && canEdit);
-
-						return (
-							<AccordionItem
-								key={session.slotNumber}
-								value={String(session.slotNumber)}
-								disabled={!canEdit}
-								className={cn(
-									"rounded-xl border bg-card px-6 text-card-foreground shadow-sm last:border-b",
-									isSessionDateReached && "bg-background border-muted"
-								)}>
-								<AccordionTrigger
-									showArrow={false}
-									className={cn(
-										"py-5 hover:no-underline md:py-6",
-										!canEdit && "cursor-default hover:text-foreground"
-									)}>
-									<span className="flex w-full items-center justify-between gap-3">
-										<span className="min-w-0">
-											<span
-												className={cn(
-													"block text-base font-semibold",
-													booking ? "text-foreground" : "font-light text-muted-foreground"
-												)}>
-												{booking
-													? `${formatBookingTimestampDateLong(booking.sessionStartAt)} at ${formatTimeValue(
-															booking.time
-														)}`
-													: "No date/time scheduled"}
-											</span>
-											<span className="mt-1 block text-sm font-normal text-muted-foreground">
-												Session {session.slotNumber} of {packageData.packageSize}
-											</span>
-										</span>
-										<span className="ml-auto flex shrink-0 items-center justify-end">
-											{canEdit ? (
-												<span
-													className={cn(
-														"inline-flex min-h-8 items-center justify-center rounded-lg border px-3 py-1",
-														"text-xs font-medium tracking-wider shadow-md",
-														getPillStateClassName(false)
-													)}>
-													{isActive ? "CLOSE" : "EDIT"}
-												</span>
-											) : (
-												<span className="max-w-28 text-right text-xs font-normal text-muted-foreground sm:max-w-none">
-													This session can no longer be changed.
-												</span>
-											)}
-										</span>
-									</span>
-								</AccordionTrigger>
-
-								<AccordionContent className="border-t pt-6">
-									<BookingDateTimePicker
-										availability={availability}
-										onDateChange={(dateValue) => {
-											setSelectedDateValue(dateValue);
-											setSelectedTime("");
-										}}
-										onTimeChange={setSelectedTime}
-										selectedTime={selectedTime}
-										timeSelectionMessage={timeSelectionMessage}
-									/>
-									<div className="mt-8 flex flex-row w-full items-center justify-center gap-4">
-										{canClear ? (
-											<Button
-												type="button"
-												variant="secondary"
-												className={cn(
-													"h-12 flex-1",
-													"text-base text-muted-foreground font-bold! tracking-wider",
-													"shadow-lg shadow-primary/45"
-												)}
-												disabled={clearingSlotNumber === session.slotNumber}
-												onClick={() => {
-													if (!booking) {
-														return;
-													}
-
-													handleRequestClearSlot(session.slotNumber, booking.date);
-												}}>
-												{clearingSlotNumber === session.slotNumber
-													? "UNSCHEDULING..."
-													: "UNSCHEDULE"}
-											</Button>
-										) : null}
-										<Button
-											type="button"
-											className={cn(
-												"h-12 flex-1",
-												"text-base font-bold! tracking-wider",
-												"shadow-lg shadow-primary/45"
-											)}
-											disabled={
-												!activeSession ||
-												!selectedDateValue ||
-												!selectedTime ||
-												savingSlotNumber !== null
-											}
-											onClick={handleRequestSaveSlot}>
-											{savingSlotNumber === session.slotNumber
-												? "CONFIRMING..."
-												: "CONFIRM SESSION"}
-										</Button>
-									</div>
-								</AccordionContent>
-							</AccordionItem>
-						);
-					})}
-				</Accordion>
+				<PackageSessionsAccordion
+					activeSlotNumber={activeSlotNumber}
+					availability={availability}
+					clearingSlotNumber={clearingSlotNumber}
+					packageData={packageData}
+					savingSlotNumber={savingSlotNumber}
+					selectedDateValue={selectedDateValue}
+					selectedTime={selectedTime}
+					timeSelectionMessage={timeSelectionMessage}
+					todayDateKey={todayDateKey}
+					onDateChange={handleDateChange}
+					onRequestClearSlot={handleRequestClearSlot}
+					onRequestSaveSlot={handleRequestSaveSlot}
+					onSlotClose={handleCloseSlot}
+					onSlotSelect={handleChooseSlot}
+					onTimeChange={setSelectedTime}
+				/>
 
 				<p className="mt-6 text-center text-xs text-muted-foreground">
 					Sessions can be changed until the day they start. Package scheduling expires{" "}
@@ -559,72 +404,4 @@ function PackageScheduleContent({
 			/>
 		</BookingStatusLayout>
 	);
-}
-
-function getPackageAvailableTimes({
-	availabilitySettings,
-	currentTimestamp,
-	isLoadingMonthAvailability,
-	isViewingSelectedMonth,
-	lastBookableDate,
-	monthlyBusyWindowsByMonth,
-	packageDuration,
-	selectedBusyDay,
-	selectedDate,
-	selectedDateValue,
-	selectedMonth,
-	today
-}: {
-	availabilitySettings: typeof DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-	currentTimestamp: number;
-	isLoadingMonthAvailability: boolean;
-	isViewingSelectedMonth: boolean;
-	lastBookableDate: Date;
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
-	packageDuration: string;
-	selectedBusyDay: BusyDayWindow | null;
-	selectedDate: Date | undefined;
-	selectedDateValue: string;
-	selectedMonth: string;
-	today: Date;
-}) {
-	if (
-		!selectedDateValue ||
-		!selectedDate ||
-		selectedDate < today ||
-		selectedDate > lastBookableDate
-	) {
-		return [];
-	}
-
-	if (!isViewingSelectedMonth) {
-		return [];
-	}
-
-	if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-		return [];
-	}
-
-	return getAvailableTimesForDate({
-		busyPeriods: selectedBusyDay?.busyPeriods ?? [],
-		currentTimestamp,
-		dateValue: selectedDateValue,
-		duration: packageDuration,
-		settings: availabilitySettings
-	});
-}
-
-function formatPackageAddons(packageData: PackageScheduleData) {
-	if (packageData.addons.length === 0) {
-		return "None";
-	}
-
-	return packageData.addons
-		.map((addon) =>
-			formatEditingAddonLabel(addon, {
-				clipsPackageQuantity: packageData.clipsPackageQuantity,
-				essentialEditQuantity: packageData.essentialEditQuantity
-			})
-		)
-		.join(", ");
 }

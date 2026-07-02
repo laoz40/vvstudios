@@ -1,0 +1,198 @@
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger
+} from "#/components/ui/accordion";
+import { Button } from "#/components/ui/button";
+import type { GetPackageByTokenResult } from "#convex/packageScheduling";
+import {
+	BookingDateTimePicker,
+	type BookingDateTimePickerProps
+} from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import { formatBookingTimestampDateLong, formatTimeValue } from "#studio/lib/bookingdatetime";
+import { cn } from "#/lib/utils";
+
+interface PackageSessionsAccordionProps {
+	activeSlotNumber: number | null;
+	availability: BookingDateTimePickerProps["availability"];
+	clearingSlotNumber: number | null;
+	packageData: NonNullable<GetPackageByTokenResult[1]>;
+	savingSlotNumber: number | null;
+	selectedDateValue: string;
+	selectedTime: string;
+	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
+	todayDateKey: string;
+	onDateChange: (dateValue: string) => void;
+	onRequestClearSlot: (slotNumber: number, date: string) => void;
+	onRequestSaveSlot: () => void;
+	onSlotClose: () => void;
+	onSlotSelect: (slotNumber: number, dateValue?: string, time?: string) => void;
+	onTimeChange: (time: string) => void;
+}
+
+export function PackageSessionsAccordion({
+	activeSlotNumber,
+	availability,
+	clearingSlotNumber,
+	packageData,
+	savingSlotNumber,
+	selectedDateValue,
+	selectedTime,
+	timeSelectionMessage,
+	todayDateKey,
+	onDateChange,
+	onRequestClearSlot,
+	onRequestSaveSlot,
+	onSlotClose,
+	onSlotSelect,
+	onTimeChange
+}: PackageSessionsAccordionProps) {
+	const hasActiveSession = packageData.sessions.some(
+		(session) => session.slotNumber === activeSlotNumber
+	);
+	const scheduledSessions = packageData.sessions.filter(
+		(session) => session.booking !== null && !session.cancelledAt
+	).length;
+
+	return (
+		<Accordion
+			type="single"
+			collapsible
+			className="mt-12 grid gap-4"
+			value={activeSlotNumber === null ? "" : String(activeSlotNumber)}
+			onValueChange={(value) => {
+				if (!value) {
+					onSlotClose();
+					return;
+				}
+
+				const slotNumber = Number(value);
+				const session = packageData.sessions.find(
+					(packageSession) => packageSession.slotNumber === slotNumber
+				);
+				const booking = session && !session.cancelledAt ? session.booking : null;
+
+				onSlotSelect(slotNumber, booking?.date, booking?.time);
+			}}>
+			<div className="flex flex-row justify-between">
+				<h2 className="text-xs! font-semibold tracking-widest text-primary uppercase md:text-sm!">
+					Your Sessions
+				</h2>
+				<p className="text-sm text-muted-foreground">
+					{scheduledSessions} of {packageData.packageSize} sessions scheduled
+				</p>
+			</div>
+
+			{packageData.sessions.map((session) => {
+				const booking = session.cancelledAt ? null : session.booking;
+				const isSessionDateReached = Boolean(booking && booking.date <= todayDateKey);
+				const isActive = activeSlotNumber === session.slotNumber;
+				const canEdit = !isSessionDateReached;
+				const canClear = Boolean(booking && canEdit);
+
+				return (
+					<AccordionItem
+						key={session.slotNumber}
+						value={String(session.slotNumber)}
+						disabled={!canEdit}
+						className={cn(
+							"rounded-xl border bg-card px-6 text-card-foreground shadow-sm last:border-b",
+							isSessionDateReached && "bg-background border-muted"
+						)}>
+						<AccordionTrigger
+							showArrow={false}
+							className={cn(
+								"py-5 hover:no-underline md:py-6",
+								!canEdit && "cursor-default hover:text-foreground"
+							)}>
+							<span className="flex w-full items-center justify-between gap-3">
+								<span className="min-w-0">
+									<span
+										className={cn(
+											"block text-base font-semibold",
+											booking ? "text-foreground" : "font-light text-muted-foreground"
+										)}>
+										{booking
+											? `${formatBookingTimestampDateLong(booking.sessionStartAt)} at ${formatTimeValue(
+													booking.time
+												)}`
+											: "No date/time scheduled"}
+									</span>
+									<span className="mt-1 block text-sm font-normal text-muted-foreground">
+										Session {session.slotNumber} of {packageData.packageSize}
+									</span>
+								</span>
+								<span className="ml-auto flex shrink-0 items-center justify-end">
+									{canEdit ? (
+										<span
+											className={cn(
+												"inline-flex min-h-8 items-center justify-center rounded-lg border px-3 py-1",
+												"text-xs font-medium tracking-wider shadow-md",
+												getPillStateClassName(false)
+											)}>
+											{isActive ? "CLOSE" : "EDIT"}
+										</span>
+									) : (
+										<span className="max-w-28 text-right text-xs font-normal text-muted-foreground sm:max-w-none">
+											This session can no longer be changed.
+										</span>
+									)}
+								</span>
+							</span>
+						</AccordionTrigger>
+
+						<AccordionContent className="border-t pt-6">
+							<BookingDateTimePicker
+								availability={availability}
+								onDateChange={onDateChange}
+								onTimeChange={onTimeChange}
+								selectedTime={selectedTime}
+								timeSelectionMessage={timeSelectionMessage}
+							/>
+							<div className="mt-8 flex w-full flex-row items-center justify-center gap-4">
+								{canClear ? (
+									<Button
+										type="button"
+										variant="secondary"
+										className={cn(
+											"h-12 flex-1",
+											"text-base text-muted-foreground font-bold! tracking-wider",
+											"shadow-lg shadow-primary/45"
+										)}
+										disabled={clearingSlotNumber === session.slotNumber}
+										onClick={() => {
+											if (!booking) {
+												return;
+											}
+
+											onRequestClearSlot(session.slotNumber, booking.date);
+										}}>
+										{clearingSlotNumber === session.slotNumber ? "UNSCHEDULING..." : "UNSCHEDULE"}
+									</Button>
+								) : null}
+								<Button
+									type="button"
+									className={cn(
+										"h-12 flex-1",
+										"text-base font-bold! tracking-wider",
+										"shadow-lg shadow-primary/45"
+									)}
+									disabled={
+										!hasActiveSession ||
+										!selectedDateValue ||
+										!selectedTime ||
+										savingSlotNumber !== null
+									}
+									onClick={onRequestSaveSlot}>
+									{savingSlotNumber === session.slotNumber ? "CONFIRMING..." : "CONFIRM SESSION"}
+								</Button>
+							</div>
+						</AccordionContent>
+					</AccordionItem>
+				);
+			})}
+		</Accordion>
+	);
+}

@@ -15,7 +15,7 @@ import {
 } from "#studio/lib/bookingAvailabilitySettings";
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
-const BOOKING_TIME_ZONE = "Australia/Sydney";
+export const BOOKING_TIME_ZONE = "Australia/Sydney";
 
 export interface BusyPeriod {
 	end: string;
@@ -128,12 +128,12 @@ export function formatBookingDateDots(dateValue: string) {
 const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeStyle: "short",
-	timeZone: "Australia/Sydney"
+	timeZone: BOOKING_TIME_ZONE
 });
 
 const bookingSydneyDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
-	timeZone: "Australia/Sydney"
+	timeZone: BOOKING_TIME_ZONE
 });
 
 function getDatePartsInSydney(date: Date) {

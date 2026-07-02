@@ -34,7 +34,6 @@ import {
 	formatBookingTimestampTime,
 	formatDateValue,
 	formatMonthKey,
-	getAvailableTimesForDate,
 	getCurrentTimestamp,
 	getLastBookableDate,
 	parseDateValue,
@@ -42,6 +41,7 @@ import {
 	startOfToday
 } from "#studio/lib/bookingdatetime";
 import {
+	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
@@ -359,37 +359,27 @@ function ReschedulePage() {
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
-	const availableTimes = (() => {
-		if (activeDevScenario) {
-			const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
-			return devAvailabilityStatus.kind === "ready" ? [...devAvailabilityStatus.times] : [];
-		}
+	let availableTimes: string[];
 
-		if (
-			!selectedDateValue ||
-			!selectedDate ||
-			selectedDate < today ||
-			selectedDate > lastBookableDate
-		) {
-			return [];
-		}
-
-		if (!isViewingSelectedMonth) {
-			return [];
-		}
-
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-			return [];
-		}
-
-		return getAvailableTimesForDate({
-			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+	if (activeDevScenario) {
+		const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
+		availableTimes = devAvailabilityStatus.kind === "ready" ? [...devAvailabilityStatus.times] : [];
+	} else {
+		availableTimes = getBookableAvailableTimes({
 			currentTimestamp,
-			dateValue: selectedDateValue,
 			duration: booking.duration,
-			settings: availabilitySettings
+			isLoadingMonthAvailability,
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedBusyDay,
+			selectedDate,
+			selectedDateValue,
+			selectedMonth,
+			settings: availabilitySettings,
+			today
 		});
-	})();
+	}
 	const disabledDates = (date: Date) =>
 		isBookingDateDisabled({
 			currentTimestamp,
