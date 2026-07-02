@@ -249,11 +249,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
-				service: draft.service || undefined,
+				...(draft.service ? { service: draft.service } : {}),
 				duration: draft.duration,
 				addons: draft.addons,
-				essentialEditQuantity: draft.essentialEditQuantity || undefined,
-				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
+				...(draft.essentialEditQuantity
+					? { essentialEditQuantity: draft.essentialEditQuantity }
+					: {}),
+				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
 				includeDepositLineItem: draft.includeDepositLineItem
 			})
 		);

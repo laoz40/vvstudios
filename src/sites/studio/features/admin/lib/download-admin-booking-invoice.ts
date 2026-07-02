@@ -45,6 +45,8 @@ export async function downloadAdminBookingInvoice({
 		accountName: booking.accountName,
 		abn: booking.abn,
 		email: booking.email,
+		bookingMode: "single",
+		packageSize: "",
 		date: booking.date,
 		time: booking.time,
 		duration,

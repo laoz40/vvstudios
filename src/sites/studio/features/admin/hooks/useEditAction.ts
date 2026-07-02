@@ -30,6 +30,8 @@ export function useEditAction(booking: BookingRecord) {
 			accountName: values.accountName,
 			abn: values.abn,
 			email: values.email,
+			bookingMode: "single",
+			packageSize: "",
 			date: values.date,
 			time: values.time,
 			duration: values.duration,
@@ -64,16 +66,20 @@ export function useEditAction(booking: BookingRecord) {
 				name: parsedValues.data.name,
 				phone: parsedValues.data.phone,
 				accountName: parsedValues.data.accountName,
-				abn: parsedValues.data.abn,
+				...(parsedValues.data.abn ? { abn: parsedValues.data.abn } : {}),
 				email: parsedValues.data.email,
 				date: parsedValues.data.date,
 				time: parsedValues.data.time,
 				duration: parsedValues.data.duration,
 				service: parsedValues.data.service,
 				addons: parsedValues.data.addons,
-				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
-				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
-				notes: parsedValues.data.notes || undefined
+				...(parsedValues.data.essentialEditQuantity
+					? { essentialEditQuantity: parsedValues.data.essentialEditQuantity }
+					: {}),
+				...(parsedValues.data.clipsPackageQuantity
+					? { clipsPackageQuantity: parsedValues.data.clipsPackageQuantity }
+					: {}),
+				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {})
 			})
 		);
 
