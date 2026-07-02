@@ -1,5 +1,4 @@
 import { LoaderCircle } from "lucide-react";
-
 import {
 	Accordion,
 	AccordionContent,
@@ -20,6 +19,7 @@ interface PackageSessionsAccordionProps {
 	activeSlotNumber: number | null;
 	availability: BookingDateTimePickerProps["availability"];
 	clearingSlotNumber: number | null;
+	highlightedSlotNumber: number | null;
 	packageData: NonNullable<GetPackageByTokenResult[1]>;
 	savingSlotNumber: number | null;
 	selectedDateValue: string;
@@ -38,6 +38,7 @@ export function PackageSessionsAccordion({
 	activeSlotNumber,
 	availability,
 	clearingSlotNumber,
+	highlightedSlotNumber,
 	packageData,
 	savingSlotNumber,
 	selectedDateValue,
@@ -93,6 +94,7 @@ export function PackageSessionsAccordion({
 				const isActive = activeSlotNumber === session.slotNumber;
 				const canEdit = !isSessionDateReached;
 				const canClear = Boolean(booking && canEdit);
+				const isHighlighted = highlightedSlotNumber === session.slotNumber;
 
 				return (
 					<AccordionItem
@@ -100,8 +102,11 @@ export function PackageSessionsAccordion({
 						value={String(session.slotNumber)}
 						disabled={!canEdit}
 						className={cn(
-							"rounded-xl border bg-card px-6 text-card-foreground shadow-sm last:border-b",
-							isSessionDateReached && "bg-background border-muted"
+							"rounded-xl border bg-card px-6",
+							"text-card-foreground",
+							"shadow-sm transition-colors duration-500 last:border-b",
+							isSessionDateReached && "bg-background border-muted",
+							isHighlighted && "border-primary"
 						)}>
 						<AccordionTrigger
 							showArrow={false}
@@ -114,7 +119,9 @@ export function PackageSessionsAccordion({
 									<span
 										className={cn(
 											"block text-base font-semibold",
-											booking ? "text-foreground" : "font-light text-muted-foreground"
+											"transition-colors duration-500",
+											booking ? "text-foreground" : "font-light text-muted-foreground",
+											booking && isHighlighted && "text-primary"
 										)}>
 										{booking
 											? `${formatBookingTimestampDateLong(booking.sessionStartAt)} at ${formatTimeValue(

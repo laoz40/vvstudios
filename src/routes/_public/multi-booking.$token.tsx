@@ -124,6 +124,7 @@ function PackageScheduleContent({
 	const [selectedTime, setSelectedTime] = useState("");
 	const [savingSlotNumber, setSavingSlotNumber] = useState<number | null>(null);
 	const [clearingSlotNumber, setClearingSlotNumber] = useState<number | null>(null);
+	const [highlightedSlotNumber, setHighlightedSlotNumber] = useState<number | null>(null);
 
 	const today = useMemo(() => startOfToday(), []);
 	const selectedDate = parseDateValue(selectedDateValue);
@@ -206,6 +207,21 @@ function PackageScheduleContent({
 		monthlyBusyWindowsByMonth,
 		token
 	]);
+
+	// Fade the updated session border back after the success highlight.
+	useEffect(() => {
+		if (highlightedSlotNumber === null) {
+			return;
+		}
+
+		const timeout = window.setTimeout(() => {
+			setHighlightedSlotNumber(null);
+		}, 1_000);
+
+		return () => {
+			window.clearTimeout(timeout);
+		};
+	}, [highlightedSlotNumber]);
 
 	function handleChooseSlot(slotNumber: number, dateValue?: string, time?: string) {
 		setActiveSlotNumber(slotNumber);
@@ -290,6 +306,8 @@ function PackageScheduleContent({
 		}
 
 		closeBookingModal();
+		setActiveSlotNumber(null);
+		setHighlightedSlotNumber(confirmation.slotNumber);
 		toast.success(`Session ${confirmation.slotNumber} saved.`);
 	}
 
@@ -306,6 +324,8 @@ function PackageScheduleContent({
 		}
 
 		closeBookingModal();
+		setActiveSlotNumber(null);
+		setHighlightedSlotNumber(slotNumber);
 
 		if (activeSlotNumber === slotNumber) {
 			setSelectedDateValue("");
@@ -376,6 +396,7 @@ function PackageScheduleContent({
 					activeSlotNumber={activeSlotNumber}
 					availability={availability}
 					clearingSlotNumber={clearingSlotNumber}
+					highlightedSlotNumber={highlightedSlotNumber}
 					packageData={packageData}
 					savingSlotNumber={savingSlotNumber}
 					selectedDateValue={selectedDateValue}
