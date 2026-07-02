@@ -92,7 +92,7 @@ function BookingCompletePage(): ReactNode {
 	if (isLoading) {
 		return (
 			<BookingStatusLayout showActions={false}>
-				<StudioLoadingState label="Checking booking status" />
+				<StudioLoadingState label="Creating your booking..." />
 			</BookingStatusLayout>
 		);
 	}
@@ -115,7 +115,7 @@ function BookingCompletePage(): ReactNode {
 	if (booking.status === "pending_payment") {
 		return (
 			<BookingStatusLayout showActions={false}>
-				<StudioLoadingState label="Checking booking status" />
+				<StudioLoadingState label="Creating your booking..." />
 			</BookingStatusLayout>
 		);
 	}

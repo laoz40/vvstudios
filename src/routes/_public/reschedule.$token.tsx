@@ -239,7 +239,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<StudioLoadingState label="Checking reschedule link" />
+				<StudioLoadingState label="Loading your session..." />
 			</BookingStatusLayout>
 		);
 	}
@@ -251,7 +251,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<StudioLoadingState label="Updating booking" />
+				<StudioLoadingState label="Updating your booking..." />
 			</BookingStatusLayout>
 		);
 	}

@@ -21,7 +21,11 @@ export function AdminPage() {
 	const { isLoading: isConvexLoading, isAuthenticated: isConvexAuthenticated } = useConvexAuth();
 
 	if (!isClerkLoaded || isConvexLoading) {
-		return <AdminLoadingState label="Loading dashboard" />;
+		return (
+			<main className="grid min-h-dvh place-items-center px-6 py-12">
+				<StudioLoadingState label="Establishing a secure uplink" />
+			</main>
+		);
 	}
 
 	if (!userId) {
@@ -64,7 +68,11 @@ function AdminAccessGate() {
 	const access = useQuery(api.auth.getCurrentUserAccess, {});
 
 	if (!access) {
-		return <AdminLoadingState label="Checking admin access" />;
+		return (
+			<main className="grid min-h-dvh place-items-center px-6 py-12">
+				<StudioLoadingState label="Confirming Level 9 Clearance" />
+			</main>
+		);
 	}
 
 	if (!access.isAdmin) {
@@ -72,14 +80,6 @@ function AdminAccessGate() {
 	}
 
 	return <AdminPageContent />;
-}
-
-function AdminLoadingState({ label }: { label: string }) {
-	return (
-		<main className="grid min-h-dvh place-items-center px-6 py-12">
-			<StudioLoadingState label={label} />
-		</main>
-	);
 }
 
 function AdminForbiddenPage() {
@@ -136,7 +136,11 @@ function AdminPageContent() {
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
 	if (bookings.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
-		return <AdminLoadingState label="Loading admin dashboard" />;
+		return (
+			<main className="grid min-h-dvh place-items-center px-6 py-12">
+				<StudioLoadingState label="Decrypting classified files" />
+			</main>
+		);
 	}
 
 	return (

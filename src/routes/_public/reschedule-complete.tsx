@@ -37,7 +37,7 @@ function RescheduleCompletePage() {
 	if (bookingResult === undefined) {
 		return (
 			<BookingStatusLayout devPanel={<RescheduleCompleteDevScenarioPanel />}>
-				<StudioLoadingState label="Loading booking details" />
+				<StudioLoadingState label="Saving your changes..." />
 			</BookingStatusLayout>
 		);
 	}
