@@ -240,7 +240,7 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 	args: { rateLimitKey: string; token: string }
 ): Promise<
 	Result<
-		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 		| RescheduleLinkLookupError
 		| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
@@ -721,6 +721,10 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 
 	if (linkError !== null) {
+		console.error("Booking invoice reschedule link create failed", {
+			bookingId: booking._id,
+			reason: linkError.reason
+		});
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 			bookingId: booking._id
 		});
@@ -730,6 +734,11 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
 
 	if (emailError !== null) {
+		console.error("Booking invoice email failed during booking completion", {
+			bookingId: booking._id,
+			bookingEmail: booking.email,
+			reason: emailError.reason
+		});
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 			bookingId: booking._id
 		});

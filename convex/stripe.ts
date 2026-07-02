@@ -80,8 +80,12 @@ async function createEmbeddedCheckoutSessionHandler(
 		| { reason: "STRIPE_SESSION_LINK_FAILED" }
 	>
 > {
-	// Validate the submitted form before creating anything in Convex or Stripe.
-	const parsedBooking = bookingSchema.safeParse(args);
+	// Validate the single-session form before creating anything in Convex or Stripe.
+	const parsedBooking = bookingSchema.safeParse({
+		...args,
+		bookingMode: "single",
+		packageSize: ""
+	});
 
 	if (!parsedBooking.success) {
 		return err({ reason: "BOOKING_INVALID_INPUT" });

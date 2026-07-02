@@ -154,6 +154,13 @@ async function sendEmail(args: {
 	}
 
 	if (!response.ok) {
+		console.error("Resend email response failed", {
+			status: response.status,
+			body: await response.text(),
+			to: args.to,
+			subject: args.subject,
+			attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
+		});
 		return err({ reason: "EMAIL_RESPONSE_FAILED" });
 	}
 

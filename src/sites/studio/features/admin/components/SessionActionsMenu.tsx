@@ -140,7 +140,7 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.isConfirmedBooking ? (
+				{details.canManageConfirmedBooking ? (
 					<>
 						<DropdownMenuSeparator />
 						<DropdownMenuLabel className="text-muted-foreground text-sm">
@@ -175,7 +175,7 @@ export function SessionActionsMenu({
 					</>
 				) : null}
 				<DropdownMenuSeparator />
-				{details.isConfirmedBooking && details.isPastBooking ? (
+				{details.canManageConfirmedBooking && details.isPastBooking ? (
 					<>
 						<DropdownMenuLabel className="text-muted-foreground text-sm">
 							Deliverables status
@@ -227,7 +227,7 @@ export function SessionActionsMenu({
 						Other
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-72 touch-manipulation">
-						{details.isConfirmedBooking ? (
+						{details.canManageConfirmedBooking ? (
 							<>
 								<AnimatedDropdownMenuItem
 									onSelect={() => navigator.clipboard.writeText(details.customerBookingId)}
@@ -342,7 +342,7 @@ export function SessionActionsMenu({
 								<DropdownMenuSeparator />
 								<AnimatedDropdownMenuItem
 									className={
-										details.isConfirmedBooking
+										details.canManageConfirmedBooking
 											? "focus:text-destructive hover:text-destructive"
 											: "focus:text-green hover:text-green"
 									}

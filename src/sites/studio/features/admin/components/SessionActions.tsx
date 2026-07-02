@@ -7,27 +7,30 @@ import { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceAction
 import { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
 import { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
-import type { BookingActionDetails } from "#studio/features/admin/lib/admin-bookings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import {
+	type BookingActionDetails,
+	type BookingRecord,
+	isManageableConfirmedBooking
+} from "#studio/features/admin/lib/admin-bookings";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionActionsProps = { booking: BookingRecord };
 
 export function SessionActions({ booking }: SessionActionsProps) {
-	const isConfirmedBooking = booking.status === "confirmed";
+	const canManageConfirmedBooking = isManageableConfirmedBooking(booking);
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const canToggleStatus =
-		isConfirmedBooking || booking.status === "failed" || booking.status === "email_failed";
-	const nextStatus = isConfirmedBooking ? "failed" : "confirmed";
+		canManageConfirmedBooking || booking.status === "failed" || booking.status === "email_failed";
+	const nextStatus = canManageConfirmedBooking ? "failed" : "confirmed";
 
 	const details: BookingActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(booking, isPastBooking),
 		canToggleStatus,
 		customerBookingId: formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
-		isConfirmedBooking,
+		canManageConfirmedBooking,
 		isPastBooking,
-		toggleStatusLabel: isConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed"
+		toggleStatusLabel: canManageConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed"
 	};
 
 	const deleteAction = useDeleteAction(booking);
