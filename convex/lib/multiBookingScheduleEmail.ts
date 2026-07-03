@@ -18,7 +18,8 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 	Result<
 		{ scheduleEmailStatus: "sent" },
 		| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-		| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" }
+		| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
+		| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" }
 	>
 > {
 	// First try to send the schedule email. The database status is updated after we know the result.
@@ -33,7 +34,7 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 
 		if (statusUpdateError !== null) {
 			// The email failed, but we also could not save that failed status.
-			return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+			return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" });
 		}
 
 		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" });
@@ -46,7 +47,7 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 	);
 
 	if (statusUpdateError !== null) {
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" });
 	}
 
 	return ok({ scheduleEmailStatus: "sent" as const });

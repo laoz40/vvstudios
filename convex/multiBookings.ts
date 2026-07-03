@@ -226,7 +226,8 @@ type ConfirmPackagePaymentError =
 	| { reason: "PACKAGE_NOT_UNPAID" }
 	| { reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" };
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
 
 export const confirmPackagePayment = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
@@ -292,7 +293,8 @@ type RetryMultiBookingSchedulingEmailError =
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
 

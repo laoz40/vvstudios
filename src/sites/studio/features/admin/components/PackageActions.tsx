@@ -285,7 +285,14 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					setIsPaymentDialogOpen(false);
 					break;
 
-				case "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED":
+				case "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED":
+					toast.error(
+						"Package was marked paid, but the scheduling email failed and we could not save that failure status."
+					);
+					setIsPaymentDialogOpen(false);
+					break;
+
+				case "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED":
 					toast.error("Scheduling email sent, but the package status did not update.");
 					setIsPaymentDialogOpen(false);
 					break;
@@ -346,7 +353,11 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					toast.error("Scheduling email failed again.");
 					break;
 
-				case "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED":
+				case "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED":
+					toast.error("Scheduling email failed again, and we could not save that failure status.");
+					break;
+
+				case "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED":
 					toast.error("Scheduling email sent, but the package status did not update.");
 					setIsSchedulingLinkDialogOpen(false);
 					break;
