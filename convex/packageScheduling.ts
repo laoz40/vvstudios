@@ -487,6 +487,8 @@ async function saveClearedPackageSlotInternalHandler(
 		// Keep the booking row for history, but mark it inactive for admin/reminders.
 		await ctx.db.patch(lookup.slot.bookingId, {
 			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
 			reminderEmailClaimedAt: undefined,
 			reminderEmailSentAt: undefined,
 			reminderEmailFailureCode: undefined,
