@@ -13,7 +13,7 @@ export function PackageScheduleSummary({ packageData }: PackageScheduleSummaryPr
 			</h2>
 			<dl className="mt-4 grid gap-2 md:grid-cols-3">
 				<div className="flex gap-8">
-					<dt className="shrink-0 text-muted-foreground">Table setup</dt>
+					<dt className="shrink-0 text-muted-foreground">Session</dt>
 					<dd className="font-medium">
 						{packageData.service} ({packageData.duration})
 					</dd>
