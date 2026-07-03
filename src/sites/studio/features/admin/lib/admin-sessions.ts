@@ -21,6 +21,7 @@ export type StaleCleanupBookingCounts = Record<BookingRecord["status"], number>;
 export const emptyStaleCleanupBookingCounts: StaleCleanupBookingCounts = {
 	abandoned: 0,
 	confirmed: 0,
+	cancelled: 0,
 	expired: 0,
 	email_failed: 0,
 	failed: 0,
@@ -37,6 +38,10 @@ export function filterAdminSessionBookings(
 ) {
 	return bookings.filter((booking) => {
 		if (!customerFilter({ original: booking }, filters.searchQuery)) {
+			return false;
+		}
+
+		if (!filters.showStaleBookings && booking.status === "cancelled") {
 			return false;
 		}
 

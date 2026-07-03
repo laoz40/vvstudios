@@ -25,10 +25,10 @@ export const BOOKING_INVOICE_PAYMENT = {
 } as const;
 
 export const BOOKING_INVOICE_NOTES = {
-	cancellationPolicy:
-		"The booking deposit is non-refundable. Bookings may be rescheduled with a minimum of 24 hours notice. Late cancellations or no-shows will forfeit the deposit.",
-	multiBookingCancellationPolicy:
-		"Sessions may be rescheduled with a minimum of 24 hours notice. Late cancellations or no-shows will forfeit that session.",
+	getCancellationPolicy: (noticeWindowLabel: string) =>
+		`The booking deposit is non-refundable. Bookings may be rescheduled with a minimum of ${noticeWindowLabel} notice. Late cancellations or no-shows will forfeit the deposit.`,
+	getMultiBookingCancellationPolicy: (noticeWindowLabel: string) =>
+		`Sessions may be rescheduled with a minimum of ${noticeWindowLabel} notice. Late cancellations or no-shows will forfeit that session.`,
 	paymentNote:
 		"Settle remaining balance early via Bank Transfer or PayID, or pay in-studio (credit card fees apply).",
 	multiBookingPaymentNote:

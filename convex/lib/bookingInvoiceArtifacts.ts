@@ -124,7 +124,10 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 	return ok({ ...artifactsResult, artifacts: { ...artifactsResult.artifacts, emailHtml } });
 }
 
-export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBookingInvoiceSource) {
+export async function createMultiBookingInvoiceArtifacts(
+	multiBooking: MultiBookingInvoiceSource,
+	options: { leadTimeMinutes: number }
+) {
 	const parsedMultiBooking = multiBookingFormSchema.safeParse({
 		name: multiBooking.name,
 		phone: multiBooking.phone,
@@ -177,7 +180,8 @@ export async function createMultiBookingInvoiceArtifacts(multiBooking: MultiBook
 		discountPercent: multiBooking.discountPercent,
 		discountAmount: multiBooking.discountAmount,
 		totalDueAmount: multiBooking.totalDueAmount,
-		invoiceLineItems
+		invoiceLineItems,
+		leadTimeMinutes: options.leadTimeMinutes
 	});
 	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
 

@@ -1,6 +1,9 @@
 import type { Doc } from "#convex/_generated/dataModel";
 
-export type BookingRecord = Doc<"bookings">;
+export type BookingRecord = Doc<"bookings"> & {
+	multiBookingInvoiceNumber?: string;
+	multiBookingPackageSize?: 4 | 8 | 12;
+};
 
 export type BookingActionDetails = {
 	canGenerateRescheduleLink: boolean;
@@ -26,4 +29,12 @@ export function isStaleCleanupBooking(booking: BookingRecord, now = Date.now()) 
 		booking.status === "pending_payment" &&
 		booking.pendingPaymentCreatedAt < now - STRIPE_CHECKOUT_SESSION_EXPIRY_MS
 	);
+}
+
+export function getPackageSessionProgressLabel(booking: BookingRecord) {
+	if (!booking.multiBookingSlotNumber || !booking.multiBookingPackageSize) {
+		return null;
+	}
+
+	return `${booking.multiBookingSlotNumber}/${booking.multiBookingPackageSize}`;
 }

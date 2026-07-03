@@ -1,7 +1,7 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
 import { err, ok, type Result } from "../../src/lib/result";
-import type { Doc } from "../_generated/dataModel";
+
 import {
 	buildEventWindow,
 	formatCalendarEventDate,
@@ -19,6 +19,16 @@ export interface BookingCalendarEventDetails {
 	name: string;
 	service: string;
 }
+
+export type BookingCalendarEventRecord = {
+	date: string;
+	duration: string;
+	email: string;
+	googleCalendarId?: string;
+	googleEventId?: string;
+	name: string;
+	time: string;
+};
 
 interface BuildBookingCalendarEventPayloadArgs {
 	date: string;
@@ -46,7 +56,7 @@ export function buildBookingCalendarEventPayload({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	return ok({
+	const payload = {
 		summary: `Studio Hire | ${details.name} | ${details.duration}`,
 		description: [
 			`Hello, ${details.name}!`,
@@ -70,7 +80,9 @@ export function buildBookingCalendarEventPayload({
 		end: { dateTime: endDateTime },
 		transparency: "opaque",
 		attendees: [{ email: details.email }]
-	} satisfies calendar_v3.Schema$Event);
+	} satisfies calendar_v3.Schema$Event;
+
+	return ok(payload);
 }
 
 export type GoogleCalendarEventClient = {
@@ -79,7 +91,10 @@ export type GoogleCalendarEventClient = {
 	timeZone: string;
 };
 
-function isMatchingBookingCalendarEvent(event: calendar_v3.Schema$Event, booking: Doc<"bookings">) {
+function isMatchingBookingCalendarEvent(
+	event: calendar_v3.Schema$Event,
+	booking: BookingCalendarEventRecord
+) {
 	const attendeeMatches =
 		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
 
@@ -100,7 +115,7 @@ async function findBookingCalendarEventIncludingDeclined({
 	calendarId,
 	timeZone
 }: {
-	booking: Doc<"bookings">;
+	booking: BookingCalendarEventRecord;
 	calendar: Pick<calendar_v3.Calendar, "events">;
 	calendarId: string;
 	timeZone: string;
@@ -151,7 +166,7 @@ export async function deleteBookingCalendarEvent({
 	booking,
 	client
 }: {
-	booking: Doc<"bookings">;
+	booking: BookingCalendarEventRecord;
 	client: GoogleCalendarEventClient;
 }) {
 	try {
@@ -164,7 +179,6 @@ export async function deleteBookingCalendarEvent({
 				calendarId,
 				savedEventId
 			);
-
 			if (wasDeleted) {
 				return ok({ calendarEventDeleted: true });
 			}
@@ -226,7 +240,7 @@ export async function updateBookingCalendarEventTiming({
 	time,
 	createMissingEvent = false
 }: {
-	booking: Doc<"bookings">;
+	booking: BookingCalendarEventRecord;
 	client: GoogleCalendarEventClient;
 	date: string;
 	details: BookingCalendarEventDetails;
@@ -237,7 +251,7 @@ export async function updateBookingCalendarEventTiming({
 	// When requested, create that missing event before saving the new booking time.
 	if (!booking.googleEventId || !booking.googleCalendarId) {
 		if (createMissingEvent) {
-			return createReplacementBookingCalendarEvent({ client, date, details, time });
+			return createBookingCalendarEvent({ client, date, details, time });
 		}
 
 		return ok({});
@@ -253,7 +267,7 @@ export async function updateBookingCalendarEventTiming({
 		});
 
 		if (existingGoogleEvent.data.status === "cancelled") {
-			return createReplacementBookingCalendarEvent({ client, date, details, time });
+			return createBookingCalendarEvent({ client, date, details, time });
 		}
 
 		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
@@ -262,7 +276,6 @@ export async function updateBookingCalendarEventTiming({
 			time,
 			timeZone: client.timeZone
 		});
-
 		if (payloadError !== null) {
 			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
 		}
@@ -275,7 +288,7 @@ export async function updateBookingCalendarEventTiming({
 		});
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
-			return createReplacementBookingCalendarEvent({ client, date, details, time });
+			return createBookingCalendarEvent({ client, date, details, time });
 		}
 
 		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
@@ -284,7 +297,7 @@ export async function updateBookingCalendarEventTiming({
 	return ok({});
 }
 
-async function createReplacementBookingCalendarEvent({
+export async function createBookingCalendarEvent({
 	client,
 	date,
 	details,
@@ -302,7 +315,6 @@ async function createReplacementBookingCalendarEvent({
 			time,
 			timeZone: client.timeZone
 		});
-
 		if (payloadError !== null) {
 			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
 		}

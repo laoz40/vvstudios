@@ -11,6 +11,8 @@ import {
 	BOOKING_INVOICE_PAYMENT,
 	BOOKING_INVOICE_TITLE
 } from "#studio/features/booking-invoice/lib/constants";
+import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
+import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 import {
 	calculateBookingInvoiceAmounts,
 	getAddonAmount,
@@ -188,6 +190,10 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 				])
 	];
 
+	const noticeWindowLabel = formatNoticeWindowLabel(
+		DEFAULT_BOOKING_AVAILABILITY_SETTINGS.leadTimeMinutes
+	);
+
 	return {
 		amounts,
 		booking: {
@@ -227,7 +233,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		},
 		lineItems,
 		notes: {
-			cancellationPolicy: BOOKING_INVOICE_NOTES.cancellationPolicy,
+			cancellationPolicy: BOOKING_INVOICE_NOTES.getCancellationPolicy(noticeWindowLabel),
 			paymentNote: BOOKING_INVOICE_NOTES.paymentNote
 		},
 		payment: {
@@ -257,6 +263,7 @@ export function buildMultiBookingInvoiceData(input: {
 	invoiceLineItems: BookingInvoiceLineItem[];
 	invoiceNumber?: string;
 	name: string;
+	leadTimeMinutes: number;
 	packageSize: number;
 	packageSubtotalAmount: number;
 	phone: string;
@@ -281,6 +288,8 @@ export function buildMultiBookingInvoiceData(input: {
 					.join(", ")
 			: "No add-ons selected";
 	const multiBookingLineItems = input.invoiceLineItems;
+
+	const noticeWindowLabel = formatNoticeWindowLabel(input.leadTimeMinutes);
 
 	return {
 		amounts: {
@@ -328,7 +337,8 @@ export function buildMultiBookingInvoiceData(input: {
 		},
 		lineItems: multiBookingLineItems,
 		notes: {
-			cancellationPolicy: BOOKING_INVOICE_NOTES.multiBookingCancellationPolicy,
+			cancellationPolicy:
+				BOOKING_INVOICE_NOTES.getMultiBookingCancellationPolicy(noticeWindowLabel),
 			paymentNote: BOOKING_INVOICE_NOTES.multiBookingPaymentNote
 		},
 		package: { size: input.packageSize },

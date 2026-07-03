@@ -68,6 +68,7 @@ interface SendBookingDeliverablesEmailArgs {
 
 interface SendMultiBookingScheduleEmailArgs {
 	addons: string[];
+	leadTimeMinutes: number;
 	clipsPackageQuantity?: string;
 	duration: string;
 	email: string;
@@ -269,14 +270,18 @@ export async function sendBookingInvoiceEmailsForBooking(
 }
 
 export async function sendMultiBookingInvoiceEmail(
-	multiBooking: MultiBookingInvoiceSource
+	multiBooking: MultiBookingInvoiceSource,
+	options: { leadTimeMinutes: number }
 ): Promise<
 	Result<
 		{ invoiceNumber: string; sent: true },
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
-	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking);
+	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(
+		multiBooking,
+		options
+	);
 
 	if (artifactsError !== null) {
 		return err(artifactsError);
@@ -318,6 +323,7 @@ export async function sendMultiBookingScheduleEmail({
 	expiresAt,
 	name,
 	packageSize,
+	leadTimeMinutes,
 	scheduleUrl,
 	service
 }: SendMultiBookingScheduleEmailArgs): Promise<
@@ -336,6 +342,7 @@ export async function sendMultiBookingScheduleEmail({
 				expiresAtLabel: formatTimestampDateLong(expiresAt),
 				name,
 				packageSize,
+				leadTimeMinutes,
 				scheduleUrl,
 				service,
 				signoffName

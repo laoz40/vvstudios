@@ -5,6 +5,7 @@ const previewProps = {
 	duration: "2h",
 	expiresAtLabel: "Saturday, 2 May 2026",
 	name: "Alex Carter",
+	leadTimeMinutes: 12 * 60,
 	packageSize: 8 as const,
 	scheduleUrl: "https://vvstudios.example/multi-booking/sample-token",
 	service: "Table Setup",

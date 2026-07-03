@@ -51,6 +51,13 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 				isBookingCompletionFailure: false
 			};
 
+		case "cancelled":
+			return {
+				title: "This booking was cancelled",
+				description: "Please contact us if you need help with this session.",
+				isBookingCompletionFailure: false
+			};
+
 		case "pending_payment":
 			return {
 				title: "Processing booking",

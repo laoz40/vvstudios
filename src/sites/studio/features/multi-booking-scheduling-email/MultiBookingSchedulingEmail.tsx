@@ -11,11 +11,13 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
 export interface MultiBookingSchedulingEmailProps {
 	addonsLine: string;
 	duration: string;
 	expiresAtLabel: string;
+	leadTimeMinutes: number;
 	name: string;
 	packageSize: 4 | 8 | 12;
 	scheduleUrl: string;
@@ -27,12 +29,15 @@ export function MultiBookingSchedulingEmail({
 	addonsLine,
 	duration,
 	expiresAtLabel,
+	leadTimeMinutes,
 	name,
 	packageSize,
 	scheduleUrl,
 	service,
 	signoffName
 }: MultiBookingSchedulingEmailProps) {
+	const noticeWindowLabel = formatNoticeWindowLabel(leadTimeMinutes);
+
 	return (
 		<Html>
 			<Head>
@@ -72,7 +77,7 @@ export function MultiBookingSchedulingEmail({
 					<Section style={section}>
 						<Text style={note}>
 							You can book sessions one at a time and return later using this link. Sessions can be
-							rescheduled or cleared up to 24 hours before the session start.
+							rescheduled or cleared up to {noticeWindowLabel} before the session start.
 						</Text>
 					</Section>
 

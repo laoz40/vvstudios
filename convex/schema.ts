@@ -66,6 +66,7 @@ export default defineSchema({
 		status: v.union(
 			v.literal("pending_payment"),
 			v.literal("confirmed"),
+			v.literal("cancelled"),
 			v.literal("failed"),
 			v.literal("email_failed"),
 			v.literal("expired"),

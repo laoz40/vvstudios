@@ -62,7 +62,10 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 	}
 }
 
-export function getSavePackageSlotToastMessage(error: SavePackageSlotError) {
+export function getSavePackageSlotToastMessage(
+	error: SavePackageSlotError,
+	noticeWindowLabel: string
+) {
 	switch (error.reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
@@ -71,8 +74,8 @@ export function getSavePackageSlotToastMessage(error: SavePackageSlotError) {
 			return getPackageLinkInvalidMessage(error).description;
 		case "PACKAGE_SLOT_NOT_FOUND":
 			return "This session slot could not be found.";
-		case "PACKAGE_SLOT_DATE_REACHED":
-			return "This session can only be changed before the session date.";
+		case "PACKAGE_SLOT_LOCKED":
+			return `This session can only be changed more than ${noticeWindowLabel} before it starts.`;
 		case "BOOKING_INVALID_DATE":
 			return "Please choose a valid date.";
 		case "BOOKING_INVALID_DURATION":
@@ -85,6 +88,15 @@ export function getSavePackageSlotToastMessage(error: SavePackageSlotError) {
 			return "Please choose a date before your package expiry date.";
 		case "BOOKING_TOO_SOON":
 			return "Please choose a later time.";
+		case "BOOKING_TIME_UNAVAILABLE":
+			return "That time was just booked. Please choose another time.";
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+			return "Calendar access failed. Please try again later.";
+		case "GOOGLE_CALENDAR_CREATE_FAILED":
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+			return "Could not update the calendar event. Please try again.";
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return "Availability was checked too many times. Please wait a minute and try again.";
 		case "PACKAGE_SLOT_SAVE_FAILED":
 			return "Could not save this session. Please try again.";
 		case "UNEXPECTED_ERROR":
@@ -96,7 +108,10 @@ export function getSavePackageSlotToastMessage(error: SavePackageSlotError) {
 	}
 }
 
-export function getClearPackageSlotToastMessage(error: ClearPackageSlotError) {
+export function getClearPackageSlotToastMessage(
+	error: ClearPackageSlotError,
+	noticeWindowLabel: string
+) {
 	switch (error.reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
@@ -105,8 +120,14 @@ export function getClearPackageSlotToastMessage(error: ClearPackageSlotError) {
 			return getPackageLinkInvalidMessage(error).description;
 		case "PACKAGE_SLOT_NOT_FOUND":
 			return "This session slot could not be found.";
-		case "PACKAGE_SLOT_DATE_REACHED":
-			return "This session can only be cleared before the session date.";
+		case "PACKAGE_SLOT_LOCKED":
+			return `This session can only be cleared more than ${noticeWindowLabel} before it starts.`;
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+			return "Calendar access failed. Please try again later.";
+		case "GOOGLE_CALENDAR_DELETE_FAILED":
+			return "Could not remove the calendar event. Please try again.";
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return "Calendar updates are busy. Please wait a minute and try again.";
 		case "PACKAGE_SLOT_CLEAR_FAILED":
 			return "Could not clear this session. Please try again.";
 		case "UNEXPECTED_ERROR":

@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
 import {
@@ -114,7 +114,8 @@ async function getMultiBookingInvoicePdfByIdHandler(
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
 	}
 
-	return renderMultiBookingInvoicePdf(multiBooking);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
+	return renderMultiBookingInvoicePdf(multiBooking, bookingSettings.leadTimeMinutes);
 }
 
 async function getAdminMultiBookingInvoicePdfByIdHandler(
@@ -136,13 +137,17 @@ async function getAdminMultiBookingInvoicePdfByIdHandler(
 		return err({ reason: "PACKAGE_NOT_FOUND" });
 	}
 
-	return renderMultiBookingInvoicePdf(multiBooking);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
+	return renderMultiBookingInvoicePdf(multiBooking, bookingSettings.leadTimeMinutes);
 }
 
 async function renderMultiBookingInvoicePdf(
-	multiBooking: Doc<"multiBookingPackages">
+	multiBooking: Doc<"multiBookingPackages">,
+	leadTimeMinutes: number
 ): Promise<Result<InvoicePdfPayload, MultiBookingInvoicePdfError>> {
-	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking);
+	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(multiBooking, {
+		leadTimeMinutes
+	});
 
 	if (artifactsError !== null) {
 		return err(artifactsError);

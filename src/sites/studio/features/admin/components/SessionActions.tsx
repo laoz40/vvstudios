@@ -27,7 +27,9 @@ export function SessionActions({ booking }: SessionActionsProps) {
 	const details: BookingActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(booking, isPastBooking),
 		canToggleStatus,
-		customerBookingId: formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
+		customerBookingId:
+			booking.multiBookingInvoiceNumber ??
+			formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
 		canManageConfirmedBooking,
 		isPastBooking,
 		toggleStatusLabel: canManageConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed"

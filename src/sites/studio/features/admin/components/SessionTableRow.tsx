@@ -16,7 +16,10 @@ import {
 	getDeliverableStatus,
 	isDeliverableSession
 } from "#studio/features/admin/lib/booking-edit-status";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import {
+	getPackageSessionProgressLabel,
+	type BookingRecord
+} from "#studio/features/admin/lib/admin-bookings";
 import {
 	formatAudAmount,
 	getRemainingBalanceAmount
@@ -35,9 +38,12 @@ type SessionTableRowProps = { booking: BookingRecord };
 export function SessionTableRow({ booking }: SessionTableRowProps) {
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const relativeDateLabel = formatBookingRelativeDate(booking.date);
+	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
 	const isRemainingBalancePaid = booking.paidRemainingBalance === true;
 	const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(booking));
-	const showRemainingBalance = booking.status === "confirmed" || booking.status === "email_failed";
+	const showRemainingBalance =
+		!packageSessionProgressLabel &&
+		(booking.status === "confirmed" || booking.status === "email_failed");
 	const deliverableStatus = isDeliverableSession(booking) ? getDeliverableStatus(booking) : null;
 
 	return (
@@ -150,7 +156,9 @@ export function SessionTableRow({ booking }: SessionTableRowProps) {
 				</p>
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				{showRemainingBalance ? (
+				{packageSessionProgressLabel ? (
+					<p className="font-medium">{packageSessionProgressLabel}</p>
+				) : showRemainingBalance ? (
 					<p className={isRemainingBalancePaid ? "text-green" : "text-destructive"}>
 						{remainingBalanceLabel}
 					</p>

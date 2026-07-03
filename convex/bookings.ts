@@ -460,11 +460,29 @@ async function getBookingsHandler(
 
 	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
 	// Auth failures throw above so the hook can keep native cursor/page handling.
-	return await ctx.db
+	const bookingsPage = await ctx.db
 		.query("bookings")
 		.withIndex("by_pendingPaymentCreatedAt")
 		.order("desc")
 		.paginate(args.paginationOpts);
+
+	const page = await Promise.all(
+		bookingsPage.page.map(async (booking) => {
+			if (!booking.multiBookingPackageId) {
+				return booking;
+			}
+
+			const multiBookingPackage = await ctx.db.get(booking.multiBookingPackageId);
+
+			return {
+				...booking,
+				multiBookingInvoiceNumber: multiBookingPackage?.invoiceNumber,
+				multiBookingPackageSize: multiBookingPackage?.packageSize
+			};
+		})
+	);
+
+	return { ...bookingsPage, page };
 }
 
 const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -746,6 +764,9 @@ export const claimBookingCompletion = internalMutation({
 			case "confirmed":
 			case "email_failed":
 				return ok({ outcome: "already_confirmed" });
+
+			case "cancelled":
+				return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
 
 			case "expired":
 				return err({ reason: "BOOKING_EXPIRED" });

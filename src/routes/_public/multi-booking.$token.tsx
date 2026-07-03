@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type {
@@ -26,8 +26,8 @@ import {
 	getPackageLinkInvalidMessage,
 	getSavePackageSlotToastMessage
 } from "#studio/features/booking-form/lib/package-scheduling-errors";
+import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
-	BOOKING_TIME_ZONE,
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatBookingDateSummary,
 	formatBookingTimeRange,
@@ -51,7 +51,6 @@ import {
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
-import { getTimeZoneDateKey } from "#studio/lib/zonedDateTime";
 
 export const Route = createFileRoute("/_public/multi-booking/$token")({
 	head: () => buildNoIndexHead("Schedule Package Sessions | VV Studios"),
@@ -101,8 +100,8 @@ function PackageScheduleContent({
 }) {
 	// Convex functions
 	const getPackageBusyWindows = useAction(api.packageSchedulingCalendar.getPackageBusyWindows);
-	const savePackageSlot = useMutation(api.packageScheduling.savePackageSlot);
-	const clearPackageSlot = useMutation(api.packageScheduling.clearPackageSlot);
+	const savePackageSlot = useAction(api.packageScheduling.savePackageSlot);
+	const clearPackageSlot = useAction(api.packageScheduling.clearPackageSlot);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 
 	// Availability state
@@ -301,14 +300,14 @@ function PackageScheduleContent({
 		setSavingSlotNumber(null);
 
 		if (saveError !== null) {
-			toast.error(getSavePackageSlotToastMessage(saveError));
+			toast.error(getSavePackageSlotToastMessage(saveError, noticeWindowLabel));
 			return;
 		}
 
 		closeBookingModal();
 		setActiveSlotNumber(null);
 		setHighlightedSlotNumber(confirmation.slotNumber);
-		toast.success(`Session ${confirmation.slotNumber} saved.`);
+		toast.success("Calendar event created. Check your email for the invitation.");
 	}
 
 	async function handleClearSlot(slotNumber: number) {
@@ -319,7 +318,7 @@ function PackageScheduleContent({
 		setClearingSlotNumber(null);
 
 		if (clearError !== null) {
-			toast.error(getClearPackageSlotToastMessage(clearError));
+			toast.error(getClearPackageSlotToastMessage(clearError, noticeWindowLabel));
 			return;
 		}
 
@@ -379,7 +378,7 @@ function PackageScheduleContent({
 		selectedDate,
 		setCalendarMonth
 	};
-	const todayDateKey = getTimeZoneDateKey(new Date(currentTimestamp), BOOKING_TIME_ZONE);
+	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
 
 	return (
 		<BookingStatusLayout
@@ -402,7 +401,8 @@ function PackageScheduleContent({
 					selectedDateValue={selectedDateValue}
 					selectedTime={selectedTime}
 					timeSelectionMessage={timeSelectionMessage}
-					todayDateKey={todayDateKey}
+					currentTimestamp={currentTimestamp}
+					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
 					onRequestClearSlot={handleRequestClearSlot}
 					onRequestSaveSlot={handleRequestSaveSlot}
@@ -412,8 +412,8 @@ function PackageScheduleContent({
 				/>
 
 				<p className="mt-6 text-center text-xs text-muted-foreground">
-					Sessions can be changed until the day they start. Package scheduling expires{" "}
-					{formatBookingTimestampTime(packageData.expiresAt)},{" "}
+					Sessions can be changed until {noticeWindowLabel} before they start. Package scheduling
+					expires {formatBookingTimestampTime(packageData.expiresAt)},{" "}
 					{formatBookingTimestampDateLong(packageData.expiresAt)}.
 				</p>
 			</div>

@@ -64,10 +64,9 @@ export function customerFilter(row: { original: BookingRecord }, value: unknown)
 		return true;
 	}
 
-	const invoiceNumber = formatBookingInvoiceNumber(
-		row.original._id,
-		row.original.pendingPaymentCreatedAt
-	);
+	const invoiceNumber =
+		row.original.multiBookingInvoiceNumber ??
+		formatBookingInvoiceNumber(row.original._id, row.original.pendingPaymentCreatedAt);
 
 	return [
 		row.original._id,

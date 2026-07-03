@@ -12,6 +12,7 @@ import {
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { formatBookingTimestampDateLong, formatTimeValue } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -25,7 +26,8 @@ interface PackageSessionsAccordionProps {
 	selectedDateValue: string;
 	selectedTime: string;
 	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
-	todayDateKey: string;
+	leadTimeMinutes: number;
+	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
 	onRequestClearSlot: (slotNumber: number, date: string) => void;
 	onRequestSaveSlot: () => void;
@@ -44,7 +46,8 @@ export function PackageSessionsAccordion({
 	selectedDateValue,
 	selectedTime,
 	timeSelectionMessage,
-	todayDateKey,
+	leadTimeMinutes,
+	currentTimestamp,
 	onDateChange,
 	onRequestClearSlot,
 	onRequestSaveSlot,
@@ -90,9 +93,13 @@ export function PackageSessionsAccordion({
 
 			{packageData.sessions.map((session) => {
 				const booking = session.cancelledAt ? null : session.booking;
-				const isSessionDateReached = Boolean(booking && booking.date <= todayDateKey);
+				const isPastSession = Boolean(booking && booking.sessionStartAt < currentTimestamp);
+				const isSessionLocked = Boolean(
+					booking &&
+					isPackageSessionLocked(booking.sessionStartAt, leadTimeMinutes, currentTimestamp)
+				);
 				const isActive = activeSlotNumber === session.slotNumber;
-				const canEdit = !isSessionDateReached;
+				const canEdit = !isSessionLocked;
 				const canClear = Boolean(booking && canEdit);
 				const isHighlighted = highlightedSlotNumber === session.slotNumber;
 
@@ -105,7 +112,7 @@ export function PackageSessionsAccordion({
 							"rounded-xl border bg-card px-6",
 							"text-card-foreground",
 							"shadow-sm transition-colors duration-500 last:border-b",
-							isSessionDateReached && "bg-background border-muted",
+							isPastSession && "bg-background border-muted",
 							isHighlighted && "border-primary"
 						)}>
 						<AccordionTrigger

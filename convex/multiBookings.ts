@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
 import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
@@ -133,7 +133,11 @@ async function createMultiBookingRequestHandler(
 
 	const createdMultiBooking = pendingMultiBooking.multiBooking;
 
-	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(createdMultiBooking);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(
+		createdMultiBooking,
+		{ leadTimeMinutes: bookingSettings.leadTimeMinutes }
+	);
 
 	if (invoiceEmailError !== null) {
 		await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
@@ -186,7 +190,10 @@ async function resendMultiBookingInvoiceEmailHandler(
 		return err({ reason: "PACKAGE_NOT_UNPAID" });
 	}
 
-	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(multiBooking);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(multiBooking, {
+		leadTimeMinutes: bookingSettings.leadTimeMinutes
+	});
 
 	if (invoiceEmailError !== null) {
 		await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
@@ -251,6 +258,7 @@ async function confirmPackagePaymentHandler(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		paymentResult.token
 	);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
 		multiBookingId: args.multiBookingId,
@@ -261,6 +269,7 @@ async function confirmPackagePaymentHandler(
 			email: paymentResult.multiBooking.email,
 			essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
 			expiresAt: paymentResult.expiresAt,
+			leadTimeMinutes: bookingSettings.leadTimeMinutes,
 			name: paymentResult.multiBooking.name,
 			packageSize: paymentResult.multiBooking.packageSize,
 			scheduleUrl,
@@ -315,6 +324,7 @@ async function retryMultiBookingSchedulingEmailHandler(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		tokenResult.token
 	);
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
 		multiBookingId: args.multiBookingId,
@@ -325,6 +335,7 @@ async function retryMultiBookingSchedulingEmailHandler(
 			email: tokenResult.multiBooking.email,
 			essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
 			expiresAt: tokenResult.expiresAt,
+			leadTimeMinutes: bookingSettings.leadTimeMinutes,
 			name: tokenResult.multiBooking.name,
 			packageSize: tokenResult.multiBooking.packageSize,
 			scheduleUrl,
