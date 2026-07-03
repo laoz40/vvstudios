@@ -93,11 +93,6 @@ export function SessionsTable({
 		storeShowStaleBookings(showStaleBookings);
 	}, [showStaleBookings]);
 
-	// Reset pagination when visible rows change.
-	useEffect(() => {
-		setPageIndex(0);
-	}, [searchQuery, showStaleBookings, showUpcomingOnly]);
-
 	// Visible booking rows after dashboard-level filters.
 	const filteredBookings = useMemo(() => {
 		return filterAdminSessionBookings(bookings, {
@@ -112,6 +107,11 @@ export function SessionsTable({
 	}, [filteredBookings, sorting]);
 
 	const pageCount = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
+
+	// Reset pagination when visible rows change.
+	useEffect(() => {
+		setPageIndex(0);
+	}, [bookings, searchQuery, showStaleBookings, showUpcomingOnly, sortedBookings.length]);
 	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
 	const staleCounts = useMemo(
