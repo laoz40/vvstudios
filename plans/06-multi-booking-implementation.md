@@ -291,7 +291,7 @@ When a slot is saved:
 - Set required booking timestamps safely, including `pendingPaymentCreatedAt`, `paymentCompletedAt`, and `bookingConfirmedAt`.
 - Link booking with `multiBookingPackageId` and `multiBookingSlotNumber`.
 - Do **not** use `multiBookingSessionId` or stored slot labels; compute labels from `slotNumber` and `packageSize`.
-- Patch that session entry with `bookingId` and `scheduledAt`.
+- Patch that session entry with `bookingId`, `scheduledAt`, and clear any prior `cancelledAt`.
 - Existing slot reschedule resets reminder email claim/send fields.
 
 When a slot is cleared:
@@ -345,15 +345,6 @@ Check after step:
 - package scheduled/rescheduled/cleared emails include date, time, timezone, and slot label
 - same-day multiple package sessions still work when separate times are free
 
-### Step 10: Migration and rollout cleanup
-
-Tasks:
-
-- If `bookings.status` gets a new `cancelled` value, update every status switch, query, badge, and filter before writing that status.
-- No backfill should be needed for existing non-package bookings because package fields are optional.
-- Existing package sessions may need a small cleanup/migration only if the cancellation model changes after test data exists.
-- Keep package slots inside `multiBookingPackages.sessions`; do not add a separate sessions table in v1.
-- Run format and lint.
 
 ## Final manual checks
 
