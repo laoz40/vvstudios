@@ -736,7 +736,6 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	if (emailError !== null) {
 		console.error("Booking invoice email failed during booking completion", {
 			bookingId: booking._id,
-			bookingEmail: booking.email,
 			reason: emailError.reason
 		});
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
