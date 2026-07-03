@@ -12,7 +12,6 @@ import {
 	BOOKING_INVOICE_TITLE
 } from "#studio/features/booking-invoice/lib/constants";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 import {
 	calculateBookingInvoiceAmounts,
 	getAddonAmount,
@@ -190,9 +189,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 				])
 	];
 
-	const noticeWindowLabel = formatNoticeWindowLabel(
-		DEFAULT_BOOKING_AVAILABILITY_SETTINGS.leadTimeMinutes
-	);
+	const noticeWindowLabel = formatNoticeWindowLabel(input.leadTimeMinutes);
 
 	return {
 		amounts,

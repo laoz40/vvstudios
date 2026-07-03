@@ -70,9 +70,11 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" });
 	}
 
+	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 	const [artifactsError, artifactsResult] = createBookingInvoiceArtifactsForBooking(
 		booking,
-		invoiceCreatedAt
+		invoiceCreatedAt,
+		{ leadTimeMinutes: bookingSettings.leadTimeMinutes }
 	);
 
 	if (artifactsError !== null) {

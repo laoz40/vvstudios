@@ -463,7 +463,10 @@ async function rescheduleBookingHandler(
 		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
 		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
@@ -548,12 +551,16 @@ async function sendBookingInvoiceForBookingHandler(
 	}
 
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	if (linkError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
@@ -731,7 +738,10 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: true, outcome: "completed" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
 		console.error("Booking invoice email failed during booking completion", {

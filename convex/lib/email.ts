@@ -202,7 +202,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 
 export async function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
-	rescheduleUrl?: string
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
 ): Promise<
 	Result<
 		{ sent: true },
@@ -212,7 +212,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-		rescheduleUrl
+		options
 	);
 
 	if (artifactsError !== null) {

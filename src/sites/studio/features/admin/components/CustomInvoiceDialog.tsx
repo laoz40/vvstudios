@@ -150,6 +150,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
 		bookingId: booking._id
 	}) as ListCustomInvoicesForBookingResult | undefined;
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
@@ -197,6 +198,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		essentialEditQuantity?: string;
 		clipsPackageQuantity?: string;
 	}) {
+		if (!bookingSettings) {
+			toast.error("Booking settings are still loading.");
+			return;
+		}
 		setDownloadingInvoiceId(input._id);
 
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
@@ -210,6 +215,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
+				leadTimeMinutes: bookingSettings.leadTimeMinutes,
 				service: isBookingService(input.service) ? input.service : undefined
 			})
 		);
@@ -243,6 +249,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
+		if (!bookingSettings) {
+			toast.error("Booking settings are still loading.");
+			return;
+		}
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
@@ -299,6 +309,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: draft.duration,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
+				leadTimeMinutes: bookingSettings.leadTimeMinutes,
 				service: draft.service || undefined
 			})
 		);

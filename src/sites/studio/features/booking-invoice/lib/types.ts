@@ -23,6 +23,7 @@ export interface BookingInvoiceBuilderInput {
 	addons: BookingAddon[];
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
+	leadTimeMinutes: number;
 	createdAt?: number;
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;

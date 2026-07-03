@@ -47,7 +47,7 @@ export type MultiBookingInvoiceSource = Pick<
 export function createBookingInvoiceArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
-	rescheduleUrl?: string
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
 ) {
 	const parsedBooking = bookingSchema.safeParse({
 		name: booking.name,
@@ -86,7 +86,8 @@ export function createBookingInvoiceArtifactsForBooking(
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
-		rescheduleUrl
+		leadTimeMinutes: options.leadTimeMinutes,
+		rescheduleUrl: options.rescheduleUrl
 	});
 
 	return ok({
@@ -101,12 +102,12 @@ export function createBookingInvoiceArtifactsForBooking(
 export async function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
-	rescheduleUrl?: string
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
 ) {
 	const [artifactsError, artifactsResult] = createBookingInvoiceArtifactsForBooking(
 		booking,
 		createdAt,
-		rescheduleUrl
+		options
 	);
 
 	if (artifactsError !== null) {

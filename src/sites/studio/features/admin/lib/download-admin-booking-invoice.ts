@@ -16,6 +16,7 @@ export type DownloadAdminBookingInvoiceInput = {
 	duration?: BookingFormValues["duration"];
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
+	leadTimeMinutes: number;
 	service?: BookingService;
 };
 
@@ -34,6 +35,7 @@ export async function downloadAdminBookingInvoice({
 	duration = booking.duration as BookingFormValues["duration"],
 	includeDepositLineItem,
 	invoiceNumber,
+	leadTimeMinutes,
 	service
 }: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
 	const { downloadBookingInvoicePdf } =
@@ -80,6 +82,7 @@ export async function downloadAdminBookingInvoice({
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
+		leadTimeMinutes,
 		includeDepositLineItem,
 		invoiceNumber
 	});
