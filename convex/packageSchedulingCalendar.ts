@@ -233,10 +233,14 @@ async function savePackageSlotCalendarEventInternalHandler(
 export const deletePackageSlotCalendarEventInternal = internalAction({
 	args: { booking: packageCalendarBookingValidator },
 	handler: async (_ctx, args) => {
-		const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-		return await deleteBookingCalendarEvent({
-			booking: args.booking,
-			client: { calendar, calendarId, timeZone }
-		});
+		try {
+			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
+			return await deleteBookingCalendarEvent({
+				booking: args.booking,
+				client: { calendar, calendarId, timeZone }
+			});
+		} catch (error) {
+			return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
+		}
 	}
 });
