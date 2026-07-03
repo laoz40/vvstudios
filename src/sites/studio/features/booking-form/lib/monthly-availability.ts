@@ -68,7 +68,6 @@ export function getSelectedBusyDay({
 export function getBookableAvailableTimes({
 	currentTimestamp,
 	duration,
-	isLoadingMonthAvailability,
 	isViewingSelectedMonth,
 	lastBookableDate,
 	monthlyBusyWindowsByMonth,
@@ -81,7 +80,6 @@ export function getBookableAvailableTimes({
 }: {
 	currentTimestamp: number;
 	duration: string;
-	isLoadingMonthAvailability: boolean;
 	isViewingSelectedMonth: boolean;
 	lastBookableDate: Date;
 	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
@@ -94,6 +92,7 @@ export function getBookableAvailableTimes({
 }) {
 	if (
 		!selectedDateValue ||
+		!duration ||
 		!selectedDate ||
 		selectedDate < today ||
 		selectedDate > lastBookableDate
@@ -105,7 +104,7 @@ export function getBookableAvailableTimes({
 		return [];
 	}
 
-	if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
+	if (!monthlyBusyWindowsByMonth[selectedMonth]) {
 		return [];
 	}
 

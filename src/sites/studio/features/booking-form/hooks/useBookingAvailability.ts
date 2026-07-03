@@ -7,6 +7,7 @@ import { tryCatch } from "#/lib/result";
 import { availabilityErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 import {
+	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
@@ -18,7 +19,6 @@ import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatDateValue,
 	formatMonthKey,
-	getAvailableTimesForDate,
 	getCurrentMonthKey,
 	getCurrentTimestamp,
 	getLastBookableDate,
@@ -186,39 +186,31 @@ export function useBookingAvailability({
 
 	// Available times for the selected date
 	const availableTimes = useMemo<string[]>(() => {
-		if (
-			!date ||
-			!duration ||
-			isSelectedDateInPast ||
-			isSelectedDateTooFarInFuture ||
-			!isViewingSelectedMonth
-		) {
-			return [];
-		}
-
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-			return [];
-		}
-
-		return getAvailableTimesForDate({
-			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+		return getBookableAvailableTimes({
 			currentTimestamp,
-			dateValue: date,
 			duration,
-			settings: availabilitySettings
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedBusyDay,
+			selectedDate,
+			selectedDateValue: date,
+			selectedMonth,
+			settings: availabilitySettings,
+			today
 		});
 	}, [
 		currentTimestamp,
 		date,
 		duration,
 		availabilitySettings,
-		isLoadingMonthAvailability,
-		isSelectedDateInPast,
-		isSelectedDateTooFarInFuture,
 		isViewingSelectedMonth,
 		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
-		selectedMonth
+		selectedMonth,
+		selectedDate,
+		lastBookableDate,
+		today
 	]);
 
 	// Keep time-based availability fresh
