@@ -35,7 +35,7 @@ import {
 import {
 	readStoredPackageTableFilters,
 	storePackageTableFilters
-} from "#studio/features/admin/lib/package-table-preferences";
+} from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatBookingTimestamp,

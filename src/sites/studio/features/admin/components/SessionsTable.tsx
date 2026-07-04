@@ -26,21 +26,13 @@ import {
 import {
 	filterAdminSessionBookings,
 	getStaleCleanupBookingCounts,
-	isSessionSortId,
 	sortAdminSessionBookings,
-	type SessionSortId,
-	type SessionSorting
+	type SessionSortId
 } from "#studio/features/admin/lib/admin-sessions";
 import {
-	readStoredSessionsTableSorting,
-	readStoredShowArchived,
-	readStoredShowStaleBookings,
-	readStoredShowUpcomingOnly,
-	storeSessionsTableSorting,
-	storeShowArchived,
-	storeShowStaleBookings,
-	storeShowUpcomingOnly
-} from "#studio/features/admin/lib/sessions-table-preferences";
+	readStoredSessionsTablePreferences,
+	storeSessionsTableFilters
+} from "#studio/features/admin/lib/admin-dashboard-preferences";
 
 type SessionsTableProps = {
 	bookings: BookingRecord[];
@@ -60,16 +52,17 @@ export function SessionsTable({
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
 
 	// Table setup and persisted filters
-	const [sorting, setSorting] = useState<SessionSorting>(() => {
-		return readStoredSessionsTableSorting().filter((sort): sort is SessionSorting[number] =>
-			isSessionSortId(sort.id)
-		);
-	});
+	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
+	const [sorting, setSorting] = useState(initialTablePreferences.sorting);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [pageIndex, setPageIndex] = useState(0);
-	const [showArchived, setShowArchived] = useState(() => readStoredShowArchived());
-	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
-	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
+	const [showArchived, setShowArchived] = useState(initialTablePreferences.showArchived);
+	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
+		initialTablePreferences.showUpcomingOnly
+	);
+	const [showStaleBookings, setShowStaleBookings] = useState(
+		initialTablePreferences.showStaleBookings
+	);
 
 	// Cleanup dialog state
 	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
@@ -81,25 +74,10 @@ export function SessionsTable({
 		[bookings]
 	);
 
-	// Persist table sorting changes.
+	// Persist table preferences.
 	useEffect(() => {
-		storeSessionsTableSorting(sorting);
-	}, [sorting]);
-
-	// Persist the archived filter.
-	useEffect(() => {
-		storeShowArchived(showArchived);
-	}, [showArchived]);
-
-	// Persist the upcoming-only filter.
-	useEffect(() => {
-		storeShowUpcomingOnly(showUpcomingOnly);
-	}, [showUpcomingOnly]);
-
-	// Persist the stale-bookings filter.
-	useEffect(() => {
-		storeShowStaleBookings(showStaleBookings);
-	}, [showStaleBookings]);
+		storeSessionsTableFilters({ sorting, showArchived, showStaleBookings, showUpcomingOnly });
+	}, [sorting, showArchived, showStaleBookings, showUpcomingOnly]);
 
 	// Visible booking rows after dashboard-level filters.
 	const filteredBookings = useMemo(() => {
