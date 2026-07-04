@@ -92,11 +92,13 @@ export function PackagesTable({
 	canLoadMorePackages,
 	isLoadingMorePackages,
 	loadMorePackages,
+	onViewPackageSessions,
 	packages
 }: {
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
 	loadMorePackages: () => void;
+	onViewPackageSessions: (invoiceNumber: string) => void;
 	packages: Doc<"multiBookingPackages">[];
 }) {
 	// Package filters
@@ -249,6 +251,7 @@ export function PackagesTable({
 							visiblePackages.map((packageRow) => {
 								const isOverdue = isAdminPackageOverdue(packageRow);
 								const isInactivePackage = isOverdue || isAdminPackageExpired(packageRow);
+								const packageInvoiceNumber = packageRow.invoiceNumber;
 
 								return (
 									<TableRow
@@ -294,14 +297,29 @@ export function PackagesTable({
 											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-col gap-1">
-												<p className="font-medium text-foreground">
-													{packageRow.packageSize} sessions
-												</p>
-												<p className="text-sm text-muted-foreground">
-													{packageRow.bookedSessions} / {packageRow.packageSize} booked
-												</p>
-											</div>
+											{packageInvoiceNumber ? (
+												<Button
+													type="button"
+													variant="link"
+													className="h-auto flex-col items-start gap-1 p-0 text-left"
+													onClick={() => onViewPackageSessions(packageInvoiceNumber)}>
+													<span className="font-medium text-foreground">
+														{packageRow.packageSize} sessions
+													</span>
+													<span className="text-sm text-muted-foreground">
+														{packageRow.bookedSessions} / {packageRow.packageSize} booked
+													</span>
+												</Button>
+											) : (
+												<div className="flex flex-col gap-1">
+													<p className="font-medium text-foreground">
+														{packageRow.packageSize} sessions
+													</p>
+													<p className="text-sm text-muted-foreground">
+														{packageRow.bookedSessions} / {packageRow.packageSize} booked
+													</p>
+												</div>
+											)}
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex min-w-48 flex-col gap-2 whitespace-normal">

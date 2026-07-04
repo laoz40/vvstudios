@@ -1,4 +1,5 @@
 import { Badge } from "#/components/ui/badge";
+import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
@@ -33,12 +34,16 @@ import {
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
-type SessionTableRowProps = { booking: BookingRecord };
+type SessionTableRowProps = {
+	booking: BookingRecord;
+	onPackageFilterClick: (invoiceNumber: string) => void;
+};
 
-export function SessionTableRow({ booking }: SessionTableRowProps) {
+export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableRowProps) {
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const relativeDateLabel = formatBookingRelativeDate(booking.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
+	const packageInvoiceNumber = booking.multiBookingInvoiceNumber;
 	const isRemainingBalancePaid = booking.paidRemainingBalance === true;
 	const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(booking));
 	const showRemainingBalance =
@@ -157,7 +162,17 @@ export function SessionTableRow({ booking }: SessionTableRowProps) {
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				{packageSessionProgressLabel ? (
-					<p className="font-medium">{packageSessionProgressLabel}</p>
+					packageInvoiceNumber ? (
+						<Button
+							type="button"
+							variant="link"
+							className="h-auto p-0 font-medium text-foreground"
+							onClick={() => onPackageFilterClick(packageInvoiceNumber)}>
+							{packageSessionProgressLabel}
+						</Button>
+					) : (
+						<p className="font-medium">{packageSessionProgressLabel}</p>
+					)
 				) : showRemainingBalance ? (
 					<p className={isRemainingBalancePaid ? "text-green" : "text-destructive"}>
 						{remainingBalanceLabel}

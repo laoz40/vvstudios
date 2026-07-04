@@ -133,7 +133,13 @@ function AdminPageContent() {
 	);
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("sessions");
+	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
+
+	function viewPackageSessions(invoiceNumber: string) {
+		setSessionSearchQuery(invoiceNumber);
+		setActiveView("sessions");
+	}
 
 	if (bookings.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
 		return (
@@ -154,6 +160,8 @@ function AdminPageContent() {
 					canLoadMoreBookings={bookings.status === "CanLoadMore"}
 					isLoadingMoreBookings={bookings.status === "LoadingMore"}
 					loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
+					searchQuery={sessionSearchQuery}
+					onSearchQueryChange={setSessionSearchQuery}
 				/>
 			) : (
 				<PackagesTable
@@ -161,6 +169,7 @@ function AdminPageContent() {
 					canLoadMorePackages={packages.status === "CanLoadMore"}
 					isLoadingMorePackages={packages.status === "LoadingMore"}
 					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+					onViewPackageSessions={viewPackageSessions}
 				/>
 			)}
 		</AdminDashboardShell>

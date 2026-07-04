@@ -29,6 +29,7 @@ export type AdminPackageRow = {
 	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
+	invoiceNumber?: string;
 	hiddenAt?: number;
 };
 
@@ -176,6 +177,7 @@ export function mapPackageToAdminRow(
 		expiresAt: multiBookingPackage.expiresAt,
 		createdAt: multiBookingPackage.createdAt,
 		status: multiBookingPackage.status,
+		invoiceNumber: multiBookingPackage.invoiceNumber,
 		hiddenAt: multiBookingPackage.hiddenAt
 	};
 }
@@ -203,6 +205,7 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		packageRow.abn,
 		packageRow.instagramHandle,
 		packageRow.notes,
+		packageRow.invoiceNumber,
 		`${packageRow.packageSize} sessions`,
 		`${packageRow.bookedSessions} booked`,
 		packageRow.service,

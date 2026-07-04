@@ -39,6 +39,8 @@ type SessionsTableProps = {
 	canLoadMoreBookings: boolean;
 	isLoadingMoreBookings: boolean;
 	loadMoreBookings: () => void;
+	onSearchQueryChange: (searchQuery: string) => void;
+	searchQuery: string;
 };
 
 const pageSize = 12;
@@ -47,14 +49,15 @@ export function SessionsTable({
 	bookings,
 	canLoadMoreBookings,
 	isLoadingMoreBookings,
-	loadMoreBookings
+	loadMoreBookings,
+	onSearchQueryChange,
+	searchQuery
 }: SessionsTableProps) {
 	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
 
 	// Table setup and persisted filters
 	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
 	const [sorting, setSorting] = useState(initialTablePreferences.sorting);
-	const [searchQuery, setSearchQuery] = useState("");
 	const [pageIndex, setPageIndex] = useState(0);
 	const [showArchived, setShowArchived] = useState(initialTablePreferences.showArchived);
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
@@ -198,7 +201,7 @@ export function SessionsTable({
 				showArchived={showArchived}
 				showStaleBookings={showStaleBookings}
 				showUpcomingOnly={showUpcomingOnly}
-				onSearchQueryChange={setSearchQuery}
+				onSearchQueryChange={onSearchQueryChange}
 				onShowArchivedChange={setShowArchived}
 				onShowStaleBookingsChange={setShowStaleBookings}
 				onShowUpcomingOnlyChange={setShowUpcomingOnly}
@@ -230,6 +233,7 @@ export function SessionsTable({
 								<SessionTableRow
 									key={booking._id}
 									booking={booking}
+									onPackageFilterClick={onSearchQueryChange}
 								/>
 							))
 						) : (
