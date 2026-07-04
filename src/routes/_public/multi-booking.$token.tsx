@@ -308,6 +308,7 @@ function PackageScheduleContent({
 		setActiveSlotNumber(null);
 		setHighlightedSlotNumber(confirmation.slotNumber);
 		toast.success("Calendar event created. Check your email for the invitation.");
+		setMonthlyBusyWindowsByMonth({});
 	}
 
 	async function handleClearSlot(slotNumber: number) {
@@ -325,6 +326,7 @@ function PackageScheduleContent({
 		closeBookingModal();
 		setActiveSlotNumber(null);
 		setHighlightedSlotNumber(slotNumber);
+		setMonthlyBusyWindowsByMonth({});
 
 		if (activeSlotNumber === slotNumber) {
 			setSelectedDateValue("");
