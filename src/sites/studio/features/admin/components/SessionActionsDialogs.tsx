@@ -10,7 +10,7 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
-import { BookingEditConfirmationDialog } from "#studio/features/admin/components/BookingEditConfirmationDialog";
+import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { BookingEditDialog } from "#studio/features/admin/components/BookingEditDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
@@ -172,7 +172,7 @@ export function SessionActionsDialogs({
 				isSaving={editAction.isSaving}
 			/>
 
-			<BookingEditConfirmationDialog
+			<AdminEditConfirmationDialog
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}

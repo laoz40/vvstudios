@@ -12,11 +12,14 @@ import {
 
 type ChangedFieldListProps = { fields: string[]; title: string };
 
-export type BookingEditConfirmationDialogProps = {
+export type AdminEditConfirmationDialogProps = {
 	open: boolean;
 	googleEventFieldLabels: string[];
 	isSaving: boolean;
 	pricingFieldLabels: string[];
+	nonPricingTitle?: string;
+	pricingTitle?: string;
+	description?: string;
 	onCancel: () => void;
 	onConfirm: () => void;
 	onOpenChange: (open: boolean) => void;
@@ -39,15 +42,18 @@ function ChangedFieldList({ fields, title }: ChangedFieldListProps) {
 	);
 }
 
-export function BookingEditConfirmationDialog({
+export function AdminEditConfirmationDialog({
 	open,
 	googleEventFieldLabels,
 	isSaving,
 	pricingFieldLabels,
+	nonPricingTitle = "Google Calendar event will update",
+	pricingTitle = "Pricing or remaining balance may recalculate",
+	description = "Review what this save will affect before making the booking changes permanent.",
 	onCancel,
 	onConfirm,
 	onOpenChange
-}: BookingEditConfirmationDialogProps) {
+}: AdminEditConfirmationDialogProps) {
 	return (
 		<Dialog
 			open={open}
@@ -61,21 +67,19 @@ export function BookingEditConfirmationDialog({
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Confirm booking changes</DialogTitle>
-					<DialogDescription>
-						Review what this save will affect before making the booking changes permanent.
-					</DialogDescription>
+					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-3">
 					<ChangedFieldList
-						title="Google Calendar event will update"
+						title={nonPricingTitle}
 						fields={googleEventFieldLabels}
 					/>
 					<ChangedFieldList
-						title="Pricing or remaining balance may recalculate"
+						title={pricingTitle}
 						fields={pricingFieldLabels}
 					/>
 					<p className="text-muted-foreground text-sm">
-						If a new invoice email is needed, send it manually after saving.
+						If an updated invoice is needed, send it manually after saving.
 					</p>
 				</div>
 				<DialogFooter>

@@ -5,6 +5,7 @@ import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
+import PenIcon from "#/components/ui/pen-icon";
 import PhoneVolume from "#/components/ui/phone-volume";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import { Button } from "#/components/ui/button";
@@ -31,7 +32,9 @@ import type {
 	RetryMultiBookingSchedulingEmailResult
 } from "#convex/multiBookings";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
+import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackagePaymentConfirmationDialog } from "#studio/features/admin/components/PackagePaymentConfirmationDialog";
 import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
 import {
@@ -39,6 +42,7 @@ import {
 	type AdminPackagePendingAction,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
+import { usePackageEditAction } from "#studio/features/admin/hooks/usePackageEditAction";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
@@ -49,6 +53,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const archivePackage = useMutation(api.bookings.archivePackage);
 	const markPaymentStatus = useMutation(api.bookings.markPackagePaymentStatus);
+	const editAction = usePackageEditAction(packageRow);
 
 	const [pendingAction, setPendingAction] = useState<AdminPackagePendingAction>(null);
 	const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -563,6 +568,19 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					</DropdownMenuSub>
 					<DropdownMenuSeparator />
 					<AnimatedDropdownMenuItem
+						disabled={isActionPending || editAction.isSaving}
+						onSelect={() => editAction.setIsEditDialogOpen(true)}
+						renderIcon={(iconRef) => (
+							<PenIcon
+								ref={iconRef}
+								size={16}
+								aria-hidden
+								className="shrink-0 text-current"
+							/>
+						)}>
+						Edit package
+					</AnimatedDropdownMenuItem>
+					<AnimatedDropdownMenuItem
 						disabled={isActionPending}
 						onSelect={() => void handleArchiveChange(packageRow.hiddenAt === undefined)}
 						renderIcon={(iconRef) => (
@@ -577,6 +595,32 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					</AnimatedDropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			<PackageEditDialog
+				open={editAction.isEditDialogOpen}
+				packageRow={packageRow}
+				onOpenChange={editAction.setIsEditDialogOpen}
+				onSave={editAction.handleEditPackage}
+				isSaving={editAction.isSaving}
+			/>
+			<AdminEditConfirmationDialog
+				open={editAction.isEditConfirmationDialogOpen}
+				isSaving={editAction.isSaving}
+				googleEventFieldLabels={editAction.pendingEditWarningState?.changedFieldLabels ?? []}
+				nonPricingTitle="Package info will update"
+				pricingTitle="Pricing may recalculate"
+				description="Review what this save will affect before making the package changes permanent."
+				onCancel={editAction.closeEditConfirmationDialog}
+				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}
+				onConfirm={() => {
+					void editAction.handleConfirmEditPackage();
+				}}
+				onOpenChange={(nextOpen) => {
+					editAction.setIsEditConfirmationDialogOpen(nextOpen);
+					if (!nextOpen) {
+						editAction.closeEditConfirmationDialog();
+					}
+				}}
+			/>
 			<PackagePaymentConfirmationDialog
 				open={isPaymentDialogOpen}
 				onOpenChange={setIsPaymentDialogOpen}
