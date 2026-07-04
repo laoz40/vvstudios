@@ -340,7 +340,6 @@ function PackageScheduleContent({
 	const availableTimes = getBookableAvailableTimes({
 		currentTimestamp,
 		duration: packageData.duration,
-		isLoadingMonthAvailability,
 		isViewingSelectedMonth,
 		lastBookableDate,
 		monthlyBusyWindowsByMonth,

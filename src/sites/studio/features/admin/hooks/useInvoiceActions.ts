@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -15,6 +15,7 @@ import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob
 export function useInvoiceActions(booking: BookingRecord) {
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
@@ -40,8 +41,18 @@ export function useInvoiceActions(booking: BookingRecord) {
 			return;
 		}
 
+		if (!bookingSettings) {
+			setIsDownloadingInvoice(false);
+			toast.error("Booking settings are still loading.");
+			return;
+		}
+
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
-			downloadAdminBookingInvoice({ booking, createdAt: booking.pendingPaymentCreatedAt })
+			downloadAdminBookingInvoice({
+				booking,
+				createdAt: booking.pendingPaymentCreatedAt,
+				leadTimeMinutes: bookingSettings.leadTimeMinutes
+			})
 		);
 
 		setIsDownloadingInvoice(false);

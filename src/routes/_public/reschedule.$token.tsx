@@ -368,7 +368,6 @@ function ReschedulePage() {
 		availableTimes = getBookableAvailableTimes({
 			currentTimestamp,
 			duration: booking.duration,
-			isLoadingMonthAvailability,
 			isViewingSelectedMonth,
 			lastBookableDate,
 			monthlyBusyWindowsByMonth,
