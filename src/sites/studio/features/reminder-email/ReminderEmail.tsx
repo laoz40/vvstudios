@@ -18,6 +18,7 @@ export interface ReminderEmailProps {
 	bookingTime: string;
 	duration: string;
 	name: string;
+	isPackageBooking?: boolean;
 	rescheduleUrl?: string;
 	service: string;
 	signoffName: string;
@@ -28,6 +29,7 @@ export function ReminderEmail({
 	bookingDate,
 	bookingTime,
 	duration,
+	isPackageBooking = false,
 	name,
 	rescheduleUrl,
 	service,
@@ -106,19 +108,26 @@ export function ReminderEmail({
 						</Text>
 					</Section>
 
-					{rescheduleUrl ? (
-						<Section style={section}>
-							<Text style={sectionTitle}>Need to change your time?</Text>
+					<Section style={section}>
+						<Text style={sectionTitle}>Need to change your time?</Text>
+						{rescheduleUrl ? (
+							<>
+								<Text style={paragraph}>
+									You can reschedule this booking using the private link below.
+								</Text>
+								<Button
+									href={rescheduleUrl}
+									style={button}>
+									Reschedule booking
+								</Button>
+							</>
+						) : isPackageBooking ? (
 							<Text style={paragraph}>
-								You can reschedule this booking using the private link below.
+								To reschedule this package session, open your package session scheduling email and
+								edit the session date and time there.
 							</Text>
-							<Button
-								href={rescheduleUrl}
-								style={button}>
-								Reschedule booking
-							</Button>
-						</Section>
-					) : null}
+						) : null}
+					</Section>
 					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
 						<Text style={paragraph}>{BOOKING_INVOICE_BUSINESS.locationAddress}</Text>

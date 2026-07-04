@@ -128,10 +128,16 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 
 	const { startDateTime } = eventWindow;
 
-	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	let rescheduleUrl: string | undefined;
 
-	if (linkError !== null) {
-		return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
+	if (booking.multiBookingPackageId === undefined) {
+		const [linkError, bookingRescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+
+		if (linkError !== null) {
+			return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
+		}
+
+		rescheduleUrl = bookingRescheduleUrl;
 	}
 
 	const [emailError] = await sendReminderEmailForBookingDetails({
@@ -144,7 +150,8 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 		service: booking.service,
 		duration: booking.duration,
 		addons: booking.addons,
-		rescheduleUrl
+		rescheduleUrl,
+		isPackageBooking: booking.multiBookingPackageId !== undefined
 	});
 
 	if (emailError !== null) {

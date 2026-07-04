@@ -38,6 +38,7 @@ interface SendBookingReminderEmailForBookingArgs {
 	time: string;
 	timeZone: string;
 	rescheduleUrl?: string;
+	isPackageBooking?: boolean;
 	service: string;
 	duration: string;
 	addons: string[];
@@ -496,6 +497,7 @@ export async function sendBookingReminderEmailForBooking({
 	service,
 	duration,
 	addons,
+	isPackageBooking,
 	rescheduleUrl
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
@@ -512,6 +514,7 @@ export async function sendBookingReminderEmailForBooking({
 			name,
 			service,
 			rescheduleUrl,
+			isPackageBooking,
 			signoffName
 		})
 	);
