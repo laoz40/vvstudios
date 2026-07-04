@@ -3,7 +3,7 @@ import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 const previewProps = {
 	addonsLine: "4K UHD Recording, Clips Package",
 	bookingDate: "Saturday, 2 May 2026",
-	bookingTime: "10:00 AM",
+	bookingTime: "10:00 AM – 12:00 PM",
 	duration: "2h",
 	name: "Alex Carter",
 	rescheduleUrl: "https://vvstudios.example/reschedule/sample-token",

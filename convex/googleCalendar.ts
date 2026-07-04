@@ -130,6 +130,7 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 		email: booking.email,
 		date: booking.date,
 		startDateTime,
+		time: booking.time,
 		timeZone,
 		service: booking.service,
 		duration: booking.duration,

@@ -8,13 +8,13 @@ import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/d
 import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { MultiBookingSchedulingEmail } from "../../src/sites/studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
 import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
+import { formatBookingTimeRange } from "../../src/sites/studio/lib/bookingdatetime";
 import { env } from "../env";
 import {
 	formatBookingDateLong,
 	formatBookingDateShort,
 	formatBookingDateWithoutYear,
-	formatCalendarEventDate,
-	formatCalendarEventTime
+	formatCalendarEventDate
 } from "./bookingCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
@@ -35,6 +35,7 @@ interface SendBookingReminderEmailForBookingArgs {
 	email: string;
 	date: string;
 	startDateTime: string;
+	time: string;
 	timeZone: string;
 	rescheduleUrl?: string;
 	service: string;
@@ -55,6 +56,23 @@ interface SendBookingHostDetailsEmailArgs {
 	duration: string;
 	addons: string[];
 	notes?: string;
+}
+
+interface SendPackageHostDetailsEmailArgs {
+	invoiceNumber: string;
+	name: string;
+	email: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	service: string;
+	duration: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	packageSize: 4 | 8 | 12;
+	invoiceDueAt: number;
 }
 
 interface SendBookingDeliverablesEmailArgs {
@@ -185,7 +203,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 			accountName: args.accountName,
 			abn: args.abn,
 			date: formatBookingDateLong(args.date),
-			time: args.time,
+			time: formatBookingTimeRange(args.time, args.duration),
 			service: args.service,
 			duration: args.duration,
 			addonsLine,
@@ -196,6 +214,42 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 	return await sendEmail({
 		to: hostEmails,
 		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
+		html
+	});
+}
+
+export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
+	const hostEmails = getHostEmails();
+
+	if (hostEmails.length === 0) {
+		return ok({ sent: true });
+	}
+
+	const html = await render(
+		createElement(HostBookingDetailsEmail, {
+			kind: "package",
+			invoiceNumber: args.invoiceNumber,
+			name: args.name,
+			email: args.email,
+			phone: args.phone,
+			accountName: args.accountName,
+			abn: args.abn,
+			service: args.service,
+			duration: args.duration,
+			addonsLine: formatAddonsLine({
+				addons: args.addons,
+				clipsPackageQuantity: args.clipsPackageQuantity,
+				essentialEditQuantity: args.essentialEditQuantity
+			}),
+			notes: args.notes,
+			packageSize: args.packageSize,
+			invoiceDueAtLabel: formatTimestampDateLong(args.invoiceDueAt)
+		})
+	);
+
+	return await sendEmail({
+		to: hostEmails,
+		subject: `New Package Booking Request - ${args.name} - ${args.packageSize} Pack`,
 		html
 	});
 }
@@ -311,6 +365,29 @@ export async function sendMultiBookingInvoiceEmail(
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
+	const [hostEmailError] = await sendPackageHostDetailsEmail({
+		invoiceNumber: artifactsResult.artifacts.data.invoice.number,
+		name: multiBooking.name,
+		email: multiBooking.email,
+		phone: multiBooking.phone,
+		accountName: multiBooking.accountName,
+		abn: multiBooking.abn,
+		service: multiBooking.service,
+		duration: multiBooking.duration,
+		addons: multiBooking.addons,
+		essentialEditQuantity: multiBooking.essentialEditQuantity,
+		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
+		notes: multiBooking.notes,
+		packageSize: multiBooking.packageSize,
+		invoiceDueAt: multiBooking.invoiceDueAt
+	});
+
+	if (hostEmailError !== null) {
+		console.error("Multi-booking invoice host email send failed", {
+			multiBookingId: multiBooking._id,
+			reason: hostEmailError.reason
+		});
+	}
 	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
 }
 
@@ -414,6 +491,7 @@ export async function sendBookingReminderEmailForBooking({
 	email,
 	date,
 	startDateTime,
+	time,
 	timeZone,
 	service,
 	duration,
@@ -422,7 +500,7 @@ export async function sendBookingReminderEmailForBooking({
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
-	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
+	const bookingTime = formatBookingTimeRange(time, duration);
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 	const html = await render(

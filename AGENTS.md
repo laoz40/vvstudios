@@ -22,7 +22,7 @@ Booking website for podcast studio.
 - Preserve useful existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
 
-- run format and lint once changes are complete
+- run format and lint and typecheck once changes are complete
 - do not run build or convex codegen
 
 ## Behavior
