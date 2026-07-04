@@ -11,6 +11,9 @@ export type AdminPackageRow = {
 	customerName: string;
 	customerEmail: string;
 	customerPhone: string;
+	accountName: string;
+	abn?: string;
+	instagramHandle?: string;
 	notes?: string;
 	packageSize: 4 | 8 | 12;
 	bookedSessions: number;
@@ -140,6 +143,9 @@ export function mapPackageToAdminRow(
 		customerName: multiBookingPackage.name,
 		customerEmail: multiBookingPackage.email,
 		customerPhone: multiBookingPackage.phone,
+		accountName: multiBookingPackage.accountName,
+		abn: multiBookingPackage.abn,
+		instagramHandle: multiBookingPackage.instagramHandle,
 		notes: multiBookingPackage.notes,
 		packageSize: multiBookingPackage.packageSize,
 		bookedSessions,
@@ -179,6 +185,9 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		packageRow.customerName,
 		packageRow.customerEmail,
 		packageRow.customerPhone,
+		packageRow.accountName,
+		packageRow.abn,
+		packageRow.instagramHandle,
 		packageRow.notes,
 		`${packageRow.packageSize} sessions`,
 		`${packageRow.bookedSessions} booked`,

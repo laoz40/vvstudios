@@ -74,7 +74,7 @@ export function SessionTableRow({ booking }: SessionTableRowProps) {
 									<CopyableText
 										value={booking.abn}
 										label="ABN">
-										{booking.abn}
+										ABN
 									</CopyableText>
 								</>
 							) : null}

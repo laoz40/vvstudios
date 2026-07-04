@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
-import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
@@ -15,8 +15,12 @@ import {
 	TableRow
 } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
+import {
+	CopyableText,
+	formatInstagramHandle
+} from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { PackageActions } from "#studio/features/admin/components/PackageActions";
 
-import type { Doc } from "#convex/_generated/dataModel";
 import {
 	filterAdminPackages,
 	getAdminPackageDashboardDate,
@@ -199,11 +203,11 @@ export function PackagesTable({
 				<Table className="min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-42">Customer</TableHead>
+							<TableHead className="w-48">Customer</TableHead>
 							<TableHead className="w-28">Status</TableHead>
 							<TableHead className="w-20">Package</TableHead>
 							<TableHead className="w-44">Service</TableHead>
-							<TableHead className="w-40">Contact</TableHead>
+							<TableHead className="w-56">Contact</TableHead>
 							<TableHead className="w-48">Notes</TableHead>
 							<TableHead className="w-28">Due / Expiry</TableHead>
 							<TableHead className="w-20">Amount</TableHead>
@@ -237,7 +241,36 @@ export function PackagesTable({
 								return (
 									<TableRow key={packageRow.id}>
 										<TableCell>
-											<p className="font-medium text-foreground">{packageRow.customerName}</p>
+											<div className="flex flex-col gap-1 whitespace-normal">
+												<p className="font-medium text-foreground">
+													<CopyableText
+														value={packageRow.customerName}
+														label="customer name">
+														{packageRow.customerName}
+													</CopyableText>
+												</p>
+												{packageRow.accountName || packageRow.abn ? (
+													<p className="text-sm">
+														{packageRow.accountName ? (
+															<CopyableText
+																value={packageRow.accountName}
+																label="account name">
+																{packageRow.accountName}
+															</CopyableText>
+														) : null}
+														{packageRow.abn ? (
+															<>
+																{packageRow.accountName ? " · " : ""}
+																<CopyableText
+																	value={packageRow.abn}
+																	label="ABN">
+																	ABN
+																</CopyableText>
+															</>
+														) : null}
+													</p>
+												) : null}
+											</div>
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-wrap gap-2">
@@ -278,8 +311,30 @@ export function PackagesTable({
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col gap-1 whitespace-normal">
-												<p className="break-all font-medium">{packageRow.customerEmail}</p>
-												<p className="text-sm">{packageRow.customerPhone}</p>
+												<p className="break-all font-medium">
+													<CopyableText
+														value={packageRow.customerEmail}
+														label="email">
+														{packageRow.customerEmail}
+													</CopyableText>
+												</p>
+												<p className="text-sm">
+													<CopyableText
+														value={packageRow.customerPhone}
+														label="phone number">
+														{packageRow.customerPhone}
+													</CopyableText>
+													{packageRow.instagramHandle ? (
+														<>
+															{" · "}
+															<CopyableText
+																value={formatInstagramHandle(packageRow.instagramHandle)}
+																label="Instagram handle">
+																{formatInstagramHandle(packageRow.instagramHandle)}
+															</CopyableText>
+														</>
+													) : null}
+												</p>
 											</div>
 										</TableCell>
 										<TableCell>
