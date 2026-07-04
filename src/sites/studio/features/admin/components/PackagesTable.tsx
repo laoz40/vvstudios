@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -27,6 +27,10 @@ import {
 	type AdminPackageRow,
 	type AdminPackageStatus
 } from "#studio/features/admin/lib/admin-packages";
+import {
+	readStoredPackageTableFilters,
+	storePackageTableFilters
+} from "#studio/features/admin/lib/package-table-preferences";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatBookingTimestamp,
@@ -91,14 +95,22 @@ export function PackagesTable({
 	packages: Doc<"multiBookingPackages">[];
 }) {
 	// Package filters
-	const [filters, setFilters] = useState<AdminPackageFilters>({
-		hideHidden: false,
-		hidePaid: false,
-		hideOverdue: false,
-		hideEmailIssues: false,
-		searchQuery: ""
+	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
+		return readStoredPackageTableFilters();
 	});
 	const [isCreatedSortDescending, setIsCreatedSortDescending] = useState(true);
+	const { hideEmailIssues, hideHidden, hideOverdue, hidePaid } = filters;
+
+	// Persist package checkbox filters.
+	useEffect(() => {
+		storePackageTableFilters({
+			hideEmailIssues,
+			hideHidden,
+			hideOverdue,
+			hidePaid,
+			searchQuery: ""
+		});
+	}, [hideEmailIssues, hideHidden, hideOverdue, hidePaid]);
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
