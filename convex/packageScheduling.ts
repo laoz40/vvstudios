@@ -112,6 +112,7 @@ async function savePackageSlotHandler(
 		| { reason: "BOOKING_TIME_UNAVAILABLE" }
 		| { reason: "BOOKING_TOO_FAR_AHEAD" }
 		| { reason: "BOOKING_TOO_SOON" }
+		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_CREATE_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
@@ -128,6 +129,15 @@ async function savePackageSlotHandler(
 
 	if (validationError !== null) {
 		return err(validationError);
+	}
+
+	const [rateLimitError] = await ctx.runMutation(
+		internal.bookings.checkBookingSubmitRateLimitInternal,
+		{ submitRateLimitKey: `package:${details.multiBooking._id}` }
+	);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
 	}
 
 	// Create or update the Calendar event while ignoring this booking on reschedule.
@@ -191,6 +201,7 @@ async function clearPackageSlotHandler(
 	Result<
 		{ cleared: true; slotNumber: number },
 		| PackageSlotLookupError
+		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_DELETE_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
@@ -206,6 +217,15 @@ async function clearPackageSlotHandler(
 
 	if (validationError !== null) {
 		return err(validationError);
+	}
+
+	const [rateLimitError] = await ctx.runMutation(
+		internal.bookings.checkBookingSubmitRateLimitInternal,
+		{ submitRateLimitKey: `package:${details.multiBooking._id}` }
+	);
+
+	if (rateLimitError !== null) {
+		return err(rateLimitError);
 	}
 
 	// Delete the Calendar event
@@ -317,7 +337,12 @@ export const validatePackageSlotClearRequestInternal = internalQuery({
 async function validatePackageSlotClearRequestInternalHandler(
 	ctx: QueryCtx,
 	args: { now: number; slotNumber: number; token: string }
-): Promise<Result<{ booking: Doc<"bookings">; leadTimeMinutes: number }, PackageSlotLookupError>> {
+): Promise<
+	Result<
+		{ booking: Doc<"bookings">; leadTimeMinutes: number; multiBooking: ValidPackage },
+		PackageSlotLookupError
+	>
+> {
 	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
 	const [lookupError, lookup] = await getEditablePackageSlot(
 		ctx,
@@ -340,7 +365,11 @@ async function validatePackageSlotClearRequestInternalHandler(
 		return err({ reason: "PACKAGE_SLOT_NOT_FOUND" });
 	}
 
-	return ok({ booking, leadTimeMinutes: settings.leadTimeMinutes });
+	return ok({
+		booking,
+		leadTimeMinutes: settings.leadTimeMinutes,
+		multiBooking: lookup.multiBooking
+	});
 }
 
 type ValidatePackageSlotClearRequestResult = Awaited<

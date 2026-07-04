@@ -90,6 +90,8 @@ export function getSavePackageSlotToastMessage(
 			return "Please choose a later time.";
 		case "BOOKING_TIME_UNAVAILABLE":
 			return "That time was just booked. Please choose another time.";
+		case "BOOKING_RATE_LIMITED":
+			return "Too many session updates. Please wait a minute and try again.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_CREATE_FAILED":
@@ -122,6 +124,8 @@ export function getClearPackageSlotToastMessage(
 			return "This session slot could not be found.";
 		case "PACKAGE_SLOT_LOCKED":
 			return `This session can only be cleared more than ${noticeWindowLabel} before it starts.`;
+		case "BOOKING_RATE_LIMITED":
+			return "Too many session updates. Please wait a minute and try again.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_DELETE_FAILED":
