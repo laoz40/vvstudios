@@ -2,14 +2,15 @@ import type { SortingState } from "@tanstack/react-table";
 
 const SESSIONS_TABLE_STORAGE_KEYS = {
 	sorting: "vvstudios.adminDashboard.sorting",
+	showArchived: "vvstudios.adminDashboard.showArchived",
 	showStaleBookings: "vvstudios.adminDashboard.showStaleBookings",
 	showUpcomingOnly: "vvstudios.adminDashboard.showUpcomingOnly"
 } as const;
 
 const DEFAULT_SESSIONS_DASHBOARD_SORTING: SortingState = [{ id: "session", desc: false }];
+const DEFAULT_SHOW_ARCHIVED = false;
 const DEFAULT_SHOW_STALE_BOOKINGS = true;
 const DEFAULT_SHOW_UPCOMING_ONLY = true;
-
 const sortableColumnIds = new Set(["name", "session", "createdAt"]);
 
 function getSessionsTableStorage() {
@@ -60,6 +61,10 @@ export function readStoredSessionsTableSorting() {
 	}
 }
 
+export function readStoredShowArchived() {
+	return readStoredBoolean(SESSIONS_TABLE_STORAGE_KEYS.showArchived, DEFAULT_SHOW_ARCHIVED);
+}
+
 export function readStoredShowUpcomingOnly() {
 	return readStoredBoolean(
 		SESSIONS_TABLE_STORAGE_KEYS.showUpcomingOnly,
@@ -89,5 +94,12 @@ export function storeShowStaleBookings(showStaleBookings: boolean) {
 	getSessionsTableStorage()?.setItem(
 		SESSIONS_TABLE_STORAGE_KEYS.showStaleBookings,
 		String(showStaleBookings)
+	);
+}
+
+export function storeShowArchived(showArchived: boolean) {
+	getSessionsTableStorage()?.setItem(
+		SESSIONS_TABLE_STORAGE_KEYS.showArchived,
+		String(showArchived)
 	);
 }

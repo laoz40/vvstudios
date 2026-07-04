@@ -12,6 +12,7 @@ export type SessionSorting = { id: SessionSortId; desc: boolean }[];
 
 export type AdminSessionFilters = {
 	searchQuery: string;
+	showArchived: boolean;
 	showStaleBookings: boolean;
 	showUpcomingOnly: boolean;
 };
@@ -37,7 +38,7 @@ export function filterAdminSessionBookings(
 	filters: AdminSessionFilters
 ) {
 	return bookings.filter((booking) => {
-		if (booking.hiddenAt !== undefined) {
+		if (!filters.showArchived && booking.hiddenAt !== undefined) {
 			return false;
 		}
 

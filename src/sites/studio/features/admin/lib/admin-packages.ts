@@ -45,9 +45,10 @@ export type AdminPackagePendingAction =
 	| null;
 
 export type AdminPackageFilters = {
-	hideHidden: boolean;
-	hideOverdue: boolean;
-	hidePaid: boolean;
+	showArchived: boolean;
+	showOverdue: boolean;
+	showPaid: boolean;
+	showUpcoming: boolean;
 	searchQuery: string;
 };
 
@@ -80,6 +81,22 @@ export function isAdminPackageOverdue(
 	}
 
 	return Date.now() > packageRow.invoiceDueAt;
+}
+
+export function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "isPaid">) {
+	return (
+		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
+	);
+}
+
+export function isAdminPackageUpcoming(
+	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid">
+) {
+	if (!packageRow.isPaid) {
+		return Date.now() <= packageRow.invoiceDueAt;
+	}
+
+	return packageRow.expiresAt !== undefined && Date.now() <= packageRow.expiresAt;
 }
 
 export function getAdminPackageDashboardDate(
@@ -200,15 +217,19 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 
 export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPackageFilters) {
 	return rows.filter((packageRow) => {
-		if (filters.hideHidden && packageRow.hiddenAt !== undefined) {
+		if (!filters.showArchived && packageRow.hiddenAt !== undefined) {
 			return false;
 		}
 
-		if (filters.hidePaid && packageRow.status === "paid") {
+		if (filters.showPaid && packageRow.status !== "paid") {
 			return false;
 		}
 
-		if (filters.hideOverdue && isAdminPackageOverdue(packageRow)) {
+		if (filters.showOverdue && !isAdminPackageOverdue(packageRow)) {
+			return false;
+		}
+
+		if (filters.showUpcoming && !isAdminPackageUpcoming(packageRow)) {
 			return false;
 		}
 

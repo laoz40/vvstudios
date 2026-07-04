@@ -33,9 +33,11 @@ import {
 } from "#studio/features/admin/lib/admin-sessions";
 import {
 	readStoredSessionsTableSorting,
+	readStoredShowArchived,
 	readStoredShowStaleBookings,
 	readStoredShowUpcomingOnly,
 	storeSessionsTableSorting,
+	storeShowArchived,
 	storeShowStaleBookings,
 	storeShowUpcomingOnly
 } from "#studio/features/admin/lib/sessions-table-preferences";
@@ -65,6 +67,7 @@ export function SessionsTable({
 	});
 	const [searchQuery, setSearchQuery] = useState("");
 	const [pageIndex, setPageIndex] = useState(0);
+	const [showArchived, setShowArchived] = useState(() => readStoredShowArchived());
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(() => readStoredShowUpcomingOnly());
 	const [showStaleBookings, setShowStaleBookings] = useState(() => readStoredShowStaleBookings());
 
@@ -83,6 +86,11 @@ export function SessionsTable({
 		storeSessionsTableSorting(sorting);
 	}, [sorting]);
 
+	// Persist the archived filter.
+	useEffect(() => {
+		storeShowArchived(showArchived);
+	}, [showArchived]);
+
 	// Persist the upcoming-only filter.
 	useEffect(() => {
 		storeShowUpcomingOnly(showUpcomingOnly);
@@ -97,10 +105,11 @@ export function SessionsTable({
 	const filteredBookings = useMemo(() => {
 		return filterAdminSessionBookings(bookings, {
 			searchQuery,
+			showArchived,
 			showStaleBookings,
 			showUpcomingOnly
 		});
-	}, [bookings, searchQuery, showStaleBookings, showUpcomingOnly]);
+	}, [bookings, searchQuery, showArchived, showStaleBookings, showUpcomingOnly]);
 
 	const sortedBookings = useMemo(() => {
 		return sortAdminSessionBookings(filteredBookings, sorting);
@@ -111,7 +120,14 @@ export function SessionsTable({
 	// Reset pagination when visible rows change.
 	useEffect(() => {
 		setPageIndex(0);
-	}, [bookings, searchQuery, showStaleBookings, showUpcomingOnly, sortedBookings.length]);
+	}, [
+		bookings,
+		searchQuery,
+		showArchived,
+		showStaleBookings,
+		showUpcomingOnly,
+		sortedBookings.length
+	]);
 	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
 	const staleCounts = useMemo(
@@ -201,9 +217,11 @@ export function SessionsTable({
 		<section className="flex flex-col gap-4">
 			<SessionsTableFilters
 				searchQuery={searchQuery}
+				showArchived={showArchived}
 				showStaleBookings={showStaleBookings}
 				showUpcomingOnly={showUpcomingOnly}
 				onSearchQueryChange={setSearchQuery}
+				onShowArchivedChange={setShowArchived}
 				onShowStaleBookingsChange={setShowStaleBookings}
 				onShowUpcomingOnlyChange={setShowUpcomingOnly}
 			/>

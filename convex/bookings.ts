@@ -466,12 +466,8 @@ async function getBookingsHandler(
 		.order("desc")
 		.paginate(args.paginationOpts);
 
-	const pageWithArchived = await Promise.all(
+	const page = await Promise.all(
 		bookingsPage.page.map(async (booking) => {
-			if (booking.hiddenAt !== undefined) {
-				return null;
-			}
-
 			if (!booking.multiBookingPackageId) {
 				return booking;
 			}
@@ -485,7 +481,6 @@ async function getBookingsHandler(
 			};
 		})
 	);
-	const page = pageWithArchived.filter((booking) => booking !== null);
 
 	return { ...bookingsPage, page };
 }

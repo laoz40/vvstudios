@@ -25,6 +25,7 @@ import {
 	filterAdminPackages,
 	getAdminPackageDashboardDate,
 	getAdminPackageStatusLabel,
+	isAdminPackageExpired,
 	isAdminPackageOverdue,
 	mapPackageToAdminRow,
 	type AdminPackageFilters,
@@ -103,12 +104,18 @@ export function PackagesTable({
 		return readStoredPackageTableFilters();
 	});
 	const [isCreatedSortDescending, setIsCreatedSortDescending] = useState(true);
-	const { hideHidden, hideOverdue, hidePaid } = filters;
+	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
 
-	// Persist package checkbox filters.
+	// Persist package filters.
 	useEffect(() => {
-		storePackageTableFilters({ hideHidden, hideOverdue, hidePaid, searchQuery: "" });
-	}, [hideHidden, hideOverdue, hidePaid]);
+		storePackageTableFilters({
+			showArchived,
+			showOverdue,
+			showPaid,
+			showUpcoming,
+			searchQuery: ""
+		});
+	}, [showArchived, showOverdue, showPaid, showUpcoming]);
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
@@ -125,7 +132,17 @@ export function PackagesTable({
 	}, [filters, isCreatedSortDescending, packages]);
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
-		setFilters((currentFilters) => ({ ...currentFilters, [key]: checked }));
+		setFilters((currentFilters) => {
+			if (key === "showOverdue" && checked) {
+				return { ...currentFilters, showOverdue: true, showUpcoming: false };
+			}
+
+			if (key === "showUpcoming" && checked) {
+				return { ...currentFilters, showOverdue: false, showUpcoming: true };
+			}
+
+			return { ...currentFilters, [key]: checked };
+		});
 	}
 
 	function updateSearchQuery(searchQuery: string) {
@@ -144,38 +161,50 @@ export function PackagesTable({
 				<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
 					<div className="flex items-center gap-2">
 						<Checkbox
-							id="hide-paid-packages"
-							checked={filters.hidePaid}
-							onCheckedChange={(checked) => updateFilter("hidePaid", checked === true)}
+							id="show-paid-packages"
+							checked={filters.showPaid}
+							onCheckedChange={(checked) => updateFilter("showPaid", checked === true)}
 						/>
 						<Label
-							htmlFor="hide-paid-packages"
+							htmlFor="show-paid-packages"
 							className="text-sm font-medium text-foreground">
-							Hide paid
+							Paid only
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
 						<Checkbox
-							id="hide-overdue-packages"
-							checked={filters.hideOverdue}
-							onCheckedChange={(checked) => updateFilter("hideOverdue", checked === true)}
+							id="show-overdue-packages"
+							checked={filters.showOverdue}
+							onCheckedChange={(checked) => updateFilter("showOverdue", checked === true)}
 						/>
 						<Label
-							htmlFor="hide-overdue-packages"
+							htmlFor="show-overdue-packages"
 							className="text-sm font-medium text-foreground">
-							Hide overdue
+							Overdue only
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
 						<Checkbox
-							id="hide-hidden-packages"
-							checked={filters.hideHidden}
-							onCheckedChange={(checked) => updateFilter("hideHidden", checked === true)}
+							id="show-upcoming-packages"
+							checked={filters.showUpcoming}
+							onCheckedChange={(checked) => updateFilter("showUpcoming", checked === true)}
 						/>
 						<Label
-							htmlFor="hide-hidden-packages"
+							htmlFor="show-upcoming-packages"
 							className="text-sm font-medium text-foreground">
-							Hide archived
+							Upcoming only
+						</Label>
+					</div>
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="show-archived-packages"
+							checked={filters.showArchived}
+							onCheckedChange={(checked) => updateFilter("showArchived", checked === true)}
+						/>
+						<Label
+							htmlFor="show-archived-packages"
+							className="text-sm font-medium text-foreground">
+							Show archived
 						</Label>
 					</div>
 				</div>
@@ -219,10 +248,13 @@ export function PackagesTable({
 						{visiblePackages.length > 0 ? (
 							visiblePackages.map((packageRow) => {
 								const isOverdue = isAdminPackageOverdue(packageRow);
+								const isInactivePackage = isOverdue || isAdminPackageExpired(packageRow);
 
 								return (
-									<TableRow key={packageRow.id}>
-										<TableCell>
+									<TableRow
+										key={packageRow.id}
+										className={cn(isInactivePackage && "text-muted-foreground")}>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">
 												<p className="font-medium text-foreground">
 													<CopyableText
@@ -254,14 +286,14 @@ export function PackagesTable({
 												) : null}
 											</div>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-wrap gap-2">
 												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
 													{getAdminPackageStatusLabel(packageRow.status)}
 												</Badge>
 											</div>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1">
 												<p className="font-medium text-foreground">
 													{packageRow.packageSize} sessions
@@ -271,7 +303,7 @@ export function PackagesTable({
 												</p>
 											</div>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
 												<p className="font-medium">
 													{packageRow.service} ({packageRow.duration})
@@ -291,7 +323,7 @@ export function PackagesTable({
 												)}
 											</div>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">
 												<p className="break-all font-medium">
 													<CopyableText
@@ -319,23 +351,23 @@ export function PackagesTable({
 												</p>
 											</div>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<p className="whitespace-normal text-sm text-muted-foreground">
 												{packageRow.notes?.trim() || "No notes"}
 											</p>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<PackageTableDateCell
 												packageRow={packageRow}
 												isOverdue={isOverdue}
 											/>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
 												{packageRow.totalDueLabel}
 											</p>
 										</TableCell>
-										<TableCell>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<p className="font-medium whitespace-normal">
 												{formatBookingTimestamp(packageRow.createdAt)}
 											</p>

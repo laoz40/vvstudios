@@ -13,18 +13,22 @@ import { Label } from "#/components/ui/label";
 
 type SessionsTableFiltersProps = {
 	onSearchQueryChange: (searchQuery: string) => void;
+	onShowArchivedChange: (checked: boolean) => void;
 	onShowStaleBookingsChange: (checked: boolean) => void;
 	onShowUpcomingOnlyChange: (checked: boolean) => void;
 	searchQuery: string;
+	showArchived: boolean;
 	showStaleBookings: boolean;
 	showUpcomingOnly: boolean;
 };
 
 export function SessionsTableFilters({
 	onSearchQueryChange,
+	onShowArchivedChange,
 	onShowStaleBookingsChange,
 	onShowUpcomingOnlyChange,
 	searchQuery,
+	showArchived,
 	showStaleBookings,
 	showUpcomingOnly
 }: SessionsTableFiltersProps) {
@@ -52,16 +56,22 @@ export function SessionsTableFilters({
 						<DropdownMenuContent align="end">
 							<DropdownMenuGroup>
 								<DropdownMenuCheckboxItem
-									checked={showStaleBookings}
-									onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
-									onSelect={(event) => event.preventDefault()}>
-									Show unconfirmed sessions
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
 									checked={showUpcomingOnly}
 									onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked === true)}
 									onSelect={(event) => event.preventDefault()}>
-									Show only due sessions
+									Show due
+								</DropdownMenuCheckboxItem>
+								<DropdownMenuCheckboxItem
+									checked={showStaleBookings}
+									onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
+									onSelect={(event) => event.preventDefault()}>
+									Show unconfirmed
+								</DropdownMenuCheckboxItem>
+								<DropdownMenuCheckboxItem
+									checked={showArchived}
+									onCheckedChange={(checked) => onShowArchivedChange(checked === true)}
+									onSelect={(event) => event.preventDefault()}>
+									Show archived
 								</DropdownMenuCheckboxItem>
 							</DropdownMenuGroup>
 						</DropdownMenuContent>
@@ -71,18 +81,6 @@ export function SessionsTableFilters({
 			<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
 				<div className="flex items-center gap-2">
 					<Checkbox
-						id="show-stale-bookings"
-						checked={showStaleBookings}
-						onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
-					/>
-					<Label
-						htmlFor="show-stale-bookings"
-						className="text-sm font-medium text-foreground">
-						Show unconfirmed sessions
-					</Label>
-				</div>
-				<div className="flex items-center gap-2">
-					<Checkbox
 						id="show-upcoming-only"
 						checked={showUpcomingOnly}
 						onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked === true)}
@@ -90,7 +88,31 @@ export function SessionsTableFilters({
 					<Label
 						htmlFor="show-upcoming-only"
 						className="text-sm font-medium text-foreground">
-						Show only due sessions
+						Show due
+					</Label>
+				</div>
+				<div className="flex items-center gap-2">
+					<Checkbox
+						id="show-stale-bookings"
+						checked={showStaleBookings}
+						onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
+					/>
+					<Label
+						htmlFor="show-stale-bookings"
+						className="text-sm font-medium text-foreground">
+						Show unconfirmed
+					</Label>
+				</div>
+				<div className="flex items-center gap-2">
+					<Checkbox
+						id="show-archived-bookings"
+						checked={showArchived}
+						onCheckedChange={(checked) => onShowArchivedChange(checked === true)}
+					/>
+					<Label
+						htmlFor="show-archived-bookings"
+						className="text-sm font-medium text-foreground">
+						Show archived
 					</Label>
 				</div>
 			</div>
