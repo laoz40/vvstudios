@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
 	ADDON_OPTIONS,
+	BOOKING_MODES,
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
@@ -12,6 +13,8 @@ const SAVED_BOOKING_INFO_STORAGE_KEY = "vvstudios.booking.saved-info";
 const availabilityRateLimitKeyStorageKey = "vvstudios.availabilityRateLimitKey";
 
 const savedBookingInfoSchema = z.object({
+	bookingMode: z.enum(BOOKING_MODES).default("single"),
+	packageSize: z.union([z.literal(""), z.literal(4), z.literal(8), z.literal(12)]).default(""),
 	service: z.union([z.literal(""), z.enum(SERVICES)]),
 	duration: z.union([z.literal(""), z.enum(DURATION_OPTIONS)]),
 	addons: z.array(z.enum(ADDON_OPTIONS)),
@@ -41,6 +44,8 @@ function parseSavedBookingInfo(rawValue: string | null) {
 
 export function toSavedBookingInfo(values: BookingFormValues): SavedBookingInfo {
 	return {
+		bookingMode: values.bookingMode || "single",
+		packageSize: values.packageSize ?? "",
 		service: values.service,
 		duration: values.duration,
 		addons: [...values.addons],

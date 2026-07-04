@@ -51,6 +51,8 @@ export function useSavedBookingInfo({
 			return;
 		}
 
+		formApi.setFieldValue("bookingMode", savedBookingInfo.bookingMode);
+		formApi.setFieldValue("packageSize", savedBookingInfo.packageSize);
 		formApi.setFieldValue("service", savedBookingInfo.service);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
 		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
