@@ -45,7 +45,6 @@ export type AdminPackagePendingAction =
 	| null;
 
 export type AdminPackageFilters = {
-	hideEmailIssues: boolean;
 	hideHidden: boolean;
 	hideOverdue: boolean;
 	hidePaid: boolean;
@@ -81,10 +80,6 @@ export function isAdminPackageOverdue(
 	}
 
 	return Date.now() > packageRow.invoiceDueAt;
-}
-
-export function hasAdminPackageEmailIssue(status: AdminPackageStatus) {
-	return status === "invoice_email_failed" || status === "schedule_email_failed";
 }
 
 export function getAdminPackageDashboardDate(
@@ -214,10 +209,6 @@ export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPacka
 		}
 
 		if (filters.hideOverdue && isAdminPackageOverdue(packageRow)) {
-			return false;
-		}
-
-		if (filters.hideEmailIssues && hasAdminPackageEmailIssue(packageRow.status)) {
 			return false;
 		}
 

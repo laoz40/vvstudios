@@ -1,14 +1,12 @@
 import type { AdminPackageFilters } from "#studio/features/admin/lib/admin-packages";
 
 const PACKAGE_TABLE_STORAGE_KEYS = {
-	hideEmailIssues: "vvstudios.packageDashboard.hideEmailIssues",
 	hideHidden: "vvstudios.packageDashboard.hideHidden",
 	hideOverdue: "vvstudios.packageDashboard.hideOverdue",
 	hidePaid: "vvstudios.packageDashboard.hidePaid"
 } as const;
 
 const DEFAULT_PACKAGE_FILTERS: AdminPackageFilters = {
-	hideEmailIssues: false,
 	hideHidden: false,
 	hideOverdue: false,
 	hidePaid: false,
@@ -36,10 +34,6 @@ function readStoredBoolean(key: string, fallback: boolean) {
 export function readStoredPackageTableFilters(): AdminPackageFilters {
 	return {
 		...DEFAULT_PACKAGE_FILTERS,
-		hideEmailIssues: readStoredBoolean(
-			PACKAGE_TABLE_STORAGE_KEYS.hideEmailIssues,
-			DEFAULT_PACKAGE_FILTERS.hideEmailIssues
-		),
 		hideHidden: readStoredBoolean(
 			PACKAGE_TABLE_STORAGE_KEYS.hideHidden,
 			DEFAULT_PACKAGE_FILTERS.hideHidden
@@ -58,7 +52,6 @@ export function readStoredPackageTableFilters(): AdminPackageFilters {
 export function storePackageTableFilters(filters: AdminPackageFilters) {
 	const storage = getPackageTableStorage();
 
-	storage?.setItem(PACKAGE_TABLE_STORAGE_KEYS.hideEmailIssues, String(filters.hideEmailIssues));
 	storage?.setItem(PACKAGE_TABLE_STORAGE_KEYS.hideHidden, String(filters.hideHidden));
 	storage?.setItem(PACKAGE_TABLE_STORAGE_KEYS.hideOverdue, String(filters.hideOverdue));
 	storage?.setItem(PACKAGE_TABLE_STORAGE_KEYS.hidePaid, String(filters.hidePaid));

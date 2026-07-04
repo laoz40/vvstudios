@@ -103,18 +103,12 @@ export function PackagesTable({
 		return readStoredPackageTableFilters();
 	});
 	const [isCreatedSortDescending, setIsCreatedSortDescending] = useState(true);
-	const { hideEmailIssues, hideHidden, hideOverdue, hidePaid } = filters;
+	const { hideHidden, hideOverdue, hidePaid } = filters;
 
 	// Persist package checkbox filters.
 	useEffect(() => {
-		storePackageTableFilters({
-			hideEmailIssues,
-			hideHidden,
-			hideOverdue,
-			hidePaid,
-			searchQuery: ""
-		});
-	}, [hideEmailIssues, hideHidden, hideOverdue, hidePaid]);
+		storePackageTableFilters({ hideHidden, hideOverdue, hidePaid, searchQuery: "" });
+	}, [hideHidden, hideOverdue, hidePaid]);
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
@@ -182,18 +176,6 @@ export function PackagesTable({
 							htmlFor="hide-hidden-packages"
 							className="text-sm font-medium text-foreground">
 							Hide archived
-						</Label>
-					</div>
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id="hide-email-issue-packages"
-							checked={filters.hideEmailIssues}
-							onCheckedChange={(checked) => updateFilter("hideEmailIssues", checked === true)}
-						/>
-						<Label
-							htmlFor="hide-email-issue-packages"
-							className="text-sm font-medium text-foreground">
-							Hide errors
 						</Label>
 					</div>
 				</div>
