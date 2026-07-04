@@ -77,6 +77,7 @@ export default defineSchema({
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
 
+		hiddenAt: v.optional(v.number()),
 		// Confirmation email claim state
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),

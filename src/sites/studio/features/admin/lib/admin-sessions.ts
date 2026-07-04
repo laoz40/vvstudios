@@ -37,6 +37,10 @@ export function filterAdminSessionBookings(
 	filters: AdminSessionFilters
 ) {
 	return bookings.filter((booking) => {
+		if (booking.hiddenAt !== undefined) {
+			return false;
+		}
+
 		if (!customerFilter({ original: booking }, filters.searchQuery)) {
 			return false;
 		}

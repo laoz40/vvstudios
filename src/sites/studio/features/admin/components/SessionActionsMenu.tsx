@@ -374,7 +374,7 @@ export function SessionActionsMenu({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Edit booking
+					Edit session
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					className="focus:text-destructive hover:text-destructive"
@@ -387,7 +387,20 @@ export function SessionActionsMenu({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Delete booking
+					Delete event
+				</AnimatedDropdownMenuItem>
+				<AnimatedDropdownMenuItem
+					disabled={deleteAction.isArchiving}
+					onSelect={() => void deleteAction.handleArchiveSession()}
+					renderIcon={(iconRef) => (
+						<Stack3Icon
+							ref={iconRef}
+							size={16}
+							aria-hidden
+							className="shrink-0 text-current"
+						/>
+					)}>
+					{deleteAction.isArchiving ? "Archiving session..." : "Archive session"}
 				</AnimatedDropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

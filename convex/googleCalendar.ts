@@ -49,6 +49,7 @@ import {
 	checkGoogleCalendarAvailabilityRateLimit
 } from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./bookingReschedule";
+import type { MarkBookingCalendarEventDeletedResult } from "./bookings";
 
 function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
@@ -57,11 +58,19 @@ function getBookingSubmitRateLimitKey(email: string) {
 type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
-
-export type DeleteBookingFromAdminResult = Awaited<
-	ReturnType<typeof deleteBookingFromAdminHandler>
+export type DeleteBookingFromAdminResult = Result<
+	{ deleted: boolean },
+	{
+		reason:
+			| "NOT_AUTHENTICATED"
+			| "NOT_AUTHORIZED"
+			| "BOOKING_NOT_FOUND"
+			| "GOOGLE_CALENDAR_AUTH_FAILED"
+			| "GOOGLE_CALENDAR_DELETE_FAILED"
+			| "GOOGLE_CALENDAR_RATE_LIMITED"
+			| "BOOKING_STATUS_UPDATE_FAILED";
+	}
 >;
-
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
 async function getBookableRangeBusyWindowsFromGoogleCalendar({
@@ -591,7 +600,10 @@ export const deleteBookingFromAdmin = action({
 	handler: deleteBookingFromAdminHandler
 });
 
-async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBookingFromAdminArgs) {
+async function deleteBookingFromAdminHandler(
+	ctx: ActionCtx,
+	args: DeleteBookingFromAdminArgs
+): Promise<DeleteBookingFromAdminResult> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
@@ -612,9 +624,16 @@ async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBooking
 	}
 
 	try {
-		await ctx.runMutation(internal.bookings.deleteBookingInternal, { bookingId: args.bookingId });
+		const [statusUpdateError]: MarkBookingCalendarEventDeletedResult = await ctx.runMutation(
+			internal.bookings.markBookingCalendarEventDeleted,
+			{ bookingId: args.bookingId }
+		);
+
+		if (statusUpdateError !== null) {
+			return err(statusUpdateError);
+		}
 	} catch {
-		return err({ reason: "BOOKING_DELETE_FAILED" });
+		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
 	}
 
 	return ok({ deleted: true });

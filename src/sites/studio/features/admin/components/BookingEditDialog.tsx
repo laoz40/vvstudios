@@ -173,16 +173,16 @@ export function BookingEditDialog({
 						variant="ghost"
 						size="icon-sm"
 						className="absolute top-2 right-2"
-						aria-label="Close edit booking dialog"
+						aria-label="Close edit session dialog"
 						disabled={isSaving}>
 						<X />
 					</Button>
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Edit booking</DialogTitle>
+					<DialogTitle>Edit session</DialogTitle>
 					<DialogDescription>
-						This will make changes to booking {bookingId}. There is no turning back from this. USE
+						This will make changes to session {bookingId}. There is no turning back from this. USE
 						CAUTION.
 					</DialogDescription>
 				</DialogHeader>

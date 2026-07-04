@@ -60,15 +60,18 @@ export function BookingDeleteDialog({
 						variant="ghost"
 						size="icon-sm"
 						className="absolute top-2 right-2"
-						aria-label="Close delete booking dialog"
+						aria-label="Close delete event dialog"
 						disabled={isDeleting}>
 						<X />
 					</Button>
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Permanently delete booking?</DialogTitle>
-					<DialogDescription>There is no turning back from this. USE CAUTION.</DialogDescription>
+					<DialogTitle>Delete Google Calendar event?</DialogTitle>
+					<DialogDescription>
+						This removes the calendar event and marks the session as cancelled. The session record
+						will stay in the dashboard until archived.
+					</DialogDescription>
 				</DialogHeader>
 
 				<div className="rounded-lg border bg-muted/40 p-4">
@@ -84,7 +87,7 @@ export function BookingDeleteDialog({
 							</dd>
 						</div>
 						<div className="grid gap-1 sm:col-span-2">
-							<dt className="text-muted-foreground">Booking ID</dt>
+							<dt className="text-muted-foreground">Session ID</dt>
 							<dd className="font-medium">{bookingId}</dd>
 						</div>
 					</dl>
@@ -106,7 +109,7 @@ export function BookingDeleteDialog({
 						}}
 						disabled={isDeleting}>
 						{isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isDeleting ? "Deleting..." : "I am sure I want to permanently delete this booking"}
+						{isDeleting ? "Deleting event..." : "Delete event and cancel session"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -466,8 +466,12 @@ async function getBookingsHandler(
 		.order("desc")
 		.paginate(args.paginationOpts);
 
-	const page = await Promise.all(
+	const pageWithArchived = await Promise.all(
 		bookingsPage.page.map(async (booking) => {
+			if (booking.hiddenAt !== undefined) {
+				return null;
+			}
+
 			if (!booking.multiBookingPackageId) {
 				return booking;
 			}
@@ -481,6 +485,7 @@ async function getBookingsHandler(
 			};
 		})
 	);
+	const page = pageWithArchived.filter((booking) => booking !== null);
 
 	return { ...bookingsPage, page };
 }
@@ -978,6 +983,71 @@ export const deletePendingBooking = internalMutation({
 		return ok({ outcome: "abandoned" });
 	}
 });
+
+export const archiveSession = mutation({
+	args: { bookingId: v.id("bookings"), archived: v.boolean() },
+	handler: (ctx, args) => archiveSessionHandler(ctx, args)
+});
+
+async function archiveSessionHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; archived: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+	if (bookingError !== null) {
+		return err(bookingError);
+	}
+
+	try {
+		await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
+	} catch {
+		return err({ reason: "SESSION_ARCHIVE_FAILED" });
+	}
+
+	return ok({ archived: args.archived });
+}
+
+export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;
+
+export const markBookingCalendarEventDeleted = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => markBookingCalendarEventDeletedHandler(ctx, args)
+});
+
+async function markBookingCalendarEventDeletedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+	if (bookingError !== null) {
+		return err(bookingError);
+	}
+
+	try {
+		await ctx.db.patch(args.bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			status: "cancelled"
+		});
+	} catch {
+		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ cancelled: true });
+}
+
+export type MarkBookingCalendarEventDeletedResult = Awaited<
+	ReturnType<typeof markBookingCalendarEventDeletedHandler>
+>;
 
 export const deleteBookingInternal = internalMutation({
 	args: { bookingId: v.id("bookings") },
