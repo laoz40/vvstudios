@@ -4,24 +4,25 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
-import type { BookingEditDraft } from "#studio/features/admin/components/BookingEditDialog";
+import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 export function useEditAction(booking: BookingRecord) {
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
-	const [pendingEditDraft, setPendingEditDraft] = useState<BookingEditDraft | null>(null);
+	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
 		typeof getBookingEditWarningState
 	> | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 
 	async function saveEditBooking(
-		values: BookingEditDraft,
+		values: SessionEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
 		const parsedValues = bookingSchema.safeParse({
@@ -44,6 +45,16 @@ export function useEditAction(booking: BookingRecord) {
 
 		if (!parsedValues.success) {
 			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+			return;
+		}
+
+		const remainingBalanceDraft = values.remainingBalanceAmount.trim();
+		const remainingBalanceAmountResult = remainingBalanceDraft
+			? parseRemainingBalanceAmountDraft(remainingBalanceDraft)
+			: null;
+
+		if (remainingBalanceAmountResult?.status === "invalid") {
+			toast.error("Enter a valid remaining balance.");
 			return;
 		}
 
@@ -79,7 +90,10 @@ export function useEditAction(booking: BookingRecord) {
 				...(parsedValues.data.clipsPackageQuantity
 					? { clipsPackageQuantity: parsedValues.data.clipsPackageQuantity }
 					: {}),
-				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {})
+				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {}),
+				...(remainingBalanceAmountResult !== null
+					? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
+					: {})
 			})
 		);
 
@@ -142,7 +156,7 @@ export function useEditAction(booking: BookingRecord) {
 		setIsSaving(false);
 	}
 
-	async function handleEditBooking(values: BookingEditDraft) {
+	async function handleEditBooking(values: SessionEditDraft) {
 		await saveEditBooking(values);
 	}
 

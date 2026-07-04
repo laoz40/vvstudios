@@ -515,7 +515,8 @@ export const updateBookingFromAdmin = action({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string())
+		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number())
 	},
 	handler: updateBookingFromAdminHandler
 });

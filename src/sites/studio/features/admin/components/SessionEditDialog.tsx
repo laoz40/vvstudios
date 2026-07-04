@@ -25,12 +25,14 @@ import {
 	toDeliverableCountOption,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
 
 type BookingRecord = Doc<"bookings">;
 
-export type BookingEditDraft = {
+export type SessionEditDraft = {
 	accountName: string;
 	addons: BookingFormValues["addons"];
 	abn: string;
@@ -43,15 +45,16 @@ export type BookingEditDraft = {
 	notes: string;
 	phone: string;
 	service: BookingRecord["service"] | "";
+	remainingBalanceAmount: string;
 	time: string;
 };
 
-export type BookingEditDialogProps = {
+export type SessionEditDialogProps = {
 	open: boolean;
 	booking: BookingRecord;
 	bookingId: string;
 	onOpenChange: (open: boolean) => void;
-	onSave: (values: BookingEditDraft) => Promise<void>;
+	onSave: (values: SessionEditDraft) => Promise<void>;
 	isSaving: boolean;
 };
 
@@ -59,7 +62,7 @@ function isAddonOption(value: string): value is BookingFormValues["addons"][numb
 	return ADDON_OPTIONS.includes(value as BookingFormValues["addons"][number]);
 }
 
-function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
+function buildSessionEditDraft(booking: BookingRecord): SessionEditDraft {
 	return {
 		name: booking.name,
 		accountName: booking.accountName,
@@ -73,7 +76,8 @@ function buildBookingEditDraft(booking: BookingRecord): BookingEditDraft {
 		addons: booking.addons.filter(isAddonOption),
 		email: booking.email,
 		phone: booking.phone,
-		notes: booking.notes ?? ""
+		notes: booking.notes ?? "",
+		remainingBalanceAmount: booking.remainingBalanceAmount?.toString() ?? ""
 	};
 }
 
@@ -129,19 +133,25 @@ function EditingQuantityOptions({
 	);
 }
 
-export function BookingEditDialog({
+export function SessionEditDialog({
 	open,
 	booking,
 	bookingId,
 	onOpenChange,
 	onSave,
 	isSaving
-}: BookingEditDialogProps) {
-	const [draft, setDraft] = useState<BookingEditDraft>(() => buildBookingEditDraft(booking));
+}: SessionEditDialogProps) {
+	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(booking));
+	const defaultRemainingBalanceAmount = calculateBookingInvoiceAmounts({
+		duration: draft.duration,
+		addons: draft.addons,
+		essentialEditQuantity: draft.essentialEditQuantity,
+		clipsPackageQuantity: draft.clipsPackageQuantity
+	}).totalDueAmount;
 
 	useEffect(() => {
 		if (open) {
-			setDraft(buildBookingEditDraft(booking));
+			setDraft(buildSessionEditDraft(booking));
 		}
 	}, [booking, open]);
 
@@ -411,6 +421,28 @@ export function BookingEditDialog({
 							}}
 						/>
 					) : null}
+
+					<section className="grid gap-2">
+						<Label htmlFor="edit-booking-remaining-balance">Remaining balance due</Label>
+						<Input
+							id="edit-booking-remaining-balance"
+							name="remainingBalanceAmount"
+							type="number"
+							inputMode="decimal"
+							min="0"
+							step="0.01"
+							value={draft.remainingBalanceAmount}
+							onChange={(event) => {
+								setDraft((current) => ({ ...current, remainingBalanceAmount: event.target.value }));
+							}}
+							placeholder={defaultRemainingBalanceAmount.toFixed(2)}
+							disabled={isSaving}
+						/>
+						<p className="text-muted-foreground text-sm">
+							Leave blank to use the current default:{" "}
+							{formatAudAmount(defaultRemainingBalanceAmount)}.
+						</p>
+					</section>
 
 					<div className="grid gap-2">
 						<Label htmlFor="edit-booking-notes">Notes</Label>

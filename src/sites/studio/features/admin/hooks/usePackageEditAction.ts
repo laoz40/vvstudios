@@ -8,6 +8,7 @@ import type { PackageEditDraft } from "#studio/features/admin/components/Package
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
 import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 export function usePackageEditAction(packageRow: AdminPackageRow) {
 	const updatePackage = useMutation(api.bookings.updatePackageFromAdmin);
@@ -43,6 +44,16 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			return;
 		}
 
+		const totalDueDraft = values.totalDueAmount.trim();
+		const totalDueAmountResult = totalDueDraft
+			? parseRemainingBalanceAmountDraft(totalDueDraft)
+			: null;
+
+		if (totalDueAmountResult?.status === "invalid") {
+			toast.error("Enter a valid package total due.");
+			return;
+		}
+
 		if (!options?.skipConfirmation) {
 			const warningState = getPackageEditWarningState(packageRow, values);
 
@@ -75,7 +86,10 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 					: {}),
 				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {}),
 				packageSize: parsedValues.data.packageSize,
-				...(values.expiresAt !== undefined ? { expiresAt: values.expiresAt } : {})
+				...(values.expiresAt !== undefined ? { expiresAt: values.expiresAt } : {}),
+				...(totalDueAmountResult?.status === "valid"
+					? { totalDueAmount: totalDueAmountResult.amount }
+					: {})
 			})
 		);
 

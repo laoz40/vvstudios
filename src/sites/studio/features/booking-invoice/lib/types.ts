@@ -28,6 +28,7 @@ export interface BookingInvoiceBuilderInput {
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
 	rescheduleUrl?: string;
+	customTotalDueAmount?: number;
 }
 
 export interface BookingInvoiceMoneyAmounts {

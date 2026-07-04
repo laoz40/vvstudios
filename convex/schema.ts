@@ -25,6 +25,7 @@ export default defineSchema({
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		includeDepositLineItem: v.boolean(),
+		customTotalDueAmount: v.optional(v.number()),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string())
 	}).index("by_bookingId", ["bookingId"]),

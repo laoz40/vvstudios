@@ -17,7 +17,8 @@ export type DownloadAdminBookingInvoiceInput = {
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
 	leadTimeMinutes: number;
-	service?: BookingService;
+	service?: BookingService | null;
+	customTotalDueAmount?: number;
 };
 
 export type DownloadAdminBookingInvoiceResult = Result<
@@ -36,7 +37,8 @@ export async function downloadAdminBookingInvoice({
 	includeDepositLineItem,
 	invoiceNumber,
 	leadTimeMinutes,
-	service
+	service,
+	customTotalDueAmount
 }: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
@@ -77,14 +79,15 @@ export async function downloadAdminBookingInvoice({
 		dueDate,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service: service ?? parsedBooking.data.service,
+		service: service === undefined ? parsedBooking.data.service : (service ?? undefined),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
 		leadTimeMinutes,
 		includeDepositLineItem,
-		invoiceNumber
+		invoiceNumber,
+		customTotalDueAmount
 	});
 
 	return ok({ downloaded: true });

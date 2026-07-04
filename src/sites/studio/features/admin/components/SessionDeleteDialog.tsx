@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/dialog";
 import { formatBookingDateMedium, formatBookingTimeLabel } from "#studio/lib/bookingdatetime";
 
-export type BookingDeleteDialogProps = {
+export type SessionDeleteDialogProps = {
 	open: boolean;
 	bookingName: string;
 	bookingId: string;
@@ -22,7 +22,7 @@ export type BookingDeleteDialogProps = {
 	isDeleting: boolean;
 };
 
-export function BookingDeleteDialog({
+export function SessionDeleteDialog({
 	open,
 	bookingName,
 	bookingId,
@@ -31,7 +31,7 @@ export function BookingDeleteDialog({
 	onOpenChange,
 	onConfirm,
 	isDeleting
-}: BookingDeleteDialogProps) {
+}: SessionDeleteDialogProps) {
 	return (
 		<Dialog
 			open={open}

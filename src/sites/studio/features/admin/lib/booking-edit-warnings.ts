@@ -1,8 +1,8 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import type { BookingEditDraft } from "#studio/features/admin/components/BookingEditDialog";
+import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 
 type BookingRecord = Doc<"bookings">;
-export type BookingEditWarningField = keyof BookingEditDraft;
+export type BookingEditWarningField = keyof SessionEditDraft;
 
 const googleEventFields: readonly BookingEditWarningField[] = [
 	"name",
@@ -21,7 +21,8 @@ const pricingFields: readonly BookingEditWarningField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
-	"clipsPackageQuantity"
+	"clipsPackageQuantity",
+	"remainingBalanceAmount"
 ];
 
 const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
@@ -37,7 +38,8 @@ const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
 	notes: "Notes",
 	phone: "Phone number",
 	service: "Service",
-	time: "Session time"
+	time: "Session time",
+	remainingBalanceAmount: "Remaining balance due"
 };
 
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
@@ -58,7 +60,7 @@ function getBookingDraftValue(booking: BookingRecord, field: BookingEditWarningF
 
 function didBookingEditFieldChange(
 	booking: BookingRecord,
-	draft: BookingEditDraft,
+	draft: SessionEditDraft,
 	field: BookingEditWarningField
 ) {
 	const currentValue = getBookingDraftValue(booking, field);
@@ -80,16 +82,19 @@ function getChangedFieldLabels(
 		.map((field) => bookingEditFieldLabels[field]);
 }
 
-export function getBookingEditWarningState(booking: BookingRecord, draft: BookingEditDraft) {
+export function getBookingEditWarningState(booking: BookingRecord, draft: SessionEditDraft) {
 	const changedFields = (Object.keys(draft) as BookingEditWarningField[]).filter((field) =>
 		didBookingEditFieldChange(booking, draft, field)
 	);
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
+	const manualPriceWillBeUsed = draft.remainingBalanceAmount.trim().length > 0;
+
 	return {
 		changedFieldLabels: changedFields.map((field) => bookingEditFieldLabels[field]),
 		googleEventFieldLabels,
+		manualPriceWillBeUsed,
 		pricingFieldLabels,
 		requiresConfirmation: googleEventFieldLabels.length > 0 || pricingFieldLabels.length > 0
 	};

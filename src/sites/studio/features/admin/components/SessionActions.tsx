@@ -63,7 +63,6 @@ export function SessionActions({ booking }: SessionActionsProps) {
 				deliverablesEmailAction={deliverablesEmailAction}
 				editAction={editAction}
 				invoiceActions={invoiceActions}
-				paymentActions={paymentActions}
 				rescheduleAction={rescheduleAction}
 			/>
 		</>

@@ -23,6 +23,7 @@ export type AdminPackageRow = {
 	clipsPackageQuantity?: string;
 	essentialEditQuantity?: string;
 	totalDueLabel: string;
+	totalDueAmount: number;
 	isPaid: boolean;
 	invoiceDueAt: number;
 	expiresAt?: number;
@@ -167,6 +168,7 @@ export function mapPackageToAdminRow(
 		clipsPackageQuantity: multiBookingPackage.clipsPackageQuantity,
 		essentialEditQuantity: multiBookingPackage.essentialEditQuantity,
 		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
+		totalDueAmount: multiBookingPackage.totalDueAmount,
 		isPaid:
 			multiBookingPackage.status === "paid" ||
 			multiBookingPackage.status === "schedule_email_failed",

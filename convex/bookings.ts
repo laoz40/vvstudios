@@ -260,7 +260,8 @@ export const updatePackageFromAdmin = mutation({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
-		expiresAt: v.optional(v.number())
+		expiresAt: v.optional(v.number()),
+		totalDueAmount: v.optional(v.number())
 	},
 	handler: (ctx, args) => updatePackageFromAdminHandler(ctx, args)
 });
@@ -280,6 +281,7 @@ type UpdatePackageFromAdminArgs = {
 	notes?: string;
 	packageSize: MultiBookingSize;
 	expiresAt?: number;
+	totalDueAmount?: number;
 };
 
 function buildPackageSessions(
@@ -368,7 +370,7 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 			packageSubtotalAmount: amounts.packageSubtotalAmount,
 			discountPercent: amounts.discountPercent,
 			discountAmount: amounts.discountAmount,
-			totalDueAmount: amounts.totalDueAmount,
+			totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
 			invoiceLineItems,
 			sessions: buildPackageSessions(multiBooking.sessions, args.packageSize)
 		});

@@ -14,7 +14,8 @@ export const createCustomInvoice = mutation({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		includeDepositLineItem: v.boolean()
+		includeDepositLineItem: v.boolean(),
+		customTotalDueAmount: v.optional(v.number())
 	},
 	handler: (ctx, args) => createCustomInvoiceHandler(ctx, args)
 });
@@ -28,6 +29,7 @@ type CreateCustomInvoiceArgs = {
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
 	includeDepositLineItem: boolean;
+	customTotalDueAmount?: number;
 };
 
 async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateCustomInvoiceArgs) {
@@ -54,6 +56,7 @@ async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateCustomIn
 		essentialEditQuantity: args.essentialEditQuantity,
 		clipsPackageQuantity: args.clipsPackageQuantity,
 		includeDepositLineItem: args.includeDepositLineItem,
+		customTotalDueAmount: args.customTotalDueAmount,
 		createdAt,
 		createdBy: identity.email
 	});

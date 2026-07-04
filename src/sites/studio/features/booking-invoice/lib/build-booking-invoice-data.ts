@@ -126,7 +126,7 @@ export function createStoredAmountMultiBookingInvoiceLineItemSnapshot(input: {
 }
 
 export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): BookingInvoiceData {
-	const amounts = calculateBookingInvoiceAmounts({
+	const computedAmounts = calculateBookingInvoiceAmounts({
 		duration: input.duration,
 		addons: input.addons,
 		essentialEditQuantity: input.essentialEditQuantity,
@@ -134,6 +134,14 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		includeBaseAmount: Boolean(input.service),
 		includeDepositLineItem: input.includeDepositLineItem !== false
 	});
+	const customTotalDueAmount = input.customTotalDueAmount;
+	const manualPriceAdjustmentAmount =
+		customTotalDueAmount === undefined ? 0 : customTotalDueAmount - computedAmounts.totalDueAmount;
+	const amounts = {
+		...computedAmounts,
+		subtotalAmount: computedAmounts.subtotalAmount + manualPriceAdjustmentAmount,
+		totalDueAmount: customTotalDueAmount ?? computedAmounts.totalDueAmount
+	};
 	const bookingDateLabel = formatCalendarDate(input.date);
 	const dueDate = input.dueDate ?? input.date;
 	const invoiceDate = input.createdAt ?? Date.now();
@@ -185,6 +193,16 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 						description: "Deposit paid",
 						quantity: 1,
 						rate: -BOOKING_DEPOSIT_AMOUNT
+					}
+				]),
+		...(manualPriceAdjustmentAmount === 0
+			? []
+			: [
+					{
+						amount: manualPriceAdjustmentAmount,
+						description: "Manual price adjustment",
+						quantity: 1,
+						rate: manualPriceAdjustmentAmount
 					}
 				])
 	];

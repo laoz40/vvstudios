@@ -8,7 +8,8 @@ const pricingFields: readonly PackageEditWarningField[] = [
 	"duration",
 	"essentialEditQuantity",
 	"clipsPackageQuantity",
-	"packageSize"
+	"packageSize",
+	"totalDueAmount"
 ];
 
 const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
@@ -24,7 +25,8 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	expiresAt: "Package expiry window",
 	notes: "Notes",
 	packageSize: "Package sessions",
-	service: "Service"
+	service: "Service",
+	totalDueAmount: "Package total due"
 };
 
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
@@ -77,8 +79,11 @@ export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: P
 	);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
+	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;
+
 	return {
 		changedFieldLabels: changedFields.map((field) => packageEditFieldLabels[field]),
+		manualPriceWillBeUsed,
 		pricingFieldLabels,
 		requiresConfirmation: changedFields.length > 0
 	};

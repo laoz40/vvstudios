@@ -9,20 +9,18 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { BookingDeleteDialog } from "#studio/features/admin/components/BookingDeleteDialog";
+import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
-import { BookingEditDialog } from "#studio/features/admin/components/BookingEditDialog";
+import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
-import { RemainingBalanceDialog } from "#studio/features/admin/components/RemainingBalanceDialog";
 import type { BookingActionDetails } from "#studio/features/admin/lib/admin-bookings";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
-import type { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 
 type SessionActionsDialogsProps = {
@@ -32,7 +30,6 @@ type SessionActionsDialogsProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
-	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 };
 
@@ -43,7 +40,6 @@ export function SessionActionsDialogs({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	paymentActions,
 	rescheduleAction
 }: SessionActionsDialogsProps) {
 	return (
@@ -140,20 +136,7 @@ export function SessionActionsDialogs({
 				onOpenChange={invoiceActions.setIsCustomInvoiceDialogOpen}
 			/>
 
-			<RemainingBalanceDialog
-				open={paymentActions.isRemainingBalanceDialogOpen}
-				bookingId={booking._id}
-				value={paymentActions.remainingBalanceDraft}
-				defaultAmount={paymentActions.remainingBalanceAmount}
-				isSaving={paymentActions.isUpdatingRemainingBalanceAmount}
-				onOpenChange={paymentActions.setIsRemainingBalanceDialogOpen}
-				onValueChange={paymentActions.setRemainingBalanceDraft}
-				onSave={() => {
-					void paymentActions.handleSetRemainingBalanceAmount();
-				}}
-			/>
-
-			<BookingDeleteDialog
+			<SessionDeleteDialog
 				open={deleteAction.isDeleteDialogOpen}
 				bookingName={booking.name}
 				bookingId={details.customerBookingId}
@@ -163,7 +146,7 @@ export function SessionActionsDialogs({
 				onConfirm={deleteAction.handleDeleteBooking}
 				isDeleting={deleteAction.isDeleting}
 			/>
-			<BookingEditDialog
+			<SessionEditDialog
 				open={editAction.isEditDialogOpen}
 				booking={booking}
 				bookingId={details.customerBookingId}
@@ -176,6 +159,11 @@ export function SessionActionsDialogs({
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
+				description={
+					editAction.pendingEditWarningState?.manualPriceWillBeUsed
+						? "Review what this save will affect before making the booking changes permanent. The manual remaining balance due will be used instead of the recalculated default."
+						: undefined
+				}
 				onCancel={editAction.closeEditConfirmationDialog}
 				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}
 				onConfirm={() => {

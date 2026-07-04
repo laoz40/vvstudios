@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { Button } from "#/components/ui/button";
 import AmbulanceIcon from "#/components/ui/ambulance-icon";
 import ClockIcon from "#/components/ui/clock-icon";
-import CurrencyDollarIcon from "#/components/ui/currency-dollar-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
@@ -293,18 +292,6 @@ export function SessionActionsMenu({
 										/>
 									)}>
 									Create custom invoice
-								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									onSelect={() => paymentActions.setIsRemainingBalanceDialogOpen(true)}
-									renderIcon={(iconRef) => (
-										<CurrencyDollarIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Set remaining balance
 								</AnimatedDropdownMenuItem>
 							</>
 						) : (

@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 
 export type PackageEmailConfirmationDialogProps = {
 	open: boolean;
@@ -75,7 +75,7 @@ export function PackageEmailConfirmationDialog({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 
-				<BookingCustomerSummary
+				<SessionCustomerSummary
 					bookingName={customerName}
 					bookingEmail={customerEmail}
 				/>

@@ -25,9 +25,11 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
+	calculateMultiBookingAmounts,
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
+import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
@@ -45,6 +47,7 @@ export type PackageEditDraft = {
 	notes: string;
 	packageSize: MultiBookingSize;
 	service: AdminPackageRow["service"] | "";
+	totalDueAmount: string;
 };
 
 type PackageEditDialogProps = {
@@ -105,7 +108,8 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",
 		packageSize: packageRow.packageSize,
-		service: packageRow.service
+		service: packageRow.service,
+		totalDueAmount: ""
 	};
 }
 
@@ -161,6 +165,13 @@ export function PackageEditDialog({
 	onSave
 }: PackageEditDialogProps) {
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
+	const defaultTotalDueAmount = calculateMultiBookingAmounts({
+		addons: draft.addons,
+		clipsPackageQuantity: draft.clipsPackageQuantity,
+		duration: draft.duration,
+		essentialEditQuantity: draft.essentialEditQuantity,
+		packageSize: draft.packageSize
+	}).totalDueAmount;
 
 	useEffect(() => {
 		if (open) {
@@ -443,6 +454,26 @@ export function PackageEditDialog({
 							}
 						/>
 					) : null}
+
+					<section className="grid gap-2">
+						<Label htmlFor="edit-package-total-due">Package total due</Label>
+						<Input
+							id="edit-package-total-due"
+							type="number"
+							inputMode="decimal"
+							min="0"
+							step="0.01"
+							value={draft.totalDueAmount}
+							onChange={(event) => {
+								setDraft((current) => ({ ...current, totalDueAmount: event.target.value }));
+							}}
+							placeholder={defaultTotalDueAmount.toFixed(2)}
+							disabled={isSaving}
+						/>
+						<p className="text-muted-foreground text-sm">
+							Leave blank to use the current default: {formatAudAmount(defaultTotalDueAmount)}.
+						</p>
+					</section>
 
 					<div className="grid gap-2">
 						<Label htmlFor="edit-package-notes">Notes</Label>

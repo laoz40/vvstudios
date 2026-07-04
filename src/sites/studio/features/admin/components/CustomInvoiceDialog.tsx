@@ -11,7 +11,7 @@ import type {
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
@@ -31,6 +31,7 @@ import { cn } from "#/lib/utils";
 import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
@@ -53,6 +54,7 @@ type CustomInvoiceDraft = {
 	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	dueDate: string;
 	includeDepositLineItem: boolean;
+	customTotalDueAmount: string;
 };
 
 export type CustomInvoiceDialogProps = {
@@ -76,6 +78,7 @@ function formatInvoiceTotal(input: {
 	includeDepositLineItem: boolean;
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
+	customTotalDueAmount?: number;
 }) {
 	const serviceAmount =
 		isBookingService(input.service) && isBookingDuration(input.duration)
@@ -87,8 +90,11 @@ function formatInvoiceTotal(input: {
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 
+	const computedTotal = Math.max(serviceAmount + addonsAmount - depositAmount, 0);
+	const totalDueAmount = input.customTotalDueAmount ?? computedTotal;
+
 	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-		Math.max(serviceAmount + addonsAmount - depositAmount, 0)
+		totalDueAmount
 	);
 }
 
@@ -159,12 +165,16 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		dueDate: booking.date,
-		includeDepositLineItem: false
+		includeDepositLineItem: false,
+		customTotalDueAmount: ""
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 	const hasInvoiceSelection =
-		Boolean(draft.service) || draft.addons.length > 0 || draft.includeDepositLineItem;
+		Boolean(draft.service) ||
+		draft.addons.length > 0 ||
+		draft.includeDepositLineItem ||
+		draft.customTotalDueAmount.trim().length > 0;
 
 	useEffect(() => {
 		if (open) {
@@ -175,7 +185,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 				dueDate: booking.date,
-				includeDepositLineItem: false
+				includeDepositLineItem: false,
+				customTotalDueAmount: ""
 			});
 		}
 	}, [
@@ -197,6 +208,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		duration?: string;
 		essentialEditQuantity?: string;
 		clipsPackageQuantity?: string;
+		customTotalDueAmount?: number;
 	}) {
 		if (!bookingSettings) {
 			toast.error("Booking settings are still loading.");
@@ -216,7 +228,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: isBookingService(input.service) ? input.service : undefined
+				service: isBookingService(input.service) ? input.service : null,
+				customTotalDueAmount: input.customTotalDueAmount
 			})
 		);
 
@@ -253,6 +266,21 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			toast.error("Booking settings are still loading.");
 			return;
 		}
+
+		const customTotalDueDraft = draft.customTotalDueAmount.trim();
+		const customTotalDueAmountResult = customTotalDueDraft
+			? parseRemainingBalanceAmountDraft(customTotalDueDraft)
+			: null;
+
+		if (customTotalDueAmountResult?.status === "invalid") {
+			toast.error("Enter a valid custom invoice price.");
+			return;
+		}
+
+		const customTotalDueAmount =
+			customTotalDueAmountResult?.status === "valid"
+				? customTotalDueAmountResult.amount
+				: undefined;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
@@ -266,7 +294,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					? { essentialEditQuantity: draft.essentialEditQuantity }
 					: {}),
 				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
-				includeDepositLineItem: draft.includeDepositLineItem
+				includeDepositLineItem: draft.includeDepositLineItem,
+				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
 			})
 		);
 
@@ -310,7 +339,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: draft.service || undefined
+				service: draft.service || null,
+				customTotalDueAmount
 			})
 		);
 
@@ -378,7 +408,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					<DialogTitle>Create custom invoice</DialogTitle>
 				</DialogHeader>
 
-				<BookingCustomerSummary
+				<SessionCustomerSummary
 					bookingName={booking.name}
 					bookingEmail={booking.email}
 				/>
@@ -436,7 +466,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 														essentialEditQuantity:
 															invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
 														clipsPackageQuantity:
-															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+														customTotalDueAmount: invoice.customTotalDueAmount
 													})}
 												</span>
 											</div>
@@ -564,6 +595,26 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 							}}
 						/>
 					) : null}
+
+					<section className="grid gap-3">
+						<Label htmlFor="custom-invoice-price">Custom invoice price</Label>
+						<Input
+							id="custom-invoice-price"
+							type="number"
+							inputMode="decimal"
+							min="0"
+							step="0.01"
+							value={draft.customTotalDueAmount}
+							disabled={isGenerating}
+							placeholder="Use computed price"
+							onChange={(event) => {
+								setDraft((current) => ({ ...current, customTotalDueAmount: event.target.value }));
+							}}
+						/>
+						<p className="text-muted-foreground text-sm">
+							Leave blank to use the computed price from the selected service, add-ons, and deposit.
+						</p>
+					</section>
 
 					<section className="grid gap-3">
 						<Label>Deposit</Label>
