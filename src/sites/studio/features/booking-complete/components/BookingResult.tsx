@@ -120,9 +120,12 @@ export function BookingResult({
 					{content.title}
 				</h1>
 				{showDescription ? (
-					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
-						{content.description}
-					</p>
+					<div className="max-w-2xl space-y-3">
+						{content.descriptionHeading ? (
+							<h2 className="text-lg font-semibold">{content.descriptionHeading}</h2>
+						) : null}
+						<p className="text-base leading-normal text-muted-foreground">{content.description}</p>
+					</div>
 				) : null}
 				{canDownloadInvoice ? (
 					<p className="max-w-2xl text-base leading-normal text-muted-foreground">

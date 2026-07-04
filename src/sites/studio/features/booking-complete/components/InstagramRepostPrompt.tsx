@@ -110,6 +110,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 					/>
 					<Button
 						type="submit"
+						variant="secondary"
 						className="sm:w-auto"
 						disabled={isSubmitting || isSubmitted}>
 						{isSubmitted ? "Submitted" : isSubmitting ? "Saving..." : "Submit"}
