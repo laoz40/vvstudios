@@ -68,8 +68,11 @@ function formatPackageInvoiceTotal(input: {
 }) {
 	const totalDueAmount =
 		input.customTotalDueAmount ??
-		calculateMultiBookingAmounts({ ...input, duration: input.service ? input.duration : "" })
-			.totalDueAmount;
+		calculateMultiBookingAmounts({
+			...input,
+			duration: input.service ? input.duration : "",
+			includeDiscount: input.includePackageDiscount
+		}).totalDueAmount;
 
 	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
 		totalDueAmount
