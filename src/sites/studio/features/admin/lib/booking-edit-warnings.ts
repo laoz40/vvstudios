@@ -51,8 +51,17 @@ function didArrayChange(currentValue: readonly string[], nextValue: readonly str
 }
 
 function getBookingDraftValue(booking: BookingRecord, field: BookingEditWarningField) {
-	if (field === "abn" || field === "notes") {
+	if (
+		field === "abn" ||
+		field === "notes" ||
+		field === "essentialEditQuantity" ||
+		field === "clipsPackageQuantity"
+	) {
 		return booking[field] ?? "";
+	}
+
+	if (field === "remainingBalanceAmount") {
+		return booking.remainingBalanceAmount?.toString() ?? "";
 	}
 
 	return booking[field] ?? undefined;

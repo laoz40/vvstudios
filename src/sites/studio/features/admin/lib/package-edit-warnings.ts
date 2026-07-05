@@ -1,5 +1,6 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
+import { calculateMultiBookingAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
 export type PackageEditWarningField = keyof PackageEditDraft;
 
@@ -38,7 +39,12 @@ function didArrayChange(currentValue: readonly string[], nextValue: readonly str
 }
 
 function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWarningField) {
-	if (field === "abn" || field === "notes") {
+	if (
+		field === "abn" ||
+		field === "notes" ||
+		field === "essentialEditQuantity" ||
+		field === "clipsPackageQuantity"
+	) {
 		return packageRow[field] ?? "";
 	}
 
@@ -47,10 +53,26 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 	}
 
 	if (field === "totalDueAmount") {
-		return packageRow.totalDueAmount.toString();
+		return packageRow.totalDueAmount;
 	}
 
 	return packageRow[field] ?? undefined;
+}
+
+function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
+	const totalDueDraft = draft.totalDueAmount.trim();
+
+	if (totalDueDraft.length > 0) {
+		return Number(totalDueDraft);
+	}
+
+	return calculateMultiBookingAmounts({
+		addons: draft.addons,
+		clipsPackageQuantity: draft.clipsPackageQuantity,
+		duration: draft.duration,
+		essentialEditQuantity: draft.essentialEditQuantity,
+		packageSize: draft.packageSize
+	}).totalDueAmount;
 }
 
 function didPackageEditFieldChange(
@@ -59,7 +81,7 @@ function didPackageEditFieldChange(
 	field: PackageEditWarningField
 ) {
 	const currentValue = getPackageDraftValue(packageRow, field);
-	const nextValue = draft[field];
+	const nextValue = field === "totalDueAmount" ? getPackageTotalDueDraftValue(draft) : draft[field];
 
 	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
 		return didArrayChange(currentValue, nextValue);
