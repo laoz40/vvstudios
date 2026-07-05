@@ -110,6 +110,9 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 				case "PACKAGE_INVALID_EXPIRY":
 					toast.error("Enter a valid package expiry window.");
 					break;
+				case "PACKAGE_INVALID_TOTAL_DUE_AMOUNT":
+					toast.error("Enter a valid total due amount.");
+					break;
 				case "PACKAGE_UPDATE_FAILED":
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the package.");

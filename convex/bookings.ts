@@ -319,6 +319,13 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 		return err({ reason: "PACKAGE_INVALID_EXPIRY" });
 	}
 
+	if (
+		args.totalDueAmount !== undefined &&
+		(!Number.isFinite(args.totalDueAmount) || args.totalDueAmount < 0)
+	) {
+		return err({ reason: "PACKAGE_INVALID_TOTAL_DUE_AMOUNT" });
+	}
+
 	const amounts = calculateMultiBookingAmounts({
 		addons: args.addons as Parameters<typeof calculateMultiBookingAmounts>[0]["addons"],
 		clipsPackageQuantity: args.clipsPackageQuantity as Parameters<

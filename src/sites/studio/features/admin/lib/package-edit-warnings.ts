@@ -46,6 +46,10 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		return packageRow.expiresAt ?? undefined;
 	}
 
+	if (field === "totalDueAmount") {
+		return packageRow.totalDueAmount.toString();
+	}
+
 	return packageRow[field] ?? undefined;
 }
 

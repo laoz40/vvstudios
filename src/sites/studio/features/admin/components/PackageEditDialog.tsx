@@ -45,9 +45,9 @@ export type PackageEditDraft = {
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	expiresAt?: number;
 	notes: string;
+	totalDueAmount: string;
 	packageSize: MultiBookingSize;
 	service: AdminPackageRow["service"] | "";
-	totalDueAmount: string;
 };
 
 type PackageEditDialogProps = {
@@ -251,6 +251,22 @@ export function PackageEditDialog({
 										expiresAt: parseDateTimeLocalValue(event.target.value)
 									}))
 								}
+								disabled={isSaving}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="edit-package-total-due-amount">Total due amount</Label>
+							<Input
+								id="edit-package-total-due-amount"
+								type="number"
+								value={draft.totalDueAmount}
+								onChange={(event) =>
+									setDraft((current) => ({ ...current, totalDueAmount: event.target.value }))
+								}
+								inputMode="decimal"
+								min="0"
+								step="0.01"
+								required
 								disabled={isSaving}
 							/>
 						</div>
