@@ -34,6 +34,7 @@ import type {
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
+import { PackageCustomInvoiceDialog } from "#studio/features/admin/components/PackageCustomInvoiceDialog";
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackagePaymentConfirmationDialog } from "#studio/features/admin/components/PackagePaymentConfirmationDialog";
 import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
@@ -59,6 +60,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 	const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 	const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
 	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
+	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 
 	const canSendInvoice =
 		packageRow.status === "pending_payment" || packageRow.status === "invoice_email_failed";
@@ -545,6 +547,19 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 										)}>
 										{pendingAction === "download" ? "Generating invoice..." : "Download invoice"}
 									</AnimatedDropdownMenuItem>
+									<AnimatedDropdownMenuItem
+										disabled={isActionPending}
+										onSelect={() => setIsCustomInvoiceDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<PenIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										Create custom invoice
+									</AnimatedDropdownMenuItem>
 									{canSendNewSchedulingLink ? (
 										<AnimatedDropdownMenuItem
 											disabled={isActionPending}
@@ -601,6 +616,11 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 				onOpenChange={editAction.setIsEditDialogOpen}
 				onSave={editAction.handleEditPackage}
 				isSaving={editAction.isSaving}
+			/>
+			<PackageCustomInvoiceDialog
+				open={isCustomInvoiceDialogOpen}
+				packageRow={packageRow}
+				onOpenChange={setIsCustomInvoiceDialogOpen}
 			/>
 			<AdminEditConfirmationDialog
 				open={editAction.isEditConfirmationDialogOpen}

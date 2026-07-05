@@ -16,7 +16,8 @@ export default defineSchema({
 	}).index("by_key", ["key"]),
 
 	customInvoices: defineTable({
-		bookingId: v.id("bookings"),
+		bookingId: v.optional(v.id("bookings")),
+		multiBookingId: v.optional(v.id("multiBookingPackages")),
 		invoiceNumber: v.string(),
 		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
@@ -24,11 +25,14 @@ export default defineSchema({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
+		packageSize: v.optional(v.union(v.literal(4), v.literal(8), v.literal(12))),
 		includeDepositLineItem: v.boolean(),
 		customTotalDueAmount: v.optional(v.number()),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string())
-	}).index("by_bookingId", ["bookingId"]),
+	})
+		.index("by_bookingId", ["bookingId"])
+		.index("by_multiBookingId", ["multiBookingId"]),
 
 	bookingRescheduleLinks: defineTable({
 		bookingId: v.id("bookings"),
