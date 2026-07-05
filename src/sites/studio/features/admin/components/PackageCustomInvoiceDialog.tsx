@@ -25,6 +25,7 @@ import type { PreviousCustomInvoiceItem } from "#studio/features/admin/component
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
+import { formatDateValue } from "#studio/lib/bookingdatetime";
 import {
 	calculateMultiBookingAmounts,
 	type MultiBookingSize
@@ -80,7 +81,7 @@ function formatPackageInvoiceTotal(input: {
 }
 
 function toDateInputValue(timestamp: number) {
-	return new Date(timestamp).toISOString().slice(0, 10);
+	return formatDateValue(new Date(timestamp));
 }
 
 export function PackageCustomInvoiceDialog({
