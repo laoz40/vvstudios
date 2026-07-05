@@ -118,10 +118,12 @@ export function PackageEditDialog({
 	}).totalDueAmount;
 
 	useEffect(() => {
-		if (open) {
-			setDraft(buildPackageEditDraft(packageRow));
+		if (!open) {
+			return;
 		}
-	}, [open, packageRow]);
+
+		setDraft(buildPackageEditDraft(packageRow));
+	}, [open, packageRow.id]);
 
 	return (
 		<Dialog
