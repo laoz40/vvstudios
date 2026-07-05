@@ -256,22 +256,6 @@ export function PackageEditDialog({
 								disabled={isSaving}
 							/>
 						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-total-due-amount">Total due amount</Label>
-							<Input
-								id="edit-package-total-due-amount"
-								type="number"
-								value={draft.totalDueAmount}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, totalDueAmount: event.target.value }))
-								}
-								inputMode="decimal"
-								min="0"
-								step="0.01"
-								required
-								disabled={isSaving}
-							/>
-						</div>
 					</section>
 
 					<section className="grid gap-3">
