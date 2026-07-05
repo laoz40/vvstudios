@@ -307,11 +307,14 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 		return err({ reason: "PACKAGE_NOT_FOUND" });
 	}
 
-	const bookedSessions = multiBooking.sessions.filter(
+	const activeBookedSessions = multiBooking.sessions.filter(
 		(session) => session.bookingId !== undefined && session.cancelledAt === undefined
-	).length;
+	);
+	const hasBookedSessionBeyondPackageSize = activeBookedSessions.some(
+		(session) => session.slotNumber > args.packageSize
+	);
 
-	if (args.packageSize < bookedSessions) {
+	if (args.packageSize < activeBookedSessions.length || hasBookedSessionBeyondPackageSize) {
 		return err({ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" });
 	}
 
