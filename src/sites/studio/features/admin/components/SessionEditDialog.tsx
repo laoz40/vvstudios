@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
+import { AdminEditingQuantityOptions } from "#studio/features/admin/components/AdminEditingQuantityOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -18,10 +19,9 @@ import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
-	ADDON_OPTIONS,
-	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
+	isAddonOption,
 	toDeliverableCountOption,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -58,10 +58,6 @@ export type SessionEditDialogProps = {
 	isSaving: boolean;
 };
 
-function isAddonOption(value: string): value is BookingFormValues["addons"][number] {
-	return ADDON_OPTIONS.includes(value as BookingFormValues["addons"][number]);
-}
-
 function buildSessionEditDraft(booking: BookingRecord): SessionEditDraft {
 	return {
 		name: booking.name,
@@ -79,58 +75,6 @@ function buildSessionEditDraft(booking: BookingRecord): SessionEditDraft {
 		notes: booking.notes ?? "",
 		remainingBalanceAmount: booking.remainingBalanceAmount?.toString() ?? ""
 	};
-}
-
-type EditingQuantityOptionsProps = {
-	disabled: boolean;
-	idPrefix: string;
-	label: string;
-	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
-	value: string;
-};
-
-function EditingQuantityOptions({
-	disabled,
-	idPrefix,
-	label,
-	onChange,
-	value
-}: EditingQuantityOptionsProps) {
-	return (
-		<section className="grid gap-3">
-			<Label>{label}</Label>
-			<RadioGroup
-				value={value}
-				onValueChange={(nextValue) =>
-					onChange(nextValue as BookingFormValues["essentialEditQuantity"])
-				}
-				className="grid gap-3 sm:grid-cols-4">
-				{DELIVERABLE_COUNT_OPTIONS.map((count) => {
-					const optionId = `${idPrefix}-${count}`;
-
-					return (
-						<label
-							key={count}
-							htmlFor={optionId}
-							className={cn(
-								"flex cursor-pointer items-center gap-3",
-								"p-3",
-								"rounded-lg border",
-								"transition-colors",
-								"has-checked:border-primary has-checked:bg-primary/5"
-							)}>
-							<RadioGroupItem
-								id={optionId}
-								value={count}
-								disabled={disabled}
-							/>
-							<span className="font-medium">{count}</span>
-						</label>
-					);
-				})}
-			</RadioGroup>
-		</section>
-	);
 }
 
 export function SessionEditDialog({
@@ -400,7 +344,7 @@ export function SessionEditDialog({
 					/>
 
 					{draft.addons.includes("Essential Edit") ? (
-						<EditingQuantityOptions
+						<AdminEditingQuantityOptions
 							idPrefix="edit-essential-edit-quantity"
 							label="Essential Edit quantity"
 							value={draft.essentialEditQuantity ?? ""}
@@ -411,7 +355,7 @@ export function SessionEditDialog({
 						/>
 					) : null}
 					{draft.addons.includes("Clips Package") ? (
-						<EditingQuantityOptions
+						<AdminEditingQuantityOptions
 							idPrefix="edit-clips-package-quantity"
 							label="Clips Package quantity"
 							value={draft.clipsPackageQuantity ?? ""}

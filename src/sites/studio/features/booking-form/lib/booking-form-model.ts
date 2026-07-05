@@ -14,6 +14,10 @@ export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
 const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 
+export function isAddonOption(value: string): value is BookingAddon {
+	return ADDON_OPTIONS.includes(value as BookingAddon);
+}
+
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
 	return addons.some((addon) => EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number]));
 }
