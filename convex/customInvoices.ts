@@ -86,6 +86,7 @@ export const createPackageCustomInvoice = mutation({
 		clipsPackageQuantity: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		includeDepositLineItem: v.boolean(),
+		includePackageDiscount: v.optional(v.boolean()),
 		customTotalDueAmount: v.optional(v.number())
 	},
 	handler: (ctx, args) => createPackageCustomInvoiceHandler(ctx, args)
@@ -101,6 +102,7 @@ type CreatePackageCustomInvoiceArgs = {
 	clipsPackageQuantity?: string;
 	packageSize: 4 | 8 | 12;
 	includeDepositLineItem: boolean;
+	includePackageDiscount?: boolean;
 	customTotalDueAmount?: number;
 };
 
@@ -132,6 +134,7 @@ async function createPackageCustomInvoiceHandler(
 		clipsPackageQuantity: args.clipsPackageQuantity,
 		packageSize: args.packageSize,
 		includeDepositLineItem: args.includeDepositLineItem,
+		includePackageDiscount: args.includePackageDiscount,
 		customTotalDueAmount: args.customTotalDueAmount,
 		createdAt,
 		createdBy: identity.email

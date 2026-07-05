@@ -45,8 +45,12 @@ export type MultiBookingAmounts = {
 
 export type MultiBookingPricingValues = Pick<
 	BookingFormValues,
-	"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
-> & { packageSize: MultiBookingSize };
+	"addons" | "clipsPackageQuantity" | "essentialEditQuantity"
+> & {
+	duration: BookingFormValues["duration"] | "";
+	includeDiscount?: boolean;
+	packageSize: MultiBookingSize;
+};
 
 const MULTI_BOOKING_INVOICE_DUE_DAYS = 14;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -62,10 +66,9 @@ export function formatBookingPrice(price: number) {
 export { getBookingAddonQuantityForForm as getBookingAddonQuantity };
 
 export function getBookingTotal(
-	values: Pick<
-		BookingFormValues,
-		"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
-	>
+	values: Pick<BookingFormValues, "addons" | "clipsPackageQuantity" | "essentialEditQuantity"> & {
+		duration: BookingFormValues["duration"] | "";
+	}
 ) {
 	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const addonsTotal = values.addons.reduce((total, addon) => {
@@ -81,7 +84,10 @@ export function calculateMultiBookingAmounts(
 	const plan = MULTI_BOOKING_PLANS[values.packageSize];
 	const singleSessionAmount = getBookingTotal(values);
 	const packageSubtotalAmount = singleSessionAmount * values.packageSize;
-	const discountAmount = roundMoneyAmount(packageSubtotalAmount * (plan.discountPercent / 100));
+	const discountAmount =
+		values.includeDiscount === false
+			? 0
+			: roundMoneyAmount(packageSubtotalAmount * (plan.discountPercent / 100));
 
 	return {
 		discountAmount,

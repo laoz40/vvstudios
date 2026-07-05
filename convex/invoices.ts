@@ -3,7 +3,12 @@
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
 import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
+import {
+	DURATION_OPTIONS,
+	multiBookingFormSchema,
+	SERVICES,
+	type BookingFormValues
+} from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
 	buildMultiBookingInvoiceData,
 	createMultiBookingInvoiceLineItemSnapshot
@@ -19,6 +24,18 @@ import {
 import { getAdminIdentity } from "./lib/auth";
 
 type GetBookingInvoicePdfByStripeSessionIdArgs = { stripeSessionId: string };
+
+function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
+	return DURATION_OPTIONS.some((duration) => duration === value)
+		? (value as BookingFormValues["duration"])
+		: "";
+}
+
+function toCustomService(value: string | undefined): BookingFormValues["service"] | "" {
+	return SERVICES.some((service) => service === value)
+		? (value as BookingFormValues["service"])
+		: "";
+}
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
 
@@ -175,6 +192,9 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 	const packageSize = source.customInvoice.packageSize ?? source.multiBooking.packageSize;
+	const customDuration = toCustomDuration(source.customInvoice.duration);
+	const customService = toCustomService(source.customInvoice.service);
+	const includePackageDiscount = source.customInvoice.includePackageDiscount !== false;
 	const parsedCustomInvoice = multiBookingFormSchema.safeParse({
 		name: source.multiBooking.name,
 		phone: source.multiBooking.phone,
@@ -200,8 +220,9 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 	const amounts = calculateMultiBookingAmounts({
 		addons: customInvoiceData.addons,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity,
-		duration: customInvoiceData.duration,
+		duration: customService ? customDuration : "",
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity,
+		includeDiscount: includePackageDiscount,
 		packageSize
 	});
 	const totalDueAmount = source.customInvoice.customTotalDueAmount ?? amounts.totalDueAmount;
@@ -210,10 +231,10 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent,
-		duration: customInvoiceData.duration,
+		duration: customService ? customDuration : "",
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
 		packageSize,
-		service: customInvoiceData.service
+		service: customService
 	});
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
 
@@ -236,8 +257,8 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		accountName: customInvoiceData.accountName,
 		abn: customInvoiceData.abn,
 		email: customInvoiceData.email,
-		duration: customInvoiceData.duration,
-		service: customInvoiceData.service,
+		duration: customService && customDuration ? customDuration : customInvoiceData.duration,
+		service: customService || undefined,
 		addons: customInvoiceData.addons,
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,

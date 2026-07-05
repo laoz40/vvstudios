@@ -27,6 +27,7 @@ export default defineSchema({
 		clipsPackageQuantity: v.optional(v.string()),
 		packageSize: v.optional(v.union(v.literal(4), v.literal(8), v.literal(12))),
 		includeDepositLineItem: v.boolean(),
+		includePackageDiscount: v.optional(v.boolean()),
 		customTotalDueAmount: v.optional(v.number()),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string())

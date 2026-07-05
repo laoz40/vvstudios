@@ -13,7 +13,7 @@ import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type CustomInvoiceFormDraft = {
 	service: BookingFormValues["service"] | "";
-	duration: BookingFormValues["duration"];
+	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
@@ -29,6 +29,7 @@ type CustomInvoiceFormFieldsProps<TDraft extends CustomInvoiceFormDraft> = {
 	priceHelpText: string;
 	deposit?: { checked: boolean; onChange: (checked: boolean) => void };
 	packageSize?: { value: MultiBookingSize; onChange: (packageSize: MultiBookingSize) => void };
+	packageDiscount?: { checked: boolean; onChange: (checked: boolean) => void };
 };
 
 type OptionCheckboxProps = {
@@ -58,7 +59,8 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 	onDraftChange,
 	priceHelpText,
 	deposit,
-	packageSize
+	packageSize,
+	packageDiscount
 }: CustomInvoiceFormFieldsProps<TDraft>) {
 	return (
 		<>
@@ -135,6 +137,15 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 				onChange={(customTotalDueAmount) => onDraftChange({ ...draft, customTotalDueAmount })}
 			/>
 
+			{packageDiscount ? (
+				<PackageDiscountOption
+					checked={packageDiscount.checked}
+					disabled={disabled}
+					idPrefix={idPrefix}
+					onChange={packageDiscount.onChange}
+				/>
+			) : null}
+
 			{deposit ? (
 				<DepositOption
 					checked={deposit.checked}
@@ -202,7 +213,7 @@ function PackageSizeOptions({
 }) {
 	return (
 		<section className="grid gap-3">
-			<Label>Package size (optional)</Label>
+			<Label>Package size</Label>
 			<div className="grid gap-3 sm:grid-cols-3">
 				{PACKAGE_SIZE_OPTIONS.map((option) => (
 					<OptionCheckbox
@@ -231,8 +242,8 @@ function DurationOptions({
 }: {
 	disabled: boolean;
 	idPrefix: string;
-	onChange: (value: BookingFormValues["duration"]) => void;
-	value: BookingFormValues["duration"];
+	onChange: (value: BookingFormValues["duration"] | "") => void;
+	value: BookingFormValues["duration"] | "";
 }) {
 	return (
 		<section className="grid gap-3">
@@ -246,9 +257,7 @@ function DurationOptions({
 						disabled={disabled}
 						label={duration}
 						onCheckedChange={(checked) => {
-							if (checked) {
-								onChange(duration);
-							}
+							onChange(checked ? duration : "");
 						}}
 					/>
 				))}
@@ -313,6 +322,31 @@ function CustomInvoiceQuantityOptions({
 					/>
 				))}
 			</div>
+		</section>
+	);
+}
+
+function PackageDiscountOption({
+	checked,
+	disabled,
+	idPrefix,
+	onChange
+}: {
+	checked: boolean;
+	disabled: boolean;
+	idPrefix: string;
+	onChange: (checked: boolean) => void;
+}) {
+	return (
+		<section className="grid gap-3">
+			<Label>Package discount</Label>
+			<OptionCheckbox
+				id={`${idPrefix}-include-package-discount`}
+				checked={checked}
+				disabled={disabled}
+				label="Include package discount"
+				onCheckedChange={onChange}
+			/>
 		</section>
 	);
 }

@@ -42,7 +42,7 @@ type CustomInvoiceRecord = Doc<"customInvoices">;
 
 type CustomInvoiceDraft = {
 	service: BookingService | "";
-	duration: BookingFormValues["duration"];
+	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
@@ -101,7 +101,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
-		duration: booking.duration as BookingFormValues["duration"],
+		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
@@ -111,8 +111,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+	const hasCompleteSessionSelection = Boolean(draft.service) && draft.duration !== "";
+	const hasPartialSessionSelection = Boolean(draft.service) !== (draft.duration !== "");
 	const hasInvoiceSelection =
-		Boolean(draft.service) ||
+		hasCompleteSessionSelection ||
 		draft.addons.length > 0 ||
 		draft.includeDepositLineItem ||
 		draft.customTotalDueAmount.trim().length > 0;
@@ -122,7 +124,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		if (open) {
 			setDraft({
 				service: "",
-				duration: booking.duration as BookingFormValues["duration"],
+				duration: "",
 				addons: [],
 				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
@@ -170,7 +172,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: isBookingService(input.service) ? input.service : null,
+				service: isBookingService(input.service) && input.duration ? input.service : null,
 				customTotalDueAmount: input.customTotalDueAmount
 			})
 		);
@@ -229,8 +231,9 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
-				...(draft.service ? { service: draft.service } : {}),
-				duration: draft.duration,
+				...(hasCompleteSessionSelection
+					? { service: draft.service, duration: draft.duration }
+					: {}),
 				addons: draft.addons,
 				...(draft.essentialEditQuantity
 					? { essentialEditQuantity: draft.essentialEditQuantity }
@@ -277,11 +280,11 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: draft.essentialEditQuantity,
 				clipsPackageQuantity: draft.clipsPackageQuantity,
 				dueDate: draft.dueDate,
-				duration: draft.duration,
+				duration: hasCompleteSessionSelection ? draft.duration : undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: draft.service || null,
+				service: hasCompleteSessionSelection ? (draft.service as BookingService) : null,
 				customTotalDueAmount
 			})
 		);
@@ -328,7 +331,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				total: formatInvoiceTotal({
 					service: invoice.service,
 					addons: invoice.addons as BookingFormValues["addons"],
-					duration: invoice.duration ?? booking.duration,
+					duration: invoice.duration ?? "",
 					includeDepositLineItem: invoice.includeDepositLineItem,
 					essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
 					clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
@@ -428,7 +431,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						</Button>
 						<Button
 							type="submit"
-							disabled={isGenerating || !hasInvoiceSelection}>
+							disabled={isGenerating || !hasInvoiceSelection || hasPartialSessionSelection}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isGenerating ? "Downloading..." : "Download"}
 						</Button>

@@ -40,11 +40,12 @@ type PackageCustomInvoiceRecord = Doc<"customInvoices">;
 
 type PackageCustomInvoiceDraft = {
 	service: BookingFormValues["service"] | "";
-	duration: BookingFormValues["duration"];
+	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	packageSize: MultiBookingSize;
+	includePackageDiscount: boolean;
 	dueDate: string;
 	customTotalDueAmount: string;
 };
@@ -59,12 +60,16 @@ function formatPackageInvoiceTotal(input: {
 	addons: BookingFormValues["addons"];
 	clipsPackageQuantity?: BookingFormValues["clipsPackageQuantity"];
 	customTotalDueAmount?: number;
-	duration: BookingFormValues["duration"];
+	duration: BookingFormValues["duration"] | "";
 	essentialEditQuantity?: BookingFormValues["essentialEditQuantity"];
 	packageSize: MultiBookingSize;
+	service: BookingFormValues["service"] | "";
+	includePackageDiscount: boolean;
 }) {
 	const totalDueAmount =
-		input.customTotalDueAmount ?? calculateMultiBookingAmounts(input).totalDueAmount;
+		input.customTotalDueAmount ??
+		calculateMultiBookingAmounts({ ...input, duration: input.service ? input.duration : "" })
+			.totalDueAmount;
 
 	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
 		totalDueAmount
@@ -92,20 +97,24 @@ export function PackageCustomInvoiceDialog({
 	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
 	const [draft, setDraft] = useState<PackageCustomInvoiceDraft>({
 		service: "",
-		duration: packageRow.duration as BookingFormValues["duration"],
+		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
 		packageSize: packageRow.packageSize,
+		includePackageDiscount: true,
 		dueDate: defaultDueDate,
 		customTotalDueAmount: ""
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+	const hasCompleteSessionSelection = Boolean(draft.service) && draft.duration !== "";
+	const hasPartialSessionSelection = Boolean(draft.service) !== (draft.duration !== "");
 	const hasInvoiceSelection =
-		Boolean(draft.service) ||
+		hasCompleteSessionSelection ||
 		draft.addons.length > 0 ||
 		draft.packageSize !== packageRow.packageSize ||
+		draft.includePackageDiscount !== true ||
 		draft.dueDate !== defaultDueDate ||
 		draft.customTotalDueAmount.trim().length > 0;
 
@@ -117,11 +126,12 @@ export function PackageCustomInvoiceDialog({
 
 		setDraft({
 			service: "",
-			duration: packageRow.duration as BookingFormValues["duration"],
+			duration: "",
 			addons: [],
 			essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 			clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
 			packageSize: packageRow.packageSize,
+			includePackageDiscount: true,
 			dueDate: defaultDueDate,
 			customTotalDueAmount: ""
 		});
@@ -198,14 +208,16 @@ export function PackageCustomInvoiceDialog({
 			createPackageCustomInvoice({
 				multiBookingId: packageRow.id,
 				dueDate: draft.dueDate,
-				...(draft.service ? { service: draft.service } : {}),
-				duration: draft.duration,
+				...(hasCompleteSessionSelection
+					? { service: draft.service, duration: draft.duration }
+					: {}),
 				addons: draft.addons,
 				...(draft.essentialEditQuantity
 					? { essentialEditQuantity: draft.essentialEditQuantity }
 					: {}),
 				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
 				packageSize: draft.packageSize,
+				includePackageDiscount: draft.includePackageDiscount,
 				includeDepositLineItem: false,
 				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
 			})
@@ -254,7 +266,7 @@ export function PackageCustomInvoiceDialog({
 						})}`
 					: "";
 			const packageSize = invoice.packageSize ?? packageRow.packageSize;
-			const service = invoice.service ?? packageRow.service;
+			const service = invoice.service ?? "Add-ons only";
 
 			return {
 				id: invoice._id,
@@ -266,10 +278,14 @@ export function PackageCustomInvoiceDialog({
 						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
 					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
-					duration: (invoice.duration ?? packageRow.duration) as BookingFormValues["duration"],
+					duration: invoice.service
+						? ((invoice.duration ?? "") as BookingFormValues["duration"] | "")
+						: "",
 					essentialEditQuantity: toDeliverableCountOption(
 						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 					),
+					service: invoice.service ? (invoice.service as BookingFormValues["service"]) : "",
+					includePackageDiscount: invoice.includePackageDiscount !== false,
 					packageSize
 				})
 			};
@@ -347,6 +363,11 @@ export function PackageCustomInvoiceDialog({
 							value: draft.packageSize,
 							onChange: (packageSize) => setDraft((current) => ({ ...current, packageSize }))
 						}}
+						packageDiscount={{
+							checked: draft.includePackageDiscount,
+							onChange: (includePackageDiscount) =>
+								setDraft((current) => ({ ...current, includePackageDiscount }))
+						}}
 					/>
 
 					<PreviousCustomInvoices
@@ -365,7 +386,7 @@ export function PackageCustomInvoiceDialog({
 						</Button>
 						<Button
 							type="submit"
-							disabled={isGenerating || !hasInvoiceSelection}>
+							disabled={isGenerating || !hasInvoiceSelection || hasPartialSessionSelection}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isGenerating ? "Downloading..." : "Download"}
 						</Button>
