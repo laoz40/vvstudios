@@ -52,7 +52,7 @@ export type MultiBookingPricingValues = Pick<
 	packageSize: MultiBookingSize;
 };
 
-const MULTI_BOOKING_INVOICE_DUE_DAYS = 14;
+const MULTI_BOOKING_INVOICE_DUE_DAYS = 7;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function roundMoneyAmount(amount: number) {
