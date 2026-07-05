@@ -107,6 +107,9 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 				case "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS":
 					toast.error("Package sessions cannot be lower than booked sessions.");
 					break;
+				case "INVALID_BOOKING_DATA":
+					toast.error("Please check the package details.");
+					break;
 				case "PACKAGE_INVALID_EXPIRY":
 					toast.error("Enter a valid package expiry window.");
 					break;

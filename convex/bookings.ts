@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
+import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
 	calculateMultiBookingAmounts,
 	getMultiBookingExpiresAt,
@@ -307,14 +308,29 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 		return err({ reason: "PACKAGE_NOT_FOUND" });
 	}
 
+	const parsedMultiBooking = multiBookingFormSchema.safeParse({
+		...args,
+		essentialEditQuantity: args.essentialEditQuantity ?? "",
+		clipsPackageQuantity: args.clipsPackageQuantity ?? "",
+		notes: args.notes ?? ""
+	});
+
+	if (!parsedMultiBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" });
+	}
+
+	const multiBookingData = parsedMultiBooking.data;
 	const activeBookedSessions = multiBooking.sessions.filter(
 		(session) => session.bookingId !== undefined && session.cancelledAt === undefined
 	);
 	const hasBookedSessionBeyondPackageSize = activeBookedSessions.some(
-		(session) => session.slotNumber > args.packageSize
+		(session) => session.slotNumber > multiBookingData.packageSize
 	);
 
-	if (args.packageSize < activeBookedSessions.length || hasBookedSessionBeyondPackageSize) {
+	if (
+		multiBookingData.packageSize < activeBookedSessions.length ||
+		hasBookedSessionBeyondPackageSize
+	) {
 		return err({ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" });
 	}
 
@@ -330,51 +346,37 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 	}
 
 	const amounts = calculateMultiBookingAmounts({
-		addons: args.addons as Parameters<typeof calculateMultiBookingAmounts>[0]["addons"],
-		clipsPackageQuantity: args.clipsPackageQuantity as Parameters<
-			typeof calculateMultiBookingAmounts
-		>[0]["clipsPackageQuantity"],
-		duration: args.duration as Parameters<typeof calculateMultiBookingAmounts>[0]["duration"],
-		essentialEditQuantity: args.essentialEditQuantity as Parameters<
-			typeof calculateMultiBookingAmounts
-		>[0]["essentialEditQuantity"],
-		packageSize: args.packageSize
+		addons: multiBookingData.addons,
+		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
+		duration: multiBookingData.duration,
+		essentialEditQuantity: multiBookingData.essentialEditQuantity,
+		packageSize: multiBookingData.packageSize
 	});
 	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
-		addons: args.addons as Parameters<
-			typeof createMultiBookingInvoiceLineItemSnapshot
-		>[0]["addons"],
-		clipsPackageQuantity: args.clipsPackageQuantity as Parameters<
-			typeof createMultiBookingInvoiceLineItemSnapshot
-		>[0]["clipsPackageQuantity"],
+		addons: multiBookingData.addons,
+		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent,
-		duration: args.duration as Parameters<
-			typeof createMultiBookingInvoiceLineItemSnapshot
-		>[0]["duration"],
-		essentialEditQuantity: args.essentialEditQuantity as Parameters<
-			typeof createMultiBookingInvoiceLineItemSnapshot
-		>[0]["essentialEditQuantity"],
-		packageSize: args.packageSize,
-		service: args.service as Parameters<
-			typeof createMultiBookingInvoiceLineItemSnapshot
-		>[0]["service"]
+		duration: multiBookingData.duration,
+		essentialEditQuantity: multiBookingData.essentialEditQuantity,
+		packageSize: multiBookingData.packageSize,
+		service: multiBookingData.service
 	});
 
 	try {
 		await ctx.db.patch(args.multiBookingId, {
-			name: args.name,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			email: args.email,
-			duration: args.duration,
-			service: args.service,
-			addons: args.addons,
-			essentialEditQuantity: args.essentialEditQuantity,
-			clipsPackageQuantity: args.clipsPackageQuantity,
-			notes: args.notes,
-			packageSize: args.packageSize,
+			name: multiBookingData.name,
+			phone: multiBookingData.phone,
+			accountName: multiBookingData.accountName,
+			abn: multiBookingData.abn,
+			email: multiBookingData.email,
+			duration: multiBookingData.duration,
+			service: multiBookingData.service,
+			addons: multiBookingData.addons,
+			essentialEditQuantity: multiBookingData.essentialEditQuantity,
+			clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
+			notes: multiBookingData.notes,
+			packageSize: multiBookingData.packageSize,
 			expiresAt: args.expiresAt,
 			singleSessionAmount: amounts.singleSessionAmount,
 			packageSubtotalAmount: amounts.packageSubtotalAmount,
@@ -382,7 +384,7 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 			discountAmount: amounts.discountAmount,
 			totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
 			invoiceLineItems,
-			sessions: buildPackageSessions(multiBooking.sessions, args.packageSize)
+			sessions: buildPackageSessions(multiBooking.sessions, multiBookingData.packageSize)
 		});
 	} catch {
 		return err({ reason: "PACKAGE_UPDATE_FAILED" });
