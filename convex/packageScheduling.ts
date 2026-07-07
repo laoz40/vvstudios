@@ -36,7 +36,13 @@ type PackageSlotLookupError =
 	| { reason: "PACKAGE_SLOT_LOCKED" };
 
 type PackageSessionView = {
-	booking: null | { date: string; sessionStartAt: number; time: string };
+	booking: null | {
+		date: string;
+		googleCalendarId?: string;
+		googleEventId?: string;
+		sessionStartAt: number;
+		time: string;
+	};
 	cancelledAt?: number;
 	scheduledAt?: number;
 	slotNumber: number;
@@ -257,6 +263,34 @@ export type ClearPackageSlotResult = Awaited<ReturnType<typeof clearPackageSlotH
 export const getValidPackageByTokenInternal = internalQuery({
 	args: { now: v.number(), token: v.string() },
 	handler: async (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
+});
+
+export const getPackageSlotCalendarEventInternal = internalQuery({
+	args: { token: v.string(), slotNumber: v.number() },
+	handler: async (ctx, args) => {
+		const [lookupError, lookup] = await getEditablePackageSlot(
+			ctx,
+			args.token,
+			args.slotNumber,
+			0,
+			Date.now()
+		);
+
+		if (lookupError !== null || !lookup.slot.bookingId) {
+			return null;
+		}
+
+		const booking = await ctx.db.get(lookup.slot.bookingId);
+
+		if (!booking || booking.status === "cancelled" || !booking.googleEventId) {
+			return null;
+		}
+
+		return {
+			...(booking.googleCalendarId ? { calendarId: booking.googleCalendarId } : {}),
+			eventId: booking.googleEventId
+		};
+	}
 });
 
 export const validatePackageSlotSaveRequestInternal = internalQuery({
@@ -629,7 +663,13 @@ async function buildPackageSessionViews(ctx: QueryCtx, multiBooking: Doc<"multiB
 		const booking = session.bookingId ? await ctx.db.get(session.bookingId) : null;
 		sessions.push({
 			booking: booking
-				? { date: booking.date, sessionStartAt: booking.sessionStartAt, time: booking.time }
+				? {
+						date: booking.date,
+						...(booking.googleCalendarId ? { googleCalendarId: booking.googleCalendarId } : {}),
+						...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {}),
+						sessionStartAt: booking.sessionStartAt,
+						time: booking.time
+					}
 				: null,
 			cancelledAt: session.cancelledAt,
 			scheduledAt: session.scheduledAt,

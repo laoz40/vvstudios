@@ -40,6 +40,7 @@ import {
 	startOfToday
 } from "#studio/lib/bookingdatetime";
 import {
+	excludeBusyEvent,
 	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getSelectedBusyDay,
@@ -138,6 +139,13 @@ function PackageScheduleContent({
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
+	const activeSession = packageData.sessions.find(
+		(session) => session.slotNumber === activeSlotNumber
+	);
+	const visibleMonthlyBusyWindowsByMonth = useMemo(
+		() => excludeBusyEvent(monthlyBusyWindowsByMonth, activeSession?.booking?.googleEventId),
+		[activeSession?.booking?.googleEventId, monthlyBusyWindowsByMonth]
+	);
 
 	// Load the saved availability rate limit key.
 	useEffect(() => {
@@ -332,14 +340,18 @@ function PackageScheduleContent({
 	}
 
 	const selectedBusyDay = selectedDateValue
-		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
+		? getSelectedBusyDay({
+				date: selectedDateValue,
+				monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
+				selectedMonth
+			})
 		: null;
 	const availableTimes = getBookableAvailableTimes({
 		currentTimestamp,
 		duration: packageData.duration,
 		isViewingSelectedMonth,
 		lastBookableDate,
-		monthlyBusyWindowsByMonth,
+		monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
 		selectedBusyDay,
 		selectedDate,
 		selectedDateValue,
@@ -354,7 +366,7 @@ function PackageScheduleContent({
 			duration: packageData.duration,
 			isAvailabilityRateLimited: false,
 			lastBookableDate,
-			monthlyBusyWindowsByMonth,
+			monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
 			settings: availabilitySettings,
 			today
 		});

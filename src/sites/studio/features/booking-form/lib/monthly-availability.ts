@@ -65,6 +65,25 @@ export function getSelectedBusyDay({
 	return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === date) ?? null;
 }
 
+export function excludeBusyEvent(
+	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>,
+	eventId?: string
+) {
+	if (!eventId) {
+		return monthlyBusyWindowsByMonth;
+	}
+
+	return Object.fromEntries(
+		Object.entries(monthlyBusyWindowsByMonth).map(([month, days]) => [
+			month,
+			days.map((day) => ({
+				...day,
+				busyPeriods: day.busyPeriods.filter((period) => period.eventId !== eventId)
+			}))
+		])
+	);
+}
+
 export function getBookableAvailableTimes({
 	currentTimestamp,
 	duration,

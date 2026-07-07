@@ -83,7 +83,7 @@ export async function getBusyWindowsInRange({
 					continue;
 				}
 
-				busyWindows.push({ start, end });
+				busyWindows.push({ calendarId, end, ...(event.id ? { eventId: event.id } : {}), start });
 			}
 
 			pageToken = response.data.nextPageToken ?? undefined;

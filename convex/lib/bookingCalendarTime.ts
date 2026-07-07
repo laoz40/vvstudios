@@ -9,14 +9,16 @@ import {
 } from "../../src/sites/studio/lib/zonedDateTime";
 
 export interface BusyWindow {
-	start: string;
+	calendarId?: string;
 	end: string;
+	eventId?: string;
+	start: string;
 }
 
 export interface BusyDayWindow {
 	date: string;
 	label: string;
-	busyPeriods: Array<{ end: string; start: string }>;
+	busyPeriods: Array<{ calendarId?: string; end: string; eventId?: string; start: string }>;
 }
 
 interface DateParts {
@@ -388,10 +390,9 @@ export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string
 ): Result<BusyDayWindow[], Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
-	const mergedWindows = mergeBusyWindows(busyWindows);
 	const dayBuckets = new Map<string, BusyDayWindow>();
 
-	for (const window of mergedWindows) {
+	for (const window of busyWindows) {
 		let segmentStartMs = Date.parse(window.start);
 		const windowEndMs = Date.parse(window.end);
 
@@ -413,10 +414,12 @@ export function groupBusyWindowsByDay(
 			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
 
 			bucket.busyPeriods.push({
+				...(window.calendarId ? { calendarId: window.calendarId } : {}),
 				end: formatTimeInTimeZone(
 					new Date(segmentEndMs === dayEndMs ? segmentEndMs - 60 * 1000 : segmentEndMs),
 					timeZone
 				),
+				...(window.eventId ? { eventId: window.eventId } : {}),
 				start: formatTimeInTimeZone(segmentStartDate, timeZone)
 			});
 
