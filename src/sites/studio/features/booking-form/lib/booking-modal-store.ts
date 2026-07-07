@@ -6,7 +6,6 @@ export type BookingModalState =
 	| { modal: "none" }
 	| { modal: "addonCompatibility" }
 	| { modal: "payment"; checkoutSession: EmbeddedCheckoutSession }
-	| { modal: "sessionSummary"; dateSummary: string; timeSummary: string }
 	| {
 			date: string;
 			dateSummary: string;
@@ -39,16 +38,6 @@ export function openAddonCompatibilityModal() {
 
 export function openPaymentModal(checkoutSession: EmbeddedCheckoutSession) {
 	useBookingModalStore.setState({ modal: "payment", checkoutSession }, true);
-}
-
-export function openSessionSummaryModal({
-	dateSummary,
-	timeSummary
-}: {
-	dateSummary: string;
-	timeSummary: string;
-}) {
-	useBookingModalStore.setState({ modal: "sessionSummary", dateSummary, timeSummary }, true);
 }
 
 export function openPackageSlotConfirmationModal(

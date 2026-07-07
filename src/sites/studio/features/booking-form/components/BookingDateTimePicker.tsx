@@ -76,7 +76,7 @@ export function BookingDateTimePicker({
 					<div
 						className={cn(
 							"flex overflow-hidden xl:h-128",
-							"rounded-lg border border-border bg-input/30",
+							"rounded-lg border border-border bg-card",
 							"shadow-lg shadow-background/25"
 						)}>
 						<Calendar
@@ -201,7 +201,7 @@ export function BookingDateTimePicker({
 												<FieldLabel
 													htmlFor={timeOptionId}
 													className={cn(
-														"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-input/30",
+														"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-card",
 														"shadow-lg shadow-background/25",
 														"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary",
 														"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",

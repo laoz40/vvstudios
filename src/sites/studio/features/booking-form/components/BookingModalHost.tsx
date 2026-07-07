@@ -4,8 +4,7 @@ import { Button } from "#/components/ui/button";
 import { Modal } from "#studio/components/Modal";
 import {
 	PackageSlotConfirmation,
-	RescheduleConfirmation,
-	SessionSummary
+	RescheduleConfirmation
 } from "#studio/features/booking-form/components/BookingConfirmationDialogs";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
@@ -70,9 +69,6 @@ export function BookingModalHost({
 					/>
 				</Suspense>
 			);
-
-		case "sessionSummary":
-			return <SessionSummary modalState={bookingModalState} />;
 
 		case "packageSlotConfirmation":
 			return (

@@ -7,16 +7,11 @@ import {
 	type BookingModalState
 } from "#studio/features/booking-form/lib/booking-modal-store";
 
-type SessionSummaryState = Extract<BookingModalState, { modal: "sessionSummary" }>;
 type PackageSlotConfirmationState = Extract<
 	BookingModalState,
 	{ modal: "packageSlotConfirmation" }
 >;
 type RescheduleConfirmationState = Extract<BookingModalState, { modal: "rescheduleConfirmation" }>;
-
-interface SessionSummaryProps {
-	modalState: SessionSummaryState;
-}
 
 interface PackageSlotConfirmationProps {
 	isSubmitting: boolean;
@@ -28,36 +23,6 @@ interface RescheduleConfirmationProps {
 	isSubmitting: boolean;
 	modalState: RescheduleConfirmationState;
 	onConfirm?: () => void;
-}
-
-export function SessionSummary({ modalState }: SessionSummaryProps) {
-	return (
-		<Modal
-			open
-			onOpenChange={closeBookingModal}
-			title={
-				<span className="block text-center text-lg font-medium text-muted-foreground">
-					Selected Session
-				</span>
-			}
-			closeLabel="Close dialog"
-			className="gap-4 px-6 py-4 sm:px-8"
-			footer={
-				<Button
-					type="button"
-					className="mt-4 w-full"
-					onClick={closeBookingModal}>
-					Confirm
-				</Button>
-			}>
-			<div className="space-y-2 text-center">
-				<p className="text-foreground text-3xl font-semibold tracking-tight">
-					{modalState.dateSummary}
-				</p>
-				<p className="text-xl font-medium">{modalState.timeSummary}</p>
-			</div>
-		</Modal>
-	);
 }
 
 export function PackageSlotConfirmation({
@@ -79,7 +44,7 @@ export function PackageSlotConfirmation({
 			}}
 			title={
 				<span className="block text-center text-lg font-medium text-muted-foreground">
-					{isConfirmingSession ? "Selected Session" : "Unschedule Session"}
+					{isConfirmingSession ? "Selected Session" : `Unschedule ${modalState.dateSummary}?`}
 				</span>
 			}
 			closeLabel="Close dialog"
@@ -115,14 +80,9 @@ export function PackageSlotConfirmation({
 						<p className="text-xl font-medium">{modalState.timeSummary}</p>
 					</>
 				) : (
-					<div className="space-y-2 text-center">
-						<p className="text-foreground text-2xl font-semibold tracking-tight">
-							{modalState.dateSummary}
-						</p>
-						<p className="text-muted-foreground text-balance leading-6">
-							This will remove this session from the calendar. You can pick a new date again later.
-						</p>
-					</div>
+					<p className="text-muted-foreground text-balance text-center leading-6">
+						This will remove this session from the calendar. You can pick a new date again later.
+					</p>
 				)}
 			</div>
 		</Modal>

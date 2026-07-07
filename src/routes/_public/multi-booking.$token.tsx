@@ -30,7 +30,6 @@ import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/packa
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatBookingDateSummary,
-	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatDateValue,
@@ -248,14 +247,10 @@ function PackageScheduleContent({
 			return;
 		}
 
-		openPackageSlotConfirmationModal({
+		void handleSaveSlot({
 			date: selectedDateValue,
-			dateSummary: formatBookingDateSummary(selectedDateValue),
-			modal: "packageSlotConfirmation",
 			slotNumber: activeSlotNumber,
-			timeSummary: formatBookingTimeRange(selectedTime, packageData.duration),
-			time: selectedTime,
-			type: "save"
+			time: selectedTime
 		});
 	}
 

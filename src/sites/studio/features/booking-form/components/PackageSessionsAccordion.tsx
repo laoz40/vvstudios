@@ -11,9 +11,14 @@ import {
 	BookingDateTimePicker,
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
-import { formatBookingTimestampDateLong, formatTimeValue } from "#studio/lib/bookingdatetime";
+import {
+	formatBookingDateSummary,
+	formatBookingTimeRange,
+	formatBookingTimestampDateLong
+} from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
 interface PackageSessionsAccordionProps {
@@ -61,6 +66,12 @@ export function PackageSessionsAccordion({
 	const scheduledSessions = packageData.sessions.filter(
 		(session) => session.booking !== null && !session.cancelledAt
 	).length;
+	const selectedDateSummary = selectedDateValue
+		? formatBookingDateSummary(selectedDateValue)
+		: "No selected date";
+	const selectedTimeSummary = selectedTime
+		? formatBookingTimeRange(selectedTime, packageData.duration)
+		: "No selected time";
 
 	return (
 		<Accordion
@@ -109,10 +120,10 @@ export function PackageSessionsAccordion({
 						value={String(session.slotNumber)}
 						disabled={!canEdit}
 						className={cn(
-							"rounded-xl border bg-card px-6",
+							"rounded-xl border bg-surface-subtle px-6",
 							"text-card-foreground",
-							"shadow-sm transition-colors duration-500 last:border-b",
-							isPastSession && "bg-background border-muted",
+							"shadow-sm transition-colors duration-500",
+							isPastSession && "bg-background opacity-70 border-muted",
 							isHighlighted && "border-primary"
 						)}>
 						<AccordionTrigger
@@ -123,22 +134,24 @@ export function PackageSessionsAccordion({
 							)}>
 							<span className="flex w-full items-center justify-between gap-3">
 								<span className="min-w-0">
-									<span
-										className={cn(
-											"block text-base font-semibold",
-											"transition-colors duration-500",
-											booking ? "text-foreground" : "font-light text-muted-foreground",
-											booking && isHighlighted && "text-primary"
-										)}>
-										{booking
-											? `${formatBookingTimestampDateLong(booking.sessionStartAt)} at ${formatTimeValue(
-													booking.time
-												)}`
-											: "No date/time scheduled"}
-									</span>
-									<span className="mt-1 block text-sm font-normal text-muted-foreground">
-										Session {session.slotNumber} of {packageData.packageSize}
-									</span>
+									{booking ? (
+										<span
+											className={cn(
+												"block text-base font-semibold transition-colors duration-500",
+												isHighlighted ? "text-primary" : "text-foreground"
+											)}>
+											<span className="block">
+												{formatBookingTimestampDateLong(booking.sessionStartAt)}
+											</span>
+											<span className="mt-1 block text-sm font-normal text-muted-foreground">
+												{formatBookingTimeRange(booking.time, packageData.duration)}
+											</span>
+										</span>
+									) : (
+										<span className="block text-base font-light text-muted-foreground transition-colors duration-500">
+											No date/time scheduled
+										</span>
+									)}
 								</span>
 								<span className="ml-auto flex shrink-0 items-center justify-end">
 									{canEdit ? (
@@ -166,6 +179,11 @@ export function PackageSessionsAccordion({
 								onTimeChange={onTimeChange}
 								selectedTime={selectedTime}
 								timeSelectionMessage={timeSelectionMessage}
+							/>
+							<BookingSessionSummary
+								className="mt-6"
+								dateSummary={selectedDateSummary}
+								timeSummary={selectedTimeSummary}
 							/>
 							<div className="mt-8 flex w-full flex-row items-center justify-center gap-4">
 								{canClear ? (
@@ -208,7 +226,7 @@ export function PackageSessionsAccordion({
 									{savingSlotNumber === session.slotNumber ? (
 										<LoaderCircle className="size-4 animate-spin" />
 									) : null}
-									{savingSlotNumber === session.slotNumber ? "CONFIRMING..." : "CONFIRM SESSION"}
+									{savingSlotNumber === session.slotNumber ? "SAVING..." : "SAVE SESSION"}
 								</Button>
 							</div>
 						</AccordionContent>
