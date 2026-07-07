@@ -45,7 +45,8 @@ export function BookingSummary() {
 	return (
 		<Accordion
 			type="single"
-			collapsible>
+			collapsible
+			defaultValue="booking-summary">
 			<AccordionItem value="booking-summary">
 				<AccordionTrigger className="py-3 text-sm justify-start gap-1">
 					<span className="text-base font-semibold">BOOKING SUMMARY</span>
