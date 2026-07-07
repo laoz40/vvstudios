@@ -254,6 +254,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					toast.error("This booking no longer exists.");
 					break;
 
+				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
+					toast.error("Enter a valid custom invoice price.");
+					break;
+
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong with creating the custom invoice.");
 					break;

@@ -38,11 +38,19 @@ type CreateCustomInvoiceArgs = {
 	customTotalDueAmount?: number;
 };
 
+function isInvalidCustomTotalDueAmount(amount: number | undefined) {
+	return amount !== undefined && (!Number.isFinite(amount) || amount < 0);
+}
+
 async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateCustomInvoiceArgs) {
 	const [authError, identity] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
 		return err(authError);
+	}
+
+	if (isInvalidCustomTotalDueAmount(args.customTotalDueAmount)) {
+		return err({ reason: "INVALID_CUSTOM_TOTAL_DUE_AMOUNT" });
 	}
 
 	const booking = await ctx.db.get(args.bookingId);
@@ -114,6 +122,10 @@ async function createPackageCustomInvoiceHandler(
 
 	if (authError !== null) {
 		return err(authError);
+	}
+
+	if (isInvalidCustomTotalDueAmount(args.customTotalDueAmount)) {
+		return err({ reason: "INVALID_CUSTOM_TOTAL_DUE_AMOUNT" });
 	}
 
 	const multiBooking = await ctx.db.get(args.multiBookingId);
