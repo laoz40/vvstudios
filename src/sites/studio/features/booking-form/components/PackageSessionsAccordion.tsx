@@ -77,7 +77,11 @@ export function PackageSessionsAccordion({
 		<Accordion
 			type="single"
 			collapsible
-			className="mt-12 grid gap-4"
+			// Keep the shared accordion default of overflow-hidden for closed panels so
+			// the height animation clips cleanly. For these session panels, open content
+			// needs overflow-visible so shadows on edge-aligned controls are not cut off
+			// by the animated content wrapper.
+			className="mt-12 grid gap-4 [&_[data-slot=accordion-content][data-state=open]]:overflow-visible"
 			value={activeSlotNumber === null ? "" : String(activeSlotNumber)}
 			onValueChange={(value) => {
 				if (!value) {
@@ -122,8 +126,8 @@ export function PackageSessionsAccordion({
 						className={cn(
 							"rounded-xl border bg-surface-subtle px-6",
 							"text-card-foreground",
-							"shadow-sm transition-colors duration-500",
-							isPastSession && "bg-background opacity-70 border-muted",
+							"shadow-lg transition-colors duration-500",
+							isPastSession && "bg-background opacity-70 border-muted shadow-none!",
 							isHighlighted && "border-primary"
 						)}>
 						<AccordionTrigger
