@@ -2,7 +2,10 @@ import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import type { MultiBookingSize } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	MULTI_BOOKING_PLANS,
+	type MultiBookingSize
+} from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
@@ -48,7 +51,6 @@ type CustomInvoiceQuantityOptionsProps = {
 	value: string;
 };
 
-const PACKAGE_SIZE_OPTIONS = [4, 8, 12] as const;
 const OPTION_LABEL_CLASS_NAME =
 	"flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5";
 
@@ -211,11 +213,15 @@ function PackageSizeOptions({
 	onChange: (value: MultiBookingSize) => void;
 	packageSize: MultiBookingSize;
 }) {
+	const packageSizeOptions = Object.keys(MULTI_BOOKING_PLANS).map(
+		(packageSizeOption) => Number(packageSizeOption) as MultiBookingSize
+	);
+
 	return (
 		<section className="grid gap-3">
 			<Label>Package size</Label>
 			<div className="grid gap-3 sm:grid-cols-3">
-				{PACKAGE_SIZE_OPTIONS.map((option) => (
+				{packageSizeOptions.map((option) => (
 					<OptionCheckbox
 						key={option}
 						id={`${idPrefix}-size-${option}`}
