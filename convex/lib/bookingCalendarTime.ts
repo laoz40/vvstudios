@@ -354,38 +354,6 @@ export function getDateAvailabilityRange(
 	return ok({ timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() });
 }
 
-export function mergeBusyWindows(busyWindows: BusyWindow[]) {
-	const sortedWindows = busyWindows
-		.map((window) => ({ endMs: Date.parse(window.end), startMs: Date.parse(window.start) }))
-		.sort((left, right) => left.startMs - right.startMs);
-
-	const mergedWindows: BusyWindow[] = [];
-
-	for (const window of sortedWindows) {
-		const lastWindow = mergedWindows.at(-1);
-		if (!lastWindow) {
-			mergedWindows.push({
-				end: new Date(window.endMs).toISOString(),
-				start: new Date(window.startMs).toISOString()
-			});
-			continue;
-		}
-
-		const lastEndMs = Date.parse(lastWindow.end);
-		if (window.startMs <= lastEndMs) {
-			lastWindow.end = new Date(Math.max(lastEndMs, window.endMs)).toISOString();
-			continue;
-		}
-
-		mergedWindows.push({
-			end: new Date(window.endMs).toISOString(),
-			start: new Date(window.startMs).toISOString()
-		});
-	}
-
-	return mergedWindows;
-}
-
 export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string

@@ -29,10 +29,6 @@ export const emptyStaleCleanupBookingCounts: StaleCleanupBookingCounts = {
 	pending_payment: 0
 };
 
-export function isSessionSortId(id: string): id is SessionSortId {
-	return id === "name" || id === "session" || id === "createdAt";
-}
-
 export function filterAdminSessionBookings(
 	bookings: BookingRecord[],
 	filters: AdminSessionFilters

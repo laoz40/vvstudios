@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import type { Column } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
@@ -25,6 +24,46 @@ async function copyText(value: string, label: string) {
 }
 
 type CopyableTextProps = { value: string; label: string; children: ReactNode };
+
+type SortHeaderButtonProps = {
+	isActive: boolean;
+	isDescending: boolean;
+	label: string;
+	onClick: () => void;
+};
+
+function getSortHeaderIcon(isActive: boolean, isDescending: boolean) {
+	if (!isActive) {
+		return ArrowUpDown;
+	}
+
+	return isDescending ? ArrowDown : ArrowUp;
+}
+
+export function SortHeaderButton({
+	isActive,
+	isDescending,
+	label,
+	onClick
+}: SortHeaderButtonProps) {
+	const SortIcon = getSortHeaderIcon(isActive, isDescending);
+
+	return (
+		<Button
+			variant="ghost"
+			className={cn(
+				"px-0!",
+				isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+			)}
+			onClick={onClick}>
+			<span>{label}</span>
+			<SortIcon
+				data-icon="inline-end"
+				className={cn(isActive ? "opacity-100" : "opacity-60")}
+			/>
+		</Button>
+	);
+}
 
 export function CopyableText({ value, label, children }: CopyableTextProps) {
 	return (
@@ -83,26 +122,4 @@ export function customerFilter(row: { original: BookingRecord }, value: unknown)
 	]
 		.filter((field): field is string => Boolean(field))
 		.some((field) => field.toLowerCase().includes(query));
-}
-
-export function renderSortableHeader(label: string, column: Column<BookingRecord>) {
-	const sortDirection = column.getIsSorted();
-	const SortIcon =
-		sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
-
-	return (
-		<Button
-			variant="ghost"
-			className={cn(
-				"px-0!",
-				sortDirection ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-			)}
-			onClick={() => column.toggleSorting(sortDirection === "asc")}>
-			<span>{label}</span>
-			<SortIcon
-				data-icon="inline-end"
-				className={cn(sortDirection ? "opacity-100" : "opacity-60")}
-			/>
-		</Button>
-	);
 }

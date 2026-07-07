@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -17,6 +16,7 @@ import {
 import { cn } from "#/lib/utils";
 import {
 	CopyableText,
+	SortHeaderButton,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
@@ -225,23 +225,12 @@ export function PackagesTable({
 							<TableHead className="w-28">Due / Expiry</TableHead>
 							<TableHead className="w-20">Amount</TableHead>
 							<TableHead className="w-28">
-								<Button
-									variant="ghost"
-									className="px-0! text-foreground"
-									onClick={() => setIsCreatedSortDescending((isDescending) => !isDescending)}>
-									<span>Created</span>
-									{isCreatedSortDescending ? (
-										<ArrowDown
-											data-icon="inline-end"
-											className="opacity-100"
-										/>
-									) : (
-										<ArrowUp
-											data-icon="inline-end"
-											className="opacity-100"
-										/>
-									)}
-								</Button>
+								<SortHeaderButton
+									label="Created"
+									isActive
+									isDescending={isCreatedSortDescending}
+									onClick={() => setIsCreatedSortDescending((isDescending) => !isDescending)}
+								/>
 							</TableHead>
 							<TableHead className="w-8" />
 						</TableRow>

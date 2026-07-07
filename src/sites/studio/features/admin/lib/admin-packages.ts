@@ -115,21 +115,6 @@ export function getAdminPackageDashboardDate(
 	return { kind: "package_expiry", timestamp: packageRow.expiresAt };
 }
 
-export function getPackagePaymentActionLabel(
-	packageRow: Pick<AdminPackageRow, "isPaid">,
-	pendingAction: AdminPackagePendingAction
-) {
-	if (pendingAction === "payment") {
-		return "Updating payment...";
-	}
-
-	if (packageRow.isPaid) {
-		return "Mark unpaid";
-	}
-
-	return "Mark paid";
-}
-
 export function getPackageArchiveActionLabel(
 	packageRow: Pick<AdminPackageRow, "hiddenAt">,
 	pendingAction: AdminPackagePendingAction

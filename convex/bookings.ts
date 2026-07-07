@@ -1199,21 +1199,6 @@ export type MarkBookingCalendarEventDeletedResult = Awaited<
 	ReturnType<typeof markBookingCalendarEventDeletedHandler>
 >;
 
-export const deleteBookingInternal = internalMutation({
-	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		await ctx.db.delete(args.bookingId);
-
-		return ok({ deleted: true });
-	}
-});
-
 export const deleteBooking = mutation({
 	args: { bookingId: v.id("bookings") },
 	handler: deleteBookingHandler

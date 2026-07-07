@@ -1,9 +1,5 @@
 const MS_PER_MINUTE = 60 * 1000;
 
-export function getPackageSessionLabel(slotNumber: number, packageSize: number) {
-	return `Package ${slotNumber}/${packageSize}`;
-}
-
 export function isPackageSessionLocked(
 	sessionStartAt: number,
 	leadTimeMinutes: number,

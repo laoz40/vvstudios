@@ -265,34 +265,6 @@ export const getValidPackageByTokenInternal = internalQuery({
 	handler: async (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
 });
 
-export const getPackageSlotCalendarEventInternal = internalQuery({
-	args: { token: v.string(), slotNumber: v.number() },
-	handler: async (ctx, args) => {
-		const [lookupError, lookup] = await getEditablePackageSlot(
-			ctx,
-			args.token,
-			args.slotNumber,
-			0,
-			Date.now()
-		);
-
-		if (lookupError !== null || !lookup.slot.bookingId) {
-			return null;
-		}
-
-		const booking = await ctx.db.get(lookup.slot.bookingId);
-
-		if (!booking || booking.status === "cancelled" || !booking.googleEventId) {
-			return null;
-		}
-
-		return {
-			...(booking.googleCalendarId ? { calendarId: booking.googleCalendarId } : {}),
-			eventId: booking.googleEventId
-		};
-	}
-});
-
 export const validatePackageSlotSaveRequestInternal = internalQuery({
 	args: {
 		date: v.string(),

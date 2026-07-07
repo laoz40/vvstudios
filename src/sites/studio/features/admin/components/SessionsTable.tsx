@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "convex/react";
-import { ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
-import { Button } from "#/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -13,9 +11,9 @@ import {
 	TableHeader,
 	TableRow
 } from "#/components/ui/table";
-import { cn } from "#/lib/utils";
 import { tryCatch } from "#/lib/result";
 import { CleanupOldBookingsDialog } from "#studio/features/admin/components/CleanupOldBookingsDialog";
+import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
@@ -130,23 +128,14 @@ export function SessionsTable({
 
 	function renderSortButton(label: string, id: SessionSortId) {
 		const activeSort = sorting[0];
-		const isActive = activeSort?.id === id;
-		const SortIcon = activeSort?.desc ? ArrowDown : ArrowUp;
 
 		return (
-			<Button
-				variant="ghost"
-				className={cn(
-					"px-0!",
-					isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-				)}
-				onClick={() => updateSorting(id)}>
-				<span>{label}</span>
-				<SortIcon
-					data-icon="inline-end"
-					className={cn(isActive ? "opacity-100" : "opacity-60")}
-				/>
-			</Button>
+			<SortHeaderButton
+				label={label}
+				isActive={activeSort?.id === id}
+				isDescending={activeSort?.desc ?? false}
+				onClick={() => updateSorting(id)}
+			/>
 		);
 	}
 
