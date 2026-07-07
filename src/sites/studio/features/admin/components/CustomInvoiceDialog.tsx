@@ -29,9 +29,12 @@ import {
 import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
+import {
+	formatCustomInvoiceAddonText,
+	formatCustomInvoiceCurrency,
+	parseCustomInvoiceTotalDraft
+} from "#studio/features/admin/lib/custom-invoices";
 import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
-import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	toDeliverableCountOption,
 	type BookingFormValues
@@ -87,9 +90,7 @@ function formatInvoiceTotal(input: {
 	const computedTotal = Math.max(serviceAmount + addonsAmount - depositAmount, 0);
 	const totalDueAmount = input.customTotalDueAmount ?? computedTotal;
 
-	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-		totalDueAmount
-	);
+	return formatCustomInvoiceCurrency(totalDueAmount);
 }
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
@@ -211,20 +212,15 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
-		const customTotalDueDraft = draft.customTotalDueAmount.trim();
-		const customTotalDueAmountResult = customTotalDueDraft
-			? parseRemainingBalanceAmountDraft(customTotalDueDraft)
-			: null;
+		const customTotalDueAmountResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
 
-		if (customTotalDueAmountResult?.status === "invalid") {
+		if (customTotalDueAmountResult.status === "invalid") {
 			toast.error("Enter a valid custom invoice price.");
 			return;
 		}
 
 		const customTotalDueAmount =
-			customTotalDueAmountResult?.status === "valid"
-				? customTotalDueAmountResult.amount
-				: undefined;
+			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
@@ -316,13 +312,11 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
-			const addonText =
-				invoice.addons.length > 0
-					? ` · ${formatEditingAddonList(invoice.addons, {
-							essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
-							clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
-						})}`
-					: "";
+			const addonText = formatCustomInvoiceAddonText({
+				addons: invoice.addons as BookingFormValues["addons"],
+				essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
+				clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+			});
 
 			return {
 				id: invoice._id,

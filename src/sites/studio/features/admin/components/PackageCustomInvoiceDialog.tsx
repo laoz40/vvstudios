@@ -24,7 +24,11 @@ import { PreviousCustomInvoices } from "#studio/features/admin/components/Previo
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
+import {
+	formatCustomInvoiceAddonText,
+	formatCustomInvoiceCurrency,
+	parseCustomInvoiceTotalDraft
+} from "#studio/features/admin/lib/custom-invoices";
 import { formatDateValue } from "#studio/lib/bookingdatetime";
 import {
 	calculateMultiBookingAmounts,
@@ -34,7 +38,6 @@ import {
 	toDeliverableCountOption,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
@@ -75,9 +78,7 @@ function formatPackageInvoiceTotal(input: {
 			includeDiscount: input.includePackageDiscount
 		}).totalDueAmount;
 
-	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-		totalDueAmount
-	);
+	return formatCustomInvoiceCurrency(totalDueAmount);
 }
 
 function toDateInputValue(timestamp: number) {
@@ -192,20 +193,15 @@ export function PackageCustomInvoiceDialog({
 			return;
 		}
 
-		const customTotalDueDraft = draft.customTotalDueAmount.trim();
-		const customTotalDueAmountResult = customTotalDueDraft
-			? parseRemainingBalanceAmountDraft(customTotalDueDraft)
-			: null;
+		const customTotalDueAmountResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
 
-		if (customTotalDueAmountResult?.status === "invalid") {
+		if (customTotalDueAmountResult.status === "invalid") {
 			toast.error("Enter a valid custom invoice price.");
 			return;
 		}
 
 		const customTotalDueAmount =
-			customTotalDueAmountResult?.status === "valid"
-				? customTotalDueAmountResult.amount
-				: undefined;
+			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreatePackageCustomInvoiceResult>(
@@ -258,17 +254,15 @@ export function PackageCustomInvoiceDialog({
 
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
-			const addonText =
-				invoice.addons.length > 0
-					? ` · ${formatEditingAddonList(invoice.addons, {
-							essentialEditQuantity: toDeliverableCountOption(
-								invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
-							),
-							clipsPackageQuantity: toDeliverableCountOption(
-								invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
-							)
-						})}`
-					: "";
+			const addonText = formatCustomInvoiceAddonText({
+				addons: invoice.addons as BookingFormValues["addons"],
+				essentialEditQuantity: toDeliverableCountOption(
+					invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
+				),
+				clipsPackageQuantity: toDeliverableCountOption(
+					invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
+				)
+			});
 			const packageSize = invoice.packageSize ?? packageRow.packageSize;
 			const service = invoice.service ?? "Add-ons only";
 
