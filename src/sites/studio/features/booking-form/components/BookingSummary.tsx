@@ -15,7 +15,6 @@ import {
 	isMultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { formatBookingDateDots, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 function formatQuantityLabel(quantity: number, label: string) {
 	return `${quantity} x ${label}`;
@@ -35,13 +34,7 @@ export function BookingSummary() {
 	const sessionQuantity = multiBookingAmounts?.packageSize ?? 1;
 	const durationLineTotal = durationCost * sessionQuantity;
 	const bookingLabel = [values.service, values.duration].filter(Boolean).join(" ");
-	const dateLabel = isMultiBooking ? "" : formatBookingDateDots(values.date);
-	const timeRangeLabel =
-		!isMultiBooking && values.time && values.duration
-			? formatBookingTimeRange(values.time, values.duration)
-			: "";
-	const timeDateLabel = [timeRangeLabel, dateLabel].filter(Boolean).join(" ");
-	const showBookingLine = bookingLabel || timeDateLabel;
+	const showBookingLine = Boolean(bookingLabel);
 	return (
 		<Accordion
 			type="single"
@@ -56,8 +49,7 @@ export function BookingSummary() {
 						{showBookingLine && !isWaitingForPackage ? (
 							<div className="flex items-start justify-between gap-4">
 								<p className="text-muted-foreground">
-									{formatQuantityLabel(sessionQuantity, bookingLabel || "Session")}
-									{timeDateLabel ? ` [${timeDateLabel}]` : ""}
+									{formatQuantityLabel(sessionQuantity, bookingLabel)}
 								</p>
 								<p>{formatBookingPrice(durationLineTotal)}</p>
 							</div>

@@ -12,12 +12,10 @@ export function BookingSessionSummary({
 	return (
 		<div
 			aria-live="polite"
-			className={`mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-6 rounded-lg border bg-card px-4 py-5 text-sm text-muted-foreground leading-0 shadow-lg ${className}`}>
+			className={`mx-auto w-fit max-w-full rounded-lg border bg-surface-subtle px-4 py-5 text-center text-sm leading-0 text-muted-foreground shadow-lg ${className}`}>
 			<p>
-				Date: <span className="text-foreground font-medium">{dateSummary}</span>
-			</p>
-			<p>
-				Time: <span className="text-foreground font-medium">{timeSummary}</span>
+				Selected <span className="font-medium text-foreground">{dateSummary}</span> at{" "}
+				<span className="font-medium text-foreground">{timeSummary}</span>
 			</p>
 		</div>
 	);

@@ -15,9 +15,9 @@ import { BookingSessionSummary } from "#studio/features/booking-form/components/
 import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
-	formatBookingDateSummary,
+	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
-	formatBookingTimestampDateLong
+	formatBookingTimestampDateLongWithoutYear
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -67,7 +67,7 @@ export function PackageSessionsAccordion({
 		(session) => session.booking !== null && !session.cancelledAt
 	).length;
 	const selectedDateSummary = selectedDateValue
-		? formatBookingDateSummary(selectedDateValue)
+		? formatBookingDateSummaryWithoutYear(selectedDateValue)
 		: "No selected date";
 	const selectedTimeSummary = selectedTime
 		? formatBookingTimeRange(selectedTime, packageData.duration)
@@ -141,7 +141,7 @@ export function PackageSessionsAccordion({
 												isHighlighted ? "text-primary" : "text-foreground"
 											)}>
 											<span className="block">
-												{formatBookingTimestampDateLong(booking.sessionStartAt)}
+												{formatBookingTimestampDateLongWithoutYear(booking.sessionStartAt)}
 											</span>
 											<span className="mt-1 block text-sm font-normal text-muted-foreground">
 												{formatBookingTimeRange(booking.time, packageData.duration)}
