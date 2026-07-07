@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import { ListFilter } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuTrigger
+} from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
@@ -154,13 +162,57 @@ export function PackagesTable({
 	return (
 		<section className="flex flex-col gap-4">
 			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-				<Input
-					placeholder="Search packages..."
-					value={filters.searchQuery}
-					onChange={(event) => updateSearchQuery(event.target.value)}
-					className="w-full md:w-sm"
-				/>
-				<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
+				<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+					<Input
+						placeholder="Search packages..."
+						value={filters.searchQuery}
+						onChange={(event) => updateSearchQuery(event.target.value)}
+						className="w-full md:w-sm"
+					/>
+					<div className="flex items-center justify-end gap-3 md:contents">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="md:hidden">
+									<ListFilter aria-hidden />
+									Filters
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuGroup>
+									<DropdownMenuCheckboxItem
+										checked={filters.showPaid}
+										onCheckedChange={(checked) => updateFilter("showPaid", checked === true)}
+										onSelect={(event) => event.preventDefault()}>
+										Paid only
+									</DropdownMenuCheckboxItem>
+									<DropdownMenuCheckboxItem
+										checked={filters.showOverdue}
+										onCheckedChange={(checked) => updateFilter("showOverdue", checked === true)}
+										onSelect={(event) => event.preventDefault()}>
+										Overdue only
+									</DropdownMenuCheckboxItem>
+									<DropdownMenuCheckboxItem
+										checked={filters.showUpcoming}
+										onCheckedChange={(checked) => updateFilter("showUpcoming", checked === true)}
+										onSelect={(event) => event.preventDefault()}>
+										Upcoming only
+									</DropdownMenuCheckboxItem>
+									<DropdownMenuCheckboxItem
+										checked={filters.showArchived}
+										onCheckedChange={(checked) => updateFilter("showArchived", checked === true)}
+										onSelect={(event) => event.preventDefault()}>
+										Show archived
+									</DropdownMenuCheckboxItem>
+								</DropdownMenuGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				</div>
+				<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
 					<div className="flex items-center gap-2">
 						<Checkbox
 							id="show-paid-packages"
