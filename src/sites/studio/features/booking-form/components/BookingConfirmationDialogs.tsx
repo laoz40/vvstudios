@@ -80,7 +80,7 @@ export function PackageSlotConfirmation({
 						<p className="text-xl font-medium">{modalState.timeSummary}</p>
 					</>
 				) : (
-					<p className="text-muted-foreground text-balance text-center leading-6">
+					<p className="text-muted-foreground text-balance leading-6">
 						This will remove this session from the calendar. You can pick a new date again later.
 					</p>
 				)}

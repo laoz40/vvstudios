@@ -28,11 +28,15 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 	const bookingDateSummary = formValues.date
 		? formatBookingDateSummary(formValues.date)
 		: "No selected date";
-	const bookingTimeSummary = formValues.time
-		? formValues.duration
-			? formatBookingTimeRange(formValues.time, formValues.duration)
-			: "No selected duration"
-		: "No selected time";
+	let bookingTimeSummary = "No selected time";
+
+	if (formValues.time) {
+		bookingTimeSummary = "No selected duration";
+	}
+
+	if (formValues.time && formValues.duration) {
+		bookingTimeSummary = formatBookingTimeRange(formValues.time, formValues.duration);
+	}
 	return (
 		<section className="mt-0 flex flex-col gap-4">
 			<formApi.Field name="date">
