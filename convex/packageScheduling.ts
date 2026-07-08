@@ -36,13 +36,7 @@ type PackageSlotLookupError =
 	| { reason: "PACKAGE_SLOT_LOCKED" };
 
 type PackageSessionView = {
-	booking: null | {
-		date: string;
-		googleCalendarId?: string;
-		googleEventId?: string;
-		sessionStartAt: number;
-		time: string;
-	};
+	booking: null | { date: string; googleEventId?: string; sessionStartAt: number; time: string };
 	cancelledAt?: number;
 	scheduledAt?: number;
 	slotNumber: number;
@@ -637,7 +631,6 @@ async function buildPackageSessionViews(ctx: QueryCtx, multiBooking: Doc<"multiB
 			booking: booking
 				? {
 						date: booking.date,
-						...(booking.googleCalendarId ? { googleCalendarId: booking.googleCalendarId } : {}),
 						...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {}),
 						sessionStartAt: booking.sessionStartAt,
 						time: booking.time
