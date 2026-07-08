@@ -14,6 +14,15 @@ Booking website for podcast studio.
 - Preserve existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
 
+- Mysterious Name — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
+- Data Clumps — the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
+- Primitive Obsession — a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type.
+- Repeated Switches — the same switch/if-cascade on the same type recurs → replace with polymorphism, or one map both sites share.
+- Shotgun Surgery — one logical change forces scattered edits across many files → gather what changes together into one module.
+- Divergent Change — one file or module is edited for several unrelated reasons. → split so each module changes for one reason.
+- Speculative Generality — abstraction, parameters, or hooks added for needs the spec doesn't have. → delete it; inline back until a real need shows.
+- Middle Man — a class or function that mostly just delegates onward. → cut it, call the real target direct.
+
 - run format and lint and typecheck once changes are complete
 - do not run build or convex codegen
 
