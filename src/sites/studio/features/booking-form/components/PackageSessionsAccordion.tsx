@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { EllipsisVertical, LoaderCircle } from "lucide-react";
 import {
 	Accordion,
 	AccordionContent,
@@ -6,13 +6,18 @@ import {
 	AccordionTrigger
 } from "#/components/ui/accordion";
 import { Button } from "#/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger
+} from "#/components/ui/dropdown-menu";
 import type { GetPackageByTokenResult } from "#convex/packageScheduling";
 import {
 	BookingDateTimePicker,
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
-import { getPillStateClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	formatBookingDateSummaryWithoutYear,
@@ -44,7 +49,6 @@ interface PackageSessionsAccordionProps {
 export function PackageSessionsAccordion({
 	activeSlotNumber,
 	availability,
-	clearingSlotNumber,
 	highlightedSlotNumber,
 	packageData,
 	savingSlotNumber,
@@ -104,7 +108,7 @@ export function PackageSessionsAccordion({
 				</p>
 			</div>
 
-			{packageData.sessions.map((session) => {
+			{packageData.sessions.map((session, index) => {
 				const booking = session.cancelledAt ? null : session.booking;
 				const isPastSession = Boolean(booking && booking.sessionStartAt < currentTimestamp);
 				const isSessionLocked = Boolean(
@@ -132,7 +136,7 @@ export function PackageSessionsAccordion({
 						value={String(session.slotNumber)}
 						disabled={!canEdit}
 						className={cn(
-							"rounded-xl border bg-surface-subtle px-6",
+							"rounded-xl border bg-surface-subtle px-4 sm:px-6",
 							"text-card-foreground",
 							"shadow-lg transition-colors duration-500",
 							isPastSession && "bg-background opacity-70 border-muted shadow-none!",
@@ -141,10 +145,11 @@ export function PackageSessionsAccordion({
 						<AccordionTrigger
 							showArrow={false}
 							className={cn(
-								"min-h-24 py-5 hover:no-underline md:py-6",
+								"min-h-24 items-center py-5 hover:no-underline md:py-6",
 								!canEdit && "cursor-default hover:text-foreground"
 							)}>
-							<span className="flex w-full items-center justify-between gap-3">
+							<span className="flex w-full items-center justify-between gap-6">
+								<span className="shrink-0 text-sm text-muted-foreground">{index + 1}</span>
 								<span className="min-w-0">
 									{booking ? (
 										<span
@@ -160,20 +165,108 @@ export function PackageSessionsAccordion({
 											</span>
 										</span>
 									) : (
-										<span className="block text-base font-light text-muted-foreground transition-colors duration-500">
+										<span className="block text-sm font-light text-muted-foreground transition-colors duration-500">
 											No date/time scheduled
 										</span>
 									)}
 								</span>
-								<span className="ml-auto flex shrink-0 items-center justify-end">
+								<span className="ml-auto flex shrink-0 items-center justify-end gap-2">
+									{canClear ? (
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<span
+													role="button"
+													tabIndex={0}
+													aria-label={`Open session ${index + 1} actions`}
+													className={cn(
+														"inline-flex size-9 items-center justify-center rounded-lg border md:hidden",
+														"border-foreground/15 bg-background/30 text-foreground/85 shadow-md",
+														"hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+													)}
+													onClick={(event) => {
+														event.stopPropagation();
+													}}
+													onKeyDown={(event) => {
+														event.stopPropagation();
+													}}>
+													<EllipsisVertical className="size-4" />
+												</span>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
+												<DropdownMenuItem
+													onSelect={() => {
+														if (isActive) {
+															onSlotClose();
+															return;
+														}
+
+														onSlotSelect(session.slotNumber, booking?.date, booking?.time);
+													}}>
+													{isActive ? "Close" : "Edit"}
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													variant="destructive"
+													onSelect={() => {
+														if (!booking) {
+															return;
+														}
+
+														onRequestClearSlot(session.slotNumber, booking.date);
+													}}>
+													Unschedule
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									) : null}
+									{canClear ? (
+										<span
+											role="button"
+											tabIndex={0}
+											className={cn(
+												"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center rounded-lg border px-3 py-1 md:inline-flex",
+												"border-foreground/15 bg-background/30 text-foreground/85",
+												"text-xs font-medium tracking-wider shadow-md hover:text-destructive"
+											)}
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+
+												if (!booking) {
+													return;
+												}
+
+												onRequestClearSlot(session.slotNumber, booking.date);
+											}}
+											onKeyDown={(event) => {
+												if (event.key !== "Enter" && event.key !== " ") {
+													return;
+												}
+
+												event.preventDefault();
+												event.stopPropagation();
+
+												if (!booking) {
+													return;
+												}
+
+												onRequestClearSlot(session.slotNumber, booking.date);
+											}}>
+											UNSCHEDULE
+										</span>
+									) : null}
 									{canEdit ? (
 										<span
 											className={cn(
-												"inline-flex min-h-8 items-center justify-center rounded-lg border px-3 py-1",
+												canClear ? "hidden md:inline-flex" : "inline-flex",
+												"min-h-8 min-w-16 items-center justify-center rounded-lg border px-3 py-1",
+												!booking && !isActive
+													? "border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
+													: "border-foreground/15 bg-background/30 text-foreground/85",
 												"text-xs font-medium tracking-wider shadow-md",
-												getPillStateClassName(false)
+												(booking || isActive) &&
+													"group-hover:text-primary peer-hover/unschedule:text-foreground/85 hover:text-primary"
 											)}>
-											{isActive ? "CLOSE" : "EDIT"}
+											{isActive ? "CLOSE" : booking ? "EDIT" : "SCHEDULE"}
 										</span>
 									) : (
 										<span className="max-w-28 text-right text-xs font-normal text-muted-foreground sm:max-w-none">
@@ -198,29 +291,6 @@ export function PackageSessionsAccordion({
 								timeSummary={selectedTimeSummary}
 							/>
 							<div className="mt-8 flex w-full flex-row items-center justify-center gap-4">
-								{canClear ? (
-									<Button
-										type="button"
-										variant="secondary"
-										className={cn(
-											"h-12 flex-1",
-											"text-base text-muted-foreground font-bold! tracking-wider",
-											"shadow-lg shadow-primary/45"
-										)}
-										disabled={clearingSlotNumber === session.slotNumber}
-										onClick={() => {
-											if (!booking) {
-												return;
-											}
-
-											onRequestClearSlot(session.slotNumber, booking.date);
-										}}>
-										{clearingSlotNumber === session.slotNumber ? (
-											<LoaderCircle className="size-4 animate-spin" />
-										) : null}
-										{clearingSlotNumber === session.slotNumber ? "UNSCHEDULING..." : "UNSCHEDULE"}
-									</Button>
-								) : null}
 								<Button
 									type="button"
 									className={cn(
