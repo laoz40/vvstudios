@@ -14,7 +14,6 @@ import type {
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingDetails } from "#studio/features/booking-complete/components/BookingDetails";
 import type { BookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type InvoiceDownloadTarget =
@@ -44,10 +43,11 @@ export function BookingResult({
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
 	const getMultiBookingInvoicePdf = useAction(api.invoices.getMultiBookingInvoicePdfById);
-	const titleClassName = "text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl";
-	const supportReference = booking ? getSupportReference(booking) : null;
+	const titleClassName = "font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase";
 	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
 	const canDownloadInvoice = Boolean(invoiceDownloadTarget);
+	const showInvoiceDownloadLink =
+		canDownloadInvoice && invoiceDownloadTarget?.kind !== "multiBooking";
 	const showErrorIcon = content.isBookingCompletionFailure;
 	const showSuccessIcon = hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
 	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
@@ -102,7 +102,7 @@ export function BookingResult({
 
 	return (
 		<section className="flex flex-col gap-8">
-			<div className="space-y-4">
+			<div className="space-y-8">
 				<h1 className={titleClassName}>
 					{showSuccessIcon ? (
 						<CheckedIcon
@@ -120,14 +120,48 @@ export function BookingResult({
 					{content.title}
 				</h1>
 				{showDescription ? (
-					<div className="max-w-2xl space-y-3">
+					<div className="max-w-2xl space-y-4">
 						{content.descriptionHeading ? (
 							<h2 className="text-lg font-semibold">{content.descriptionHeading}</h2>
 						) : null}
-						<p className="text-base leading-normal text-muted-foreground">{content.description}</p>
+						{content.descriptionSteps ? (
+							<ol className="list-decimal space-y-3 pl-5 text-base leading-normal text-muted-foreground">
+								{content.descriptionSteps.map((step) => (
+									<li key={step.title}>
+										<strong className="block font-semibold text-foreground">{step.title}</strong>
+										<p>
+											{step.description}
+											{step.showInvoiceDownloadLink && invoiceDownloadTarget ? (
+												<>
+													{" "}
+													<button
+														type="button"
+														className={cn(
+															// Invoice download link style
+															"accent-link",
+															"inline bg-transparent p-0",
+															"text-base font-medium leading-normal text-foreground",
+															"disabled:pointer-events-none disabled:opacity-50"
+														)}
+														disabled={isDownloadingInvoice}
+														onClick={handleDownloadInvoice}>
+														{isDownloadingInvoice ? "generating invoice..." : "here"}
+													</button>
+													{step.invoiceDownloadLinkSuffix}
+												</>
+											) : null}
+										</p>
+									</li>
+								))}
+							</ol>
+						) : (
+							<p className="text-base leading-normal text-muted-foreground">
+								{content.description}
+							</p>
+						)}
 					</div>
 				) : null}
-				{canDownloadInvoice ? (
+				{showInvoiceDownloadLink ? (
 					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
 						{invoiceLead}{" "}
 						<button
@@ -144,12 +178,6 @@ export function BookingResult({
 							{isDownloadingInvoice ? "generating invoice..." : "here"}
 						</button>
 						.
-					</p>
-				) : null}
-				{supportReference ? (
-					<p className="text-xs text-muted-foreground/80">
-						Reference code:{" "}
-						<span className="font-medium text-muted-foreground">{supportReference}</span>
 					</p>
 				) : null}
 			</div>
@@ -231,17 +259,12 @@ function getInvoiceLeadText({
 	if (booking?.status === "email_failed") {
 		return (
 			<>
-				Your booking is confirmed, but <strong>we couldn’t email your invoice</strong>. You can
-				download it
+				Your booking is confirmed, but{" "}
+				<span className="font-bold text-destructive">we couldn’t email your invoice</span>. You
+				can download it
 			</>
 		);
 	}
 
 	return content.description;
-}
-
-function getSupportReference(booking: BookingStatus): string | null {
-	return Number.isFinite(booking.pendingPaymentCreatedAt)
-		? formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt)
-		: null;
 }

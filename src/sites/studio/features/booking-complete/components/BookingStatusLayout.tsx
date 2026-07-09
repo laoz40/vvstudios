@@ -108,7 +108,7 @@ export function BookingStatusLayout({
 			{import.meta.env.DEV ? devPanel : null}
 
 			{showActions ? (
-				<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+				<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					{isFailedBooking ? (
 						<>
 							{canCreateRescheduleLink && stripeSessionId ? (
@@ -207,7 +207,7 @@ export function BookingStatusLayout({
 			) : null}
 
 			{resolvedInstagramPromptTarget ? (
-				<div className="mt-8 sm:mt-20">
+				<div className="mt-8 sm:mt-24">
 					<InstagramRepostPrompt target={resolvedInstagramPromptTarget} />
 				</div>
 			) : null}

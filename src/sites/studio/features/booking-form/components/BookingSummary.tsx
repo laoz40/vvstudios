@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSelector } from "@tanstack/react-store";
 import {
 	Accordion,
@@ -20,8 +21,8 @@ function formatQuantityLabel(quantity: number, label: string) {
 	return `${quantity} x ${label}`;
 }
 
-
 export function BookingSummary() {
+	const [openSummaryItem, setOpenSummaryItem] = useState<string | undefined>();
 	const formApi = useBookingFormContext();
 	const values = useSelector(formApi.store, (state) => state.values);
 	const isMultiBooking = values.bookingMode === "multi";
@@ -40,10 +41,19 @@ export function BookingSummary() {
 		<div className="space-y-2 text-sm leading-normal tabular-nums">
 			<Accordion
 				type="single"
-				collapsible>
+				collapsible
+				value={openSummaryItem}
+				onValueChange={setOpenSummaryItem}>
 				<AccordionItem value="booking-summary">
-					<AccordionTrigger className="justify-start gap-1 py-3 text-sm">
-						<span className="text-sm font-semibold">BOOKING SUMMARY</span>
+					<AccordionTrigger
+						showArrow={false}
+						className="py-3 text-sm hover:text-foreground">
+						<span className="flex w-full items-center justify-between gap-4">
+							<span className="text-sm font-semibold">BOOKING SUMMARY</span>
+							<span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-primary">
+								{openSummaryItem === "booking-summary" ? "Hide" : "Show items"}
+							</span>
+						</span>
 					</AccordionTrigger>
 					<AccordionContent className="border-b pb-3 text-sm md:text-sm">
 						<div className="space-y-2">
