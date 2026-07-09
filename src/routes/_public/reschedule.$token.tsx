@@ -413,7 +413,7 @@ function ReschedulePage() {
 			className="max-w-4xl"
 			devPanel={<RescheduleDevScenarioPanel token={token} />}>
 			<div>
-				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
+				<h1 className="text-left font-brand text-5xl leading-none uppercase md:text-center md:text-6xl">
 					Reschedule your booking
 				</h1>
 

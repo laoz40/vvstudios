@@ -16,6 +16,7 @@ import {
 	isMultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
+import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
 function formatQuantityLabel(quantity: number, label: string) {
 	return `${quantity} x ${label}`;
@@ -49,7 +50,7 @@ export function BookingSummary() {
 						showArrow={false}
 						className="py-3 text-sm hover:text-foreground">
 						<span className="flex w-full items-center justify-between gap-4">
-							<span className="text-sm font-semibold">BOOKING SUMMARY</span>
+							<span className={sectionHeadingClassName}>BOOKING SUMMARY</span>
 							<span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-primary">
 								{openSummaryItem === "booking-summary" ? "Hide" : "Show items"}
 							</span>
@@ -95,7 +96,7 @@ export function BookingSummary() {
 							<p>-{formatBookingPriceWithCents(multiBookingAmounts.discountAmount)}</p>
 						</div>
 						<div className="flex items-center justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
-							<p>Total due</p>
+							<p>Total</p>
 							<p>{formatBookingPriceWithCents(multiBookingAmounts.totalDueAmount)}</p>
 						</div>
 						<p className="pt-1 text-sm italic leading-snug text-muted-foreground">

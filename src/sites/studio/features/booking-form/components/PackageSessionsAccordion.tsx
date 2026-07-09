@@ -18,6 +18,7 @@ import {
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
+import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	formatBookingDateSummaryWithoutYear,
@@ -102,7 +103,7 @@ export function PackageSessionsAccordion({
 				onSlotSelect(slotNumber, booking?.date, booking?.time);
 			}}>
 			<div className="flex flex-row justify-between">
-				<h2 className="text-xs! font-semibold text-primary uppercase md:text-sm!">Your Sessions</h2>
+				<h2 className={sectionHeadingClassName}>Your Sessions</h2>
 				<p className="text-sm text-muted-foreground">
 					{scheduledSessions} of {packageData.packageSize} sessions scheduled
 				</p>

@@ -1,3 +1,4 @@
+import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 interface RescheduleBookingSummaryProps {
@@ -21,9 +22,7 @@ export function RescheduleBookingSummary({
 
 	return (
 		<section>
-			<h2 className="mt-6 text-xs! md:text-sm! font-semibold tracking-widest uppercase">
-				Existing booking
-			</h2>
+			<h2 className={`mt-6 ${sectionHeadingClassName}`}>Existing booking</h2>
 			<div className="mt-4 text-sm">
 				<dl className="grid gap-2 md:grid-cols-2">
 					<div className="space-y-1">
