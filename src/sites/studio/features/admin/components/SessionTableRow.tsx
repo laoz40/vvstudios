@@ -29,7 +29,8 @@ import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editi
 import {
 	formatBookingDateMedium,
 	formatBookingRelativeDate,
-	formatBookingTimestamp,
+	formatBookingTimestampDateLong,
+	formatBookingTimestampTime,
 	formatBookingTimeLabel,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
@@ -87,7 +88,7 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					) : null}
 				</div>
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
+			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
 				<Badge
 					variant={bookingStatusBadgeVariantMap[booking.status]}
 					className={bookingStatusBadgeClassNameMap[booking.status]}>
@@ -155,31 +156,36 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					</p>
 				</div>
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<p className="whitespace-normal text-sm text-muted-foreground">
-					{booking.notes?.trim() || "No notes"}
-				</p>
-			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
+			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
 				{packageSessionProgressLabel ? (
 					packageInvoiceNumber ? (
 						<Button
 							type="button"
 							variant="link"
-							className="h-auto p-0 font-medium text-foreground"
+							className="h-auto p-0 text-sm font-medium text-foreground"
 							onClick={() => onPackageFilterClick(packageInvoiceNumber)}>
 							{packageSessionProgressLabel}
 						</Button>
 					) : (
-						<p className="font-medium">{packageSessionProgressLabel}</p>
+						<p className="text-sm font-medium">{packageSessionProgressLabel}</p>
 					)
+				) : <p>-</p>}
+			</TableCell>
+			<TableCell className={cn(isPastBooking && "opacity-70")}>
+				<p className="whitespace-normal text-sm text-muted-foreground">
+					{booking.notes?.trim() || "No notes"}
+				</p>
+			</TableCell>
+			<TableCell className={cn("text-center tabular-nums", isPastBooking && "opacity-70")}>
+				{packageSessionProgressLabel ? (
+					<p className="text-muted-foreground">-</p>
 				) : showRemainingBalance ? (
 					<p className={isRemainingBalancePaid ? "text-green" : "text-destructive"}>
 						{remainingBalanceLabel}
 					</p>
 				) : null}
 			</TableCell>
-			<TableCell>
+			<TableCell className="text-center">
 				{deliverableStatus ? (
 					<Badge
 						variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
@@ -189,9 +195,14 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 				) : null}
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<p className="min-w-44 font-medium whitespace-normal">
-					{formatBookingTimestamp(booking.pendingPaymentCreatedAt)}
-				</p>
+				<div className="flex flex-col gap-1 whitespace-normal">
+					<p className="font-medium">
+						{formatBookingTimestampDateLong(booking.pendingPaymentCreatedAt)}
+					</p>
+					<p className="text-sm text-muted-foreground">
+						{formatBookingTimestampTime(booking.pendingPaymentCreatedAt)}
+					</p>
+				</div>
 			</TableCell>
 			<TableCell>
 				<SessionActions booking={booking} />

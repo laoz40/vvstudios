@@ -46,8 +46,8 @@ import {
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
-	formatBookingTimestamp,
-	formatBookingTimestampDateLong
+	formatBookingTimestampDateLong,
+	formatBookingTimestampTime
 } from "#studio/lib/bookingdatetime";
 
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
@@ -421,15 +421,20 @@ export function PackagesTable({
 												isOverdue={isOverdue}
 											/>
 										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
+										<TableCell className={cn("tabular-nums", isInactivePackage && "opacity-70")}>
 											<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
 												{packageRow.totalDueLabel}
 											</p>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<p className="font-medium whitespace-normal">
-												{formatBookingTimestamp(packageRow.createdAt)}
-											</p>
+											<div className="flex flex-col gap-1 whitespace-normal">
+												<p className="font-medium">
+													{formatBookingTimestampDateLong(packageRow.createdAt)}
+												</p>
+												<p className="text-sm text-muted-foreground">
+													{formatBookingTimestampTime(packageRow.createdAt)}
+												</p>
+											</div>
 										</TableCell>
 										<TableCell>
 											<PackageActions packageRow={packageRow} />
