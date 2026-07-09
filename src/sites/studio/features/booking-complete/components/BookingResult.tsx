@@ -43,7 +43,8 @@ export function BookingResult({
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
 	const getMultiBookingInvoicePdf = useAction(api.invoices.getMultiBookingInvoicePdfById);
-	const titleClassName = "font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase";
+	const titleClassName =
+		"font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase";
 	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
 	const canDownloadInvoice = Boolean(invoiceDownloadTarget);
 	const showInvoiceDownloadLink =
@@ -260,8 +261,8 @@ function getInvoiceLeadText({
 		return (
 			<>
 				Your booking is confirmed, but{" "}
-				<span className="font-bold text-destructive">we couldn’t email your invoice</span>. You
-				can download it
+				<span className="font-bold text-destructive">we couldn’t email your invoice</span>. You can
+				download it
 			</>
 		);
 	}

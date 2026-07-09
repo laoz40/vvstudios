@@ -32,12 +32,14 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 		? `Your ${data.booking.service.toLowerCase()} ${isPackageInvoice ? "package" : "session"}`
 		: "Your invoice";
 	const packageDescription = data.package
-		? `Your ${data.package.size} session package invoice`
+		? `Your ${data.package.size}-session package invoice`
 		: "Your package invoice";
 	const introText = isPackageInvoice
-		? `${packageDescription} is attached. Once payment is confirmed, we will email your private scheduling link.`
+		? `${packageDescription} is attached. Once your payment clears (usually within 24 hours for first-time payments), we will automatically email you the private scheduling link.`
 		: `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
-	const invoiceDescription = isPackageInvoice ? "package invoice" : "booking invoice";
+	const previewText = data.package
+		? `Your ${data.package.size} Pack Studio Booking Invoice from ${data.invoice.invoiceDateLabel}`
+		: `Studio booking confirmed! Your booking invoice is ready with a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
 
 	return (
 		<Html>
@@ -47,10 +49,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					name="format-detection"
 				/>
 			</Head>
-			<Preview>
-				Studio booking confirmed! Your {invoiceDescription} is ready with a balance due of{" "}
-				{formatAud(data.amounts.totalDueAmount)}.
-			</Preview>
+			<Preview>{previewText}</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Text style={invoiceNumber}>Invoice #{data.invoice.number}</Text>

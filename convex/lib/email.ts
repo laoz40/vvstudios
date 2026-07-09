@@ -351,9 +351,15 @@ export async function sendMultiBookingInvoiceEmail(
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
+	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		year: "numeric"
+	}).format(new Date(multiBooking.createdAt));
+
 	const [invoiceEmailError] = await sendEmail({
 		to: [multiBooking.email],
-		subject: `Your ${multiBooking.packageSize} Pack Studio Booking Invoice`,
+		subject: `Your ${multiBooking.packageSize} Pack Studio Booking Invoice from ${invoiceCreatedDate}`,
 		html: artifactsResult.artifacts.emailHtml,
 		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }]
 	});
