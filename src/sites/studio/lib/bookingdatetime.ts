@@ -281,14 +281,6 @@ export function formatBookingTimestampDateLong(timestamp: number) {
 	}).format(timestamp);
 }
 
-export function formatBookingTimestampDateLongWithoutYear(timestamp: number) {
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		timeZone: BOOKING_TIME_ZONE
-	}).format(timestamp);
-}
-
 export function formatBookingTimestamp(timestamp: number) {
 	return bookingSydneyDateTimeFormatter.format(timestamp);
 }

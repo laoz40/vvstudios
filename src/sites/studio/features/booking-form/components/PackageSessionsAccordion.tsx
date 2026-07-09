@@ -17,7 +17,7 @@ import { isPackageSessionLocked } from "#studio/features/booking-form/lib/packag
 import {
 	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
-	formatBookingTimestampDateLongWithoutYear
+	formatBookingTimestampDateLong,
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -98,7 +98,7 @@ export function PackageSessionsAccordion({
 				onSlotSelect(slotNumber, booking?.date, booking?.time);
 			}}>
 			<div className="flex flex-row justify-between">
-				<h2 className="text-xs! font-semibold tracking-widest text-primary uppercase md:text-sm!">
+				<h2 className="text-xs! font-semibold text-primary uppercase md:text-sm!">
 					Your Sessions
 				</h2>
 				<p className="text-sm text-muted-foreground">
@@ -133,7 +133,7 @@ export function PackageSessionsAccordion({
 						<AccordionTrigger
 							showArrow={false}
 							className={cn(
-								"py-5 hover:no-underline md:py-6",
+								"min-h-24 py-5 hover:no-underline md:py-6",
 								!canEdit && "cursor-default hover:text-foreground"
 							)}>
 							<span className="flex w-full items-center justify-between gap-3">
@@ -145,7 +145,7 @@ export function PackageSessionsAccordion({
 												isHighlighted ? "text-primary" : "text-foreground"
 											)}>
 											<span className="block">
-												{formatBookingTimestampDateLongWithoutYear(booking.sessionStartAt)}
+												{formatBookingTimestampDateLong(booking.sessionStartAt)}
 											</span>
 											<span className="mt-1 block text-sm font-normal text-muted-foreground">
 												{formatBookingTimeRange(booking.time, packageData.duration)}
@@ -169,7 +169,7 @@ export function PackageSessionsAccordion({
 										</span>
 									) : (
 										<span className="max-w-28 text-right text-xs font-normal text-muted-foreground sm:max-w-none">
-											This session can no longer be changed.
+											Completed
 										</span>
 									)}
 								</span>

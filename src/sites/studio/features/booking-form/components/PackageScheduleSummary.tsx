@@ -7,11 +7,11 @@ interface PackageScheduleSummaryProps {
 
 export function PackageScheduleSummary({ packageData }: PackageScheduleSummaryProps) {
 	return (
-		<section className="mt-6 text-sm text-card-foreground">
-			<h2 className="text-xs! font-semibold uppercase tracking-widest md:text-sm!">
+		<section className="mt-10 text-sm text-card-foreground">
+			<h2 className="text-xs! font-semibold text-primary uppercase md:text-sm!">
 				Package session details
 			</h2>
-			<dl className="mt-4 grid gap-2 md:grid-cols-3">
+			<dl className="mt-4 grid gap-2">
 				<div className="flex gap-8">
 					<dt className="shrink-0 text-muted-foreground">Session</dt>
 					<dd className="font-medium">
@@ -19,7 +19,7 @@ export function PackageScheduleSummary({ packageData }: PackageScheduleSummaryPr
 					</dd>
 				</div>
 				{packageData.addons.length > 0 ? (
-					<div className="flex gap-8 md:col-span-2">
+					<div className="flex gap-8">
 						<dt className="shrink-0 text-muted-foreground">Add-ons</dt>
 						<dd className="font-medium">
 							{formatEditingAddonList(packageData.addons, packageData)}
