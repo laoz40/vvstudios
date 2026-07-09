@@ -17,13 +17,13 @@ import {
 const bookingModeOptions = [
 	{
 		value: BOOKING_MODES[0],
-		title: "Single session",
+		title: "Single Session",
 		description: "Book one session, fast and easy."
 	},
 	{
 		value: BOOKING_MODES[1],
-		title: "Package booking",
-		description: "Save with a discounted session package."
+		title: "Session Packages",
+		description: "Save money and secure your bookings early."
 	}
 ] as const;
 
@@ -38,7 +38,7 @@ export function BookingModeSection() {
 				<FieldSet
 					data-field-name="bookingMode"
 					className="gap-2">
-					<FieldLegend className={sectionHeadingClassName}>Booking type *</FieldLegend>
+					<FieldLegend className={sectionHeadingClassName}>Booking Type *</FieldLegend>
 					<RadioGroup
 						value={field.state.value}
 						onValueChange={(value) => {

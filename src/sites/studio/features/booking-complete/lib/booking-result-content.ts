@@ -80,7 +80,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 
 export function getMultiBookingResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
 	return {
-		title: `${packageSize} session package requested.`,
+		title: `${packageSize} Session Package requested.`,
 		descriptionHeading: "Next Steps:",
 		description:
 			"You will be able to select dates after payment. Once payment is received, we’ll send you the link to schedule your sessions.",

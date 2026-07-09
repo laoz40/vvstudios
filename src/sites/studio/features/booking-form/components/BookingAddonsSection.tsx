@@ -103,8 +103,10 @@ function BookingAddonQuantityField({
 
 export function BookingAddonsSection() {
 	const formApi = useBookingFormContext();
+	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
+	const isMultiBooking = formValues.bookingMode === "multi";
 	const FormField = formApi.Field;
 
 	return (
@@ -163,8 +165,16 @@ export function BookingAddonsSection() {
 													key="essentialEditQuantity"
 													formApi={formApi}
 													fieldName="essentialEditQuantity"
-													label="Number of Essential Edits"
-													description="Charged per episode or project you want edited from this session."
+													label={
+														isMultiBooking
+															? "Number of Essential Edits Per Session"
+															: "Number of Essential Edits"
+													}
+													description={
+														isMultiBooking
+															? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
+															: "Charged per episode or project you want edited from this session."
+													}
 													shouldShowFieldError={shouldShowFieldError}
 												/>
 											) : null}
@@ -173,8 +183,16 @@ export function BookingAddonsSection() {
 													key="clipsPackageQuantity"
 													formApi={formApi}
 													fieldName="clipsPackageQuantity"
-													label="Number of Clips Packages"
-													description="One package includes 10 edited social media clips. Charged per package."
+													label={
+														isMultiBooking
+															? "Number of Clips Packages Per Session"
+															: "Number of Clips Packages"
+													}
+													description={
+														isMultiBooking
+															? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
+															: "One package includes 10 edited social media clips. Charged per package."
+													}
 													shouldShowFieldError={shouldShowFieldError}
 												/>
 											) : null}

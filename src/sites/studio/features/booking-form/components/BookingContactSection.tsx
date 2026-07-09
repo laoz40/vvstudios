@@ -33,8 +33,8 @@ const sectionCopy = {
 	emailLabel: "Email *",
 	emailNote: "To receive your booking invoice.",
 	emailPlaceholder: "billing@example.com",
-	notesLegend: "Anything else?",
-	notesPlaceholder: "Let us know if you have any special requests or questions."
+	notesLegend: "Session notes + questions",
+	notesPlaceholder: "Number of people, remote guest details, or session questions..."
 } as const;
 
 export function BookingContactSection() {

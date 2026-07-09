@@ -94,10 +94,10 @@ export function BookingPackageSection() {
 															<div className="flex items-center justify-between gap-3">
 																<div>
 																	<p className="text-lg font-semibold text-foreground">
-																		{option.packageSize} sessions
+																		{option.packageSize} Sessions
 																	</p>
 																	<p className="text-sm font-semibold text-primary">
-																		Save {discountLabel}
+																		SAVE {discountLabel}
 																	</p>
 																</div>
 																{isSelected ? (
@@ -116,10 +116,11 @@ export function BookingPackageSection() {
 												);
 											})}
 										</RadioGroup>
-										<p className="text-sm italic text-muted-foreground">
-											Scheduling is available after full payment. Session duration and addons do not
-											change between sessions. {packageSizeNote}
-										</p>
+										<ul className="list-disc space-y-1 pl-5 text-sm italic text-muted-foreground">
+											<li>Scheduling is available after full payment.</li>
+											<li>Session duration and addons do not change between sessions.</li>
+											<li>{packageSizeNote}</li>
+										</ul>
 										{field.state.meta.isBlurred || shouldShowFieldError ? (
 											<FieldError
 												errors={toFieldErrorObjects([...field.state.meta.errors, ...zodErrors])}

@@ -181,7 +181,7 @@ function BookingPage() {
 
 					<div
 						ref={completeBookingShortcut.completeBookingButtonRef}
-						className="space-y-4">
+						className="space-y-12">
 						<BookingSummary />
 						<Button
 							type="submit"
