@@ -17,7 +17,7 @@ import { isPackageSessionLocked } from "#studio/features/booking-form/lib/packag
 import {
 	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
-	formatBookingTimestampDateLong,
+	formatBookingTimestampDateLong
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -98,9 +98,7 @@ export function PackageSessionsAccordion({
 				onSlotSelect(slotNumber, booking?.date, booking?.time);
 			}}>
 			<div className="flex flex-row justify-between">
-				<h2 className="text-xs! font-semibold text-primary uppercase md:text-sm!">
-					Your Sessions
-				</h2>
+				<h2 className="text-xs! font-semibold text-primary uppercase md:text-sm!">Your Sessions</h2>
 				<p className="text-sm text-muted-foreground">
 					{scheduledSessions} of {packageData.packageSize} sessions scheduled
 				</p>
@@ -117,6 +115,16 @@ export function PackageSessionsAccordion({
 				const canEdit = !isSessionLocked;
 				const canClear = Boolean(booking && canEdit);
 				const isHighlighted = highlightedSlotNumber === session.slotNumber;
+				const isSelectedBookingSaved = Boolean(
+					booking && booking.date === selectedDateValue && booking.time === selectedTime
+				);
+				let saveButtonText = "SAVE SESSION";
+
+				if (savingSlotNumber === session.slotNumber) {
+					saveButtonText = "SAVING...";
+				} else if (isSelectedBookingSaved) {
+					saveButtonText = "SAVED";
+				}
 
 				return (
 					<AccordionItem
@@ -224,13 +232,14 @@ export function PackageSessionsAccordion({
 										!hasActiveSession ||
 										!selectedDateValue ||
 										!selectedTime ||
+										isSelectedBookingSaved ||
 										savingSlotNumber !== null
 									}
 									onClick={onRequestSaveSlot}>
 									{savingSlotNumber === session.slotNumber ? (
 										<LoaderCircle className="size-4 animate-spin" />
 									) : null}
-									{savingSlotNumber === session.slotNumber ? "SAVING..." : "SAVE SESSION"}
+									{saveButtonText}
 								</Button>
 							</div>
 						</AccordionContent>

@@ -169,7 +169,9 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					) : (
 						<p className="text-sm font-medium">{packageSessionProgressLabel}</p>
 					)
-				) : <p>-</p>}
+				) : (
+					<p>-</p>
+				)}
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				<p className="whitespace-normal text-sm text-muted-foreground">
