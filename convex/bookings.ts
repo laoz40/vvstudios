@@ -515,6 +515,7 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 
 	return ok({
 		expiresAt,
+		paidAt: args.paidAt,
 		multiBooking: {
 			...multiBooking,
 			expiresAt,
@@ -565,6 +566,7 @@ async function refreshPackageScheduleTokenInternalHandler(
 
 	return ok({
 		expiresAt: multiBooking.expiresAt,
+		paidAt: multiBooking.paidAt,
 		multiBooking: { ...multiBooking, scheduleLinkStatus: "active" as const, scheduleTokenHash },
 		token
 	});

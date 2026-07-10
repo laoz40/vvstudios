@@ -273,6 +273,7 @@ async function confirmPackagePaymentHandler(
 			leadTimeMinutes: bookingSettings.leadTimeMinutes,
 			name: paymentResult.multiBooking.name,
 			packageSize: paymentResult.multiBooking.packageSize,
+			bookedAt: paymentResult.paidAt,
 			scheduleUrl,
 			service: paymentResult.multiBooking.service
 		}
@@ -340,6 +341,7 @@ async function retryMultiBookingSchedulingEmailHandler(
 			leadTimeMinutes: bookingSettings.leadTimeMinutes,
 			name: tokenResult.multiBooking.name,
 			packageSize: tokenResult.multiBooking.packageSize,
+			bookedAt: tokenResult.paidAt,
 			scheduleUrl,
 			service: tokenResult.multiBooking.service
 		}

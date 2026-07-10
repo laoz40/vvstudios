@@ -111,6 +111,7 @@ interface SendMultiBookingScheduleEmailArgs {
 	expiresAt: number;
 	name: string;
 	packageSize: 4 | 8 | 12;
+	bookedAt: number;
 	scheduleUrl: string;
 	service: string;
 }
@@ -436,6 +437,7 @@ export async function sendMultiBookingScheduleEmail({
 	name,
 	packageSize,
 	leadTimeMinutes,
+	bookedAt,
 	scheduleUrl,
 	service
 }: SendMultiBookingScheduleEmailArgs): Promise<
@@ -466,7 +468,7 @@ export async function sendMultiBookingScheduleEmail({
 
 	const [scheduleEmailError] = await sendEmail({
 		to: [email],
-		subject: `Schedule Your ${packageSize} Pack Studio Sessions`,
+		subject: `Schedule Your ${packageSize} Pack Studio Sessions — Booked ${formatTimestampDateShort(bookedAt)}`,
 		html
 	});
 
