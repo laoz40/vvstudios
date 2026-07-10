@@ -7,6 +7,8 @@ import { DeliverablesEmail } from "../../src/sites/studio/features/deliverables-
 import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { MultiBookingSchedulingEmail } from "../../src/sites/studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
+import { PackageExpiryReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackageExpiryReminderEmail";
+import { PackagePaymentReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
 import { formatBookingTimeRange } from "../../src/sites/studio/lib/bookingdatetime";
 import { env } from "../env";
@@ -76,6 +78,20 @@ interface SendPackageHostDetailsEmailArgs {
 	invoiceDueAt: number;
 }
 
+interface SendPackagePaymentReminderEmailArgs {
+	email: string;
+	invoiceDueAt: number;
+	name: string;
+	requestDate: number;
+}
+
+interface SendPackageExpiryReminderEmailArgs {
+	email: string;
+	expiresAt: number;
+	name: string;
+	remainingSessions: number;
+}
+
 interface SendBookingDeliverablesEmailArgs {
 	date: string;
 	driveLink: string;
@@ -116,8 +132,20 @@ interface EmailAttachment {
 
 function formatTimestampDateLong(timestamp: number) {
 	return new Intl.DateTimeFormat("en-AU", {
-		dateStyle: "long",
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
+		day: "numeric",
+		month: "long",
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		weekday: "long",
+		year: "numeric"
+	}).format(new Date(timestamp));
+}
+
+function formatTimestampDateShort(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		year: "numeric"
 	}).format(new Date(timestamp));
 }
 
@@ -451,6 +479,54 @@ export async function sendMultiBookingScheduleEmail({
 	}
 
 	return ok({ sent: true });
+}
+
+export async function sendPackagePaymentReminderEmail({
+	email,
+	invoiceDueAt,
+	name,
+	requestDate
+}: SendPackagePaymentReminderEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await render(
+		createElement(PackagePaymentReminderEmail, {
+			invoiceDueAtLabel: formatTimestampDateLong(invoiceDueAt),
+			name,
+			requestDateLabel: formatTimestampDateLong(requestDate),
+			signoffName
+		})
+	);
+
+	return await sendEmail({
+		to: [email],
+		subject: `Reminder: Complete Your Package Payment — Requested ${formatTimestampDateShort(requestDate)}`,
+		html
+	});
+}
+
+export async function sendPackageExpiryReminderEmail({
+	email,
+	expiresAt,
+	name,
+	remainingSessions
+}: SendPackageExpiryReminderEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await render(
+		createElement(PackageExpiryReminderEmail, {
+			expiresAtLabel: formatTimestampDateLong(expiresAt),
+			name,
+			remainingSessions,
+			signoffName
+		})
+	);
+
+	return await sendEmail({
+		to: [email],
+		subject: `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(expiresAt)}`,
+		html
+	});
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {

@@ -456,6 +456,7 @@ async function markPackagePaymentStatusHandler(
 		await ctx.db.patch(args.multiBookingId, {
 			paidAt: undefined,
 			expiresAt: undefined,
+			packageReminderState: undefined,
 			scheduleTokenHash: undefined,
 			scheduleLinkStatus: undefined,
 			status:
@@ -503,6 +504,7 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 		await ctx.db.patch(args.multiBookingId, {
 			expiresAt,
 			paidAt: args.paidAt,
+			packageReminderState: undefined,
 			scheduleLinkStatus: "active",
 			scheduleTokenHash,
 			status: "schedule_email_failed"

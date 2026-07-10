@@ -4,6 +4,21 @@ import { v } from "convex/values";
 const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
 );
+
+const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
+const packageReminderStateValidator = v.union(
+	v.object({
+		type: packageReminderTypeValidator,
+		status: v.literal("claimed"),
+		claimedAt: v.number()
+	}),
+	v.object({ type: packageReminderTypeValidator, status: v.literal("sent"), sentAt: v.number() }),
+	v.object({
+		type: packageReminderTypeValidator,
+		status: v.literal("failed"),
+		failureCode: v.string()
+	})
+);
 export default defineSchema({
 	bookingSettings: defineTable({
 		key: v.string(),
@@ -168,6 +183,9 @@ export default defineSchema({
 		invoiceEmailFailureCode: v.optional(v.string()),
 		lastInvoiceEmailAttemptAt: v.optional(v.number()),
 
+		// Reminder state for the package's current payment or expiry lifecycle stage
+		packageReminderState: v.optional(packageReminderStateValidator),
+
 		// Scheduling link
 		scheduleTokenHash: v.optional(v.string()),
 		scheduleLinkStatus: v.optional(
@@ -175,6 +193,7 @@ export default defineSchema({
 		)
 	})
 		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])
+		.index("by_status_and_expiresAt", ["status", "expiresAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 });

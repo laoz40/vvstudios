@@ -6,7 +6,7 @@ const crons = cronJobs();
 crons.interval(
 	"send booking reminder emails",
 	{ hours: 1 },
-	internal.reminders.sendDueBookingReminderEmails,
+	internal.reminders.sendDueReminderEmails,
 	{}
 );
 

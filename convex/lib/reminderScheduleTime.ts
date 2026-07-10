@@ -58,14 +58,20 @@ export const getUtcTimeForTimeZoneDateParts = (
 	return utcGuess - (actualAsUtc - targetAsUtc);
 };
 
-export const getTomorrowTimeZoneDayRange = (date: Date, timeZone: string) => {
-	const today = getTimeZoneDateParts(date, timeZone);
-	const tomorrowDate = new Date(Date.UTC(today.year, today.month - 1, today.day) + MS_PER_DAY);
-	const dayAfterTomorrowDate = new Date(tomorrowDate.getTime() + MS_PER_DAY);
-	const tomorrow = getTimeZoneDateParts(tomorrowDate, timeZone);
-	const dayAfterTomorrow = getTimeZoneDateParts(dayAfterTomorrowDate, timeZone);
-	const dayStart = getUtcTimeForTimeZoneDateParts({ ...tomorrow, hour: 0 }, timeZone);
-	const dayEnd = getUtcTimeForTimeZoneDateParts({ ...dayAfterTomorrow, hour: 0 }, timeZone);
+export const getTimeZoneDayRange = (date: Date, timeZone: string, dayOffset = 0) => {
+	const currentDay = getTimeZoneDateParts(date, timeZone);
+	const targetDate = new Date(
+		Date.UTC(currentDay.year, currentDay.month - 1, currentDay.day) + dayOffset * MS_PER_DAY
+	);
+	const nextDate = new Date(targetDate.getTime() + MS_PER_DAY);
+	const targetDay = getTimeZoneDateParts(targetDate, timeZone);
+	const nextDay = getTimeZoneDateParts(nextDate, timeZone);
 
-	return { dayEnd, dayStart };
+	return {
+		dayEnd: getUtcTimeForTimeZoneDateParts({ ...nextDay, hour: 0 }, timeZone),
+		dayStart: getUtcTimeForTimeZoneDateParts({ ...targetDay, hour: 0 }, timeZone)
+	};
 };
+
+export const getTomorrowTimeZoneDayRange = (date: Date, timeZone: string) =>
+	getTimeZoneDayRange(date, timeZone, 1);
