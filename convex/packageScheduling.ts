@@ -55,7 +55,6 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity,
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
-		notes: multiBooking.notes,
 		packageSize: multiBooking.packageSize,
 		expiresAt: multiBooking.expiresAt,
 		bookings: bookings.map((booking) => ({
@@ -63,6 +62,7 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 			date: booking.date,
 			time: booking.time,
 			sessionStartAt: booking.sessionStartAt,
+			notes: booking.notes ?? "",
 			...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
 		}))
 	});
@@ -70,7 +70,12 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 
 export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
 
-const packageBookingInput = { token: v.string(), date: v.string(), time: v.string() };
+const packageBookingInput = {
+	token: v.string(),
+	date: v.string(),
+	time: v.string(),
+	notes: v.optional(v.string())
+};
 
 export const createPackageBooking = action({
 	args: packageBookingInput,
@@ -79,13 +84,13 @@ export const createPackageBooking = action({
 
 async function createPackageBookingHandler(
 	ctx: ActionCtx,
-	args: { token: string; date: string; time: string }
+	args: { token: string; date: string; time: string; notes?: string }
 ): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageBookingError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
 		internal.packageScheduling.validatePackageBookingRequestInternal,
-		{ ...args, now }
+		{ token: args.token, date: args.date, time: args.time, now }
 	);
 
 	if (validationError !== null) {
@@ -152,19 +157,19 @@ async function createPackageBookingHandler(
 export type CreatePackageBookingResult = Awaited<ReturnType<typeof createPackageBookingHandler>>;
 
 export const reschedulePackageBooking = action({
-	args: { bookingId: v.id("bookings"), token: v.string(), date: v.string(), time: v.string() },
+	args: { bookingId: v.id("bookings"), ...packageBookingInput },
 	handler: (ctx, args) => reschedulePackageBookingHandler(ctx, args)
 });
 
 async function reschedulePackageBookingHandler(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; token: string; date: string; time: string }
+	args: { bookingId: Id<"bookings">; token: string; date: string; time: string; notes?: string }
 ): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageBookingError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
 		internal.packageScheduling.validatePackageRescheduleRequestInternal,
-		{ ...args, now }
+		{ token: args.token, bookingId: args.bookingId, date: args.date, time: args.time, now }
 	);
 
 	if (validationError !== null) {
@@ -189,6 +194,7 @@ async function reschedulePackageBookingHandler(
 			bookingId: args.bookingId,
 			date: args.date,
 			time: args.time,
+			notes: args.notes,
 			sessionStartAt: details.sessionStartAt,
 			googleCalendarId: calendar.googleCalendarId,
 			googleEventId: calendar.googleEventId,
@@ -433,6 +439,7 @@ async function saveCreatedPackageBooking(
 		token: string;
 		date: string;
 		time: string;
+		notes?: string;
 		now: number;
 		googleCalendarId?: string;
 		googleEventId?: string;
@@ -476,7 +483,7 @@ async function saveCreatedPackageBooking(
 			addons: multiBooking.addons,
 			essentialEditQuantity: multiBooking.essentialEditQuantity,
 			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
-			notes: multiBooking.notes,
+			notes: args.notes,
 			status: "confirmed",
 			pendingPaymentCreatedAt: multiBooking.createdAt,
 			paymentCompletedAt: multiBooking.paidAt,

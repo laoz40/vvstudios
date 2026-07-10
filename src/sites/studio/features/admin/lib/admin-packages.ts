@@ -187,7 +187,6 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		packageRow.accountName,
 		packageRow.abn,
 		packageRow.instagramHandle,
-		packageRow.notes,
 		packageRow.invoiceNumber,
 		`${packageRow.packageSize} sessions`,
 		`${packageRow.bookedSessions} booked`,

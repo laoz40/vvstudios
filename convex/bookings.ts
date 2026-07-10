@@ -1297,6 +1297,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		bookingId: v.id("bookings"),
 		date: v.string(),
 		time: v.string(),
+		notes: v.optional(v.string()),
 		sessionStartAt: v.number(),
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
@@ -1322,6 +1323,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		await ctx.db.patch(args.bookingId, {
 			date: args.date,
 			time: args.time,
+			notes: args.notes,
 			sessionStartAt: args.sessionStartAt,
 			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
 			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),

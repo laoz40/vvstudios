@@ -18,6 +18,7 @@ import {
 	BookingDateTimePicker,
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
@@ -35,11 +36,13 @@ interface PackageSessionsAccordionProps {
 	packageData: NonNullable<GetPackageByTokenResult[1]>;
 	savingSessionKey: string | null;
 	selectedDateValue: string;
+	selectedNotes: string;
 	selectedTime: string;
 	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
 	leadTimeMinutes: number;
 	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
+	onNotesChange: (notes: string) => void;
 	onRequestUnschedule: (bookingId: Id<"bookings">, date: string) => void;
 	onRequestSaveSession: () => void;
 	onSessionClose: () => void;
@@ -54,11 +57,13 @@ export function PackageSessionsAccordion({
 	packageData,
 	savingSessionKey,
 	selectedDateValue,
+	selectedNotes,
 	selectedTime,
 	timeSelectionMessage,
 	leadTimeMinutes,
 	currentTimestamp,
 	onDateChange,
+	onNotesChange,
 	onRequestUnschedule,
 	onRequestSaveSession,
 	onSessionClose,
@@ -119,7 +124,10 @@ export function PackageSessionsAccordion({
 				const canClear = Boolean(booking && canEdit);
 				const isHighlighted = highlightedBookingId === booking?._id;
 				const isSelectedBookingSaved = Boolean(
-					booking && booking.date === selectedDateValue && booking.time === selectedTime
+					booking &&
+					booking.date === selectedDateValue &&
+					booking.time === selectedTime &&
+					booking.notes === selectedNotes
 				);
 				let saveButtonText = "SAVE SESSION";
 
@@ -276,7 +284,7 @@ export function PackageSessionsAccordion({
 							</span>
 						</AccordionTrigger>
 
-						<AccordionContent className="border-t pt-6">
+						<AccordionContent className="flex flex-col border-t pt-6 gap-6">
 							<BookingDateTimePicker
 								availability={availability}
 								onDateChange={onDateChange}
@@ -285,32 +293,33 @@ export function PackageSessionsAccordion({
 								timeSelectionMessage={timeSelectionMessage}
 							/>
 							<BookingSessionSummary
-								className="mt-6"
 								dateSummary={selectedDateSummary}
 								timeSummary={selectedTimeSummary}
 							/>
-							<div className="mt-8 flex w-full flex-row items-center justify-center gap-4">
-								<Button
-									type="button"
-									className={cn(
-										"h-12 flex-1",
-										"text-base font-bold! tracking-wider",
-										"shadow-lg shadow-primary/45"
-									)}
-									disabled={
-										!hasActiveSession ||
-										!selectedDateValue ||
-										!selectedTime ||
-										isSelectedBookingSaved ||
-										savingSessionKey !== null
-									}
-									onClick={onRequestSaveSession}>
-									{savingSessionKey === session.key ? (
-										<LoaderCircle className="size-4 animate-spin" />
-									) : null}
-									{saveButtonText}
-								</Button>
-							</div>
+							<BookingNotesField
+								value={selectedNotes}
+								onChange={onNotesChange}
+							/>
+							<Button
+								type="button"
+								className={cn(
+									"mt-4 h-12 flex-1",
+									"text-base font-bold! tracking-wider",
+									"shadow-lg shadow-primary/45"
+								)}
+								disabled={
+									!hasActiveSession ||
+									!selectedDateValue ||
+									!selectedTime ||
+									isSelectedBookingSaved ||
+									savingSessionKey !== null
+								}
+								onClick={onRequestSaveSession}>
+								{savingSessionKey === session.key ? (
+									<LoaderCircle className="size-4 animate-spin" />
+								) : null}
+								{saveButtonText}
+							</Button>
 						</AccordionContent>
 					</AccordionItem>
 				);

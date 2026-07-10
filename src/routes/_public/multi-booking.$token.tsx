@@ -125,6 +125,7 @@ function PackageScheduleContent({
 		parseMonthKey(formatMonthKey(startOfToday()))
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
+	const [selectedNotes, setSelectedNotes] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
 	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
 	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
@@ -233,8 +234,10 @@ function PackageScheduleContent({
 	}, [highlightedBookingId]);
 
 	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
+		const booking = packageData.bookings.find((session) => session._id === sessionKey);
 		setActiveSessionKey(sessionKey);
 		setSelectedDateValue(dateValue ?? "");
+		setSelectedNotes(booking?.notes ?? "");
 		setSelectedTime(time ?? "");
 	}
 
@@ -291,9 +294,15 @@ function PackageScheduleContent({
 					bookingId: activeBooking._id,
 					date: selectedDateValue,
 					time: selectedTime,
+					notes: selectedNotes,
 					token
 				})
-			: createPackageBooking({ date: selectedDateValue, time: selectedTime, token });
+			: createPackageBooking({
+					date: selectedDateValue,
+					time: selectedTime,
+					notes: selectedNotes,
+					token
+				});
 		const [saveError, saveResult] = await tryCatch<SavePackageBookingResult>(saveAction);
 		setSavingSessionKey(null);
 
@@ -332,6 +341,7 @@ function PackageScheduleContent({
 
 		if (activeSessionKey === bookingId) {
 			setSelectedDateValue("");
+			setSelectedNotes("");
 			setSelectedTime("");
 		}
 
@@ -405,11 +415,13 @@ function PackageScheduleContent({
 					packageData={packageData}
 					savingSessionKey={savingSessionKey}
 					selectedDateValue={selectedDateValue}
+					selectedNotes={selectedNotes}
 					selectedTime={selectedTime}
 					timeSelectionMessage={timeSelectionMessage}
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
+					onNotesChange={setSelectedNotes}
 					onRequestUnschedule={handleRequestUnschedule}
 					onRequestSaveSession={handleRequestSaveSession}
 					onSessionClose={handleCloseSession}

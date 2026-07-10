@@ -56,7 +56,7 @@ export function toSavedBookingInfo(values: BookingFormValues): SavedBookingInfo 
 		accountName: values.accountName,
 		abn: values.abn ?? "",
 		email: values.email,
-		notes: values.notes
+		notes: values.bookingMode === "single" ? values.notes : ""
 	};
 }
 

@@ -273,7 +273,6 @@ export function PackagesTable({
 							<TableHead className="w-20">Package</TableHead>
 							<TableHead className="w-44">Service</TableHead>
 							<TableHead className="w-56">Contact</TableHead>
-							<TableHead className="w-48">Notes</TableHead>
 							<TableHead className="w-28">Due / Expiry</TableHead>
 							<TableHead className="w-20">Amount</TableHead>
 							<TableHead className="w-28">
@@ -411,11 +410,6 @@ export function PackagesTable({
 											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<p className="whitespace-normal text-sm text-muted-foreground">
-												{packageRow.notes?.trim() || "No notes"}
-											</p>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<PackageTableDateCell
 												packageRow={packageRow}
 												isOverdue={isOverdue}
@@ -445,7 +439,7 @@ export function PackagesTable({
 						) : (
 							<TableRow>
 								<TableCell
-									colSpan={10}
+									colSpan={9}
 									className="h-24 text-center text-muted-foreground">
 									No package requests. L business.
 								</TableCell>

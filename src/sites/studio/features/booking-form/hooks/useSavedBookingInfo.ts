@@ -63,7 +63,10 @@ export function useSavedBookingInfo({
 		formApi.setFieldValue("accountName", savedBookingInfo.accountName);
 		formApi.setFieldValue("abn", savedBookingInfo.abn);
 		formApi.setFieldValue("email", savedBookingInfo.email);
-		formApi.setFieldValue("notes", savedBookingInfo.notes);
+		formApi.setFieldValue(
+			"notes",
+			savedBookingInfo.bookingMode === "single" ? savedBookingInfo.notes : ""
+		);
 		onReuseSavedBookingInfo();
 	}, [formApi, onReuseSavedBookingInfo, savedBookingInfo]);
 

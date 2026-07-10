@@ -88,7 +88,6 @@ export function useBookingSubmit({
 					addons: multiBookingValue.addons,
 					essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
 					clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
-					notes: multiBookingValue.notes || undefined,
 					packageSize: multiBookingValue.packageSize
 				})
 			);
@@ -100,7 +99,7 @@ export function useBookingSubmit({
 				return;
 			}
 
-			persistBookingInfoFromForm(parsedValue);
+			persistBookingInfoFromForm({ ...parsedValue, notes: "" });
 			setHasCompletedMultiBooking(true);
 			closeBookingModal();
 			await navigate({
