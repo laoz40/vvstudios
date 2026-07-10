@@ -14,9 +14,10 @@ import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalen
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
-import { PackageScheduleSummary } from "#studio/features/booking-form/components/PackageScheduleSummary";
+import { PackageSessionDetailsModal } from "#studio/features/booking-form/components/PackageSessionDetailsModal";
 import { PackageSessionsAccordion } from "#studio/features/booking-form/components/PackageSessionsAccordion";
 import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
+import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	closeBookingModal,
 	openPackageUnscheduleConfirmationModal,
@@ -406,7 +407,21 @@ function PackageScheduleContent({
 					Schedule your package sessions
 				</h1>
 
-				<PackageScheduleSummary packageData={packageData} />
+				<div className="mt-8 text-left sm:text-center">
+					<p className="text-xl font-semibold">
+						You have {packageData.packageSize - packageData.bookings.length} sessions left to
+						schedule.
+					</p>
+					<p className="mt-2 text-muted-foreground">
+						Scheduling expires {formatBookingTimestampTime(packageData.expiresAt)},{" "}
+						{formatBookingTimestampDateLong(packageData.expiresAt)}.
+					</p>
+				</div>
+
+				<div className="mt-8 flex items-center justify-start gap-4">
+					<h2 className={sectionHeadingClassName}>Your Sessions</h2>
+					<PackageSessionDetailsModal packageData={packageData} />
+				</div>
 
 				<PackageSessionsAccordion
 					activeSessionKey={activeSessionKey}
@@ -430,9 +445,7 @@ function PackageScheduleContent({
 				/>
 
 				<p className="mt-6 text-center text-xs text-muted-foreground">
-					Sessions can be changed until {noticeWindowLabel} before they start. Package scheduling
-					expires {formatBookingTimestampTime(packageData.expiresAt)},{" "}
-					{formatBookingTimestampDateLong(packageData.expiresAt)}.
+					Sessions can be changed until {noticeWindowLabel} before they start.
 				</p>
 			</div>
 			<BookingModalHost

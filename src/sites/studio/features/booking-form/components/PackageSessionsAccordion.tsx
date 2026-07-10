@@ -20,7 +20,6 @@ import {
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
-import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	formatBookingDateSummaryWithoutYear,
@@ -93,7 +92,7 @@ export function PackageSessionsAccordion({
 			// the height animation clips cleanly. For these session panels, open content
 			// needs overflow-visible so shadows on edge-aligned controls are not cut off
 			// by the animated content wrapper.
-			className="mt-12 grid gap-4 [&_[data-slot=accordion-content][data-state=open]]:overflow-visible"
+			className="mt-4 grid gap-4 [&_[data-slot=accordion-content][data-state=open]]:overflow-visible"
 			value={activeSessionKey ?? ""}
 			onValueChange={(value) => {
 				if (!value) {
@@ -104,14 +103,6 @@ export function PackageSessionsAccordion({
 				const session = sessions.find((packageSession) => packageSession.key === value);
 				onSessionSelect(value, session?.booking?.date, session?.booking?.time);
 			}}>
-			<div className="flex flex-row justify-between">
-				<h2 className={sectionHeadingClassName}>Your Sessions</h2>
-				<p className="text-sm text-muted-foreground">
-					You have {packageData.packageSize - packageData.bookings.length} sessions left to
-					schedule.
-				</p>
-			</div>
-
 			{sessions.map((session, index) => {
 				const booking = session.booking;
 				const isPastSession = Boolean(booking && booking.sessionStartAt < currentTimestamp);
