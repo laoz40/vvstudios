@@ -277,7 +277,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 		if (
 			expiresAt === undefined ||
 			remainingSessions === 0 ||
-			getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) !==
+			getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
 				remainingSessions * 7
 		) {
 			continue;

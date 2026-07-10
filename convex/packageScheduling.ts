@@ -493,6 +493,10 @@ async function saveCreatedPackageBooking(
 			multiBookingPackageId: multiBooking._id
 		});
 
+		if (multiBooking.packageReminderState?.type === "expiry") {
+			await ctx.db.patch(multiBooking._id, { packageReminderState: undefined });
+		}
+
 		return ok({ bookingId });
 	} catch {
 		return err({ reason: "PACKAGE_BOOKING_SAVE_FAILED" as const });
