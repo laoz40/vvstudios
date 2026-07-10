@@ -54,7 +54,7 @@ import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/s
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/_public/multi-booking/$token")({
+export const Route = createFileRoute("/_public/package-schedule/$token")({
 	head: () => buildNoIndexHead("Schedule Package Sessions | VV Studios"),
 	component: MultiBookingSchedulePage
 });

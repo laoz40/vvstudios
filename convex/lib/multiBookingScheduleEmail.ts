@@ -5,7 +5,7 @@ import { err, ok, type Result } from "../../src/lib/result";
 import { sendMultiBookingScheduleEmail } from "./email";
 
 export function buildMultiBookingScheduleUrl(baseUrl: string, token: string) {
-	const url = new URL(`/multi-booking/${encodeURIComponent(token)}`, baseUrl);
+	const url = new URL(`/package-schedule/${encodeURIComponent(token)}`, baseUrl);
 	return url.toString();
 }
 

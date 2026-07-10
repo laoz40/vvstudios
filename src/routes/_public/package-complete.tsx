@@ -3,12 +3,12 @@ import { parseBookingCompleteSearch } from "#studio/components/booking/BookingCo
 import { BookingCompletePage } from "#studio/features/booking-complete/components/BookingCompletePage";
 import { buildNoIndexHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/_public/booking-complete")({
+export const Route = createFileRoute("/_public/package-complete")({
 	validateSearch: parseBookingCompleteSearch,
-	head: () => buildNoIndexHead("Booking Complete | VV Studios"),
-	component: SingleBookingCompletePage
+	head: () => buildNoIndexHead("Package Complete | VV Studios"),
+	component: PackageCompletePage
 });
 
-function SingleBookingCompletePage() {
+function PackageCompletePage() {
 	return <BookingCompletePage search={Route.useSearch()} />;
 }

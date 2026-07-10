@@ -7,7 +7,7 @@ const previewProps = {
 	name: "Alex Carter",
 	leadTimeMinutes: 12 * 60,
 	packageSize: 8 as const,
-	scheduleUrl: "https://vvstudios.example/multi-booking/sample-token",
+	scheduleUrl: "https://vvstudios.example/package-schedule/sample-token",
 	service: "Table Setup",
 	signoffName: "Joseph"
 };

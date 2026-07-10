@@ -103,7 +103,7 @@ export function useBookingSubmit({
 			setHasCompletedMultiBooking(true);
 			closeBookingModal();
 			await navigate({
-				to: studioSite.routes.bookingComplete,
+				to: studioSite.routes.packageComplete,
 				search: {
 					multi_booking_id: result.multiBookingId,
 					package_size: multiBookingValue.packageSize
