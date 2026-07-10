@@ -2,7 +2,13 @@ type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
 	| "GOOGLE_CALENDAR_DELETE_FAILED"
+	| "GOOGLE_CALENDAR_SYNC_FAILED"
 	| "GOOGLE_CALENDAR_UPDATE_FAILED";
+
+export type GoogleCalendarWriteError =
+	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
+	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
+	| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" };
 
 type GoogleCalendarErrorCode<
 	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode

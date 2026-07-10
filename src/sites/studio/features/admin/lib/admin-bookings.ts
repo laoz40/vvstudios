@@ -1,9 +1,15 @@
 import type { Doc } from "#convex/_generated/dataModel";
+import { bookingConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 
 export type BookingRecord = Doc<"bookings"> & {
 	multiBookingInvoiceNumber?: string;
 	multiBookingPackageSize?: 4 | 8 | 12;
+	multiBookingPackageSessionPosition?: number;
 };
+
+export function isCapacityConsumingPackageBooking(booking: BookingRecord) {
+	return booking.multiBookingPackageId !== undefined && bookingConsumesPackageCapacity(booking);
+}
 
 export type BookingActionDetails = {
 	canGenerateRescheduleLink: boolean;
@@ -32,9 +38,17 @@ export function isStaleCleanupBooking(booking: BookingRecord, now = Date.now()) 
 }
 
 export function getPackageSessionProgressLabel(booking: BookingRecord) {
-	if (!booking.multiBookingSlotNumber || !booking.multiBookingPackageSize) {
+	if (!booking.multiBookingPackageId) {
 		return null;
 	}
 
-	return `${booking.multiBookingSlotNumber}/${booking.multiBookingPackageSize}`;
+	if (
+		!isCapacityConsumingPackageBooking(booking) ||
+		!booking.multiBookingPackageSize ||
+		!booking.multiBookingPackageSessionPosition
+	) {
+		return "Package";
+	}
+
+	return `${booking.multiBookingPackageSessionPosition}/${booking.multiBookingPackageSize}`;
 }

@@ -3,7 +3,7 @@ import { Suspense, lazy } from "react";
 import { Button } from "#/components/ui/button";
 import { Modal } from "#studio/components/Modal";
 import {
-	PackageSlotConfirmation,
+	PackageUnscheduleConfirmation,
 	RescheduleConfirmation
 } from "#studio/features/booking-form/components/BookingConfirmationDialogs";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
@@ -21,7 +21,7 @@ const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 interface BookingModalHostProps {
 	isSubmitting: boolean;
-	onPackageSlotConfirm?: () => void;
+	onPackageUnscheduleConfirm?: () => void;
 	onPaymentClose: (checkoutSession: EmbeddedCheckoutSession) => void;
 	onRescheduleConfirm?: () => void;
 	onTermsConfirm: () => void;
@@ -29,7 +29,7 @@ interface BookingModalHostProps {
 
 export function BookingModalHost({
 	isSubmitting,
-	onPackageSlotConfirm,
+	onPackageUnscheduleConfirm,
 	onPaymentClose,
 	onRescheduleConfirm,
 	onTermsConfirm
@@ -70,12 +70,12 @@ export function BookingModalHost({
 				</Suspense>
 			);
 
-		case "packageSlotConfirmation":
+		case "packageUnscheduleConfirmation":
 			return (
-				<PackageSlotConfirmation
+				<PackageUnscheduleConfirmation
 					isSubmitting={isSubmitting}
 					modalState={bookingModalState}
-					onConfirm={onPackageSlotConfirm}
+					onConfirm={onPackageUnscheduleConfirm}
 				/>
 			);
 

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import type { Id } from "#convex/_generated/dataModel";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 
 export type BookingModalState =
@@ -7,15 +8,11 @@ export type BookingModalState =
 	| { modal: "addonCompatibility" }
 	| { modal: "payment"; checkoutSession: EmbeddedCheckoutSession }
 	| {
-			date: string;
+			bookingId: Id<"bookings">;
 			dateSummary: string;
-			modal: "packageSlotConfirmation";
-			slotNumber: number;
-			time: string;
-			timeSummary: string;
-			type: "save";
+			modal: "packageUnscheduleConfirmation";
+			type: "unschedule";
 	  }
-	| { dateSummary: string; modal: "packageSlotConfirmation"; slotNumber: number; type: "clear" }
 	| {
 			modal: "rescheduleConfirmation";
 			date: string;
@@ -40,8 +37,8 @@ export function openPaymentModal(checkoutSession: EmbeddedCheckoutSession) {
 	useBookingModalStore.setState({ modal: "payment", checkoutSession }, true);
 }
 
-export function openPackageSlotConfirmationModal(
-	confirmation: Extract<BookingModalState, { modal: "packageSlotConfirmation" }>
+export function openPackageUnscheduleConfirmationModal(
+	confirmation: Extract<BookingModalState, { modal: "packageUnscheduleConfirmation" }>
 ) {
 	useBookingModalStore.setState(confirmation, true);
 }

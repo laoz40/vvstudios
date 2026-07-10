@@ -46,7 +46,8 @@ export type BookingAvailabilityValidationError = {
 		| "BOOKING_INVALID_TIME"
 		| "BOOKING_OUTSIDE_OPENING_HOURS"
 		| "BOOKING_TOO_FAR_AHEAD"
-		| "BOOKING_TOO_SOON";
+		| "BOOKING_TOO_SOON"
+		| "BOOKING_TIME_UNAVAILABLE";
 };
 
 type BookingTimeParseError =

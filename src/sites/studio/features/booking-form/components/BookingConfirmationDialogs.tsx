@@ -7,15 +7,15 @@ import {
 	type BookingModalState
 } from "#studio/features/booking-form/lib/booking-modal-store";
 
-type PackageSlotConfirmationState = Extract<
+type PackageUnscheduleConfirmationState = Extract<
 	BookingModalState,
-	{ modal: "packageSlotConfirmation" }
+	{ modal: "packageUnscheduleConfirmation" }
 >;
 type RescheduleConfirmationState = Extract<BookingModalState, { modal: "rescheduleConfirmation" }>;
 
-interface PackageSlotConfirmationProps {
+interface PackageUnscheduleConfirmationProps {
 	isSubmitting: boolean;
-	modalState: PackageSlotConfirmationState;
+	modalState: PackageUnscheduleConfirmationState;
 	onConfirm?: () => void;
 }
 
@@ -25,15 +25,11 @@ interface RescheduleConfirmationProps {
 	onConfirm?: () => void;
 }
 
-export function PackageSlotConfirmation({
+export function PackageUnscheduleConfirmation({
 	isSubmitting,
 	modalState,
 	onConfirm
-}: PackageSlotConfirmationProps) {
-	const isConfirmingSession = modalState.type === "save";
-	const confirmLabel = isConfirmingSession ? "Confirm Session" : "Unschedule";
-	const submittingLabel = isConfirmingSession ? "Confirming..." : "Unscheduling...";
-
+}: PackageUnscheduleConfirmationProps) {
 	return (
 		<Modal
 			open
@@ -44,7 +40,7 @@ export function PackageSlotConfirmation({
 			}}
 			title={
 				<span className="block text-center text-lg font-medium text-muted-foreground">
-					{isConfirmingSession ? "Selected Session" : `Unschedule ${modalState.dateSummary}?`}
+					Unschedule {modalState.dateSummary}?
 				</span>
 			}
 			closeLabel="Close dialog"
@@ -62,28 +58,19 @@ export function PackageSlotConfirmation({
 					</Button>
 					<Button
 						type="button"
-						variant={isConfirmingSession ? "default" : "destructive"}
+						variant="destructive"
 						className="flex-1"
 						disabled={isSubmitting || !onConfirm}
 						onClick={onConfirm}>
 						{isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isSubmitting ? submittingLabel : confirmLabel}
+						{isSubmitting ? "Unscheduling..." : "Unschedule"}
 					</Button>
 				</div>
 			}>
 			<div className="space-y-3 text-center">
-				{isConfirmingSession ? (
-					<>
-						<p className="text-foreground text-3xl font-semibold tracking-tight">
-							{modalState.dateSummary}
-						</p>
-						<p className="text-xl font-medium">{modalState.timeSummary}</p>
-					</>
-				) : (
-					<p className="text-muted-foreground text-balance leading-6">
-						This will remove this session from the calendar. You can pick a new date again later.
-					</p>
-				)}
+				<p className="text-muted-foreground text-balance leading-6">
+					This will remove this session from the calendar. You can pick a new date again later.
+				</p>
 			</div>
 		</Modal>
 	);

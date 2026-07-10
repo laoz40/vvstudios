@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { hashRescheduleToken } from "./lib/bookingRescheduleLinks";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import {
 	action,
 	internalMutation,
@@ -11,55 +10,23 @@ import {
 	type MutationCtx,
 	type QueryCtx
 } from "./_generated/server";
-import {
-	checkBookingMeetsAvailabilitySettings,
-	type BookingAvailabilitySettings,
-	type BookingAvailabilityValidationError
-} from "./lib/bookingCalendarTime";
-import { env } from "./env";
 import { api, internal } from "./_generated/api";
+import { env } from "./env";
 import { getBookingSessionStartAt } from "./lib/bookingAdminEdit";
+import type { BookingAvailabilitySettings } from "./lib/bookingCalendarTime";
+import {
+	bookingConsumesPackageCapacity,
+	checkPackageBookingAvailability,
+	getCapacityConsumingPackageBookings,
+	getPackageBookingForToken,
+	getValidPackageByToken,
+	toPackageCalendarBooking,
+	type CreatePackageBookingError,
+	type ReschedulePackageBookingError,
+	type UnschedulePackageBookingError,
+	type ValidPackage
+} from "./lib/packageScheduling";
 import { isPackageSessionLocked } from "../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
-import type { BookingCalendarEventRecord } from "./lib/googleCalendarEvents";
-
-export type ValidPackageByTokenError =
-	| { reason: "PACKAGE_LINK_INVALID" }
-	| { reason: "PACKAGE_LINK_EXPIRED" }
-	| { reason: "PACKAGE_LINK_INACTIVE" }
-	| { reason: "PACKAGE_NOT_PAID" };
-
-export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
-
-type PackageSlotLookupError =
-	| ValidPackageByTokenError
-	| { reason: "PACKAGE_SLOT_NOT_FOUND" }
-	| { reason: "PACKAGE_SLOT_LOCKED" };
-
-type PackageSessionView = {
-	booking: null | { date: string; googleEventId?: string; sessionStartAt: number; time: string };
-	cancelledAt?: number;
-	scheduledAt?: number;
-	slotNumber: number;
-};
-
-type PackageSlotSavePreparation = {
-	booking: Doc<"bookings"> | null;
-	eventBufferMinutes: number;
-	leadTimeMinutes: number;
-	multiBooking: ValidPackage;
-	sessionStartAt: number;
-};
-
-type SaveScheduledPackageSlotArgs = {
-	date: string;
-	googleCalendarId?: string;
-	googleEventId?: string;
-	leadTimeMinutes: number;
-	now: number;
-	slotNumber: number;
-	time: string;
-	token: string;
-};
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
@@ -73,7 +40,11 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		return err(lookupError);
 	}
 
-	const sessions = await buildPackageSessionViews(ctx, multiBooking);
+	const bookings = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
+	);
 
 	return ok({
 		_id: multiBooking._id,
@@ -87,43 +58,33 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		notes: multiBooking.notes,
 		packageSize: multiBooking.packageSize,
 		expiresAt: multiBooking.expiresAt,
-		sessions
+		bookings: bookings.map((booking) => ({
+			_id: booking._id,
+			date: booking.date,
+			time: booking.time,
+			sessionStartAt: booking.sessionStartAt,
+			...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
+		}))
 	});
 }
 
 export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
 
-export const savePackageSlot = action({
-	args: { token: v.string(), slotNumber: v.number(), date: v.string(), time: v.string() },
-	handler: (ctx, args) => savePackageSlotHandler(ctx, args)
+const packageBookingInput = { token: v.string(), date: v.string(), time: v.string() };
+
+export const createPackageBooking = action({
+	args: packageBookingInput,
+	handler: (ctx, args) => createPackageBookingHandler(ctx, args)
 });
 
-async function savePackageSlotHandler(
+async function createPackageBookingHandler(
 	ctx: ActionCtx,
-	args: { date: string; slotNumber: number; time: string; token: string }
-): Promise<
-	Result<
-		{ bookingId: Id<"bookings">; slotNumber: number },
-		| PackageSlotLookupError
-		| { reason: "BOOKING_INVALID_DATE" }
-		| { reason: "BOOKING_INVALID_DURATION" }
-		| { reason: "BOOKING_INVALID_TIME" }
-		| { reason: "BOOKING_OUTSIDE_OPENING_HOURS" }
-		| { reason: "BOOKING_TIME_UNAVAILABLE" }
-		| { reason: "BOOKING_TOO_FAR_AHEAD" }
-		| { reason: "BOOKING_TOO_SOON" }
-		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
-		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
-		| { reason: "GOOGLE_CALENDAR_CREATE_FAILED" }
-		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-		| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }
-		| { reason: "PACKAGE_SLOT_SAVE_FAILED" }
-	>
-> {
+	args: { token: string; date: string; time: string }
+): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageBookingError>> {
 	const now = Date.now();
 
-	const [validationError, details]: ValidatePackageSlotSaveRequestResult = await ctx.runQuery(
-		internal.packageScheduling.validatePackageSlotSaveRequestInternal,
+	const [validationError, details] = await ctx.runQuery(
+		internal.packageScheduling.validatePackageBookingRequestInternal,
 		{ ...args, now }
 	);
 
@@ -131,87 +92,78 @@ async function savePackageSlotHandler(
 		return err(validationError);
 	}
 
-	const [rateLimitError] = await ctx.runMutation(
-		internal.bookings.checkBookingSubmitRateLimitInternal,
-		{ submitRateLimitKey: `package:${details.multiBooking._id}` }
-	);
+	const [rateError] = await ctx.runMutation(internal.bookings.checkBookingSubmitRateLimitInternal, {
+		submitRateLimitKey: `package:${details.multiBooking._id}`
+	});
 
-	if (rateLimitError !== null) {
-		return err(rateLimitError);
+	if (rateError !== null) {
+		return err(rateError);
 	}
 
-	// Create or update the Calendar event while ignoring this booking on reschedule.
-	const calendarBooking = details.booking ? buildPackageCalendarBooking(details.booking) : null;
-	const [calendarError, calendarResult] = await ctx.runAction(
-		internal.packageSchedulingCalendar.savePackageSlotCalendarEventInternal,
+	const [calendarError, calendar] = await ctx.runAction(
+		internal.packageSchedulingCalendar.createPackageBookingCalendarEventInternal,
 		{
-			booking: calendarBooking,
-			details: {
-				addons: details.multiBooking.addons,
-				date: args.date,
-				duration: details.multiBooking.duration,
-				email: details.multiBooking.email,
-				eventBufferMinutes: details.eventBufferMinutes,
-				name: details.multiBooking.name,
-				service: details.multiBooking.service,
-				time: args.time
+			booking: null,
+			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
+		}
+	);
+
+	if (calendarError !== null) {
+		return err(calendarError);
+	}
+
+	const [databaseError, result] = await ctx.runMutation(
+		internal.packageScheduling.saveCreatedPackageBookingInternal,
+		{
+			...args,
+			now,
+			...(calendar.googleCalendarId ? { googleCalendarId: calendar.googleCalendarId } : {}),
+			...(calendar.googleEventId ? { googleEventId: calendar.googleEventId } : {})
+		}
+	);
+
+	if (databaseError !== null) {
+		if (calendar.googleEventId && calendar.googleCalendarId) {
+			const [cleanupError] = await ctx.runAction(
+				internal.packageSchedulingCalendar.deletePackageBookingCalendarEventInternal,
+				{
+					booking: {
+						date: args.date,
+						duration: details.multiBooking.duration,
+						email: details.multiBooking.email,
+						googleCalendarId: calendar.googleCalendarId,
+						googleEventId: calendar.googleEventId,
+						name: details.multiBooking.name,
+						time: args.time
+					}
+				}
+			);
+			if (cleanupError !== null) {
+				console.error("Failed to compensate orphan package Calendar event", cleanupError);
 			}
 		}
-	);
 
-	if (calendarError !== null) {
-		return err(calendarError);
-	}
-
-	// Save the booking/session change in Convex with the Calendar event ids.
-	const [databaseError, databaseResult]: SaveScheduledPackageSlotResult = await ctx.runMutation(
-		internal.packageScheduling.saveScheduledPackageSlotInternal,
-		{
-			date: args.date,
-			leadTimeMinutes: details.leadTimeMinutes,
-			now,
-			slotNumber: args.slotNumber,
-			time: args.time,
-			token: args.token,
-			...(calendarResult.googleCalendarId
-				? { googleCalendarId: calendarResult.googleCalendarId }
-				: {}),
-			...(calendarResult.googleEventId ? { googleEventId: calendarResult.googleEventId } : {})
-		}
-	);
-
-	if (databaseError !== null) {
 		return err(databaseError);
 	}
 
-	return ok(databaseResult);
+	return ok(result);
 }
 
-export type SavePackageSlotResult = Awaited<ReturnType<typeof savePackageSlotHandler>>;
+export type CreatePackageBookingResult = Awaited<ReturnType<typeof createPackageBookingHandler>>;
 
-export const clearPackageSlot = action({
-	args: { token: v.string(), slotNumber: v.number() },
-	handler: (ctx, args) => clearPackageSlotHandler(ctx, args)
+export const reschedulePackageBooking = action({
+	args: { bookingId: v.id("bookings"), token: v.string(), date: v.string(), time: v.string() },
+	handler: (ctx, args) => reschedulePackageBookingHandler(ctx, args)
 });
 
-async function clearPackageSlotHandler(
+async function reschedulePackageBookingHandler(
 	ctx: ActionCtx,
-	args: { slotNumber: number; token: string }
-): Promise<
-	Result<
-		{ cleared: true; slotNumber: number },
-		| PackageSlotLookupError
-		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
-		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
-		| { reason: "GOOGLE_CALENDAR_DELETE_FAILED" }
-		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-		| { reason: "PACKAGE_SLOT_CLEAR_FAILED" }
-	>
-> {
+	args: { bookingId: Id<"bookings">; token: string; date: string; time: string }
+): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageBookingError>> {
 	const now = Date.now();
 
-	const [validationError, details]: ValidatePackageSlotClearRequestResult = await ctx.runQuery(
-		internal.packageScheduling.validatePackageSlotClearRequestInternal,
+	const [validationError, details] = await ctx.runQuery(
+		internal.packageScheduling.validatePackageRescheduleRequestInternal,
 		{ ...args, now }
 	);
 
@@ -219,302 +171,350 @@ async function clearPackageSlotHandler(
 		return err(validationError);
 	}
 
-	const [rateLimitError] = await ctx.runMutation(
-		internal.bookings.checkBookingSubmitRateLimitInternal,
-		{ submitRateLimitKey: `package:${details.multiBooking._id}` }
-	);
-
-	if (rateLimitError !== null) {
-		return err(rateLimitError);
-	}
-
-	// Delete the Calendar event
-	const calendarBooking = buildPackageCalendarBooking(details.booking);
-	const [calendarError] = await ctx.runAction(
-		internal.packageSchedulingCalendar.deletePackageSlotCalendarEventInternal,
-		{ booking: calendarBooking }
+	const [calendarError, calendar] = await ctx.runAction(
+		internal.packageSchedulingCalendar.updatePackageBookingCalendarEventInternal,
+		{
+			booking: toPackageCalendarBooking(details.booking),
+			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
+		}
 	);
 
 	if (calendarError !== null) {
 		return err(calendarError);
 	}
 
-	// Save the cancellation in Convex
-	const [databaseError, databaseResult]: SaveClearedPackageSlotResult = await ctx.runMutation(
-		internal.packageScheduling.saveClearedPackageSlotInternal,
-		{ ...args, leadTimeMinutes: details.leadTimeMinutes, now }
+	const [saveError, result] = await ctx.runMutation(
+		internal.bookings.saveClientBookingRescheduleInternal,
+		{
+			bookingId: args.bookingId,
+			date: args.date,
+			time: args.time,
+			sessionStartAt: details.sessionStartAt,
+			googleCalendarId: calendar.googleCalendarId,
+			googleEventId: calendar.googleEventId,
+			multiBookingPackageId: details.multiBooking._id
+		}
 	);
 
-	if (databaseError !== null) {
-		return err(databaseError);
+	if (saveError !== null) {
+		return err(saveError);
 	}
 
-	return ok(databaseResult);
+	return ok({ ...result, bookingId: args.bookingId });
 }
 
-export type ClearPackageSlotResult = Awaited<ReturnType<typeof clearPackageSlotHandler>>;
+export type ReschedulePackageBookingResult = Awaited<
+	ReturnType<typeof reschedulePackageBookingHandler>
+>;
+
+export const unschedulePackageBooking = action({
+	args: { bookingId: v.id("bookings"), token: v.string() },
+	handler: (ctx, args) => unschedulePackageBookingHandler(ctx, args)
+});
+
+async function unschedulePackageBookingHandler(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; token: string }
+): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageBookingError>> {
+	const now = Date.now();
+
+	const [validationError, details] = await ctx.runQuery(
+		internal.packageScheduling.validatePackageUnscheduleRequestInternal,
+		{ ...args, now }
+	);
+
+	if (validationError !== null) {
+		return err(validationError);
+	}
+
+	const [calendarError] = await ctx.runAction(
+		internal.packageSchedulingCalendar.deletePackageBookingCalendarEventInternal,
+		{ booking: toPackageCalendarBooking(details.booking) }
+	);
+
+	if (calendarError !== null) {
+		return err(calendarError);
+	}
+
+	const [saveError, result] = await ctx.runMutation(
+		internal.packageScheduling.cancelPackageBookingInternal,
+		{ bookingId: args.bookingId, now, token: args.token }
+	);
+
+	if (saveError !== null) {
+		return err(saveError);
+	}
+
+	return ok(result);
+}
+
+export type UnschedulePackageBookingResult = Awaited<
+	ReturnType<typeof unschedulePackageBookingHandler>
+>;
 
 export const getValidPackageByTokenInternal = internalQuery({
 	args: { now: v.number(), token: v.string() },
-	handler: async (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
+	handler: (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
 });
 
-export const validatePackageSlotSaveRequestInternal = internalQuery({
-	args: {
-		date: v.string(),
-		now: v.number(),
-		slotNumber: v.number(),
-		time: v.string(),
-		token: v.string()
-	},
-	handler: (ctx, args) => validatePackageSlotSaveRequestInternalHandler(ctx, args)
+const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
+
+function toPackageCalendarDetails(
+	args: { date: string; time: string },
+	multiBooking: ValidPackage,
+	eventBufferMinutes: number
+) {
+	return {
+		addons: multiBooking.addons,
+		date: args.date,
+		duration: multiBooking.duration,
+		email: multiBooking.email,
+		eventBufferMinutes,
+		name: multiBooking.name,
+		service: multiBooking.service,
+		time: args.time
+	};
+}
+
+function getPackageSessionStartAt(args: { date: string; time: string }) {
+	return getBookingSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
+}
+
+export const validatePackageBookingRequestInternal = internalQuery({
+	args: requestArgs,
+	handler: (ctx, args) => validatePackageBookingRequest(ctx, args)
 });
 
-async function validatePackageSlotSaveRequestInternalHandler(
+async function validatePackageBookingRequest(
 	ctx: QueryCtx,
-	args: { date: string; now: number; slotNumber: number; time: string; token: string }
-): Promise<
-	Result<PackageSlotSavePreparation, PackageSlotLookupError | BookingAvailabilityValidationError>
-> {
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-	const [lookupError, lookup] = await getEditablePackageSlot(
-		ctx,
-		args.token,
-		args.slotNumber,
-		settings.leadTimeMinutes,
-		args.now
-	);
+	args: { token: string; date: string; time: string; now: number }
+) {
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
 
-	if (lookupError !== null) {
-		return err(lookupError);
+	if (error !== null) {
+		return err(error);
 	}
 
-	const [availabilityError] = checkBookingMeetsAvailabilitySettings({
-		date: args.date,
-		duration: lookup.multiBooking.duration,
-		latestBookableDate: new Date(lookup.multiBooking.expiresAt),
-		now: args.now,
+	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+
+	const [availabilityError] = checkPackageBookingAvailability(
+		args,
+		multiBooking,
 		settings,
-		time: args.time,
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
-	});
+		args.now
+	);
 
 	if (availabilityError !== null) {
 		return err(availabilityError);
 	}
 
-	const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
-		args.date,
-		args.time,
-		env.GOOGLE_CALENDAR_TIMEZONE
+	const bookings = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
 	);
 
-	if (sessionStartError !== null) {
-		return err(sessionStartError);
+	if (bookings.length >= multiBooking.packageSize) {
+		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
 	}
 
-	const booking = lookup.slot.bookingId ? await ctx.db.get(lookup.slot.bookingId) : null;
-	const activeBooking = booking && booking.status !== "cancelled" ? booking : null;
+	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
+
+	if (startError !== null) {
+		return err(startError);
+	}
 
 	return ok({
-		booking: activeBooking,
+		multiBooking,
 		eventBufferMinutes: settings.eventBufferMinutes,
 		leadTimeMinutes: settings.leadTimeMinutes,
-		multiBooking: lookup.multiBooking,
 		sessionStartAt
 	});
 }
 
-type ValidatePackageSlotSaveRequestResult = Awaited<
-	ReturnType<typeof validatePackageSlotSaveRequestInternalHandler>
->;
-
-export const validatePackageSlotClearRequestInternal = internalQuery({
-	args: { now: v.number(), slotNumber: v.number(), token: v.string() },
-	handler: (ctx, args) => validatePackageSlotClearRequestInternalHandler(ctx, args)
+export const validatePackageRescheduleRequestInternal = internalQuery({
+	args: { ...requestArgs, bookingId: v.id("bookings") },
+	handler: (ctx, args) => validatePackageRescheduleRequest(ctx, args)
 });
 
-async function validatePackageSlotClearRequestInternalHandler(
+async function validatePackageRescheduleRequest(
 	ctx: QueryCtx,
-	args: { now: number; slotNumber: number; token: string }
-): Promise<
-	Result<
-		{ booking: Doc<"bookings">; leadTimeMinutes: number; multiBooking: ValidPackage },
-		PackageSlotLookupError
-	>
-> {
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-	const [lookupError, lookup] = await getEditablePackageSlot(
-		ctx,
-		args.token,
-		args.slotNumber,
-		settings.leadTimeMinutes,
+	args: { token: string; bookingId: Id<"bookings">; date: string; time: string; now: number }
+) {
+	const [error, details] = await getEditablePackageBooking(ctx, args);
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	const { booking, multiBooking, settings } = details;
+
+	const [availabilityError] = checkPackageBookingAvailability(
+		args,
+		multiBooking,
+		settings,
 		args.now
 	);
-	if (lookupError !== null) {
-		return err(lookupError);
+
+	if (availabilityError !== null) {
+		return err(availabilityError);
 	}
 
-	if (!lookup.slot.bookingId || lookup.slot.cancelledAt) {
-		return err({ reason: "PACKAGE_SLOT_NOT_FOUND" });
-	}
+	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
 
-	const booking = await ctx.db.get(lookup.slot.bookingId);
-
-	if (!booking || booking.status === "cancelled") {
-		return err({ reason: "PACKAGE_SLOT_NOT_FOUND" });
+	if (startError !== null) {
+		return err(startError);
 	}
 
 	return ok({
 		booking,
-		leadTimeMinutes: settings.leadTimeMinutes,
-		multiBooking: lookup.multiBooking
+		multiBooking,
+		eventBufferMinutes: settings.eventBufferMinutes,
+		sessionStartAt
 	});
 }
 
-type ValidatePackageSlotClearRequestResult = Awaited<
-	ReturnType<typeof validatePackageSlotClearRequestInternalHandler>
->;
-
-export const saveScheduledPackageSlotInternal = internalMutation({
-	args: {
-		date: v.string(),
-		googleCalendarId: v.optional(v.string()),
-		googleEventId: v.optional(v.string()),
-		leadTimeMinutes: v.number(),
-		now: v.number(),
-		slotNumber: v.number(),
-		time: v.string(),
-		token: v.string()
-	},
-	handler: (ctx, args) => saveScheduledPackageSlotInternalHandler(ctx, args)
+export const validatePackageUnscheduleRequestInternal = internalQuery({
+	args: { token: v.string(), bookingId: v.id("bookings"), now: v.number() },
+	handler: (ctx, args) => validatePackageUnscheduleRequest(ctx, args)
 });
 
-async function saveScheduledPackageSlotInternalHandler(
-	ctx: MutationCtx,
-	args: SaveScheduledPackageSlotArgs
+async function validatePackageUnscheduleRequest(
+	ctx: QueryCtx,
+	args: { token: string; bookingId: Id<"bookings">; now: number }
 ) {
-	// Re-check inside the mutation so stale action data cannot write over changed state.
-	const [lookupError, lookup] = await getEditablePackageSlot(
-		ctx,
-		args.token,
-		args.slotNumber,
-		args.leadTimeMinutes,
-		args.now
-	);
+	const [error, details] = await getEditablePackageBooking(ctx, args);
 
-	if (lookupError !== null) {
-		return err(lookupError);
+	if (error !== null) {
+		return err(error);
 	}
 
-	// Calculate this again inside the DB write from the exact saved date/time.
-	const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
-		args.date,
-		args.time,
-		env.GOOGLE_CALENDAR_TIMEZONE
+	return ok({ booking: details.booking, multiBooking: details.multiBooking });
+}
+
+async function getEditablePackageBooking(
+	ctx: QueryCtx,
+	args: { token: string; bookingId: Id<"bookings">; now: number }
+) {
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	const booking = await getPackageBookingForToken(ctx, multiBooking._id, args.bookingId);
+
+	if (!booking || !bookingConsumesPackageCapacity(booking)) {
+		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+	}
+
+	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+
+	if (isPackageSessionLocked(booking.sessionStartAt, settings.leadTimeMinutes, args.now)) {
+		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+	}
+
+	return ok({ booking, multiBooking, settings });
+}
+
+export const saveCreatedPackageBookingInternal = internalMutation({
+	args: {
+		...packageBookingInput,
+		now: v.number(),
+		googleCalendarId: v.optional(v.string()),
+		googleEventId: v.optional(v.string())
+	},
+	handler: (ctx, args) => saveCreatedPackageBooking(ctx, args)
+});
+
+async function saveCreatedPackageBooking(
+	ctx: MutationCtx,
+	args: {
+		token: string;
+		date: string;
+		time: string;
+		now: number;
+		googleCalendarId?: string;
+		googleEventId?: string;
+	}
+) {
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	const activeBookings = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
 	);
 
-	if (sessionStartError !== null) {
-		return err(sessionStartError);
+	if (activeBookings.length >= multiBooking.packageSize) {
+		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
+	}
+
+	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
+
+	if (startError !== null) {
+		return err(startError);
 	}
 
 	try {
-		let bookingId = lookup.slot.bookingId;
-
-		// New package slot: create a normal booking row linked back to the package.
-		if (!bookingId) {
-			bookingId = await ctx.db.insert("bookings", {
-				name: lookup.multiBooking.name,
-				phone: lookup.multiBooking.phone,
-				accountName: lookup.multiBooking.accountName,
-				abn: lookup.multiBooking.abn,
-				email: lookup.multiBooking.email,
-				instagramHandle: lookup.multiBooking.instagramHandle,
-				date: args.date,
-				time: args.time,
-				sessionStartAt,
-				duration: lookup.multiBooking.duration,
-				service: lookup.multiBooking.service,
-				addons: lookup.multiBooking.addons,
-				essentialEditQuantity: lookup.multiBooking.essentialEditQuantity,
-				clipsPackageQuantity: lookup.multiBooking.clipsPackageQuantity,
-				notes: lookup.multiBooking.notes,
-				status: "confirmed",
-				pendingPaymentCreatedAt: lookup.multiBooking.createdAt,
-				paymentCompletedAt: lookup.multiBooking.paidAt,
-				bookingConfirmedAt: args.now,
-				googleCalendarId: args.googleCalendarId,
-				googleEventId: args.googleEventId,
-				multiBookingPackageId: lookup.multiBooking._id,
-				multiBookingSlotNumber: args.slotNumber
-			});
-		}
-
-		// Existing package slot: move it and make it active again.
-		if (lookup.slot.bookingId) {
-			await ctx.db.patch(lookup.slot.bookingId, {
-				bookingConfirmedAt: args.now,
-				bookingFailureCode: undefined,
-				date: args.date,
-				googleCalendarId: args.googleCalendarId,
-				googleEventId: args.googleEventId,
-				sessionStartAt,
-				status: "confirmed",
-				time: args.time,
-				reminderEmailClaimedAt: undefined,
-				reminderEmailSentAt: undefined,
-				reminderEmailFailureCode: undefined
-			});
-		}
-
-		// Store the booking id and scheduled time on the package session.
-		await ctx.db.patch(lookup.multiBooking._id, {
-			sessions: lookup.multiBooking.sessions.map((session) =>
-				session.slotNumber === args.slotNumber
-					? { bookingId, scheduledAt: args.now, slotNumber: session.slotNumber }
-					: session
-			)
+		const bookingId = await ctx.db.insert("bookings", {
+			name: multiBooking.name,
+			phone: multiBooking.phone,
+			accountName: multiBooking.accountName,
+			abn: multiBooking.abn,
+			email: multiBooking.email,
+			instagramHandle: multiBooking.instagramHandle,
+			date: args.date,
+			time: args.time,
+			sessionStartAt,
+			duration: multiBooking.duration,
+			service: multiBooking.service,
+			addons: multiBooking.addons,
+			essentialEditQuantity: multiBooking.essentialEditQuantity,
+			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
+			notes: multiBooking.notes,
+			status: "confirmed",
+			pendingPaymentCreatedAt: multiBooking.createdAt,
+			paymentCompletedAt: multiBooking.paidAt,
+			bookingConfirmedAt: args.now,
+			googleCalendarId: args.googleCalendarId,
+			googleEventId: args.googleEventId,
+			multiBookingPackageId: multiBooking._id
 		});
 
-		return ok({ bookingId, slotNumber: args.slotNumber });
+		return ok({ bookingId });
 	} catch {
-		return err({ reason: "PACKAGE_SLOT_SAVE_FAILED" });
+		return err({ reason: "PACKAGE_BOOKING_SAVE_FAILED" as const });
 	}
 }
 
-type SaveScheduledPackageSlotResult = Awaited<
-	ReturnType<typeof saveScheduledPackageSlotInternalHandler>
->;
-
-export const saveClearedPackageSlotInternal = internalMutation({
-	args: { leadTimeMinutes: v.number(), now: v.number(), slotNumber: v.number(), token: v.string() },
-	handler: (ctx, args) => saveClearedPackageSlotInternalHandler(ctx, args)
+export const cancelPackageBookingInternal = internalMutation({
+	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
+	handler: (ctx, args) => cancelPackageBooking(ctx, args)
 });
 
-async function saveClearedPackageSlotInternalHandler(
+async function cancelPackageBooking(
 	ctx: MutationCtx,
-	args: { leadTimeMinutes: number; now: number; slotNumber: number; token: string }
+	args: { bookingId: Id<"bookings">; token: string; now: number }
 ) {
-	// Re-check inside the mutation so stale action data cannot write over changed state.
-	const [lookupError, lookup] = await getEditablePackageSlot(
-		ctx,
-		args.token,
-		args.slotNumber,
-		args.leadTimeMinutes,
-		args.now
-	);
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
 
-	if (lookupError !== null) {
-		return err(lookupError);
+	if (error !== null) {
+		return err(error);
 	}
 
-	if (!lookup.slot.bookingId) {
-		return err({ reason: "PACKAGE_SLOT_NOT_FOUND" });
+	const booking = await getPackageBookingForToken(ctx, multiBooking._id, args.bookingId);
+
+	if (!booking || !bookingConsumesPackageCapacity(booking)) {
+		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
 	}
 
 	try {
-		// Keep the booking row for history, but mark it inactive for admin/reminders.
-		await ctx.db.patch(lookup.slot.bookingId, {
+		await ctx.db.patch(args.bookingId, {
 			bookingFailureCode: undefined,
 			googleCalendarId: undefined,
 			googleEventId: undefined,
@@ -524,123 +524,8 @@ async function saveClearedPackageSlotInternalHandler(
 			status: "cancelled"
 		});
 
-		// Keep the booking id on the package session and record when it was cleared.
-		await ctx.db.patch(lookup.multiBooking._id, {
-			sessions: lookup.multiBooking.sessions.map((session) =>
-				session.slotNumber === args.slotNumber
-					? { bookingId: session.bookingId, cancelledAt: args.now, slotNumber: session.slotNumber }
-					: session
-			)
-		});
-
-		return ok({ cleared: true as const, slotNumber: args.slotNumber });
+		return ok({ cancelled: true as const, bookingId: args.bookingId });
 	} catch {
-		return err({ reason: "PACKAGE_SLOT_CLEAR_FAILED" });
+		return err({ reason: "PACKAGE_BOOKING_CANCEL_FAILED" as const });
 	}
-}
-
-type SaveClearedPackageSlotResult = Awaited<
-	ReturnType<typeof saveClearedPackageSlotInternalHandler>
->;
-
-function buildPackageCalendarBooking(booking: Doc<"bookings">): BookingCalendarEventRecord {
-	return {
-		date: booking.date,
-		duration: booking.duration,
-		email: booking.email,
-		name: booking.name,
-		time: booking.time,
-		...(booking.googleCalendarId ? { googleCalendarId: booking.googleCalendarId } : {}),
-		...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
-	};
-}
-async function getValidPackageByToken(
-	ctx: QueryCtx | MutationCtx,
-	token: string,
-	now: number
-): Promise<Result<ValidPackage, ValidPackageByTokenError>> {
-	const scheduleTokenHash = await hashRescheduleToken(token);
-	const multiBooking = await ctx.db
-		.query("multiBookingPackages")
-		.withIndex("by_scheduleTokenHash", (q) => q.eq("scheduleTokenHash", scheduleTokenHash))
-		.unique();
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_LINK_INVALID" });
-	}
-
-	if (multiBooking.status !== "paid" && multiBooking.status !== "schedule_email_failed") {
-		return err({ reason: "PACKAGE_NOT_PAID" });
-	}
-
-	if (multiBooking.scheduleLinkStatus !== "active") {
-		return err({ reason: "PACKAGE_LINK_INACTIVE" });
-	}
-
-	if (multiBooking.expiresAt === undefined || now >= multiBooking.expiresAt) {
-		return err({ reason: "PACKAGE_LINK_EXPIRED" });
-	}
-
-	return ok({ ...multiBooking, expiresAt: multiBooking.expiresAt });
-}
-
-async function getEditablePackageSlot(
-	ctx: QueryCtx | MutationCtx,
-	token: string,
-	slotNumber: number,
-	leadTimeMinutes: number,
-	now: number
-): Promise<
-	Result<
-		{ multiBooking: ValidPackage; slot: Doc<"multiBookingPackages">["sessions"][number] },
-		PackageSlotLookupError
-	>
-> {
-	const [lookupError, multiBooking] = await getValidPackageByToken(ctx, token, now);
-
-	if (lookupError !== null) {
-		return err(lookupError);
-	}
-
-	const slot = multiBooking.sessions.find((session) => session.slotNumber === slotNumber);
-
-	if (!slot) {
-		return err({ reason: "PACKAGE_SLOT_NOT_FOUND" });
-	}
-
-	if (slot.bookingId && !slot.cancelledAt) {
-		const booking = await ctx.db.get(slot.bookingId);
-		if (
-			booking &&
-			booking.status !== "cancelled" &&
-			isPackageSessionLocked(booking.sessionStartAt, leadTimeMinutes, now)
-		) {
-			return err({ reason: "PACKAGE_SLOT_LOCKED" });
-		}
-	}
-
-	return ok({ multiBooking, slot });
-}
-
-async function buildPackageSessionViews(ctx: QueryCtx, multiBooking: Doc<"multiBookingPackages">) {
-	const sessions: PackageSessionView[] = [];
-
-	for (const session of multiBooking.sessions) {
-		const booking = session.bookingId ? await ctx.db.get(session.bookingId) : null;
-		sessions.push({
-			booking: booking
-				? {
-						date: booking.date,
-						...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {}),
-						sessionStartAt: booking.sessionStartAt,
-						time: booking.time
-					}
-				: null,
-			cancelledAt: session.cancelledAt,
-			scheduledAt: session.scheduledAt,
-			slotNumber: session.slotNumber
-		});
-	}
-
-	return sessions;
 }

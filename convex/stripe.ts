@@ -9,6 +9,7 @@ import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/boo
 import { err, ok, type Result } from "../src/lib/result";
 import { env } from "./env";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
+import type { BookingAvailabilityValidationError } from "./lib/bookingCalendarTime";
 
 function getStripeClient() {
 	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
@@ -16,15 +17,7 @@ function getStripeClient() {
 
 type PendingBookingCreationResult = Result<
 	{ bookingId: Id<"bookings"> },
-	{
-		reason:
-			| "BOOKING_INVALID_DATE"
-			| "BOOKING_INVALID_DURATION"
-			| "BOOKING_INVALID_TIME"
-			| "BOOKING_OUTSIDE_OPENING_HOURS"
-			| "BOOKING_TOO_FAR_AHEAD"
-			| "BOOKING_TOO_SOON";
-	}
+	BookingAvailabilityValidationError
 >;
 
 export const createEmbeddedCheckoutSession = action({

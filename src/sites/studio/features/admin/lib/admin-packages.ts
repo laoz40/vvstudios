@@ -6,6 +6,8 @@ export type AdminPackageStatus =
 	| "invoice_email_failed"
 	| "schedule_email_failed";
 
+type AdminPackageRecord = Doc<"multiBookingPackages"> & { bookedSessions?: number };
+
 export type AdminPackageRow = {
 	id: Doc<"multiBookingPackages">["_id"];
 	customerName: string;
@@ -130,12 +132,8 @@ export function getPackageArchiveActionLabel(
 	return "Unarchive";
 }
 
-export function mapPackageToAdminRow(
-	multiBookingPackage: Doc<"multiBookingPackages">
-): AdminPackageRow {
-	const bookedSessions = multiBookingPackage.sessions.filter(
-		(session) => session.bookingId !== undefined && session.cancelledAt === undefined
-	).length;
+export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): AdminPackageRow {
+	const bookedSessions = multiBookingPackage.bookedSessions ?? 0;
 
 	return {
 		id: multiBookingPackage._id,

@@ -3,10 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import type {
-	ClearPackageSlotResult,
+	CreatePackageBookingResult,
 	GetPackageByTokenResult,
-	SavePackageSlotResult
+	ReschedulePackageBookingResult,
+	UnschedulePackageBookingResult
 } from "#convex/packageScheduling";
 import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
@@ -17,14 +19,14 @@ import { PackageSessionsAccordion } from "#studio/features/booking-form/componen
 import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	closeBookingModal,
-	openPackageSlotConfirmationModal,
+	openPackageUnscheduleConfirmationModal,
 	useBookingModalStore
 } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
-	getClearPackageSlotToastMessage,
+	getUnschedulePackageBookingToastMessage,
 	getPackageAvailabilityErrorMessage,
 	getPackageLinkInvalidMessage,
-	getSavePackageSlotToastMessage
+	getSavePackageBookingToastMessage
 } from "#studio/features/booking-form/lib/package-scheduling-errors";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
@@ -56,6 +58,8 @@ export const Route = createFileRoute("/_public/multi-booking/$token")({
 	head: () => buildNoIndexHead("Schedule Package Sessions | VV Studios"),
 	component: MultiBookingSchedulePage
 });
+
+type SavePackageBookingResult = CreatePackageBookingResult | ReschedulePackageBookingResult;
 
 function MultiBookingSchedulePage() {
 	const { token } = Route.useParams();
@@ -100,8 +104,9 @@ function PackageScheduleContent({
 }) {
 	// Convex functions
 	const getPackageBusyWindows = useAction(api.packageSchedulingCalendar.getPackageBusyWindows);
-	const savePackageSlot = useAction(api.packageScheduling.savePackageSlot);
-	const clearPackageSlot = useAction(api.packageScheduling.clearPackageSlot);
+	const createPackageBooking = useAction(api.packageScheduling.createPackageBooking);
+	const reschedulePackageBooking = useAction(api.packageScheduling.reschedulePackageBooking);
+	const unschedulePackageBooking = useAction(api.packageScheduling.unschedulePackageBooking);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 
 	// Availability state
@@ -114,16 +119,16 @@ function PackageScheduleContent({
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 
-	// Slot selection state
-	const [activeSlotNumber, setActiveSlotNumber] = useState<number | null>(null);
+	// Session selection state
+	const [activeSessionKey, setActiveSessionKey] = useState<string | null>(null);
 	const [calendarMonth, setCalendarMonth] = useState(() =>
 		parseMonthKey(formatMonthKey(startOfToday()))
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedTime, setSelectedTime] = useState("");
-	const [savingSlotNumber, setSavingSlotNumber] = useState<number | null>(null);
-	const [clearingSlotNumber, setClearingSlotNumber] = useState<number | null>(null);
-	const [highlightedSlotNumber, setHighlightedSlotNumber] = useState<number | null>(null);
+	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
+	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
+	const [highlightedBookingId, setHighlightedBookingId] = useState<Id<"bookings"> | null>(null);
 
 	const today = useMemo(() => startOfToday(), []);
 	const selectedDate = parseDateValue(selectedDateValue);
@@ -139,12 +144,10 @@ function PackageScheduleContent({
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
-	const activeSession = packageData.sessions.find(
-		(session) => session.slotNumber === activeSlotNumber
-	);
+	const activeBooking = packageData.bookings.find((booking) => booking._id === activeSessionKey);
 	const visibleMonthlyBusyWindowsByMonth = useMemo(
-		() => excludeBusyEvent(monthlyBusyWindowsByMonth, activeSession?.booking?.googleEventId),
-		[activeSession?.booking?.googleEventId, monthlyBusyWindowsByMonth]
+		() => excludeBusyEvent(monthlyBusyWindowsByMonth, activeBooking?.googleEventId),
+		[activeBooking?.googleEventId, monthlyBusyWindowsByMonth]
 	);
 
 	// Load the saved availability rate limit key.
@@ -216,27 +219,27 @@ function PackageScheduleContent({
 
 	// Fade the updated session border back after the success highlight.
 	useEffect(() => {
-		if (highlightedSlotNumber === null) {
+		if (highlightedBookingId === null) {
 			return;
 		}
 
 		const timeout = window.setTimeout(() => {
-			setHighlightedSlotNumber(null);
+			setHighlightedBookingId(null);
 		}, 1_000);
 
 		return () => {
 			window.clearTimeout(timeout);
 		};
-	}, [highlightedSlotNumber]);
+	}, [highlightedBookingId]);
 
-	function handleChooseSlot(slotNumber: number, dateValue?: string, time?: string) {
-		setActiveSlotNumber(slotNumber);
+	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
+		setActiveSessionKey(sessionKey);
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedTime(time ?? "");
 	}
 
-	function handleCloseSlot() {
-		setActiveSlotNumber(null);
+	function handleCloseSession() {
+		setActiveSessionKey(null);
 	}
 
 	function handleDateChange(dateValue: string) {
@@ -244,9 +247,9 @@ function PackageScheduleContent({
 		setSelectedTime("");
 	}
 
-	function handleRequestSaveSlot() {
-		if (activeSlotNumber === null) {
-			toast.error("Choose a session slot first.");
+	function handleRequestSaveSession() {
+		if (activeSessionKey === null) {
+			toast.error("Choose a session first.");
 			return;
 		}
 
@@ -255,88 +258,84 @@ function PackageScheduleContent({
 			return;
 		}
 
-		void handleSaveSlot({
-			date: selectedDateValue,
-			slotNumber: activeSlotNumber,
-			time: selectedTime
-		});
+		void handleSaveSession();
 	}
 
-	function handleRequestClearSlot(slotNumber: number, date: string) {
-		openPackageSlotConfirmationModal({
+	function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
+		openPackageUnscheduleConfirmationModal({
+			bookingId,
 			dateSummary: formatBookingDateSummary(date),
-			modal: "packageSlotConfirmation",
-			slotNumber,
-			type: "clear"
+			modal: "packageUnscheduleConfirmation",
+			type: "unschedule"
 		});
 	}
 
-	async function handleConfirmSlotAction() {
+	async function handleConfirmUnschedule() {
 		const confirmation = useBookingModalStore.getState();
 
-		if (confirmation.modal !== "packageSlotConfirmation") {
+		if (confirmation.modal !== "packageUnscheduleConfirmation") {
 			return;
 		}
 
-		if (confirmation.type === "save") {
-			await handleSaveSlot({
-				date: confirmation.date,
-				slotNumber: confirmation.slotNumber,
-				time: confirmation.time
-			});
-			return;
-		}
-
-		await handleClearSlot(confirmation.slotNumber);
+		await handleUnschedule(confirmation.bookingId);
 	}
 
-	async function handleSaveSlot(confirmation: { date: string; slotNumber: number; time: string }) {
-		setSavingSlotNumber(confirmation.slotNumber);
-		const [saveError] = await tryCatch<SavePackageSlotResult>(
-			savePackageSlot({
-				date: confirmation.date,
-				slotNumber: confirmation.slotNumber,
-				time: confirmation.time,
-				token
-			})
-		);
-		setSavingSlotNumber(null);
+	async function handleSaveSession() {
+		if (activeSessionKey === null) {
+			return;
+		}
+
+		setSavingSessionKey(activeSessionKey);
+		const saveAction = activeBooking
+			? reschedulePackageBooking({
+					bookingId: activeBooking._id,
+					date: selectedDateValue,
+					time: selectedTime,
+					token
+				})
+			: createPackageBooking({ date: selectedDateValue, time: selectedTime, token });
+		const [saveError, saveResult] = await tryCatch<SavePackageBookingResult>(saveAction);
+		setSavingSessionKey(null);
 
 		if (saveError !== null) {
-			toast.error(getSavePackageSlotToastMessage(saveError, noticeWindowLabel));
+			toast.error(getSavePackageBookingToastMessage(saveError, noticeWindowLabel));
 			return;
 		}
 
 		closeBookingModal();
-		setActiveSlotNumber(null);
-		setHighlightedSlotNumber(confirmation.slotNumber);
-		toast.success("Calendar event created. Check your email for the invitation.");
+		setActiveSessionKey(null);
+		setHighlightedBookingId(saveResult.bookingId);
+		toast.success(
+			activeBooking
+				? "Session rescheduled. Check your email for the updated invitation."
+				: "Calendar event created. Check your email for the invitation."
+		);
 		setMonthlyBusyWindowsByMonth({});
 	}
 
-	async function handleClearSlot(slotNumber: number) {
-		setClearingSlotNumber(slotNumber);
-		const [clearError] = await tryCatch<ClearPackageSlotResult>(
-			clearPackageSlot({ slotNumber, token })
+	async function handleUnschedule(bookingId: Id<"bookings">) {
+		setUnschedulingBookingId(bookingId);
+		const [unscheduleError] = await tryCatch<UnschedulePackageBookingResult>(
+			unschedulePackageBooking({ bookingId, token })
 		);
-		setClearingSlotNumber(null);
+		setUnschedulingBookingId(null);
 
-		if (clearError !== null) {
-			toast.error(getClearPackageSlotToastMessage(clearError, noticeWindowLabel));
+		if (unscheduleError !== null) {
+			toast.error(getUnschedulePackageBookingToastMessage(unscheduleError, noticeWindowLabel));
 			return;
 		}
 
 		closeBookingModal();
-		setActiveSlotNumber(null);
-		setHighlightedSlotNumber(slotNumber);
+		setActiveSessionKey(null);
+		setHighlightedBookingId(null);
 		setMonthlyBusyWindowsByMonth({});
 
-		if (activeSlotNumber === slotNumber) {
+		if (activeSessionKey === bookingId) {
 			setSelectedDateValue("");
 			setSelectedTime("");
 		}
 
-		toast.success(`Session ${slotNumber} cleared.`);
+		toast.success("Session unscheduled.");
 	}
 
 	const selectedBusyDay = selectedDateValue
@@ -400,22 +399,21 @@ function PackageScheduleContent({
 				<PackageScheduleSummary packageData={packageData} />
 
 				<PackageSessionsAccordion
-					activeSlotNumber={activeSlotNumber}
+					activeSessionKey={activeSessionKey}
 					availability={availability}
-					clearingSlotNumber={clearingSlotNumber}
-					highlightedSlotNumber={highlightedSlotNumber}
+					highlightedBookingId={highlightedBookingId}
 					packageData={packageData}
-					savingSlotNumber={savingSlotNumber}
+					savingSessionKey={savingSessionKey}
 					selectedDateValue={selectedDateValue}
 					selectedTime={selectedTime}
 					timeSelectionMessage={timeSelectionMessage}
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
-					onRequestClearSlot={handleRequestClearSlot}
-					onRequestSaveSlot={handleRequestSaveSlot}
-					onSlotClose={handleCloseSlot}
-					onSlotSelect={handleChooseSlot}
+					onRequestUnschedule={handleRequestUnschedule}
+					onRequestSaveSession={handleRequestSaveSession}
+					onSessionClose={handleCloseSession}
+					onSessionSelect={handleChooseSession}
 					onTimeChange={setSelectedTime}
 				/>
 
@@ -426,8 +424,8 @@ function PackageScheduleContent({
 				</p>
 			</div>
 			<BookingModalHost
-				isSubmitting={savingSlotNumber !== null || clearingSlotNumber !== null}
-				onPackageSlotConfirm={handleConfirmSlotAction}
+				isSubmitting={savingSessionKey !== null || unschedulingBookingId !== null}
+				onPackageUnscheduleConfirm={handleConfirmUnschedule}
 				onPaymentClose={() => {}}
 				onTermsConfirm={() => {}}
 			/>

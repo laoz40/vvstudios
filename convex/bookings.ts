@@ -22,11 +22,18 @@ import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
-import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
+import {
+	checkBookingMeetsAvailabilitySettings,
+	type BookingAvailabilityValidationError
+} from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { generateRescheduleToken, hashRescheduleToken } from "./lib/bookingRescheduleLinks";
+import {
+	bookingConsumesPackageCapacity,
+	getCapacityConsumingPackageBookings
+} from "./lib/packageScheduling";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -37,15 +44,7 @@ const bookingInvoiceLineItemValidator = v.object({
 
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
-	{
-		reason:
-			| "BOOKING_INVALID_DATE"
-			| "BOOKING_INVALID_DURATION"
-			| "BOOKING_INVALID_TIME"
-			| "BOOKING_OUTSIDE_OPENING_HOURS"
-			| "BOOKING_TOO_FAR_AHEAD"
-			| "BOOKING_TOO_SOON";
-	}
+	BookingAvailabilityValidationError
 >;
 
 export const checkBookingSubmitRateLimitInternal = internalMutation({
@@ -171,8 +170,7 @@ export const createPendingMultiBooking = internalMutation({
 			status: "pending_payment" as const,
 			createdAt,
 			invoiceDueAt,
-			invoiceEmailStatus: "pending" as const,
-			sessions: Array.from({ length: args.packageSize }, (_, index) => ({ slotNumber: index + 1 }))
+			invoiceEmailStatus: "pending" as const
 		};
 
 		try {
@@ -238,11 +236,26 @@ export const listPackages = query({
 			throw new ConvexError(authError);
 		}
 
-		return await ctx.db
+		const packagesPage = await ctx.db
 			.query("multiBookingPackages")
 			.withIndex("by_createdAt")
 			.order("desc")
 			.paginate(args.paginationOpts);
+
+		const page = await Promise.all(
+			packagesPage.page.map(async (multiBookingPackage) => ({
+				...multiBookingPackage,
+				bookedSessions: (
+					await getCapacityConsumingPackageBookings(
+						ctx,
+						multiBookingPackage._id,
+						multiBookingPackage.packageSize
+					)
+				).length
+			}))
+		);
+
+		return { ...packagesPage, page };
 	}
 });
 
@@ -285,16 +298,6 @@ type UpdatePackageFromAdminArgs = {
 	totalDueAmount?: number;
 };
 
-function buildPackageSessions(
-	sessions: Doc<"multiBookingPackages">["sessions"],
-	packageSize: MultiBookingSize
-) {
-	return Array.from({ length: packageSize }, (_, index) => {
-		const slotNumber = index + 1;
-		return sessions.find((session) => session.slotNumber === slotNumber) ?? { slotNumber };
-	});
-}
-
 async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePackageFromAdminArgs) {
 	const [authError] = await getAdminIdentity(ctx);
 
@@ -320,17 +323,13 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 	}
 
 	const multiBookingData = parsedMultiBooking.data;
-	const activeBookedSessions = multiBooking.sessions.filter(
-		(session) => session.bookingId !== undefined && session.cancelledAt === undefined
-	);
-	const hasBookedSessionBeyondPackageSize = activeBookedSessions.some(
-		(session) => session.slotNumber > multiBookingData.packageSize
+	const activeBookedSessions = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
 	);
 
-	if (
-		multiBookingData.packageSize < activeBookedSessions.length ||
-		hasBookedSessionBeyondPackageSize
-	) {
+	if (multiBookingData.packageSize < activeBookedSessions.length) {
 		return err({ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" });
 	}
 
@@ -383,8 +382,7 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 			discountPercent: amounts.discountPercent,
 			discountAmount: amounts.discountAmount,
 			totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
-			invoiceLineItems,
-			sessions: buildPackageSessions(multiBooking.sessions, multiBookingData.packageSize)
+			invoiceLineItems
 		});
 	} catch {
 		return err({ reason: "PACKAGE_UPDATE_FAILED" });
@@ -628,11 +626,20 @@ async function getBookingsHandler(
 			}
 
 			const multiBookingPackage = await ctx.db.get(booking.multiBookingPackageId);
+			if (!multiBookingPackage) return booking;
+			const packageBookings = await getCapacityConsumingPackageBookings(
+				ctx,
+				multiBookingPackage._id,
+				multiBookingPackage.packageSize
+			);
 
 			return {
 				...booking,
-				multiBookingInvoiceNumber: multiBookingPackage?.invoiceNumber,
-				multiBookingPackageSize: multiBookingPackage?.packageSize
+				multiBookingInvoiceNumber: multiBookingPackage.invoiceNumber,
+				multiBookingPackageSize: multiBookingPackage.packageSize,
+				multiBookingPackageSessionPosition: bookingConsumesPackageCapacity(booking)
+					? packageBookings.findIndex(({ _id }) => _id === booking._id) + 1
+					: undefined
 			};
 		})
 	);
@@ -1293,10 +1300,20 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		sessionStartAt: v.number(),
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
-		googleEventId: v.optional(v.string())
+		googleEventId: v.optional(v.string()),
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
 	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (
+			bookingError === null &&
+			args.multiBookingPackageId !== undefined &&
+			(booking.multiBookingPackageId !== args.multiBookingPackageId ||
+				!bookingConsumesPackageCapacity(booking))
+		) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
 		if (bookingError !== null) {
 			return err(bookingError);

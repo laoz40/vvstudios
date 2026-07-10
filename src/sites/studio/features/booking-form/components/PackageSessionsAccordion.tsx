@@ -12,6 +12,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
+import type { Id } from "#convex/_generated/dataModel";
 import type { GetPackageByTokenResult } from "#convex/packageScheduling";
 import {
 	BookingDateTimePicker,
@@ -28,49 +29,50 @@ import {
 import { cn } from "#/lib/utils";
 
 interface PackageSessionsAccordionProps {
-	activeSlotNumber: number | null;
+	activeSessionKey: string | null;
 	availability: BookingDateTimePickerProps["availability"];
-	clearingSlotNumber: number | null;
-	highlightedSlotNumber: number | null;
+	highlightedBookingId: Id<"bookings"> | null;
 	packageData: NonNullable<GetPackageByTokenResult[1]>;
-	savingSlotNumber: number | null;
+	savingSessionKey: string | null;
 	selectedDateValue: string;
 	selectedTime: string;
 	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
 	leadTimeMinutes: number;
 	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
-	onRequestClearSlot: (slotNumber: number, date: string) => void;
-	onRequestSaveSlot: () => void;
-	onSlotClose: () => void;
-	onSlotSelect: (slotNumber: number, dateValue?: string, time?: string) => void;
+	onRequestUnschedule: (bookingId: Id<"bookings">, date: string) => void;
+	onRequestSaveSession: () => void;
+	onSessionClose: () => void;
+	onSessionSelect: (sessionKey: string, dateValue?: string, time?: string) => void;
 	onTimeChange: (time: string) => void;
 }
 
 export function PackageSessionsAccordion({
-	activeSlotNumber,
+	activeSessionKey,
 	availability,
-	highlightedSlotNumber,
+	highlightedBookingId,
 	packageData,
-	savingSlotNumber,
+	savingSessionKey,
 	selectedDateValue,
 	selectedTime,
 	timeSelectionMessage,
 	leadTimeMinutes,
 	currentTimestamp,
 	onDateChange,
-	onRequestClearSlot,
-	onRequestSaveSlot,
-	onSlotClose,
-	onSlotSelect,
+	onRequestUnschedule,
+	onRequestSaveSession,
+	onSessionClose,
+	onSessionSelect,
 	onTimeChange
 }: PackageSessionsAccordionProps) {
-	const hasActiveSession = packageData.sessions.some(
-		(session) => session.slotNumber === activeSlotNumber
-	);
-	const scheduledSessions = packageData.sessions.filter(
-		(session) => session.booking !== null && !session.cancelledAt
-	).length;
+	const sessions = [
+		...packageData.bookings.map((booking) => ({ booking, key: booking._id })),
+		...Array.from(
+			{ length: packageData.packageSize - packageData.bookings.length },
+			(_, index) => ({ booking: null, key: `empty-${index}` })
+		)
+	];
+	const hasActiveSession = sessions.some((session) => session.key === activeSessionKey);
 	const selectedDateSummary = selectedDateValue
 		? formatBookingDateSummaryWithoutYear(selectedDateValue)
 		: "No selected date";
@@ -87,45 +89,41 @@ export function PackageSessionsAccordion({
 			// needs overflow-visible so shadows on edge-aligned controls are not cut off
 			// by the animated content wrapper.
 			className="mt-12 grid gap-4 [&_[data-slot=accordion-content][data-state=open]]:overflow-visible"
-			value={activeSlotNumber === null ? "" : String(activeSlotNumber)}
+			value={activeSessionKey ?? ""}
 			onValueChange={(value) => {
 				if (!value) {
-					onSlotClose();
+					onSessionClose();
 					return;
 				}
 
-				const slotNumber = Number(value);
-				const session = packageData.sessions.find(
-					(packageSession) => packageSession.slotNumber === slotNumber
-				);
-				const booking = session && !session.cancelledAt ? session.booking : null;
-
-				onSlotSelect(slotNumber, booking?.date, booking?.time);
+				const session = sessions.find((packageSession) => packageSession.key === value);
+				onSessionSelect(value, session?.booking?.date, session?.booking?.time);
 			}}>
 			<div className="flex flex-row justify-between">
 				<h2 className={sectionHeadingClassName}>Your Sessions</h2>
 				<p className="text-sm text-muted-foreground">
-					{scheduledSessions} of {packageData.packageSize} sessions scheduled
+					You have {packageData.packageSize - packageData.bookings.length} sessions left to
+					schedule.
 				</p>
 			</div>
 
-			{packageData.sessions.map((session, index) => {
-				const booking = session.cancelledAt ? null : session.booking;
+			{sessions.map((session, index) => {
+				const booking = session.booking;
 				const isPastSession = Boolean(booking && booking.sessionStartAt < currentTimestamp);
 				const isSessionLocked = Boolean(
 					booking &&
 					isPackageSessionLocked(booking.sessionStartAt, leadTimeMinutes, currentTimestamp)
 				);
-				const isActive = activeSlotNumber === session.slotNumber;
+				const isActive = activeSessionKey === session.key;
 				const canEdit = !isSessionLocked;
 				const canClear = Boolean(booking && canEdit);
-				const isHighlighted = highlightedSlotNumber === session.slotNumber;
+				const isHighlighted = highlightedBookingId === booking?._id;
 				const isSelectedBookingSaved = Boolean(
 					booking && booking.date === selectedDateValue && booking.time === selectedTime
 				);
 				let saveButtonText = "SAVE SESSION";
 
-				if (savingSlotNumber === session.slotNumber) {
+				if (savingSessionKey === session.key) {
 					saveButtonText = "SAVING...";
 				} else if (isSelectedBookingSaved) {
 					saveButtonText = "SAVED";
@@ -133,8 +131,8 @@ export function PackageSessionsAccordion({
 
 				return (
 					<AccordionItem
-						key={session.slotNumber}
-						value={String(session.slotNumber)}
+						key={session.key}
+						value={session.key}
 						disabled={!canEdit}
 						className={cn(
 							"rounded-xl border bg-surface-subtle px-4 sm:px-6",
@@ -197,11 +195,11 @@ export function PackageSessionsAccordion({
 												<DropdownMenuItem
 													onSelect={() => {
 														if (isActive) {
-															onSlotClose();
+															onSessionClose();
 															return;
 														}
 
-														onSlotSelect(session.slotNumber, booking?.date, booking?.time);
+														onSessionSelect(session.key, booking?.date, booking?.time);
 													}}>
 													{isActive ? "Close" : "Edit"}
 												</DropdownMenuItem>
@@ -212,7 +210,7 @@ export function PackageSessionsAccordion({
 															return;
 														}
 
-														onRequestClearSlot(session.slotNumber, booking.date);
+														onRequestUnschedule(booking._id, booking.date);
 													}}>
 													Unschedule
 												</DropdownMenuItem>
@@ -236,7 +234,7 @@ export function PackageSessionsAccordion({
 													return;
 												}
 
-												onRequestClearSlot(session.slotNumber, booking.date);
+												onRequestUnschedule(booking._id, booking.date);
 											}}
 											onKeyDown={(event) => {
 												if (event.key !== "Enter" && event.key !== " ") {
@@ -250,7 +248,7 @@ export function PackageSessionsAccordion({
 													return;
 												}
 
-												onRequestClearSlot(session.slotNumber, booking.date);
+												onRequestUnschedule(booking._id, booking.date);
 											}}>
 											UNSCHEDULE
 										</span>
@@ -304,10 +302,10 @@ export function PackageSessionsAccordion({
 										!selectedDateValue ||
 										!selectedTime ||
 										isSelectedBookingSaved ||
-										savingSlotNumber !== null
+										savingSessionKey !== null
 									}
-									onClick={onRequestSaveSlot}>
-									{savingSlotNumber === session.slotNumber ? (
+									onClick={onRequestSaveSession}>
+									{savingSessionKey === session.key ? (
 										<LoaderCircle className="size-4 animate-spin" />
 									) : null}
 									{saveButtonText}

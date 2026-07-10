@@ -109,17 +109,17 @@ export default defineSchema({
 		googleCalendarId: v.optional(v.string()),
 
 		// Multi-booking package link, when this booking is one scheduled package session
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
-		multiBookingSlotNumber: v.optional(v.number())
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
 	})
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
-		.index("by_multiBookingPackageId_and_multiBookingSlotNumber", [
+		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
 			"multiBookingPackageId",
-			"multiBookingSlotNumber"
+			"status",
+			"sessionStartAt"
 		]),
 
 	multiBookingPackages: defineTable({
@@ -172,16 +172,6 @@ export default defineSchema({
 		scheduleTokenHash: v.optional(v.string()),
 		scheduleLinkStatus: v.optional(
 			v.union(v.literal("active"), v.literal("expired"), v.literal("disabled"))
-		),
-
-		// Bounded package slots. Date/time/calendar data lives on linked bookings.
-		sessions: v.array(
-			v.object({
-				slotNumber: v.number(),
-				bookingId: v.optional(v.id("bookings")),
-				scheduledAt: v.optional(v.number()),
-				cancelledAt: v.optional(v.number())
-			})
 		)
 	})
 		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])

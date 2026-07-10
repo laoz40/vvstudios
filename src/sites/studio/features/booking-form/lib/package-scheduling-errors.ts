@@ -1,15 +1,21 @@
 import type {
-	ClearPackageSlotResult,
+	CreatePackageBookingResult,
 	GetPackageByTokenResult,
-	SavePackageSlotResult
+	ReschedulePackageBookingResult,
+	UnschedulePackageBookingResult
 } from "#convex/packageScheduling";
 import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import type { UnexpectedError } from "#/lib/result";
 
 type PackageLookupError = NonNullable<GetPackageByTokenResult[0]>;
 type PackageBusyWindowsError = NonNullable<GetPackageBusyWindowsResult[0]> | UnexpectedError;
-type SavePackageSlotError = NonNullable<SavePackageSlotResult[0]> | UnexpectedError;
-type ClearPackageSlotError = NonNullable<ClearPackageSlotResult[0]> | UnexpectedError;
+type SavePackageBookingError =
+	| NonNullable<CreatePackageBookingResult[0]>
+	| NonNullable<ReschedulePackageBookingResult[0]>
+	| UnexpectedError;
+type UnschedulePackageBookingError =
+	| NonNullable<UnschedulePackageBookingResult[0]>
+	| UnexpectedError;
 
 export function getPackageLinkInvalidMessage(error: PackageLookupError) {
 	switch (error.reason) {
@@ -62,8 +68,8 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 	}
 }
 
-export function getSavePackageSlotToastMessage(
-	error: SavePackageSlotError,
+export function getSavePackageBookingToastMessage(
+	error: SavePackageBookingError,
 	noticeWindowLabel: string
 ) {
 	switch (error.reason) {
@@ -72,9 +78,12 @@ export function getSavePackageSlotToastMessage(
 		case "PACKAGE_LINK_INACTIVE":
 		case "PACKAGE_NOT_PAID":
 			return getPackageLinkInvalidMessage(error).description;
-		case "PACKAGE_SLOT_NOT_FOUND":
-			return "This session slot could not be found.";
-		case "PACKAGE_SLOT_LOCKED":
+		case "PACKAGE_CAPACITY_EXCEEDED":
+			return "All sessions in this package are already scheduled.";
+		case "PACKAGE_BOOKING_NOT_FOUND":
+		case "BOOKING_NOT_FOUND":
+			return "This package session could not be found.";
+		case "PACKAGE_BOOKING_LOCKED":
 			return `This session can only be changed more than ${noticeWindowLabel} before it starts.`;
 		case "BOOKING_INVALID_DATE":
 			return "Please choose a valid date.";
@@ -94,12 +103,11 @@ export function getSavePackageSlotToastMessage(
 			return "Too many session updates. Please wait a minute and try again.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
-		case "GOOGLE_CALENDAR_CREATE_FAILED":
-		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+		case "GOOGLE_CALENDAR_SYNC_FAILED":
 			return "Could not update the calendar event. Please try again.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Availability was checked too many times. Please wait a minute and try again.";
-		case "PACKAGE_SLOT_SAVE_FAILED":
+		case "PACKAGE_BOOKING_SAVE_FAILED":
 			return "Could not save this session. Please try again.";
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while saving this session.";
@@ -110,8 +118,8 @@ export function getSavePackageSlotToastMessage(
 	}
 }
 
-export function getClearPackageSlotToastMessage(
-	error: ClearPackageSlotError,
+export function getUnschedulePackageBookingToastMessage(
+	error: UnschedulePackageBookingError,
 	noticeWindowLabel: string
 ) {
 	switch (error.reason) {
@@ -120,22 +128,20 @@ export function getClearPackageSlotToastMessage(
 		case "PACKAGE_LINK_INACTIVE":
 		case "PACKAGE_NOT_PAID":
 			return getPackageLinkInvalidMessage(error).description;
-		case "PACKAGE_SLOT_NOT_FOUND":
-			return "This session slot could not be found.";
-		case "PACKAGE_SLOT_LOCKED":
-			return `This session can only be cleared more than ${noticeWindowLabel} before it starts.`;
-		case "BOOKING_RATE_LIMITED":
-			return "Too many session updates. Please wait a minute and try again.";
+		case "PACKAGE_BOOKING_NOT_FOUND":
+			return "This package session could not be found.";
+		case "PACKAGE_BOOKING_LOCKED":
+			return `This session can only be unscheduled more than ${noticeWindowLabel} before it starts.`;
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
-		case "GOOGLE_CALENDAR_DELETE_FAILED":
+		case "GOOGLE_CALENDAR_SYNC_FAILED":
 			return "Could not remove the calendar event. Please try again.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Calendar updates are busy. Please wait a minute and try again.";
-		case "PACKAGE_SLOT_CLEAR_FAILED":
-			return "Could not clear this session. Please try again.";
+		case "PACKAGE_BOOKING_CANCEL_FAILED":
+			return "Could not unschedule this session. Please try again.";
 		case "UNEXPECTED_ERROR":
-			return "Something went wrong while clearing this session.";
+			return "Something went wrong while unscheduling this session.";
 		default: {
 			const _exhaustive: never = error;
 			return _exhaustive;

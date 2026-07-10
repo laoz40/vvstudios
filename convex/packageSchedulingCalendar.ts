@@ -16,7 +16,7 @@ import {
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { checkGoogleCalendarAvailabilityRateLimit } from "./lib/rateLimits";
 import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
-import type { ValidPackage, ValidPackageByTokenError } from "./packageScheduling";
+import type { ValidPackage, ValidPackageByTokenError } from "./lib/packageScheduling";
 import {
 	createBookingCalendarEvent,
 	deleteBookingCalendarEvent,
@@ -119,15 +119,15 @@ const packageCalendarDetailsValidator = v.object({
 	time: v.string()
 });
 
-export const savePackageSlotCalendarEventInternal = internalAction({
+export const createPackageBookingCalendarEventInternal = internalAction({
 	args: {
 		booking: v.union(v.null(), packageCalendarBookingValidator),
 		details: packageCalendarDetailsValidator
 	},
-	handler: async (ctx, args) => savePackageSlotCalendarEventInternalHandler(ctx, args)
+	handler: async (ctx, args) => savePackageBookingCalendarEventInternalHandler(ctx, args)
 });
 
-async function savePackageSlotCalendarEventInternalHandler(
+async function savePackageBookingCalendarEventInternalHandler(
 	_ctx: ActionCtx,
 	args: {
 		booking: BookingCalendarEventRecord | null;
@@ -147,9 +147,8 @@ async function savePackageSlotCalendarEventInternalHandler(
 		{ googleCalendarId?: string; googleEventId?: string },
 		| { reason: "BOOKING_TIME_UNAVAILABLE" }
 		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
-		| { reason: "GOOGLE_CALENDAR_CREATE_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-		| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }
+		| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" }
 	>
 > {
 	try {
@@ -197,7 +196,15 @@ async function savePackageSlotCalendarEventInternalHandler(
 			});
 
 			if (updateError !== null) {
-				return err(updateError);
+				if (updateError.reason === "GOOGLE_CALENDAR_AUTH_FAILED") {
+					return err({ reason: "GOOGLE_CALENDAR_AUTH_FAILED" });
+				}
+
+				if (updateError.reason === "GOOGLE_CALENDAR_RATE_LIMITED") {
+					return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+				}
+
+				return err({ reason: "GOOGLE_CALENDAR_SYNC_FAILED" });
 			}
 
 			return ok({
@@ -218,7 +225,15 @@ async function savePackageSlotCalendarEventInternalHandler(
 		});
 
 		if (createError !== null) {
-			return err(createError);
+			if (createError.reason === "GOOGLE_CALENDAR_AUTH_FAILED") {
+				return err({ reason: "GOOGLE_CALENDAR_AUTH_FAILED" });
+			}
+
+			if (createError.reason === "GOOGLE_CALENDAR_RATE_LIMITED") {
+				return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+			}
+
+			return err({ reason: "GOOGLE_CALENDAR_SYNC_FAILED" });
 		}
 
 		return ok({
@@ -226,21 +241,40 @@ async function savePackageSlotCalendarEventInternalHandler(
 			...(createResult.googleEventId ? { googleEventId: createResult.googleEventId } : {})
 		});
 	} catch (error) {
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
+		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_SYNC_FAILED") });
 	}
 }
 
-export const deletePackageSlotCalendarEventInternal = internalAction({
+export const updatePackageBookingCalendarEventInternal = internalAction({
+	args: { booking: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
+	handler: async (_ctx, args) => savePackageBookingCalendarEventInternalHandler(_ctx, args)
+});
+
+export const deletePackageBookingCalendarEventInternal = internalAction({
 	args: { booking: packageCalendarBookingValidator },
 	handler: async (_ctx, args) => {
 		try {
 			const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-			return await deleteBookingCalendarEvent({
+			const [deleteError, deleteResult] = await deleteBookingCalendarEvent({
 				booking: args.booking,
 				client: { calendar, calendarId, timeZone }
 			});
+
+			if (deleteError !== null) {
+				if (deleteError.reason === "GOOGLE_CALENDAR_AUTH_FAILED") {
+					return err({ reason: "GOOGLE_CALENDAR_AUTH_FAILED" });
+				}
+
+				if (deleteError.reason === "GOOGLE_CALENDAR_RATE_LIMITED") {
+					return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+				}
+
+				return err({ reason: "GOOGLE_CALENDAR_SYNC_FAILED" });
+			}
+
+			return ok(deleteResult);
 		} catch (error) {
-			return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
+			return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_SYNC_FAILED") });
 		}
 	}
 });
