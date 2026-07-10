@@ -33,6 +33,8 @@ import {
 	filterAdminPackages,
 	getAdminPackageDashboardDate,
 	getAdminPackageStatusLabel,
+	isAdminPackagePaymentDueClose,
+	isAdminPackageExpiryClose,
 	isAdminPackageExpired,
 	isAdminPackageOverdue,
 	mapPackageToAdminRow,
@@ -67,12 +69,16 @@ function PackageTableDateCell({
 	packageRow: AdminPackageRow;
 }) {
 	const dashboardDate = getAdminPackageDashboardDate(packageRow);
+	const isPaymentDueClose = isAdminPackagePaymentDueClose(packageRow);
+	const isExpiryClose = isAdminPackageExpiryClose(packageRow);
 
 	switch (dashboardDate.kind) {
 		case "payment_due":
 			return (
 				<div className="flex flex-col gap-1">
-					<span>{formatBookingTimestampDateLong(dashboardDate.timestamp)}</span>
+					<span className={cn(isPaymentDueClose && "text-primary")}>
+						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+					</span>
 					<span className="text-xs text-muted-foreground">Payment due</span>
 					{isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
 				</div>
@@ -81,7 +87,9 @@ function PackageTableDateCell({
 		case "package_expiry":
 			return (
 				<div className="flex flex-col gap-1">
-					<span>{formatBookingTimestampDateLong(dashboardDate.timestamp)}</span>
+					<span className={cn(isExpiryClose && "text-primary")}>
+						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+					</span>
 					<span className="text-xs text-muted-foreground">Package expiry</span>
 				</div>
 			);

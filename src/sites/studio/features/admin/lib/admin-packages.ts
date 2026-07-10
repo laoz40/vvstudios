@@ -48,6 +48,10 @@ export type AdminPackagePendingAction =
 	| "scheduleEmail"
 	| null;
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
+const PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION = 7;
+
 export type AdminPackageFilters = {
 	showArchived: boolean;
 	showOverdue: boolean;
@@ -90,6 +94,36 @@ export function isAdminPackageOverdue(
 export function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "isPaid">) {
 	return (
 		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
+	);
+}
+
+export function isAdminPackagePaymentDueClose(
+	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "isPaid">
+) {
+	const millisecondsUntilDue = packageRow.invoiceDueAt - Date.now();
+
+	return (
+		!packageRow.isPaid &&
+		millisecondsUntilDue >= 0 &&
+		millisecondsUntilDue <= PAYMENT_REMINDER_DAYS_BEFORE_DUE * MILLISECONDS_PER_DAY
+	);
+}
+
+export function isAdminPackageExpiryClose(
+	packageRow: Pick<AdminPackageRow, "bookedSessions" | "expiresAt" | "isPaid" | "packageSize">
+) {
+	if (!packageRow.isPaid || packageRow.expiresAt === undefined) {
+		return false;
+	}
+
+	const remainingSessions = packageRow.packageSize - packageRow.bookedSessions;
+	const millisecondsUntilExpiry = packageRow.expiresAt - Date.now();
+
+	return (
+		remainingSessions > 0 &&
+		millisecondsUntilExpiry >= 0 &&
+		millisecondsUntilExpiry <=
+			remainingSessions * PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION * MILLISECONDS_PER_DAY
 	);
 }
 
