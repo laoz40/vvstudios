@@ -1327,7 +1327,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		await ctx.db.patch(args.bookingId, {
 			date: args.date,
 			time: args.time,
-			notes: args.notes,
+			...(args.notes !== undefined ? { notes: args.notes } : {}),
 			sessionStartAt: args.sessionStartAt,
 			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
 			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
