@@ -143,7 +143,7 @@ export function PackageSessionsAccordion({
 						<AccordionTrigger
 							showArrow={false}
 							className={cn(
-								"min-h-24 items-center py-5 hover:no-underline md:py-6",
+								"min-h-24 items-center py-5 hover:no-underline focus-visible:ring-0 focus-visible:ring-offset-0 md:py-6",
 								!canEdit && "cursor-default hover:text-foreground"
 							)}>
 							<span className="flex w-full items-center justify-between gap-6">
@@ -223,7 +223,7 @@ export function PackageSessionsAccordion({
 											className={cn(
 												"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center rounded-lg border px-3 py-1 md:inline-flex",
 												"border-foreground/15 bg-background/30 text-foreground/85",
-												"text-xs font-medium tracking-wider shadow-md hover:text-destructive"
+												"outline-none text-xs font-medium tracking-wider shadow-md hover:text-destructive focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 											)}
 											onClick={(event) => {
 												event.preventDefault();
@@ -260,7 +260,7 @@ export function PackageSessionsAccordion({
 												!booking && !isActive
 													? "border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
 													: "border-foreground/15 bg-background/30 text-foreground/85",
-												"text-xs font-medium tracking-wider shadow-md",
+												"text-xs font-medium tracking-wider shadow-md group-focus-visible:border-ring group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50",
 												(booking || isActive) &&
 													"group-hover:text-primary peer-hover/unschedule:text-foreground/85 hover:text-primary"
 											)}>
