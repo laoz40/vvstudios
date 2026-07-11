@@ -55,10 +55,10 @@ export function PackageExpiryReminderEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Package expiry</Text>
 						<Section style={detailsCard}>
-							<Text style={detailLine}>
+							<Text style={remainingSessionsDetail}>
 								<strong>Remaining sessions:</strong> {remainingSessions}
 							</Text>
-							<Text style={detailLine}>
+							<Text style={expiryDate}>
 								<strong>Expiry date:</strong> {expiresAtLabel}
 							</Text>
 						</Section>
@@ -109,7 +109,21 @@ const detailsCard = {
 	borderRadius: "12px",
 	padding: "16px"
 };
-const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 8px" };
+const remainingSessionsDetail = {
+	color: "#fafafa",
+	fontSize: "22px",
+	fontWeight: "700",
+	lineHeight: "30px",
+	margin: "0 0 8px",
+	textAlign: "center" as const
+};
+const expiryDate = {
+	color: "#ed434b",
+	fontSize: "22px",
+	lineHeight: "30px",
+	margin: "0",
+	textAlign: "center" as const
+};
 const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
 const signature = {
 	color: "#fafafa",

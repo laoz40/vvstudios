@@ -52,17 +52,17 @@ export function PackagePaymentReminderEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Package request</Text>
 						<Section style={detailsCard}>
-							<Text style={detailLine}>
-								<strong>Request date:</strong> {requestDateLabel}
+							<Text style={dueDate}>
+								<strong>Invoice due:</strong> {invoiceDueAtLabel}
 							</Text>
-							<Text style={detailLine}>
-								<strong>Invoice due date:</strong> {invoiceDueAtLabel}
+							<Text style={requestDate}>
+								<strong>Requested:</strong> {requestDateLabel}
 							</Text>
 						</Section>
 					</Section>
 
 					<Section style={section}>
-						<Text style={warning}>
+						<Text style={paragraph}>
 							If payment is not received by the due date, your booking request will be cancelled and
 							the submitted form will be deleted. To book later, you will need to submit a new
 							booking form.
@@ -114,8 +114,21 @@ const detailsCard = {
 	borderRadius: "12px",
 	padding: "16px"
 };
-const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 8px" };
-const warning = { ...paragraph, color: "#f5c400" };
+const dueDate = {
+	color: "#ed434b",
+	fontSize: "22px",
+	fontWeight: "700",
+	lineHeight: "30px",
+	margin: "0 0 8px",
+	textAlign: "center" as const
+};
+const requestDate = {
+	color: "#fafafa",
+	fontSize: "12px",
+	lineHeight: "18px",
+	margin: "0",
+	textAlign: "center" as const
+};
 const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
 const signature = {
 	color: "#fafafa",
