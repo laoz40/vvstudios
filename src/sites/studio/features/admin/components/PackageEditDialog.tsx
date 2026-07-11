@@ -123,7 +123,7 @@ export function PackageEditDialog({
 		}
 
 		setDraft(buildPackageEditDraft(packageRow));
-	}, [open, packageRow.id]);
+	}, [open, packageRow]);
 
 	return (
 		<Dialog
