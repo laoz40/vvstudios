@@ -69,6 +69,14 @@ export function SessionActionsMenu({
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
+	const isArchived = booking.hiddenAt !== undefined;
+	let archiveActionLabel = "Unarchive session";
+
+	if (deleteAction.isUpdatingArchive) {
+		archiveActionLabel = "Updating archive...";
+	} else if (!isArchived) {
+		archiveActionLabel = "Archive session";
+	}
 
 	return (
 		<DropdownMenu modal={false}>
@@ -377,8 +385,8 @@ export function SessionActionsMenu({
 					Delete event
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
-					disabled={deleteAction.isArchiving}
-					onSelect={() => void deleteAction.handleArchiveSession()}
+					disabled={deleteAction.isUpdatingArchive}
+					onSelect={() => void deleteAction.handleArchiveChange(!isArchived)}
 					renderIcon={(iconRef) => (
 						<Stack3Icon
 							ref={iconRef}
@@ -387,7 +395,7 @@ export function SessionActionsMenu({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					{deleteAction.isArchiving ? "Archiving session..." : "Archive session"}
+					{archiveActionLabel}
 				</AnimatedDropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

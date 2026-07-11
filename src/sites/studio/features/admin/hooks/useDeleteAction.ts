@@ -12,7 +12,7 @@ export function useDeleteAction(booking: BookingRecord) {
 	const deleteBookingEvent = useAction(api.googleCalendar.deleteBookingFromAdmin);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
-	const [isArchiving, setIsArchiving] = useState(false);
+	const [isUpdatingArchive, setIsUpdatingArchive] = useState(false);
 
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
@@ -62,11 +62,11 @@ export function useDeleteAction(booking: BookingRecord) {
 		setIsDeleting(false);
 	}
 
-	async function handleArchiveSession() {
-		setIsArchiving(true);
+	async function handleArchiveChange(archived: boolean) {
+		setIsUpdatingArchive(true);
 
 		const [error] = await tryCatch<ArchiveSessionResult>(
-			archiveSession({ bookingId: booking._id, archived: true })
+			archiveSession({ bookingId: booking._id, archived })
 		);
 
 		if (error !== null) {
@@ -92,18 +92,18 @@ export function useDeleteAction(booking: BookingRecord) {
 				}
 			}
 
-			setIsArchiving(false);
+			setIsUpdatingArchive(false);
 			return;
 		}
 
-		toast.success("Session archived.");
-		setIsArchiving(false);
+		toast.success(archived ? "Session archived." : "Session unarchived.");
+		setIsUpdatingArchive(false);
 	}
 
 	return {
-		handleArchiveSession,
+		handleArchiveChange,
 		handleDeleteBooking,
-		isArchiving,
+		isUpdatingArchive,
 		isDeleteDialogOpen,
 		isDeleting,
 		setIsDeleteDialogOpen
