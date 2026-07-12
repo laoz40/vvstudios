@@ -3,13 +3,14 @@ import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
+import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import {
-	bookingStatusBadgeClassNameMap,
-	bookingStatusBadgeVariantMap,
+	bookingStatusIconClassNameMap,
+	bookingStatusIconMap,
 	bookingStatusLabelMap,
 	deliverableStatusBadgeClassNameMap,
 	deliverableStatusBadgeVariantMap,
@@ -56,12 +57,14 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 		<TableRow
 			key={booking._id}
 			className={cn(isPastBooking && "text-muted-foreground")}>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<Badge
-					variant={bookingStatusBadgeVariantMap[booking.status]}
-					className={bookingStatusBadgeClassNameMap[booking.status]}>
-					{bookingStatusLabelMap[booking.status]}
-				</Badge>
+			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
+				<div className="flex justify-center">
+					<StatusIcon
+						icon={bookingStatusIconMap[booking.status]}
+						label={bookingStatusLabelMap[booking.status]}
+						className={bookingStatusIconClassNameMap[booking.status]}
+					/>
+				</div>
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				<div className="flex flex-col gap-1 whitespace-normal">

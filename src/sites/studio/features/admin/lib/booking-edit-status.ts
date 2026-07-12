@@ -1,4 +1,13 @@
 import type { ComponentProps } from "react";
+import {
+	Ban,
+	Check,
+	CalendarX2,
+	Clock,
+	ClockFading,
+	MailWarning,
+	type LucideIcon
+} from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { Badge } from "#/components/ui/badge";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
@@ -16,31 +25,28 @@ export const bookingStatusLabelMap: Record<BookingStatus, string> = {
 	cancelled: "Cancelled",
 	email_failed: "Email failed",
 	expired: "Expired",
-	failed: "Needs follow up",
+	failed: "Calendar error or conflict",
 	pending_payment: "Pending"
 };
 
-export const bookingStatusBadgeVariantMap: Record<
-	BookingStatus,
-	ComponentProps<typeof Badge>["variant"]
-> = {
-	abandoned: "outline",
-	confirmed: "default",
-	cancelled: "outline",
-	expired: "outline",
-	email_failed: "destructive",
-	failed: "destructive",
-	pending_payment: "secondary"
+export const bookingStatusIconMap: Record<BookingStatus, LucideIcon> = {
+	abandoned: Ban,
+	confirmed: Check,
+	cancelled: Ban,
+	expired: ClockFading,
+	email_failed: MailWarning,
+	failed: CalendarX2,
+	pending_payment: Clock
 };
 
-export const bookingStatusBadgeClassNameMap: Record<BookingStatus, string | undefined> = {
-	abandoned: "bg-muted text-muted-foreground",
-	confirmed: "bg-green text-primary-foreground",
-	cancelled: "bg-muted text-muted-foreground",
-	expired: "bg-muted text-muted-foreground",
-	email_failed: "bg-destructive text-primary-foreground",
-	failed: "bg-destructive text-primary-foreground",
-	pending_payment: "bg-primary text-primary-foreground"
+export const bookingStatusIconClassNameMap: Record<BookingStatus, string> = {
+	abandoned: "size-5 text-muted-foreground",
+	confirmed: "size-5 text-green",
+	cancelled: "size-5 text-muted-foreground",
+	expired: "size-5 text-muted-foreground",
+	email_failed: "size-5 text-destructive",
+	failed: "size-5 text-destructive",
+	pending_payment: "size-5 text-primary"
 };
 
 export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {

@@ -32,7 +32,7 @@ export function SessionActions({ booking }: SessionActionsProps) {
 			formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
 		canManageConfirmedBooking,
 		isPastBooking,
-		toggleStatusLabel: canManageConfirmedBooking ? "Mark as needs follow up" : "Mark as confirmed"
+		toggleStatusLabel: canManageConfirmedBooking ? "Mark as calendar conflict" : "Mark as confirmed"
 	};
 
 	const deleteAction = useDeleteAction(booking);

@@ -1,3 +1,4 @@
+import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
 
 export type AdminPackageStatus =
@@ -78,6 +79,45 @@ export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 
 		default: {
 			const _exhaustive: never = status;
+			return _exhaustive;
+		}
+	}
+}
+
+export function getAdminPackageStatusDisplay(
+	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid" | "status">
+): { className: string; icon: LucideIcon; label: string } {
+	if (isAdminPackageOverdue(packageRow)) {
+		return { className: "size-5 text-destructive", icon: ClockAlert, label: "Overdue" };
+	}
+
+	if (isAdminPackageExpired(packageRow)) {
+		return { className: "size-5 text-destructive", icon: ClockAlert, label: "Expired" };
+	}
+
+	switch (packageRow.status) {
+		case "pending_payment":
+			return { className: "size-5 text-primary", icon: DollarSign, label: "Pending" };
+
+		case "paid":
+			return { className: "size-5 text-green", icon: Check, label: "Paid" };
+
+		case "invoice_email_failed":
+			return {
+				className: "size-5 text-destructive",
+				icon: MailWarning,
+				label: "Invoice email failed"
+			};
+
+		case "schedule_email_failed":
+			return {
+				className: "size-5 text-destructive",
+				icon: MailWarning,
+				label: "Scheduling link failed"
+			};
+
+		default: {
+			const _exhaustive: never = packageRow.status;
 			return _exhaustive;
 		}
 	}

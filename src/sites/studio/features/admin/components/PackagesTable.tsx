@@ -17,11 +17,12 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
+import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
 import {
 	filterAdminPackages,
 	getAdminPackageDashboardDate,
-	getAdminPackageStatusLabel,
+	getAdminPackageStatusDisplay,
 	isAdminPackagePaymentDueClose,
 	isAdminPackageExpiryClose,
 	isAdminPackageExpired,
@@ -30,8 +31,7 @@ import {
 	sortAdminPackages,
 	type AdminPackageFilters,
 	type AdminPackageRow,
-	type AdminPackageSort,
-	type AdminPackageStatus
+	type AdminPackageSort
 } from "#studio/features/admin/lib/admin-packages";
 import {
 	readStoredPackageTableFilters,
@@ -45,18 +45,11 @@ import {
 
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
 
-const statusBadgeClassNames: Record<AdminPackageStatus, string> = {
-	pending_payment: "bg-primary text-primary-foreground",
-	invoice_email_failed: "bg-destructive text-primary-foreground",
-	paid: "bg-green text-primary-foreground",
-	schedule_email_failed: "bg-destructive text-primary-foreground"
-};
-
 function PackageTableDateCell({
-	isOverdue,
+	isPastDue,
 	packageRow
 }: {
-	isOverdue: boolean;
+	isPastDue: boolean;
 	packageRow: AdminPackageRow;
 }) {
 	const dashboardDate = getAdminPackageDashboardDate(packageRow);
@@ -67,18 +60,18 @@ function PackageTableDateCell({
 		case "payment_due":
 			return (
 				<div className="flex flex-col gap-1">
-					<span className={cn(isPaymentDueClose && "text-primary")}>
+					<span
+						className={cn(isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary")}>
 						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
 					</span>
 					<span className="text-xs text-muted-foreground">Payment due</span>
-					{isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
 				</div>
 			);
 
 		case "package_expiry":
 			return (
 				<div className="flex flex-col gap-1">
-					<span className={cn(isExpiryClose && "text-primary")}>
+					<span className={cn(isPastDue ? "text-destructive" : isExpiryClose && "text-primary")}>
 						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
 					</span>
 					<span className="text-xs text-muted-foreground">Package expiry</span>
@@ -167,10 +160,10 @@ export function PackagesTable({
 			/>
 
 			<div className="overflow-x-auto border-y">
-				<Table className="min-w-7xl table-fixed">
+				<Table className="w-full min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-24 md:w-10">Status</TableHead>
+							<TableHead className="w-16 md:w-5 text-center">Status</TableHead>
 							<TableHead className="w-36">
 								<SortHeaderButton
 									label="Customer"
@@ -199,18 +192,18 @@ export function PackagesTable({
 						{visiblePackages.length > 0 ? (
 							visiblePackages.map((packageRow) => {
 								const isOverdue = isAdminPackageOverdue(packageRow);
-								const isInactivePackage = isOverdue || isAdminPackageExpired(packageRow);
+								const isExpired = isAdminPackageExpired(packageRow);
+								const isInactivePackage = isOverdue || isExpired;
+								const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
 								const packageInvoiceNumber = packageRow.invoiceNumber;
 
 								return (
 									<TableRow
 										key={packageRow.id}
 										className={cn(isInactivePackage && "text-muted-foreground")}>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-wrap gap-2">
-												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
-													{getAdminPackageStatusLabel(packageRow.status)}
-												</Badge>
+										<TableCell className={cn("text-center", isInactivePackage && "opacity-70")}>
+											<div className="flex justify-center">
+												<StatusIcon {...packageStatusDisplay} />
 											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
@@ -321,7 +314,7 @@ export function PackagesTable({
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<PackageTableDateCell
 												packageRow={packageRow}
-												isOverdue={isOverdue}
+												isPastDue={isInactivePackage}
 											/>
 										</TableCell>
 										<TableCell className={cn("tabular-nums", isInactivePackage && "opacity-70")}>
