@@ -88,6 +88,7 @@ export function useBookingSubmit({
 					addons: multiBookingValue.addons,
 					essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
 					clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
+					notes: multiBookingValue.notes,
 					packageSize: multiBookingValue.packageSize
 				})
 			);
