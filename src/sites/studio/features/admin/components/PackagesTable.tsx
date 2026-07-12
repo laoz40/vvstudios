@@ -1,18 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { ListFilter } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuTrigger
-} from "#/components/ui/dropdown-menu";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -28,7 +17,7 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
-
+import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
 import {
 	filterAdminPackages,
 	getAdminPackageDashboardDate,
@@ -38,8 +27,10 @@ import {
 	isAdminPackageExpired,
 	isAdminPackageOverdue,
 	mapPackageToAdminRow,
+	sortAdminPackages,
 	type AdminPackageFilters,
 	type AdminPackageRow,
+	type AdminPackageSort,
 	type AdminPackageStatus
 } from "#studio/features/admin/lib/admin-packages";
 import {
@@ -121,7 +112,7 @@ export function PackagesTable({
 	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
 		return readStoredPackageTableFilters();
 	});
-	const [isCreatedSortDescending, setIsCreatedSortDescending] = useState(true);
+	const [sort, setSort] = useState<AdminPackageSort>({ column: "created", isDescending: true });
 	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
 
 	// Persist package filters.
@@ -137,17 +128,17 @@ export function PackagesTable({
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
-		const rows = packages.map(mapPackageToAdminRow);
-		return filterAdminPackages(rows, filters).sort((firstPackage, secondPackage) => {
-			const createdComparison = firstPackage.createdAt - secondPackage.createdAt;
+		const rows = filterAdminPackages(packages.map(mapPackageToAdminRow), filters);
+		return sortAdminPackages(rows, sort);
+	}, [filters, packages, sort]);
 
-			if (createdComparison !== 0) {
-				return isCreatedSortDescending ? -createdComparison : createdComparison;
-			}
-
-			return firstPackage.customerName.localeCompare(secondPackage.customerName);
-		});
-	}, [filters, isCreatedSortDescending, packages]);
+	function updateSort(column: AdminPackageSort["column"]) {
+		setSort((currentSort) => ({
+			column,
+			isDescending:
+				currentSort.column === column ? !currentSort.isDescending : column !== "customer"
+		}));
+	}
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
 		setFilters((currentFilters) => {
@@ -169,129 +160,39 @@ export function PackagesTable({
 
 	return (
 		<section className="flex flex-col gap-4">
-			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-				<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-					<Input
-						placeholder="Search packages..."
-						value={filters.searchQuery}
-						onChange={(event) => updateSearchQuery(event.target.value)}
-						className="w-full md:w-sm"
-					/>
-					<div className="flex items-center justify-end gap-3 md:contents">
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									className="md:hidden">
-									<ListFilter aria-hidden />
-									Filters
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuGroup>
-									<DropdownMenuCheckboxItem
-										checked={filters.showPaid}
-										onCheckedChange={(checked) => updateFilter("showPaid", checked === true)}
-										onSelect={(event) => event.preventDefault()}>
-										Paid only
-									</DropdownMenuCheckboxItem>
-									<DropdownMenuCheckboxItem
-										checked={filters.showOverdue}
-										onCheckedChange={(checked) => updateFilter("showOverdue", checked === true)}
-										onSelect={(event) => event.preventDefault()}>
-										Overdue only
-									</DropdownMenuCheckboxItem>
-									<DropdownMenuCheckboxItem
-										checked={filters.showUpcoming}
-										onCheckedChange={(checked) => updateFilter("showUpcoming", checked === true)}
-										onSelect={(event) => event.preventDefault()}>
-										Upcoming only
-									</DropdownMenuCheckboxItem>
-									<DropdownMenuCheckboxItem
-										checked={filters.showArchived}
-										onCheckedChange={(checked) => updateFilter("showArchived", checked === true)}
-										onSelect={(event) => event.preventDefault()}>
-										Show archived
-									</DropdownMenuCheckboxItem>
-								</DropdownMenuGroup>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</div>
-				</div>
-				<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id="show-paid-packages"
-							checked={filters.showPaid}
-							onCheckedChange={(checked) => updateFilter("showPaid", checked === true)}
-						/>
-						<Label
-							htmlFor="show-paid-packages"
-							className="text-sm font-medium text-foreground">
-							Paid only
-						</Label>
-					</div>
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id="show-overdue-packages"
-							checked={filters.showOverdue}
-							onCheckedChange={(checked) => updateFilter("showOverdue", checked === true)}
-						/>
-						<Label
-							htmlFor="show-overdue-packages"
-							className="text-sm font-medium text-foreground">
-							Overdue only
-						</Label>
-					</div>
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id="show-upcoming-packages"
-							checked={filters.showUpcoming}
-							onCheckedChange={(checked) => updateFilter("showUpcoming", checked === true)}
-						/>
-						<Label
-							htmlFor="show-upcoming-packages"
-							className="text-sm font-medium text-foreground">
-							Upcoming only
-						</Label>
-					</div>
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id="show-archived-packages"
-							checked={filters.showArchived}
-							onCheckedChange={(checked) => updateFilter("showArchived", checked === true)}
-						/>
-						<Label
-							htmlFor="show-archived-packages"
-							className="text-sm font-medium text-foreground">
-							Show archived
-						</Label>
-					</div>
-				</div>
-			</div>
+			<PackagesTableFilters
+				filters={filters}
+				onFilterChange={updateFilter}
+				onSearchQueryChange={updateSearchQuery}
+			/>
 
 			<div className="overflow-x-auto border-y">
 				<Table className="min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-48">Customer</TableHead>
-							<TableHead className="w-28">Status</TableHead>
-							<TableHead className="w-20">Package</TableHead>
-							<TableHead className="w-44">Service</TableHead>
-							<TableHead className="w-56">Contact</TableHead>
-							<TableHead className="w-28">Due / Expiry</TableHead>
-							<TableHead className="w-20">Amount</TableHead>
-							<TableHead className="w-28">
+							<TableHead className="w-24 md:w-10">Status</TableHead>
+							<TableHead className="w-36">
 								<SortHeaderButton
-									label="Created"
-									isActive
-									isDescending={isCreatedSortDescending}
-									onClick={() => setIsCreatedSortDescending((isDescending) => !isDescending)}
+									label="Customer"
+									isActive={sort.column === "customer"}
+									isDescending={sort.isDescending}
+									onClick={() => updateSort("customer")}
 								/>
 							</TableHead>
-							<TableHead className="w-8" />
+							<TableHead className="w-28 md:w-12">Package</TableHead>
+							<TableHead className="w-32">Service</TableHead>
+							<TableHead className="w-56 md:w-36">Contact</TableHead>
+							<TableHead className="w-12">Due / Expiry</TableHead>
+							<TableHead className="w-8">Amount</TableHead>
+							<TableHead className="w-28 md:w-12">
+								<SortHeaderButton
+									label="Created"
+									isActive={sort.column === "created"}
+									isDescending={sort.isDescending}
+									onClick={() => updateSort("created")}
+								/>
+							</TableHead>
+							<TableHead className="w-12 md:w-4" />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -305,6 +206,13 @@ export function PackagesTable({
 									<TableRow
 										key={packageRow.id}
 										className={cn(isInactivePackage && "text-muted-foreground")}>
+										<TableCell className={cn(isInactivePackage && "opacity-70")}>
+											<div className="flex flex-wrap gap-2">
+												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
+													{getAdminPackageStatusLabel(packageRow.status)}
+												</Badge>
+											</div>
+										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">
 												<p className="font-medium text-foreground">
@@ -335,13 +243,6 @@ export function PackagesTable({
 														) : null}
 													</p>
 												) : null}
-											</div>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-wrap gap-2">
-												<Badge className={cn(statusBadgeClassNames[packageRow.status])}>
-													{getAdminPackageStatusLabel(packageRow.status)}
-												</Badge>
 											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
@@ -449,7 +350,7 @@ export function PackagesTable({
 								<TableCell
 									colSpan={9}
 									className="h-24 text-center text-muted-foreground">
-									No package requests. L business.
+									No packages. L business.
 								</TableCell>
 							</TableRow>
 						)}

@@ -197,17 +197,17 @@ export function SessionsTable({
 			/>
 
 			<div className="overflow-x-auto border-y">
-				<Table className="min-w-6xl table-fixed">
+				<Table className="min-w-7xl table-fixed">
 					<TableHeader>
 						<TableRow>
+							<TableHead className="w-24 md:w-16">Status</TableHead>
 							<TableHead className="w-36">{renderSortButton("Customer", "name")}</TableHead>
-							<TableHead className="w-24 md:w-16 text-center">Status</TableHead>
 							<TableHead className="w-28 md:w-16">
 								{renderSortButton("Session", "session")}
 							</TableHead>
 							<TableHead className="w-44">Service</TableHead>
 							<TableHead className="w-56 md:w-36">Contact</TableHead>
-							<TableHead className="w-12 text-center">Package</TableHead>
+							<TableHead className="w-16 text-center">Package</TableHead>
 							<TableHead className="w-56">Notes</TableHead>
 							<TableHead className="w-16 md:w-12 text-center">Due</TableHead>
 							<TableHead className="w-24 md:w-16 text-center">Deliverables</TableHead>

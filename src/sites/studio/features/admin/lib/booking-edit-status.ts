@@ -17,7 +17,7 @@ export const bookingStatusLabelMap: Record<BookingStatus, string> = {
 	email_failed: "Email failed",
 	expired: "Expired",
 	failed: "Needs follow up",
-	pending_payment: "Pending payment"
+	pending_payment: "Pending"
 };
 
 export const bookingStatusBadgeVariantMap: Record<

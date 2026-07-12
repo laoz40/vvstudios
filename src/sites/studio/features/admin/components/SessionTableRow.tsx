@@ -57,6 +57,13 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 			key={booking._id}
 			className={cn(isPastBooking && "text-muted-foreground")}>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
+				<Badge
+					variant={bookingStatusBadgeVariantMap[booking.status]}
+					className={bookingStatusBadgeClassNameMap[booking.status]}>
+					{bookingStatusLabelMap[booking.status]}
+				</Badge>
+			</TableCell>
+			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">
 						<CopyableText
@@ -87,13 +94,6 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 						</p>
 					) : null}
 				</div>
-			</TableCell>
-			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
-				<Badge
-					variant={bookingStatusBadgeVariantMap[booking.status]}
-					className={bookingStatusBadgeClassNameMap[booking.status]}>
-					{bookingStatusLabelMap[booking.status]}
-				</Badge>
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				<div
@@ -185,7 +185,9 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					<p className={isRemainingBalancePaid ? "text-green" : "text-destructive"}>
 						{remainingBalanceLabel}
 					</p>
-				) : null}
+				) : (
+					<p>-</p>
+				)}
 			</TableCell>
 			<TableCell className="text-center">
 				{deliverableStatus ? (
