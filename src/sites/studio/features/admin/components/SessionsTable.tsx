@@ -31,7 +31,7 @@ type SessionsTableProps = {
 	searchQuery: string;
 };
 
-const pageSize = 12;
+const pageSize = 10;
 
 export function SessionsTable({
 	bookings,
@@ -137,7 +137,7 @@ export function SessionsTable({
 							<TableHead className="w-44">Service</TableHead>
 							<TableHead className="w-56 md:w-36">Contact</TableHead>
 							<TableHead className="w-16 text-center">Package</TableHead>
-							<TableHead className="w-56">Notes</TableHead>
+							<TableHead className="w-48">Notes</TableHead>
 							<TableHead className="w-16 md:w-12 text-center">Due</TableHead>
 							<TableHead className="w-24 md:w-16 text-center">Deliverables</TableHead>
 							<TableHead className="w-28 md:w-16">
