@@ -59,7 +59,7 @@ export function PackageExpiryReminderEmail({
 								<strong>Remaining sessions:</strong> {remainingSessions}
 							</Text>
 							<Text style={expiryDate}>
-								<strong>Expiry date:</strong> {expiresAtLabel}
+								<strong>Expiry date: {expiresAtLabel}</strong>
 							</Text>
 						</Section>
 					</Section>
