@@ -1,35 +1,27 @@
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
-import TrashIcon from "#/components/ui/trash-icon";
 import { cn } from "#/lib/utils";
 
 type SessionsTableFooterProps = {
 	canLoadMoreBookings: boolean;
 	filteredBookingsCount: number;
-	isCleaningUp: boolean;
 	isLoadingMoreBookings: boolean;
-	onCleanupClick: () => void;
 	onLoadMoreBookings: () => void;
 	onNextPage: () => void;
 	onPreviousPage: () => void;
 	pageCount: number;
 	pageIndex: number;
-	staleCleanupBookingsCount: number;
 	totalBookingsCount: number;
 };
 
 export function SessionsTableFooter({
 	canLoadMoreBookings,
 	filteredBookingsCount,
-	isCleaningUp,
 	isLoadingMoreBookings,
-	onCleanupClick,
 	onLoadMoreBookings,
 	onNextPage,
 	onPreviousPage,
 	pageCount,
 	pageIndex,
-	staleCleanupBookingsCount,
 	totalBookingsCount
 }: SessionsTableFooterProps) {
 	return (
@@ -44,24 +36,6 @@ export function SessionsTableFooter({
 						Showing {filteredBookingsCount} {filteredBookingsCount === 1 ? "session" : "sessions"} ·{" "}
 						{totalBookingsCount} {totalBookingsCount === 1 ? "session" : "sessions"} loaded
 					</p>
-					<AnimatedIconButton
-						variant="ghost"
-						size="sm"
-						className="text-sm! hover:text-destructive"
-						disabled={isCleaningUp || staleCleanupBookingsCount === 0}
-						aria-label="Clean up unconfirmed bookings"
-						onClick={onCleanupClick}
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<TrashIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<button type="button">
-							<span className="hidden md:inline">Clean up unconfirmed bookings</span>
-						</button>
-					</AnimatedIconButton>
 				</div>
 				{canLoadMoreBookings || isLoadingMoreBookings ? (
 					<Button

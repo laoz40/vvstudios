@@ -17,18 +17,6 @@ export type AdminSessionFilters = {
 	showUpcomingOnly: boolean;
 };
 
-export type StaleCleanupBookingCounts = Record<BookingRecord["status"], number>;
-
-export const emptyStaleCleanupBookingCounts: StaleCleanupBookingCounts = {
-	abandoned: 0,
-	confirmed: 0,
-	cancelled: 0,
-	expired: 0,
-	email_failed: 0,
-	failed: 0,
-	pending_payment: 0
-};
-
 export function filterAdminSessionBookings(
 	bookings: BookingRecord[],
 	filters: AdminSessionFilters
@@ -96,14 +84,4 @@ export function sortAdminSessionBookings(bookings: BookingRecord[], sorting: Ses
 
 		return activeSort.desc ? -comparison : comparison;
 	});
-}
-
-export function getStaleCleanupBookingCounts(bookings: BookingRecord[]) {
-	return bookings.reduce<StaleCleanupBookingCounts>(
-		(accumulator, booking) => {
-			accumulator[booking.status] += 1;
-			return accumulator;
-		},
-		{ ...emptyStaleCleanupBookingCounts }
-	);
 }

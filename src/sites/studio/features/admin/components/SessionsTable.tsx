@@ -1,8 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "convex/react";
-import { toast } from "sonner";
-import { api } from "#convex/_generated/api";
-import type { CleanupOldPendingAndExpiredBookingsResult } from "#convex/bookings";
 import {
 	Table,
 	TableBody,
@@ -11,19 +7,13 @@ import {
 	TableHeader,
 	TableRow
 } from "#/components/ui/table";
-import { tryCatch } from "#/lib/result";
-import { CleanupOldBookingsDialog } from "#studio/features/admin/components/CleanupOldBookingsDialog";
 import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
-import {
-	isStaleCleanupBooking,
-	type BookingRecord
-} from "#studio/features/admin/lib/admin-bookings";
+import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import {
 	filterAdminSessionBookings,
-	getStaleCleanupBookingCounts,
 	sortAdminSessionBookings,
 	type SessionSortId
 } from "#studio/features/admin/lib/admin-sessions";
@@ -51,8 +41,6 @@ export function SessionsTable({
 	onSearchQueryChange,
 	searchQuery
 }: SessionsTableProps) {
-	const cleanupOldBookings = useMutation(api.bookings.cleanupOldPendingAndExpiredBookings);
-
 	// Table setup and persisted filters
 	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
 	const [sorting, setSorting] = useState(initialTablePreferences.sorting);
@@ -63,16 +51,6 @@ export function SessionsTable({
 	);
 	const [showStaleBookings, setShowStaleBookings] = useState(
 		initialTablePreferences.showStaleBookings
-	);
-
-	// Cleanup dialog state
-	const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
-	const [isCleaningUp, setIsCleaningUp] = useState(false);
-
-	// Cleanup candidates
-	const staleCleanupBookings = useMemo(
-		() => bookings.filter((booking) => isStaleCleanupBooking(booking)),
-		[bookings]
 	);
 
 	// Persist table preferences.
@@ -109,11 +87,6 @@ export function SessionsTable({
 	]);
 	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
-	const staleCounts = useMemo(
-		() => getStaleCleanupBookingCounts(staleCleanupBookings),
-		[staleCleanupBookings]
-	);
-
 	function updateSorting(id: SessionSortId) {
 		setSorting((currentSorting) => {
 			const currentSort = currentSorting[0];
@@ -137,50 +110,6 @@ export function SessionsTable({
 				onClick={() => updateSorting(id)}
 			/>
 		);
-	}
-
-	async function handleCleanupOldBookings() {
-		setIsCleaningUp(true);
-
-		const [error, result] = await tryCatch<CleanupOldPendingAndExpiredBookingsResult>(
-			cleanupOldBookings({})
-		);
-
-		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to clean up bookings.");
-					break;
-
-				case "BOOKING_CLEANUP_FAILED":
-					toast.error("Unable to clean up old bookings.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while cleaning up old bookings.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
-			setIsCleaningUp(false);
-			return;
-		}
-
-		setIsCleanupDialogOpen(false);
-		toast.success(
-			result.deletedCount === 1
-				? "Deleted 1 unconfirmed booking."
-				: `Deleted ${result.deletedCount} unconfirmed bookings.`
-		);
-		setIsCleaningUp(false);
 	}
 
 	return (
@@ -242,27 +171,15 @@ export function SessionsTable({
 			<SessionsTableFooter
 				filteredBookingsCount={filteredBookings.length}
 				totalBookingsCount={bookings.length}
-				staleCleanupBookingsCount={staleCleanupBookings.length}
-				isCleaningUp={isCleaningUp}
 				canLoadMoreBookings={canLoadMoreBookings}
 				isLoadingMoreBookings={isLoadingMoreBookings}
 				pageIndex={pageIndex}
 				pageCount={pageCount}
-				onCleanupClick={() => setIsCleanupDialogOpen(true)}
 				onLoadMoreBookings={loadMoreBookings}
 				onPreviousPage={() => setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1))}
 				onNextPage={() =>
 					setPageIndex((currentPageIndex) => Math.min(pageCount - 1, currentPageIndex + 1))
 				}
-			/>
-
-			<CleanupOldBookingsDialog
-				open={isCleanupDialogOpen}
-				onOpenChange={setIsCleanupDialogOpen}
-				isCleaningUp={isCleaningUp}
-				staleCleanupBookingsCount={staleCleanupBookings.length}
-				staleCounts={staleCounts}
-				onConfirm={() => void handleCleanupOldBookings()}
 			/>
 		</section>
 	);
