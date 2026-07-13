@@ -283,18 +283,20 @@ export function PackageSessionsAccordion({
 							</span>
 						</AccordionTrigger>
 
-						<AccordionContent className="flex flex-col border-t pt-6 gap-12">
-							<BookingDateTimePicker
-								availability={availability}
-								onDateChange={onDateChange}
-								onTimeChange={onTimeChange}
-								selectedTime={selectedTime}
-								timeSelectionMessage={timeSelectionMessage}
-							/>
-							<BookingSessionSummary
-								dateSummary={selectedDateSummary}
-								timeSummary={selectedTimeSummary}
-							/>
+						<AccordionContent className="flex flex-col gap-12 border-t pt-6">
+							<div className="flex flex-col gap-6">
+								<BookingDateTimePicker
+									availability={availability}
+									onDateChange={onDateChange}
+									onTimeChange={onTimeChange}
+									selectedTime={selectedTime}
+									timeSelectionMessage={timeSelectionMessage}
+								/>
+								<BookingSessionSummary
+									dateSummary={selectedDateSummary}
+									timeSummary={selectedTimeSummary}
+								/>
+							</div>
 							<PackageSessionRecordingSpaceField
 								disabled={savingSessionKey !== null}
 								value={selectedService}
