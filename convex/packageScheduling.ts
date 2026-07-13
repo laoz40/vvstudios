@@ -51,7 +51,6 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		name: multiBooking.name,
 		email: multiBooking.email,
 		duration: multiBooking.duration,
-		service: multiBooking.service,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity,
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
@@ -63,6 +62,7 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 			time: booking.time,
 			sessionStartAt: booking.sessionStartAt,
 			notes: booking.notes ?? "",
+			service: booking.service,
 			...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
 		}))
 	});
@@ -70,10 +70,13 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 
 export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
 
+const recordingSpaceValidator = v.union(v.literal("Table Setup"), v.literal("Armchair Setup"));
+
 const packageBookingInput = {
 	token: v.string(),
 	date: v.string(),
 	time: v.string(),
+	service: recordingSpaceValidator,
 	notes: v.optional(v.string())
 };
 
@@ -84,7 +87,13 @@ export const createPackageBooking = action({
 
 async function createPackageBookingHandler(
 	ctx: ActionCtx,
-	args: { token: string; date: string; time: string; notes?: string }
+	args: {
+		token: string;
+		date: string;
+		time: string;
+		service: "Table Setup" | "Armchair Setup";
+		notes?: string;
+	}
 ): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageBookingError>> {
 	const now = Date.now();
 
@@ -163,7 +172,14 @@ export const reschedulePackageBooking = action({
 
 async function reschedulePackageBookingHandler(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; token: string; date: string; time: string; notes?: string }
+	args: {
+		bookingId: Id<"bookings">;
+		token: string;
+		date: string;
+		time: string;
+		service: "Table Setup" | "Armchair Setup";
+		notes?: string;
+	}
 ): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageBookingError>> {
 	const now = Date.now();
 
@@ -194,6 +210,7 @@ async function reschedulePackageBookingHandler(
 			bookingId: args.bookingId,
 			date: args.date,
 			time: args.time,
+			service: args.service,
 			notes: args.notes,
 			sessionStartAt: details.sessionStartAt,
 			googleCalendarId: calendar.googleCalendarId,
@@ -266,7 +283,7 @@ export const getValidPackageByTokenInternal = internalQuery({
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
 
 function toPackageCalendarDetails(
-	args: { date: string; time: string },
+	args: { date: string; time: string; service: "Table Setup" | "Armchair Setup" },
 	multiBooking: ValidPackage,
 	eventBufferMinutes: number
 ) {
@@ -277,7 +294,7 @@ function toPackageCalendarDetails(
 		email: multiBooking.email,
 		eventBufferMinutes,
 		name: multiBooking.name,
-		service: multiBooking.service,
+		service: args.service,
 		time: args.time
 	};
 }
@@ -439,6 +456,7 @@ async function saveCreatedPackageBooking(
 		token: string;
 		date: string;
 		time: string;
+		service: "Table Setup" | "Armchair Setup";
 		notes?: string;
 		now: number;
 		googleCalendarId?: string;
@@ -479,7 +497,7 @@ async function saveCreatedPackageBooking(
 			time: args.time,
 			sessionStartAt,
 			duration: multiBooking.duration,
-			service: multiBooking.service,
+			service: args.service,
 			addons: multiBooking.addons,
 			essentialEditQuantity: multiBooking.essentialEditQuantity,
 			clipsPackageQuantity: multiBooking.clipsPackageQuantity,

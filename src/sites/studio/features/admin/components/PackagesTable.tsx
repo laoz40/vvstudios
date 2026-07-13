@@ -173,7 +173,7 @@ export function PackagesTable({
 								/>
 							</TableHead>
 							<TableHead className="w-28 md:w-12">Package</TableHead>
-							<TableHead className="w-32">Service</TableHead>
+							<TableHead className="w-32">Add-ons (Fixed)</TableHead>
 							<TableHead className="w-56 md:w-36">Contact</TableHead>
 							<TableHead className="w-12">Due / Expiry</TableHead>
 							<TableHead className="w-8">Amount</TableHead>
@@ -195,7 +195,6 @@ export function PackagesTable({
 								const isExpired = isAdminPackageExpired(packageRow);
 								const isInactivePackage = isOverdue || isExpired;
 								const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
-								const packageInvoiceNumber = packageRow.invoiceNumber;
 
 								return (
 									<TableRow
@@ -239,49 +238,37 @@ export function PackagesTable({
 											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											{packageInvoiceNumber ? (
-												<Button
-													type="button"
-													variant="link"
-													className="h-auto flex-col items-start gap-1 p-0 text-left"
-													onClick={() => onViewPackageSessions(packageInvoiceNumber)}>
-													<span className="font-medium text-foreground">
-														{packageRow.packageSize} sessions
-													</span>
-													<span className="text-sm text-muted-foreground">
-														{packageRow.bookedSessions} / {packageRow.packageSize} booked
-													</span>
-												</Button>
-											) : (
-												<div className="flex flex-col gap-1">
-													<p className="font-medium text-foreground">
-														{packageRow.packageSize} sessions
-													</p>
-													<p className="text-sm text-muted-foreground">
-														{packageRow.bookedSessions} / {packageRow.packageSize} booked
-													</p>
-												</div>
-											)}
+											<Button
+												type="button"
+												variant="link"
+												className="h-auto flex-col items-start gap-1 p-0 text-left"
+												onClick={() => onViewPackageSessions(packageRow.invoiceNumber)}>
+												<span className="font-medium text-foreground">
+													{packageRow.packageSize} sessions ({packageRow.duration})
+												</span>
+												<span className="text-sm text-muted-foreground">
+													{packageRow.bookedSessions} / {packageRow.packageSize} booked
+												</span>
+											</Button>
 										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
-												<p className="font-medium">
-													{packageRow.service} ({packageRow.duration})
-												</p>
-												{packageRow.addons.length > 0 ? (
-													<div className="flex flex-wrap gap-1">
-														{packageRow.addons.map((addon) => (
-															<Badge
-																key={addon}
-																variant="outline">
-																{formatEditingAddonLabel(addon, packageRow)}
-															</Badge>
-														))}
-													</div>
-												) : (
-													<p className="text-sm text-muted-foreground">No add-ons</p>
-												)}
-											</div>
+										<TableCell
+											className={cn(
+												"min-w-48 whitespace-normal",
+												isInactivePackage && "opacity-70"
+											)}>
+											{packageRow.addons.length > 0 ? (
+												<div className="flex flex-wrap gap-1">
+													{packageRow.addons.map((addon) => (
+														<Badge
+															key={addon}
+															variant="outline">
+															{formatEditingAddonLabel(addon, packageRow)}
+														</Badge>
+													))}
+												</div>
+											) : (
+												<p className="text-sm text-muted-foreground">No add-ons</p>
+											)}
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">

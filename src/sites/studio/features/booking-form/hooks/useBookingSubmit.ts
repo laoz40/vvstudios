@@ -84,7 +84,6 @@ export function useBookingSubmit({
 					abn: multiBookingValue.abn || undefined,
 					email: multiBookingValue.email,
 					duration: multiBookingValue.duration,
-					service: multiBookingValue.service,
 					addons: multiBookingValue.addons,
 					essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
 					clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,

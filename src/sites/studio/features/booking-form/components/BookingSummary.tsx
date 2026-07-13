@@ -36,8 +36,10 @@ export function BookingSummary() {
 	const isWaitingForPackage = isMultiBooking && !multiBookingAmounts;
 	const sessionQuantity = multiBookingAmounts?.packageSize ?? 1;
 	const durationLineTotal = durationCost * sessionQuantity;
-	const bookingLabel = [values.service, values.duration].filter(Boolean).join(" ");
-	const showBookingLine = Boolean(bookingLabel);
+	const bookingLabel = isMultiBooking
+		? `${values.duration} Studio Session`
+		: [values.service, values.duration].filter(Boolean).join(" ");
+	const showBookingLine = isMultiBooking ? Boolean(values.duration) : Boolean(bookingLabel);
 	return (
 		<div className="space-y-2 text-sm leading-normal tabular-nums">
 			<Accordion

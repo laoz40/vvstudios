@@ -29,7 +29,6 @@ const SAMPLE_MULTI_BOOKING_ADDONS: BookingInvoiceBuilderInput["addons"] = [
 ];
 const SAMPLE_MULTI_BOOKING_PRICING = {
 	duration: "2h" as const,
-	service: "Table Setup" as const,
 	addons: SAMPLE_MULTI_BOOKING_ADDONS,
 	clipsPackageQuantity: "2" as const,
 	packageSize: 8 as const

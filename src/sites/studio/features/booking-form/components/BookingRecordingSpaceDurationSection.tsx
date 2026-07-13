@@ -1,13 +1,10 @@
-import { Image } from "@unpic/react";
 import { useSelector } from "@tanstack/react-store";
-import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
-import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { FieldDescription, FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { RecordingSpaceField } from "#studio/features/booking-form/components/RecordingSpaceField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
-	getFooterStateClassName,
 	getPillStateClassName,
 	sectionHeadingClassName,
 	transitionClassName
@@ -38,23 +35,6 @@ type DurationOption = {
 	priceNote?: string;
 	badgeLabel?: string;
 };
-
-const recordingSpaceOptions = [
-	{
-		value: "Table Setup" as const,
-		title: "Table Setup",
-		capacity: "up to 4 people",
-		image: tableSetupImage,
-		imageAlt: "Podcast table setup with microphones and studio lighting"
-	},
-	{
-		value: "Armchair Setup" as const,
-		title: "Armchair Setup",
-		capacity: "up to 2 people",
-		image: armchairSetupImage,
-		imageAlt: "Podcast open setup with warm lamps and casual seating"
-	}
-] as const;
 
 const durationOptions: DurationOption[] = [
 	{
@@ -177,95 +157,24 @@ export function BookingRecordingSpaceDurationSection() {
 
 			<formApi.Field name="service">
 				{(field) => (
-					<section
-						data-field-name="service"
-						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
-						<FieldSet className="gap-1">
-							<FieldLegend className={sectionHeadingClassName}>
-								{`${sectionCopy.recordingSpaceLabel}${isPackageBooking ? "" : " *"}`}
-							</FieldLegend>
-							<RadioGroup
-								disabled={isPackageBooking}
-								value={field.state.value}
-								onValueChange={(value) => {
-									field.handleChange(value as BookingFormValues["service"]);
-									field.handleBlur();
-								}}
-								className="grid gap-4 md:grid-cols-2">
-								{recordingSpaceOptions.map((option) => (
-									<div key={option.value}>
-										<RadioGroupItem
-											value={option.value}
-											id={`service-${toOptionId(option.value)}`}
-											className="peer sr-only size-0"
-										/>
-										<label
-											htmlFor={`service-${toOptionId(option.value)}`}
-											className={cn(
-												"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
-												"shadow-lg shadow-background/25",
-												"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-												"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-												"md:hover:bg-primary/5",
-												transitionClassName,
-												getCardStateClassName(field.state.value === option.value),
-												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
-												isPackageBooking && "cursor-not-allowed opacity-50"
-											)}>
-											<div className="relative w-full overflow-hidden">
-												<Image
-													src={option.image}
-													alt={option.imageAlt}
-													layout="constrained"
-													width={1885}
-													height={1060}
-													className={cn(
-														"h-auto w-full transition-transform duration-300 group-hover:scale-105",
-														field.state.value === option.value && "scale-[1.02]"
-													)}
-												/>
-												<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
-											</div>
-											<div
-												className={cn(
-													"pointer-events-none absolute inset-x-0 bottom-0 z-10",
-													"flex items-center justify-between gap-2",
-													"px-3 py-1 md:static md:px-3 md:py-1.5",
-													"backdrop-blur-[3px] md:group-hover:bg-primary/10",
-													getFooterStateClassName(field.state.value === option.value),
-													field.state.value === option.value && "md:bg-primary/10"
-												)}>
-												<p className="text-base font-semibold text-foreground">
-													{option.title}{" "}
-													<span className="text-muted-foreground font-light">
-														({option.capacity})
-													</span>
-												</p>
-												<span
-													className={cn(
-														"inline-flex items-center justify-center rounded-lg border",
-														"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
-														"text-xs font-medium tracking-wider",
-														"shadow-md transition-all duration-200 ease-in",
-														getPillStateClassName(field.state.value === option.value)
-													)}>
-													{field.state.value === option.value ? "SELECTED" : "SELECT"}
-												</span>
-											</div>
-										</label>
-									</div>
-								))}
-							</RadioGroup>
-							<FieldDescription className="mt-2! text-pretty italic">
-								{isPackageBooking
-									? "You'll select a recording space for each session when you schedule your package."
-									: sectionCopy.recordingSpaceNote}
-							</FieldDescription>
-							{field.state.meta.isBlurred || shouldShowFieldError ? (
-								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
-							) : null}
-						</FieldSet>
-					</section>
+					<RecordingSpaceField
+						disabled={isPackageBooking}
+						idPrefix="service"
+						label={`${sectionCopy.recordingSpaceLabel}${isPackageBooking ? "" : " *"}`}
+						value={field.state.value}
+						onChange={(value) => {
+							field.handleChange(value);
+							field.handleBlur();
+						}}>
+						<FieldDescription className="mt-2! text-pretty italic">
+							{isPackageBooking
+								? "Recording space is selected when you schedule your sessions."
+								: sectionCopy.recordingSpaceNote}
+						</FieldDescription>
+						{field.state.meta.isBlurred || shouldShowFieldError ? (
+							<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+						) : null}
+					</RecordingSpaceField>
 				)}
 			</formApi.Field>
 		</>

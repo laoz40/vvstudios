@@ -148,7 +148,6 @@ export default defineSchema({
 
 		// Package booking details
 		duration: v.string(),
-		service: v.string(),
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),

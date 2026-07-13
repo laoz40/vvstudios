@@ -44,13 +44,12 @@ function buildMultiBookingInvoiceLineItems(input: {
 	discountPercent: number;
 	duration?: BookingInvoiceBuilderInput["duration"];
 	packageSize: number;
-	service?: NonNullable<BookingInvoiceBuilderInput["service"]>;
 }): BookingInvoiceLineItem[] {
 	const baseLineItems = input.duration
 		? [
 				{
 					amount: input.baseSessionAmount * input.packageSize,
-					description: `${input.service ? `${input.service} ` : ""}Podcast Studio Hire (${input.duration})`,
+					description: `Studio Hire (${input.duration})`,
 					quantity: input.packageSize,
 					rate: input.baseSessionAmount
 				}
@@ -80,7 +79,6 @@ export function createMultiBookingInvoiceLineItemSnapshot(input: {
 	duration: BookingInvoiceBuilderInput["duration"] | "";
 	essentialEditQuantity?: string;
 	packageSize: number;
-	service: NonNullable<BookingInvoiceBuilderInput["service"]> | "";
 }): BookingInvoiceLineItem[] {
 	const addonQuantities = {
 		essentialEditQuantity: input.essentialEditQuantity,
@@ -104,8 +102,7 @@ export function createMultiBookingInvoiceLineItemSnapshot(input: {
 		discountAmount: input.discountAmount,
 		discountPercent: input.discountPercent,
 		duration: input.duration || undefined,
-		packageSize: input.packageSize,
-		service: input.service || undefined
+		packageSize: input.packageSize
 	});
 }
 
@@ -115,13 +112,12 @@ export function createStoredAmountMultiBookingInvoiceLineItemSnapshot(input: {
 	duration: BookingInvoiceBuilderInput["duration"];
 	packageSize: number;
 	packageSubtotalAmount: number;
-	service?: BookingInvoiceBuilderInput["service"];
 	singleSessionAmount: number;
 }): BookingInvoiceLineItem[] {
 	return [
 		{
 			amount: input.packageSubtotalAmount,
-			description: `${input.service ? `${input.service} ` : ""}Podcast Studio Hire (${input.duration})`,
+			description: `Studio Hire (${input.duration})`,
 			quantity: input.packageSize,
 			rate: input.singleSessionAmount
 		},

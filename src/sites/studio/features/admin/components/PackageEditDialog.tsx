@@ -19,7 +19,6 @@ import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import {
 	DURATION_OPTIONS,
-	SERVICES,
 	isAddonOption,
 	toDeliverableCountOption,
 	type BookingFormValues
@@ -47,7 +46,6 @@ export type PackageEditDraft = {
 	notes: string;
 	totalDueAmount: string;
 	packageSize: MultiBookingSize;
-	service: AdminPackageRow["service"] | "";
 };
 
 type PackageEditDialogProps = {
@@ -96,7 +94,6 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",
 		packageSize: packageRow.packageSize,
-		service: packageRow.service,
 		totalDueAmount: ""
 	};
 }
@@ -326,43 +323,6 @@ export function PackageEditDialog({
 											disabled={isSaving}
 										/>
 										<span className="font-medium">{duration}</span>
-									</label>
-								);
-							})}
-						</RadioGroup>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Service</Label>
-						<RadioGroup
-							value={draft.service}
-							onValueChange={(value) =>
-								setDraft((current) => ({
-									...current,
-									service: value as AdminPackageRow["service"]
-								}))
-							}
-							className="grid gap-3 sm:grid-cols-2">
-							{SERVICES.map((service) => {
-								const optionId = `edit-package-service-${toOptionId(service)}`;
-
-								return (
-									<label
-										key={service}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<RadioGroupItem
-											id={optionId}
-											value={service}
-											disabled={isSaving}
-										/>
-										<span className="font-medium">{service}</span>
 									</label>
 								);
 							})}

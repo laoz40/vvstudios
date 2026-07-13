@@ -28,7 +28,6 @@ export type MultiBookingInvoiceSource = Pick<
 	| "abn"
 	| "email"
 	| "duration"
-	| "service"
 	| "addons"
 	| "essentialEditQuantity"
 	| "clipsPackageQuantity"
@@ -136,7 +135,6 @@ export async function createMultiBookingInvoiceArtifacts(
 		abn: multiBooking.abn,
 		email: multiBooking.email,
 		duration: multiBooking.duration,
-		service: multiBooking.service,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
@@ -158,7 +156,6 @@ export async function createMultiBookingInvoiceArtifacts(
 			duration: multiBookingData.duration,
 			packageSize: multiBooking.packageSize,
 			packageSubtotalAmount: multiBooking.packageSubtotalAmount,
-			service: multiBookingData.service || undefined,
 			singleSessionAmount: multiBooking.singleSessionAmount
 		});
 	const data = buildMultiBookingInvoiceData({
@@ -169,7 +166,6 @@ export async function createMultiBookingInvoiceArtifacts(
 		abn: multiBookingData.abn,
 		email: multiBookingData.email,
 		duration: multiBookingData.duration,
-		service: multiBookingData.service || undefined,
 		addons: multiBookingData.addons,
 		essentialEditQuantity: multiBookingData.essentialEditQuantity || undefined,
 		clipsPackageQuantity: multiBookingData.clipsPackageQuantity || undefined,

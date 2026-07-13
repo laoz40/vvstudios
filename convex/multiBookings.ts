@@ -35,7 +35,6 @@ export const createMultiBookingRequest = action({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		duration: v.string(),
-		service: v.string(),
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
@@ -54,7 +53,6 @@ async function createMultiBookingRequestHandler(
 		abn?: string;
 		email: string;
 		duration: string;
-		service: string;
 		addons: string[];
 		essentialEditQuantity?: string;
 		clipsPackageQuantity?: string;
@@ -101,8 +99,7 @@ async function createMultiBookingRequestHandler(
 		discountPercent: amounts.discountPercent,
 		duration: multiBooking.duration,
 		essentialEditQuantity: multiBooking.essentialEditQuantity || undefined,
-		packageSize: multiBooking.packageSize,
-		service: multiBooking.service
+		packageSize: multiBooking.packageSize
 	});
 
 	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
@@ -113,7 +110,6 @@ async function createMultiBookingRequestHandler(
 			abn: multiBooking.abn,
 			email: multiBooking.email,
 			duration: multiBooking.duration,
-			service: multiBooking.service,
 			addons: multiBooking.addons,
 			essentialEditQuantity: multiBooking.essentialEditQuantity || undefined,
 			clipsPackageQuantity: multiBooking.clipsPackageQuantity || undefined,
@@ -274,8 +270,7 @@ async function confirmPackagePaymentHandler(
 			name: paymentResult.multiBooking.name,
 			packageSize: paymentResult.multiBooking.packageSize,
 			bookedAt: paymentResult.paidAt,
-			scheduleUrl,
-			service: paymentResult.multiBooking.service
+			scheduleUrl
 		}
 	});
 
@@ -342,8 +337,7 @@ async function retryMultiBookingSchedulingEmailHandler(
 			name: tokenResult.multiBooking.name,
 			packageSize: tokenResult.multiBooking.packageSize,
 			bookedAt: tokenResult.paidAt,
-			scheduleUrl,
-			service: tokenResult.multiBooking.service
+			scheduleUrl
 		}
 	});
 

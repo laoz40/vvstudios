@@ -16,7 +16,11 @@ import { BookingStatusLayout } from "#studio/features/booking-complete/component
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { PackageSessionDetailsModal } from "#studio/features/booking-form/components/PackageSessionDetailsModal";
 import { PackageSessionsAccordion } from "#studio/features/booking-form/components/PackageSessionsAccordion";
-import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	getBookingTimeSelectionMessage,
+	recordingSpaceSchema,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	closeBookingModal,
@@ -127,6 +131,7 @@ function PackageScheduleContent({
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedNotes, setSelectedNotes] = useState("");
+	const [selectedService, setSelectedService] = useState<BookingFormValues["service"]>("");
 	const [selectedTime, setSelectedTime] = useState("");
 	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
 	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
@@ -239,6 +244,7 @@ function PackageScheduleContent({
 		setActiveSessionKey(sessionKey);
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedNotes(booking?.notes ?? "");
+		setSelectedService(recordingSpaceSchema.safeParse(booking?.service).data ?? "");
 		setSelectedTime(time ?? "");
 	}
 
@@ -257,8 +263,8 @@ function PackageScheduleContent({
 			return;
 		}
 
-		if (!selectedDateValue || !selectedTime) {
-			toast.error("Please choose a date and time first.");
+		if (!selectedDateValue || !selectedTime || !selectedService) {
+			toast.error("Please choose a date, time, and recording space first.");
 			return;
 		}
 
@@ -289,18 +295,25 @@ function PackageScheduleContent({
 			return;
 		}
 
+		const service = recordingSpaceSchema.safeParse(selectedService).data;
+		if (!service) {
+			return;
+		}
+
 		setSavingSessionKey(activeSessionKey);
 		const saveAction = activeBooking
 			? reschedulePackageBooking({
 					bookingId: activeBooking._id,
 					date: selectedDateValue,
 					time: selectedTime,
+					service,
 					notes: selectedNotes,
 					token
 				})
 			: createPackageBooking({
 					date: selectedDateValue,
 					time: selectedTime,
+					service,
 					notes: selectedNotes,
 					token
 				});
@@ -343,6 +356,7 @@ function PackageScheduleContent({
 		if (activeSessionKey === bookingId) {
 			setSelectedDateValue("");
 			setSelectedNotes("");
+			setSelectedService("");
 			setSelectedTime("");
 		}
 
@@ -431,12 +445,14 @@ function PackageScheduleContent({
 					savingSessionKey={savingSessionKey}
 					selectedDateValue={selectedDateValue}
 					selectedNotes={selectedNotes}
+					selectedService={selectedService}
 					selectedTime={selectedTime}
 					timeSelectionMessage={timeSelectionMessage}
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
 					onNotesChange={setSelectedNotes}
+					onServiceChange={setSelectedService}
 					onRequestUnschedule={handleRequestUnschedule}
 					onRequestSaveSession={handleRequestSaveSession}
 					onSessionClose={handleCloseSession}

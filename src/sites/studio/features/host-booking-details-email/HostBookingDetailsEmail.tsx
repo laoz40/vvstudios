@@ -60,7 +60,7 @@ interface HostBookingBaseDetailsEmailProps {
 	phone: string;
 	accountName: string;
 	abn?: string;
-	service: string;
+	service?: string;
 	duration: string;
 	addonsLine: string;
 	notes?: string;
@@ -162,9 +162,11 @@ export function HostBookingDetailsEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Session details</Text>
 						<Section style={detailsCard}>
-							<Text style={detailLine}>
-								Recording space: <strong>{service}</strong>
-							</Text>
+							{bookingDetails.kind !== "package" ? (
+								<Text style={detailLine}>
+									Recording space: <strong>{service}</strong>
+								</Text>
+							) : null}
 							<Text style={detailLine}>
 								Session duration: <strong>{duration}</strong>
 							</Text>

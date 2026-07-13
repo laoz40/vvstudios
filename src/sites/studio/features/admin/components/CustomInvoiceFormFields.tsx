@@ -15,7 +15,7 @@ import {
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type CustomInvoiceFormDraft = {
-	service: BookingFormValues["service"] | "";
+	service?: BookingFormValues["service"] | "";
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
@@ -30,6 +30,7 @@ type CustomInvoiceFormFieldsProps<TDraft extends CustomInvoiceFormDraft> = {
 	idPrefix: string;
 	onDraftChange: (nextDraft: TDraft) => void;
 	priceHelpText: string;
+	showService?: boolean;
 	deposit?: { checked: boolean; onChange: (checked: boolean) => void };
 	packageSize?: { value: MultiBookingSize; onChange: (packageSize: MultiBookingSize) => void };
 	packageDiscount?: { checked: boolean; onChange: (checked: boolean) => void };
@@ -60,6 +61,7 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 	idPrefix,
 	onDraftChange,
 	priceHelpText,
+	showService = true,
 	deposit,
 	packageSize,
 	packageDiscount
@@ -89,12 +91,14 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 				onChange={(duration) => onDraftChange({ ...draft, duration })}
 			/>
 
-			<ServiceOptions
-				disabled={disabled}
-				idPrefix={idPrefix}
-				value={draft.service}
-				onChange={(service) => onDraftChange({ ...draft, service })}
-			/>
+			{showService ? (
+				<ServiceOptions
+					disabled={disabled}
+					idPrefix={idPrefix}
+					value={draft.service ?? ""}
+					onChange={(service) => onDraftChange({ ...draft, service })}
+				/>
+			) : null}
 
 			<AdminAddonOptions
 				addons={draft.addons}

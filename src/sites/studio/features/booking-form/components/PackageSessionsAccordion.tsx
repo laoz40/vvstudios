@@ -19,8 +19,10 @@ import {
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
+import { PackageSessionRecordingSpaceField } from "#studio/features/booking-form/components/PackageSessionRecordingSpaceField";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
@@ -36,12 +38,14 @@ interface PackageSessionsAccordionProps {
 	savingSessionKey: string | null;
 	selectedDateValue: string;
 	selectedNotes: string;
+	selectedService: BookingFormValues["service"];
 	selectedTime: string;
 	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
 	leadTimeMinutes: number;
 	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
 	onNotesChange: (notes: string) => void;
+	onServiceChange: (service: Exclude<BookingFormValues["service"], "">) => void;
 	onRequestUnschedule: (bookingId: Id<"bookings">, date: string) => void;
 	onRequestSaveSession: () => void;
 	onSessionClose: () => void;
@@ -57,12 +61,14 @@ export function PackageSessionsAccordion({
 	savingSessionKey,
 	selectedDateValue,
 	selectedNotes,
+	selectedService,
 	selectedTime,
 	timeSelectionMessage,
 	leadTimeMinutes,
 	currentTimestamp,
 	onDateChange,
 	onNotesChange,
+	onServiceChange,
 	onRequestUnschedule,
 	onRequestSaveSession,
 	onSessionClose,
@@ -118,6 +124,7 @@ export function PackageSessionsAccordion({
 					booking &&
 					booking.date === selectedDateValue &&
 					booking.time === selectedTime &&
+					booking.service === selectedService &&
 					booking.notes === selectedNotes
 				);
 				let saveButtonText = "SAVE SESSION";
@@ -159,7 +166,8 @@ export function PackageSessionsAccordion({
 												{formatBookingTimestampDateLong(booking.sessionStartAt)}
 											</span>
 											<span className="mt-1 block text-sm font-normal text-muted-foreground">
-												{formatBookingTimeRange(booking.time, packageData.duration)}
+												{formatBookingTimeRange(booking.time, packageData.duration)} ·{" "}
+												{booking.service}
 											</span>
 										</span>
 									) : (
@@ -275,7 +283,7 @@ export function PackageSessionsAccordion({
 							</span>
 						</AccordionTrigger>
 
-						<AccordionContent className="flex flex-col border-t pt-6 gap-6">
+						<AccordionContent className="flex flex-col border-t pt-6 gap-12">
 							<BookingDateTimePicker
 								availability={availability}
 								onDateChange={onDateChange}
@@ -286,6 +294,11 @@ export function PackageSessionsAccordion({
 							<BookingSessionSummary
 								dateSummary={selectedDateSummary}
 								timeSummary={selectedTimeSummary}
+							/>
+							<PackageSessionRecordingSpaceField
+								disabled={savingSessionKey !== null}
+								value={selectedService}
+								onChange={onServiceChange}
 							/>
 							<BookingNotesField
 								value={selectedNotes}
@@ -301,6 +314,7 @@ export function PackageSessionsAccordion({
 								disabled={
 									!hasActiveSession ||
 									!selectedDateValue ||
+									!selectedService ||
 									!selectedTime ||
 									isSelectedBookingSaved ||
 									savingSessionKey !== null

@@ -21,7 +21,6 @@ export interface MultiBookingSchedulingEmailProps {
 	name: string;
 	packageSize: 4 | 8 | 12;
 	scheduleUrl: string;
-	service: string;
 	signoffName: string;
 }
 
@@ -33,7 +32,6 @@ export function MultiBookingSchedulingEmail({
 	name,
 	packageSize,
 	scheduleUrl,
-	service,
 	signoffName
 }: MultiBookingSchedulingEmailProps) {
 	const noticeWindowLabel = formatNoticeWindowLabel(leadTimeMinutes);
@@ -85,10 +83,10 @@ export function MultiBookingSchedulingEmail({
 						<Text style={sectionTitle}>Session details</Text>
 						<Section style={detailsCard}>
 							<Text style={detailLine}>
-								<strong>Recording space:</strong> {service}
+								<strong>Session duration:</strong> {duration}
 							</Text>
 							<Text style={detailLine}>
-								<strong>Session duration:</strong> {duration}
+								<strong>Recording space:</strong> Choose a space for each session.
 							</Text>
 							<Text style={detailLine}>
 								<strong>Add-ons:</strong> {addonsLine}

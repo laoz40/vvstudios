@@ -26,7 +26,6 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	expiresAt: "Package expiry window",
 	notes: "Notes",
 	packageSize: "Package sessions",
-	service: "Service",
 	totalDueAmount: "Package total due"
 };
 

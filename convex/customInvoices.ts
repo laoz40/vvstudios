@@ -87,7 +87,6 @@ export const createPackageCustomInvoice = mutation({
 	args: {
 		multiBookingId: v.id("multiBookingPackages"),
 		dueDate: v.optional(v.string()),
-		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
@@ -103,7 +102,6 @@ export const createPackageCustomInvoice = mutation({
 type CreatePackageCustomInvoiceArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
 	dueDate?: string;
-	service?: string;
 	duration?: string;
 	addons: string[];
 	essentialEditQuantity?: string;
@@ -139,7 +137,6 @@ async function createPackageCustomInvoiceHandler(
 		multiBookingId: args.multiBookingId,
 		invoiceNumber: "pending",
 		dueDate: args.dueDate,
-		service: args.service,
 		duration: args.duration,
 		addons: args.addons,
 		essentialEditQuantity: args.essentialEditQuantity,

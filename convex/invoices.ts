@@ -6,7 +6,6 @@ import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booki
 import {
 	DURATION_OPTIONS,
 	multiBookingFormSchema,
-	SERVICES,
 	type BookingFormValues
 } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
@@ -28,12 +27,6 @@ type GetBookingInvoicePdfByStripeSessionIdArgs = { stripeSessionId: string };
 function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
 	return DURATION_OPTIONS.some((duration) => duration === value)
 		? (value as BookingFormValues["duration"])
-		: "";
-}
-
-function toCustomService(value: string | undefined): BookingFormValues["service"] | "" {
-	return SERVICES.some((service) => service === value)
-		? (value as BookingFormValues["service"])
 		: "";
 }
 
@@ -193,7 +186,6 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 	const packageSize = source.customInvoice.packageSize ?? source.multiBooking.packageSize;
 	const customDuration = toCustomDuration(source.customInvoice.duration);
-	const customService = toCustomService(source.customInvoice.service);
 	const includePackageDiscount = source.customInvoice.includePackageDiscount !== false;
 	const parsedCustomInvoice = multiBookingFormSchema.safeParse({
 		name: source.multiBooking.name,
@@ -202,7 +194,6 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		abn: source.multiBooking.abn,
 		email: source.multiBooking.email,
 		duration: source.customInvoice.duration ?? source.multiBooking.duration,
-		service: source.customInvoice.service ?? source.multiBooking.service,
 		addons: source.customInvoice.addons,
 		essentialEditQuantity:
 			source.customInvoice.essentialEditQuantity ?? source.multiBooking.essentialEditQuantity ?? "",
@@ -220,7 +211,7 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 	const amounts = calculateMultiBookingAmounts({
 		addons: customInvoiceData.addons,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity,
-		duration: customService ? customDuration : "",
+		duration: customDuration,
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity,
 		includeDiscount: includePackageDiscount,
 		packageSize
@@ -231,10 +222,9 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent,
-		duration: customService ? customDuration : "",
+		duration: customDuration,
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
-		packageSize,
-		service: customService
+		packageSize
 	});
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
 
@@ -257,8 +247,7 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		accountName: customInvoiceData.accountName,
 		abn: customInvoiceData.abn,
 		email: customInvoiceData.email,
-		duration: customService && customDuration ? customDuration : customInvoiceData.duration,
-		service: customService || undefined,
+		duration: customDuration || customInvoiceData.duration,
 		addons: customInvoiceData.addons,
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,

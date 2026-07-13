@@ -83,7 +83,8 @@ const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
 
-const service = z.union([z.literal(""), z.enum(SERVICES)]);
+export const recordingSpaceSchema = z.enum(SERVICES);
+const service = z.union([z.literal(""), recordingSpaceSchema]);
 
 const deliverableCountOption = z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]);
 const addons = z
@@ -102,7 +103,6 @@ const sharedBookingFields = {
 	abn,
 	email,
 	duration,
-	service,
 	addons,
 	essentialEditQuantity: deliverableCountOption.optional(),
 	clipsPackageQuantity: deliverableCountOption.optional(),
@@ -152,6 +152,7 @@ function validateEditingAddonQuantities(
 export const bookingSchema = z
 	.object({
 		...sharedBookingFields,
+		service,
 		bookingMode,
 		packageSize: optionalMultiBookingSize,
 		date: z.string(),

@@ -30,10 +30,12 @@ export function PackageSessionDetailsModal({ packageData }: PackageSessionDetail
 				closeLabel="Close package session details">
 				<dl className="grid gap-2 text-sm">
 					<div className="flex gap-8">
-						<dt className="shrink-0 text-muted-foreground">Session</dt>
-						<dd className="font-medium">
-							{packageData.service} ({packageData.duration})
-						</dd>
+						<dt className="shrink-0 text-muted-foreground">Session duration</dt>
+						<dd className="font-medium">{packageData.duration}</dd>
+					</div>
+					<div className="flex gap-8">
+						<dt className="shrink-0 text-muted-foreground">Recording space</dt>
+						<dd className="font-medium">Choose a space for each session.</dd>
 					</div>
 					{packageData.addons.length > 0 ? (
 						<div className="flex gap-8">

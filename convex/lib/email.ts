@@ -68,7 +68,6 @@ interface SendPackageHostDetailsEmailArgs {
 	phone: string;
 	accountName: string;
 	abn?: string;
-	service: string;
 	duration: string;
 	addons: string[];
 	essentialEditQuantity?: string;
@@ -113,7 +112,6 @@ interface SendMultiBookingScheduleEmailArgs {
 	packageSize: 4 | 8 | 12;
 	bookedAt: number;
 	scheduleUrl: string;
-	service: string;
 }
 
 function escapeHtml(value: string) {
@@ -264,7 +262,6 @@ export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEm
 			phone: args.phone,
 			accountName: args.accountName,
 			abn: args.abn,
-			service: args.service,
 			duration: args.duration,
 			addonsLine: formatAddonsLine({
 				addons: args.addons,
@@ -408,7 +405,6 @@ export async function sendMultiBookingInvoiceEmail(
 		phone: multiBooking.phone,
 		accountName: multiBooking.accountName,
 		abn: multiBooking.abn,
-		service: multiBooking.service,
 		duration: multiBooking.duration,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity,
@@ -438,8 +434,7 @@ export async function sendMultiBookingScheduleEmail({
 	packageSize,
 	leadTimeMinutes,
 	bookedAt,
-	scheduleUrl,
-	service
+	scheduleUrl
 }: SendMultiBookingScheduleEmailArgs): Promise<
 	Result<{ sent: true }, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
 > {
@@ -458,7 +453,6 @@ export async function sendMultiBookingScheduleEmail({
 				packageSize,
 				leadTimeMinutes,
 				scheduleUrl,
-				service,
 				signoffName
 			})
 		);

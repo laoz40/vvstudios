@@ -43,7 +43,6 @@ import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
 
 type PackageCustomInvoiceDraft = {
-	service: BookingFormValues["service"] | "";
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
@@ -67,16 +66,12 @@ function formatPackageInvoiceTotal(input: {
 	duration: BookingFormValues["duration"] | "";
 	essentialEditQuantity?: BookingFormValues["essentialEditQuantity"];
 	packageSize: MultiBookingSize;
-	service: BookingFormValues["service"] | "";
 	includePackageDiscount: boolean;
 }) {
 	const totalDueAmount =
 		input.customTotalDueAmount ??
-		calculateMultiBookingAmounts({
-			...input,
-			duration: input.service ? input.duration : "",
-			includeDiscount: input.includePackageDiscount
-		}).totalDueAmount;
+		calculateMultiBookingAmounts({ ...input, includeDiscount: input.includePackageDiscount })
+			.totalDueAmount;
 
 	return formatCustomInvoiceCurrency(totalDueAmount);
 }
@@ -101,7 +96,6 @@ export function PackageCustomInvoiceDialog({
 		customInvoicesResult?.[1] ?? undefined;
 	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
 	const [draft, setDraft] = useState<PackageCustomInvoiceDraft>({
-		service: "",
 		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
@@ -113,10 +107,8 @@ export function PackageCustomInvoiceDialog({
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
-	const hasCompleteSessionSelection = Boolean(draft.service) && draft.duration !== "";
-	const hasPartialSessionSelection = Boolean(draft.service) !== (draft.duration !== "");
 	const hasInvoiceSelection =
-		hasCompleteSessionSelection ||
+		draft.duration !== "" ||
 		draft.addons.length > 0 ||
 		draft.packageSize !== packageRow.packageSize ||
 		draft.includePackageDiscount !== true ||
@@ -130,7 +122,6 @@ export function PackageCustomInvoiceDialog({
 		}
 
 		setDraft({
-			service: "",
 			duration: "",
 			addons: [],
 			essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
@@ -208,9 +199,7 @@ export function PackageCustomInvoiceDialog({
 			createPackageCustomInvoice({
 				multiBookingId: packageRow.id,
 				dueDate: draft.dueDate,
-				...(hasCompleteSessionSelection
-					? { service: draft.service, duration: draft.duration }
-					: {}),
+				...(draft.duration ? { duration: draft.duration } : {}),
 				addons: draft.addons,
 				...(draft.essentialEditQuantity
 					? { essentialEditQuantity: draft.essentialEditQuantity }
@@ -267,25 +256,22 @@ export function PackageCustomInvoiceDialog({
 				)
 			});
 			const packageSize = invoice.packageSize ?? packageRow.packageSize;
-			const service = invoice.service ?? "Add-ons only";
+			const duration = invoice.duration ?? "Add-ons only";
 
 			return {
 				id: invoice._id,
 				invoiceNumber: invoice.invoiceNumber,
-				description: `${packageSize} sessions · ${service}${addonText}`,
+				description: `${packageSize} sessions · ${duration}${addonText}`,
 				total: formatPackageInvoiceTotal({
 					addons: invoice.addons as BookingFormValues["addons"],
 					clipsPackageQuantity: toDeliverableCountOption(
 						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
 					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
-					duration: invoice.service
-						? ((invoice.duration ?? "") as BookingFormValues["duration"] | "")
-						: "",
+					duration: (invoice.duration ?? "") as BookingFormValues["duration"] | "",
 					essentialEditQuantity: toDeliverableCountOption(
 						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 					),
-					service: invoice.service ? (invoice.service as BookingFormValues["service"]) : "",
 					includePackageDiscount: invoice.includePackageDiscount !== false,
 					packageSize
 				})
@@ -359,7 +345,8 @@ export function PackageCustomInvoiceDialog({
 						draft={draft}
 						idPrefix="package-custom-invoice"
 						onDraftChange={setDraft}
-						priceHelpText="Leave blank to use the computed price from the selected service, add-ons, and package size."
+						priceHelpText="Leave blank to use the computed price from the selected duration, add-ons, and package size."
+						showService={false}
 						packageSize={{
 							value: draft.packageSize,
 							onChange: (packageSize) => setDraft((current) => ({ ...current, packageSize }))
@@ -387,7 +374,7 @@ export function PackageCustomInvoiceDialog({
 						</Button>
 						<Button
 							type="submit"
-							disabled={isGenerating || !hasInvoiceSelection || hasPartialSessionSelection}>
+							disabled={isGenerating || !hasInvoiceSelection}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isGenerating ? "Downloading..." : "Download"}
 						</Button>

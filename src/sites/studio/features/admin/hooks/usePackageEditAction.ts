@@ -31,7 +31,6 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			abn: values.abn,
 			email: values.customerEmail,
 			duration: values.duration,
-			service: values.service,
 			addons: values.addons,
 			essentialEditQuantity: values.essentialEditQuantity,
 			clipsPackageQuantity: values.clipsPackageQuantity,
@@ -76,7 +75,6 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 				...(parsedValues.data.abn ? { abn: parsedValues.data.abn } : {}),
 				email: parsedValues.data.email,
 				duration: parsedValues.data.duration,
-				service: parsedValues.data.service,
 				addons: parsedValues.data.addons,
 				...(parsedValues.data.essentialEditQuantity
 					? { essentialEditQuantity: parsedValues.data.essentialEditQuantity }

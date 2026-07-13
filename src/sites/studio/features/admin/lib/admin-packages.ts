@@ -1,5 +1,6 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 export type AdminPackageStatus =
 	| "pending_payment"
@@ -20,7 +21,6 @@ export type AdminPackageRow = {
 	notes?: string;
 	packageSize: 4 | 8 | 12;
 	bookedSessions: number;
-	service: string;
 	duration: string;
 	addons: string[];
 	clipsPackageQuantity?: string;
@@ -32,7 +32,7 @@ export type AdminPackageRow = {
 	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
-	invoiceNumber?: string;
+	invoiceNumber: string;
 	hiddenAt?: number;
 };
 
@@ -247,7 +247,6 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		notes: multiBookingPackage.notes,
 		packageSize: multiBookingPackage.packageSize,
 		bookedSessions,
-		service: multiBookingPackage.service,
 		duration: multiBookingPackage.duration,
 		addons: multiBookingPackage.addons,
 		clipsPackageQuantity: multiBookingPackage.clipsPackageQuantity,
@@ -261,7 +260,10 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		expiresAt: multiBookingPackage.expiresAt,
 		createdAt: multiBookingPackage.createdAt,
 		status: multiBookingPackage.status,
-		invoiceNumber: multiBookingPackage.invoiceNumber,
+		invoiceNumber: formatBookingInvoiceNumber(
+			multiBookingPackage._id,
+			multiBookingPackage.createdAt
+		),
 		hiddenAt: multiBookingPackage.hiddenAt
 	};
 }
@@ -291,7 +293,6 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		packageRow.invoiceNumber,
 		`${packageRow.packageSize} sessions`,
 		`${packageRow.bookedSessions} booked`,
-		packageRow.service,
 		packageRow.duration,
 		packageRow.addons.join(" "),
 		packageRow.totalDueLabel,

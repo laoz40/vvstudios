@@ -28,7 +28,10 @@ import {
 } from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
-import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import {
+	createMultiBookingInvoiceLineItemSnapshot,
+	formatBookingInvoiceNumber
+} from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { generateRescheduleToken, hashRescheduleToken } from "./lib/bookingRescheduleLinks";
 import {
 	bookingConsumesPackageCapacity,
@@ -128,7 +131,6 @@ export const createPendingMultiBooking = internalMutation({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		duration: v.string(),
-		service: v.string(),
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
@@ -151,7 +153,6 @@ export const createPendingMultiBooking = internalMutation({
 			...(args.abn !== undefined ? { abn: args.abn } : {}),
 			email: args.email,
 			duration: args.duration,
-			service: args.service,
 			addons: args.addons,
 			...(args.essentialEditQuantity !== undefined
 				? { essentialEditQuantity: args.essentialEditQuantity }
@@ -268,7 +269,6 @@ export const updatePackageFromAdmin = mutation({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		duration: v.string(),
-		service: v.string(),
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
@@ -288,7 +288,6 @@ type UpdatePackageFromAdminArgs = {
 	abn?: string;
 	email: string;
 	duration: string;
-	service: string;
 	addons: string[];
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
@@ -358,8 +357,7 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 		discountPercent: amounts.discountPercent,
 		duration: multiBookingData.duration,
 		essentialEditQuantity: multiBookingData.essentialEditQuantity,
-		packageSize: multiBookingData.packageSize,
-		service: multiBookingData.service
+		packageSize: multiBookingData.packageSize
 	});
 
 	try {
@@ -370,7 +368,6 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 			abn: multiBookingData.abn,
 			email: multiBookingData.email,
 			duration: multiBookingData.duration,
-			service: multiBookingData.service,
 			addons: multiBookingData.addons,
 			essentialEditQuantity: multiBookingData.essentialEditQuantity,
 			clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
@@ -639,7 +636,10 @@ async function getBookingsHandler(
 
 			return {
 				...booking,
-				multiBookingInvoiceNumber: multiBookingPackage.invoiceNumber,
+				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
+					multiBookingPackage._id,
+					multiBookingPackage.createdAt
+				),
 				multiBookingPackageSize: multiBookingPackage.packageSize,
 				multiBookingPackageSessionPosition: bookingConsumesPackageCapacity(booking)
 					? packageBookings.findIndex(({ _id }) => _id === booking._id) + 1
@@ -1252,6 +1252,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		bookingId: v.id("bookings"),
 		date: v.string(),
 		time: v.string(),
+		service: v.optional(v.string()),
 		notes: v.optional(v.string()),
 		sessionStartAt: v.number(),
 		confirmBooking: v.optional(v.boolean()),
@@ -1278,6 +1279,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		await ctx.db.patch(args.bookingId, {
 			date: args.date,
 			time: args.time,
+			...(args.service !== undefined ? { service: args.service } : {}),
 			...(args.notes !== undefined ? { notes: args.notes } : {}),
 			sessionStartAt: args.sessionStartAt,
 			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
