@@ -168,7 +168,7 @@ export function BookingRecordingSpaceDurationSection() {
 						}}>
 						<FieldDescription className="mt-2! text-pretty italic">
 							{isPackageBooking
-								? "Recording space is selected when you schedule your sessions."
+								? "Recording space and/or Remote Podcast addon is selected when you schedule your sessions."
 								: sectionCopy.recordingSpaceNote}
 						</FieldDescription>
 						{field.state.meta.isBlurred || shouldShowFieldError ? (
