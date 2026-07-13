@@ -36,6 +36,7 @@ const copy = {
 export interface BookingDateTimePickerProps {
 	availability: BookingAvailabilityPickerState;
 	dateError?: React.ReactNode;
+	disabled?: boolean;
 	onDateChange: (dateValue: string) => void;
 	onTimeChange: (time: string) => void;
 	selectedTime: string;
@@ -46,6 +47,7 @@ export interface BookingDateTimePickerProps {
 export function BookingDateTimePicker({
 	availability,
 	dateError,
+	disabled = false,
 	onDateChange,
 	onTimeChange,
 	selectedTime,
@@ -125,9 +127,10 @@ export function BookingDateTimePicker({
 							}}
 							mode="single"
 							required
-							disabled={disabledDates}
+							disabled={disabled ? () => true : disabledDates}
+							disableNavigation={disabled}
 							month={calendarMonth}
-							onMonthChange={setCalendarMonth}
+							onMonthChange={disabled ? undefined : setCalendarMonth}
 							selected={selectedDate}
 							onSelect={(date) => {
 								if (!date) return;
@@ -181,7 +184,10 @@ export function BookingDateTimePicker({
 								value={selectedTime}
 								onValueChange={onTimeChange}
 								disabled={
-									!isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability
+									disabled ||
+									!isTimeSelectionReady ||
+									!isViewingSelectedMonth ||
+									isLoadingMonthAvailability
 								}
 								className="flex flex-col gap-6">
 								<div className="grid grid-cols-1 gap-3">

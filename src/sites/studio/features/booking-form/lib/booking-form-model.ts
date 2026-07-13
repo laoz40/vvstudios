@@ -22,6 +22,22 @@ export function isPackageUnavailableAddon(addon: BookingAddon) {
 	return addon === "Remote Podcast";
 }
 
+export function getPackageSessionAddons(
+	packageAddons: readonly string[],
+	hasRemotePodcast: boolean
+): string[] {
+	const standardSessionAddons = packageAddons.filter((addon) => addon !== "Remote Podcast");
+
+	if (!hasRemotePodcast) {
+		return standardSessionAddons;
+	}
+
+	return [
+		...standardSessionAddons.filter((addon) => addon !== "4K UHD Recording"),
+		"Remote Podcast"
+	];
+}
+
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
 	return addons.some((addon) => EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number]));
 }

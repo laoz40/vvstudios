@@ -24,6 +24,7 @@ import {
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	closeBookingModal,
+	openAddonCompatibilityModal,
 	openPackageUnscheduleConfirmationModal,
 	useBookingModalStore
 } from "#studio/features/booking-form/lib/booking-modal-store";
@@ -131,6 +132,7 @@ function PackageScheduleContent({
 	);
 	const [selectedDateValue, setSelectedDateValue] = useState("");
 	const [selectedNotes, setSelectedNotes] = useState("");
+	const [selectedRemotePodcast, setSelectedRemotePodcast] = useState(false);
 	const [selectedService, setSelectedService] = useState<BookingFormValues["service"]>("");
 	const [selectedTime, setSelectedTime] = useState("");
 	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
@@ -244,6 +246,7 @@ function PackageScheduleContent({
 		setActiveSessionKey(sessionKey);
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedNotes(booking?.notes ?? "");
+		setSelectedRemotePodcast(booking?.addons.includes("Remote Podcast") ?? false);
 		setSelectedService(recordingSpaceSchema.safeParse(booking?.service).data ?? "");
 		setSelectedTime(time ?? "");
 	}
@@ -255,6 +258,14 @@ function PackageScheduleContent({
 	function handleDateChange(dateValue: string) {
 		setSelectedDateValue(dateValue);
 		setSelectedTime("");
+	}
+
+	function handleRemotePodcastChange(checked: boolean) {
+		setSelectedRemotePodcast(checked);
+
+		if (checked && packageData.addons.includes("4K UHD Recording")) {
+			openAddonCompatibilityModal();
+		}
 	}
 
 	function handleRequestSaveSession() {
@@ -308,6 +319,7 @@ function PackageScheduleContent({
 					time: selectedTime,
 					service,
 					notes: selectedNotes,
+					remotePodcast: selectedRemotePodcast,
 					token
 				})
 			: createPackageBooking({
@@ -315,6 +327,7 @@ function PackageScheduleContent({
 					time: selectedTime,
 					service,
 					notes: selectedNotes,
+					remotePodcast: selectedRemotePodcast,
 					token
 				});
 		const [saveError, saveResult] = await tryCatch<SavePackageBookingResult>(saveAction);
@@ -356,6 +369,7 @@ function PackageScheduleContent({
 		if (activeSessionKey === bookingId) {
 			setSelectedDateValue("");
 			setSelectedNotes("");
+			setSelectedRemotePodcast(false);
 			setSelectedService("");
 			setSelectedTime("");
 		}
@@ -445,6 +459,7 @@ function PackageScheduleContent({
 					savingSessionKey={savingSessionKey}
 					selectedDateValue={selectedDateValue}
 					selectedNotes={selectedNotes}
+					selectedRemotePodcast={selectedRemotePodcast}
 					selectedService={selectedService}
 					selectedTime={selectedTime}
 					timeSelectionMessage={timeSelectionMessage}
@@ -452,6 +467,7 @@ function PackageScheduleContent({
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
 					onNotesChange={setSelectedNotes}
+					onRemotePodcastChange={handleRemotePodcastChange}
 					onServiceChange={setSelectedService}
 					onRequestUnschedule={handleRequestUnschedule}
 					onRequestSaveSession={handleRequestSaveSession}

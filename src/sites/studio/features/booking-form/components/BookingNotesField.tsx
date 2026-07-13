@@ -10,12 +10,19 @@ const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 interface BookingNotesFieldProps {
 	children?: ReactNode;
+	disabled?: boolean;
 	value: string;
 	onBlur?: () => void;
 	onChange: (value: string) => void;
 }
 
-export function BookingNotesField({ children, value, onBlur, onChange }: BookingNotesFieldProps) {
+export function BookingNotesField({
+	children,
+	disabled = false,
+	value,
+	onBlur,
+	onChange
+}: BookingNotesFieldProps) {
 	return (
 		<FieldSet className={fieldSetClassName}>
 			<FieldLegend className={sectionLegendClassName}>Session notes + questions</FieldLegend>
@@ -32,6 +39,7 @@ export function BookingNotesField({ children, value, onBlur, onChange }: Booking
 					name="notes"
 					autoComplete="off"
 					value={value}
+					disabled={disabled}
 					placeholder="Number of people, remote guest details, or session questions..."
 					className={formControlShadowClassName}
 					maxLength={200}

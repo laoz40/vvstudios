@@ -27,6 +27,7 @@ import {
 	type ValidPackage
 } from "./lib/packageScheduling";
 import { isPackageSessionLocked } from "../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
+import { getPackageSessionAddons } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
@@ -63,6 +64,7 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 			sessionStartAt: booking.sessionStartAt,
 			notes: booking.notes ?? "",
 			service: booking.service,
+			addons: booking.addons,
 			...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
 		}))
 	});
@@ -77,7 +79,8 @@ const packageBookingInput = {
 	date: v.string(),
 	time: v.string(),
 	service: recordingSpaceValidator,
-	notes: v.optional(v.string())
+	notes: v.optional(v.string()),
+	remotePodcast: v.boolean()
 };
 
 export const createPackageBooking = action({
@@ -93,6 +96,7 @@ async function createPackageBookingHandler(
 		time: string;
 		service: "Table Setup" | "Armchair Setup";
 		notes?: string;
+		remotePodcast: boolean;
 	}
 ): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageBookingError>> {
 	const now = Date.now();
@@ -179,6 +183,7 @@ async function reschedulePackageBookingHandler(
 		time: string;
 		service: "Table Setup" | "Armchair Setup";
 		notes?: string;
+		remotePodcast: boolean;
 	}
 ): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageBookingError>> {
 	const now = Date.now();
@@ -212,6 +217,7 @@ async function reschedulePackageBookingHandler(
 			time: args.time,
 			service: args.service,
 			notes: args.notes,
+			addons: getPackageSessionAddons(details.multiBooking.addons, args.remotePodcast),
 			sessionStartAt: details.sessionStartAt,
 			googleCalendarId: calendar.googleCalendarId,
 			googleEventId: calendar.googleEventId,
@@ -283,12 +289,17 @@ export const getValidPackageByTokenInternal = internalQuery({
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
 
 function toPackageCalendarDetails(
-	args: { date: string; time: string; service: "Table Setup" | "Armchair Setup" },
+	args: {
+		date: string;
+		time: string;
+		service: "Table Setup" | "Armchair Setup";
+		remotePodcast: boolean;
+	},
 	multiBooking: ValidPackage,
 	eventBufferMinutes: number
 ) {
 	return {
-		addons: multiBooking.addons,
+		addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
 		date: args.date,
 		duration: multiBooking.duration,
 		email: multiBooking.email,
@@ -458,6 +469,7 @@ async function saveCreatedPackageBooking(
 		time: string;
 		service: "Table Setup" | "Armchair Setup";
 		notes?: string;
+		remotePodcast: boolean;
 		now: number;
 		googleCalendarId?: string;
 		googleEventId?: string;
@@ -498,7 +510,7 @@ async function saveCreatedPackageBooking(
 			sessionStartAt,
 			duration: multiBooking.duration,
 			service: args.service,
-			addons: multiBooking.addons,
+			addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
 			essentialEditQuantity: multiBooking.essentialEditQuantity,
 			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
 			notes: args.notes,

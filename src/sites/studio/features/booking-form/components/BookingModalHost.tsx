@@ -1,7 +1,6 @@
 import { Suspense, lazy } from "react";
 
-import { Button } from "#/components/ui/button";
-import { Modal } from "#studio/components/Modal";
+import { AddonCompatibilityModal } from "#studio/features/booking-form/components/AddonCompatibilityModal";
 import {
 	PackageUnscheduleConfirmation,
 	RescheduleConfirmation
@@ -38,23 +37,7 @@ export function BookingModalHost({
 
 	switch (bookingModalState.modal) {
 		case "addonCompatibility":
-			return (
-				<Modal
-					open
-					onOpenChange={closeBookingModal}
-					title="4K isn't available for remote podcasts"
-					description="Remote Podcast runs through Riverside.fm using our studio setup, which doesn't support our 4K recording addon."
-					closeLabel="Close"
-					footer={
-						<Button
-							type="button"
-							className="w-full"
-							onClick={closeBookingModal}>
-							Got it
-						</Button>
-					}
-				/>
-			);
+			return <AddonCompatibilityModal onClose={closeBookingModal} />;
 
 		case "payment":
 			return (

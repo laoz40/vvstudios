@@ -20,6 +20,7 @@ import {
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { PackageSessionRecordingSpaceField } from "#studio/features/booking-form/components/PackageSessionRecordingSpaceField";
+import { PackageSessionRemotePodcastField } from "#studio/features/booking-form/components/PackageSessionRemotePodcastField";
 import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
@@ -38,6 +39,7 @@ interface PackageSessionsAccordionProps {
 	savingSessionKey: string | null;
 	selectedDateValue: string;
 	selectedNotes: string;
+	selectedRemotePodcast: boolean;
 	selectedService: BookingFormValues["service"];
 	selectedTime: string;
 	timeSelectionMessage: BookingDateTimePickerProps["timeSelectionMessage"];
@@ -45,6 +47,7 @@ interface PackageSessionsAccordionProps {
 	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
 	onNotesChange: (notes: string) => void;
+	onRemotePodcastChange: (checked: boolean) => void;
 	onServiceChange: (service: Exclude<BookingFormValues["service"], "">) => void;
 	onRequestUnschedule: (bookingId: Id<"bookings">, date: string) => void;
 	onRequestSaveSession: () => void;
@@ -61,6 +64,7 @@ export function PackageSessionsAccordion({
 	savingSessionKey,
 	selectedDateValue,
 	selectedNotes,
+	selectedRemotePodcast,
 	selectedService,
 	selectedTime,
 	timeSelectionMessage,
@@ -68,6 +72,7 @@ export function PackageSessionsAccordion({
 	currentTimestamp,
 	onDateChange,
 	onNotesChange,
+	onRemotePodcastChange,
 	onServiceChange,
 	onRequestUnschedule,
 	onRequestSaveSession,
@@ -168,6 +173,7 @@ export function PackageSessionsAccordion({
 											<span className="mt-1 block text-sm font-normal text-muted-foreground">
 												{formatBookingTimeRange(booking.time, packageData.duration)} ·{" "}
 												{booking.service}
+												{booking.addons.includes("Remote Podcast") ? " (Remote)" : ""}
 											</span>
 										</span>
 									) : (
@@ -283,10 +289,11 @@ export function PackageSessionsAccordion({
 							</span>
 						</AccordionTrigger>
 
-						<AccordionContent className="flex flex-col gap-12 border-t pt-6">
+						<AccordionContent className="flex flex-col gap-8 border-t pt-6">
 							<div className="flex flex-col gap-6">
 								<BookingDateTimePicker
 									availability={availability}
+									disabled={savingSessionKey !== null}
 									onDateChange={onDateChange}
 									onTimeChange={onTimeChange}
 									selectedTime={selectedTime}
@@ -297,12 +304,21 @@ export function PackageSessionsAccordion({
 									timeSummary={selectedTimeSummary}
 								/>
 							</div>
-							<PackageSessionRecordingSpaceField
-								disabled={savingSessionKey !== null}
-								value={selectedService}
-								onChange={onServiceChange}
-							/>
+							<div className="flex flex-col gap-4">
+								<PackageSessionRecordingSpaceField
+									disabled={savingSessionKey !== null}
+									value={selectedService}
+									onChange={onServiceChange}
+								/>
+								<PackageSessionRemotePodcastField
+									id={`package-session-${session.key}-remote-podcast`}
+									checked={selectedRemotePodcast}
+									disabled={savingSessionKey !== null}
+									onCheckedChange={onRemotePodcastChange}
+								/>
+							</div>
 							<BookingNotesField
+								disabled={savingSessionKey !== null}
 								value={selectedNotes}
 								onChange={onNotesChange}
 							/>
