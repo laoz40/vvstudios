@@ -153,6 +153,7 @@ export default defineSchema({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
+		defaultSpace: v.optional(v.union(v.literal("Table Setup"), v.literal("Armchair Setup"))),
 
 		// Package invoice amount snapshot
 		singleSessionAmount: v.number(),

@@ -37,6 +37,7 @@ type RecordingSpace = BookingFormValues["service"];
 interface RecordingSpaceFieldProps {
 	children?: ReactNode;
 	disabled?: boolean;
+	headerAction?: ReactNode;
 	idPrefix: string;
 	label: string;
 	value: RecordingSpace;
@@ -46,6 +47,7 @@ interface RecordingSpaceFieldProps {
 export function RecordingSpaceField({
 	children,
 	disabled = false,
+	headerAction,
 	idPrefix,
 	label,
 	value,
@@ -56,7 +58,12 @@ export function RecordingSpaceField({
 			data-field-name="service"
 			className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 			<FieldSet className="gap-1">
-				<FieldLegend className={sectionHeadingClassName}>{label}</FieldLegend>
+				<div className="flex items-center justify-between gap-4">
+					<FieldLegend className={cn(sectionHeadingClassName, headerAction && "mb-0")}>
+						{label}
+					</FieldLegend>
+					{headerAction}
+				</div>
 				<RadioGroup
 					disabled={disabled}
 					value={value}

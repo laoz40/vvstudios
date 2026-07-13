@@ -4,6 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import {
 	action,
 	internalMutation,
+	mutation,
 	internalQuery,
 	query,
 	type ActionCtx,
@@ -57,6 +58,7 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
 		packageSize: multiBooking.packageSize,
 		expiresAt: multiBooking.expiresAt,
+		defaultSpace: multiBooking.defaultSpace,
 		bookings: bookings.map((booking) => ({
 			_id: booking._id,
 			date: booking.date,
@@ -73,6 +75,28 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
 
 const recordingSpaceValidator = v.union(v.literal("Table Setup"), v.literal("Armchair Setup"));
+
+export const setDefaultSpace = mutation({
+	args: { service: recordingSpaceValidator, token: v.string() },
+	handler: (ctx, args) => setDefaultSpaceHandler(ctx, args)
+});
+
+async function setDefaultSpaceHandler(
+	ctx: MutationCtx,
+	args: { service: "Table Setup" | "Armchair Setup"; token: string }
+) {
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, Date.now());
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	await ctx.db.patch(multiBooking._id, { defaultSpace: args.service });
+
+	return ok({ defaultSpace: args.service });
+}
+
+export type SetDefaultSpaceResult = Awaited<ReturnType<typeof setDefaultSpaceHandler>>;
 
 const packageBookingInput = {
 	token: v.string(),

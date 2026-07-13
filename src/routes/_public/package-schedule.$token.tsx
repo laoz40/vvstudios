@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type {
 	CreatePackageBookingResult,
 	GetPackageByTokenResult,
+	SetDefaultSpaceResult,
 	ReschedulePackageBookingResult,
 	UnschedulePackageBookingResult
 } from "#convex/packageScheduling";
@@ -32,7 +33,8 @@ import {
 	getUnschedulePackageBookingToastMessage,
 	getPackageAvailabilityErrorMessage,
 	getPackageLinkInvalidMessage,
-	getSavePackageBookingToastMessage
+	getSavePackageBookingToastMessage,
+	getSaveDefaultSpaceToastMessage
 } from "#studio/features/booking-form/lib/package-scheduling-errors";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
@@ -111,6 +113,7 @@ function PackageScheduleContent({
 	// Convex functions
 	const getPackageBusyWindows = useAction(api.packageSchedulingCalendar.getPackageBusyWindows);
 	const createPackageBooking = useAction(api.packageScheduling.createPackageBooking);
+	const setDefaultSpace = useMutation(api.packageScheduling.setDefaultSpace);
 	const reschedulePackageBooking = useAction(api.packageScheduling.reschedulePackageBooking);
 	const unschedulePackageBooking = useAction(api.packageScheduling.unschedulePackageBooking);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
@@ -136,6 +139,7 @@ function PackageScheduleContent({
 	const [selectedService, setSelectedService] = useState<BookingFormValues["service"]>("");
 	const [selectedTime, setSelectedTime] = useState("");
 	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
+	const [isSavingDefaultSpace, setIsSavingDefaultSpace] = useState(false);
 	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
 	const [highlightedBookingId, setHighlightedBookingId] = useState<Id<"bookings"> | null>(null);
 
@@ -247,7 +251,9 @@ function PackageScheduleContent({
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedNotes(booking?.notes ?? "");
 		setSelectedRemotePodcast(booking?.addons.includes("Remote Podcast") ?? false);
-		setSelectedService(recordingSpaceSchema.safeParse(booking?.service).data ?? "");
+		setSelectedService(
+			recordingSpaceSchema.safeParse(booking?.service ?? packageData.defaultSpace).data ?? ""
+		);
 		setSelectedTime(time ?? "");
 	}
 
@@ -266,6 +272,24 @@ function PackageScheduleContent({
 		if (checked && packageData.addons.includes("4K UHD Recording")) {
 			openAddonCompatibilityModal();
 		}
+	}
+
+	async function handleMakeDefaultSpace() {
+		const service = recordingSpaceSchema.safeParse(selectedService).data;
+		if (!service) {
+			return;
+		}
+
+		setIsSavingDefaultSpace(true);
+		const [saveError] = await tryCatch<SetDefaultSpaceResult>(setDefaultSpace({ service, token }));
+		setIsSavingDefaultSpace(false);
+
+		if (saveError !== null) {
+			toast.error(getSaveDefaultSpaceToastMessage(saveError));
+			return;
+		}
+
+		toast.success("Default recording space saved.");
 	}
 
 	function handleRequestSaveSession() {
@@ -455,8 +479,10 @@ function PackageScheduleContent({
 					activeSessionKey={activeSessionKey}
 					availability={availability}
 					highlightedBookingId={highlightedBookingId}
+					isDefaultSpace={selectedService === packageData.defaultSpace}
 					packageData={packageData}
 					savingSessionKey={savingSessionKey}
+					isSavingDefaultSpace={isSavingDefaultSpace}
 					selectedDateValue={selectedDateValue}
 					selectedNotes={selectedNotes}
 					selectedRemotePodcast={selectedRemotePodcast}
@@ -466,6 +492,7 @@ function PackageScheduleContent({
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
+					onMakeDefaultSpace={handleMakeDefaultSpace}
 					onNotesChange={setSelectedNotes}
 					onRemotePodcastChange={handleRemotePodcastChange}
 					onServiceChange={setSelectedService}

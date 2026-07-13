@@ -1,6 +1,7 @@
 import type {
 	CreatePackageBookingResult,
 	GetPackageByTokenResult,
+	SetDefaultSpaceResult,
 	ReschedulePackageBookingResult,
 	UnschedulePackageBookingResult
 } from "#convex/packageScheduling";
@@ -9,6 +10,7 @@ import type { UnexpectedError } from "#/lib/result";
 
 type PackageLookupError = NonNullable<GetPackageByTokenResult[0]>;
 type PackageBusyWindowsError = NonNullable<GetPackageBusyWindowsResult[0]> | UnexpectedError;
+type SaveDefaultSpaceError = NonNullable<SetDefaultSpaceResult[0]> | UnexpectedError;
 type SavePackageBookingError =
 	| NonNullable<CreatePackageBookingResult[0]>
 	| NonNullable<ReschedulePackageBookingResult[0]>
@@ -61,6 +63,22 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 			return "Availability was checked too many times. Please wait a minute and try again.";
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while loading availability.";
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
+
+export function getSaveDefaultSpaceToastMessage(error: SaveDefaultSpaceError) {
+	switch (error.reason) {
+		case "PACKAGE_LINK_INVALID":
+		case "PACKAGE_LINK_EXPIRED":
+		case "PACKAGE_LINK_INACTIVE":
+		case "PACKAGE_NOT_PAID":
+			return getPackageLinkInvalidMessage(error).description;
+		case "UNEXPECTED_ERROR":
+			return "Could not save your default recording space. Please try again.";
 		default: {
 			const _exhaustive: never = error;
 			return _exhaustive;

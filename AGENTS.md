@@ -67,6 +67,7 @@ Booking website for podcast studio.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
 - Do not add classes that already exist in the component
 - Use tailwind cn skill to organise classes
+- For loading, show animated Lucide spinner alongside concise state label (eg. `Saving`), not just trailing-ellipsis label eg. `Saving...`.
 
 ### Convex
 

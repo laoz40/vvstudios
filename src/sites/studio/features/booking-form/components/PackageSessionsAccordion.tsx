@@ -35,8 +35,10 @@ interface PackageSessionsAccordionProps {
 	activeSessionKey: string | null;
 	availability: BookingDateTimePickerProps["availability"];
 	highlightedBookingId: Id<"bookings"> | null;
+	isDefaultSpace: boolean;
 	packageData: NonNullable<GetPackageByTokenResult[1]>;
 	savingSessionKey: string | null;
+	isSavingDefaultSpace: boolean;
 	selectedDateValue: string;
 	selectedNotes: string;
 	selectedRemotePodcast: boolean;
@@ -46,6 +48,7 @@ interface PackageSessionsAccordionProps {
 	leadTimeMinutes: number;
 	currentTimestamp: number;
 	onDateChange: (dateValue: string) => void;
+	onMakeDefaultSpace: () => void;
 	onNotesChange: (notes: string) => void;
 	onRemotePodcastChange: (checked: boolean) => void;
 	onServiceChange: (service: Exclude<BookingFormValues["service"], "">) => void;
@@ -60,8 +63,10 @@ export function PackageSessionsAccordion({
 	activeSessionKey,
 	availability,
 	highlightedBookingId,
+	isDefaultSpace,
 	packageData,
 	savingSessionKey,
+	isSavingDefaultSpace,
 	selectedDateValue,
 	selectedNotes,
 	selectedRemotePodcast,
@@ -71,6 +76,7 @@ export function PackageSessionsAccordion({
 	leadTimeMinutes,
 	currentTimestamp,
 	onDateChange,
+	onMakeDefaultSpace,
 	onNotesChange,
 	onRemotePodcastChange,
 	onServiceChange,
@@ -307,8 +313,11 @@ export function PackageSessionsAccordion({
 							<div className="flex flex-col gap-4">
 								<PackageSessionRecordingSpaceField
 									disabled={savingSessionKey !== null}
+									isDefault={isDefaultSpace}
+									isSavingDefault={isSavingDefaultSpace}
 									value={selectedService}
 									onChange={onServiceChange}
+									onMakeDefault={onMakeDefaultSpace}
 								/>
 								<PackageSessionRemotePodcastField
 									id={`package-session-${session.key}-remote-podcast`}
