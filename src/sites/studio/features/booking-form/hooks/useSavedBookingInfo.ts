@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	isPackageUnavailableAddon,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
@@ -53,9 +56,17 @@ export function useSavedBookingInfo({
 
 		formApi.setFieldValue("bookingMode", savedBookingInfo.bookingMode);
 		formApi.setFieldValue("packageSize", savedBookingInfo.packageSize);
-		formApi.setFieldValue("service", savedBookingInfo.service);
+		formApi.setFieldValue(
+			"service",
+			savedBookingInfo.bookingMode === "multi" ? "" : savedBookingInfo.service
+		);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
-		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
+		formApi.setFieldValue(
+			"addons",
+			savedBookingInfo.bookingMode === "multi"
+				? savedBookingInfo.addons.filter((addon) => !isPackageUnavailableAddon(addon))
+				: [...savedBookingInfo.addons]
+		);
 		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
 		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
 		formApi.setFieldValue("name", savedBookingInfo.name);

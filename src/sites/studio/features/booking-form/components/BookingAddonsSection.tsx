@@ -21,6 +21,7 @@ import { openAddonCompatibilityModal } from "#studio/features/booking-form/lib/b
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
+	isPackageUnavailableAddon,
 	toFieldErrorObjects,
 	type BookingAddon,
 	type BookingFormValues
@@ -156,6 +157,7 @@ export function BookingAddonsSection() {
 										<BookingAddonCard
 											addon={addon}
 											checked={field.state.value.includes(addon)}
+											disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
 											onCheckedChange={handleAddonChange}
 										/>
 										<AnimatePresence initial={false}>

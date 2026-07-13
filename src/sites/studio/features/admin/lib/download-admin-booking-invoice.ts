@@ -79,7 +79,8 @@ export async function downloadAdminBookingInvoice({
 		dueDate,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service: service === undefined ? parsedBooking.data.service : (service ?? undefined),
+		service:
+			service === undefined ? parsedBooking.data.service || undefined : (service ?? undefined),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,

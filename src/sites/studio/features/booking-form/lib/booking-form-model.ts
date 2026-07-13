@@ -18,6 +18,10 @@ export function isAddonOption(value: string): value is BookingAddon {
 	return ADDON_OPTIONS.includes(value as BookingAddon);
 }
 
+export function isPackageUnavailableAddon(addon: BookingAddon) {
+	return addon === "Remote Podcast";
+}
+
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
 	return addons.some((addon) => EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number]));
 }
@@ -79,9 +83,7 @@ const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
 
-const service = z
-	.union([z.literal(""), z.enum(SERVICES)])
-	.refine((value) => value !== "", "Recording space is required.");
+const service = z.union([z.literal(""), z.enum(SERVICES)]);
 
 const deliverableCountOption = z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]);
 const addons = z
@@ -106,6 +108,19 @@ const sharedBookingFields = {
 	clipsPackageQuantity: deliverableCountOption.optional(),
 	notes
 };
+
+function validatePackageAddonAvailability(
+	values: { addons: readonly BookingAddon[] },
+	ctx: z.RefinementCtx
+) {
+	if (values.addons.some(isPackageUnavailableAddon)) {
+		ctx.addIssue({
+			code: "custom",
+			message: "Remote Podcast is not available for session packages.",
+			path: ["addons"]
+		});
+	}
+}
 
 function validateEditingAddonQuantities(
 	values: {
@@ -149,6 +164,10 @@ export const bookingSchema = z
 			ctx.addIssue({ code: "custom", message: "Package size is required.", path: ["packageSize"] });
 		}
 
+		if (values.bookingMode === "multi") {
+			validatePackageAddonAvailability(values, ctx);
+		}
+
 		if (values.bookingMode !== "single") {
 			return;
 		}
@@ -160,13 +179,20 @@ export const bookingSchema = z
 		if (!values.time) {
 			ctx.addIssue({ code: "custom", message: "Time is required.", path: ["time"] });
 		}
+
+		if (!values.service) {
+			ctx.addIssue({ code: "custom", message: "Recording space is required.", path: ["service"] });
+		}
 	});
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const multiBookingFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredMultiBookingSize })
-	.superRefine(validateEditingAddonQuantities);
+	.superRefine((values, ctx) => {
+		validateEditingAddonQuantities(values, ctx);
+		validatePackageAddonAvailability(values, ctx);
+	});
 
 export type MultiBookingFormValues = z.input<typeof multiBookingFormSchema>;
 

@@ -5,6 +5,7 @@ import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	BOOKING_MODES,
+	isPackageUnavailableAddon,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -50,6 +51,11 @@ export function BookingModeSection() {
 							if (bookingMode === "multi") {
 								formApi.setFieldValue("date", "");
 								formApi.setFieldValue("time", "");
+								formApi.setFieldValue("service", "");
+								formApi.setFieldValue(
+									"addons",
+									formApi.state.values.addons.filter((addon) => !isPackageUnavailableAddon(addon))
+								);
 							}
 						}}
 						className="grid gap-4 md:grid-cols-2">

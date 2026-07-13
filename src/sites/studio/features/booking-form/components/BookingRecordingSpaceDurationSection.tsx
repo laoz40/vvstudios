@@ -24,7 +24,7 @@ import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
 const sectionCopy = {
-	recordingSpaceLabel: "RECORDING SPACE *",
+	recordingSpaceLabel: "RECORDING SPACE",
 	durationLabel: "SESSION DURATION *",
 	recordingSpaceNote:
 		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting."
@@ -82,6 +82,10 @@ const durationOptions: DurationOption[] = [
 export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
+	const isPackageBooking = useSelector(
+		formApi.store,
+		(state) => state.values.bookingMode === "multi"
+	);
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	return (
@@ -178,9 +182,10 @@ export function BookingRecordingSpaceDurationSection() {
 						className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 						<FieldSet className="gap-1">
 							<FieldLegend className={sectionHeadingClassName}>
-								{sectionCopy.recordingSpaceLabel}
+								{`${sectionCopy.recordingSpaceLabel}${isPackageBooking ? "" : " *"}`}
 							</FieldLegend>
 							<RadioGroup
+								disabled={isPackageBooking}
 								value={field.state.value}
 								onValueChange={(value) => {
 									field.handleChange(value as BookingFormValues["service"]);
@@ -204,7 +209,8 @@ export function BookingRecordingSpaceDurationSection() {
 												"md:hover:bg-primary/5",
 												transitionClassName,
 												getCardStateClassName(field.state.value === option.value),
-												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20"
+												field.state.value === option.value && "md:bg-primary/5 shadow-primary/20",
+												isPackageBooking && "cursor-not-allowed opacity-50"
 											)}>
 											<div className="relative w-full overflow-hidden">
 												<Image
@@ -251,7 +257,9 @@ export function BookingRecordingSpaceDurationSection() {
 								))}
 							</RadioGroup>
 							<FieldDescription className="mt-2! text-pretty italic">
-								{sectionCopy.recordingSpaceNote}
+								{isPackageBooking
+									? "You'll select a recording space for each session when you schedule your package."
+									: sectionCopy.recordingSpaceNote}
 							</FieldDescription>
 							{field.state.meta.isBlurred || shouldShowFieldError ? (
 								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
