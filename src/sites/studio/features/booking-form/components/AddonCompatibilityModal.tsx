@@ -6,7 +6,7 @@ export function AddonCompatibilityModal({ onClose }: { onClose: () => void }) {
 		<Modal
 			open
 			onOpenChange={onClose}
-			title="4K isn't available for remote podcasts"
+			title="4K isn't available for Remote Podcasts"
 			closeLabel="Close"
 			footer={
 				<Button
@@ -18,8 +18,8 @@ export function AddonCompatibilityModal({ onClose }: { onClose: () => void }) {
 			}>
 			<div className="grid gap-4 text-sm leading-6 text-muted-foreground">
 				<p>
-					Remote Podcast runs through Riverside.fm using our studio setup, which does not support
-					our 4K recording addon.
+					4K Recording is unavailable due to Riverside’s platform
+					limitations. Sessions are recorded in high-quality Full HD (1080p).
 				</p>
 				<p className="font-bold text-destructive">
 					Selecting Remote Podcast will remove 4K UDH Recording.
