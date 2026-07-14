@@ -51,10 +51,7 @@ export function SortHeaderButton({
 	return (
 		<Button
 			variant="ghost"
-			className={cn(
-				"px-0!",
-				isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-			)}
+			className={cn("px-0!", "text-foreground")}
 			onClick={onClick}>
 			<span>{label}</span>
 			<SortIcon

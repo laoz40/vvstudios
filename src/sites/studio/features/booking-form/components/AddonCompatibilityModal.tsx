@@ -18,8 +18,8 @@ export function AddonCompatibilityModal({ onClose }: { onClose: () => void }) {
 			}>
 			<div className="grid gap-4 text-sm leading-6 text-muted-foreground">
 				<p>
-					4K Recording is unavailable due to Riverside’s platform
-					limitations. Sessions are recorded in high-quality Full HD (1080p).
+					4K Recording is unavailable due to Riverside’s platform limitations. Sessions are recorded
+					in high-quality Full HD (1080p).
 				</p>
 				<p className="font-bold text-destructive">
 					Selecting Remote Podcast will remove 4K UDH Recording.
