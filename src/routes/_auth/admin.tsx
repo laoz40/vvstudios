@@ -28,7 +28,7 @@ function AdminRoute() {
 function AdminRouteLoading() {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12">
-			<StudioLoadingState label="Loading dashboard" />
+			<StudioLoadingState label="Calibrating systems" />
 		</main>
 	);
 }
