@@ -32,7 +32,7 @@ export function PackageSessionRecordingSpaceField({
 					type="button"
 					variant="outline"
 					size="xs"
-					className="bg-surface-subtle hover:darker-bg-surface-subtle text-xs"
+					className="bg-surface-subtle hover:darker-bg-surface-subtle text-xs!"
 					disabled={disabled || !value || isDefault || isSavingDefault}
 					onClick={onMakeDefault}>
 					{isSavingDefault ? (

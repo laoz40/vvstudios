@@ -449,6 +449,13 @@ function PackageScheduleContent({
 		setCalendarMonth
 	};
 	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
+	const sessionsRemaining = packageData.packageSize - packageData.bookings.length;
+	let schedulingProgressMessage = "All sessions are scheduled. Your booking is complete.";
+
+	if (sessionsRemaining > 0) {
+		const sessionLabel = sessionsRemaining === 1 ? "session" : "sessions";
+		schedulingProgressMessage = `Schedule ${sessionsRemaining} more ${sessionLabel} to complete your booking.`;
+	}
 
 	return (
 		<BookingStatusLayout
@@ -460,10 +467,7 @@ function PackageScheduleContent({
 				</h1>
 
 				<div className="mt-8 text-left sm:text-center">
-					<p className="text-xl font-semibold">
-						You have {packageData.packageSize - packageData.bookings.length} sessions left to
-						schedule.
-					</p>
+					<p className="text-xl font-semibold">{schedulingProgressMessage}</p>
 					<p className="mt-2 text-muted-foreground">
 						Scheduling expires {formatBookingTimestampTime(packageData.expiresAt)},{" "}
 						{formatBookingTimestampDateLong(packageData.expiresAt)}.

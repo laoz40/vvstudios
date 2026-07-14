@@ -5,6 +5,7 @@ import {
 	AccordionItem,
 	AccordionTrigger
 } from "#/components/ui/accordion";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -30,6 +31,12 @@ import {
 	formatBookingTimestampDateLong
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
+
+const SESSION_STATUS_DETAILS = {
+	dateRequired: { label: "DATE REQUIRED", textClassName: "text-destructive" },
+	upcoming: { label: "UPCOMING", textClassName: "text-blue" },
+	completed: { label: "COMPLETED", textClassName: "text-green" }
+} as const;
 
 interface PackageSessionsAccordionProps {
 	activeSessionKey: string | null;
@@ -86,13 +93,21 @@ export function PackageSessionsAccordion({
 	onSessionSelect,
 	onTimeChange
 }: PackageSessionsAccordionProps) {
-	const sessions = [
-		...packageData.bookings.map((booking) => ({ booking, key: booking._id })),
-		...Array.from(
-			{ length: packageData.packageSize - packageData.bookings.length },
-			(_, index) => ({ booking: null, key: `empty-${index}` })
+	const dateRequiredSessions = Array.from(
+		{ length: packageData.packageSize - packageData.bookings.length },
+		(_, index) => ({ booking: null, key: `empty-${index}`, status: "dateRequired" as const })
+	);
+	const scheduledSessions = [...packageData.bookings]
+		.sort(
+			(firstBooking, secondBooking) => firstBooking.sessionStartAt - secondBooking.sessionStartAt
 		)
-	];
+		.map((booking) => ({
+			booking,
+			key: booking._id,
+			status:
+				booking.sessionStartAt < currentTimestamp ? ("completed" as const) : ("upcoming" as const)
+		}));
+	const sessions = [...scheduledSessions, ...dateRequiredSessions];
 	const hasActiveSession = sessions.some((session) => session.key === activeSessionKey);
 	const selectedDateSummary = selectedDateValue
 		? formatBookingDateSummaryWithoutYear(selectedDateValue)
@@ -122,7 +137,7 @@ export function PackageSessionsAccordion({
 			}}>
 			{sessions.map((session, index) => {
 				const booking = session.booking;
-				const isPastSession = Boolean(booking && booking.sessionStartAt < currentTimestamp);
+				const statusDetails = SESSION_STATUS_DETAILS[session.status];
 				const isSessionLocked = Boolean(
 					booking &&
 					isPackageSessionLocked(booking.sessionStartAt, leadTimeMinutes, currentTimestamp)
@@ -141,7 +156,7 @@ export function PackageSessionsAccordion({
 				let saveButtonText = "SAVE SESSION";
 
 				if (savingSessionKey === session.key) {
-					saveButtonText = "SAVING...";
+					saveButtonText = "SAVING";
 				} else if (isSelectedBookingSaved) {
 					saveButtonText = "SAVED";
 				}
@@ -155,7 +170,8 @@ export function PackageSessionsAccordion({
 							"rounded-xl border bg-surface-subtle px-4 sm:px-6",
 							"text-card-foreground",
 							"shadow-lg transition-colors duration-500",
-							isPastSession && "bg-background opacity-70 border-muted shadow-none!",
+							session.status === "completed" &&
+								"border-muted bg-background opacity-70 shadow-none!",
 							isHighlighted && "border-primary"
 						)}>
 						<AccordionTrigger
@@ -164,29 +180,38 @@ export function PackageSessionsAccordion({
 								"min-h-24 items-center py-5 hover:no-underline focus-visible:ring-0 focus-visible:ring-offset-0 md:py-6",
 								!canEdit && "cursor-default hover:text-foreground"
 							)}>
-							<span className="flex w-full items-center justify-between gap-6">
+							<span className="flex w-full items-center justify-between gap-4 sm:gap-6">
 								<span className="shrink-0 text-sm text-muted-foreground">{index + 1}</span>
-								<span className="min-w-0">
-									{booking ? (
-										<span
-											className={cn(
-												"block text-base font-semibold transition-colors duration-500",
-												isHighlighted ? "text-primary" : "text-foreground"
-											)}>
-											<span className="block">
-												{formatBookingTimestampDateLong(booking.sessionStartAt)}
-											</span>
-											<span className="mt-1 block text-sm font-normal text-muted-foreground">
-												{formatBookingTimeRange(booking.time, packageData.duration)} ·{" "}
-												{booking.service}
-												{booking.addons.includes("Remote Podcast") ? " (Remote)" : ""}
-											</span>
-										</span>
-									) : (
-										<span className="block text-sm font-light text-muted-foreground transition-colors duration-500">
-											No date/time scheduled
-										</span>
-									)}
+								<span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+									<Badge
+										variant="ghost"
+										className={cn(
+											"rounded-none border-0 bg-transparent p-0 tracking-wider",
+											statusDetails.textClassName
+										)}>
+										{statusDetails.label}
+									</Badge>
+									<span className="block select-text! text-left text-base text-muted-foreground transition-colors duration-500">
+										{booking ? (
+											<>
+												<span
+													className={cn(
+														"font-semibold transition-colors duration-500",
+														isHighlighted ? "text-primary" : "text-foreground"
+													)}>
+													{formatBookingTimestampDateLong(booking.sessionStartAt)}
+												</span>{" "}
+												· {formatBookingTimeRange(booking.time, packageData.duration)}
+											</>
+										) : (
+											<>
+												<span className="md:hidden">Set your session date</span>
+												<span className="hidden md:inline">
+													Pick a date to confirm your session
+												</span>
+											</>
+										)}
+									</span>
 								</span>
 								<span className="ml-auto flex shrink-0 items-center justify-end gap-2">
 									{canClear ? (
@@ -286,11 +311,7 @@ export function PackageSessionsAccordion({
 											)}>
 											{isActive ? "CLOSE" : booking ? "EDIT" : "SCHEDULE"}
 										</span>
-									) : (
-										<span className="max-w-28 text-right text-xs font-normal text-muted-foreground sm:max-w-none">
-											Completed
-										</span>
-									)}
+									) : null}
 								</span>
 							</span>
 						</AccordionTrigger>
