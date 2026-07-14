@@ -129,7 +129,7 @@ function validatePackageAddonAvailability(
 	if (values.addons.some(isPackageUnavailableAddon)) {
 		ctx.addIssue({
 			code: "custom",
-			message: "Remote Podcast is not available for session packages.",
+			message: "Remote Podcast is selected per session when scheduling your package.",
 			path: ["addons"]
 		});
 	}
