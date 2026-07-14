@@ -25,7 +25,6 @@ import {
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	closeBookingModal,
-	openAddonCompatibilityModal,
 	openPackageUnscheduleConfirmationModal,
 	useBookingModalStore
 } from "#studio/features/booking-form/lib/booking-modal-store";
@@ -268,10 +267,6 @@ function PackageScheduleContent({
 
 	function handleRemotePodcastChange(checked: boolean) {
 		setSelectedRemotePodcast(checked);
-
-		if (checked && packageData.addons.includes("4K UHD Recording")) {
-			openAddonCompatibilityModal();
-		}
 	}
 
 	async function handleMakeDefaultSpace() {

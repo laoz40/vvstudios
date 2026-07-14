@@ -32,10 +32,7 @@ export function getPackageSessionAddons(
 		return standardSessionAddons;
 	}
 
-	return [
-		...standardSessionAddons.filter((addon) => addon !== "4K UHD Recording"),
-		"Remote Podcast"
-	];
+	return [...standardSessionAddons, "Remote Podcast"];
 }
 
 export function hasEditingAddon(addons: readonly BookingAddon[]) {

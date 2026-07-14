@@ -5,7 +5,6 @@ import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/
 
 export type BookingModalState =
 	| { modal: "none" }
-	| { modal: "addonCompatibility" }
 	| { modal: "payment"; checkoutSession: EmbeddedCheckoutSession }
 	| {
 			bookingId: Id<"bookings">;
@@ -28,10 +27,6 @@ export const useBookingModalStore = create<BookingModalState>(() => initialState
 
 // Zustand merges setState by default. Use replacement mode to discard stale fields
 // from previous modal variants and keep BookingModalState's union invariant valid.
-
-export function openAddonCompatibilityModal() {
-	useBookingModalStore.setState({ modal: "addonCompatibility" }, true);
-}
 
 export function openPaymentModal(checkoutSession: EmbeddedCheckoutSession) {
 	useBookingModalStore.setState({ modal: "payment", checkoutSession }, true);

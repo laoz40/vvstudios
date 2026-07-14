@@ -17,7 +17,6 @@ import {
 	getRevealMotionProps,
 	sectionHeadingClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import { openAddonCompatibilityModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
@@ -26,8 +25,6 @@ import {
 	type BookingAddon,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-
-const [remotePodcastAddon, fourKAddon] = ADDON_OPTIONS;
 
 type BookingAddonQuantityFieldProps = {
 	fieldName: "clipsPackageQuantity" | "essentialEditQuantity";
@@ -119,16 +116,6 @@ export function BookingAddonsSection() {
 
 						if (checked) {
 							nextAddons = [...field.state.value, addon];
-						}
-
-						// Remote Podcast records through Riverside.fm, which does not support 4K.
-						// If both are selected, keep Remote Podcast and remove the 4K add-on.
-						const isIncompatibleSelection =
-							checked && nextAddons.includes(remotePodcastAddon) && nextAddons.includes(fourKAddon);
-
-						if (isIncompatibleSelection) {
-							nextAddons = nextAddons.filter((value) => value !== fourKAddon);
-							openAddonCompatibilityModal();
 						}
 
 						field.handleChange(nextAddons as BookingFormValues["addons"]);

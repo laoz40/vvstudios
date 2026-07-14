@@ -1,6 +1,5 @@
 import { Suspense, lazy } from "react";
 
-import { AddonCompatibilityModal } from "#studio/features/booking-form/components/AddonCompatibilityModal";
 import {
 	PackageUnscheduleConfirmation,
 	RescheduleConfirmation
@@ -36,9 +35,6 @@ export function BookingModalHost({
 	const bookingModalState = useBookingModalStore((state) => state);
 
 	switch (bookingModalState.modal) {
-		case "addonCompatibility":
-			return <AddonCompatibilityModal onClose={closeBookingModal} />;
-
 		case "payment":
 			return (
 				<Suspense fallback={null}>
