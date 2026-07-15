@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Doc } from "#convex/_generated/dataModel";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -30,6 +29,7 @@ import {
 	mapPackageToAdminRow,
 	sortAdminPackages,
 	type AdminPackageFilters,
+	type AdminPackageRecord,
 	type AdminPackageRow,
 	type AdminPackageSort
 } from "#studio/features/admin/lib/admin-packages";
@@ -99,7 +99,7 @@ export function PackagesTable({
 	isLoadingMorePackages: boolean;
 	loadMorePackages: () => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
-	packages: Doc<"multiBookingPackages">[];
+	packages: AdminPackageRecord[];
 }) {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
@@ -176,7 +176,7 @@ export function PackagesTable({
 							<TableHead className="w-32">Add-ons (Fixed)</TableHead>
 							<TableHead className="w-56 md:w-36">Contact</TableHead>
 							<TableHead className="w-12">Due / Expiry</TableHead>
-							<TableHead className="w-8">Amount</TableHead>
+							<TableHead className="w-8 text-right">Amount</TableHead>
 							<TableHead className="w-28 md:w-12">
 								<SortHeaderButton
 									label="Created"
@@ -304,10 +304,22 @@ export function PackagesTable({
 												isPastDue={isInactivePackage}
 											/>
 										</TableCell>
-										<TableCell className={cn("tabular-nums", isInactivePackage && "opacity-70")}>
-											<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
-												{packageRow.totalDueLabel}
-											</p>
+										<TableCell className={cn("tabular-nums text-right", isInactivePackage && "opacity-70")}>
+											<div className="flex flex-col gap-1">
+												<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
+													{packageRow.totalDueLabel}
+												</p>
+												{packageRow.adjustment ? (
+													<p
+														className={
+															packageRow.adjustment.paymentStatus === "paid"
+																? "text-green"
+																: "text-destructive"
+														}>
+														{packageRow.adjustment.amountLabel}
+													</p>
+												) : null}
+											</div>
 										</TableCell>
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">

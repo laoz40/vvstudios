@@ -30,6 +30,35 @@ export default defineSchema({
 		updatedBy: v.optional(v.string())
 	}).index("by_key", ["key"]),
 
+	packageAdjustments: defineTable(
+		v.union(
+			v.object({
+				outcome: v.literal("no_charge"),
+				multiBookingId: v.id("multiBookingPackages"),
+				trigger: v.literal("package_expired"),
+				remotePodcastBookingIds: v.array(v.id("bookings")),
+				quantity: v.literal(0),
+				rate: v.number(),
+				totalAmount: v.literal(0),
+				createdAt: v.number()
+			}),
+			v.object({
+				outcome: v.literal("invoice_required"),
+				multiBookingId: v.id("multiBookingPackages"),
+				trigger: v.literal("package_expired"),
+				remotePodcastBookingIds: v.array(v.id("bookings")),
+				quantity: v.number(),
+				rate: v.number(),
+				totalAmount: v.number(),
+				invoiceNumber: v.string(),
+				createdAt: v.number(),
+				invoiceDueAt: v.number(),
+				invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
+				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"))
+			})
+		)
+	).index("by_multiBookingId", ["multiBookingId"]),
+
 	customInvoices: defineTable({
 		bookingId: v.optional(v.id("bookings")),
 		multiBookingId: v.optional(v.id("multiBookingPackages")),

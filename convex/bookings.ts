@@ -8,7 +8,7 @@ import {
 	getMultiBookingInvoiceDueAt,
 	type MultiBookingSize
 } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
 	internalMutation,
@@ -244,16 +244,33 @@ export const listPackages = query({
 			.paginate(args.paginationOpts);
 
 		const page = await Promise.all(
-			packagesPage.page.map(async (multiBookingPackage) => ({
-				...multiBookingPackage,
-				bookedSessions: (
-					await getCapacityConsumingPackageBookings(
+			packagesPage.page.map(async (multiBookingPackage) => {
+				const [bookings, packageAdjustment] = await Promise.all([
+					getCapacityConsumingPackageBookings(
 						ctx,
 						multiBookingPackage._id,
 						multiBookingPackage.packageSize
-					)
-				).length
-			}))
+					),
+					ctx.db
+						.query("packageAdjustments")
+						.withIndex("by_multiBookingId", (query) =>
+							query.eq("multiBookingId", multiBookingPackage._id)
+						)
+						.unique()
+				]);
+
+				return {
+					...multiBookingPackage,
+					bookedSessions: bookings.length,
+					adjustment:
+						packageAdjustment?.outcome === "invoice_required"
+							? {
+									totalAmount: packageAdjustment.totalAmount,
+									paymentStatus: packageAdjustment.paymentStatus
+								}
+							: null
+				};
+			})
 		);
 
 		return { ...packagesPage, page };
@@ -506,6 +523,11 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 			scheduleTokenHash,
 			status: "schedule_email_failed"
 		});
+		await ctx.scheduler.runAt(
+			expiresAt,
+			internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
+			{ multiBookingId: args.multiBookingId, expectedExpiresAt: expiresAt }
+		);
 	} catch {
 		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
 	}

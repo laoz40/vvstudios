@@ -8,7 +8,10 @@ export type AdminPackageStatus =
 	| "invoice_email_failed"
 	| "schedule_email_failed";
 
-type AdminPackageRecord = Doc<"multiBookingPackages"> & { bookedSessions?: number };
+export type AdminPackageRecord = Doc<"multiBookingPackages"> & {
+	bookedSessions?: number;
+	adjustment?: { totalAmount: number; paymentStatus: "unpaid" | "paid" } | null;
+};
 
 export type AdminPackageRow = {
 	id: Doc<"multiBookingPackages">["_id"];
@@ -27,6 +30,7 @@ export type AdminPackageRow = {
 	essentialEditQuantity?: string;
 	totalDueLabel: string;
 	totalDueAmount: number;
+	adjustment: { amountLabel: string; paymentStatus: "unpaid" | "paid" } | null;
 	isPaid: boolean;
 	invoiceDueAt: number;
 	expiresAt?: number;
@@ -253,6 +257,12 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		essentialEditQuantity: multiBookingPackage.essentialEditQuantity,
 		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
 		totalDueAmount: multiBookingPackage.totalDueAmount,
+		adjustment: multiBookingPackage.adjustment
+			? {
+					amountLabel: formatPackageAmount(multiBookingPackage.adjustment.totalAmount),
+					paymentStatus: multiBookingPackage.adjustment.paymentStatus
+				}
+			: null,
 		isPaid:
 			multiBookingPackage.status === "paid" ||
 			multiBookingPackage.status === "schedule_email_failed",
