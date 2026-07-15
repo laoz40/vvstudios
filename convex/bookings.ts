@@ -1320,6 +1320,14 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 				: {})
 		});
 
+		if (args.multiBookingPackageId !== undefined) {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+				{ multiBookingId: args.multiBookingPackageId }
+			);
+		}
+
 		return ok({ saved: true });
 	}
 });

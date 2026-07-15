@@ -35,7 +35,7 @@ export default defineSchema({
 			v.object({
 				outcome: v.literal("no_charge"),
 				multiBookingId: v.id("multiBookingPackages"),
-				trigger: v.literal("package_expired"),
+				trigger: v.union(v.literal("all_sessions_completed"), v.literal("package_expired")),
 				remotePodcastBookingIds: v.array(v.id("bookings")),
 				quantity: v.literal(0),
 				rate: v.number(),
@@ -45,7 +45,7 @@ export default defineSchema({
 			v.object({
 				outcome: v.literal("invoice_required"),
 				multiBookingId: v.id("multiBookingPackages"),
-				trigger: v.literal("package_expired"),
+				trigger: v.union(v.literal("all_sessions_completed"), v.literal("package_expired")),
 				remotePodcastBookingIds: v.array(v.id("bookings")),
 				quantity: v.number(),
 				rate: v.number(),

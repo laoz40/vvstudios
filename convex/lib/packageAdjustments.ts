@@ -15,7 +15,7 @@ type PackageAdjustmentEvaluation =
 			totalAmount: number;
 	  };
 
-export function evaluateExpiredPackageAdjustment(
+export function evaluatePackageAdjustment(
 	bookings: Doc<"bookings">[],
 	now: number
 ): PackageAdjustmentEvaluation {

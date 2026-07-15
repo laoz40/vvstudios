@@ -31,7 +31,7 @@ import { isPackageSessionLocked } from "../src/sites/studio/features/booking-for
 import { getPackageSessionAddons } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
-	evaluateExpiredPackageAdjustment,
+	evaluatePackageAdjustment,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE
 } from "./lib/packageAdjustments";
@@ -316,101 +316,129 @@ export const getValidPackageByTokenInternal = internalQuery({
 	handler: (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
 });
 
+type ProcessPackageAdjustmentArgs =
+	| { trigger: "all_sessions_completed"; multiBookingId: Id<"multiBookingPackages"> }
+	| {
+			trigger: "package_expired";
+			multiBookingId: Id<"multiBookingPackages">;
+			expectedExpiresAt: number;
+	  };
+
 export const processPackageAdjustmentAtExpiryInternal = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), expectedExpiresAt: v.number() },
-	handler: async (ctx, args) => {
-		const multiBooking = await ctx.db.get(args.multiBookingId);
-		const isPackagePaidOrScheduleEmailFailed =
-			multiBooking?.status === "paid" || multiBooking?.status === "schedule_email_failed";
+	handler: (ctx, args) => processPackageAdjustment(ctx, { ...args, trigger: "package_expired" })
+});
 
-		// Ignore the check when the package is missing, is neither paid nor awaiting a scheduling
-		// email retry, has a different expiry than the job expects, or has not expired yet.
-		if (
-			!multiBooking ||
-			!isPackagePaidOrScheduleEmailFailed ||
-			multiBooking.expiresAt !== args.expectedExpiresAt ||
-			Date.now() < args.expectedExpiresAt
-		) {
+export const processPackageAdjustmentWhenSessionsCompleteInternal = internalMutation({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: (ctx, args) =>
+		processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" })
+});
+
+async function processPackageAdjustment(ctx: MutationCtx, args: ProcessPackageAdjustmentArgs) {
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+	const isPackagePaidOrScheduleEmailFailed =
+		multiBooking?.status === "paid" || multiBooking?.status === "schedule_email_failed";
+
+	if (!multiBooking || !isPackagePaidOrScheduleEmailFailed) return null;
+
+	if (args.trigger === "package_expired") {
+		// Ignore stale expiry jobs and jobs that run before the package expires.
+		if (multiBooking.expiresAt !== args.expectedExpiresAt || Date.now() < args.expectedExpiresAt) {
 			return null;
 		}
+	}
 
-		const existingAdjustment = await ctx.db
-			.query("packageAdjustments")
-			.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
-			.unique();
+	const existingAdjustment = await ctx.db
+		.query("packageAdjustments")
+		.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
+		.unique();
 
-		if (existingAdjustment) {
-			return null;
-		}
+	if (existingAdjustment) return null;
 
-		const bookings = await getCapacityConsumingPackageBookings(
-			ctx,
-			multiBooking._id,
-			multiBooking.packageSize
-		);
-		const now = Date.now();
-		const evaluation = evaluateExpiredPackageAdjustment(bookings, now);
+	const bookings = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
+	);
 
-		switch (evaluation.kind) {
-			case "wait_for_sessions_to_end":
+	// Closing before expiry requires every package session to be scheduled.
+	if (args.trigger === "all_sessions_completed" && bookings.length !== multiBooking.packageSize) {
+		return null;
+	}
+
+	const now = Date.now();
+	const evaluation = evaluatePackageAdjustment(bookings, now);
+
+	switch (evaluation.kind) {
+		case "wait_for_sessions_to_end":
+			// Re-evaluate when the final session ends.
+			if (args.trigger === "package_expired") {
 				await ctx.scheduler.runAt(
 					evaluation.nextCheckAt,
 					internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
 					args
 				);
 				return null;
+			}
 
-			case "invalid_duration":
-				console.error("Package adjustment could not parse a session duration", {
-					multiBookingId: args.multiBookingId
-				});
-				return null;
+			await ctx.scheduler.runAt(
+				evaluation.nextCheckAt,
+				internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+				args
+			);
+			return null;
 
-			case "ready": {
-				const createdAt = now;
+		case "invalid_duration":
+			console.error("Package adjustment could not parse a session duration", {
+				multiBookingId: args.multiBookingId
+			});
+			return null;
 
-				if (evaluation.quantity === 0) {
-					await ctx.db.insert("packageAdjustments", {
-						outcome: "no_charge",
-						multiBookingId: args.multiBookingId,
-						trigger: "package_expired",
-						remotePodcastBookingIds: [],
-						quantity: 0,
-						rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-						totalAmount: 0,
-						createdAt
-					});
-					return null;
-				}
+		case "ready": {
+			const createdAt = now;
 
-				const adjustmentId = await ctx.db.insert("packageAdjustments", {
-					outcome: "invoice_required",
+			if (evaluation.quantity === 0) {
+				await ctx.db.insert("packageAdjustments", {
+					outcome: "no_charge",
 					multiBookingId: args.multiBookingId,
-					trigger: "package_expired",
-					remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
-					quantity: evaluation.quantity,
+					trigger: args.trigger,
+					remotePodcastBookingIds: [],
+					quantity: 0,
 					rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-					totalAmount: evaluation.totalAmount,
-					invoiceNumber: "pending",
-					createdAt,
-					invoiceDueAt: createdAt + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-					invoiceEmailStatus: "pending",
-					paymentStatus: "unpaid"
-				});
-
-				await ctx.db.patch(adjustmentId, {
-					invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
+					totalAmount: 0,
+					createdAt
 				});
 				return null;
 			}
 
-			default: {
-				const _exhaustive: never = evaluation;
-				return _exhaustive;
-			}
+			const adjustmentId = await ctx.db.insert("packageAdjustments", {
+				outcome: "invoice_required",
+				multiBookingId: args.multiBookingId,
+				trigger: args.trigger,
+				remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
+				quantity: evaluation.quantity,
+				rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
+				totalAmount: evaluation.totalAmount,
+				invoiceNumber: "pending",
+				createdAt,
+				invoiceDueAt: createdAt + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
+				invoiceEmailStatus: "pending",
+				paymentStatus: "unpaid"
+			});
+
+			await ctx.db.patch(adjustmentId, {
+				invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
+			});
+			return null;
+		}
+
+		default: {
+			const _exhaustive: never = evaluation;
+			return _exhaustive;
 		}
 	}
-});
+}
 
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
 
@@ -653,6 +681,12 @@ async function saveCreatedPackageBooking(
 			await ctx.db.patch(multiBooking._id, { packageReminderState: undefined });
 		}
 
+		await ctx.scheduler.runAfter(
+			0,
+			internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+			{ multiBookingId: multiBooking._id }
+		);
+
 		return ok({ bookingId });
 	} catch {
 		return err({ reason: "PACKAGE_BOOKING_SAVE_FAILED" as const });
@@ -690,6 +724,11 @@ async function cancelPackageBooking(
 			reminderEmailFailureCode: undefined,
 			status: "cancelled"
 		});
+		await ctx.scheduler.runAfter(
+			0,
+			internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+			{ multiBookingId: multiBooking._id }
+		);
 
 		return ok({ cancelled: true as const, bookingId: args.bookingId });
 	} catch {
