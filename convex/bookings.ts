@@ -265,7 +265,10 @@ export const listPackages = query({
 					adjustment:
 						packageAdjustment?.outcome === "invoice_required"
 							? {
+									_id: packageAdjustment._id,
 									totalAmount: packageAdjustment.totalAmount,
+									invoiceDueAt: packageAdjustment.invoiceDueAt,
+									invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
 									paymentStatus: packageAdjustment.paymentStatus
 								}
 							: null

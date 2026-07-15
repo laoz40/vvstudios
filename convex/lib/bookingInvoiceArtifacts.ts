@@ -7,6 +7,7 @@ import {
 import {
 	buildBookingInvoiceData,
 	buildMultiBookingInvoiceData,
+	buildPackageAdjustmentInvoiceData,
 	createStoredAmountMultiBookingInvoiceLineItemSnapshot
 } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
@@ -18,6 +19,11 @@ import type {
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
 }
+
+export type PackageAdjustmentInvoiceSource = {
+	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>;
+	multiBooking: Doc<"multiBookingPackages">;
+};
 
 export type MultiBookingInvoiceSource = Pick<
 	Doc<"multiBookingPackages">,
@@ -122,6 +128,59 @@ export async function createBookingInvoiceEmailArtifactsForBooking(
 	}
 
 	return ok({ ...artifactsResult, artifacts: { ...artifactsResult.artifacts, emailHtml } });
+}
+
+export async function createPackageAdjustmentInvoiceArtifacts(
+	source: PackageAdjustmentInvoiceSource
+) {
+	const { adjustment, multiBooking } = source;
+	const parsedMultiBooking = multiBookingFormSchema.safeParse({
+		name: multiBooking.name,
+		phone: multiBooking.phone,
+		accountName: multiBooking.accountName,
+		abn: multiBooking.abn,
+		email: multiBooking.email,
+		duration: multiBooking.duration,
+		addons: multiBooking.addons,
+		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
+		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
+		notes: multiBooking.notes ?? "",
+		packageSize: multiBooking.packageSize
+	});
+
+	if (!parsedMultiBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" });
+	}
+
+	const data = buildPackageAdjustmentInvoiceData({
+		abn: multiBooking.abn,
+		accountName: multiBooking.accountName,
+		bookedAt: multiBooking.createdAt,
+		createdAt: adjustment.createdAt,
+		duration: parsedMultiBooking.data.duration,
+		email: multiBooking.email,
+		invoiceDueAt: adjustment.invoiceDueAt,
+		invoiceNumber: adjustment.invoiceNumber,
+		name: multiBooking.name,
+		packageSize: multiBooking.packageSize,
+		phone: multiBooking.phone,
+		quantity: adjustment.quantity,
+		rate: adjustment.rate,
+		totalAmount: adjustment.totalAmount
+	});
+	const [emailHtmlError, emailHtml] = await renderBookingInvoiceEmail(data);
+
+	if (emailHtmlError !== null) {
+		return err(emailHtmlError);
+	}
+
+	return ok({
+		artifacts: {
+			data,
+			emailHtml,
+			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
+		}
+	});
 }
 
 export async function createMultiBookingInvoiceArtifacts(

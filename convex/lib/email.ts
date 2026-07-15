@@ -21,8 +21,10 @@ import {
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createMultiBookingInvoiceArtifacts,
+	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
-	type MultiBookingInvoiceSource
+	type MultiBookingInvoiceSource,
+	type PackageAdjustmentInvoiceSource
 } from "./bookingInvoiceArtifacts";
 import { err, ok, type Result } from "../../src/lib/result";
 import { formatEditingAddonLabel } from "../../src/sites/studio/features/booking-form/lib/editing-addon-quantities";
@@ -172,6 +174,7 @@ async function sendEmail(args: {
 	subject: string;
 	html: string;
 	attachments?: EmailAttachment[];
+	idempotencyKey?: string;
 }): Promise<SendEmailResult> {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
@@ -186,7 +189,8 @@ async function sendEmail(args: {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${env.RESEND_API_KEY}`,
-				"Content-Type": "application/json"
+				"Content-Type": "application/json",
+				...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {})
 			},
 			body: JSON.stringify({
 				from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
@@ -345,6 +349,50 @@ export async function sendBookingInvoiceEmailsForBooking(
 			bookingId: booking._id,
 			reason: hostEmailError.reason
 		});
+	}
+
+	return ok({ sent: true });
+}
+
+export async function sendPackageAdjustmentInvoiceEmail(
+	source: PackageAdjustmentInvoiceSource
+): Promise<
+	Result<
+		{ sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
+	>
+> {
+	const [artifactsError, artifactsResult] = await createPackageAdjustmentInvoiceArtifacts(source);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
+
+	if (pdfError !== null) {
+		console.error("Package adjustment invoice PDF render failed", {
+			adjustmentId: source.adjustment._id
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [invoiceEmailError] = await sendEmail({
+		to: [source.multiBooking.email],
+		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(source.multiBooking.createdAt)}`,
+		html: artifactsResult.artifacts.emailHtml,
+		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }],
+		idempotencyKey: `package-adjustment-${source.adjustment._id}`
+	});
+
+	if (invoiceEmailError !== null) {
+		console.error("Package adjustment invoice email send failed", {
+			adjustmentId: source.adjustment._id,
+			reason: invoiceEmailError.reason
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	return ok({ sent: true });

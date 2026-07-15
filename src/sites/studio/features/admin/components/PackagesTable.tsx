@@ -57,6 +57,17 @@ function PackageTableDateCell({
 	const isExpiryClose = isAdminPackageExpiryClose(packageRow);
 
 	switch (dashboardDate.kind) {
+		case "adjustment_due":
+			return (
+				<div className="flex flex-col gap-1">
+					<span
+						className={cn(isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary")}>
+						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+					</span>
+					<span className="text-xs text-muted-foreground">Adjustment due</span>
+				</div>
+			);
+
 		case "payment_due":
 			return (
 				<div className="flex flex-col gap-1">
@@ -194,6 +205,14 @@ export function PackagesTable({
 								const isOverdue = isAdminPackageOverdue(packageRow);
 								const isExpired = isAdminPackageExpired(packageRow);
 								const isInactivePackage = isOverdue || isExpired;
+								const dashboardDate = getAdminPackageDashboardDate(packageRow);
+								const isDashboardDateOutstanding =
+									dashboardDate.kind !== "adjustment_due" ||
+									packageRow.adjustment?.paymentStatus === "unpaid";
+								const isDashboardDatePastDue =
+									dashboardDate.kind !== "missing_package_expiry" &&
+									isDashboardDateOutstanding &&
+									Date.now() > dashboardDate.timestamp;
 								const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
 
 								return (
@@ -301,10 +320,11 @@ export function PackagesTable({
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<PackageTableDateCell
 												packageRow={packageRow}
-												isPastDue={isInactivePackage}
+												isPastDue={isDashboardDatePastDue}
 											/>
 										</TableCell>
-										<TableCell className={cn("tabular-nums text-right", isInactivePackage && "opacity-70")}>
+										<TableCell
+											className={cn("tabular-nums text-right", isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1">
 												<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
 													{packageRow.totalDueLabel}

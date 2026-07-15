@@ -2,6 +2,8 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { ADDON_PRICES } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
+// Prevent concurrent sends; a stalled send becomes failed so an admin can retry it.
+export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
 

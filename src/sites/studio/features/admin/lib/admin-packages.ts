@@ -10,7 +10,13 @@ export type AdminPackageStatus =
 
 export type AdminPackageRecord = Doc<"multiBookingPackages"> & {
 	bookedSessions?: number;
-	adjustment?: { totalAmount: number; paymentStatus: "unpaid" | "paid" } | null;
+	adjustment?: {
+		_id: Doc<"packageAdjustments">["_id"];
+		totalAmount: number;
+		invoiceDueAt: number;
+		invoiceEmailStatus: "pending" | "sent" | "failed";
+		paymentStatus: "unpaid" | "paid";
+	} | null;
 };
 
 export type AdminPackageRow = {
@@ -30,7 +36,13 @@ export type AdminPackageRow = {
 	essentialEditQuantity?: string;
 	totalDueLabel: string;
 	totalDueAmount: number;
-	adjustment: { amountLabel: string; paymentStatus: "unpaid" | "paid" } | null;
+	adjustment: {
+		id: Doc<"packageAdjustments">["_id"];
+		amountLabel: string;
+		invoiceDueAt: number;
+		invoiceEmailStatus: "pending" | "sent" | "failed";
+		paymentStatus: "unpaid" | "paid";
+	} | null;
 	isPaid: boolean;
 	invoiceDueAt: number;
 	expiresAt?: number;
@@ -41,6 +53,7 @@ export type AdminPackageRow = {
 };
 
 export type AdminPackageDashboardDate =
+	| { kind: "adjustment_due"; timestamp: number }
 	| { kind: "package_expiry"; timestamp: number }
 	| { kind: "payment_due"; timestamp: number }
 	| { kind: "missing_package_expiry" };
@@ -48,6 +61,9 @@ export type AdminPackageDashboardDate =
 export type AdminPackageSort = { column: "created" | "customer"; isDescending: boolean };
 
 export type AdminPackagePendingAction =
+	| "adjustmentDownload"
+	| "adjustmentEmail"
+	| "adjustmentPayment"
 	| "archive"
 	| "download"
 	| "invoice"
@@ -89,10 +105,25 @@ export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 }
 
 export function getAdminPackageStatusDisplay(
-	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid" | "status">
+	packageRow: Pick<
+		AdminPackageRow,
+		"adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid" | "status"
+	>
 ): { className: string; icon: LucideIcon; label: string } {
+	if (packageRow.adjustment?.invoiceEmailStatus === "failed") {
+		return {
+			className: "size-5 text-destructive",
+			icon: MailWarning,
+			label: "Adjustment invoice failed"
+		};
+	}
+
 	if (isAdminPackageOverdue(packageRow)) {
 		return { className: "size-5 text-destructive", icon: ClockAlert, label: "Overdue" };
+	}
+
+	if (packageRow.adjustment?.paymentStatus === "unpaid") {
+		return { className: "size-5 text-primary", icon: DollarSign, label: "Adjustment pending" };
 	}
 
 	if (isAdminPackageExpired(packageRow)) {
@@ -128,8 +159,12 @@ export function getAdminPackageStatusDisplay(
 }
 
 export function isAdminPackageOverdue(
-	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "status">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "status">
 ) {
+	if (packageRow.adjustment?.paymentStatus === "unpaid") {
+		return Date.now() > packageRow.adjustment.invoiceDueAt;
+	}
+
 	if (packageRow.status === "paid" || packageRow.status === "schedule_email_failed") {
 		return false;
 	}
@@ -144,12 +179,16 @@ export function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expires
 }
 
 export function isAdminPackagePaymentDueClose(
-	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "isPaid">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "isPaid">
 ) {
-	const millisecondsUntilDue = packageRow.invoiceDueAt - Date.now();
+	const dueAt = packageRow.adjustment?.invoiceDueAt ?? packageRow.invoiceDueAt;
+	const isPaymentOutstanding = packageRow.adjustment
+		? packageRow.adjustment.paymentStatus === "unpaid"
+		: !packageRow.isPaid;
+	const millisecondsUntilDue = dueAt - Date.now();
 
 	return (
-		!packageRow.isPaid &&
+		isPaymentOutstanding &&
 		millisecondsUntilDue >= 0 &&
 		millisecondsUntilDue <= PAYMENT_REMINDER_DAYS_BEFORE_DUE * MILLISECONDS_PER_DAY
 	);
@@ -174,8 +213,12 @@ export function isAdminPackageExpiryClose(
 }
 
 export function isAdminPackageUpcoming(
-	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid">
 ) {
+	if (packageRow.adjustment) {
+		return Date.now() <= packageRow.adjustment.invoiceDueAt;
+	}
+
 	if (!packageRow.isPaid) {
 		return Date.now() <= packageRow.invoiceDueAt;
 	}
@@ -184,8 +227,12 @@ export function isAdminPackageUpcoming(
 }
 
 export function getAdminPackageDashboardDate(
-	packageRow: Pick<AdminPackageRow, "expiresAt" | "invoiceDueAt" | "isPaid">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid">
 ): AdminPackageDashboardDate {
+	if (packageRow.adjustment) {
+		return { kind: "adjustment_due", timestamp: packageRow.adjustment.invoiceDueAt };
+	}
+
 	if (!packageRow.isPaid) {
 		return { kind: "payment_due", timestamp: packageRow.invoiceDueAt };
 	}
@@ -259,7 +306,10 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		totalDueAmount: multiBookingPackage.totalDueAmount,
 		adjustment: multiBookingPackage.adjustment
 			? {
+					id: multiBookingPackage.adjustment._id,
 					amountLabel: formatPackageAmount(multiBookingPackage.adjustment.totalAmount),
+					invoiceDueAt: multiBookingPackage.adjustment.invoiceDueAt,
+					invoiceEmailStatus: multiBookingPackage.adjustment.invoiceEmailStatus,
 					paymentStatus: multiBookingPackage.adjustment.paymentStatus
 				}
 			: null,

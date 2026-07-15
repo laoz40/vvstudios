@@ -267,6 +267,95 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	};
 }
 
+export function buildPackageAdjustmentInvoiceData(input: {
+	abn?: string;
+	accountName: string;
+	bookedAt: number;
+	createdAt: number;
+	duration: BookingInvoiceBuilderInput["duration"];
+	email: string;
+	invoiceDueAt: number;
+	invoiceNumber: string;
+	name: string;
+	packageSize: number;
+	phone: string;
+	quantity: number;
+	rate: number;
+	totalAmount: number;
+}): BookingInvoiceData {
+	const invoiceDateLabel = format(input.createdAt, "d MMMM yyyy");
+	const dueDate = format(input.invoiceDueAt, "yyyy-MM-dd");
+	const dueDateLabel = format(input.invoiceDueAt, "d MMMM yyyy");
+
+	return {
+		adjustment: {
+			bookedAtLabel: format(input.bookedAt, "d MMMM yyyy"),
+			packageSize: input.packageSize
+		},
+		amounts: {
+			addonsAmount: input.totalAmount,
+			baseAmount: 0,
+			currency: BOOKING_INVOICE_CURRENCY,
+			depositAmount: 0,
+			subtotalAmount: input.totalAmount,
+			totalDueAmount: input.totalAmount
+		},
+		booking: {
+			addons: ["Remote Podcast"],
+			addonsSummary: `${input.quantity} completed Remote Podcast ${input.quantity === 1 ? "session" : "sessions"}`,
+			bookingDate: "completed-package-sessions",
+			bookingDateLabel: "Completed package sessions",
+			duration: input.duration,
+			time: "Not applicable"
+		},
+		branding: {
+			businessName: BOOKING_INVOICE_BUSINESS.businessName,
+			contactEmail: BOOKING_INVOICE_BUSINESS.contactEmail,
+			locationAddress: BOOKING_INVOICE_BUSINESS.locationAddress,
+			locationLabel: BOOKING_INVOICE_BUSINESS.locationLabel,
+			locationUrl: BOOKING_INVOICE_BUSINESS.locationUrl,
+			logoUrl: BOOKING_INVOICE_BUSINESS.logoUrl,
+			ownerName: BOOKING_INVOICE_BUSINESS.ownerName,
+			websiteLabel: BOOKING_INVOICE_BUSINESS.websiteLabel,
+			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl
+		},
+		customer: {
+			abn: input.abn,
+			accountName: input.accountName,
+			email: input.email,
+			name: input.name,
+			phone: input.phone
+		},
+		invoice: {
+			dueDate,
+			dueDateLabel,
+			invoiceDate: new Date(input.createdAt).toISOString(),
+			invoiceDateLabel,
+			number: input.invoiceNumber,
+			title: BOOKING_INVOICE_TITLE
+		},
+		lineItems: [
+			{
+				amount: input.totalAmount,
+				description: "Remote Podcast",
+				quantity: input.quantity,
+				rate: input.rate
+			}
+		],
+		notes: {
+			cancellationPolicy: "",
+			paymentNote: "Payment is due within 7 days via Bank Transfer or PayID."
+		},
+		payment: {
+			accountNumber: BOOKING_INVOICE_PAYMENT.accountNumber,
+			bankTransferLabel: BOOKING_INVOICE_PAYMENT.bankTransferLabel,
+			bsb: BOOKING_INVOICE_PAYMENT.bsb,
+			payId: BOOKING_INVOICE_PAYMENT.payId,
+			payIdLabel: BOOKING_INVOICE_PAYMENT.payIdLabel
+		}
+	};
+}
+
 export function buildMultiBookingInvoiceData(input: {
 	abn?: string;
 	accountName: string;

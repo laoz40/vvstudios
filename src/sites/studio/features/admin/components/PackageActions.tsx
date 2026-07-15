@@ -27,6 +27,11 @@ import { api } from "#convex/_generated/api";
 import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/bookings";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import type {
+	GetAdminPackageAdjustmentInvoicePdfResult,
+	RetryPackageAdjustmentInvoiceEmailResult
+} from "#convex/packageAdjustmentInvoices";
+import type { MarkPackageAdjustmentPaymentStatusResult } from "#convex/packageAdjustments";
+import type {
 	ConfirmPackagePaymentResult,
 	ResendMultiBookingInvoiceEmailResult,
 	RetryMultiBookingSchedulingEmailResult
@@ -52,13 +57,23 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 	const confirmPackagePayment = useAction(api.multiBookings.confirmPackagePayment);
 	const retrySchedulingEmail = useAction(api.multiBookings.retryMultiBookingSchedulingEmail);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
+	const getAdjustmentInvoicePdf = useAction(
+		api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf
+	);
+	const retryAdjustmentInvoiceEmail = useAction(
+		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
+	);
 	const archivePackage = useMutation(api.bookings.archivePackage);
 	const markPaymentStatus = useMutation(api.bookings.markPackagePaymentStatus);
+	const markAdjustmentPaymentStatus = useMutation(
+		api.packageAdjustments.markPackageAdjustmentPaymentStatus
+	);
 	const editAction = usePackageEditAction(packageRow);
 
 	const [pendingAction, setPendingAction] = useState<AdminPackagePendingAction>(null);
 	const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 	const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+	const [isAdjustmentInvoiceDialogOpen, setIsAdjustmentInvoiceDialogOpen] = useState(false);
 	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 
@@ -116,6 +131,137 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 		toast.success("Package invoice download started.");
 		setPendingAction(null);
 	}
+	async function handleDownloadAdjustmentInvoice() {
+		if (!packageRow.adjustment) return;
+
+		setPendingAction("adjustmentDownload");
+		const [error, invoice] = await tryCatch<GetAdminPackageAdjustmentInvoicePdfResult>(
+			getAdjustmentInvoicePdf({ adjustmentId: packageRow.adjustment.id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to download adjustment invoices.");
+					break;
+				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
+					toast.error("This adjustment no longer exists.");
+					break;
+				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
+					toast.error("The adjustment invoice has not been sent yet.");
+					break;
+				case "INVALID_BOOKING_DATA":
+				case "INVOICE_EMAIL_RENDER_FAILED":
+				case "INVOICE_DOWNLOAD_FAILED":
+					toast.error("Unable to generate the adjustment invoice.");
+					break;
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while downloading the adjustment invoice.");
+					break;
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setPendingAction(null);
+			return;
+		}
+
+		downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
+		toast.success("Adjustment invoice download started.");
+		setPendingAction(null);
+	}
+
+	async function handleRetryAdjustmentInvoice() {
+		if (!packageRow.adjustment) return;
+
+		setPendingAction("adjustmentEmail");
+		const [error] = await tryCatch<RetryPackageAdjustmentInvoiceEmailResult>(
+			retryAdjustmentInvoiceEmail({ adjustmentId: packageRow.adjustment.id })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to retry adjustment invoices.");
+					break;
+				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
+				case "PACKAGE_NOT_FOUND":
+					toast.error("This package adjustment no longer exists.");
+					break;
+				case "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE":
+					toast.error("Only failed adjustment emails can be retried.");
+					break;
+				case "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED":
+					toast.error("The adjustment invoice email failed again.");
+					break;
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while retrying the adjustment invoice.");
+					break;
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setPendingAction(null);
+			return;
+		}
+
+		toast.success("Adjustment invoice sent.");
+		setIsAdjustmentInvoiceDialogOpen(false);
+		setPendingAction(null);
+	}
+
+	async function handleAdjustmentPaymentChange(paid: boolean) {
+		if (!packageRow.adjustment) return;
+
+		setPendingAction("adjustmentPayment");
+		const [error] = await tryCatch<MarkPackageAdjustmentPaymentStatusResult>(
+			markAdjustmentPaymentStatus({ adjustmentId: packageRow.adjustment.id, paid })
+		);
+
+		if (error !== null) {
+			switch (error.reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to update adjustment payments.");
+					break;
+				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
+					toast.error("This adjustment no longer exists.");
+					break;
+				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
+					toast.error("The adjustment invoice must be sent first.");
+					break;
+				case "PACKAGE_ADJUSTMENT_PAYMENT_STATUS_UPDATE_FAILED":
+					toast.error("Unable to update the adjustment payment.");
+					break;
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while updating the adjustment payment.");
+					break;
+				default: {
+					const _exhaustive: never = error;
+					return _exhaustive;
+				}
+			}
+
+			setPendingAction(null);
+			return;
+		}
+
+		toast.success(paid ? "Adjustment marked paid." : "Adjustment marked unpaid.");
+		setPendingAction(null);
+	}
+
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
@@ -478,6 +624,38 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 							onClick={() => setIsPaymentDialogOpen(true)}
 						/>
 					</div>
+					{packageRow.adjustment ? (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="text-muted-foreground text-sm">
+								Adjustment status
+							</DropdownMenuLabel>
+							<div className="flex items-center gap-2 px-2 pb-2">
+								<StatusCircleButton
+									ariaLabel="Mark adjustment unpaid"
+									className="bg-destructive"
+									disabled={
+										isActionPending ||
+										packageRow.adjustment.invoiceEmailStatus !== "sent" ||
+										packageRow.adjustment.paymentStatus === "unpaid"
+									}
+									isSelected={packageRow.adjustment.paymentStatus === "unpaid"}
+									onClick={() => void handleAdjustmentPaymentChange(false)}
+								/>
+								<StatusCircleButton
+									ariaLabel="Mark adjustment paid"
+									className="bg-green"
+									disabled={
+										isActionPending ||
+										packageRow.adjustment.invoiceEmailStatus !== "sent" ||
+										packageRow.adjustment.paymentStatus === "paid"
+									}
+									isSelected={packageRow.adjustment.paymentStatus === "paid"}
+									onClick={() => void handleAdjustmentPaymentChange(true)}
+								/>
+							</div>
+						</>
+					) : null}
 					<DropdownMenuSeparator />
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger
@@ -547,6 +725,40 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 										)}>
 										{pendingAction === "download" ? "Generating invoice..." : "Download invoice"}
 									</AnimatedDropdownMenuItem>
+									{packageRow.adjustment?.invoiceEmailStatus === "failed" ? (
+										<AnimatedDropdownMenuItem
+											disabled={isActionPending}
+											onSelect={() => setIsAdjustmentInvoiceDialogOpen(true)}
+											renderIcon={(iconRef) => (
+												<MailFilledIcon
+													ref={iconRef}
+													size={16}
+													aria-hidden
+													className="shrink-0 text-current"
+												/>
+											)}>
+											{pendingAction === "adjustmentEmail"
+												? "Sending adjustment invoice"
+												: "Retry adjustment invoice"}
+										</AnimatedDropdownMenuItem>
+									) : null}
+									{packageRow.adjustment?.invoiceEmailStatus === "sent" ? (
+										<AnimatedDropdownMenuItem
+											disabled={isActionPending}
+											onSelect={() => void handleDownloadAdjustmentInvoice()}
+											renderIcon={(iconRef) => (
+												<DownloadIcon
+													ref={iconRef}
+													size={16}
+													aria-hidden
+													className="shrink-0 text-current"
+												/>
+											)}>
+											{pendingAction === "adjustmentDownload"
+												? "Generating adjustment invoice"
+												: "Download adjustment invoice"}
+										</AnimatedDropdownMenuItem>
+									) : null}
 									<AnimatedDropdownMenuItem
 										disabled={isActionPending}
 										onSelect={() => setIsCustomInvoiceDialogOpen(true)}
@@ -663,6 +875,18 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 				title="Email package invoice to customer?"
 				onOpenChange={setIsInvoiceDialogOpen}
 				onSend={() => void handleResendInvoice()}
+			/>
+			<PackageEmailConfirmationDialog
+				open={isAdjustmentInvoiceDialogOpen}
+				customerName={packageRow.customerName}
+				customerEmail={packageRow.customerEmail}
+				description="Retry the failed adjustment invoice email without creating a new invoice."
+				isSending={pendingAction === "adjustmentEmail"}
+				sendLabel="Retry invoice"
+				sendingLabel="Sending invoice"
+				title="Retry adjustment invoice email?"
+				onOpenChange={setIsAdjustmentInvoiceDialogOpen}
+				onSend={() => void handleRetryAdjustmentInvoice()}
 			/>
 			<PackageEmailConfirmationDialog
 				open={isSchedulingLinkDialogOpen}

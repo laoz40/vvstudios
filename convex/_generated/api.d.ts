@@ -40,6 +40,8 @@ import type * as lib_packageScheduling from "../lib/packageScheduling.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as multiBookings from "../multiBookings.js";
+import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
+import type * as packageAdjustments from "../packageAdjustments.js";
 import type * as packageScheduling from "../packageScheduling.js";
 import type * as packageSchedulingCalendar from "../packageSchedulingCalendar.js";
 import type * as reminders from "../reminders.js";
@@ -84,6 +86,8 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   multiBookings: typeof multiBookings;
+  packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
+  packageAdjustments: typeof packageAdjustments;
   packageScheduling: typeof packageScheduling;
   packageSchedulingCalendar: typeof packageSchedulingCalendar;
   reminders: typeof reminders;

@@ -87,6 +87,7 @@ export interface BookingInvoiceData {
 		payId: string;
 		payIdLabel: string;
 	};
+	adjustment?: { bookedAtLabel: string; packageSize: number };
 	package?: { size: number };
 	rescheduleUrl?: string;
 }

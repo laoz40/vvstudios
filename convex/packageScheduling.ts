@@ -430,6 +430,11 @@ async function processPackageAdjustment(ctx: MutationCtx, args: ProcessPackageAd
 			await ctx.db.patch(adjustmentId, {
 				invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
 			});
+			await ctx.scheduler.runAfter(
+				0,
+				internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoiceInternal,
+				{ adjustmentId, attempt: "automatic" }
+			);
 			return null;
 		}
 

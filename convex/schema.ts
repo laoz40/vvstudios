@@ -54,6 +54,7 @@ export default defineSchema({
 				createdAt: v.number(),
 				invoiceDueAt: v.number(),
 				invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
+				invoiceEmailClaimedAt: v.optional(v.number()),
 				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"))
 			})
 		)

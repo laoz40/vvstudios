@@ -22,10 +22,14 @@ export interface BookingInvoiceEmailProps {
 
 export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
-	const isPackageInvoice = Boolean(data.package);
-	const paymentInstruction = isPackageInvoice
-		? data.notes.paymentNote
-		: data.notes.paymentNote.replace(` ${receiptNote}`, "");
+	const adjustmentDetails = data.adjustment;
+	const packageDetails = data.package;
+	const isAdjustmentInvoice = adjustmentDetails !== undefined;
+	const isPackageInvoice = packageDetails !== undefined;
+	const paymentInstruction =
+		isPackageInvoice || isAdjustmentInvoice
+			? data.notes.paymentNote
+			: data.notes.paymentNote.replace(` ${receiptNote}`, "");
 	const formattedSessionTime = formatTimeValue(data.booking.time);
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 	const bookingDescription = data.booking.service
@@ -34,12 +38,18 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const packageDescription = data.package
 		? `Your ${data.package.size}-session package invoice`
 		: "Your package invoice";
-	const introText = isPackageInvoice
-		? `${packageDescription} is attached. Once your payment clears (usually within 24 hours for first-time payments), we will automatically email you the private scheduling link.`
-		: `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
-	const previewText = data.package
-		? `Your ${data.package.size} Pack Studio Booking Invoice from ${data.invoice.invoiceDateLabel}`
-		: `Studio booking confirmed! Your booking invoice is ready with a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
+	let introText = `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
+	let previewText = `Studio booking confirmed! Your booking invoice is ready with a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
+
+	if (packageDetails) {
+		introText = `${packageDescription} is attached. Once your payment clears (usually within 24 hours for first-time payments), we will automatically email you the private scheduling link.`;
+		previewText = `Your ${packageDetails.size} Pack Studio Booking Invoice from ${data.invoice.invoiceDateLabel}`;
+	}
+
+	if (adjustmentDetails) {
+		introText = `Your Remote Podcast adjustment invoice for your ${adjustmentDetails.packageSize}-session package booked on ${adjustmentDetails.bookedAtLabel} is attached.`;
+		previewText = `Your Remote Podcast adjustment invoice for your package booked on ${adjustmentDetails.bookedAtLabel} has a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
+	}
 
 	return (
 		<Html>
@@ -62,7 +72,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
+					<Heading style={heading}>
+						{isAdjustmentInvoice
+							? `Hi ${data.customer.name},`
+							: `Thanks for booking, ${data.customer.name}`}
+					</Heading>
 					<Text style={paragraph}>{introText}</Text>
 					<Section style={section}>
 						<Text style={sectionTitle}>Balance due</Text>
@@ -72,10 +86,14 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 						</Section>
 					</Section>
 					<Section style={section}>
-						<Text style={sectionTitle}>{isPackageInvoice ? "Payment terms" : "Payment"}</Text>
+						<Text style={sectionTitle}>
+							{isPackageInvoice || isAdjustmentInvoice ? "Payment terms" : "Payment"}
+						</Text>
 						<Section style={paymentNoticeCard}>
 							<Text style={noticeLine}>{paymentInstruction}</Text>
-							{isPackageInvoice ? null : <Text style={noteText}>*{receiptNote}</Text>}
+							{isPackageInvoice || isAdjustmentInvoice ? null : (
+								<Text style={noteText}>*{receiptNote}</Text>
+							)}
 						</Section>
 						<Section style={paymentCard}>
 							<Row>
@@ -108,7 +126,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							</Button>
 						</Section>
 					) : null}
-					{isPackageInvoice ? null : (
+					{isPackageInvoice || isAdjustmentInvoice ? null : (
 						<Section style={section}>
 							<Text style={sectionTitle}>Studio location</Text>
 							<Text style={paragraph}>{data.branding.locationAddress}</Text>
