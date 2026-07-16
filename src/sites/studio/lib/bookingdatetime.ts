@@ -148,10 +148,10 @@ const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	timeZone: BOOKING_TIME_ZONE
 });
 
-const bookingSydneyDateFormatter = new Intl.DateTimeFormat("en-AU", {
+export const formatShortMonthFullDate = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeZone: BOOKING_TIME_ZONE
-});
+}).format;
 
 function getDatePartsInSydney(date: Date) {
 	const parts = new Intl.DateTimeFormat("en-AU", {
@@ -170,7 +170,7 @@ function getDatePartsInSydney(date: Date) {
 	};
 }
 
-function getSydneyDateValue(date = new Date()) {
+export function getSydneyDateValue(date = new Date()) {
 	const { day, month, year } = getDatePartsInSydney(date);
 
 	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -304,7 +304,7 @@ export function formatBookingDateMedium(dateValue: string) {
 		return dateValue;
 	}
 
-	return bookingSydneyDateFormatter.format(date);
+	return formatShortMonthFullDate(date);
 }
 
 export function formatBookingRelativeDate(dateValue: string, now = new Date()) {

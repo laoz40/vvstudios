@@ -28,9 +28,9 @@ import {
 } from "#studio/features/admin/lib/remaining-balance";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
+	formatShortMonthFullDate,
 	formatBookingDateMedium,
 	formatBookingRelativeDate,
-	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatBookingTimeLabel,
 	isUpcomingBooking
@@ -203,9 +203,7 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 			</TableCell>
 			<TableCell className={cn(isPastBooking && "opacity-70")}>
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">
-						{formatBookingTimestampDateLong(booking.pendingPaymentCreatedAt)}
-					</p>
+					<p className="font-medium">{formatShortMonthFullDate(booking.pendingPaymentCreatedAt)}</p>
 					<p className="text-sm text-muted-foreground">
 						{formatBookingTimestampTime(booking.pendingPaymentCreatedAt)}
 					</p>

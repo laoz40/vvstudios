@@ -39,8 +39,10 @@ import {
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
-	formatBookingTimestampDateLong,
-	formatBookingTimestampTime
+	formatShortMonthFullDate,
+	formatBookingRelativeDate,
+	formatBookingTimestampTime,
+	getSydneyDateValue
 } from "#studio/lib/bookingdatetime";
 
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
@@ -55,14 +57,22 @@ function PackageTableDateCell({
 	const dashboardDate = getAdminPackageDashboardDate(packageRow);
 	const isPaymentDueClose = isAdminPackagePaymentDueClose(packageRow);
 	const isExpiryClose = isAdminPackageExpiryClose(packageRow);
+	const relativeDateLabel =
+		dashboardDate.kind === "missing_package_expiry"
+			? null
+			: formatBookingRelativeDate(getSydneyDateValue(new Date(dashboardDate.timestamp)));
 
 	switch (dashboardDate.kind) {
 		case "adjustment_due":
 			return (
 				<div className="flex flex-col gap-1">
 					<span
-						className={cn(isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary")}>
-						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+						className={cn(
+							"cursor-help",
+							isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary"
+						)}
+						title={relativeDateLabel ?? undefined}>
+						{formatShortMonthFullDate(dashboardDate.timestamp)}
 					</span>
 					<span className="text-xs text-muted-foreground">Adjustment due</span>
 				</div>
@@ -72,8 +82,12 @@ function PackageTableDateCell({
 			return (
 				<div className="flex flex-col gap-1">
 					<span
-						className={cn(isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary")}>
-						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+						className={cn(
+							"cursor-help",
+							isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary"
+						)}
+						title={relativeDateLabel ?? undefined}>
+						{formatShortMonthFullDate(dashboardDate.timestamp)}
 					</span>
 					<span className="text-xs text-muted-foreground">Payment due</span>
 				</div>
@@ -82,8 +96,13 @@ function PackageTableDateCell({
 		case "package_expiry":
 			return (
 				<div className="flex flex-col gap-1">
-					<span className={cn(isPastDue ? "text-destructive" : isExpiryClose && "text-primary")}>
-						{formatBookingTimestampDateLong(dashboardDate.timestamp)}
+					<span
+						className={cn(
+							"cursor-help",
+							isPastDue ? "text-destructive" : isExpiryClose && "text-primary"
+						)}
+						title={relativeDateLabel ?? undefined}>
+						{formatShortMonthFullDate(dashboardDate.timestamp)}
 					</span>
 					<span className="text-xs text-muted-foreground">Package expiry</span>
 				</div>
@@ -344,7 +363,7 @@ export function PackagesTable({
 										<TableCell className={cn(isInactivePackage && "opacity-70")}>
 											<div className="flex flex-col gap-1 whitespace-normal">
 												<p className="font-medium">
-													{formatBookingTimestampDateLong(packageRow.createdAt)}
+													{formatShortMonthFullDate(packageRow.createdAt)}
 												</p>
 												<p className="text-sm text-muted-foreground">
 													{formatBookingTimestampTime(packageRow.createdAt)}
