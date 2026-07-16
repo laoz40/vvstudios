@@ -53,19 +53,58 @@ const bookingQuotes = [
 	}
 ] as const;
 
-export interface HostBookingDetailsEmailProps {
+interface HostBookingBaseDetailsEmailProps {
 	invoiceNumber: string;
 	name: string;
 	email: string;
 	phone: string;
 	accountName: string;
 	abn?: string;
-	date: string;
-	time: string;
-	service: string;
+	service?: string;
 	duration: string;
 	addonsLine: string;
 	notes?: string;
+}
+
+interface HostSingleBookingDetailsEmailProps extends HostBookingBaseDetailsEmailProps {
+	kind?: "single";
+	date: string;
+	time: string;
+}
+
+interface HostPackageBookingDetailsEmailProps extends HostBookingBaseDetailsEmailProps {
+	kind: "package";
+	packageSize: 4 | 8 | 12;
+	invoiceDueAtLabel: string;
+}
+
+export type HostBookingDetailsEmailProps =
+	| HostSingleBookingDetailsEmailProps
+	| HostPackageBookingDetailsEmailProps;
+
+function getHostBookingEmailCopy(
+	name: string,
+	bookingDetails:
+		| Omit<HostSingleBookingDetailsEmailProps, keyof HostBookingBaseDetailsEmailProps>
+		| Omit<HostPackageBookingDetailsEmailProps, keyof HostBookingBaseDetailsEmailProps>
+) {
+	if (bookingDetails.kind === "package") {
+		return {
+			headingText: "New package booking request",
+			previewText: `New package booking request from ${name}.`,
+			primarySummaryDetail: `${bookingDetails.packageSize} Pack package request`,
+			secondarySummaryDetail: `Due ${bookingDetails.invoiceDueAtLabel}`,
+			isPackageRequest: true
+		};
+	}
+
+	return {
+		headingText: "New studio booking confirmed",
+		previewText: `New studio booking confirmed for ${name}.`,
+		primarySummaryDetail: bookingDetails.date,
+		secondarySummaryDetail: bookingDetails.time,
+		isPackageRequest: false
+	};
 }
 
 export function HostBookingDetailsEmail({
@@ -75,14 +114,14 @@ export function HostBookingDetailsEmail({
 	phone,
 	accountName,
 	abn,
-	date,
-	time,
 	service,
 	duration,
 	addonsLine,
-	notes
+	notes,
+	...bookingDetails
 }: HostBookingDetailsEmailProps) {
 	const selectedQuote = bookingQuotes[Math.floor(Math.random() * bookingQuotes.length)];
+	const emailCopy = getHostBookingEmailCopy(name, bookingDetails);
 
 	return (
 		<Html>
@@ -92,7 +131,7 @@ export function HostBookingDetailsEmail({
 					name="format-detection"
 				/>
 			</Head>
-			<Preview>New studio booking confirmed for {name}.</Preview>
+			<Preview>{emailCopy.previewText}</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Text style={invoiceNumberText}>Invoice #{invoiceNumber}</Text>
@@ -105,23 +144,29 @@ export function HostBookingDetailsEmail({
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>New studio booking confirmed</Heading>
+					<Heading style={heading}>{emailCopy.headingText}</Heading>
 
 					<Section style={section}>
 						<Text style={sectionTitle}>Booking summary</Text>
 						<Section style={summaryCard}>
 							<Text style={customerName}>{name}</Text>
-							<Text style={primaryDetail}>{date}</Text>
-							<Text style={secondaryDetail}>{time}</Text>
+							<Text style={emailCopy.isPackageRequest ? secondaryDetail : primaryDetail}>
+								{emailCopy.primarySummaryDetail}
+							</Text>
+							<Text style={emailCopy.isPackageRequest ? primaryDetail : secondaryDetail}>
+								{emailCopy.secondarySummaryDetail}
+							</Text>
 						</Section>
 					</Section>
 
 					<Section style={section}>
 						<Text style={sectionTitle}>Session details</Text>
 						<Section style={detailsCard}>
-							<Text style={detailLine}>
-								Recording space: <strong>{service}</strong>
-							</Text>
+							{bookingDetails.kind !== "package" ? (
+								<Text style={detailLine}>
+									Recording space: <strong>{service}</strong>
+								</Text>
+							) : null}
 							<Text style={detailLine}>
 								Session duration: <strong>{duration}</strong>
 							</Text>

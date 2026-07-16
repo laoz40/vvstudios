@@ -1,7 +1,6 @@
 import { cn } from "#/lib/utils";
 
-export const sectionHeadingClassName =
-	"text-xs! md:text-sm! font-semibold tracking-widest text-primary uppercase";
+export const sectionHeadingClassName = "text-base font-semibold text-primary uppercase";
 
 export const transitionClassName =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
@@ -34,4 +33,22 @@ export function getFooterStateClassName(isSelected: boolean) {
 
 export function getPillStateClassName(isSelected: boolean) {
 	return isSelected ? pillSelectedClassName : pillIdleClassName;
+}
+
+export function getRevealMotionProps(shouldReduceMotion: boolean) {
+	if (shouldReduceMotion) {
+		return {
+			initial: { height: 0 },
+			animate: { height: "auto" },
+			exit: { height: 0 },
+			transition: { duration: 0 }
+		} as const;
+	}
+
+	return {
+		initial: { height: 0, opacity: 0, y: -8 },
+		animate: { height: "auto", opacity: 1, y: 0 },
+		exit: { height: 0, opacity: 0, y: -8 },
+		transition: { duration: 0.2, ease: "easeOut" }
+	} as const;
 }

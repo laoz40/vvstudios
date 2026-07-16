@@ -16,6 +16,7 @@ import { Route as PublicTermsAndConditionsRouteImport } from './routes/_public/t
 import { Route as PublicRescheduleCompleteRouteImport } from './routes/_public/reschedule-complete'
 import { Route as PublicPrivacyPolicyRouteImport } from './routes/_public/privacy-policy'
 import { Route as PublicPricingRouteImport } from './routes/_public/pricing'
+import { Route as PublicPackageCompleteRouteImport } from './routes/_public/package-complete'
 import { Route as PublicGalleryRouteImport } from './routes/_public/gallery'
 import { Route as PublicContactRouteImport } from './routes/_public/contact'
 import { Route as PublicBookingExpiredRouteImport } from './routes/_public/booking-expired'
@@ -24,6 +25,7 @@ import { Route as PublicBookRouteImport } from './routes/_public/book'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as PublicRescheduleTokenRouteImport } from './routes/_public/reschedule.$token'
+import { Route as PublicPackageScheduleTokenRouteImport } from './routes/_public/package-schedule.$token'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -58,6 +60,11 @@ const PublicPrivacyPolicyRoute = PublicPrivacyPolicyRouteImport.update({
 const PublicPricingRoute = PublicPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPackageCompleteRoute = PublicPackageCompleteRouteImport.update({
+  id: '/package-complete',
+  path: '/package-complete',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicGalleryRoute = PublicGalleryRouteImport.update({
@@ -100,6 +107,12 @@ const PublicRescheduleTokenRoute = PublicRescheduleTokenRouteImport.update({
   path: '/reschedule/$token',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicPackageScheduleTokenRoute =
+  PublicPackageScheduleTokenRouteImport.update({
+    id: '/package-schedule/$token',
+    path: '/package-schedule/$token',
+    getParentRoute: () => PublicRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -110,10 +123,12 @@ export interface FileRoutesByFullPath {
   '/booking-expired': typeof PublicBookingExpiredRoute
   '/contact': typeof PublicContactRoute
   '/gallery': typeof PublicGalleryRoute
+  '/package-complete': typeof PublicPackageCompleteRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesByTo {
@@ -125,10 +140,12 @@ export interface FileRoutesByTo {
   '/booking-expired': typeof PublicBookingExpiredRoute
   '/contact': typeof PublicContactRoute
   '/gallery': typeof PublicGalleryRoute
+  '/package-complete': typeof PublicPackageCompleteRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
+  '/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
   '/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRoutesById {
@@ -142,11 +159,13 @@ export interface FileRoutesById {
   '/_public/booking-expired': typeof PublicBookingExpiredRoute
   '/_public/contact': typeof PublicContactRoute
   '/_public/gallery': typeof PublicGalleryRoute
+  '/_public/package-complete': typeof PublicPackageCompleteRoute
   '/_public/pricing': typeof PublicPricingRoute
   '/_public/privacy-policy': typeof PublicPrivacyPolicyRoute
   '/_public/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/_public/': typeof PublicIndexRoute
+  '/_public/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
   '/_public/reschedule/$token': typeof PublicRescheduleTokenRoute
 }
 export interface FileRouteTypes {
@@ -160,10 +179,12 @@ export interface FileRouteTypes {
     | '/booking-expired'
     | '/contact'
     | '/gallery'
+    | '/package-complete'
     | '/pricing'
     | '/privacy-policy'
     | '/reschedule-complete'
     | '/terms-and-conditions'
+    | '/package-schedule/$token'
     | '/reschedule/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -175,10 +196,12 @@ export interface FileRouteTypes {
     | '/booking-expired'
     | '/contact'
     | '/gallery'
+    | '/package-complete'
     | '/pricing'
     | '/privacy-policy'
     | '/reschedule-complete'
     | '/terms-and-conditions'
+    | '/package-schedule/$token'
     | '/reschedule/$token'
   id:
     | '__root__'
@@ -191,11 +214,13 @@ export interface FileRouteTypes {
     | '/_public/booking-expired'
     | '/_public/contact'
     | '/_public/gallery'
+    | '/_public/package-complete'
     | '/_public/pricing'
     | '/_public/privacy-policy'
     | '/_public/reschedule-complete'
     | '/_public/terms-and-conditions'
     | '/_public/'
+    | '/_public/package-schedule/$token'
     | '/_public/reschedule/$token'
   fileRoutesById: FileRoutesById
 }
@@ -255,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicPricingRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/package-complete': {
+      id: '/_public/package-complete'
+      path: '/package-complete'
+      fullPath: '/package-complete'
+      preLoaderRoute: typeof PublicPackageCompleteRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/gallery': {
       id: '/_public/gallery'
       path: '/gallery'
@@ -311,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicRescheduleTokenRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/package-schedule/$token': {
+      id: '/_public/package-schedule/$token'
+      path: '/package-schedule/$token'
+      fullPath: '/package-schedule/$token'
+      preLoaderRoute: typeof PublicPackageScheduleTokenRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
@@ -332,11 +371,13 @@ interface PublicRouteChildren {
   PublicBookingExpiredRoute: typeof PublicBookingExpiredRoute
   PublicContactRoute: typeof PublicContactRoute
   PublicGalleryRoute: typeof PublicGalleryRoute
+  PublicPackageCompleteRoute: typeof PublicPackageCompleteRoute
   PublicPricingRoute: typeof PublicPricingRoute
   PublicPrivacyPolicyRoute: typeof PublicPrivacyPolicyRoute
   PublicRescheduleCompleteRoute: typeof PublicRescheduleCompleteRoute
   PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicPackageScheduleTokenRoute: typeof PublicPackageScheduleTokenRoute
   PublicRescheduleTokenRoute: typeof PublicRescheduleTokenRoute
 }
 
@@ -346,11 +387,13 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicBookingExpiredRoute: PublicBookingExpiredRoute,
   PublicContactRoute: PublicContactRoute,
   PublicGalleryRoute: PublicGalleryRoute,
+  PublicPackageCompleteRoute: PublicPackageCompleteRoute,
   PublicPricingRoute: PublicPricingRoute,
   PublicPrivacyPolicyRoute: PublicPrivacyPolicyRoute,
   PublicRescheduleCompleteRoute: PublicRescheduleCompleteRoute,
   PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
   PublicIndexRoute: PublicIndexRoute,
+  PublicPackageScheduleTokenRoute: PublicPackageScheduleTokenRoute,
   PublicRescheduleTokenRoute: PublicRescheduleTokenRoute,
 }
 

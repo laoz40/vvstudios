@@ -110,7 +110,7 @@ export function useStatusActions(
 		toast.success(
 			nextStatus === "confirmed"
 				? "Booking marked as confirmed."
-				: "Booking marked as needs follow up."
+				: "Booking marked as calendar conflict."
 		);
 		setIsUpdatingStatus(false);
 	}

@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { ReactFormExtendedApi } from "@tanstack/react-form";
 import type { FormAsyncValidateOrFn, FormValidateOrFn } from "@tanstack/form-core";
-import { type BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingFormValidator = FormValidateOrFn<BookingFormValues> | undefined;
 type BookingFormAsyncValidator = FormAsyncValidateOrFn<BookingFormValues> | undefined;

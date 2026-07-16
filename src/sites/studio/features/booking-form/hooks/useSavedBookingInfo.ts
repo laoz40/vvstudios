@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/form-shared";
+import {
+	isPackageUnavailableAddon,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
@@ -51,9 +54,19 @@ export function useSavedBookingInfo({
 			return;
 		}
 
-		formApi.setFieldValue("service", savedBookingInfo.service);
+		formApi.setFieldValue("bookingMode", savedBookingInfo.bookingMode);
+		formApi.setFieldValue("packageSize", savedBookingInfo.packageSize);
+		formApi.setFieldValue(
+			"service",
+			savedBookingInfo.bookingMode === "multi" ? "" : savedBookingInfo.service
+		);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
-		formApi.setFieldValue("addons", [...savedBookingInfo.addons]);
+		formApi.setFieldValue(
+			"addons",
+			savedBookingInfo.bookingMode === "multi"
+				? savedBookingInfo.addons.filter((addon) => !isPackageUnavailableAddon(addon))
+				: [...savedBookingInfo.addons]
+		);
 		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
 		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
 		formApi.setFieldValue("name", savedBookingInfo.name);
@@ -61,7 +74,10 @@ export function useSavedBookingInfo({
 		formApi.setFieldValue("accountName", savedBookingInfo.accountName);
 		formApi.setFieldValue("abn", savedBookingInfo.abn);
 		formApi.setFieldValue("email", savedBookingInfo.email);
-		formApi.setFieldValue("notes", savedBookingInfo.notes);
+		formApi.setFieldValue(
+			"notes",
+			savedBookingInfo.bookingMode === "single" ? savedBookingInfo.notes : ""
+		);
 		onReuseSavedBookingInfo();
 	}, [formApi, onReuseSavedBookingInfo, savedBookingInfo]);
 

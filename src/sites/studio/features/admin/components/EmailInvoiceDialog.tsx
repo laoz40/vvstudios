@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 
 export type EmailInvoiceDialogProps = {
 	open: boolean;
@@ -69,7 +69,7 @@ export function EmailInvoiceDialog({
 					</DialogDescription>
 				</DialogHeader>
 
-				<BookingCustomerSummary
+				<SessionCustomerSummary
 					bookingName={bookingName}
 					bookingEmail={bookingEmail}
 				/>

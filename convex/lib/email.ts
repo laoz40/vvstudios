@@ -6,20 +6,28 @@ import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/bookin
 import { DeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/DeliverablesEmail";
 import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
+import { MultiBookingSchedulingEmail } from "../../src/sites/studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
+import { PackageExpiryReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackageExpiryReminderEmail";
+import { PackagePaymentReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
+import { formatBookingTimeRange } from "../../src/sites/studio/lib/bookingdatetime";
 import { env } from "../env";
 import {
 	formatBookingDateLong,
 	formatBookingDateShort,
 	formatBookingDateWithoutYear,
-	formatCalendarEventDate,
-	formatCalendarEventTime
+	formatCalendarEventDate
 } from "./bookingCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
-	renderBookingInvoicePdfInNode
+	createMultiBookingInvoiceArtifacts,
+	createPackageAdjustmentInvoiceArtifacts,
+	renderBookingInvoicePdfInNode,
+	type MultiBookingInvoiceSource,
+	type PackageAdjustmentInvoiceSource
 } from "./bookingInvoiceArtifacts";
 import { err, ok, type Result } from "../../src/lib/result";
+import { formatEditingAddonLabel } from "../../src/sites/studio/features/booking-form/lib/editing-addon-quantities";
 
 type SendEmailResult = Result<
 	{ sent: true },
@@ -31,8 +39,10 @@ interface SendBookingReminderEmailForBookingArgs {
 	email: string;
 	date: string;
 	startDateTime: string;
+	time: string;
 	timeZone: string;
 	rescheduleUrl?: string;
+	isPackageBooking?: boolean;
 	service: string;
 	duration: string;
 	addons: string[];
@@ -53,6 +63,36 @@ interface SendBookingHostDetailsEmailArgs {
 	notes?: string;
 }
 
+interface SendPackageHostDetailsEmailArgs {
+	invoiceNumber: string;
+	name: string;
+	email: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	duration: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	packageSize: 4 | 8 | 12;
+	invoiceDueAt: number;
+}
+
+interface SendPackagePaymentReminderEmailArgs {
+	email: string;
+	invoiceDueAt: number;
+	name: string;
+	requestDate: number;
+}
+
+interface SendPackageExpiryReminderEmailArgs {
+	email: string;
+	expiresAt: number;
+	name: string;
+	remainingSessions: number;
+}
+
 interface SendBookingDeliverablesEmailArgs {
 	date: string;
 	driveLink: string;
@@ -60,6 +100,20 @@ interface SendBookingDeliverablesEmailArgs {
 	email: string;
 	emailVariant: DeliverablesEmailVariant;
 	name: string;
+}
+
+interface SendMultiBookingScheduleEmailArgs {
+	addons: string[];
+	leadTimeMinutes: number;
+	clipsPackageQuantity?: string;
+	duration: string;
+	email: string;
+	essentialEditQuantity?: string;
+	expiresAt: number;
+	name: string;
+	packageSize: 4 | 8 | 12;
+	bookedAt: number;
+	scheduleUrl: string;
 }
 
 function escapeHtml(value: string) {
@@ -77,11 +131,50 @@ interface EmailAttachment {
 	filename: string;
 }
 
+function formatTimestampDateLong(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		weekday: "long",
+		year: "numeric"
+	}).format(new Date(timestamp));
+}
+
+function formatTimestampDateShort(timestamp: number) {
+	return new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		year: "numeric"
+	}).format(new Date(timestamp));
+}
+
+function formatAddonsLine(args: {
+	addons: string[];
+	clipsPackageQuantity?: string;
+	essentialEditQuantity?: string;
+}) {
+	if (args.addons.length === 0) {
+		return "None";
+	}
+
+	return args.addons
+		.map((addon) =>
+			formatEditingAddonLabel(addon, {
+				clipsPackageQuantity: args.clipsPackageQuantity,
+				essentialEditQuantity: args.essentialEditQuantity
+			})
+		)
+		.join(", ");
+}
+
 async function sendEmail(args: {
 	to: string[];
 	subject: string;
 	html: string;
 	attachments?: EmailAttachment[];
+	idempotencyKey?: string;
 }): Promise<SendEmailResult> {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
@@ -96,7 +189,8 @@ async function sendEmail(args: {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${env.RESEND_API_KEY}`,
-				"Content-Type": "application/json"
+				"Content-Type": "application/json",
+				...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {})
 			},
 			body: JSON.stringify({
 				from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
@@ -111,6 +205,13 @@ async function sendEmail(args: {
 	}
 
 	if (!response.ok) {
+		console.error("Resend email response failed", {
+			status: response.status,
+			body: await response.text(),
+			to: args.to,
+			subject: args.subject,
+			attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
+		});
 		return err({ reason: "EMAIL_RESPONSE_FAILED" });
 	}
 
@@ -134,7 +235,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 			accountName: args.accountName,
 			abn: args.abn,
 			date: formatBookingDateLong(args.date),
-			time: args.time,
+			time: formatBookingTimeRange(args.time, args.duration),
 			service: args.service,
 			duration: args.duration,
 			addonsLine,
@@ -149,14 +250,54 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 	});
 }
 
+export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
+	const hostEmails = getHostEmails();
+
+	if (hostEmails.length === 0) {
+		return ok({ sent: true });
+	}
+
+	const html = await render(
+		createElement(HostBookingDetailsEmail, {
+			kind: "package",
+			invoiceNumber: args.invoiceNumber,
+			name: args.name,
+			email: args.email,
+			phone: args.phone,
+			accountName: args.accountName,
+			abn: args.abn,
+			duration: args.duration,
+			addonsLine: formatAddonsLine({
+				addons: args.addons,
+				clipsPackageQuantity: args.clipsPackageQuantity,
+				essentialEditQuantity: args.essentialEditQuantity
+			}),
+			notes: args.notes,
+			packageSize: args.packageSize,
+			invoiceDueAtLabel: formatTimestampDateLong(args.invoiceDueAt)
+		})
+	);
+
+	return await sendEmail({
+		to: hostEmails,
+		subject: `New Package Booking Request - ${args.name} - ${args.packageSize} Pack`,
+		html
+	});
+}
+
 export async function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
-	rescheduleUrl?: string
-): Promise<Result<{ sent: true }, { reason: "INVALID_BOOKING_DATA" | "INVOICE_SEND_FAILED" }>> {
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+): Promise<
+	Result<
+		{ sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
+	>
+> {
 	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-		rescheduleUrl
+		options
 	);
 
 	if (artifactsError !== null) {
@@ -213,6 +354,225 @@ export async function sendBookingInvoiceEmailsForBooking(
 	return ok({ sent: true });
 }
 
+export async function sendPackageAdjustmentInvoiceEmail(
+	source: PackageAdjustmentInvoiceSource
+): Promise<
+	Result<
+		{ sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
+	>
+> {
+	const [artifactsError, artifactsResult] = await createPackageAdjustmentInvoiceArtifacts(source);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
+
+	if (pdfError !== null) {
+		console.error("Package adjustment invoice PDF render failed", {
+			adjustmentId: source.adjustment._id
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [invoiceEmailError] = await sendEmail({
+		to: [source.multiBooking.email],
+		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(source.multiBooking.createdAt)}`,
+		html: artifactsResult.artifacts.emailHtml,
+		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }],
+		idempotencyKey: `package-adjustment-${source.adjustment._id}`
+	});
+
+	if (invoiceEmailError !== null) {
+		console.error("Package adjustment invoice email send failed", {
+			adjustmentId: source.adjustment._id,
+			reason: invoiceEmailError.reason
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	return ok({ sent: true });
+}
+
+export async function sendMultiBookingInvoiceEmail(
+	multiBooking: MultiBookingInvoiceSource,
+	options: { leadTimeMinutes: number }
+): Promise<
+	Result<
+		{ invoiceNumber: string; sent: true },
+		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
+	>
+> {
+	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(
+		multiBooking,
+		options
+	);
+
+	if (artifactsError !== null) {
+		return err(artifactsError);
+	}
+
+	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
+		artifactsResult.artifacts.data
+	);
+
+	if (pdfError !== null) {
+		console.error("Multi-booking invoice PDF render failed", { multiBookingId: multiBooking._id });
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
+		day: "numeric",
+		month: "long",
+		year: "numeric"
+	}).format(new Date(multiBooking.createdAt));
+
+	const [invoiceEmailError] = await sendEmail({
+		to: [multiBooking.email],
+		subject: `Your ${multiBooking.packageSize} Pack Studio Booking Invoice from ${invoiceCreatedDate}`,
+		html: artifactsResult.artifacts.emailHtml,
+		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }]
+	});
+
+	if (invoiceEmailError !== null) {
+		console.error("Multi-booking invoice customer email send failed", {
+			multiBookingId: multiBooking._id,
+			reason: invoiceEmailError.reason
+		});
+		return err({ reason: "INVOICE_SEND_FAILED" });
+	}
+
+	const [hostEmailError] = await sendPackageHostDetailsEmail({
+		invoiceNumber: artifactsResult.artifacts.data.invoice.number,
+		name: multiBooking.name,
+		email: multiBooking.email,
+		phone: multiBooking.phone,
+		accountName: multiBooking.accountName,
+		abn: multiBooking.abn,
+		duration: multiBooking.duration,
+		addons: multiBooking.addons,
+		essentialEditQuantity: multiBooking.essentialEditQuantity,
+		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
+		notes: multiBooking.notes,
+		packageSize: multiBooking.packageSize,
+		invoiceDueAt: multiBooking.invoiceDueAt
+	});
+
+	if (hostEmailError !== null) {
+		console.error("Multi-booking invoice host email send failed", {
+			multiBookingId: multiBooking._id,
+			reason: hostEmailError.reason
+		});
+	}
+	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
+}
+
+export async function sendMultiBookingScheduleEmail({
+	addons,
+	clipsPackageQuantity,
+	duration,
+	email,
+	essentialEditQuantity,
+	expiresAt,
+	name,
+	packageSize,
+	leadTimeMinutes,
+	bookedAt,
+	scheduleUrl
+}: SendMultiBookingScheduleEmailArgs): Promise<
+	Result<{ sent: true }, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
+> {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
+	let html: string;
+
+	try {
+		html = await render(
+			createElement(MultiBookingSchedulingEmail, {
+				addonsLine: formatAddonsLine({ addons, clipsPackageQuantity, essentialEditQuantity }),
+				duration,
+				expiresAtLabel: formatTimestampDateLong(expiresAt),
+				name,
+				packageSize,
+				leadTimeMinutes,
+				scheduleUrl,
+				signoffName
+			})
+		);
+	} catch {
+		return err({ reason: "SCHEDULE_EMAIL_RENDER_FAILED" });
+	}
+
+	const [scheduleEmailError] = await sendEmail({
+		to: [email],
+		subject: `Schedule Your ${packageSize} Pack Studio Sessions — Booked ${formatTimestampDateShort(bookedAt)}`,
+		html
+	});
+
+	if (scheduleEmailError !== null) {
+		console.error("Multi-booking schedule email send failed", {
+			email,
+			reason: scheduleEmailError.reason
+		});
+		return err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" });
+	}
+
+	return ok({ sent: true });
+}
+
+export async function sendPackagePaymentReminderEmail({
+	email,
+	invoiceDueAt,
+	name,
+	requestDate
+}: SendPackagePaymentReminderEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await render(
+		createElement(PackagePaymentReminderEmail, {
+			invoiceDueAtLabel: formatTimestampDateLong(invoiceDueAt),
+			name,
+			requestDateLabel: formatTimestampDateLong(requestDate),
+			signoffName
+		})
+	);
+
+	return await sendEmail({
+		to: [email],
+		subject: `Reminder: Complete Your Package Payment — Requested ${formatTimestampDateShort(requestDate)}`,
+		html
+	});
+}
+
+export async function sendPackageExpiryReminderEmail({
+	email,
+	expiresAt,
+	name,
+	remainingSessions
+}: SendPackageExpiryReminderEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const html = await render(
+		createElement(PackageExpiryReminderEmail, {
+			expiresAtLabel: formatTimestampDateLong(expiresAt),
+			name,
+			remainingSessions,
+			signoffName
+		})
+	);
+
+	return await sendEmail({
+		to: [email],
+		subject: `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(expiresAt)}`,
+		html
+	});
+}
+
 export async function sendFeedbackEmailForMessage(message: string) {
 	return await sendEmail({
 		to: [CONTACT_EMAIL],
@@ -258,15 +618,17 @@ export async function sendBookingReminderEmailForBooking({
 	email,
 	date,
 	startDateTime,
+	time,
 	timeZone,
 	service,
 	duration,
 	addons,
+	isPackageBooking,
 	rescheduleUrl
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
-	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
+	const bookingTime = formatBookingTimeRange(time, duration);
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 	const html = await render(
@@ -278,6 +640,7 @@ export async function sendBookingReminderEmailForBooking({
 			name,
 			service,
 			rescheduleUrl,
+			isPackageBooking,
 			signoffName
 		})
 	);

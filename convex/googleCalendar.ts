@@ -18,9 +18,11 @@ import { getBookingFromQuery } from "./lib/bookingLookup";
 import {
 	buildEventWindow,
 	type BookingAvailabilitySettings,
+	type BusyDayWindow,
 	checkBookingMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
+	groupBusyDaysByMonth,
 	groupBusyWindowsByDay
 } from "./lib/bookingCalendarTime";
 import {
@@ -47,6 +49,7 @@ import {
 	checkGoogleCalendarAvailabilityRateLimit
 } from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./bookingReschedule";
+import type { MarkBookingCalendarEventDeletedResult } from "./bookings";
 
 function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
@@ -55,17 +58,19 @@ function getBookingSubmitRateLimitKey(email: string) {
 type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
-
-export type DeleteBookingFromAdminResult = Awaited<
-	ReturnType<typeof deleteBookingFromAdminHandler>
+export type DeleteBookingFromAdminResult = Result<
+	{ deleted: boolean },
+	{
+		reason:
+			| "NOT_AUTHENTICATED"
+			| "NOT_AUTHORIZED"
+			| "BOOKING_NOT_FOUND"
+			| "GOOGLE_CALENDAR_AUTH_FAILED"
+			| "GOOGLE_CALENDAR_DELETE_FAILED"
+			| "GOOGLE_CALENDAR_RATE_LIMITED"
+			| "BOOKING_STATUS_UPDATE_FAILED";
+	}
 >;
-
-interface BusyDayWindowResult {
-	busyPeriods: Array<{ end: string; start: string }>;
-	date: string;
-	label: string;
-}
-
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
 async function getBookableRangeBusyWindowsFromGoogleCalendar({
@@ -76,7 +81,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 	settings: BookingAvailabilitySettings;
 }): Promise<
 	Result<
-		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 		{ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
 	>
 > {
@@ -105,14 +110,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
 	}
 
-	const busyWindowsByMonth: Record<string, BusyDayWindowResult[]> = {};
-
-	for (const busyDay of busyDays) {
-		const month = busyDay.date.slice(0, 7);
-		busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
-	}
-
-	return ok({ busyWindowsByMonth, timeZone });
+	return ok({ busyWindowsByMonth: groupBusyDaysByMonth(busyDays), timeZone });
 }
 
 async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking: Doc<"bookings">) {
@@ -130,10 +128,16 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 
 	const { startDateTime } = eventWindow;
 
-	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	let rescheduleUrl: string | undefined;
 
-	if (linkError !== null) {
-		return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
+	if (booking.multiBookingPackageId === undefined) {
+		const [linkError, bookingRescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+
+		if (linkError !== null) {
+			return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
+		}
+
+		rescheduleUrl = bookingRescheduleUrl;
 	}
 
 	const [emailError] = await sendReminderEmailForBookingDetails({
@@ -141,11 +145,13 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 		email: booking.email,
 		date: booking.date,
 		startDateTime,
+		time: booking.time,
 		timeZone,
 		service: booking.service,
 		duration: booking.duration,
 		addons: booking.addons,
-		rescheduleUrl
+		rescheduleUrl,
+		isPackageBooking: booking.multiBookingPackageId !== undefined
 	});
 
 	if (emailError !== null) {
@@ -251,7 +257,7 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 	args: { rateLimitKey: string; token: string }
 ): Promise<
 	Result<
-		{ busyWindowsByMonth: Record<string, BusyDayWindowResult[]>; timeZone: string },
+		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 		| RescheduleLinkLookupError
 		| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
 		| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
@@ -467,13 +473,17 @@ async function rescheduleBookingHandler(
 	};
 
 	// Create a fresh reschedule link, then send the updated booking emails.
+	// Known edge case: see convex/googleCalendar.ts:573.
 	const [linkCreateError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, updatedBooking);
 
 	if (linkCreateError !== null) {
 		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
 		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
@@ -505,7 +515,8 @@ export const updateBookingFromAdmin = action({
 		addons: v.array(v.string()),
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string())
+		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number())
 	},
 	handler: updateBookingFromAdminHandler
 });
@@ -558,17 +569,25 @@ async function sendBookingInvoiceForBookingHandler(
 	}
 
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	if (linkError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
+	// Known edge case: the email can send successfully, then this final Convex write can fail.
+	// A retry creates a new link, which makes the link in the first email stop working.
+	// We accept this because it needs a very specific failure after the email is already sent,
+	// and the admin can send the customer the newest email/link if it ever happens.
 	try {
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
 			bookingId: booking._id
@@ -589,7 +608,10 @@ export const deleteBookingFromAdmin = action({
 	handler: deleteBookingFromAdminHandler
 });
 
-async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBookingFromAdminArgs) {
+async function deleteBookingFromAdminHandler(
+	ctx: ActionCtx,
+	args: DeleteBookingFromAdminArgs
+): Promise<DeleteBookingFromAdminResult> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
@@ -610,9 +632,16 @@ async function deleteBookingFromAdminHandler(ctx: ActionCtx, args: DeleteBooking
 	}
 
 	try {
-		await ctx.runMutation(internal.bookings.deleteBookingInternal, { bookingId: args.bookingId });
+		const [statusUpdateError]: MarkBookingCalendarEventDeletedResult = await ctx.runMutation(
+			internal.bookings.markBookingCalendarEventDeleted,
+			{ bookingId: args.bookingId }
+		);
+
+		if (statusUpdateError !== null) {
+			return err(statusUpdateError);
+		}
 	} catch {
-		return err({ reason: "BOOKING_DELETE_FAILED" });
+		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
 	}
 
 	return ok({ deleted: true });
@@ -723,18 +752,30 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		googleCalendarId: calendarClient.calendarId
 	});
 
+	// Known edge case: see convex/googleCalendar.ts:573.
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 
 	if (linkError !== null) {
+		console.error("Booking invoice reschedule link create failed", {
+			bookingId: booking._id,
+			reason: linkError.reason
+		});
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 			bookingId: booking._id
 		});
 		return ok({ completed: true, outcome: "completed" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, rescheduleUrl);
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl
+	});
 
 	if (emailError !== null) {
+		console.error("Booking invoice email failed during booking completion", {
+			bookingId: booking._id,
+			reason: emailError.reason
+		});
 		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
 			bookingId: booking._id
 		});

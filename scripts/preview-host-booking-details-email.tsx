@@ -8,7 +8,7 @@ const previewProps = {
 	accountName: "Alex Carter Productions",
 	abn: "12 345 678 901",
 	date: "Saturday, 2 May 2026",
-	time: "10:00 AM",
+	time: "10:00 AM – 12:00 PM",
 	service: "Table Setup",
 	duration: "2h",
 	addonsLine: "4K UHD Recording, Clips Package",

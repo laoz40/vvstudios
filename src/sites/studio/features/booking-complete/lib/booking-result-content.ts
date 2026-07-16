@@ -2,6 +2,13 @@ import type { BookingStatus } from "#studio/components/booking/BookingCompleteDe
 
 export interface BookingResultContent {
 	description: string;
+	descriptionHeading?: string;
+	descriptionSteps?: Array<{
+		title: string;
+		description: string;
+		showInvoiceDownloadLink?: boolean;
+		invoiceDownloadLinkSuffix?: string;
+	}>;
 	isBookingCompletionFailure: boolean;
 	title: string;
 }
@@ -38,16 +45,23 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 
 		case "confirmed":
 			return {
-				title: "Congrats, your booking is confirmed!",
+				title: "Your booking is confirmed!",
 				description: "Your invoice has been emailed to you, or you can download it",
 				isBookingCompletionFailure: false
 			};
 
 		case "email_failed":
 			return {
-				title: "Congrats, your booking is confirmed!",
+				title: "Your booking is confirmed!",
 				description:
 					"Your booking is confirmed, but we couldn’t email your invoice. You can download it here or contact us.",
+				isBookingCompletionFailure: false
+			};
+
+		case "cancelled":
+			return {
+				title: "This booking was cancelled",
+				description: "Please contact us if you need help with this session.",
 				isBookingCompletionFailure: false
 			};
 
@@ -68,6 +82,32 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 		default:
 			throw new Error(`Unhandled booking status: ${booking.status}`);
 	}
+}
+
+export function getMultiBookingResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
+	return {
+		title: `${packageSize}-Session Package requested.`,
+		descriptionHeading: "Next Steps:",
+		description: "",
+		descriptionSteps: [
+			{
+				title: "Pay your invoice",
+				description: "Your invoice is in your email (or download it",
+				showInvoiceDownloadLink: true,
+				invoiceDownloadLinkSuffix: "). Please complete payment to start the process."
+			},
+			{
+				title: "Bank processing",
+				description: "It can take up to 24 hours for first time payments to process."
+			},
+			{
+				title: "Lock your dates",
+				description:
+					"After roughly 24 hours, your scheduling link will be sent via email. There, you can select and secure your session dates."
+			}
+		],
+		isBookingCompletionFailure: false
+	};
 }
 
 export function canCreateFailedBookingRescheduleLink(booking: BookingStatus): boolean {

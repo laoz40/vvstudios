@@ -3,13 +3,13 @@ import type {
 	BookingAddon,
 	DURATION_OPTIONS,
 	SERVICES
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export type BookingService = (typeof SERVICES)[number];
 export type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
 export interface BookingInvoiceBuilderInput {
-	bookingId: GenericId<"bookings">;
+	bookingId: GenericId<"bookings"> | GenericId<"multiBookingPackages">;
 	name: string;
 	phone: string;
 	accountName: string;
@@ -23,10 +23,12 @@ export interface BookingInvoiceBuilderInput {
 	addons: BookingAddon[];
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
+	leadTimeMinutes: number;
 	createdAt?: number;
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
 	rescheduleUrl?: string;
+	customTotalDueAmount?: number;
 }
 
 export interface BookingInvoiceMoneyAmounts {
@@ -85,5 +87,7 @@ export interface BookingInvoiceData {
 		payId: string;
 		payIdLabel: string;
 	};
+	adjustment?: { bookedAtLabel: string; packageSize: number };
+	package?: { size: number };
 	rescheduleUrl?: string;
 }

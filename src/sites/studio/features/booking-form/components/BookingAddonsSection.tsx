@@ -1,5 +1,5 @@
 import { useSelector } from "@tanstack/react-store";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
 	Field,
 	FieldDescription,
@@ -13,17 +13,18 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
-import { openAddonCompatibilityModal } from "#studio/features/booking-form/lib/booking-modal-store";
+import {
+	getRevealMotionProps,
+	sectionHeadingClassName
+} from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
+	isPackageUnavailableAddon,
 	toFieldErrorObjects,
 	type BookingAddon,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
-
-const [remotePodcastAddon, fourKAddon] = ADDON_OPTIONS;
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingAddonQuantityFieldProps = {
 	fieldName: "clipsPackageQuantity" | "essentialEditQuantity";
@@ -41,13 +42,12 @@ function BookingAddonQuantityField({
 	shouldShowFieldError
 }: BookingAddonQuantityFieldProps) {
 	const FormField = formApi.Field;
+	const shouldReduceMotion = useReducedMotion();
+	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
 	return (
 		<motion.div
 			key={fieldName}
-			initial={{ height: 0, opacity: 0, y: -8 }}
-			animate={{ height: "auto", opacity: 1, y: 0 }}
-			exit={{ height: 0, opacity: 0, y: -8 }}
-			transition={{ duration: 0.2, ease: "easeOut" }}
+			{...revealMotionProps}
 			className="overflow-hidden">
 			<FormField name={fieldName}>
 				{(quantityField) => (
@@ -101,8 +101,10 @@ function BookingAddonQuantityField({
 
 export function BookingAddonsSection() {
 	const formApi = useBookingFormContext();
+	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
+	const isMultiBooking = formValues.bookingMode === "multi";
 	const FormField = formApi.Field;
 
 	return (
@@ -114,16 +116,6 @@ export function BookingAddonsSection() {
 
 						if (checked) {
 							nextAddons = [...field.state.value, addon];
-						}
-
-						// Remote Podcast records through Riverside.fm, which does not support 4K.
-						// If both are selected, keep Remote Podcast and remove the 4K add-on.
-						const isIncompatibleSelection =
-							checked && nextAddons.includes(remotePodcastAddon) && nextAddons.includes(fourKAddon);
-
-						if (isIncompatibleSelection) {
-							nextAddons = nextAddons.filter((value) => value !== fourKAddon);
-							openAddonCompatibilityModal();
 						}
 
 						field.handleChange(nextAddons as BookingFormValues["addons"]);
@@ -152,6 +144,7 @@ export function BookingAddonsSection() {
 										<BookingAddonCard
 											addon={addon}
 											checked={field.state.value.includes(addon)}
+											disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
 											onCheckedChange={handleAddonChange}
 										/>
 										<AnimatePresence initial={false}>
@@ -161,8 +154,16 @@ export function BookingAddonsSection() {
 													key="essentialEditQuantity"
 													formApi={formApi}
 													fieldName="essentialEditQuantity"
-													label="Number of Essential Edits"
-													description="Charged per episode or project you want edited from this session."
+													label={
+														isMultiBooking
+															? "Number of Essential Edits Per Session"
+															: "Number of Essential Edits"
+													}
+													description={
+														isMultiBooking
+															? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
+															: "Charged per episode or project you want edited from this session."
+													}
 													shouldShowFieldError={shouldShowFieldError}
 												/>
 											) : null}
@@ -171,8 +172,16 @@ export function BookingAddonsSection() {
 													key="clipsPackageQuantity"
 													formApi={formApi}
 													fieldName="clipsPackageQuantity"
-													label="Number of Clips Packages"
-													description="One package includes 10 edited social media clips. Charged per package."
+													label={
+														isMultiBooking
+															? "Number of Clips Packages Per Session"
+															: "Number of Clips Packages"
+													}
+													description={
+														isMultiBooking
+															? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
+															: "One package includes 10 edited social media clips. Charged per package."
+													}
 													shouldShowFieldError={shouldShowFieldError}
 												/>
 											) : null}

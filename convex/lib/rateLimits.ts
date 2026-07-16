@@ -13,6 +13,8 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 
 type RateLimitCtx = ActionCtx | MutationCtx;
 
+export type BookingSubmitRateLimitError = { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
+
 export async function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
 	const globalRateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal");
 	const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", { key });

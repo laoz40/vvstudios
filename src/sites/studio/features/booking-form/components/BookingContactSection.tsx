@@ -8,10 +8,10 @@ import {
 	FieldSet
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
+import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
-import { toFieldErrorObjects } from "#studio/features/booking-form/lib/form-shared";
+import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-form-model";
 
 const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";
@@ -32,13 +32,12 @@ const sectionCopy = {
 	abnPlaceholder: "00 000 000 000",
 	emailLabel: "Email *",
 	emailNote: "To receive your booking invoice.",
-	emailPlaceholder: "billing@example.com",
-	notesLegend: "Anything else?",
-	notesPlaceholder: "Let us know if you have any special requests or questions."
+	emailPlaceholder: "billing@example.com"
 } as const;
 
 export function BookingContactSection() {
 	const formApi = useBookingFormContext();
+	const bookingMode = useSelector(formApi.store, (state) => state.values.bookingMode);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
@@ -185,37 +184,20 @@ export function BookingContactSection() {
 				</div>
 			</FieldSet>
 
-			<FieldSet className={fieldSetClassName}>
-				<FieldLegend className={sectionLegendClassName}>{sectionCopy.notesLegend}</FieldLegend>
+			{bookingMode === "single" ? (
 				<formApi.Field name="notes">
 					{(field) => (
-						<Field
-							className={fieldStackClassName}
-							data-field-name="notes">
-							<FieldLabel
-								htmlFor="notes"
-								className="sr-only">
-								{sectionCopy.notesLegend}
-							</FieldLabel>
-							<Textarea
-								id="notes"
-								name="notes"
-								autoComplete="off"
-								value={field.state.value}
-								placeholder={sectionCopy.notesPlaceholder}
-								className={formControlShadowClassName}
-								maxLength={200}
-								onChange={(event) => field.handleChange(event.target.value)}
-								onBlur={field.handleBlur}
-								rows={2}
-							/>
+						<BookingNotesField
+							value={field.state.value}
+							onChange={field.handleChange}
+							onBlur={field.handleBlur}>
 							{field.state.meta.isBlurred || shouldShowFieldError ? (
 								<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
 							) : null}
-						</Field>
+						</BookingNotesField>
 					)}
 				</formApi.Field>
-			</FieldSet>
+			) : null}
 		</>
 	);
 }

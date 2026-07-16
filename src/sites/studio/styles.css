@@ -6,6 +6,7 @@
 
 	--card: #25252580;
 	--card-foreground: #fafafa;
+	--surface-subtle: #181818;
 
 	--popover: #2a2a2a;
 	--popover-foreground: #fafafa;
@@ -26,7 +27,6 @@
 	--destructive-foreground: #ffffff;
 
 	--green: #00bc00;
-	--blue: #0891b2;
 
 	--border: #36363640;
 	--input: #3f3f3f80;

@@ -1,14 +1,13 @@
-import { useEffect, useRef } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { FieldError } from "#/components/ui/field";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
-import { openSessionSummaryModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	getBookingTimeSelectionMessage,
 	toFieldErrorObjects,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
@@ -29,37 +28,17 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 	const bookingDateSummary = formValues.date
 		? formatBookingDateSummary(formValues.date)
 		: "No selected date";
-	const bookingTimeSummary = formValues.time
-		? formValues.duration
-			? formatBookingTimeRange(formValues.time, formValues.duration)
-			: "No selected duration"
-		: "No selected time";
-	const lastSessionSummarySelectionRef = useRef<string | null>(null);
+	let bookingTimeSummary = "No selected time";
 
-	useEffect(() => {
-		if (!formValues.date || !formValues.time || !formValues.duration) {
-			lastSessionSummarySelectionRef.current = null;
-			return;
-		}
+	if (formValues.time) {
+		bookingTimeSummary = "No selected duration";
+	}
 
-		const selectionKey = `${formValues.date}-${formValues.time}-${formValues.duration}`;
-
-		if (lastSessionSummarySelectionRef.current === selectionKey) {
-			return;
-		}
-
-		lastSessionSummarySelectionRef.current = selectionKey;
-		openSessionSummaryModal({ dateSummary: bookingDateSummary, timeSummary: bookingTimeSummary });
-	}, [
-		bookingDateSummary,
-		bookingTimeSummary,
-		formValues.date,
-		formValues.duration,
-		formValues.time
-	]);
-
+	if (formValues.time && formValues.duration) {
+		bookingTimeSummary = formatBookingTimeRange(formValues.time, formValues.duration);
+	}
 	return (
-		<section className="mt-0 flex flex-col gap-6 md:gap-8">
+		<section className="mt-0 flex flex-col gap-4">
 			<formApi.Field name="date">
 				{(dateField) => (
 					<formApi.Field name="time">
@@ -91,16 +70,10 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 					</formApi.Field>
 				)}
 			</formApi.Field>
-			{/* <div
-				aria-live="polite"
-				className="text-muted-foreground flex min-h-10 flex-col gap-1 text-sm sm:flex-row sm:gap-8">
-				<p>
-					Date: <span className="text-foreground font-medium">{bookingDateSummary}</span>
-				</p>
-				<p>
-					Time: <span className="text-foreground font-medium">{bookingTimeSummary}</span>
-				</p>
-			</div> */}
+			<BookingSessionSummary
+				dateSummary={bookingDateSummary}
+				timeSummary={bookingTimeSummary}
+			/>
 		</section>
 	);
 }

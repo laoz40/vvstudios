@@ -1,7 +1,14 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { api } from "./_generated/api";
+import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
+import {
+	calculateMultiBookingAmounts,
+	getMultiBookingExpiresAt,
+	getMultiBookingInvoiceDueAt,
+	type MultiBookingSize
+} from "../src/sites/studio/features/booking-form/lib/booking-pricing";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
 	internalMutation,
@@ -15,27 +22,41 @@ import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
-import { checkBookingMeetsAvailabilitySettings } from "./lib/bookingCalendarTime";
+import {
+	checkBookingMeetsAvailabilitySettings,
+	type BookingAvailabilityValidationError
+} from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
+import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
+import {
+	createMultiBookingInvoiceLineItemSnapshot,
+	formatBookingInvoiceNumber
+} from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { generateRescheduleToken, hashRescheduleToken } from "./lib/bookingRescheduleLinks";
+import {
+	bookingConsumesPackageCapacity,
+	getCapacityConsumingPackageBookings
+} from "./lib/packageScheduling";
+
+const bookingInvoiceLineItemValidator = v.object({
+	amount: v.number(),
+	description: v.string(),
+	quantity: v.number(),
+	rate: v.number()
+});
 
 type CreatePendingBookingResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
-	{
-		reason:
-			| "BOOKING_INVALID_DATE"
-			| "BOOKING_INVALID_DURATION"
-			| "BOOKING_INVALID_TIME"
-			| "BOOKING_OUTSIDE_OPENING_HOURS"
-			| "BOOKING_RATE_LIMITED"
-			| "BOOKING_TOO_FAR_AHEAD"
-			| "BOOKING_TOO_SOON";
-		retryAfter?: number;
-	}
+	BookingAvailabilityValidationError
 >;
+
+export const checkBookingSubmitRateLimitInternal = internalMutation({
+	args: { submitRateLimitKey: v.string() },
+	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
+});
 
 export const createPendingBooking = internalMutation({
 	args: {
-		submitRateLimitKey: v.string(),
 		name: v.string(),
 		phone: v.string(),
 		accountName: v.string(),
@@ -62,12 +83,6 @@ export const createPendingBooking = internalMutation({
 
 		if (availabilityError !== null) {
 			return err({ reason: availabilityError.reason });
-		}
-
-		const [rateLimitError] = await checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey);
-
-		if (rateLimitError !== null) {
-			return err(rateLimitError);
 		}
 
 		const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
@@ -103,6 +118,510 @@ export const createPendingBooking = internalMutation({
 	}
 });
 
+type CreatePendingMultiBookingResult = Result<
+	{ multiBooking: MultiBookingInvoiceSource },
+	{ reason: "PACKAGE_CREATE_FAILED" }
+>;
+
+export const createPendingMultiBooking = internalMutation({
+	args: {
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		duration: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
+		singleSessionAmount: v.number(),
+		packageSubtotalAmount: v.number(),
+		discountPercent: v.number(),
+		discountAmount: v.number(),
+		totalDueAmount: v.number(),
+		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
+	},
+	handler: async (ctx, args): Promise<CreatePendingMultiBookingResult> => {
+		const createdAt = Date.now();
+		const invoiceDueAt = getMultiBookingInvoiceDueAt(createdAt);
+		const multiBooking = {
+			name: args.name,
+			phone: args.phone,
+			accountName: args.accountName,
+			...(args.abn !== undefined ? { abn: args.abn } : {}),
+			email: args.email,
+			duration: args.duration,
+			addons: args.addons,
+			...(args.essentialEditQuantity !== undefined
+				? { essentialEditQuantity: args.essentialEditQuantity }
+				: {}),
+			...(args.clipsPackageQuantity !== undefined
+				? { clipsPackageQuantity: args.clipsPackageQuantity }
+				: {}),
+			...(args.notes !== undefined ? { notes: args.notes } : {}),
+			packageSize: args.packageSize,
+			singleSessionAmount: args.singleSessionAmount,
+			packageSubtotalAmount: args.packageSubtotalAmount,
+			discountPercent: args.discountPercent,
+			discountAmount: args.discountAmount,
+			totalDueAmount: args.totalDueAmount,
+			invoiceLineItems: args.invoiceLineItems,
+			status: "pending_payment" as const,
+			createdAt,
+			invoiceDueAt,
+			invoiceEmailStatus: "pending" as const
+		};
+
+		try {
+			const multiBookingId = await ctx.db.insert("multiBookingPackages", multiBooking);
+
+			return ok({ multiBooking: { _id: multiBookingId, ...multiBooking } });
+		} catch {
+			return err({ reason: "PACKAGE_CREATE_FAILED" });
+		}
+	}
+});
+
+export const markMultiBookingInvoiceEmailAttempt = internalMutation({
+	args: {
+		multiBookingId: v.id("multiBookingPackages"),
+		status: v.union(v.literal("sent"), v.literal("failed")),
+		invoiceNumber: v.optional(v.string()),
+		failureCode: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const now = Date.now();
+
+		if (args.status === "sent" && args.invoiceNumber === undefined) {
+			return err({ reason: "INVOICE_NUMBER_REQUIRED" });
+		}
+
+		if (args.status === "failed" && args.failureCode === undefined) {
+			return err({ reason: "INVOICE_FAILURE_CODE_REQUIRED" });
+		}
+
+		if (args.status === "sent") {
+			await ctx.db.patch(args.multiBookingId, {
+				invoiceNumber: args.invoiceNumber,
+				invoiceEmailStatus: args.status,
+				invoiceEmailSentAt: now,
+				invoiceEmailFailureCode: undefined,
+				lastInvoiceEmailAttemptAt: now,
+				status: "pending_payment"
+			});
+
+			return ok({ updated: true });
+		}
+
+		await ctx.db.patch(args.multiBookingId, {
+			invoiceNumber: undefined,
+			invoiceEmailStatus: args.status,
+			invoiceEmailSentAt: undefined,
+			invoiceEmailFailureCode: args.failureCode,
+			lastInvoiceEmailAttemptAt: now,
+			status: "invoice_email_failed"
+		});
+
+		return ok({ updated: true });
+	}
+});
+
+export const listPackages = query({
+	args: { paginationOpts: paginationOptsValidator },
+	handler: async (ctx, args) => {
+		const [authError] = await getAdminIdentity(ctx);
+
+		if (authError !== null) {
+			throw new ConvexError(authError);
+		}
+
+		const packagesPage = await ctx.db
+			.query("multiBookingPackages")
+			.withIndex("by_createdAt")
+			.order("desc")
+			.paginate(args.paginationOpts);
+
+		const page = await Promise.all(
+			packagesPage.page.map(async (multiBookingPackage) => {
+				const [bookings, packageAdjustment] = await Promise.all([
+					getCapacityConsumingPackageBookings(
+						ctx,
+						multiBookingPackage._id,
+						multiBookingPackage.packageSize
+					),
+					ctx.db
+						.query("packageAdjustments")
+						.withIndex("by_multiBookingId", (query) =>
+							query.eq("multiBookingId", multiBookingPackage._id)
+						)
+						.unique()
+				]);
+
+				return {
+					...multiBookingPackage,
+					bookedSessions: bookings.length,
+					adjustment:
+						packageAdjustment?.outcome === "invoice_required"
+							? {
+									_id: packageAdjustment._id,
+									totalAmount: packageAdjustment.totalAmount,
+									invoiceDueAt: packageAdjustment.invoiceDueAt,
+									invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
+									paymentStatus: packageAdjustment.paymentStatus
+								}
+							: null
+				};
+			})
+		);
+
+		return { ...packagesPage, page };
+	}
+});
+
+export const updatePackageFromAdmin = mutation({
+	args: {
+		multiBookingId: v.id("multiBookingPackages"),
+		name: v.string(),
+		phone: v.string(),
+		accountName: v.string(),
+		abn: v.optional(v.string()),
+		email: v.string(),
+		duration: v.string(),
+		addons: v.array(v.string()),
+		essentialEditQuantity: v.optional(v.string()),
+		clipsPackageQuantity: v.optional(v.string()),
+		notes: v.optional(v.string()),
+		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
+		expiresAt: v.optional(v.number()),
+		totalDueAmount: v.optional(v.number())
+	},
+	handler: (ctx, args) => updatePackageFromAdminHandler(ctx, args)
+});
+
+type UpdatePackageFromAdminArgs = {
+	multiBookingId: Id<"multiBookingPackages">;
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	duration: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	packageSize: MultiBookingSize;
+	expiresAt?: number;
+	totalDueAmount?: number;
+};
+
+async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePackageFromAdminArgs) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	const parsedMultiBooking = multiBookingFormSchema.safeParse({
+		...args,
+		essentialEditQuantity: args.essentialEditQuantity ?? "",
+		clipsPackageQuantity: args.clipsPackageQuantity ?? "",
+		notes: args.notes ?? ""
+	});
+
+	if (!parsedMultiBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" });
+	}
+
+	const multiBookingData = parsedMultiBooking.data;
+	const activeBookedSessions = await getCapacityConsumingPackageBookings(
+		ctx,
+		multiBooking._id,
+		multiBooking.packageSize
+	);
+
+	if (multiBookingData.packageSize < activeBookedSessions.length) {
+		return err({ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" });
+	}
+
+	if (args.expiresAt !== undefined && !Number.isFinite(args.expiresAt)) {
+		return err({ reason: "PACKAGE_INVALID_EXPIRY" });
+	}
+
+	if (
+		args.totalDueAmount !== undefined &&
+		(!Number.isFinite(args.totalDueAmount) || args.totalDueAmount < 0)
+	) {
+		return err({ reason: "PACKAGE_INVALID_TOTAL_DUE_AMOUNT" });
+	}
+
+	const amounts = calculateMultiBookingAmounts({
+		addons: multiBookingData.addons,
+		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
+		duration: multiBookingData.duration,
+		essentialEditQuantity: multiBookingData.essentialEditQuantity,
+		packageSize: multiBookingData.packageSize
+	});
+	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
+		addons: multiBookingData.addons,
+		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
+		discountAmount: amounts.discountAmount,
+		discountPercent: amounts.discountPercent,
+		duration: multiBookingData.duration,
+		essentialEditQuantity: multiBookingData.essentialEditQuantity,
+		packageSize: multiBookingData.packageSize
+	});
+
+	try {
+		await ctx.db.patch(args.multiBookingId, {
+			name: multiBookingData.name,
+			phone: multiBookingData.phone,
+			accountName: multiBookingData.accountName,
+			abn: multiBookingData.abn,
+			email: multiBookingData.email,
+			duration: multiBookingData.duration,
+			addons: multiBookingData.addons,
+			essentialEditQuantity: multiBookingData.essentialEditQuantity,
+			clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
+			notes: multiBookingData.notes,
+			packageSize: multiBookingData.packageSize,
+			expiresAt: args.expiresAt,
+			singleSessionAmount: amounts.singleSessionAmount,
+			packageSubtotalAmount: amounts.packageSubtotalAmount,
+			discountPercent: amounts.discountPercent,
+			discountAmount: amounts.discountAmount,
+			totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
+			invoiceLineItems
+		});
+	} catch {
+		return err({ reason: "PACKAGE_UPDATE_FAILED" });
+	}
+
+	return ok({ saved: true });
+}
+
+export type UpdatePackageFromAdminResult = Awaited<
+	ReturnType<typeof updatePackageFromAdminHandler>
+>;
+
+export const archivePackage = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), archived: v.boolean() },
+	handler: (ctx, args) => archivePackageHandler(ctx, args)
+});
+
+async function archivePackageHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; archived: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	try {
+		await ctx.db.patch(args.multiBookingId, { hiddenAt: args.archived ? Date.now() : undefined });
+	} catch {
+		return err({ reason: "PACKAGE_ARCHIVE_FAILED" });
+	}
+
+	return ok({ archived: args.archived });
+}
+
+export type ArchivePackageResult = Awaited<ReturnType<typeof archivePackageHandler>>;
+
+export const markPackagePaymentStatus = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), paid: v.boolean() },
+	handler: (ctx, args) => markPackagePaymentStatusHandler(ctx, args)
+});
+
+async function markPackagePaymentStatusHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; paid: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (args.paid) {
+		return err({ reason: "PACKAGE_PAYMENT_CONFIRMATION_REQUIRED" });
+	}
+
+	try {
+		await ctx.db.patch(args.multiBookingId, {
+			paidAt: undefined,
+			expiresAt: undefined,
+			packageReminderState: undefined,
+			scheduleTokenHash: undefined,
+			scheduleLinkStatus: undefined,
+			status:
+				multiBooking.invoiceEmailStatus === "failed" ? "invoice_email_failed" : "pending_payment"
+		});
+	} catch {
+		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ paid: false });
+}
+
+export type MarkPackagePaymentStatusResult = Awaited<
+	ReturnType<typeof markPackagePaymentStatusHandler>
+>;
+
+export const markPackagePaidAndCreateScheduleTokenInternal = internalMutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), paidAt: v.number() },
+	handler: (ctx, args) => markPackagePaidAndCreateScheduleTokenInternalHandler(ctx, args)
+});
+
+async function markPackagePaidAndCreateScheduleTokenInternalHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; paidAt: number }
+) {
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (multiBooking.status === "paid" || multiBooking.status === "schedule_email_failed") {
+		return err({ reason: "PACKAGE_ALREADY_PAID" });
+	}
+
+	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "invoice_email_failed") {
+		return err({ reason: "PACKAGE_NOT_UNPAID" });
+	}
+
+	const token = generateRescheduleToken();
+	const scheduleTokenHash = await hashRescheduleToken(token);
+	const expiresAt = getMultiBookingExpiresAt(args.paidAt, multiBooking.packageSize);
+
+	try {
+		await ctx.db.patch(args.multiBookingId, {
+			expiresAt,
+			paidAt: args.paidAt,
+			packageReminderState: undefined,
+			scheduleLinkStatus: "active",
+			scheduleTokenHash,
+			status: "schedule_email_failed"
+		});
+		await ctx.scheduler.runAt(
+			expiresAt,
+			internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
+			{ multiBookingId: args.multiBookingId, expectedExpiresAt: expiresAt }
+		);
+	} catch {
+		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({
+		expiresAt,
+		paidAt: args.paidAt,
+		multiBooking: {
+			...multiBooking,
+			expiresAt,
+			paidAt: args.paidAt,
+			scheduleLinkStatus: "active" as const,
+			scheduleTokenHash,
+			status: "schedule_email_failed" as const
+		},
+		token
+	});
+}
+
+export type MarkPackagePaidAndCreateScheduleTokenInternalResult = Awaited<
+	ReturnType<typeof markPackagePaidAndCreateScheduleTokenInternalHandler>
+>;
+
+export const refreshPackageScheduleTokenInternal = internalMutation({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: (ctx, args) => refreshPackageScheduleTokenInternalHandler(ctx, args)
+});
+
+async function refreshPackageScheduleTokenInternalHandler(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+) {
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (multiBooking.status !== "paid" && multiBooking.status !== "schedule_email_failed") {
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" });
+	}
+
+	if (multiBooking.paidAt === undefined || multiBooking.expiresAt === undefined) {
+		return err({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" });
+	}
+
+	const token = generateRescheduleToken();
+	const scheduleTokenHash = await hashRescheduleToken(token);
+
+	try {
+		await ctx.db.patch(args.multiBookingId, { scheduleLinkStatus: "active", scheduleTokenHash });
+	} catch {
+		return err({ reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" });
+	}
+
+	return ok({
+		expiresAt: multiBooking.expiresAt,
+		paidAt: multiBooking.paidAt,
+		multiBooking: { ...multiBooking, scheduleLinkStatus: "active" as const, scheduleTokenHash },
+		token
+	});
+}
+
+export type RefreshPackageScheduleTokenInternalResult = Awaited<
+	ReturnType<typeof refreshPackageScheduleTokenInternalHandler>
+>;
+
+export const markMultiBookingScheduleEmailAttemptInternal = internalMutation({
+	args: {
+		multiBookingId: v.id("multiBookingPackages"),
+		status: v.union(v.literal("sent"), v.literal("failed"))
+	},
+	handler: async (ctx, args) => {
+		const multiBooking = await ctx.db.get(args.multiBookingId);
+
+		if (!multiBooking) {
+			return err({ reason: "PACKAGE_NOT_FOUND" });
+		}
+
+		try {
+			await ctx.db.patch(args.multiBookingId, {
+				status: args.status === "sent" ? "paid" : "schedule_email_failed"
+			});
+		} catch {
+			return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
+		}
+
+		return ok({ updated: true });
+	}
+});
+
 export const getBookings = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: (ctx, args) => getBookingsHandler(ctx, args)
@@ -120,14 +639,42 @@ async function getBookingsHandler(
 
 	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
 	// Auth failures throw above so the hook can keep native cursor/page handling.
-	return await ctx.db
+	const bookingsPage = await ctx.db
 		.query("bookings")
 		.withIndex("by_pendingPaymentCreatedAt")
 		.order("desc")
 		.paginate(args.paginationOpts);
-}
 
-const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+	const page = await Promise.all(
+		bookingsPage.page.map(async (booking) => {
+			if (!booking.multiBookingPackageId) {
+				return booking;
+			}
+
+			const multiBookingPackage = await ctx.db.get(booking.multiBookingPackageId);
+			if (!multiBookingPackage) return booking;
+			const packageBookings = await getCapacityConsumingPackageBookings(
+				ctx,
+				multiBookingPackage._id,
+				multiBookingPackage.packageSize
+			);
+
+			return {
+				...booking,
+				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
+					multiBookingPackage._id,
+					multiBookingPackage.createdAt
+				),
+				multiBookingPackageSize: multiBookingPackage.packageSize,
+				multiBookingPackageSessionPosition: bookingConsumesPackageCapacity(booking)
+					? packageBookings.findIndex(({ _id }) => _id === booking._id) + 1
+					: undefined
+			};
+		})
+	);
+
+	return { ...bookingsPage, page };
+}
 
 function buildPublicBookingStatusResponse(booking: Doc<"bookings">) {
 	return {
@@ -226,6 +773,43 @@ export type SaveBookingInstagramHandleResult = Awaited<
 	ReturnType<typeof saveBookingInstagramHandleHandler>
 >;
 
+export const saveMultiBookingInstagramHandle = mutation({
+	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
+	handler: saveMultiBookingInstagramHandleHandler
+});
+
+type SaveMultiBookingInstagramHandleArgs = {
+	multiBookingId: Id<"multiBookingPackages">;
+	instagramHandle: string;
+};
+
+async function saveMultiBookingInstagramHandleHandler(
+	ctx: MutationCtx,
+	args: SaveMultiBookingInstagramHandleArgs
+) {
+	const multiBooking = await ctx.db.get(args.multiBookingId);
+
+	if (!multiBooking) {
+		return err({ reason: "PACKAGE_NOT_FOUND" });
+	}
+
+	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "paid") {
+		return err({ reason: "PACKAGE_NOT_ACTIVE" });
+	}
+
+	try {
+		await ctx.db.patch(multiBooking._id, { instagramHandle: args.instagramHandle });
+	} catch {
+		return err({ reason: "PACKAGE_INSTAGRAM_HANDLE_SAVE_FAILED" });
+	}
+
+	return ok({ saved: true });
+}
+
+export type SaveMultiBookingInstagramHandleResult = Awaited<
+	ReturnType<typeof saveMultiBookingInstagramHandleHandler>
+>;
+
 export const getBookingByIdInternal = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
@@ -240,6 +824,13 @@ export const getBookingByStripeSessionIdInternal = internalQuery({
 			.query("bookings")
 			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
 			.unique();
+	}
+});
+
+export const getPackageByIdInternal = internalQuery({
+	args: { multiBookingId: v.id("multiBookingPackages") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.multiBookingId);
 	}
 });
 
@@ -293,53 +884,6 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 	}
 });
 
-export const cleanupOldPendingAndExpiredBookings = mutation({
-	args: {},
-	handler: cleanupOldPendingAndExpiredBookingsHandler
-});
-
-async function cleanupOldPendingAndExpiredBookingsHandler(ctx: MutationCtx) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const pendingPaymentCutoff = Date.now() - STRIPE_CHECKOUT_SESSION_EXPIRY_MS;
-	let deletedCount = 0;
-
-	const pendingBookings = await ctx.db
-		.query("bookings")
-		.withIndex("by_status_and_pendingPaymentCreatedAt", (query) =>
-			query.eq("status", "pending_payment").lt("pendingPaymentCreatedAt", pendingPaymentCutoff)
-		)
-		.take(50);
-
-	const expiredOrAbandonedBookings = await Promise.all(
-		(["expired", "abandoned"] as const).map((status) =>
-			ctx.db
-				.query("bookings")
-				.withIndex("by_status_and_pendingPaymentCreatedAt", (query) => query.eq("status", status))
-				.take(50)
-		)
-	);
-
-	try {
-		for (const booking of [...pendingBookings, ...expiredOrAbandonedBookings.flat()]) {
-			await ctx.db.delete(booking._id);
-			deletedCount += 1;
-		}
-	} catch {
-		return err({ reason: "BOOKING_CLEANUP_FAILED" });
-	}
-
-	return ok({ deletedCount, pendingPaymentCutoff });
-}
-
-export type CleanupOldPendingAndExpiredBookingsResult = Awaited<
-	ReturnType<typeof cleanupOldPendingAndExpiredBookingsHandler>
->;
-
 export const claimBookingCompletion = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -362,6 +906,9 @@ export const claimBookingCompletion = internalMutation({
 			case "confirmed":
 			case "email_failed":
 				return ok({ outcome: "already_confirmed" });
+
+			case "cancelled":
+				return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
 
 			case "expired":
 				return err({ reason: "BOOKING_EXPIRED" });
@@ -574,20 +1121,70 @@ export const deletePendingBooking = internalMutation({
 	}
 });
 
-export const deleteBookingInternal = internalMutation({
-	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		await ctx.db.delete(args.bookingId);
-
-		return ok({ deleted: true });
-	}
+export const archiveSession = mutation({
+	args: { bookingId: v.id("bookings"), archived: v.boolean() },
+	handler: (ctx, args) => archiveSessionHandler(ctx, args)
 });
+
+async function archiveSessionHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; archived: boolean }
+) {
+	const [authError] = await getAdminIdentity(ctx);
+
+	if (authError !== null) {
+		return err(authError);
+	}
+
+	const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+	if (bookingError !== null) {
+		return err(bookingError);
+	}
+
+	try {
+		await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
+	} catch {
+		return err({ reason: "SESSION_ARCHIVE_FAILED" });
+	}
+
+	return ok({ archived: args.archived });
+}
+
+export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;
+
+export const markBookingCalendarEventDeleted = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => markBookingCalendarEventDeletedHandler(ctx, args)
+});
+
+async function markBookingCalendarEventDeletedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+
+	if (bookingError !== null) {
+		return err(bookingError);
+	}
+
+	try {
+		await ctx.db.patch(args.bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			status: "cancelled"
+		});
+	} catch {
+		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
+	}
+
+	return ok({ cancelled: true });
+}
+
+export type MarkBookingCalendarEventDeletedResult = Awaited<
+	ReturnType<typeof markBookingCalendarEventDeletedHandler>
+>;
 
 export const deleteBooking = mutation({
 	args: { bookingId: v.id("bookings") },
@@ -680,13 +1277,26 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		bookingId: v.id("bookings"),
 		date: v.string(),
 		time: v.string(),
+		service: v.optional(v.string()),
+		addons: v.optional(v.array(v.string())),
+		notes: v.optional(v.string()),
 		sessionStartAt: v.number(),
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
-		googleEventId: v.optional(v.string())
+		googleEventId: v.optional(v.string()),
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
 	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+
+		if (
+			bookingError === null &&
+			args.multiBookingPackageId !== undefined &&
+			(booking.multiBookingPackageId !== args.multiBookingPackageId ||
+				!bookingConsumesPackageCapacity(booking))
+		) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
 		if (bookingError !== null) {
 			return err(bookingError);
@@ -695,6 +1305,9 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		await ctx.db.patch(args.bookingId, {
 			date: args.date,
 			time: args.time,
+			...(args.service !== undefined ? { service: args.service } : {}),
+			...(args.addons !== undefined ? { addons: args.addons } : {}),
+			...(args.notes !== undefined ? { notes: args.notes } : {}),
 			sessionStartAt: args.sessionStartAt,
 			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
 			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
@@ -709,6 +1322,14 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 					}
 				: {})
 		});
+
+		if (args.multiBookingPackageId !== undefined) {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+				{ multiBookingId: args.multiBookingPackageId }
+			);
+		}
 
 		return ok({ saved: true });
 	}

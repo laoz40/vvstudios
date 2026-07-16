@@ -15,8 +15,10 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 		pathname === studioSite.routes.admin ||
 		pathname === studioSite.routes.login ||
 		pathname === studioSite.routes.bookingComplete ||
+		pathname === studioSite.routes.packageComplete ||
 		pathname === studioSite.routes.rescheduleComplete ||
 		pathname === studioSite.routes.bookingExpired ||
+		pathname.startsWith("/package-schedule/") ||
 		pathname.startsWith("/reschedule/");
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const isHomePage = pathname === studioSite.routes.home;

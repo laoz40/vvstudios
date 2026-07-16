@@ -13,7 +13,7 @@ import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
@@ -90,7 +90,7 @@ export function DeliverablesEmailDialog({
 					<DialogTitle>Send Deliverables Email</DialogTitle>
 				</DialogHeader>
 
-				<BookingCustomerSummary
+				<SessionCustomerSummary
 					bookingName={bookingName}
 					bookingEmail={bookingEmail}
 				/>

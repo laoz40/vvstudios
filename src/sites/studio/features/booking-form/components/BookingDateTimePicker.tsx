@@ -15,7 +15,7 @@ import {
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import {
 	formatDateValue,
@@ -36,6 +36,7 @@ const copy = {
 export interface BookingDateTimePickerProps {
 	availability: BookingAvailabilityPickerState;
 	dateError?: React.ReactNode;
+	disabled?: boolean;
 	onDateChange: (dateValue: string) => void;
 	onTimeChange: (time: string) => void;
 	selectedTime: string;
@@ -46,6 +47,7 @@ export interface BookingDateTimePickerProps {
 export function BookingDateTimePicker({
 	availability,
 	dateError,
+	disabled = false,
 	onDateChange,
 	onTimeChange,
 	selectedTime,
@@ -76,7 +78,7 @@ export function BookingDateTimePicker({
 					<div
 						className={cn(
 							"flex overflow-hidden xl:h-128",
-							"rounded-lg border border-border bg-input/30",
+							"rounded-lg border border-border bg-card",
 							"shadow-lg shadow-background/25"
 						)}>
 						<Calendar
@@ -125,9 +127,10 @@ export function BookingDateTimePicker({
 							}}
 							mode="single"
 							required
-							disabled={disabledDates}
+							disabled={disabled ? () => true : disabledDates}
+							disableNavigation={disabled}
 							month={calendarMonth}
-							onMonthChange={setCalendarMonth}
+							onMonthChange={disabled ? undefined : setCalendarMonth}
 							selected={selectedDate}
 							onSelect={(date) => {
 								if (!date) return;
@@ -181,7 +184,10 @@ export function BookingDateTimePicker({
 								value={selectedTime}
 								onValueChange={onTimeChange}
 								disabled={
-									!isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability
+									disabled ||
+									!isTimeSelectionReady ||
+									!isViewingSelectedMonth ||
+									isLoadingMonthAvailability
 								}
 								className="flex flex-col gap-6">
 								<div className="grid grid-cols-1 gap-3">
@@ -201,7 +207,7 @@ export function BookingDateTimePicker({
 												<FieldLabel
 													htmlFor={timeOptionId}
 													className={cn(
-														"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-input/30",
+														"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-card",
 														"shadow-lg shadow-background/25",
 														"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary",
 														"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",

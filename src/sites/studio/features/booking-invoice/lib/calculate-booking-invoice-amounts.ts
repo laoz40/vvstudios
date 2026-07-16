@@ -1,11 +1,11 @@
 import { getEditingAddonQuantity } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { hasEditingAddon } from "#studio/features/booking-form/lib/form-shared";
+import { hasEditingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
-	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_CURRENCY,
 	DURATION_PRICES
-} from "#studio/features/booking-invoice/lib/constants";
+} from "#studio/features/booking-form/lib/booking-pricing";
+import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { sumMoney } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceMoneyAmounts } from "#studio/features/booking-invoice/lib/types";
 

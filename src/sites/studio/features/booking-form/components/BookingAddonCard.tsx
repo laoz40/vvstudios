@@ -12,7 +12,7 @@ import {
 	getPillStateClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import type { BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	formatBookingPrice
@@ -49,10 +49,16 @@ const addonCardCopy = {
 export interface BookingAddonCardProps {
 	addon: BookingAddon;
 	checked: boolean;
+	disabled?: boolean;
 	onCheckedChange: (addon: BookingAddon, checked: boolean) => void;
 }
 
-export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAddonCardProps) {
+export function BookingAddonCard({
+	addon,
+	checked,
+	disabled = false,
+	onCheckedChange
+}: BookingAddonCardProps) {
 	const addonCopy = addonCardCopy[addon];
 	const Icon = addonCopy.icon;
 	const addonId = `addon-${toOptionId(addon)}`;
@@ -64,6 +70,7 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 			className={cn(
 				"pressable w-full cursor-pointer rounded-lg border bg-input/30",
 				"shadow-lg shadow-background/25",
+				disabled && "cursor-not-allowed opacity-50",
 				"has-focus-visible:border-primary has-focus-visible:ring-2 has-focus-visible:ring-ring",
 				"has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background",
 				transitionClassName,
@@ -77,6 +84,7 @@ export function BookingAddonCard({ addon, checked, onCheckedChange }: BookingAdd
 					id={addonId}
 					type="checkbox"
 					checked={checked}
+					disabled={disabled}
 					onChange={(event) => onCheckedChange(addon, event.target.checked)}
 					className="sr-only"
 				/>

@@ -9,9 +9,10 @@ import type {
 	ListCustomInvoicesForBookingResult
 } from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import { BookingCustomerSummary } from "#studio/features/admin/components/BookingCustomerSummary";
+import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
+import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
+import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
+import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
@@ -25,36 +26,32 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import { cn } from "#/lib/utils";
-import {
-	BOOKING_DEPOSIT_AMOUNT,
-	DURATION_PRICES
-} from "#studio/features/booking-invoice/lib/constants";
+import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
-import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
-	DELIVERABLE_COUNT_OPTIONS,
-	DURATION_OPTIONS,
-	SERVICES,
+	formatCustomInvoiceAddonText,
+	formatCustomInvoiceCurrency,
+	parseCustomInvoiceTotalDraft
+} from "#studio/features/admin/lib/custom-invoices";
+import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
+import {
 	toDeliverableCountOption,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
-import { toOptionId } from "#studio/lib/bookingdatetime";
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingRecord = Doc<"bookings">;
 type CustomInvoiceRecord = Doc<"customInvoices">;
 
 type CustomInvoiceDraft = {
 	service: BookingService | "";
-	duration: BookingFormValues["duration"];
+	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
 	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	dueDate: string;
 	includeDepositLineItem: boolean;
+	customTotalDueAmount: string;
 };
 
 export type CustomInvoiceDialogProps = {
@@ -78,6 +75,7 @@ function formatInvoiceTotal(input: {
 	includeDepositLineItem: boolean;
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
+	customTotalDueAmount?: number;
 }) {
 	const serviceAmount =
 		isBookingService(input.service) && isBookingDuration(input.duration)
@@ -89,62 +87,10 @@ function formatInvoiceTotal(input: {
 	);
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 
-	return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-		Math.max(serviceAmount + addonsAmount - depositAmount, 0)
-	);
-}
+	const computedTotal = Math.max(serviceAmount + addonsAmount - depositAmount, 0);
+	const totalDueAmount = input.customTotalDueAmount ?? computedTotal;
 
-type CustomInvoiceQuantityOptionsProps = {
-	disabled: boolean;
-	idPrefix: string;
-	label: string;
-	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
-	value: string;
-};
-
-function CustomInvoiceQuantityOptions({
-	disabled,
-	idPrefix,
-	label,
-	onChange,
-	value
-}: CustomInvoiceQuantityOptionsProps) {
-	return (
-		<section className="grid gap-3">
-			<Label>{label}</Label>
-			<div className="grid gap-3 sm:grid-cols-4">
-				{DELIVERABLE_COUNT_OPTIONS.map((count) => {
-					const optionId = `${idPrefix}-${count}`;
-					const isChecked = value === count;
-
-					return (
-						<label
-							key={count}
-							htmlFor={optionId}
-							className={cn(
-								"flex cursor-pointer items-center gap-3",
-								"p-3",
-								"rounded-lg border",
-								"transition-colors",
-								"has-checked:border-primary has-checked:bg-primary/5"
-							)}>
-							<Checkbox
-								id={optionId}
-								checked={isChecked}
-								disabled={disabled}
-								onCheckedChange={(checked) => {
-									if (checked === true) {
-										onChange(count);
-									}
-								}}
-							/>
-							<span className="font-medium">{count}</span>
-						</label>
-					);
-				})}
-			</div>
-		</section>
-	);
+	return formatCustomInvoiceCurrency(totalDueAmount);
 }
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
@@ -152,31 +98,40 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
 		bookingId: booking._id
 	}) as ListCustomInvoicesForBookingResult | undefined;
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
-		duration: booking.duration as BookingFormValues["duration"],
+		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		dueDate: booking.date,
-		includeDepositLineItem: false
+		includeDepositLineItem: false,
+		customTotalDueAmount: ""
 	});
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+	const hasCompleteSessionSelection = Boolean(draft.service) && draft.duration !== "";
+	const hasPartialSessionSelection = Boolean(draft.service) !== (draft.duration !== "");
 	const hasInvoiceSelection =
-		Boolean(draft.service) || draft.addons.length > 0 || draft.includeDepositLineItem;
+		hasCompleteSessionSelection ||
+		draft.addons.length > 0 ||
+		draft.includeDepositLineItem ||
+		draft.customTotalDueAmount.trim().length > 0;
 
+	// Reset the draft each time the dialog opens for this booking.
 	useEffect(() => {
 		if (open) {
 			setDraft({
 				service: "",
-				duration: booking.duration as BookingFormValues["duration"],
+				duration: "",
 				addons: [],
 				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 				dueDate: booking.date,
-				includeDepositLineItem: false
+				includeDepositLineItem: false,
+				customTotalDueAmount: ""
 			});
 		}
 	}, [
@@ -198,7 +153,12 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		duration?: string;
 		essentialEditQuantity?: string;
 		clipsPackageQuantity?: string;
+		customTotalDueAmount?: number;
 	}) {
+		if (!bookingSettings) {
+			toast.error("Booking settings are still loading.");
+			return;
+		}
 		setDownloadingInvoiceId(input._id);
 
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
@@ -212,7 +172,9 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				duration: input.duration as BookingFormValues["duration"] | undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
-				service: isBookingService(input.service) ? input.service : undefined
+				leadTimeMinutes: bookingSettings.leadTimeMinutes,
+				service: isBookingService(input.service) && input.duration ? input.service : null,
+				customTotalDueAmount: input.customTotalDueAmount
 			})
 		);
 
@@ -245,18 +207,36 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
+		if (!bookingSettings) {
+			toast.error("Booking settings are still loading.");
+			return;
+		}
+
+		const customTotalDueAmountResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
+
+		if (customTotalDueAmountResult.status === "invalid") {
+			toast.error("Enter a valid custom invoice price.");
+			return;
+		}
+
+		const customTotalDueAmount =
+			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
 			createCustomInvoice({
 				bookingId: booking._id,
 				dueDate: draft.dueDate,
-				service: draft.service || undefined,
-				duration: draft.duration,
+				...(hasCompleteSessionSelection
+					? { service: draft.service, duration: draft.duration }
+					: {}),
 				addons: draft.addons,
-				essentialEditQuantity: draft.essentialEditQuantity || undefined,
-				clipsPackageQuantity: draft.clipsPackageQuantity || undefined,
-				includeDepositLineItem: draft.includeDepositLineItem
+				...(draft.essentialEditQuantity
+					? { essentialEditQuantity: draft.essentialEditQuantity }
+					: {}),
+				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
+				includeDepositLineItem: draft.includeDepositLineItem,
+				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
 			})
 		);
 
@@ -272,6 +252,10 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 				case "BOOKING_NOT_FOUND":
 					toast.error("This booking no longer exists.");
+					break;
+
+				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
+					toast.error("Enter a valid custom invoice price.");
 					break;
 
 				case "UNEXPECTED_ERROR":
@@ -296,10 +280,12 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				essentialEditQuantity: draft.essentialEditQuantity,
 				clipsPackageQuantity: draft.clipsPackageQuantity,
 				dueDate: draft.dueDate,
-				duration: draft.duration,
+				duration: hasCompleteSessionSelection ? draft.duration : undefined,
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
-				service: draft.service || undefined
+				leadTimeMinutes: bookingSettings.leadTimeMinutes,
+				service: hasCompleteSessionSelection ? (draft.service as BookingService) : null,
+				customTotalDueAmount
 			})
 		);
 
@@ -326,6 +312,41 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		onOpenChange(false);
 		toast.success("Custom invoice download started.");
 		setIsGenerating(false);
+	}
+
+	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
+		(invoice) => {
+			const addonText = formatCustomInvoiceAddonText({
+				addons: invoice.addons as BookingFormValues["addons"],
+				essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
+				clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+			});
+
+			return {
+				id: invoice._id,
+				invoiceNumber: invoice.invoiceNumber,
+				description: `${invoice.service ?? "Add-ons only"}${addonText}`,
+				total: formatInvoiceTotal({
+					service: invoice.service,
+					addons: invoice.addons as BookingFormValues["addons"],
+					duration: invoice.duration ?? "",
+					includeDepositLineItem: invoice.includeDepositLineItem,
+					essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
+					clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+					customTotalDueAmount: invoice.customTotalDueAmount
+				})
+			};
+		}
+	);
+
+	function handleDownloadPreviousInvoice(invoiceId: string) {
+		const invoice = customInvoices?.find((customInvoice) => customInvoice._id === invoiceId);
+
+		if (!invoice) {
+			return;
+		}
+
+		void downloadCustomInvoice(invoice);
 	}
 
 	return (
@@ -367,7 +388,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 					<DialogTitle>Create custom invoice</DialogTitle>
 				</DialogHeader>
 
-				<BookingCustomerSummary
+				<SessionCustomerSummary
 					bookingName={booking.name}
 					bookingEmail={booking.email}
 				/>
@@ -379,205 +400,24 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						event.preventDefault();
 						void handleGenerateCustomInvoice();
 					}}>
-					<section className="grid gap-3">
-						<Label htmlFor="custom-invoice-due-date">Due date</Label>
-						<Input
-							id="custom-invoice-due-date"
-							type="date"
-							value={draft.dueDate}
-							disabled={isGenerating}
-							required
-							onChange={(event) => {
-								setDraft((current) => ({ ...current, dueDate: event.target.value }));
-							}}
-						/>
-					</section>
-					{customInvoices && customInvoices.length > 0 ? (
-						<section className="grid gap-3">
-							<Label>Previous custom invoices</Label>
-							<div className="rounded-lg border bg-muted/40 p-3 text-sm">
-								<ul className="grid gap-3">
-									{customInvoices.map((invoice) => (
-										<li
-											key={invoice._id}
-											className={cn(
-												"flex flex-col gap-2",
-												"sm:flex-row sm:items-center sm:justify-between"
-											)}>
-											<div className="grid gap-1">
-												<span className="font-medium">{invoice.invoiceNumber}</span>
-												<span className="text-muted-foreground">
-													{invoice.service ?? "Add-ons only"}
-													{invoice.addons.length > 0
-														? ` · ${invoice.addons
-																.map((addon) =>
-																	formatEditingAddonLabel(addon, {
-																		essentialEditQuantity:
-																			invoice.essentialEditQuantity ??
-																			booking.essentialEditQuantity,
-																		clipsPackageQuantity:
-																			invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
-																	})
-																)
-																.join(", ")}`
-														: ""}
-													{" · "}
-													{formatInvoiceTotal({
-														service: invoice.service,
-														addons: invoice.addons as BookingFormValues["addons"],
-														duration: invoice.duration ?? booking.duration,
-														includeDepositLineItem: invoice.includeDepositLineItem,
-														essentialEditQuantity:
-															invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
-														clipsPackageQuantity:
-															invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
-													})}
-												</span>
-											</div>
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												disabled={downloadingInvoiceId === invoice._id}
-												onClick={() => void downloadCustomInvoice(invoice)}>
-												{downloadingInvoiceId === invoice._id ? "Downloading..." : "Download"}
-											</Button>
-										</li>
-									))}
-								</ul>
-							</div>
-						</section>
-					) : null}
-
-					<section className="grid gap-3">
-						<Label>Session duration</Label>
-						<div className="grid gap-3 sm:grid-cols-3">
-							{DURATION_OPTIONS.map((duration) => {
-								const optionId = `custom-invoice-duration-${toOptionId(duration)}`;
-								const isChecked = draft.duration === duration;
-
-								return (
-									<label
-										key={duration}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<Checkbox
-											id={optionId}
-											checked={isChecked}
-											disabled={isGenerating}
-											onCheckedChange={(checked) => {
-												if (checked !== true) {
-													return;
-												}
-
-												setDraft((current) => ({ ...current, duration }));
-											}}
-										/>
-										<span className="font-medium">{duration}</span>
-									</label>
-								);
-							})}
-						</div>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Service</Label>
-						<div className="grid gap-3 sm:grid-cols-2">
-							{SERVICES.map((service) => {
-								const optionId = `custom-invoice-service-${toOptionId(service)}`;
-								const isChecked = draft.service === service;
-
-								return (
-									<label
-										key={service}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<Checkbox
-											id={optionId}
-											checked={isChecked}
-											disabled={isGenerating}
-											onCheckedChange={(checked) => {
-												setDraft((current) => ({
-													...current,
-													service: checked === true ? service : ""
-												}));
-											}}
-										/>
-										<span className="font-medium">{service}</span>
-									</label>
-								);
-							})}
-						</div>
-					</section>
-
-					<AdminAddonOptions
-						addons={draft.addons}
-						essentialEditQuantity={draft.essentialEditQuantity}
-						clipsPackageQuantity={draft.clipsPackageQuantity}
+					<CustomInvoiceFormFields
 						disabled={isGenerating}
-						idPrefix="custom-invoice-addon"
-						onChange={(nextValues) => {
-							setDraft((current) => ({ ...current, ...nextValues }));
+						draft={draft}
+						idPrefix="custom-invoice"
+						onDraftChange={setDraft}
+						priceHelpText="Leave blank to use the computed price from the selected service, add-ons, and deposit."
+						deposit={{
+							checked: draft.includeDepositLineItem,
+							onChange: (includeDepositLineItem) =>
+								setDraft((current) => ({ ...current, includeDepositLineItem }))
 						}}
 					/>
 
-					{draft.addons.includes("Essential Edit") ? (
-						<CustomInvoiceQuantityOptions
-							idPrefix="custom-invoice-essential-edit-quantity"
-							label="Essential Edit quantity"
-							value={draft.essentialEditQuantity ?? ""}
-							disabled={isGenerating}
-							onChange={(count) => {
-								setDraft((current) => ({ ...current, essentialEditQuantity: count }));
-							}}
-						/>
-					) : null}
-					{draft.addons.includes("Clips Package") ? (
-						<CustomInvoiceQuantityOptions
-							idPrefix="custom-invoice-clips-package-quantity"
-							label="Clips Package quantity"
-							value={draft.clipsPackageQuantity ?? ""}
-							disabled={isGenerating}
-							onChange={(count) => {
-								setDraft((current) => ({ ...current, clipsPackageQuantity: count }));
-							}}
-						/>
-					) : null}
-
-					<section className="grid gap-3">
-						<Label>Deposit</Label>
-						<label
-							htmlFor="custom-invoice-include-deposit"
-							className={cn(
-								"flex cursor-pointer items-center gap-3",
-								"p-3",
-								"rounded-lg border",
-								"transition-colors",
-								"has-checked:border-primary has-checked:bg-primary/5"
-							)}>
-							<Checkbox
-								id="custom-invoice-include-deposit"
-								checked={draft.includeDepositLineItem}
-								disabled={isGenerating}
-								onCheckedChange={(checked) => {
-									setDraft((current) => ({ ...current, includeDepositLineItem: checked === true }));
-								}}
-							/>
-							<span className="font-medium">Include deposit paid</span>
-						</label>
-					</section>
+					<PreviousCustomInvoices
+						downloadingInvoiceId={downloadingInvoiceId}
+						invoices={previousInvoices}
+						onDownload={handleDownloadPreviousInvoice}
+					/>
 
 					<DialogFooter>
 						<Button
@@ -589,7 +429,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 						</Button>
 						<Button
 							type="submit"
-							disabled={isGenerating || !hasInvoiceSelection}>
+							disabled={isGenerating || !hasInvoiceSelection || hasPartialSessionSelection}>
 							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
 							{isGenerating ? "Downloading..." : "Download"}
 						</Button>

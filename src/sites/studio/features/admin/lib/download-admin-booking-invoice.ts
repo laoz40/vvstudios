@@ -3,7 +3,7 @@ import { err, ok, type Result } from "#/lib/result";
 import {
 	bookingSchema,
 	type BookingFormValues
-} from "#studio/features/booking-form/lib/form-shared";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 export type DownloadAdminBookingInvoiceInput = {
@@ -16,7 +16,9 @@ export type DownloadAdminBookingInvoiceInput = {
 	duration?: BookingFormValues["duration"];
 	includeDepositLineItem?: boolean;
 	invoiceNumber?: string;
-	service?: BookingService;
+	leadTimeMinutes: number;
+	service?: BookingService | null;
+	customTotalDueAmount?: number;
 };
 
 export type DownloadAdminBookingInvoiceResult = Result<
@@ -34,7 +36,9 @@ export async function downloadAdminBookingInvoice({
 	duration = booking.duration as BookingFormValues["duration"],
 	includeDepositLineItem,
 	invoiceNumber,
-	service
+	leadTimeMinutes,
+	service,
+	customTotalDueAmount
 }: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
@@ -45,6 +49,8 @@ export async function downloadAdminBookingInvoice({
 		accountName: booking.accountName,
 		abn: booking.abn,
 		email: booking.email,
+		bookingMode: "single",
+		packageSize: "",
 		date: booking.date,
 		time: booking.time,
 		duration,
@@ -73,13 +79,16 @@ export async function downloadAdminBookingInvoice({
 		dueDate,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service: service ?? parsedBooking.data.service,
+		service:
+			service === undefined ? parsedBooking.data.service || undefined : (service ?? undefined),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
 		createdAt,
+		leadTimeMinutes,
 		includeDepositLineItem,
-		invoiceNumber
+		invoiceNumber,
+		customTotalDueAmount
 	});
 
 	return ok({ downloaded: true });

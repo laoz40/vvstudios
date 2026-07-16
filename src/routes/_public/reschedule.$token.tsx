@@ -12,6 +12,7 @@ import { studioSite } from "#/config/sites";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
+import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	buildDevRescheduleBooking,
 	getDevRescheduleAvailabilityStatus,
@@ -21,12 +22,18 @@ import {
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
 import { RescheduleBookingSummary } from "#studio/components/booking/RescheduleBookingSummary";
 import {
+	closeBookingModal,
+	openRescheduleConfirmationModal,
+	useBookingModalStore
+} from "#studio/features/booking-form/lib/booking-modal-store";
+import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	formatBookingDateSummary,
+	formatBookingTimeRange,
 	formatBookingTimestampDateLong,
 	formatBookingTimestampTime,
 	formatDateValue,
 	formatMonthKey,
-	getAvailableTimesForDate,
 	getCurrentTimestamp,
 	getLastBookableDate,
 	parseDateValue,
@@ -34,6 +41,7 @@ import {
 	startOfToday
 } from "#studio/lib/bookingdatetime";
 import {
+	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
@@ -42,7 +50,7 @@ import {
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
-import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/form-shared";
+import { getBookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";
@@ -239,7 +247,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<StudioLoadingState label="Checking reschedule link" />
+				<StudioLoadingState label="Loading your session..." />
 			</BookingStatusLayout>
 		);
 	}
@@ -251,7 +259,7 @@ function ReschedulePage() {
 			<BookingStatusLayout
 				showActions={false}
 				devPanel={<RescheduleDevScenarioPanel token={token} />}>
-				<StudioLoadingState label="Updating booking" />
+				<StudioLoadingState label="Updating your booking..." />
 			</BookingStatusLayout>
 		);
 	}
@@ -282,9 +290,25 @@ function ReschedulePage() {
 		});
 	}
 
-	async function handleUpdateBooking(): Promise<void> {
+	function handleRequestUpdateBooking(): void {
 		if (!selectedDateValue || !selectedTime) {
 			toast.error("Please choose a new date and time first.");
+			return;
+		}
+
+		openRescheduleConfirmationModal({
+			date: selectedDateValue,
+			dateSummary: formatBookingDateSummary(selectedDateValue),
+			modal: "rescheduleConfirmation",
+			time: selectedTime,
+			timeSummary: formatBookingTimeRange(selectedTime, booking.duration)
+		});
+	}
+
+	async function handleConfirmUpdateBooking(): Promise<void> {
+		const confirmation = useBookingModalStore.getState();
+
+		if (confirmation.modal !== "rescheduleConfirmation") {
 			return;
 		}
 
@@ -299,12 +323,13 @@ function ReschedulePage() {
 					return;
 				}
 
+				closeBookingModal();
 				await navigateToRescheduleComplete(devUpdate.bookingId);
 				return;
 			}
 
 			const [rescheduleError, result] = await tryCatch<RescheduleBookingResult>(
-				rescheduleBooking({ date: selectedDateValue, time: selectedTime, token })
+				rescheduleBooking({ date: confirmation.date, time: confirmation.time, token })
 			);
 
 			if (rescheduleError !== null) {
@@ -312,6 +337,7 @@ function ReschedulePage() {
 				return;
 			}
 
+			closeBookingModal();
 			await navigateToRescheduleComplete(result.bookingId);
 		} finally {
 			setIsUpdatingBooking(false);
@@ -333,37 +359,26 @@ function ReschedulePage() {
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
-	const availableTimes = (() => {
-		if (activeDevScenario) {
-			const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
-			return devAvailabilityStatus.kind === "ready" ? [...devAvailabilityStatus.times] : [];
-		}
+	let availableTimes: string[];
 
-		if (
-			!selectedDateValue ||
-			!selectedDate ||
-			selectedDate < today ||
-			selectedDate > lastBookableDate
-		) {
-			return [];
-		}
-
-		if (!isViewingSelectedMonth) {
-			return [];
-		}
-
-		if (isLoadingMonthAvailability && !monthlyBusyWindowsByMonth[selectedMonth]) {
-			return [];
-		}
-
-		return getAvailableTimesForDate({
-			busyPeriods: selectedBusyDay?.busyPeriods ?? [],
+	if (activeDevScenario) {
+		const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
+		availableTimes = devAvailabilityStatus.kind === "ready" ? [...devAvailabilityStatus.times] : [];
+	} else {
+		availableTimes = getBookableAvailableTimes({
 			currentTimestamp,
-			dateValue: selectedDateValue,
 			duration: booking.duration,
-			settings: availabilitySettings
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedBusyDay,
+			selectedDate,
+			selectedDateValue,
+			selectedMonth,
+			settings: availabilitySettings,
+			today
 		});
-	})();
+	}
 	const disabledDates = (date: Date) =>
 		isBookingDateDisabled({
 			currentTimestamp,
@@ -398,7 +413,7 @@ function ReschedulePage() {
 			className="max-w-4xl"
 			devPanel={<RescheduleDevScenarioPanel token={token} />}>
 			<div>
-				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
+				<h1 className="text-left font-brand text-5xl leading-none uppercase md:text-center md:text-6xl">
 					Reschedule your booking
 				</h1>
 
@@ -433,7 +448,7 @@ function ReschedulePage() {
 							"shadow-lg shadow-primary/45"
 						)}
 						disabled={!selectedDateValue || !selectedTime || isUpdatingBooking}
-						onClick={handleUpdateBooking}>
+						onClick={handleRequestUpdateBooking}>
 						UPDATE BOOKING
 					</Button>
 				</div>
@@ -442,6 +457,12 @@ function ReschedulePage() {
 					{formatBookingTimestampDateLong(data.expiresAt)}
 				</p>
 			</div>
+			<BookingModalHost
+				isSubmitting={isUpdatingBooking}
+				onPaymentClose={() => {}}
+				onRescheduleConfirm={handleConfirmUpdateBooking}
+				onTermsConfirm={() => {}}
+			/>
 		</BookingStatusLayout>
 	);
 }

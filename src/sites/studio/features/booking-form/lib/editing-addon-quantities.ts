@@ -1,4 +1,7 @@
-import { hasEditingAddon, type BookingAddon } from "#studio/features/booking-form/lib/form-shared";
+import {
+	hasEditingAddon,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export type EditingAddonQuantities = {
 	essentialEditQuantity?: string;
@@ -44,4 +47,11 @@ export function formatEditingAddonLabel(addon: string, quantities: EditingAddonQ
 	const quantity = getEditingAddonQuantity(addon, quantities, 1);
 
 	return quantity > 1 ? `${quantity} x ${addon}` : addon;
+}
+
+export function formatEditingAddonList(
+	addons: readonly string[],
+	quantities: EditingAddonQuantities
+) {
+	return addons.map((addon) => formatEditingAddonLabel(addon, quantities)).join(", ");
 }

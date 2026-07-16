@@ -3,13 +3,14 @@ import { studioSite } from "#/config/sites";
 import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/form-shared";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { api } from "#convex/_generated/api";
 
 const DEV_SCENARIO_OPTIONS = [
 	{ label: "Processing", value: "processing" },
 	{ label: "Confirmed", value: "confirmed" },
 	{ label: "Email Failed", value: "email_failed" },
+	{ label: "Package Request", value: "package_request" },
 	{ label: "Expired", value: "expired" },
 	{ label: "Slot Taken", value: "slot_taken" },
 	{ label: "Calendar Failed", value: "calendar_failed" },
@@ -20,6 +21,8 @@ export type DevBookingScenario = (typeof DEV_SCENARIO_OPTIONS)[number]["value"];
 
 export interface BookingCompleteSearch {
 	dev_scenario?: DevBookingScenario;
+	multi_booking_id?: string;
+	package_size?: 4 | 8 | 12;
 	session_id?: string;
 }
 
@@ -56,15 +59,14 @@ export function BookingCompleteDevScenarioPanel() {
 export function parseBookingCompleteSearch(search: Record<string, unknown>): BookingCompleteSearch {
 	return {
 		dev_scenario: parseDevBookingScenario(search.dev_scenario),
-		session_id:
-			typeof search.session_id === "string" && search.session_id.length > 0
-				? search.session_id
-				: undefined
+		multi_booking_id: parseNonEmptyString(search.multi_booking_id),
+		package_size: parsePackageSize(search.package_size),
+		session_id: parseNonEmptyString(search.session_id)
 	};
 }
 
 export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus | null {
-	if (devScenario === "not_found") {
+	if (devScenario === "not_found" || devScenario === "package_request") {
 		return null;
 	}
 
@@ -133,4 +135,18 @@ function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined
 	return DEV_SCENARIO_OPTIONS.some((scenario) => scenario.value === value)
 		? (value as DevBookingScenario)
 		: undefined;
+}
+
+function parseNonEmptyString(value: unknown): string | undefined {
+	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function parsePackageSize(value: unknown): 4 | 8 | 12 | undefined {
+	const numericValue = typeof value === "string" ? Number(value) : value;
+
+	if (numericValue === 4 || numericValue === 8 || numericValue === 12) {
+		return numericValue;
+	}
+
+	return undefined;
 }

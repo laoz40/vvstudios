@@ -9,14 +9,16 @@ import {
 } from "../../src/sites/studio/lib/zonedDateTime";
 
 export interface BusyWindow {
-	start: string;
+	calendarId?: string;
 	end: string;
+	eventId?: string;
+	start: string;
 }
 
 export interface BusyDayWindow {
 	date: string;
 	label: string;
-	busyPeriods: Array<{ end: string; start: string }>;
+	busyPeriods: Array<{ calendarId?: string; end: string; eventId?: string; start: string }>;
 }
 
 interface DateParts {
@@ -44,7 +46,8 @@ export type BookingAvailabilityValidationError = {
 		| "BOOKING_INVALID_TIME"
 		| "BOOKING_OUTSIDE_OPENING_HOURS"
 		| "BOOKING_TOO_FAR_AHEAD"
-		| "BOOKING_TOO_SOON";
+		| "BOOKING_TOO_SOON"
+		| "BOOKING_TIME_UNAVAILABLE";
 };
 
 type BookingTimeParseError =
@@ -246,6 +249,7 @@ function addDays(date: Date, days: number) {
 export function checkBookingMeetsAvailabilitySettings({
 	date,
 	duration,
+	latestBookableDate,
 	now = Date.now(),
 	settings,
 	time,
@@ -253,6 +257,7 @@ export function checkBookingMeetsAvailabilitySettings({
 }: {
 	date: string;
 	duration: string;
+	latestBookableDate?: Date;
 	now?: number;
 	settings: BookingAvailabilitySettings;
 	time: string;
@@ -265,7 +270,7 @@ export function checkBookingMeetsAvailabilitySettings({
 	}
 
 	const today = startOfToday(new Date(now));
-	const lastBookableDate = addDays(today, settings.maxDaysAhead);
+	const lastBookableDate = latestBookableDate ?? addDays(today, settings.maxDaysAhead);
 
 	if (bookingDate < today) {
 		return err({ reason: "BOOKING_TOO_SOON" });
@@ -350,46 +355,13 @@ export function getDateAvailabilityRange(
 	return ok({ timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() });
 }
 
-export function mergeBusyWindows(busyWindows: BusyWindow[]) {
-	const sortedWindows = busyWindows
-		.map((window) => ({ endMs: Date.parse(window.end), startMs: Date.parse(window.start) }))
-		.sort((left, right) => left.startMs - right.startMs);
-
-	const mergedWindows: BusyWindow[] = [];
-
-	for (const window of sortedWindows) {
-		const lastWindow = mergedWindows.at(-1);
-		if (!lastWindow) {
-			mergedWindows.push({
-				end: new Date(window.endMs).toISOString(),
-				start: new Date(window.startMs).toISOString()
-			});
-			continue;
-		}
-
-		const lastEndMs = Date.parse(lastWindow.end);
-		if (window.startMs <= lastEndMs) {
-			lastWindow.end = new Date(Math.max(lastEndMs, window.endMs)).toISOString();
-			continue;
-		}
-
-		mergedWindows.push({
-			end: new Date(window.endMs).toISOString(),
-			start: new Date(window.startMs).toISOString()
-		});
-	}
-
-	return mergedWindows;
-}
-
 export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string
 ): Result<BusyDayWindow[], Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
-	const mergedWindows = mergeBusyWindows(busyWindows);
 	const dayBuckets = new Map<string, BusyDayWindow>();
 
-	for (const window of mergedWindows) {
+	for (const window of busyWindows) {
 		let segmentStartMs = Date.parse(window.start);
 		const windowEndMs = Date.parse(window.end);
 
@@ -411,10 +383,12 @@ export function groupBusyWindowsByDay(
 			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
 
 			bucket.busyPeriods.push({
+				...(window.calendarId ? { calendarId: window.calendarId } : {}),
 				end: formatTimeInTimeZone(
 					new Date(segmentEndMs === dayEndMs ? segmentEndMs - 60 * 1000 : segmentEndMs),
 					timeZone
 				),
+				...(window.eventId ? { eventId: window.eventId } : {}),
 				start: formatTimeInTimeZone(segmentStartDate, timeZone)
 			});
 
@@ -423,6 +397,17 @@ export function groupBusyWindowsByDay(
 	}
 
 	return ok(Array.from(dayBuckets.values()));
+}
+
+export function groupBusyDaysByMonth(busyDays: BusyDayWindow[]) {
+	const busyWindowsByMonth: Record<string, BusyDayWindow[]> = {};
+
+	for (const busyDay of busyDays) {
+		const month = busyDay.date.slice(0, 7);
+		busyWindowsByMonth[month] = [...(busyWindowsByMonth[month] ?? []), busyDay];
+	}
+
+	return busyWindowsByMonth;
 }
 
 // turn google event dates into one normal datetime value we can compare (for all day events)

@@ -4,24 +4,25 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
-import type { BookingEditDraft } from "#studio/features/admin/components/BookingEditDialog";
+import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
-import { bookingSchema } from "#studio/features/booking-form/lib/form-shared";
+import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 export function useEditAction(booking: BookingRecord) {
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
-	const [pendingEditDraft, setPendingEditDraft] = useState<BookingEditDraft | null>(null);
+	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
 		typeof getBookingEditWarningState
 	> | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 
 	async function saveEditBooking(
-		values: BookingEditDraft,
+		values: SessionEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
 		const parsedValues = bookingSchema.safeParse({
@@ -30,6 +31,8 @@ export function useEditAction(booking: BookingRecord) {
 			accountName: values.accountName,
 			abn: values.abn,
 			email: values.email,
+			bookingMode: "single",
+			packageSize: "",
 			date: values.date,
 			time: values.time,
 			duration: values.duration,
@@ -42,6 +45,16 @@ export function useEditAction(booking: BookingRecord) {
 
 		if (!parsedValues.success) {
 			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+			return;
+		}
+
+		const remainingBalanceDraft = values.remainingBalanceAmount.trim();
+		const remainingBalanceAmountResult = remainingBalanceDraft
+			? parseRemainingBalanceAmountDraft(remainingBalanceDraft)
+			: null;
+
+		if (remainingBalanceAmountResult?.status === "invalid") {
+			toast.error("Enter a valid remaining balance.");
 			return;
 		}
 
@@ -64,16 +77,23 @@ export function useEditAction(booking: BookingRecord) {
 				name: parsedValues.data.name,
 				phone: parsedValues.data.phone,
 				accountName: parsedValues.data.accountName,
-				abn: parsedValues.data.abn,
+				...(parsedValues.data.abn ? { abn: parsedValues.data.abn } : {}),
 				email: parsedValues.data.email,
 				date: parsedValues.data.date,
 				time: parsedValues.data.time,
 				duration: parsedValues.data.duration,
 				service: parsedValues.data.service,
 				addons: parsedValues.data.addons,
-				essentialEditQuantity: parsedValues.data.essentialEditQuantity || undefined,
-				clipsPackageQuantity: parsedValues.data.clipsPackageQuantity || undefined,
-				notes: parsedValues.data.notes || undefined
+				...(parsedValues.data.essentialEditQuantity
+					? { essentialEditQuantity: parsedValues.data.essentialEditQuantity }
+					: {}),
+				...(parsedValues.data.clipsPackageQuantity
+					? { clipsPackageQuantity: parsedValues.data.clipsPackageQuantity }
+					: {}),
+				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {}),
+				...(remainingBalanceAmountResult !== null
+					? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
+					: {})
 			})
 		);
 
@@ -136,7 +156,7 @@ export function useEditAction(booking: BookingRecord) {
 		setIsSaving(false);
 	}
 
-	async function handleEditBooking(values: BookingEditDraft) {
+	async function handleEditBooking(values: SessionEditDraft) {
 		await saveEditBooking(values);
 	}
 

@@ -16,12 +16,17 @@ import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { CreatePublicFailedBookingRescheduleLinkResult } from "#convex/bookingReschedule";
+import type { Id } from "#convex/_generated/dataModel";
 
+type InstagramPromptTarget =
+	| { kind: "booking"; stripeSessionId: string }
+	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
 export interface BookingStatusLayoutProps {
 	bookingStatus?: BookingStatus["status"];
 	canCreateRescheduleLink?: boolean;
 	children: ReactNode;
 	showActions?: boolean;
+	instagramPromptTarget?: InstagramPromptTarget;
 	stripeSessionId?: string | null;
 	className?: string;
 	devPanel?: ReactNode;
@@ -32,6 +37,7 @@ export function BookingStatusLayout({
 	canCreateRescheduleLink = false,
 	children,
 	showActions = true,
+	instagramPromptTarget,
 	stripeSessionId,
 	className,
 	devPanel = <BookingCompleteDevScenarioPanel />
@@ -41,8 +47,11 @@ export function BookingStatusLayout({
 		api.bookingReschedule.createPublicFailedBookingRescheduleLink
 	);
 	const isFailedBooking = bookingStatus === "failed";
-	const showInstagramPrompt =
-		(bookingStatus === "confirmed" || bookingStatus === "email_failed") && Boolean(stripeSessionId);
+	const resolvedInstagramPromptTarget =
+		instagramPromptTarget ??
+		((bookingStatus === "confirmed" || bookingStatus === "email_failed") && stripeSessionId
+			? { kind: "booking", stripeSessionId }
+			: null);
 
 	async function handleRescheduleClick(): Promise<void> {
 		if (!stripeSessionId) {
@@ -99,7 +108,7 @@ export function BookingStatusLayout({
 			{import.meta.env.DEV ? devPanel : null}
 
 			{showActions ? (
-				<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+				<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					{isFailedBooking ? (
 						<>
 							{canCreateRescheduleLink && stripeSessionId ? (
@@ -197,9 +206,9 @@ export function BookingStatusLayout({
 				</div>
 			) : null}
 
-			{showInstagramPrompt && stripeSessionId ? (
-				<div className="mt-8 sm:mt-20">
-					<InstagramRepostPrompt stripeSessionId={stripeSessionId} />
+			{resolvedInstagramPromptTarget ? (
+				<div className="mt-8 sm:mt-24">
+					<InstagramRepostPrompt target={resolvedInstagramPromptTarget} />
 				</div>
 			) : null}
 		</main>

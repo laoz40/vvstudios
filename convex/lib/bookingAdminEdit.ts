@@ -22,7 +22,13 @@ import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
 type BookingEditValues = Pick<
 	Doc<"bookings">,
 	"accountName" | "addons" | "date" | "duration" | "email" | "name" | "phone" | "service" | "time"
-> & { abn?: string; clipsPackageQuantity?: string; notes?: string; essentialEditQuantity?: string };
+> & {
+	abn?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	remainingBalanceAmount?: number;
+	essentialEditQuantity?: string;
+};
 
 export function getBookingSessionStartAt(date: string, time: string, timeZone: string) {
 	const [startError, startDate] = getUtcDateForZonedDateTime(date, time, timeZone);
@@ -152,7 +158,8 @@ export function buildAdminBookingUpdatePatch({
 		date: values.date,
 		time: values.time,
 		duration: values.duration,
-		remainingBalanceAmount: calculateBookingRemainingBalanceAmount(values),
+		remainingBalanceAmount:
+			values.remainingBalanceAmount ?? calculateBookingRemainingBalanceAmount(values),
 		sessionStartAt,
 		service: values.service,
 		addons: values.addons,

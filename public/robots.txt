@@ -3,6 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /login
 Disallow: /booking-complete
+Disallow: /package-complete
 Disallow: /booking-expired
 
 Sitemap: https://vertigovisuals.au/sitemap.xml

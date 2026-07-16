@@ -6,13 +6,12 @@ import {
 	createRootRoute,
 	useRouterState
 } from "@tanstack/react-router";
-import { Image } from "@unpic/react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ArrowRight, Home } from "lucide-react";
 import gabaritoLatinFont from "@fontsource-variable/gabarito/files/gabarito-latin-wght-normal.woff2?url";
 import squadaOneFont from "@fontsource/squada-one/files/squada-one-latin-400-normal.woff2?url";
-import logoAnimatedYellow from "#studio/assets/logo-animated-yellow.svg";
+import { StudioErrorPage } from "#studio/components/StudioErrorPage";
 import { studioSite } from "#/config/sites";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
@@ -81,28 +80,11 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function NotFoundPage() {
 	return (
-		<main className="px-6 text-center md:px-10">
-			<div className="mx-auto flex max-w-3xl flex-col items-center gap-8">
-				<Image
-					src={logoAnimatedYellow}
-					alt="VV Studios"
-					width={200}
-					height={200}
-					layout="fixed"
-					loading="eager"
-					className="size-[50vh] shrink-0"
-				/>
-
-				<div className="space-y-4">
-					<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-						Whoops! Page not found.
-					</h1>
-					<p className="mx-auto max-w-xl text-base text-muted-foreground">
-						The page you’re looking for doesn’t exist or may have been moved.
-					</p>
-				</div>
-
-				<div className="flex flex-col gap-3 sm:flex-row">
+		<StudioErrorPage
+			title="Whoops! Page not found."
+			description="The page you’re looking for doesn’t exist or may have been moved."
+			actions={
+				<>
 					<Button
 						asChild
 						size="lg">
@@ -123,8 +105,8 @@ function NotFoundPage() {
 							Home
 						</Link>
 					</Button>
-				</div>
-			</div>
-		</main>
+				</>
+			}
+		/>
 	);
 }
