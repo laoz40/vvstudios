@@ -34,8 +34,8 @@ import { cn } from "#/lib/utils";
 
 const SESSION_STATUS_DETAILS = {
 	dateRequired: { label: "DATE REQUIRED", textClassName: "text-destructive" },
-	upcoming: { label: "UPCOMING", textClassName: "text-blue" },
-	completed: { label: "COMPLETED", textClassName: "text-green" }
+	upcoming: { label: "UPCOMING", textClassName: "text-green" },
+	completed: { label: "COMPLETED", textClassName: "text-green-completed" }
 } as const;
 
 interface PackageSessionsAccordionProps {

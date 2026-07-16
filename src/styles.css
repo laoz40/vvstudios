@@ -57,7 +57,7 @@
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-green: var(--green);
-	--color-blue: var(--blue);
+	--color-green-completed: var(--green-completed);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
