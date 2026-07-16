@@ -1,4 +1,4 @@
-import { EllipsisVertical, LoaderCircle } from "lucide-react";
+import { Armchair, EllipsisVertical, Globe, LoaderCircle } from "lucide-react";
 import {
 	Accordion,
 	AccordionContent,
@@ -26,6 +26,7 @@ import { BookingSessionSummary } from "#studio/features/booking-form/components/
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import {
+	formatBookingDateCompact,
 	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
 	formatBookingTimestampDateLong
@@ -195,9 +196,45 @@ export function PackageSessionsAccordion({
 										{booking ? (
 											<>
 												<span className="font-semibold text-foreground">
-													{formatBookingTimestampDateLong(booking.sessionStartAt)}
+													<span className="md:hidden">
+														{formatBookingDateCompact(booking.date)}
+													</span>
+													<span className="hidden md:inline">
+														{formatBookingTimestampDateLong(booking.sessionStartAt)}
+													</span>
 												</span>{" "}
 												· {formatBookingTimeRange(booking.time, packageData.duration)}
+												<span className="ml-2 inline-flex items-center gap-1.5 align-text-bottom text-foreground">
+													<span title={booking.service}>
+														{booking.service === "Table Setup" ? (
+															<svg
+																aria-label="Table Setup"
+																className="size-4"
+																viewBox="2 1 20 20"
+																fill="none"
+																stroke="currentColor"
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth="2">
+																<path d="m4 11 4-5h8l4 5H4Z" />
+																<path d="M7 11v6M17 11v6" />
+															</svg>
+														) : (
+															<Armchair
+																aria-label="Armchair Setup"
+																className="size-4"
+															/>
+														)}
+													</span>
+													{booking.addons.includes("Remote Podcast") ? (
+														<span title="Remote Podcast">
+															<Globe
+																aria-label="Remote Podcast"
+																className="size-4"
+															/>
+														</span>
+													) : null}
+												</span>
 											</>
 										) : (
 											<>

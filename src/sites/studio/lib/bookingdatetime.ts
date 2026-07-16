@@ -102,6 +102,19 @@ export function formatBookingDate(dateValue: string) {
 	return new Intl.DateTimeFormat("en-AU", { dateStyle: "full" }).format(date);
 }
 
+export function formatBookingDateCompact(dateValue: string) {
+	const date = parseDateValue(dateValue);
+	if (!date) {
+		return dateValue;
+	}
+
+	const day = String(date.getDate()).padStart(2, "0");
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const year = String(date.getFullYear()).slice(-2);
+
+	return `${day}.${month}.${year}`;
+}
+
 export function formatBookingDateSummary(dateValue: string) {
 	const date = parseDateValue(dateValue);
 	if (!date) {
