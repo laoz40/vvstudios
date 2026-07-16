@@ -98,12 +98,17 @@ export const markStalledPackageAdjustmentInvoiceEmailFailedInternal = internalMu
 });
 
 export const markPackageAdjustmentInvoiceEmailSentInternal = internalMutation({
-	args: { adjustmentId: v.id("packageAdjustments") },
+	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);
 
 		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" });
+		}
+
+		// Ignore completion from a timed-out attempt after a newer retry has claimed the email.
+		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+			return ok({ updated: false });
 		}
 
 		await ctx.db.patch(adjustment._id, {
@@ -116,12 +121,17 @@ export const markPackageAdjustmentInvoiceEmailSentInternal = internalMutation({
 });
 
 export const markPackageAdjustmentInvoiceEmailFailedInternal = internalMutation({
-	args: { adjustmentId: v.id("packageAdjustments") },
+	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);
 
 		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" });
+		}
+
+		// Ignore completion from a timed-out attempt after a newer retry has claimed the email.
+		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+			return ok({ updated: false });
 		}
 
 		await ctx.db.patch(adjustment._id, {

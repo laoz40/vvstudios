@@ -59,12 +59,13 @@ async function sendPackageAdjustmentInvoice(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; attempt: "automatic" | "retry" }
 ): Promise<SendPackageAdjustmentInvoiceResult> {
+	const claimedAt = Date.now();
 	const [claimError, source]: Result<
 		PackageAdjustmentInvoiceSource,
 		PackageAdjustmentEmailClaimError
 	> = await ctx.runMutation(
 		internal.packageAdjustments.claimPackageAdjustmentInvoiceEmailInternal,
-		{ adjustmentId: args.adjustmentId, attempt: args.attempt, now: Date.now() }
+		{ adjustmentId: args.adjustmentId, attempt: args.attempt, now: claimedAt }
 	);
 
 	if (claimError !== null) {
@@ -76,13 +77,14 @@ async function sendPackageAdjustmentInvoice(
 	if (emailError !== null) {
 		await ctx.runMutation(
 			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal,
-			{ adjustmentId: args.adjustmentId }
+			{ adjustmentId: args.adjustmentId, claimedAt }
 		);
 		return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" });
 	}
 
 	await ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSentInternal, {
-		adjustmentId: args.adjustmentId
+		adjustmentId: args.adjustmentId,
+		claimedAt
 	});
 
 	return ok({ sent: true });
