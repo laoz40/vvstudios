@@ -1,6 +1,6 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Activity, useState } from "react";
 import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import HomeIcon from "#/components/ui/home-icon";
@@ -154,7 +154,7 @@ function AdminPageContent() {
 			activeView={activeView}
 			email={email ?? null}
 			onActiveViewChange={setActiveView}>
-			{activeView === "sessions" ? (
+			<Activity mode={activeView === "sessions" ? "visible" : "hidden"}>
 				<SessionsTable
 					bookings={bookings.results}
 					canLoadMoreBookings={bookings.status === "CanLoadMore"}
@@ -163,7 +163,8 @@ function AdminPageContent() {
 					searchQuery={sessionSearchQuery}
 					onSearchQueryChange={setSessionSearchQuery}
 				/>
-			) : (
+			</Activity>
+			<Activity mode={activeView === "packages" ? "visible" : "hidden"}>
 				<PackagesTable
 					packages={packages.results}
 					canLoadMorePackages={packages.status === "CanLoadMore"}
@@ -171,7 +172,7 @@ function AdminPageContent() {
 					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
 					onViewPackageSessions={viewPackageSessions}
 				/>
-			)}
+			</Activity>
 		</AdminDashboardShell>
 	);
 }

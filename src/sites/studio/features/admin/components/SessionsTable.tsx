@@ -74,21 +74,15 @@ export function SessionsTable({
 
 	const pageCount = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
 
-	// Reset pagination when visible rows change.
-	useEffect(() => {
-		setPageIndex(0);
-	}, [
-		bookings,
-		searchQuery,
-		showArchived,
-		showStaleBookings,
-		showUpcomingOnly,
-		sortedBookings.length
-	]);
 	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
+	function applyTableControlChange<T>(onChange: (value: T) => void, value: T) {
+		setPageIndex(0);
+		onChange(value);
+	}
+
 	function updateSorting(id: SessionSortId) {
-		setSorting((currentSorting) => {
+		applyTableControlChange(setSorting, (currentSorting) => {
 			const currentSort = currentSorting[0];
 
 			if (currentSort?.id === id) {
@@ -119,10 +113,10 @@ export function SessionsTable({
 				showArchived={showArchived}
 				showStaleBookings={showStaleBookings}
 				showUpcomingOnly={showUpcomingOnly}
-				onSearchQueryChange={onSearchQueryChange}
-				onShowArchivedChange={setShowArchived}
-				onShowStaleBookingsChange={setShowStaleBookings}
-				onShowUpcomingOnlyChange={setShowUpcomingOnly}
+				onSearchQueryChange={(value) => applyTableControlChange(onSearchQueryChange, value)}
+				onShowArchivedChange={(value) => applyTableControlChange(setShowArchived, value)}
+				onShowStaleBookingsChange={(value) => applyTableControlChange(setShowStaleBookings, value)}
+				onShowUpcomingOnlyChange={(value) => applyTableControlChange(setShowUpcomingOnly, value)}
 			/>
 
 			<div className="overflow-x-auto border-y">
