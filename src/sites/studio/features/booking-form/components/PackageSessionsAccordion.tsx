@@ -247,6 +247,11 @@ export function PackageSessionsAccordion({
 									</span>
 								</span>
 								<span className="ml-auto flex shrink-0 items-center justify-end gap-2">
+									{session.status === "upcoming" && isSessionLocked ? (
+										<span className="hidden whitespace-nowrap text-right text-xs text-muted-foreground md:inline">
+											This session can no longer be edited.
+										</span>
+									) : null}
 									{canClear ? (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
