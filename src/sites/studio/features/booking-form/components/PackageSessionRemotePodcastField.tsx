@@ -1,5 +1,9 @@
 import { Switch } from "#/components/ui/switch";
 import { cn } from "#/lib/utils";
+import {
+	ADDON_PRICES,
+	formatBookingPrice
+} from "#studio/features/booking-form/lib/booking-pricing";
 
 export function PackageSessionRemotePodcastField({
 	checked,
@@ -20,7 +24,12 @@ export function PackageSessionRemotePodcastField({
 				disabled && "cursor-not-allowed opacity-50"
 			)}>
 			<span className="grid gap-1">
-				<span className="font-medium text-foreground">Use Remote Podcast Add-on?</span>
+				<span className="flex items-center gap-2 font-medium text-foreground">
+					<span>Use Remote Podcast Add-on?</span>
+					<span className="text-primary">
+						+{formatBookingPrice(ADDON_PRICES["Remote Podcast"])}
+					</span>
+				</span>
 				<span className="text-sm text-muted-foreground">
 					Record with guests globally using professional equipment.
 				</span>

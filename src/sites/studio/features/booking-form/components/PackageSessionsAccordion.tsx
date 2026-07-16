@@ -167,7 +167,7 @@ export function PackageSessionsAccordion({
 						value={session.key}
 						disabled={!canEdit}
 						className={cn(
-							"rounded-xl border bg-surface-subtle px-4 sm:px-6",
+							"rounded-xl border bg-surface-subtle px-4 last:border-b sm:px-6",
 							"text-card-foreground",
 							"shadow-lg transition-colors duration-500",
 							session.status === "completed" &&
@@ -194,11 +194,7 @@ export function PackageSessionsAccordion({
 									<span className="block select-text! text-left text-base text-muted-foreground transition-colors duration-500">
 										{booking ? (
 											<>
-												<span
-													className={cn(
-														"font-semibold transition-colors duration-500",
-														isHighlighted ? "text-primary" : "text-foreground"
-													)}>
+												<span className="font-semibold text-foreground">
 													{formatBookingTimestampDateLong(booking.sessionStartAt)}
 												</span>{" "}
 												· {formatBookingTimeRange(booking.time, packageData.duration)}
