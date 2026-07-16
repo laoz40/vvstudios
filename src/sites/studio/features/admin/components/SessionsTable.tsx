@@ -76,6 +76,11 @@ export function SessionsTable({
 
 	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
+	// Reset pagination when another dashboard view changes the controlled search.
+	useEffect(() => {
+		setPageIndex(0);
+	}, [searchQuery]);
+
 	function applyTableControlChange<T>(onChange: (value: T) => void, value: T) {
 		setPageIndex(0);
 		onChange(value);
