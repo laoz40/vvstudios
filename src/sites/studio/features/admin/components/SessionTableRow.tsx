@@ -6,6 +6,7 @@ import { SessionActions } from "#studio/features/admin/components/SessionActions
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
+	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import {
@@ -26,7 +27,6 @@ import {
 	formatAudAmount,
 	getRemainingBalanceAmount
 } from "#studio/features/admin/lib/remaining-balance";
-import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatShortMonthFullDate,
 	formatBookingDateMedium,
@@ -118,7 +118,7 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 								<Badge
 									key={addon}
 									variant="outline">
-									{formatEditingAddonLabel(addon, booking)}
+									{formatDashboardAddonLabel(addon, booking)}
 								</Badge>
 							))}
 						</div>

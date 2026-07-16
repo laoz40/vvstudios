@@ -13,6 +13,7 @@ import { cn } from "#/lib/utils";
 import {
 	CopyableText,
 	SortHeaderButton,
+	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
@@ -37,7 +38,6 @@ import {
 	readStoredPackageTableFilters,
 	storePackageTableFilters
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
-import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	formatShortMonthFullDate,
 	formatBookingRelativeDate,
@@ -300,7 +300,7 @@ export function PackagesTable({
 														<Badge
 															key={addon}
 															variant="outline">
-															{formatEditingAddonLabel(addon, packageRow)}
+															{formatDashboardAddonLabel(addon, packageRow)}
 														</Badge>
 													))}
 												</div>
