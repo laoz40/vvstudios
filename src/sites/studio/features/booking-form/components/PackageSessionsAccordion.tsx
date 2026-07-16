@@ -152,7 +152,8 @@ export function PackageSessionsAccordion({
 					booking.date === selectedDateValue &&
 					booking.time === selectedTime &&
 					booking.service === selectedService &&
-					booking.notes === selectedNotes
+					booking.notes === selectedNotes &&
+					booking.addons.includes("Remote Podcast") === selectedRemotePodcast
 				);
 				let saveButtonText = "SAVE SESSION";
 
