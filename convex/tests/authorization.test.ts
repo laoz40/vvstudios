@@ -1,3 +1,29 @@
+/**
+ * These tests check who can use the admin dashboard features for sessions and packages.
+ * They cover signed-out users, signed-in customers, and admins.
+ *
+ * 1. Reading admin data
+ *    Signed-out users and customers must not read the booking or package lists because they
+ *    contain private customer and payment data. Admins must be able to read both lists.
+ *
+ * 2. Running admin-only operations
+ *    The following operations are tested:
+ *    - mark a session's remaining balance as paid or unpaid;
+ *    - mark a package as paid or unpaid, and confirm a package payment;
+ *    - change a package adjustment's payment status;
+ *    - change booking availability settings;
+ *    - edit or archive a session;
+ *    - edit or archive a package;
+ *    - delete a session's Google Calendar event;
+ *    - send session deliverables and invoice emails;
+ *    - send a package invoice email;
+ *    - generate a new session reschedule link;
+ *    - create a custom invoice for a session or package.
+ *
+ *    Every operation is attempted as both a signed-out user and a customer. Each attempt
+ *    must return the correct authorization error and leave all relevant database records
+ *    unchanged. This proves unauthorized requests cannot cause hidden side effects.
+ */
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
