@@ -713,6 +713,17 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
+	// Atomically reserve the window so concurrent payment completions cannot both create events.
+	const [reservationError, reservation] = await ctx.runMutation(
+		internal.bookings.reserveBookingSlot,
+		{ bookingId: booking._id, eventBufferMinutes: settings.eventBufferMinutes, now: Date.now() }
+	);
+
+	if (reservationError !== null || reservation.outcome === "unavailable") {
+		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+		return ok({ completed: false, outcome: "booking_time_unavailable" });
+	}
+
 	const [payloadError, requestBody] = buildBookingCalendarEventPayload({
 		date: booking.date,
 		time: booking.time,

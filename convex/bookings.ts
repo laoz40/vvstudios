@@ -24,6 +24,7 @@ import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import {
 	checkBookingMeetsAvailabilitySettings,
+	doBookingWindowsOverlap,
 	type BookingAvailabilityValidationError
 } from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
@@ -962,6 +963,91 @@ export const claimBookingCompletion = internalMutation({
 	}
 });
 
+const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
+const MAX_BOOKING_DURATION_MINUTES = 180;
+
+// Reserve the time before creating the Google Calendar event.
+// This stops two payments from confirming overlapping bookings.
+export const reserveBookingSlot = internalMutation({
+	args: { bookingId: v.id("bookings"), eventBufferMinutes: v.number(), now: v.number() },
+	handler: async (ctx, args) => {
+		const booking = await ctx.db.get(args.bookingId);
+
+		// Only bookings waiting for payment completion can reserve a time.
+		if (!booking || booking.status !== "pending_payment") {
+			return err({ reason: "BOOKING_INVALID_STATUS" });
+		}
+
+		// A repeated webhook may find this booking already reserved.
+		if (booking.slotReservedAt) {
+			return ok({ outcome: "already_reserved" });
+		}
+
+		// Find nearby bookings that could overlap this time.
+		const searchStartAt =
+			booking.sessionStartAt - (MAX_BOOKING_DURATION_MINUTES + args.eventBufferMinutes) * 60 * 1000;
+		const searchEndAt =
+			booking.sessionStartAt + (MAX_BOOKING_DURATION_MINUTES + args.eventBufferMinutes) * 60 * 1000;
+
+		// Email failures still count because the booking itself is confirmed.
+		const [confirmedBookings, emailFailedBookings, pendingBookings] = await Promise.all([
+			ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_sessionStartAt", (query) =>
+					query
+						.eq("status", "confirmed")
+						.gte("sessionStartAt", searchStartAt)
+						.lte("sessionStartAt", searchEndAt)
+				)
+				.take(100),
+			ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_sessionStartAt", (query) =>
+					query
+						.eq("status", "email_failed")
+						.gte("sessionStartAt", searchStartAt)
+						.lte("sessionStartAt", searchEndAt)
+				)
+				.take(100),
+			ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_sessionStartAt", (query) =>
+					query
+						.eq("status", "pending_payment")
+						.gte("sessionStartAt", searchStartAt)
+						.lte("sessionStartAt", searchEndAt)
+				)
+				.take(100)
+		]);
+
+		// Ignore old reservations so they do not block a time forever.
+		const activeReservations = pendingBookings.filter(
+			(candidate) =>
+				candidate._id !== booking._id &&
+				candidate.slotReservedAt !== undefined &&
+				candidate.slotReservedAt > args.now - SLOT_RESERVATION_TTL_MS
+		);
+		// Check confirmed bookings and other active reservations for overlaps.
+		const hasConflict = [...confirmedBookings, ...emailFailedBookings, ...activeReservations].some(
+			(candidate) =>
+				doBookingWindowsOverlap({
+					firstDuration: booking.duration,
+					firstStartAt: booking.sessionStartAt,
+					secondDuration: candidate.duration,
+					secondStartAt: candidate.sessionStartAt,
+					eventBufferMinutes: args.eventBufferMinutes
+				})
+		);
+
+		if (hasConflict) {
+			return ok({ outcome: "unavailable" });
+		}
+
+		await ctx.db.patch(booking._id, { slotReservedAt: args.now });
+		return ok({ outcome: "reserved" });
+	}
+});
+
 export const markBookingCompleted = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
@@ -980,7 +1066,8 @@ export const markBookingCompleted = internalMutation({
 			googleEventId: args.googleEventId,
 			googleCalendarId: args.googleCalendarId,
 			bookingConfirmedAt: Date.now(),
-			bookingFailureCode: undefined
+			bookingFailureCode: undefined,
+			slotReservedAt: undefined
 		});
 
 		return ok({ updated: true });
@@ -1033,7 +1120,11 @@ export const markBookingCompletionFailed = internalMutation({
 			return err(bookingError);
 		}
 
-		await ctx.db.patch(args.bookingId, { status: "failed", bookingFailureCode: args.failureCode });
+		await ctx.db.patch(args.bookingId, {
+			status: "failed",
+			bookingFailureCode: args.failureCode,
+			slotReservedAt: undefined
+		});
 
 		return ok({ updated: true });
 	}

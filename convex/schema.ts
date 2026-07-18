@@ -132,6 +132,8 @@ export default defineSchema({
 		// Confirmation email claim state
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
+		// Temporarily holds the session window while its Calendar event is created.
+		slotReservedAt: v.optional(v.number()),
 
 		// Reminder email state
 		reminderEmailClaimedAt: v.optional(v.number()),
