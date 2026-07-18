@@ -7,25 +7,25 @@ import { doBookingWindowsOverlap } from "./bookingCalendarTime";
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MAX_BOOKING_DURATION_MINUTES = 180;
 
-export const bookingTimeLockValidator = v.object({
+export const bookingReservationValidator = v.object({
 	reservedAt: v.number(),
 	sessionStartAt: v.number(),
 	duration: v.string()
 });
 
-export type BookingTimeLock = { reservedAt: number; sessionStartAt: number; duration: string };
+export type BookingReservation = { reservedAt: number; sessionStartAt: number; duration: string };
 
 function getReservedTarget(booking: Doc<"bookings">) {
-	if (booking.slotReservedAt === undefined) return null;
+	if (booking.reservationCreatedAt === undefined) return null;
 
 	return {
-		reservedAt: booking.slotReservedAt,
-		sessionStartAt: booking.reservedSessionStartAt ?? booking.sessionStartAt,
-		duration: booking.reservedDuration ?? booking.duration
+		reservedAt: booking.reservationCreatedAt,
+		sessionStartAt: booking.reservationSessionStartAt ?? booking.sessionStartAt,
+		duration: booking.reservationDuration ?? booking.duration
 	};
 }
 
-export function bookingHasTimeLock(booking: Doc<"bookings">, expected: BookingTimeLock) {
+export function bookingHasReservation(booking: Doc<"bookings">, expected: BookingReservation) {
 	const reservation = getReservedTarget(booking);
 
 	return (
@@ -36,13 +36,13 @@ export function bookingHasTimeLock(booking: Doc<"bookings">, expected: BookingTi
 	);
 }
 
-export const clearedBookingTimeLockPatch = {
-	slotReservedAt: undefined,
-	reservedSessionStartAt: undefined,
-	reservedDuration: undefined
+export const clearedBookingReservationPatch = {
+	reservationCreatedAt: undefined,
+	reservationSessionStartAt: undefined,
+	reservationDuration: undefined
 };
 
-export async function lockBookingTime(
+export async function reserveBookingTime(
 	ctx: MutationCtx,
 	args: {
 		bookingId: Id<"bookings">;
@@ -81,13 +81,13 @@ export async function lockBookingTime(
 		}
 	}
 
-	// Find new times being held by booking updates that are still running.
-	// Old holds are ignored because they have expired.
+	// Find new times reserved by booking updates that are still running.
+	// Expired reservations are ignored.
 	const activeReservations: Doc<"bookings">[] = [];
 	for await (const candidate of ctx.db
 		.query("bookings")
-		.withIndex("by_slotReservedAt", (query) =>
-			query.gt("slotReservedAt", args.now - SLOT_RESERVATION_TTL_MS)
+		.withIndex("by_reservationCreatedAt", (query) =>
+			query.gt("reservationCreatedAt", args.now - SLOT_RESERVATION_TTL_MS)
 		)) {
 		activeReservations.push(candidate);
 	}
@@ -105,7 +105,7 @@ export async function lockBookingTime(
 				eventBufferMinutes: args.eventBufferMinutes
 			})
 	);
-	// Check whether another booking update is already holding the requested time.
+	// Check whether another booking update already reserved the requested time.
 	const conflictingReservation = activeReservations.some((candidate) => {
 		if (candidate._id === booking._id) return false;
 		const target = getReservedTarget(candidate);
@@ -125,33 +125,33 @@ export async function lockBookingTime(
 		return ok({ outcome: "unavailable" as const });
 	}
 
-	// Hold the new time while the booking and Google Calendar are updated.
-	// The hold uses the current time as its id. Add 1 if the previous hold has the
-	// same id, so an older request cannot remove this new hold by mistake.
-	const reservedAt = Math.max(args.now, (booking.slotReservedAt ?? 0) + 1);
+	// Reserve the new time while the booking and Google Calendar are updated.
+	// The reservation uses the current time as its id. Add 1 if the previous reservation
+	// has the same id, so an older request cannot remove this new reservation by mistake.
+	const reservedAt = Math.max(args.now, (booking.reservationCreatedAt ?? 0) + 1);
 	const reservation = { reservedAt, sessionStartAt: args.sessionStartAt, duration: args.duration };
 	await ctx.db.patch(booking._id, {
-		slotReservedAt: reservation.reservedAt,
-		reservedSessionStartAt: reservation.sessionStartAt,
-		reservedDuration: reservation.duration
+		reservationCreatedAt: reservation.reservedAt,
+		reservationSessionStartAt: reservation.sessionStartAt,
+		reservationDuration: reservation.duration
 	});
 
 	return ok({ outcome: "reserved" as const, reservation });
 }
 
-export async function unlockBookingTime(
+export async function unreserveBookingTime(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
-	expected: BookingTimeLock
+	expected: BookingReservation
 ) {
-	// Remove the hold only if it still belongs to this request.
+	// Remove the reservation only if it still belongs to this request.
 	const booking = await ctx.db.get(bookingId);
 
 	if (booking === null) return ok({ cleared: false as const });
-	if (!bookingHasTimeLock(booking, expected)) {
+	if (!bookingHasReservation(booking, expected)) {
 		return ok({ cleared: false as const });
 	}
 
-	await ctx.db.patch(bookingId, clearedBookingTimeLockPatch);
+	await ctx.db.patch(bookingId, clearedBookingReservationPatch);
 	return ok({ cleared: true as const });
 }

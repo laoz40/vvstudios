@@ -52,7 +52,7 @@ import {
 } from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./bookingReschedule";
 import type { MarkBookingCalendarEventDeletedResult } from "./bookings";
-import type { BookingTimeLock } from "./lib/bookingSlotLocks";
+import type { BookingReservation } from "./lib/bookingReservations";
 
 function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
@@ -465,7 +465,7 @@ async function rescheduleBookingHandler(
 
 	// Reserve before moving the Calendar event so every booking flow sees this target.
 	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.bookings.reserveBookingSlot,
+		internal.bookings.reserveBookingReservation,
 		{
 			bookingId: booking._id,
 			duration: booking.duration,
@@ -481,7 +481,7 @@ async function rescheduleBookingHandler(
 		});
 		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 	}
-	const timeLock = reservationResult.reservation;
+	const reservation = reservationResult.reservation;
 
 	// Move the booking to the requested date and time in Google Calendar first.
 	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
@@ -502,9 +502,9 @@ async function rescheduleBookingHandler(
 	});
 
 	if (timingUpdateError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingSlotReservation, {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
 			bookingId: booking._id,
-			timeLock
+			reservation
 		});
 		// Unlock the link so the customer can retry after a Calendar failure.
 		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
@@ -525,15 +525,15 @@ async function rescheduleBookingHandler(
 		time: args.time,
 		sessionStartAt,
 		confirmBooking: booking.status === "failed",
-		timeLock,
+		reservation,
 		...(googleCalendarId ? { googleCalendarId } : {}),
 		...(googleEventId ? { googleEventId } : {})
 	});
 
 	if (saveError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingSlotReservation, {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
 			bookingId: booking._id,
-			timeLock
+			reservation
 		});
 		// Unlock the link so the customer can retry after a save failure.
 		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
@@ -756,8 +756,8 @@ export const sendBookingReminderEmailForBooking = internalAction({
 	}
 });
 
-type ReserveBookingSlotResult = Result<
-	{ outcome: "unavailable" } | { outcome: "reserved"; reservation: BookingTimeLock },
+type ReserveBookingResult = Result<
+	{ outcome: "unavailable" } | { outcome: "reserved"; reservation: BookingReservation },
 	{ reason: "BOOKING_NOT_FOUND" }
 >;
 
@@ -803,8 +803,8 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	}
 
 	// Atomically reserve the window so concurrent payment completions cannot both create events.
-	const [reservationError, reservation]: ReserveBookingSlotResult = await ctx.runMutation(
-		internal.bookings.reserveBookingSlot,
+	const [reservationError, reservationResult]: ReserveBookingResult = await ctx.runMutation(
+		internal.bookings.reserveBookingReservation,
 		{
 			bookingId: booking._id,
 			duration: booking.duration,
@@ -814,12 +814,12 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		}
 	);
 
-	if (reservationError !== null || reservation.outcome === "unavailable") {
+	if (reservationError !== null || reservationResult.outcome === "unavailable") {
 		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
-	const timeLock = reservation.reservation;
+	const reservation = reservationResult.reservation;
 	const [payloadError, requestBody] = buildBookingCalendarEventPayload({
 		date: booking.date,
 		time: booking.time,
@@ -834,7 +834,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	});
 
 	if (payloadError !== null) {
-		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT", timeLock);
+		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT", reservation);
 		return ok({ completed: false, outcome: "booking_invalid_input" });
 	}
 
@@ -848,14 +848,19 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
-		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED", timeLock);
+		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
 
 		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
 
 	const [completionError]: MarkBookingCompletedResult = await ctx.runMutation(
 		internal.bookings.markBookingCompleted,
-		{ bookingId: booking._id, googleEventId, googleCalendarId: calendarClient.calendarId, timeLock }
+		{
+			bookingId: booking._id,
+			googleEventId,
+			googleCalendarId: calendarClient.calendarId,
+			reservation
+		}
 	);
 	if (completionError !== null) {
 		return ok({ completed: false, outcome: "reservation_lost" as const });

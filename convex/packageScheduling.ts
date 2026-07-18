@@ -228,7 +228,7 @@ async function reschedulePackageBookingHandler(
 	}
 
 	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.bookings.reserveBookingSlot,
+		internal.bookings.reserveBookingReservation,
 		{
 			bookingId: args.bookingId,
 			duration: details.multiBooking.duration,
@@ -240,7 +240,7 @@ async function reschedulePackageBookingHandler(
 	if (reservationError !== null || reservationResult.outcome === "unavailable") {
 		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 	}
-	const timeLock = reservationResult.reservation;
+	const reservation = reservationResult.reservation;
 
 	const [calendarError, calendar] = await ctx.runAction(
 		internal.packageSchedulingCalendar.updatePackageBookingCalendarEventInternal,
@@ -251,9 +251,9 @@ async function reschedulePackageBookingHandler(
 	);
 
 	if (calendarError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingSlotReservation, {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
 			bookingId: args.bookingId,
-			timeLock
+			reservation
 		});
 		return err(calendarError);
 	}
@@ -271,14 +271,14 @@ async function reschedulePackageBookingHandler(
 			googleCalendarId: calendar.googleCalendarId,
 			googleEventId: calendar.googleEventId,
 			multiBookingPackageId: details.multiBooking._id,
-			timeLock
+			reservation
 		}
 	);
 
 	if (saveError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingSlotReservation, {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
 			bookingId: args.bookingId,
-			timeLock
+			reservation
 		});
 		return err(saveError);
 	}

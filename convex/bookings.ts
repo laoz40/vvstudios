@@ -38,12 +38,12 @@ import {
 	getCapacityConsumingPackageBookings
 } from "./lib/packageScheduling";
 import {
-	bookingHasTimeLock,
-	unlockBookingTime,
-	clearedBookingTimeLockPatch,
-	lockBookingTime,
-	bookingTimeLockValidator
-} from "./lib/bookingSlotLocks";
+	bookingHasReservation,
+	unreserveBookingTime,
+	clearedBookingReservationPatch,
+	reserveBookingTime,
+	bookingReservationValidator
+} from "./lib/bookingReservations";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -971,7 +971,7 @@ export const claimBookingCompletion = internalMutation({
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every booking workflow in the same transaction.
-export const reserveBookingSlot = internalMutation({
+export const reserveBookingReservation = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		sessionStartAt: v.number(),
@@ -979,12 +979,12 @@ export const reserveBookingSlot = internalMutation({
 		eventBufferMinutes: v.number(),
 		now: v.number()
 	},
-	handler: (ctx, args) => lockBookingTime(ctx, args)
+	handler: (ctx, args) => reserveBookingTime(ctx, args)
 });
 
-export const clearBookingSlotReservation = internalMutation({
-	args: { bookingId: v.id("bookings"), timeLock: bookingTimeLockValidator },
-	handler: (ctx, args) => unlockBookingTime(ctx, args.bookingId, args.timeLock)
+export const clearBookingReservation = internalMutation({
+	args: { bookingId: v.id("bookings"), reservation: bookingReservationValidator },
+	handler: (ctx, args) => unreserveBookingTime(ctx, args.bookingId, args.reservation)
 });
 
 export const markBookingCompleted = internalMutation({
@@ -992,7 +992,7 @@ export const markBookingCompleted = internalMutation({
 		bookingId: v.id("bookings"),
 		googleEventId: v.optional(v.string()),
 		googleCalendarId: v.optional(v.string()),
-		timeLock: bookingTimeLockValidator
+		reservation: bookingReservationValidator
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1001,7 +1001,7 @@ export const markBookingCompleted = internalMutation({
 			return err(bookingError);
 		}
 
-		if (!bookingHasTimeLock(booking, args.timeLock)) {
+		if (!bookingHasReservation(booking, args.reservation)) {
 			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
 		}
 
@@ -1011,7 +1011,7 @@ export const markBookingCompleted = internalMutation({
 			googleCalendarId: args.googleCalendarId,
 			bookingConfirmedAt: Date.now(),
 			bookingFailureCode: undefined,
-			...clearedBookingTimeLockPatch
+			...clearedBookingReservationPatch
 		});
 
 		return ok({ updated: true });
@@ -1059,7 +1059,7 @@ export const markBookingCompletionFailed = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		failureCode: v.string(),
-		timeLock: v.optional(bookingTimeLockValidator)
+		reservation: v.optional(bookingReservationValidator)
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1068,14 +1068,14 @@ export const markBookingCompletionFailed = internalMutation({
 			return err(bookingError);
 		}
 
-		if (args.timeLock !== undefined && !bookingHasTimeLock(booking, args.timeLock)) {
+		if (args.reservation !== undefined && !bookingHasReservation(booking, args.reservation)) {
 			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
 			status: "failed",
 			bookingFailureCode: args.failureCode,
-			...(args.timeLock ? clearedBookingTimeLockPatch : {})
+			...(args.reservation ? clearedBookingReservationPatch : {})
 		});
 
 		return ok({ updated: true });
@@ -1279,7 +1279,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
 		confirmBooking: v.optional(v.boolean()),
-		timeLock: v.optional(bookingTimeLockValidator)
+		reservation: v.optional(bookingReservationValidator)
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1297,7 +1297,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 			return err(updatePatchError);
 		}
 
-		if (args.timeLock !== undefined && !bookingHasTimeLock(booking, args.timeLock)) {
+		if (args.reservation !== undefined && !bookingHasReservation(booking, args.reservation)) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 
@@ -1314,7 +1314,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 						bookingFailureCode: undefined
 					}
 				: {}),
-			...(args.timeLock ? clearedBookingTimeLockPatch : {})
+			...(args.reservation ? clearedBookingReservationPatch : {})
 		});
 
 		return ok({ saved: true });
@@ -1334,7 +1334,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
 		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
-		timeLock: bookingTimeLockValidator
+		reservation: bookingReservationValidator
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1352,7 +1352,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 			return err(bookingError);
 		}
 
-		if (!bookingHasTimeLock(booking, args.timeLock)) {
+		if (!bookingHasReservation(booking, args.reservation)) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 
@@ -1375,7 +1375,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 						bookingFailureCode: undefined
 					}
 				: {}),
-			...clearedBookingTimeLockPatch
+			...clearedBookingReservationPatch
 		});
 
 		if (args.multiBookingPackageId !== undefined) {
