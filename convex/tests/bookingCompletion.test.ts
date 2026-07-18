@@ -84,7 +84,7 @@ beforeEach(() => {
 });
 
 describe("booking payment completion", () => {
-	test("BOOK-05 claims a Stripe completion once without overwriting the first claim", async () => {
+	test("claims a Stripe completion once without overwriting the first claim", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -103,7 +103,7 @@ describe("booking payment completion", () => {
 		});
 	});
 
-	test("BOOK-06 confirms a paid booking and performs provider work once", async () => {
+	test("confirms a paid booking and performs provider work once", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedClaimedBooking(t);
 
@@ -125,7 +125,7 @@ describe("booking payment completion", () => {
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 	});
 
-	test("BOOK-07 fails safely when the time becomes unavailable during checkout", async () => {
+	test("fails safely when the time becomes unavailable during checkout", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedClaimedBooking(t);
 		providerFakes.listEvents.mockResolvedValue({
@@ -151,7 +151,7 @@ describe("booking payment completion", () => {
 		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
 	});
 
-	test("BOOK-09 allows only one concurrent completion for the same time", async () => {
+	test("allows only one concurrent completion for the same time", async () => {
 		const t = createConvexTest();
 		const [firstBookingId, secondBookingId] = await Promise.all([
 			seedClaimedBooking(t, "first@example.com"),
@@ -190,7 +190,7 @@ describe("booking payment completion", () => {
 });
 
 describe("Stripe completion webhook", () => {
-	test("BOOK-10 rejects missing and invalid signatures without changing the booking", async () => {
+	test("rejects missing and invalid signatures without changing the booking", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 		providerFakes.verifyStripeWebhook.mockRejectedValue(new Error("invalid signature"));
@@ -208,7 +208,7 @@ describe("Stripe completion webhook", () => {
 		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
 	});
 
-	test("BOOK-10 accepts a valid event and ignores its replay", async () => {
+	test("accepts a valid event and ignores its replay", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
