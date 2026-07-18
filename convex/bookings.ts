@@ -24,7 +24,6 @@ import { getBookingFromDb } from "./lib/bookingLookup";
 import { buildAdminBookingUpdatePatch, getBookingSessionStartAt } from "./lib/bookingAdminEdit";
 import {
 	checkBookingMeetsAvailabilitySettings,
-	doBookingWindowsOverlap,
 	type BookingAvailabilityValidationError
 } from "./lib/bookingCalendarTime";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
@@ -38,6 +37,13 @@ import {
 	bookingConsumesPackageCapacity,
 	getCapacityConsumingPackageBookings
 } from "./lib/packageScheduling";
+import {
+	bookingHasTimeLock,
+	unlockBookingTime,
+	clearedBookingTimeLockPatch,
+	lockBookingTime,
+	bookingTimeLockValidator
+} from "./lib/bookingSlotLocks";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -963,102 +969,40 @@ export const claimBookingCompletion = internalMutation({
 	}
 });
 
-const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
-const MAX_BOOKING_DURATION_MINUTES = 180;
-
-// Reserve the time before creating the Google Calendar event.
-// This stops two payments from confirming overlapping bookings.
+// Reserve a target before any Calendar write. The shared helper checks confirmed
+// bookings and reservations from every booking workflow in the same transaction.
 export const reserveBookingSlot = internalMutation({
-	args: { bookingId: v.id("bookings"), eventBufferMinutes: v.number(), now: v.number() },
-	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
+	args: {
+		bookingId: v.id("bookings"),
+		sessionStartAt: v.number(),
+		duration: v.string(),
+		eventBufferMinutes: v.number(),
+		now: v.number()
+	},
+	handler: (ctx, args) => lockBookingTime(ctx, args)
+});
 
-		// Only bookings waiting for payment completion can reserve a time.
-		if (!booking || booking.status !== "pending_payment") {
-			return err({ reason: "BOOKING_INVALID_STATUS" });
-		}
-
-		// A repeated webhook may find this booking already reserved.
-		if (booking.slotReservedAt) {
-			return ok({ outcome: "already_reserved" });
-		}
-
-		// Find nearby bookings that could overlap this time.
-		const searchStartAt =
-			booking.sessionStartAt - (MAX_BOOKING_DURATION_MINUTES + args.eventBufferMinutes) * 60 * 1000;
-		const searchEndAt =
-			booking.sessionStartAt + (MAX_BOOKING_DURATION_MINUTES + args.eventBufferMinutes) * 60 * 1000;
-
-		// Email failures still count because the booking itself is confirmed.
-		const [confirmedBookings, emailFailedBookings, pendingBookings] = await Promise.all([
-			ctx.db
-				.query("bookings")
-				.withIndex("by_status_and_sessionStartAt", (query) =>
-					query
-						.eq("status", "confirmed")
-						.gte("sessionStartAt", searchStartAt)
-						.lte("sessionStartAt", searchEndAt)
-				)
-				.take(100),
-			ctx.db
-				.query("bookings")
-				.withIndex("by_status_and_sessionStartAt", (query) =>
-					query
-						.eq("status", "email_failed")
-						.gte("sessionStartAt", searchStartAt)
-						.lte("sessionStartAt", searchEndAt)
-				)
-				.take(100),
-			ctx.db
-				.query("bookings")
-				.withIndex("by_status_and_sessionStartAt", (query) =>
-					query
-						.eq("status", "pending_payment")
-						.gte("sessionStartAt", searchStartAt)
-						.lte("sessionStartAt", searchEndAt)
-				)
-				.take(100)
-		]);
-
-		// Ignore old reservations so they do not block a time forever.
-		const activeReservations = pendingBookings.filter(
-			(candidate) =>
-				candidate._id !== booking._id &&
-				candidate.slotReservedAt !== undefined &&
-				candidate.slotReservedAt > args.now - SLOT_RESERVATION_TTL_MS
-		);
-		// Check confirmed bookings and other active reservations for overlaps.
-		const hasConflict = [...confirmedBookings, ...emailFailedBookings, ...activeReservations].some(
-			(candidate) =>
-				doBookingWindowsOverlap({
-					firstDuration: booking.duration,
-					firstStartAt: booking.sessionStartAt,
-					secondDuration: candidate.duration,
-					secondStartAt: candidate.sessionStartAt,
-					eventBufferMinutes: args.eventBufferMinutes
-				})
-		);
-
-		if (hasConflict) {
-			return ok({ outcome: "unavailable" });
-		}
-
-		await ctx.db.patch(booking._id, { slotReservedAt: args.now });
-		return ok({ outcome: "reserved" });
-	}
+export const clearBookingSlotReservation = internalMutation({
+	args: { bookingId: v.id("bookings"), timeLock: bookingTimeLockValidator },
+	handler: (ctx, args) => unlockBookingTime(ctx, args.bookingId, args.timeLock)
 });
 
 export const markBookingCompleted = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		googleEventId: v.optional(v.string()),
-		googleCalendarId: v.optional(v.string())
+		googleCalendarId: v.optional(v.string()),
+		timeLock: bookingTimeLockValidator
 	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
+		}
+
+		if (!bookingHasTimeLock(booking, args.timeLock)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
@@ -1067,7 +1011,7 @@ export const markBookingCompleted = internalMutation({
 			googleCalendarId: args.googleCalendarId,
 			bookingConfirmedAt: Date.now(),
 			bookingFailureCode: undefined,
-			slotReservedAt: undefined
+			...clearedBookingTimeLockPatch
 		});
 
 		return ok({ updated: true });
@@ -1112,18 +1056,26 @@ export const markBookingInvoiceEmailSent = internalMutation({
 });
 
 export const markBookingCompletionFailed = internalMutation({
-	args: { bookingId: v.id("bookings"), failureCode: v.string() },
+	args: {
+		bookingId: v.id("bookings"),
+		failureCode: v.string(),
+		timeLock: v.optional(bookingTimeLockValidator)
+	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
 		}
 
+		if (args.timeLock !== undefined && !bookingHasTimeLock(booking, args.timeLock)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
+		}
+
 		await ctx.db.patch(args.bookingId, {
 			status: "failed",
 			bookingFailureCode: args.failureCode,
-			slotReservedAt: undefined
+			...(args.timeLock ? clearedBookingTimeLockPatch : {})
 		});
 
 		return ok({ updated: true });
@@ -1326,7 +1278,8 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		notes: v.optional(v.string()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
-		confirmBooking: v.optional(v.boolean())
+		confirmBooking: v.optional(v.boolean()),
+		timeLock: v.optional(bookingTimeLockValidator)
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1344,6 +1297,10 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 			return err(updatePatchError);
 		}
 
+		if (args.timeLock !== undefined && !bookingHasTimeLock(booking, args.timeLock)) {
+			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+		}
+
 		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
 		// Failed bookings can be promoted after a Calendar event is created.
 		await ctx.db.patch(args.bookingId, {
@@ -1356,7 +1313,8 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 						bookingConfirmedAt: Date.now(),
 						bookingFailureCode: undefined
 					}
-				: {})
+				: {}),
+			...(args.timeLock ? clearedBookingTimeLockPatch : {})
 		});
 
 		return ok({ saved: true });
@@ -1375,7 +1333,8 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+		timeLock: bookingTimeLockValidator
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1391,6 +1350,10 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 
 		if (bookingError !== null) {
 			return err(bookingError);
+		}
+
+		if (!bookingHasTimeLock(booking, args.timeLock)) {
+			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
@@ -1411,7 +1374,8 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 						bookingConfirmedAt: Date.now(),
 						bookingFailureCode: undefined
 					}
-				: {})
+				: {}),
+			...clearedBookingTimeLockPatch
 		});
 
 		if (args.multiBookingPackageId !== undefined) {
