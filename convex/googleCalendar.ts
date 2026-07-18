@@ -11,7 +11,7 @@ import {
 	getLastBookableDate,
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
-import { createRescheduleUrlForBooking } from "./bookingReschedule";
+import { createRescheduleUrlForBooking, getRescheduleUrlForToken } from "./bookingReschedule";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromQuery } from "./lib/bookingLookup";
@@ -34,6 +34,7 @@ import {
 	type AdminBookingUpdateArgs,
 	type AdminBookingUpdateError,
 	type AdminBookingUpdateResult,
+	validateBookingTimingEdit,
 	verifyBookingCanBeScheduled,
 	updateBookingFromAdminWithGoogleCalendar,
 	updateBookingTimingWithGoogleCalendar
@@ -415,7 +416,38 @@ async function rescheduleBookingHandler(
 	const { booking, link } = result;
 	const calendarClient = getGoogleCalendarClient();
 	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-	//
+
+	// Check the new time before temporarily locking the reschedule link.
+	const [timingValidationError] = await validateBookingTimingEdit({
+		calendar: calendarClient.calendar,
+		calendarIds: calendarClient.calendarIds,
+		existing: {
+			date: booking.date,
+			duration: booking.duration,
+			googleCalendarId: booking.googleCalendarId,
+			googleEventId: booking.googleEventId,
+			time: booking.time
+		},
+		next: { date: args.date, duration: booking.duration, time: args.time },
+		settings,
+		timeZone: calendarClient.timeZone
+	});
+
+	if (timingValidationError !== null) {
+		return err(timingValidationError);
+	}
+
+	// Lock the link so two requests cannot reschedule the booking at the same time.
+	const lockedAt = Date.now();
+	const [lockError] = await ctx.runMutation(internal.bookingReschedule.lockRescheduleLinkInternal, {
+		linkId: link._id,
+		now: lockedAt
+	});
+
+	if (lockError !== null) {
+		return err(lockError);
+	}
+
 	// Move the booking to the requested date and time in Google Calendar first.
 	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
 		booking,
@@ -435,6 +467,11 @@ async function rescheduleBookingHandler(
 	});
 
 	if (timingUpdateError !== null) {
+		// Unlock the link so the customer can retry after a Calendar failure.
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
 		return err(timingUpdateError);
 	}
 
@@ -454,14 +491,13 @@ async function rescheduleBookingHandler(
 	});
 
 	if (saveError !== null) {
+		// Unlock the link so the customer can retry after a save failure.
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
 		return err(saveError);
 	}
-
-	// Mark this reschedule link as used so it cannot be reused.
-	await ctx.runMutation(internal.bookingReschedule.markRescheduleLinkUsedInternal, {
-		linkId: link._id,
-		now: Date.now()
-	});
 
 	const updatedBooking = {
 		...booking,
@@ -472,17 +508,16 @@ async function rescheduleBookingHandler(
 		googleEventId: googleEventId ?? booking.googleEventId
 	};
 
-	// Create a fresh reschedule link, then send the updated booking emails.
-	// Known edge case: see convex/googleCalendar.ts:573.
-	const [linkCreateError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, updatedBooking);
-
-	if (linkCreateError !== null) {
-		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
-	}
+	// Unlock the link after the move so the customer can use it again.
+	await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		linkId: link._id,
+		lockedAt,
+		expiresAt: sessionStartAt
+	});
 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl
+		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 
 	if (emailError !== null) {
