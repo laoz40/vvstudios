@@ -1406,47 +1406,6 @@ async function updateBookingHandler(ctx: MutationCtx, args: UpdateBookingArgs) {
 
 export type UpdateBookingResult = Awaited<ReturnType<typeof updateBookingHandler>>;
 
-export const updateBookingStatus = mutation({
-	args: {
-		bookingId: v.id("bookings"),
-		status: v.union(v.literal("confirmed"), v.literal("failed"), v.literal("email_failed"))
-	},
-	handler: updateBookingStatusHandler
-});
-
-type UpdateBookingStatusArgs = {
-	bookingId: Id<"bookings">;
-	status: "confirmed" | "failed" | "email_failed";
-};
-
-async function updateBookingStatusHandler(ctx: MutationCtx, args: UpdateBookingStatusArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const booking = await ctx.db.get(args.bookingId);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
-		return err({ reason: "INVALID_BOOKING_STATUS_TRANSITION" });
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, { status: args.status });
-	} catch {
-		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
-}
-
-export type UpdateBookingStatusResult = Awaited<ReturnType<typeof updateBookingStatusHandler>>;
-
 export const updateBookingPaidRemainingBalance = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
 	handler: updateBookingPaidRemainingBalanceHandler

@@ -13,11 +13,9 @@ export function isCapacityConsumingPackageBooking(booking: BookingRecord) {
 
 export type BookingActionDetails = {
 	canGenerateRescheduleLink: boolean;
-	canToggleStatus: boolean;
 	customerBookingId: string;
 	canManageConfirmedBooking: boolean;
 	isPastBooking: boolean;
-	toggleStatusLabel: string;
 };
 
 export const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;

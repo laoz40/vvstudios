@@ -20,19 +20,13 @@ export type SessionActionsProps = { booking: BookingRecord };
 export function SessionActions({ booking }: SessionActionsProps) {
 	const canManageConfirmedBooking = isManageableConfirmedBooking(booking);
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
-	const canToggleStatus =
-		canManageConfirmedBooking || booking.status === "failed" || booking.status === "email_failed";
-	const nextStatus = canManageConfirmedBooking ? "failed" : "confirmed";
-
 	const details: BookingActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(booking, isPastBooking),
-		canToggleStatus,
 		customerBookingId:
 			booking.multiBookingInvoiceNumber ??
 			formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
 		canManageConfirmedBooking,
-		isPastBooking,
-		toggleStatusLabel: canManageConfirmedBooking ? "Mark as calendar conflict" : "Mark as confirmed"
+		isPastBooking
 	};
 
 	const deleteAction = useDeleteAction(booking);
@@ -41,7 +35,7 @@ export function SessionActions({ booking }: SessionActionsProps) {
 	const invoiceActions = useInvoiceActions(booking);
 	const paymentActions = usePaymentActions(booking);
 	const rescheduleAction = useRescheduleAction(booking);
-	const statusActions = useStatusActions(booking, { canToggleStatus, nextStatus });
+	const statusActions = useStatusActions(booking);
 
 	return (
 		<>

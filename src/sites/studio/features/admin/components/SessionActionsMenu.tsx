@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { Button } from "#/components/ui/button";
-import AmbulanceIcon from "#/components/ui/ambulance-icon";
 import ClockIcon from "#/components/ui/clock-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
@@ -332,29 +331,6 @@ export function SessionActionsMenu({
 							)}>
 							Generate reschedule link
 						</AnimatedDropdownMenuItem>
-						{details.canToggleStatus ? (
-							<>
-								<DropdownMenuSeparator />
-								<AnimatedDropdownMenuItem
-									className={
-										details.canManageConfirmedBooking
-											? "focus:text-destructive hover:text-destructive"
-											: "focus:text-green hover:text-green"
-									}
-									disabled={statusActions.isUpdatingStatus}
-									onSelect={statusActions.handleToggleStatus}
-									renderIcon={(iconRef) => (
-										<AmbulanceIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									{details.toggleStatusLabel}
-								</AnimatedDropdownMenuItem>
-							</>
-						) : null}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
