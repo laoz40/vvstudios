@@ -14,7 +14,15 @@
  *    Two requests using the same token at the same time must have one winner and create
  *    at most one Calendar update and email while leaving the link reusable afterward.
  *
- * 4. Calendar update failure
+ * 4. Link and booking eligibility
+ *    Unknown, used, expired, past-session, and unsupported booking links must be rejected,
+ *    while links for every supported booking state remain accessible.
+ *
+ * 5. Failed booking recovery
+ *    A booking that failed during payment completion must create its missing Calendar event,
+ *    become confirmed, and clear its recoverable failure code after a successful reschedule.
+ *
+ * 6. Calendar update failure
  *    A provider failure after the token is claimed must reactivate that token so the
  *    customer can retry, while leaving the booking and reminder state unchanged.
  *
@@ -80,6 +88,67 @@ beforeEach(() => {
 });
 
 describe("customer booking rescheduling", () => {
+	test("rejects invalid links and bookings while accepting supported booking states", async () => {
+		const rejectedCases = [
+			{ kind: "unknown", expectedReason: "RESCHEDULE_LINK_NOT_FOUND" },
+			{ kind: "used", expectedReason: "RESCHEDULE_LINK_USED" },
+			{ kind: "expired", expectedReason: "RESCHEDULE_LINK_EXPIRED" },
+			{ kind: "past-session", expectedReason: "RESCHEDULE_LINK_EXPIRED" },
+			{ kind: "unsupported-status", expectedReason: "BOOKING_NOT_RESCHEDULABLE" }
+		] as const;
+
+		for (const testCase of rejectedCases) {
+			const t = createConvexTest();
+			const seeded = await seedReschedulableBooking(t);
+			let token = seeded.token;
+
+			if (testCase.kind === "unknown") {
+				token = "unknown-reschedule-token";
+			} else {
+				await t.run(async (ctx) => {
+					if (testCase.kind === "used") {
+						await ctx.db.patch(seeded.linkId, { status: "used", usedAt: now });
+					}
+					if (testCase.kind === "expired") {
+						await ctx.db.patch(seeded.linkId, { status: "expired" });
+					}
+					if (testCase.kind === "past-session") {
+						await ctx.db.patch(seeded.bookingId, { sessionStartAt: now - 1 });
+					}
+					if (testCase.kind === "unsupported-status") {
+						await ctx.db.patch(seeded.bookingId, { status: "cancelled" });
+					}
+				});
+			}
+
+			const result = await t.query(
+				internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+				{ token, now }
+			);
+			expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+		}
+
+		const supportedCases = [
+			{ status: "confirmed" as const },
+			{ status: "email_failed" as const },
+			{ status: "failed" as const, bookingFailureCode: "BOOKING_TIME_UNAVAILABLE" as const },
+			{ status: "failed" as const, bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED" as const }
+		];
+
+		for (const bookingState of supportedCases) {
+			const t = createConvexTest();
+			const seeded = await seedReschedulableBooking(t);
+			await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
+
+			const result = await t.query(
+				internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+				{ token: seeded.token, now }
+			);
+			expect(result[0]).toBeNull();
+			expect(result[1]?.booking._id).toBe(seeded.bookingId);
+		}
+	});
+
 	test("leaves the original booking and link untouched when the target is busy", async () => {
 		const t = createConvexTest();
 		const { bookingId, linkId, token } = await seedReschedulableBooking(t);
@@ -133,6 +202,40 @@ describe("customer booking rescheduling", () => {
 		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 	});
+
+	test.each(["BOOKING_TIME_UNAVAILABLE", "GOOGLE_CALENDAR_CREATE_FAILED"] as const)(
+		"recovers a booking with %s into a confirmed booking",
+		async (bookingFailureCode) => {
+			const t = createConvexTest();
+			const { bookingId, token } = await seedReschedulableBooking(t);
+			await t.run((ctx) =>
+				ctx.db.patch(bookingId, {
+					status: "failed",
+					bookingFailureCode,
+					googleCalendarId: undefined,
+					googleEventId: undefined
+				})
+			);
+
+			const result = await t.action(api.googleCalendar.rescheduleBooking, { token, ...target });
+			const booking = await readBooking(t, bookingId);
+
+			expect(result).toEqual([null, { bookingId }]);
+			expect(booking).toMatchObject({
+				status: "confirmed",
+				date: target.date,
+				time: target.time,
+				sessionStartAt: targetSessionStartAt,
+				googleCalendarId: "primary-calendar",
+				googleEventId: "replacement-event"
+			});
+			expect(booking?.bookingFailureCode).toBeUndefined();
+			expect(booking?.bookingConfirmedAt).toBe(now);
+			expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
+			expect(providerFakes.patchEvent).not.toHaveBeenCalled();
+			expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
+		}
+	);
 
 	test("reactivates the token when the Calendar update fails", async () => {
 		const t = createConvexTest();

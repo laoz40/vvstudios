@@ -45,11 +45,10 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| RES-01 | P0 | Only a valid active token can access a reschedulable booking | Unknown, used, expired, past-session, and wrong-status links are rejected; supported confirmed/email-failed/recoverable-failed bookings are accepted. Use one state-matrix test. | `bookingReschedule.getValidRescheduleLinkAndBookingInternal` |
-| RES-02 | P0 | Issuing a new reschedule link invalidates previous links | Only the newest link remains active and only token hashes are stored. | `bookingReschedule.createActiveRescheduleLinkInternal` |
+| RES-01 ✅ | P0 | Only a valid active token can access a reschedulable booking | Unknown, used, expired, past-session, and wrong-status links are rejected; supported confirmed/email-failed/recoverable-failed bookings are accepted. Use one state-matrix test. | `bookingReschedule.getValidRescheduleLinkAndBookingInternal` |
 | RES-03 ✅ | P0 | Invalid or busy target leaves the original booking untouched | The original Calendar event, booking timing, token state, and reminder state remain unchanged when the requested slot fails backend availability checks. | `googleCalendar.rescheduleBooking` |
 | RES-04 ✅ | P0 | Successful reschedule updates all related state | The Calendar event and booking timing move together, reminder state resets, the submitted link becomes used, a replacement link is created, and update emails run once. | `googleCalendar.rescheduleBooking`, `bookings.saveClientBookingRescheduleInternal` |
-| RES-05 | P0 | Recoverable failed booking can reschedule into confirmed state | A booking failed because its original time or Calendar creation was unavailable gets a new event, becomes `confirmed`, and clears the old failure code. | `googleCalendar.rescheduleBooking` |
+| RES-05 ✅ | P0 | Recoverable failed booking can reschedule into confirmed state | A booking failed because its original time or Calendar creation was unavailable gets a new event, becomes `confirmed`, and clears the old failure code. | `googleCalendar.rescheduleBooking` |
 | RES-06 ✅ | P0 | One reschedule token cannot be used concurrently twice | Concurrent submissions with the same token produce one successful move and at most one set of emails. This is an important risk-revealing test. | `googleCalendar.rescheduleBooking`, reschedule-link mutations |
 
 ---
