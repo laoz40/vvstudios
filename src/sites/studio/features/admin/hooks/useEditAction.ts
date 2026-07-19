@@ -114,6 +114,9 @@ export function useEditAction(booking: BookingRecord) {
 				case "BOOKING_INVALID_TIME":
 					toast.error("Enter a valid booking time.");
 					break;
+				case "BOOKING_INVALID_INPUT":
+					toast.error("Check the booking details and balance, then try again.");
+					break;
 				case "BOOKING_TIME_UNAVAILABLE":
 					toast.error("That time is no longer available. Choose another time.");
 					break;

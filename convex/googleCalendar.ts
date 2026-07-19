@@ -32,6 +32,7 @@ import {
 import {
 	failBookingCompletion,
 	getBookingSessionStartAt,
+	isValidBookingRemainingBalanceAmount,
 	type AdminBookingUpdateArgs,
 	type AdminBookingUpdateError,
 	type AdminBookingUpdateResult,
@@ -608,6 +609,10 @@ async function updateBookingFromAdminHandler(
 
 	if (authError !== null) {
 		return err(authError);
+	}
+
+	if (!isValidBookingRemainingBalanceAmount(args.remainingBalanceAmount)) {
+		return err({ reason: "BOOKING_INVALID_INPUT" });
 	}
 
 	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);

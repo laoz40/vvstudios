@@ -89,6 +89,9 @@ export function getRescheduleUpdateToastMessage(error: RescheduleUpdateToastErro
 		case "BOOKING_INVALID_TIME":
 			return "Please choose a valid time.";
 
+		case "BOOKING_INVALID_INPUT":
+			return "This booking can’t be updated from this link. Please contact us for help.";
+
 		case "BOOKING_TIME_UNAVAILABLE":
 			return "That time is no longer available. Please choose another time.";
 

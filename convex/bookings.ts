@@ -1276,6 +1276,7 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
 		confirmBooking: v.optional(v.boolean()),

@@ -128,6 +128,10 @@ export function calculateBookingRemainingBalanceAmount(
 	}).totalDueAmount;
 }
 
+export function isValidBookingRemainingBalanceAmount(amount?: number) {
+	return amount === undefined || (Number.isFinite(amount) && amount >= 0);
+}
+
 export function buildAdminBookingUpdatePatch({
 	booking,
 	timeZone,
@@ -137,6 +141,10 @@ export function buildAdminBookingUpdatePatch({
 	timeZone: string;
 	values: BookingEditValues;
 }) {
+	if (!isValidBookingRemainingBalanceAmount(values.remainingBalanceAmount)) {
+		return err({ reason: "BOOKING_INVALID_INPUT" as const });
+	}
+
 	const changes = getBookingEditFieldChanges(booking, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
@@ -250,6 +258,7 @@ export async function verifyBookingCanBeScheduled({
 
 export type AdminBookingUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }
@@ -608,7 +617,7 @@ async function applyAdminBookingUpdate({
 	reservation?: BookingReservation;
 	settings: BookingAvailabilitySettings;
 }): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// Failed bookings become confirmed when the edited slot can be scheduled.
+	// Failed checkouts have no Calendar event, so an admin edit creates one and confirms the booking.
 	if (booking.status === "failed") {
 		return promoteFailedBookingFromAdmin({ args, booking, client, ctx, reservation, settings });
 	}
