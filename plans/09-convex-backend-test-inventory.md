@@ -57,13 +57,12 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| ADMIN-01 | P0 | Admin timing edit cannot create a Calendar conflict | Editing around normal availability settings may be allowed for admin, but a conflicting Google event still rejects the change and leaves the booking untouched. | `googleCalendar.updateBookingFromAdmin` |
+| ADMIN-01 ✅ | P0 | Admin timing edit cannot create a Calendar conflict | Editing around normal availability settings may be allowed for admin, but a conflicting Google event still rejects the change and leaves the booking untouched. | `googleCalendar.updateBookingFromAdmin` |
 | ADMIN-02 ✅ | P0 | Editing a confirmed session keeps Convex and Calendar synchronized | Timing/customer/session changes update or recreate the Google event as required and persist the matching booking data and Calendar IDs. | `googleCalendar.updateBookingFromAdmin`, `lib/bookingAdminEdit.ts` |
-| ADMIN-03 | P0 | Admin can recover a supported failed booking | A valid edit creates the missing Calendar event and promotes the booking to `confirmed`; unavailable or Google-failed attempts leave it failed. | `googleCalendar.updateBookingFromAdmin` |
-| ADMIN-04 | P1 | Timing edits reset reminders but ordinary edits do not | A timing change clears reminder claim/sent/failure state; contact, notes, and other non-timing edits preserve it. | `bookings.saveAdminBookingUpdateInternal` |
-| ADMIN-05 | P0 | Admin financial edit stores one coherent recalculation | Editing duration/add-ons/quantities updates the booking balance consistently; an explicit valid override is respected and negative balances cannot be stored. | `bookings.updateBooking`, `updateBookingRemainingBalanceAmount` |
+| ADMIN-03 ✅ | P0 | Admin can recover a supported failed booking | A valid edit creates the missing Calendar event and promotes the booking to `confirmed`; unavailable or Google-failed attempts leave it failed. | `googleCalendar.updateBookingFromAdmin` |
+| ADMIN-04 ✅ | P1 | Timing edits reset reminders but ordinary edits do not | A timing change clears reminder claim/sent/failure state; contact, notes, and other non-timing edits preserve it. | `bookings.saveAdminBookingUpdateInternal` |
+| ADMIN-05 ✅ | P0 | Admin financial edit stores one coherent recalculation | Editing duration/add-ons/quantities updates the booking balance consistently; an explicit valid override is respected and negative balances cannot be stored. | `bookings.updateBooking`, `googleCalendar.updateBookingFromAdmin` |
 | ADMIN-06 ✅ | P0 | Admin deletion changes the booking only after Calendar deletion | Google deletion failure leaves the booking active; success or an already-missing event clears Calendar IDs and sets `cancelled`. | `googleCalendar.deleteBookingFromAdmin` |
-| ADMIN-07 | P1 | Session status changes obey supported source states | Editable statuses can transition as currently supported; pending/expired/abandoned/cancelled sources cannot be changed through the admin status mutation. | `bookings.updateBookingStatus` |
 
 ---
 
