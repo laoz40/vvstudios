@@ -14,14 +14,18 @@
  *    If Google Calendar now contains a conflicting event, the booking must fail without
  *    creating a calendar event or sending an email.
  *
- * 4. Two customers paid for the same time
+ * 4. Calendar creation failure
+ *    A Google Calendar failure must leave the booking in a recoverable failed state and
+ *    must not send confirmation or invoice emails.
+ *
+ * 5. Two customers paid for the same time
  *    Both completions run together. Only one booking may be confirmed, which proves the
  *    database reservation prevents double-booking.
  *
- * 5. Invalid Stripe webhook
+ * 6. Invalid Stripe webhook
  *    Requests with a missing or invalid signature must be rejected without changing data.
  *
- * 6. Valid Stripe webhook replay
+ * 7. Valid Stripe webhook replay
  *    The first request confirms the booking. Repeating it must return success without
  *    creating another calendar event or email.
  *
@@ -148,6 +152,21 @@ describe("booking payment completion", () => {
 			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE"
 		});
 		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
+		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
+	});
+
+	test("records a recoverable failure when Calendar event creation fails", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedClaimedBooking(t);
+		providerFakes.insertEvent.mockRejectedValue(new Error("Google Calendar unavailable"));
+
+		const result = await t.action(internal.googleCalendar.completeClaimedBooking, { bookingId });
+
+		expect(result).toEqual([null, { completed: false, outcome: "google_calendar_create_failed" }]);
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			status: "failed",
+			bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
+		});
 		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
 	});
 
