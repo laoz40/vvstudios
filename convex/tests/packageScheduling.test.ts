@@ -1,31 +1,35 @@
 /**
- * These tests cover creating package sessions from a customer scheduling link.
- * They verify that invalid requests have no side effects, successful requests
- * keep Convex and Google Calendar in sync, and partial failures are compensated.
+ * These tests cover reading and creating package sessions from a customer scheduling link.
+ * They verify that the public read path enforces every package lifecycle state, invalid create
+ * requests have no side effects, successful requests keep Convex and Google Calendar in sync,
+ * and partial failures are compensated.
  *
- * 1. Invalid scheduling token
+ * 1. Public scheduling-link access
+ *    Unknown, unpaid, disabled, and expired links cannot read package scheduling data.
+ *
+ * 2. Invalid scheduling token
  *    An unknown token cannot select a package or create any records. The token
  *    is a random secret whose hash is stored on the package; it is not a package ID.
  *
- * 2. Expired package
+ * 3. Expired package
  *    A package cannot schedule another session at or after its expiry time.
  *
- * 3. Package capacity
+ * 4. Package capacity
  *    A package with all purchased sessions already scheduled cannot add another.
  *
- * 4. Unavailable time
+ * 5. Unavailable time
  *    A time that overlaps an existing Calendar event cannot create a booking or
  *    another Calendar event.
  *
- * 5. Successful scheduling
+ * 6. Successful scheduling
  *    One matching Calendar event and confirmed Convex booking are created with
  *    the package snapshot, session choices, package link, and Calendar IDs.
  *
- * 6. Concurrent final-slot requests
+ * 7. Concurrent final-slot requests
  *    When two requests race for the last package session, only one booking wins
  *    and the Calendar event created by the losing request is deleted.
  *
- * 7. Cleanup when saving fails
+ * 8. Cleanup when saving fails
  *    Tests two requests competing for the final package slot. The request that
  *    saves its Convex booking first keeps its Calendar event. The losing request,
  *    which already created a Calendar event, deletes its own event.
@@ -83,6 +87,39 @@ beforeEach(() => {
 	providerFakes.deleteEvent.mockResolvedValue({ data: {} });
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "google-event-1" } });
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
+});
+
+describe("package scheduling link access", () => {
+	test.each([
+		{ name: "unknown", seed: false, overrides: {}, expectedReason: "PACKAGE_LINK_INVALID" },
+		{
+			name: "unpaid",
+			seed: true,
+			overrides: { status: "pending_payment" as const },
+			expectedReason: "PACKAGE_NOT_PAID"
+		},
+		{
+			name: "disabled",
+			seed: true,
+			overrides: { scheduleLinkStatus: "disabled" as const },
+			expectedReason: "PACKAGE_LINK_INACTIVE"
+		},
+		{
+			name: "expired",
+			seed: true,
+			overrides: { expiresAt: now },
+			expectedReason: "PACKAGE_LINK_EXPIRED"
+		}
+	])("rejects a $name token on the public read path", async (testCase) => {
+		const t = createConvexTest();
+		const seededPackage = testCase.seed ? await seedPackage(t, testCase.overrides) : null;
+
+		const result = await t.query(api.packageScheduling.getPackageByToken, {
+			token: seededPackage?.token ?? "unknown-token"
+		});
+
+		expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+	});
 });
 
 describe("package session creation validation", () => {
@@ -242,7 +279,14 @@ describe("package session creation validation", () => {
 	});
 });
 
-async function seedPackage(t: TestClient, overrides: { expiresAt?: number } = {}) {
+async function seedPackage(
+	t: TestClient,
+	overrides: {
+		expiresAt?: number;
+		scheduleLinkStatus?: "active" | "disabled";
+		status?: "paid" | "pending_payment";
+	} = {}
+) {
 	const token = "package-scheduling-token";
 	const scheduleTokenHash = await hashRescheduleToken(token);
 	const packageId = await t.run((ctx) =>
@@ -259,14 +303,14 @@ async function seedPackage(t: TestClient, overrides: { expiresAt?: number } = {}
 			discountPercent: 10,
 			discountAmount: 40,
 			totalDueAmount: 360,
-			status: "paid",
+			status: overrides.status ?? "paid",
 			createdAt: now - 1_000,
 			invoiceDueAt: now - 500,
 			paidAt: now - 100,
 			expiresAt: overrides.expiresAt ?? Date.parse("2030-01-20T00:00:00.000Z"),
 			invoiceEmailStatus: "sent",
 			scheduleTokenHash,
-			scheduleLinkStatus: "active"
+			scheduleLinkStatus: overrides.scheduleLinkStatus ?? "active"
 		})
 	);
 

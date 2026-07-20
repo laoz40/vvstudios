@@ -70,16 +70,16 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| PKG-01 | P1 | Valid package request stores the correct commercial snapshot | One pending package is created with normalized customer data, package size, calculated price/discount/line items, seven-day invoice due date, and pending invoice state. | `multiBookings.createMultiBookingRequest`, `bookings.createPendingMultiBooking` |
-| PKG-02 | P1 | Invalid package request creates nothing | Representative invalid form/package data or undeliverable email returns the stable error without package or email side effects. | `multiBookings.createMultiBookingRequest` |
-| PKG-03 | P0 | Invoice delivery result drives package invoice state | Successful delivery records invoice metadata; failed delivery preserves the package but records `invoice_email_failed` so admin can retry. | `multiBookings.createMultiBookingRequest`, `bookings.markMultiBookingInvoiceEmailAttempt` |
-| PKG-04 | P0 | Package payment confirmation is admin-only and idempotent | Only an unpaid package can transition once; repeated/concurrent confirmation cannot create multiple paid lifecycles or tokens. | `multiBookings.confirmPackagePayment` |
+| PKG-01 ✅ | P1 | Valid package request stores the correct commercial snapshot | One pending package is created with normalized customer data, package size, calculated price/discount/line items, seven-day invoice due date, and pending invoice state. | `multiBookings.createMultiBookingRequest`, `bookings.createPendingMultiBooking` |
+| PKG-02 ✅ | P1 | Invalid package request creates nothing | Representative invalid form/package data or undeliverable email returns the stable error without package or email side effects. | `multiBookings.createMultiBookingRequest` |
+| PKG-03 ✅ | P0 | Invoice delivery result drives package invoice state | Successful delivery records invoice metadata; failed delivery preserves the package but records `invoice_email_failed` so admin can retry. | `multiBookings.createMultiBookingRequest`, `bookings.markMultiBookingInvoiceEmailAttempt` |
+| PKG-04 ✅ | P0 | Package payment confirmation is admin-only and idempotent | Only an unpaid package can transition once; repeated/concurrent confirmation cannot create multiple paid lifecycles or tokens. | `multiBookings.confirmPackagePayment` |
 | PKG-05 ✅ | P0 | Confirming payment initializes the complete scheduling lifecycle | Paid time, package-size-based expiry, active token hash, expiry adjustment job, and scheduling-email state are created together. | `bookings.markPackagePaidAndCreateScheduleTokenInternal` |
-| PKG-06 | P0 | Scheduling email success/failure is recoverable | Success completes `paid`; failure leaves `schedule_email_failed`; retry rotates the token while retaining original paid and expiry times. | `multiBookings.confirmPackagePayment`, `retryMultiBookingSchedulingEmail` |
-| PKG-07 | P0 | Marking a package unpaid revokes scheduling access | Paid/expiry/token/link/reminder state is cleared and old scheduling tokens stop working. | `bookings.markPackagePaymentStatus` |
-| PKG-08 | P0 | Package token enforces payment, link status, and expiry | Unknown, unpaid, disabled, and expired package links cannot read or mutate package scheduling data. | `packageScheduling.getPackageByToken`, token helpers |
-| PKG-09 | P0 | Admin cannot shrink a package below used capacity | The edit is rejected without changing package fields or financial snapshots. | `bookings.updatePackageFromAdmin` |
-| PKG-10 | P0 | Admin package pricing edit updates its snapshot atomically | Session amount, subtotal, discount, total, and invoice line items remain coherent after edit; a valid custom total affects only the intended final amount. | `bookings.updatePackageFromAdmin` |
+| PKG-06 ✅ | P0 | Scheduling email success/failure is recoverable | Success completes `paid`; failure leaves `schedule_email_failed`; retry rotates the token while retaining original paid and expiry times. | `multiBookings.confirmPackagePayment`, `retryMultiBookingSchedulingEmail` |
+| PKG-07 ✅ | P0 | Marking a package unpaid revokes scheduling access | Paid/expiry/token/link/reminder state is cleared and old scheduling tokens stop working. | `bookings.markPackagePaymentStatus` |
+| PKG-08 ✅ | P0 | Package token enforces payment, link status, and expiry | Unknown, unpaid, disabled, and expired package links cannot read or mutate package scheduling data. | `packageScheduling.getPackageByToken`, token helpers |
+| PKG-09 ✅ | P0 | Admin cannot shrink a package below used capacity | The edit is rejected without changing package fields or financial snapshots. | `bookings.updatePackageFromAdmin` |
+| PKG-10 ✅ | P0 | Admin package pricing edit updates its snapshot atomically | Session amount, subtotal, discount, total, and invoice line items remain coherent after edit; a valid custom total affects only the intended final amount. | `bookings.updatePackageFromAdmin` |
 
 ---
 
