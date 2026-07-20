@@ -115,10 +115,10 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| INV-01 | P0 | Booking invoice amount remains financially valid | Duration, add-ons, independent edit quantities, deposit, and optional admin override produce the expected nonnegative total and balancing adjustment. Test through artifact generation rather than each helper. | Booking invoice artifact flow |
-| INV-02 | P0 | Package invoice uses its stored commercial snapshot | Later pricing or configuration changes do not alter an existing package invoice. | `lib/bookingInvoiceArtifacts.ts` |
-| INV-03 | P0 | Custom invoices require admin, valid source, and valid total | Missing source and negative/non-finite totals create no invoice; valid booking/package custom invoices store a final invoice number and requested total. | `convex/customInvoices.ts` |
-| INV-04 | P0 | Public invoice downloads obey access windows and lifecycle | Single and package public downloads reject missing, invalid-state, or expired records; admin download remains available where designed. | `convex/invoices.ts` |
+| INV-01 ✅ | P0 | Booking invoice amount remains financially valid | Duration, add-ons, independent edit quantities, deposit, and optional admin override produce the expected nonnegative total and balancing adjustment. Test through artifact generation rather than each helper. | Booking invoice artifact flow |
+| INV-02 ✅ | P0 | Package invoice uses its stored commercial snapshot | Later pricing or configuration changes do not alter an existing package invoice. | `lib/bookingInvoiceArtifacts.ts` |
+| INV-03 ✅ | P0 | Custom invoices require admin, valid source, and valid total | Missing source and negative/non-finite totals create no invoice; valid booking/package custom invoices store a final invoice number and requested total. | `convex/customInvoices.ts` |
+| INV-04 ✅ | P0 | Public invoice downloads obey access windows and lifecycle | Single and package public downloads reject missing, invalid-state, or expired records; admin download remains available where designed. | `convex/invoices.ts` |
 
 ---
 
