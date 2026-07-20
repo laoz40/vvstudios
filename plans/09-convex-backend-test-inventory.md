@@ -101,13 +101,13 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| ADJ-01 | P0 | Closeout charges only completed eligible Remote Podcast sessions | Only ended, capacity-consuming package sessions with Remote Podcast count; unrelated, cancelled, or still-running sessions do not. | Package adjustment processor |
-| ADJ-02 | P0 | Package does not close out too early | Completion closeout requires all package slots scheduled and all relevant sessions ended; expiry jobs with stale expiry data are ignored. | `processPackageAdjustmentWhenSessionsCompleteInternal`, `processPackageAdjustmentAtExpiryInternal` |
+| ADJ-01 ✅ | P0 | Closeout charges only completed eligible Remote Podcast sessions | Only ended, capacity-consuming package sessions with Remote Podcast count; unrelated, cancelled, or still-running sessions do not. | Package adjustment processor |
+| ADJ-02 ✅ | P0 | Package does not close out too early | Completion closeout requires all package slots scheduled and all relevant sessions ended; expiry jobs with stale expiry data are ignored. | `processPackageAdjustmentWhenSessionsCompleteInternal`, `processPackageAdjustmentAtExpiryInternal` |
 | ADJ-03 ✅ | P0 | Closeout creates the correct no-charge or invoice-required outcome | Zero eligible sessions create one internal no-charge record and no email; positive usage creates one unpaid invoice snapshot with seven-day due date and schedules delivery. | Package adjustment processor |
 | ADJ-04 ✅ | P0 | Closeout is idempotent under retries and concurrent jobs | One package produces at most one adjustment and one automatic invoice job regardless of repeated expiry/completion triggers. | Package adjustment processor; concurrency test |
 | ADJ-05 ✅ | P0 | Adjustment invoice delivery claim has one sender | Concurrent/replayed automatic or retry attempts cannot send the same adjustment invoice twice; stale claim timeouts cannot overwrite a newer attempt. | `packageAdjustments.claimPackageAdjustmentInvoiceEmail` and result mutations |
 | ADJ-06 ✅ | P0 | Adjustment delivery status remains recoverable | Successful email marks sent; provider/render failure marks failed and allows admin retry; stored financial values are used rather than current pricing. | `packageAdjustmentInvoices.sendPackageAdjustmentInvoiceInternal` |
-| ADJ-07 | P0 | Adjustment payment and download require admin and a sent invoice | Pending/failed/no-charge adjustments cannot be marked paid or downloaded as if sent; valid sent invoices can be toggled paid and downloaded. | `packageAdjustments.markPackageAdjustmentPaymentStatus`, `getAdminPackageAdjustmentInvoicePdf` |
+| ADJ-07 ✅ | P0 | Adjustment payment and download require admin and a sent invoice | Pending/failed/no-charge adjustments cannot be marked paid or downloaded as if sent; valid sent invoices can be toggled paid and downloaded. | `packageAdjustments.markPackageAdjustmentPaymentStatus`, `getAdminPackageAdjustmentInvoicePdf` |
 
 ---
 

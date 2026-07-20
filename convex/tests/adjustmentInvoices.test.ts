@@ -18,6 +18,11 @@
  *    Successful delivery must mark the invoice sent. Failed delivery must mark it failed so an
  *    admin can retry, using the financial values already stored on the adjustment.
  *
+ * 5. Which sessions are charged and when an invoice can be used
+ *    Only completed Remote Podcast sessions from this package are charged. The final adjustment
+ *    waits until every package slot is booked and every session has ended. An admin can change
+ *    payment status or download the invoice only after the invoice email was sent.
+ *
  * Invoice email delivery is replaced with a fake, so no real provider request is made.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -102,6 +107,55 @@ describe("package adjustment closeout", () => {
 		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(1);
 	});
 
+	test("charges only completed capacity-consuming Remote Podcast sessions from its package", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		const otherPackageId = await seedPaidPackage(t);
+		const eligibleBookingId = await seedPackageBooking(t, packageId, ["Remote Podcast"]);
+		await seedPackageBooking(t, packageId, ["Remote Podcast"], { status: "cancelled" });
+		await seedPackageBooking(t, otherPackageId, ["Remote Podcast"]);
+
+		await processExpiredPackage(t, packageId);
+		const [adjustment] = await readAdjustments(t, packageId);
+
+		expect(adjustment).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 1,
+			remotePodcastBookingIds: [eligibleBookingId],
+			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
+		});
+	});
+
+	test("completion closeout waits until every package slot is scheduled", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		await Promise.all([
+			seedPackageBooking(t, packageId, ["Remote Podcast"]),
+			seedPackageBooking(t, packageId, []),
+			seedPackageBooking(t, packageId, [])
+		]);
+
+		await processCompletedPackage(t, packageId);
+
+		expect(await readAdjustments(t, packageId)).toEqual([]);
+	});
+
+	test("completion closeout waits until every scheduled session has ended", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		await Promise.all([
+			seedPackageBooking(t, packageId, ["Remote Podcast"]),
+			seedPackageBooking(t, packageId, []),
+			seedPackageBooking(t, packageId, []),
+			seedPackageBooking(t, packageId, ["Remote Podcast"], { sessionStartAt: now + 60 * 60 * 1000 })
+		]);
+
+		await processCompletedPackage(t, packageId);
+
+		expect(await readAdjustments(t, packageId)).toEqual([]);
+		expect(await readScheduledJobs(t)).toHaveLength(1);
+	});
+
 	test("ignores a closeout job for an old package expiry", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
@@ -134,6 +188,96 @@ describe("package adjustment closeout", () => {
 
 		expect(await readAdjustments(t, packageId)).toHaveLength(1);
 		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("package adjustment payment and download", () => {
+	test.each(["pending", "failed"] as const)(
+		"rejects payment changes and downloads while invoice email is %s",
+		async (invoiceEmailStatus) => {
+			const t = createConvexTest();
+			const { adjustmentId } = await seedInvoiceAdjustment(t, invoiceEmailStatus);
+			const admin = t.withIdentity(adminIdentity);
+
+			const paymentResult = await admin.mutation(
+				api.packageAdjustments.markPackageAdjustmentPaymentStatus,
+				{ adjustmentId, paid: true }
+			);
+			const downloadResult = await admin.action(
+				api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf,
+				{ adjustmentId }
+			);
+
+			expect(paymentResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
+			expect(downloadResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
+			expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
+		}
+	);
+
+	test("rejects payment changes and downloads for a no-charge adjustment", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		const adjustmentId = await t.run((ctx) =>
+			ctx.db.insert("packageAdjustments", {
+				outcome: "no_charge",
+				multiBookingId: packageId,
+				trigger: "package_expired",
+				remotePodcastBookingIds: [],
+				quantity: 0,
+				rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
+				totalAmount: 0,
+				createdAt: now
+			})
+		);
+		const admin = t.withIdentity(adminIdentity);
+
+		expect(
+			await admin.mutation(api.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+				adjustmentId,
+				paid: true
+			})
+		).toEqual([{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }, null]);
+		expect(
+			await admin.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, {
+				adjustmentId
+			})
+		).toEqual([{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }, null]);
+	});
+
+	test("allows a sent invoice to be downloaded", async () => {
+		const t = createConvexTest();
+		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent");
+
+		const [error, download] = await t
+			.withIdentity(adminIdentity)
+			.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, { adjustmentId });
+
+		expect(error).toBeNull();
+		expect(download).toMatchObject({ contentType: "application/pdf" });
+		expect(download?.filename).toMatch(/\.pdf$/);
+		expect(download?.content.byteLength).toBeGreaterThan(0);
+	});
+
+	test("allows a sent invoice payment status to be toggled", async () => {
+		const t = createConvexTest();
+		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent");
+		const admin = t.withIdentity(adminIdentity);
+
+		expect(
+			await admin.mutation(api.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+				adjustmentId,
+				paid: true
+			})
+		).toEqual([null, { updated: true }]);
+		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid" });
+
+		expect(
+			await admin.mutation(api.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+				adjustmentId,
+				paid: false
+			})
+		).toEqual([null, { updated: true }]);
+		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
 	});
 });
 
@@ -268,7 +412,8 @@ async function seedPaidPackage(t: TestClient) {
 async function seedPackageBooking(
 	t: TestClient,
 	packageId: Id<"multiBookingPackages">,
-	addons: string[]
+	addons: string[],
+	overrides: { sessionStartAt?: number; status?: "confirmed" | "cancelled" } = {}
 ) {
 	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
@@ -278,11 +423,11 @@ async function seedPackageBooking(
 			email: "customer@example.com",
 			date: "2030-01-09",
 			time: "10:00",
-			sessionStartAt: completedSessionStartAt,
+			sessionStartAt: overrides.sessionStartAt ?? completedSessionStartAt,
 			duration: "1h",
 			service: "Table Setup",
 			addons,
-			status: "confirmed",
+			status: overrides.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
 			multiBookingPackageId: packageId
 		})
@@ -296,7 +441,17 @@ async function processExpiredPackage(t: TestClient, packageId: Id<"multiBookingP
 	});
 }
 
-async function seedFailedAdjustment(t: TestClient) {
+async function processCompletedPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
+	return await t.mutation(
+		internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+		{ multiBookingId: packageId }
+	);
+}
+
+async function seedInvoiceAdjustment(
+	t: TestClient,
+	invoiceEmailStatus: "pending" | "sent" | "failed"
+) {
 	const packageId = await seedPaidPackage(t);
 	const adjustmentId = await t.run((ctx) =>
 		ctx.db.insert("packageAdjustments", {
@@ -310,11 +465,15 @@ async function seedFailedAdjustment(t: TestClient) {
 			invoiceNumber: "TEST-ADJ-1",
 			createdAt: now,
 			invoiceDueAt: now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-			invoiceEmailStatus: "failed",
+			invoiceEmailStatus,
 			paymentStatus: "unpaid"
 		})
 	);
 	return { adjustmentId, packageId };
+}
+
+async function seedFailedAdjustment(t: TestClient) {
+	return seedInvoiceAdjustment(t, "failed");
 }
 
 async function claimInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">, at: number) {
@@ -336,4 +495,8 @@ async function readAdjustments(t: TestClient, packageId: Id<"multiBookingPackage
 
 async function readAdjustment(t: TestClient, adjustmentId: Id<"packageAdjustments">) {
 	return await t.run((ctx) => ctx.db.get(adjustmentId));
+}
+
+async function readScheduledJobs(t: TestClient) {
+	return await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 }
