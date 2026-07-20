@@ -126,12 +126,12 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| REM-01 | P0 | Daily reminder dispatcher runs the complete morning workflow | The daily run processes all due booking, package payment, and package expiry reminders together. | `reminders.sendDueReminderEmails` |
-| REM-02 | P0 | Reminder eligibility respects lifecycle, date range, and remaining sessions | Ineligible statuses, already-sent reminders, out-of-range bookings/packages, and packages with no remaining sessions are skipped. | Reminder list queries and dispatcher |
-| REM-03 | P0 | Reminder claims prevent duplicate emails | Concurrent/replayed jobs produce at most one send for a booking/package reminder. | Booking and package reminder claim mutations |
-| REM-04 | P0 | Reminder success and failure are persisted | Successful send records sent time; provider failure records failure and follows the supported retry behaviour. | Reminder actions and mark mutations |
-| EMAIL-01 | P1 | Deliverables email requires admin and valid booking/Drive link | Invalid requests make no provider call; valid request sends normalized customer/session details and link. | `deliverablesEmail.sendBookingDeliverablesEmail` |
-| EMAIL-02 | P1 | Feedback rejects blank or rate-limited submissions and escapes content | Blank/rate-limited requests send nothing; valid untrusted content is safely sent; provider failure returns `SEND_FAILED`. | `feedback.submit` |
+| REM-01 ✅ | P0 | Daily reminder dispatcher runs the complete morning workflow | The daily run processes all due booking, package payment, and package expiry reminders together. | `reminders.sendDueReminderEmails` |
+| REM-02 ✅ | P0 | Reminder eligibility respects lifecycle, date range, and remaining sessions | Ineligible statuses, already-sent reminders, out-of-range bookings/packages, and packages with no remaining sessions are skipped. | Reminder list queries and dispatcher |
+| REM-03 ✅ | P0 | Reminder claims prevent duplicate emails | Concurrent/replayed jobs produce at most one send for a booking/package reminder. | Booking and package reminder claim mutations |
+| REM-04 ✅ | P0 | Reminder success and failure are persisted | Successful send records sent time; provider failure records failure and follows the supported retry behaviour. | Reminder actions and mark mutations |
+| EMAIL-01 ✅ | P1 | Deliverables email requires admin and valid booking/Drive link | Invalid requests make no provider call; valid request sends normalized customer/session details and link. | `deliverablesEmail.sendBookingDeliverablesEmail` |
+| EMAIL-02 ✅ | P1 | Feedback rejects blank or rate-limited submissions and escapes content | Blank/rate-limited requests send nothing; valid untrusted content is safely sent; provider failure returns `SEND_FAILED`. | `feedback.submit` |
 
 ---
 
@@ -165,6 +165,8 @@ The following do not need dedicated tests unless they later cause regressions:
 - Each date helper independently when its behaviour is covered by booking/rescheduling flows.
 - Schema literals already exercised by higher-level mutations.
 - Basic list ordering unless it becomes a user-visible requirement.
+- Reminder stale-claim recovery. A process crash after a reminder is claimed may cause that
+  non-critical reminder to be missed; this accepted trade-off favors simple duplicate prevention.
 
 ## Comments
 

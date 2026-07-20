@@ -297,6 +297,10 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	}
 }
 
+// If this action crashes after claiming a reminder, that reminder stays claimed and will not retry.
+// Handling that rare case would require expiring claims, scheduling a targeted retry, and preventing
+// the original attempt from later overwriting the retry. We intentionally omit that complexity because
+// these are non-critical reminders; preventing duplicate emails is more important than guaranteed delivery.
 export const sendDueReminderEmails = internalAction({
 	args: {},
 	handler: async (ctx) => {
