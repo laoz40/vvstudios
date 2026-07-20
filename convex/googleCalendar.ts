@@ -883,6 +883,23 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		}
 	);
 	if (completionError !== null) {
+		// This attempt no longer owns the reservation, so remove its untracked Calendar event.
+		if (googleEventId) {
+			try {
+				await calendarClient.calendar.events.delete({
+					calendarId: calendarClient.calendarId,
+					eventId: googleEventId,
+					sendUpdates: "all"
+				});
+			} catch (error) {
+				console.error("Orphaned booking Calendar event cleanup failed", {
+					bookingId: booking._id,
+					googleEventId,
+					error
+				});
+			}
+		}
+
 		return ok({ completed: false, outcome: "reservation_lost" as const });
 	}
 
