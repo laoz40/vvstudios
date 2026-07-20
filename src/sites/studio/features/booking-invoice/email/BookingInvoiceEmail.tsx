@@ -14,7 +14,6 @@ import {
 } from "@react-email/components";
 import { formatAud } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceData } from "#studio/features/booking-invoice/lib/types";
-import { formatTimeValue } from "#studio/lib/bookingdatetime";
 
 export interface BookingInvoiceEmailProps {
 	data: BookingInvoiceData;
@@ -30,15 +29,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 		isPackageInvoice || isAdjustmentInvoice
 			? data.notes.paymentNote
 			: data.notes.paymentNote.replace(` ${receiptNote}`, "");
-	const formattedSessionTime = formatTimeValue(data.booking.time);
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
-	const bookingDescription = data.booking.service
-		? `Your ${data.booking.service.toLowerCase()} ${isPackageInvoice ? "package" : "session"}`
-		: "Your invoice";
 	const packageDescription = data.package
 		? `Your ${data.package.size}-session package invoice`
 		: "Your package invoice";
-	let introText = `${bookingDescription} on ${data.booking.bookingDateLabel} at ${formattedSessionTime} has been booked. Your fully itemised invoice is attached to this email.`;
+	let introText = `Your invoice for your session on ${data.booking.bookingDateLabel} is ready and attached to this email.`;
 	let previewText = `Studio booking confirmed! Your booking invoice is ready with a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
 
 	if (packageDetails) {

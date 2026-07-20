@@ -11,7 +11,7 @@ import {
 	getLastBookableDate,
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
-import { createRescheduleUrlForBooking } from "./bookingReschedule";
+import { createRescheduleUrlForBooking, getRescheduleUrlForToken } from "./bookingReschedule";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getAdminIdentity } from "./lib/auth";
 import { getBookingFromQuery } from "./lib/bookingLookup";
@@ -31,9 +31,12 @@ import {
 } from "./lib/email";
 import {
 	failBookingCompletion,
+	getBookingSessionStartAt,
+	isValidBookingRemainingBalanceAmount,
 	type AdminBookingUpdateArgs,
 	type AdminBookingUpdateError,
 	type AdminBookingUpdateResult,
+	validateBookingTimingEdit,
 	verifyBookingCanBeScheduled,
 	updateBookingFromAdminWithGoogleCalendar,
 	updateBookingTimingWithGoogleCalendar
@@ -50,12 +53,16 @@ import {
 } from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./bookingReschedule";
 import type { MarkBookingCalendarEventDeletedResult } from "./bookings";
+import type { BookingReservation } from "./lib/bookingReservations";
 
 function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
 }
 
-type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
+type SendBookingInvoiceForBookingArgs = {
+	bookingId: Id<"bookings">;
+	customInvoiceId?: Id<"customInvoices">;
+};
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
 export type DeleteBookingFromAdminResult = Result<
@@ -415,7 +422,71 @@ async function rescheduleBookingHandler(
 	const { booking, link } = result;
 	const calendarClient = getGoogleCalendarClient();
 	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-	//
+
+	// Check the new time before temporarily locking the reschedule link.
+	const [timingValidationError] = await validateBookingTimingEdit({
+		calendar: calendarClient.calendar,
+		calendarIds: calendarClient.calendarIds,
+		existing: {
+			date: booking.date,
+			duration: booking.duration,
+			googleCalendarId: booking.googleCalendarId,
+			googleEventId: booking.googleEventId,
+			time: booking.time
+		},
+		next: { date: args.date, duration: booking.duration, time: args.time },
+		settings,
+		timeZone: calendarClient.timeZone
+	});
+
+	if (timingValidationError !== null) {
+		return err(timingValidationError);
+	}
+
+	// Lock the link so two requests cannot reschedule the booking at the same time.
+	const lockedAt = Date.now();
+	const [lockError] = await ctx.runMutation(internal.bookingReschedule.lockRescheduleLinkInternal, {
+		linkId: link._id,
+		now: lockedAt
+	});
+
+	if (lockError !== null) {
+		return err(lockError);
+	}
+
+	const [startError, targetSessionStartAt] = getBookingSessionStartAt(
+		args.date,
+		args.time,
+		calendarClient.timeZone
+	);
+	if (startError !== null) {
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
+		return err(startError);
+	}
+
+	// Reserve before moving the Calendar event so every booking flow sees this target.
+	const [reservationError, reservationResult] = await ctx.runMutation(
+		internal.bookings.reserveBookingReservation,
+		{
+			bookingId: booking._id,
+			duration: booking.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			now: Date.now(),
+			sessionStartAt: targetSessionStartAt
+		}
+	);
+	if (reservationError !== null || reservationResult.outcome === "unavailable") {
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
+		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+	}
+	const reservation = reservationResult.reservation;
+
 	// Move the booking to the requested date and time in Google Calendar first.
 	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
 		booking,
@@ -435,6 +506,15 @@ async function rescheduleBookingHandler(
 	});
 
 	if (timingUpdateError !== null) {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+			bookingId: booking._id,
+			reservation
+		});
+		// Unlock the link so the customer can retry after a Calendar failure.
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
 		return err(timingUpdateError);
 	}
 
@@ -449,19 +529,23 @@ async function rescheduleBookingHandler(
 		time: args.time,
 		sessionStartAt,
 		confirmBooking: booking.status === "failed",
+		reservation,
 		...(googleCalendarId ? { googleCalendarId } : {}),
 		...(googleEventId ? { googleEventId } : {})
 	});
 
 	if (saveError !== null) {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+			bookingId: booking._id,
+			reservation
+		});
+		// Unlock the link so the customer can retry after a save failure.
+		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+			linkId: link._id,
+			lockedAt
+		});
 		return err(saveError);
 	}
-
-	// Mark this reschedule link as used so it cannot be reused.
-	await ctx.runMutation(internal.bookingReschedule.markRescheduleLinkUsedInternal, {
-		linkId: link._id,
-		now: Date.now()
-	});
 
 	const updatedBooking = {
 		...booking,
@@ -472,17 +556,16 @@ async function rescheduleBookingHandler(
 		googleEventId: googleEventId ?? booking.googleEventId
 	};
 
-	// Create a fresh reschedule link, then send the updated booking emails.
-	// Known edge case: see convex/googleCalendar.ts:573.
-	const [linkCreateError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, updatedBooking);
-
-	if (linkCreateError !== null) {
-		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" });
-	}
+	// Unlock the link after the move so the customer can use it again.
+	await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		linkId: link._id,
+		lockedAt,
+		expiresAt: sessionStartAt
+	});
 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl
+		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 
 	if (emailError !== null) {
@@ -531,6 +614,10 @@ async function updateBookingFromAdminHandler(
 		return err(authError);
 	}
 
+	if (!isValidBookingRemainingBalanceAmount(args.remainingBalanceAmount)) {
+		return err({ reason: "BOOKING_INVALID_INPUT" });
+	}
+
 	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
@@ -548,7 +635,7 @@ export type UpdateBookingFromAdminResult = Awaited<
 >;
 
 export const sendBookingInvoiceForBooking = action({
-	args: { bookingId: v.id("bookings") },
+	args: { bookingId: v.id("bookings"), customInvoiceId: v.optional(v.id("customInvoices")) },
 	handler: (ctx, args) => sendBookingInvoiceForBookingHandler(ctx, args)
 });
 
@@ -568,6 +655,17 @@ async function sendBookingInvoiceForBookingHandler(
 		return err(bookingError);
 	}
 
+	const customInvoice = args.customInvoiceId
+		? await ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSourceInternal, {
+				bookingId: booking._id,
+				customInvoiceId: args.customInvoiceId
+			})
+		: undefined;
+
+	if (args.customInvoiceId && !customInvoice) {
+		return err({ reason: "CUSTOM_INVOICE_NOT_FOUND" });
+	}
+
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 
@@ -576,6 +674,7 @@ async function sendBookingInvoiceForBookingHandler(
 	}
 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		customInvoice: customInvoice ?? undefined,
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl
 	});
@@ -677,6 +776,16 @@ export const sendBookingReminderEmailForBooking = internalAction({
 	}
 });
 
+type ReserveBookingResult = Result<
+	{ outcome: "unavailable" } | { outcome: "reserved"; reservation: BookingReservation },
+	{ reason: "BOOKING_NOT_FOUND" }
+>;
+
+type MarkBookingCompletedResult = Result<
+	{ updated: true },
+	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
+>;
+
 export const completeClaimedBooking = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) => completeClaimedBookingHandler(ctx, args)
@@ -713,6 +822,24 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
+	// Atomically reserve the window so concurrent payment completions cannot both create events.
+	const [reservationError, reservationResult]: ReserveBookingResult = await ctx.runMutation(
+		internal.bookings.reserveBookingReservation,
+		{
+			bookingId: booking._id,
+			duration: booking.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			now: Date.now(),
+			sessionStartAt: booking.sessionStartAt
+		}
+	);
+
+	if (reservationError !== null || reservationResult.outcome === "unavailable") {
+		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+		return ok({ completed: false, outcome: "booking_time_unavailable" });
+	}
+
+	const reservation = reservationResult.reservation;
 	const [payloadError, requestBody] = buildBookingCalendarEventPayload({
 		date: booking.date,
 		time: booking.time,
@@ -727,7 +854,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	});
 
 	if (payloadError !== null) {
-		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT");
+		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT", reservation);
 		return ok({ completed: false, outcome: "booking_invalid_input" });
 	}
 
@@ -741,18 +868,42 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
-		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED");
+		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
 
 		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
 
-	await ctx.runMutation(internal.bookings.markBookingCompleted, {
-		bookingId: booking._id,
-		googleEventId,
-		googleCalendarId: calendarClient.calendarId
-	});
+	const [completionError]: MarkBookingCompletedResult = await ctx.runMutation(
+		internal.bookings.markBookingCompleted,
+		{
+			bookingId: booking._id,
+			googleEventId,
+			googleCalendarId: calendarClient.calendarId,
+			reservation
+		}
+	);
+	if (completionError !== null) {
+		// This attempt no longer owns the reservation, so remove its untracked Calendar event.
+		if (googleEventId) {
+			try {
+				await calendarClient.calendar.events.delete({
+					calendarId: calendarClient.calendarId,
+					eventId: googleEventId,
+					sendUpdates: "all"
+				});
+			} catch (error) {
+				console.error("Orphaned booking Calendar event cleanup failed", {
+					bookingId: booking._id,
+					googleEventId,
+					error
+				});
+			}
+		}
 
-	// Known edge case: see convex/googleCalendar.ts:573.
+		return ok({ completed: false, outcome: "reservation_lost" as const });
+	}
+
+	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 
 	if (linkError !== null) {

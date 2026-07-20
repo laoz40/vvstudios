@@ -101,8 +101,11 @@ export function SessionActionsDialogs({
 				open={invoiceActions.isEmailInvoiceDialogOpen}
 				bookingName={booking.name}
 				bookingEmail={booking.email}
+				customInvoices={invoiceActions.customInvoices}
 				isSending={invoiceActions.isEmailingInvoice}
+				selectedCustomInvoiceId={invoiceActions.selectedEmailCustomInvoiceId}
 				onOpenChange={invoiceActions.setIsEmailInvoiceDialogOpen}
+				onSelectedCustomInvoiceIdChange={invoiceActions.setSelectedEmailCustomInvoiceId}
 				onSend={() => {
 					void invoiceActions.handleEmailInvoice();
 				}}

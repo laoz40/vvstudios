@@ -287,7 +287,11 @@ export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEm
 
 export async function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
-	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+	options: {
+		customInvoice?: Doc<"customInvoices">;
+		leadTimeMinutes: number;
+		rescheduleUrl?: string;
+	}
 ): Promise<
 	Result<
 		{ sent: true },

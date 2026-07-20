@@ -132,6 +132,10 @@ export default defineSchema({
 		// Confirmation email claim state
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
+		// Temporarily holds a target session window while its Calendar event is changed.
+		reservationCreatedAt: v.optional(v.number()),
+		reservationSessionStartAt: v.optional(v.number()),
+		reservationDuration: v.optional(v.string()),
 
 		// Reminder email state
 		reminderEmailClaimedAt: v.optional(v.number()),
@@ -160,6 +164,7 @@ export default defineSchema({
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
+		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
 		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
 			"multiBookingPackageId",

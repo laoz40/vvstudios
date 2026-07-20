@@ -188,6 +188,33 @@ interface IsTimeSlotAvailableArgs {
 	timeZone: string;
 }
 
+export function doBookingWindowsOverlap({
+	firstDuration,
+	firstStartAt,
+	secondDuration,
+	secondStartAt,
+	eventBufferMinutes
+}: {
+	firstDuration: string;
+	firstStartAt: number;
+	secondDuration: string;
+	secondStartAt: number;
+	eventBufferMinutes: number;
+}) {
+	const [firstDurationError, firstDurationMinutes] = parseDurationMinutes(firstDuration);
+	const [secondDurationError, secondDurationMinutes] = parseDurationMinutes(secondDuration);
+
+	if (firstDurationError !== null || secondDurationError !== null) {
+		return true;
+	}
+
+	const bufferMs = eventBufferMinutes * 60 * 1000;
+	const firstEndAt = firstStartAt + firstDurationMinutes * 60 * 1000;
+	const secondEndAt = secondStartAt + secondDurationMinutes * 60 * 1000;
+
+	return firstStartAt < secondEndAt + bufferMs && firstEndAt + bufferMs > secondStartAt;
+}
+
 export function isTimeSlotAvailable({
 	busyWindows,
 	date,

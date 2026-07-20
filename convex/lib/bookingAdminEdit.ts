@@ -4,6 +4,7 @@ import { calculateBookingInvoiceAmounts } from "../../src/sites/studio/features/
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import type { BookingReservation } from "./bookingReservations";
 import {
 	checkBookingMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
@@ -127,6 +128,10 @@ export function calculateBookingRemainingBalanceAmount(
 	}).totalDueAmount;
 }
 
+export function isValidBookingRemainingBalanceAmount(amount?: number) {
+	return amount === undefined || (Number.isFinite(amount) && amount >= 0);
+}
+
 export function buildAdminBookingUpdatePatch({
 	booking,
 	timeZone,
@@ -136,6 +141,10 @@ export function buildAdminBookingUpdatePatch({
 	timeZone: string;
 	values: BookingEditValues;
 }) {
+	if (!isValidBookingRemainingBalanceAmount(values.remainingBalanceAmount)) {
+		return err({ reason: "BOOKING_INVALID_INPUT" as const });
+	}
+
 	const changes = getBookingEditFieldChanges(booking, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
@@ -206,9 +215,14 @@ interface ValidateBookingTimingEditArgs {
 export async function failBookingCompletion(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	failureCode: string
+	failureCode: string,
+	reservation?: BookingReservation
 ) {
-	await ctx.runMutation(internal.bookings.markBookingCompletionFailed, { bookingId, failureCode });
+	await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
+		bookingId,
+		failureCode,
+		...(reservation ? { reservation } : {})
+	});
 }
 
 export async function verifyBookingCanBeScheduled({
@@ -244,6 +258,7 @@ export async function verifyBookingCanBeScheduled({
 
 export type AdminBookingUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }
@@ -347,12 +362,14 @@ async function promoteFailedBookingFromAdmin({
 	booking,
 	client,
 	ctx,
+	reservation,
 	settings
 }: {
 	args: AdminBookingUpdateArgs;
 	booking: Doc<"bookings">;
 	client: AdminBookingGoogleCalendarClient;
 	ctx: ActionCtx;
+	reservation?: BookingReservation;
 	settings: BookingAvailabilitySettings;
 }): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
 	// Failed bookings are only promoted when the edited time is valid and available.
@@ -397,7 +414,8 @@ async function promoteFailedBookingFromAdmin({
 		...args,
 		confirmBooking: true,
 		googleCalendarId: client.calendarId,
-		googleEventId
+		googleEventId,
+		...(reservation ? { reservation } : {})
 	});
 
 	if (saveError !== null) {
@@ -477,12 +495,14 @@ async function updateConfirmedBookingGoogleEventOrCreateReplacement({
 	booking,
 	client,
 	ctx,
+	reservation,
 	settings
 }: {
 	args: AdminBookingUpdateArgs;
 	booking: Doc<"bookings">;
 	client: AdminBookingGoogleCalendarClient;
 	ctx: ActionCtx;
+	reservation?: BookingReservation;
 	settings: BookingAvailabilitySettings;
 }): Promise<Result<AdminBookingUpdateResult | null, AdminBookingUpdateError>> {
 	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
@@ -507,7 +527,8 @@ async function updateConfirmedBookingGoogleEventOrCreateReplacement({
 	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
 		...args,
 		googleCalendarId: timingUpdate.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId
+		googleEventId: timingUpdate.googleEventId,
+		...(reservation ? { reservation } : {})
 	});
 
 	if (saveError !== null) {
@@ -530,9 +551,75 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 	ctx: ActionCtx;
 	settings: BookingAvailabilitySettings;
 }): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// Failed bookings become confirmed when the edited slot can be scheduled.
+	// Updates that do not move the booking do not need a slot reservation.
+	if (!didBookingTimingChange(booking, args)) {
+		return applyAdminBookingUpdate({ args, booking, client, ctx, settings });
+	}
+
+	// Convert the requested date and time into one timestamp.
+	const [startError, sessionStartAt] = getBookingSessionStartAt(
+		args.date,
+		args.time,
+		client.timeZone
+	);
+	if (startError !== null) return err(startError);
+
+	// Reserve the new time before updating the booking or Google Calendar.
+	const [reservationError, reservationResult] = await ctx.runMutation(
+		internal.bookings.reserveBookingReservation,
+		{
+			bookingId: booking._id,
+			duration: args.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			now: Date.now(),
+			sessionStartAt
+		}
+	);
+	if (reservationError !== null || reservationResult.outcome === "unavailable") {
+		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+	}
+
+	// Pass the reservation through so the save can prove it owns the time.
+	const reservation = reservationResult.reservation;
+	const [updateError, updateResult] = await applyAdminBookingUpdate({
+		args,
+		booking,
+		client,
+		ctx,
+		reservation,
+		settings
+	});
+	// Release the reservation if any part of the update fails.
+	if (updateError !== null) {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+			bookingId: booking._id,
+			reservation
+		});
+		return err(updateError);
+	}
+
+	// The successful save clears the reservation as part of the same mutation.
+	return ok(updateResult);
+}
+
+async function applyAdminBookingUpdate({
+	args,
+	booking,
+	client,
+	ctx,
+	reservation,
+	settings
+}: {
+	args: AdminBookingUpdateArgs;
+	booking: Doc<"bookings">;
+	client: AdminBookingGoogleCalendarClient;
+	ctx: ActionCtx;
+	reservation?: BookingReservation;
+	settings: BookingAvailabilitySettings;
+}): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
+	// Failed checkouts have no Calendar event, so an admin edit creates one and confirms the booking.
 	if (booking.status === "failed") {
-		return promoteFailedBookingFromAdmin({ args, booking, client, ctx, settings });
+		return promoteFailedBookingFromAdmin({ args, booking, client, ctx, reservation, settings });
 	}
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
@@ -557,10 +644,10 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 			return err(timingError);
 		}
 
-		const [saveError] = await ctx.runMutation(
-			internal.bookings.saveAdminBookingUpdateInternal,
-			args
-		);
+		const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+			...args,
+			...(reservation ? { reservation } : {})
+		});
 
 		if (saveError !== null) {
 			return err(saveError);
@@ -576,6 +663,7 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 			booking,
 			client,
 			ctx,
+			reservation,
 			settings
 		});
 	if (replacementError !== null) {
@@ -586,7 +674,10 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 		return ok(replacementOutcome);
 	}
 
-	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, args);
+	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
+		...args,
+		...(reservation ? { reservation } : {})
+	});
 
 	if (saveError !== null) {
 		return err(saveError);

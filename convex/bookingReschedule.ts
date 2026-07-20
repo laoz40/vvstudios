@@ -62,6 +62,10 @@ function isBookingReschedulable(booking: Doc<"bookings">) {
 	);
 }
 
+export function getRescheduleUrlForToken(token: string) {
+	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
+}
+
 export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc<"bookings">) {
 	const now = Date.now();
 	const [linkError, link] = await ctx.runMutation(
@@ -73,7 +77,7 @@ export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc
 		return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
 	}
 
-	return ok(buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, link.token));
+	return ok(getRescheduleUrlForToken(link.token));
 }
 
 export const createPublicFailedBookingRescheduleLink = mutation({
@@ -289,13 +293,43 @@ export const markActiveRescheduleLinksUsedForBookingInternal = internalMutation(
 	}
 });
 
-export const markRescheduleLinkUsedInternal = internalMutation({
+export const unlockRescheduleLinkInternal = internalMutation({
+	args: {
+		linkId: v.id("bookingRescheduleLinks"),
+		lockedAt: v.number(),
+		expiresAt: v.optional(v.number())
+	},
+	handler: async (ctx, args) => {
+		const link = await ctx.db.get(args.linkId);
+
+		// Only unlock a used link with the same lock time set by this request.
+		// This prevents an older request from unlocking a newer request's lock.
+		if (link === null || link.status !== "used" || link.usedAt !== args.lockedAt) {
+			return err({ reason: "RESCHEDULE_LINK_USED" });
+		}
+
+		await ctx.db.patch(args.linkId, {
+			status: "active",
+			usedAt: undefined,
+			...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {})
+		});
+		return ok({ reactivated: true });
+	}
+});
+
+export const lockRescheduleLinkInternal = internalMutation({
 	args: { linkId: v.id("bookingRescheduleLinks"), now: v.number() },
 	handler: async (ctx, args) => {
 		const link = await ctx.db.get(args.linkId);
 
 		if (link === null) {
 			return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+		}
+
+		if (link.status !== "active") {
+			return err({
+				reason: link.status === "used" ? "RESCHEDULE_LINK_USED" : "RESCHEDULE_LINK_EXPIRED"
+			});
 		}
 
 		await ctx.db.patch(args.linkId, { status: "used", usedAt: args.now });

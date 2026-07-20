@@ -18,26 +18,6 @@ import { getCapacityConsumingPackageBookings } from "./lib/packageScheduling";
 
 const REMINDER_BATCH_SIZE = 50;
 const SYDNEY_TIME_ZONE = "Australia/Sydney";
-const MORNING_REMINDER_HOUR = 9;
-const AFTERNOON_REMINDER_HOUR = 12;
-const EVENING_REMINDER_HOUR = 15;
-const AFTERNOON_START_HOUR = 12;
-const EVENING_START_HOUR = 16;
-const REMINDER_HOURS = [MORNING_REMINDER_HOUR, AFTERNOON_REMINDER_HOUR, EVENING_REMINDER_HOUR];
-
-const getReminderHourForBooking = (sessionStartAt: number) => {
-	const { hour } = getTimeZoneDateParts(new Date(sessionStartAt), SYDNEY_TIME_ZONE);
-
-	if (hour < AFTERNOON_START_HOUR) {
-		return MORNING_REMINDER_HOUR;
-	}
-
-	if (hour < EVENING_START_HOUR) {
-		return AFTERNOON_REMINDER_HOUR;
-	}
-
-	return EVENING_REMINDER_HOUR;
-};
 
 const MAX_PACKAGE_SESSIONS = 12;
 const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
@@ -317,20 +297,16 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	}
 }
 
+// If this action crashes after claiming a reminder, that reminder stays claimed and will not retry.
+// Handling that rare case would require expiring claims, scheduling a targeted retry, and preventing
+// the original attempt from later overwriting the retry. We intentionally omit that complexity because
+// these are non-critical reminders; preventing duplicate emails is more important than guaranteed delivery.
 export const sendDueReminderEmails = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		const nowDate = new Date();
-		const currentSydneyHour = getTimeZoneDateParts(nowDate, SYDNEY_TIME_ZONE).hour;
-
-		if (!REMINDER_HOURS.includes(currentSydneyHour)) {
-			return null;
-		}
-
-		if (currentSydneyHour === MORNING_REMINDER_HOUR) {
-			await sendPackagePaymentRemindersDueToday(ctx, nowDate);
-			await sendPackageExpiryRemindersDueToday(ctx, nowDate);
-		}
+		await sendPackagePaymentRemindersDueToday(ctx, nowDate);
+		await sendPackageExpiryRemindersDueToday(ctx, nowDate);
 
 		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
 		const bookings = await ctx.runQuery(internal.bookings.listBookingsDueForReminderEmail, {
@@ -340,10 +316,6 @@ export const sendDueReminderEmails = internalAction({
 		});
 
 		for (const booking of bookings) {
-			if (getReminderHourForBooking(booking.sessionStartAt) !== currentSydneyHour) {
-				continue;
-			}
-
 			await ctx.runAction(internal.googleCalendar.sendBookingReminderEmailForBooking, {
 				bookingId: booking._id
 			});

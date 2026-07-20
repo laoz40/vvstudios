@@ -37,6 +37,13 @@ import {
 	bookingConsumesPackageCapacity,
 	getCapacityConsumingPackageBookings
 } from "./lib/packageScheduling";
+import {
+	bookingHasReservation,
+	unreserveBookingTime,
+	clearedBookingReservationPatch,
+	reserveBookingTime,
+	bookingReservationValidator
+} from "./lib/bookingReservations";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -962,17 +969,40 @@ export const claimBookingCompletion = internalMutation({
 	}
 });
 
+// Reserve a target before any Calendar write. The shared helper checks confirmed
+// bookings and reservations from every booking workflow in the same transaction.
+export const reserveBookingReservation = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		sessionStartAt: v.number(),
+		duration: v.string(),
+		eventBufferMinutes: v.number(),
+		now: v.number()
+	},
+	handler: (ctx, args) => reserveBookingTime(ctx, args)
+});
+
+export const clearBookingReservation = internalMutation({
+	args: { bookingId: v.id("bookings"), reservation: bookingReservationValidator },
+	handler: (ctx, args) => unreserveBookingTime(ctx, args.bookingId, args.reservation)
+});
+
 export const markBookingCompleted = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		googleEventId: v.optional(v.string()),
-		googleCalendarId: v.optional(v.string())
+		googleCalendarId: v.optional(v.string()),
+		reservation: bookingReservationValidator
 	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
+		}
+
+		if (!bookingHasReservation(booking, args.reservation, Date.now())) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
@@ -980,7 +1010,8 @@ export const markBookingCompleted = internalMutation({
 			googleEventId: args.googleEventId,
 			googleCalendarId: args.googleCalendarId,
 			bookingConfirmedAt: Date.now(),
-			bookingFailureCode: undefined
+			bookingFailureCode: undefined,
+			...clearedBookingReservationPatch
 		});
 
 		return ok({ updated: true });
@@ -1025,15 +1056,27 @@ export const markBookingInvoiceEmailSent = internalMutation({
 });
 
 export const markBookingCompletionFailed = internalMutation({
-	args: { bookingId: v.id("bookings"), failureCode: v.string() },
+	args: {
+		bookingId: v.id("bookings"),
+		failureCode: v.string(),
+		reservation: v.optional(bookingReservationValidator)
+	},
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
 		}
 
-		await ctx.db.patch(args.bookingId, { status: "failed", bookingFailureCode: args.failureCode });
+		if (args.reservation !== undefined && !bookingHasReservation(booking, args.reservation)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
+		}
+
+		await ctx.db.patch(args.bookingId, {
+			status: "failed",
+			bookingFailureCode: args.failureCode,
+			...(args.reservation ? clearedBookingReservationPatch : {})
+		});
 
 		return ok({ updated: true });
 	}
@@ -1233,9 +1276,11 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 		essentialEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
-		confirmBooking: v.optional(v.boolean())
+		confirmBooking: v.optional(v.boolean()),
+		reservation: v.optional(bookingReservationValidator)
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1253,6 +1298,13 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 			return err(updatePatchError);
 		}
 
+		if (
+			args.reservation !== undefined &&
+			!bookingHasReservation(booking, args.reservation, Date.now())
+		) {
+			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+		}
+
 		// If Google Calendar event details changed, pass IDs here so booking points at the current event.
 		// Failed bookings can be promoted after a Calendar event is created.
 		await ctx.db.patch(args.bookingId, {
@@ -1265,7 +1317,8 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 						bookingConfirmedAt: Date.now(),
 						bookingFailureCode: undefined
 					}
-				: {})
+				: {}),
+			...(args.reservation ? clearedBookingReservationPatch : {})
 		});
 
 		return ok({ saved: true });
@@ -1284,7 +1337,8 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+		reservation: bookingReservationValidator
 	},
 	handler: async (ctx, args) => {
 		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
@@ -1300,6 +1354,10 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 
 		if (bookingError !== null) {
 			return err(bookingError);
+		}
+
+		if (!bookingHasReservation(booking, args.reservation, Date.now())) {
+			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 
 		await ctx.db.patch(args.bookingId, {
@@ -1320,7 +1378,8 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 						bookingConfirmedAt: Date.now(),
 						bookingFailureCode: undefined
 					}
-				: {})
+				: {}),
+			...clearedBookingReservationPatch
 		});
 
 		if (args.multiBookingPackageId !== undefined) {
@@ -1405,47 +1464,6 @@ async function updateBookingHandler(ctx: MutationCtx, args: UpdateBookingArgs) {
 }
 
 export type UpdateBookingResult = Awaited<ReturnType<typeof updateBookingHandler>>;
-
-export const updateBookingStatus = mutation({
-	args: {
-		bookingId: v.id("bookings"),
-		status: v.union(v.literal("confirmed"), v.literal("failed"), v.literal("email_failed"))
-	},
-	handler: updateBookingStatusHandler
-});
-
-type UpdateBookingStatusArgs = {
-	bookingId: Id<"bookings">;
-	status: "confirmed" | "failed" | "email_failed";
-};
-
-async function updateBookingStatusHandler(ctx: MutationCtx, args: UpdateBookingStatusArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const booking = await ctx.db.get(args.bookingId);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	if (!["confirmed", "failed", "email_failed"].includes(booking.status)) {
-		return err({ reason: "INVALID_BOOKING_STATUS_TRANSITION" });
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, { status: args.status });
-	} catch {
-		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
-}
-
-export type UpdateBookingStatusResult = Awaited<ReturnType<typeof updateBookingStatusHandler>>;
 
 export const updateBookingPaidRemainingBalance = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },

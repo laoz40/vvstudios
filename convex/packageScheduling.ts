@@ -227,6 +227,21 @@ async function reschedulePackageBookingHandler(
 		return err(validationError);
 	}
 
+	const [reservationError, reservationResult] = await ctx.runMutation(
+		internal.bookings.reserveBookingReservation,
+		{
+			bookingId: args.bookingId,
+			duration: details.multiBooking.duration,
+			eventBufferMinutes: details.eventBufferMinutes,
+			now: Date.now(),
+			sessionStartAt: details.sessionStartAt
+		}
+	);
+	if (reservationError !== null || reservationResult.outcome === "unavailable") {
+		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+	}
+	const reservation = reservationResult.reservation;
+
 	const [calendarError, calendar] = await ctx.runAction(
 		internal.packageSchedulingCalendar.updatePackageBookingCalendarEventInternal,
 		{
@@ -236,6 +251,10 @@ async function reschedulePackageBookingHandler(
 	);
 
 	if (calendarError !== null) {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+			bookingId: args.bookingId,
+			reservation
+		});
 		return err(calendarError);
 	}
 
@@ -251,11 +270,16 @@ async function reschedulePackageBookingHandler(
 			sessionStartAt: details.sessionStartAt,
 			googleCalendarId: calendar.googleCalendarId,
 			googleEventId: calendar.googleEventId,
-			multiBookingPackageId: details.multiBooking._id
+			multiBookingPackageId: details.multiBooking._id,
+			reservation
 		}
 	);
 
 	if (saveError !== null) {
+		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+			bookingId: args.bookingId,
+			reservation
+		});
 		return err(saveError);
 	}
 
