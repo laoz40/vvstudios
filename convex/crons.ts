@@ -3,11 +3,7 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-crons.interval(
-	"send booking reminder emails",
-	{ hours: 1 },
-	internal.reminders.sendDueReminderEmails,
-	{}
-);
+// 23:00 UTC is 09:00 AEST or 10:00 AEDT, keeping reminders in the Sydney morning.
+crons.cron("send due reminder emails", "0 23 * * *", internal.reminders.sendDueReminderEmails, {});
 
 export default crons;

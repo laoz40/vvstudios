@@ -126,7 +126,7 @@ Priority:
 
 | ID | Priority | Behaviour test | Expected outcome | Primary targets |
 |---|---:|---|---|---|
-| REM-01 | P0 | Reminder dispatcher runs the correct Sydney-time workflow | Only 09:00, 12:00, and 15:00 runs do work; booking hour buckets and package payment/expiry work execute in their intended run. | `reminders.sendDueReminderEmails` |
+| REM-01 | P0 | Daily reminder dispatcher runs the complete morning workflow | The daily run processes all due booking, package payment, and package expiry reminders together. | `reminders.sendDueReminderEmails` |
 | REM-02 | P0 | Reminder eligibility respects lifecycle, date range, and remaining sessions | Ineligible statuses, already-sent reminders, out-of-range bookings/packages, and packages with no remaining sessions are skipped. | Reminder list queries and dispatcher |
 | REM-03 | P0 | Reminder claims prevent duplicate emails | Concurrent/replayed jobs produce at most one send for a booking/package reminder. | Booking and package reminder claim mutations |
 | REM-04 | P0 | Reminder success and failure are persisted | Successful send records sent time; provider failure records failure and follows the supported retry behaviour. | Reminder actions and mark mutations |
