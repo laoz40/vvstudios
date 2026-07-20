@@ -1001,7 +1001,7 @@ export const markBookingCompleted = internalMutation({
 			return err(bookingError);
 		}
 
-		if (!bookingHasReservation(booking, args.reservation)) {
+		if (!bookingHasReservation(booking, args.reservation, Date.now())) {
 			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
 		}
 
@@ -1298,7 +1298,10 @@ export const saveAdminBookingUpdateInternal = internalMutation({
 			return err(updatePatchError);
 		}
 
-		if (args.reservation !== undefined && !bookingHasReservation(booking, args.reservation)) {
+		if (
+			args.reservation !== undefined &&
+			!bookingHasReservation(booking, args.reservation, Date.now())
+		) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 
@@ -1353,7 +1356,7 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 			return err(bookingError);
 		}
 
-		if (!bookingHasReservation(booking, args.reservation)) {
+		if (!bookingHasReservation(booking, args.reservation, Date.now())) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
 		}
 

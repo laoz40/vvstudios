@@ -25,14 +25,19 @@ function getReservedTarget(booking: Doc<"bookings">) {
 	};
 }
 
-export function bookingHasReservation(booking: Doc<"bookings">, expected: BookingReservation) {
+export function bookingHasReservation(
+	booking: Doc<"bookings">,
+	expected: BookingReservation,
+	now?: number
+) {
 	const reservation = getReservedTarget(booking);
 
 	return (
 		reservation !== null &&
 		reservation.reservedAt === expected.reservedAt &&
 		reservation.sessionStartAt === expected.sessionStartAt &&
-		reservation.duration === expected.duration
+		reservation.duration === expected.duration &&
+		(now === undefined || now - reservation.reservedAt < SLOT_RESERVATION_TTL_MS)
 	);
 }
 
