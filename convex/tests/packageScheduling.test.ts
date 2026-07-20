@@ -34,6 +34,14 @@
  *    saves its Convex booking first keeps its Calendar event. The losing request,
  *    which already created a Calendar event, deletes its own event.
  *
+ * 9. Moving a package session
+ *    A customer cannot move another package's session, a locked session, or move
+ *    to a busy time. A valid move updates the booking and Calendar event together.
+ *
+ * 10. Cancelling a package session
+ *    The booking is cancelled only after its Calendar event is deleted. Cancelling
+ *    the session also frees a package slot so the customer can book another session.
+ *
  * Google Calendar and rate limits are replaced with fakes, so no real provider
  * requests are made and these tests exercise only package scheduling behavior.
  */
@@ -45,8 +53,10 @@ import { createConvexTest } from "../test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
+	getEvent: vi.fn(),
 	insertEvent: vi.fn(),
-	listEvents: vi.fn()
+	listEvents: vi.fn(),
+	patchEvent: vi.fn()
 }));
 
 vi.mock("../env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
@@ -59,8 +69,10 @@ vi.mock("../lib/googleCalendarClient", () => ({
 		calendar: {
 			events: {
 				delete: providerFakes.deleteEvent,
+				get: providerFakes.getEvent,
 				insert: providerFakes.insertEvent,
-				list: providerFakes.listEvents
+				list: providerFakes.listEvents,
+				patch: providerFakes.patchEvent
 			}
 		}
 	})
@@ -85,8 +97,10 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	providerFakes.deleteEvent.mockResolvedValue({ data: {} });
+	providerFakes.getEvent.mockResolvedValue({ data: { status: "confirmed" } });
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "google-event-1" } });
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
+	providerFakes.patchEvent.mockResolvedValue({ data: {} });
 });
 
 describe("package scheduling link access", () => {
@@ -279,15 +293,163 @@ describe("package session creation validation", () => {
 	});
 });
 
+describe("package session rescheduling", () => {
+	test("rejects another package's booking and a locked booking without side effects", async () => {
+		const t = createConvexTest();
+		const owner = await seedPackage(t);
+		const other = await seedPackage(t, {}, "other-package-token");
+		const bookingId = await seedPackageBooking(t, owner.packageId, 0);
+
+		const wrongOwnerResult = await t.action(api.packageScheduling.reschedulePackageBooking, {
+			bookingId,
+			token: other.token,
+			...target
+		});
+		await t.run((ctx) => ctx.db.patch(bookingId, { sessionStartAt: now + 30 * 60_000 }));
+		const lockedResult = await t.action(api.packageScheduling.reschedulePackageBooking, {
+			bookingId,
+			token: owner.token,
+			...target
+		});
+
+		expect(wrongOwnerResult).toEqual([{ reason: "PACKAGE_BOOKING_NOT_FOUND" }, null]);
+		expect(lockedResult).toEqual([{ reason: "PACKAGE_BOOKING_LOCKED" }, null]);
+		expect(providerFakes.patchEvent).not.toHaveBeenCalled();
+	});
+
+	test("preserves the original booking and event when the target is busy", async () => {
+		const t = createConvexTest();
+		const { packageId, token } = await seedPackage(t);
+		const bookingId = await seedPackageBooking(t, packageId, 0);
+		const original = await t.run((ctx) => ctx.db.get(bookingId));
+		providerFakes.listEvents.mockResolvedValue({
+			data: {
+				items: [
+					{
+						id: "busy",
+						start: { dateTime: "2030-01-10T23:00:00.000Z" },
+						end: { dateTime: "2030-01-11T00:00:00.000Z" }
+					}
+				]
+			}
+		});
+
+		const result = await t.action(api.packageScheduling.reschedulePackageBooking, {
+			bookingId,
+			token,
+			...target
+		});
+
+		expect(result).toEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
+		expect(await t.run((ctx) => ctx.db.get(bookingId))).toEqual(original);
+		expect(providerFakes.patchEvent).not.toHaveBeenCalled();
+	});
+
+	test("moves Calendar and Convex together, resets reminders, and schedules reevaluation", async () => {
+		const t = createConvexTest();
+		const { packageId, token } = await seedPackage(t);
+		const bookingId = await seedPackageBooking(t, packageId, 0);
+
+		const result = await t.action(api.packageScheduling.reschedulePackageBooking, {
+			bookingId,
+			token,
+			...target,
+			service: "Armchair Setup",
+			remotePodcast: true,
+			notes: "Moved session"
+		});
+		const state = await t.run(async (ctx) => ({
+			booking: await ctx.db.get(bookingId),
+			jobs: await ctx.db.system.query("_scheduled_functions").collect()
+		}));
+
+		expect(result).toEqual([null, { saved: true, bookingId }]);
+		expect(state.booking).toMatchObject({
+			date: target.date,
+			time: target.time,
+			service: "Armchair Setup",
+			addons: ["Live Streaming", "Remote Podcast"],
+			notes: "Moved session"
+		});
+		expect(state.booking).not.toHaveProperty("reminderEmailClaimedAt");
+		expect(state.booking).not.toHaveProperty("reminderEmailSentAt");
+		expect(state.booking).not.toHaveProperty("reminderEmailFailureCode");
+		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
+		expect(
+			state.jobs.some((job) =>
+				job.name.includes("processPackageAdjustmentWhenSessionsCompleteInternal")
+			)
+		).toBe(true);
+	});
+});
+
+describe("package session unscheduling", () => {
+	test("keeps the booking active when Calendar deletion fails", async () => {
+		const t = createConvexTest();
+		const { packageId, token } = await seedPackage(t);
+		const bookingId = await seedPackageBooking(t, packageId, 0);
+		providerFakes.deleteEvent.mockRejectedValue(new Error("provider unavailable"));
+
+		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+			bookingId,
+			token
+		});
+
+		expect(result).toEqual([{ reason: "GOOGLE_CALENDAR_SYNC_FAILED" }, null]);
+		expect(await t.run((ctx) => ctx.db.get(bookingId))).toMatchObject({ status: "confirmed" });
+	});
+
+	test("cancels when the saved Calendar event is already missing", async () => {
+		const t = createConvexTest();
+		const { packageId, token } = await seedPackage(t);
+		const bookingId = await seedPackageBooking(t, packageId, 0);
+		providerFakes.deleteEvent.mockRejectedValue({ response: { status: 404 } });
+
+		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+			bookingId,
+			token
+		});
+
+		expect(result).toEqual([null, { cancelled: true, bookingId }]);
+		expect(await t.run((ctx) => ctx.db.get(bookingId))).toMatchObject({ status: "cancelled" });
+	});
+
+	test("cancels after deletion and frees capacity for another session", async () => {
+		const t = createConvexTest();
+		const { packageId, token } = await seedPackage(t);
+		for (let index = 0; index < 3; index += 1) await seedPackageBooking(t, packageId, index);
+		const bookingId = await seedPackageBooking(t, packageId, 3);
+
+		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+			bookingId,
+			token
+		});
+		const replacement = await t.action(api.packageScheduling.createPackageBooking, {
+			token,
+			...target
+		});
+		const cancelled = await t.run((ctx) => ctx.db.get(bookingId));
+
+		expect(result).toEqual([null, { cancelled: true, bookingId }]);
+		expect(cancelled).toMatchObject({ status: "cancelled" });
+		expect(cancelled).not.toHaveProperty("googleCalendarId");
+		expect(cancelled).not.toHaveProperty("googleEventId");
+		expect(replacement[0]).toBeNull();
+		expect(
+			(await readBookings(t)).filter((booking) => booking.status === "confirmed")
+		).toHaveLength(4);
+	});
+});
+
 async function seedPackage(
 	t: TestClient,
 	overrides: {
 		expiresAt?: number;
 		scheduleLinkStatus?: "active" | "disabled";
 		status?: "paid" | "pending_payment";
-	} = {}
+	} = {},
+	token = "package-scheduling-token"
 ) {
-	const token = "package-scheduling-token";
 	const scheduleTokenHash = await hashRescheduleToken(token);
 	const packageId = await t.run((ctx) =>
 		ctx.db.insert("multiBookingPackages", {
@@ -322,7 +484,7 @@ async function seedPackageBooking(
 	packageId: Id<"multiBookingPackages">,
 	index: number
 ) {
-	await t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Test customer",
 			phone: "0400000000",
@@ -336,6 +498,11 @@ async function seedPackageBooking(
 			addons: [],
 			status: "confirmed",
 			pendingPaymentCreatedAt: now - 1_000,
+			googleCalendarId: "primary-calendar",
+			googleEventId: `existing-event-${index}`,
+			reminderEmailClaimedAt: now - 900,
+			reminderEmailSentAt: now - 800,
+			reminderEmailFailureCode: "previous-failure",
 			multiBookingPackageId: packageId
 		})
 	);

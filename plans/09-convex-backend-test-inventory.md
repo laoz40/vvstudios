@@ -91,9 +91,9 @@ Priority:
 | SCHED-02 ✅ | P0 | Successful package scheduling creates matching Calendar and booking records | The Calendar event is created and one confirmed booking is stored with package/customer snapshot, per-session options, package ID, and Calendar IDs. | `packageScheduling.createPackageBooking`, `saveCreatedPackageBookingInternal` |
 | SCHED-03 ✅ | P0 | Concurrent requests for the final package slot have one winner | At most one booking is inserted; a losing request removes any Calendar event it created. | Package create action/mutation; concurrency test |
 | SCHED-04 ✅ | P0 | Calendar success followed by booking-save failure is compensated | The backend attempts to remove the newly created Calendar event and returns the correct failure rather than silently leaking it. | `packageScheduling.createPackageBooking` |
-| SCHED-05 | P0 | Package session reschedule enforces ownership and lock window | Wrong-package and lead-time-locked sessions cannot move; invalid/busy targets preserve original booking and event. | `packageScheduling.reschedulePackageBooking` |
-| SCHED-06 | P0 | Successful package reschedule updates event and booking together | New timing and Calendar IDs are saved, reminder state resets, and package adjustment reevaluation is scheduled. | `packageScheduling.reschedulePackageBooking` |
-| SCHED-07 | P0 | Package session unschedule frees capacity only after Calendar deletion | Failed deletion preserves the booking; success/already-missing event cancels it and allows another package session to be scheduled. | `packageScheduling.unschedulePackageBooking` |
+| SCHED-05 ✅ | P0 | Package session reschedule enforces ownership and lock window | Wrong-package and lead-time-locked sessions cannot move; invalid/busy targets preserve original booking and event. | `packageScheduling.reschedulePackageBooking` |
+| SCHED-06 ✅ | P0 | Successful package reschedule updates event and booking together | New timing and Calendar IDs are saved, reminder state resets, and package adjustment reevaluation is scheduled. | `packageScheduling.reschedulePackageBooking` |
+| SCHED-07 ✅ | P0 | Package session unschedule frees capacity only after Calendar deletion | Failed deletion preserves the booking; success/already-missing event cancels it and allows another package session to be scheduled. | `packageScheduling.unschedulePackageBooking` |
 
 ---
 
