@@ -903,7 +903,7 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: false, outcome: "reservation_lost" as const });
 	}
 
-	// Known edge case: see convex/googleCalendar.ts:573.
+	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 
 	if (linkError !== null) {
