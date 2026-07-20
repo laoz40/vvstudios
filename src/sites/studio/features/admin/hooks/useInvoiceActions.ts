@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch } from "#/lib/result";
+import type { ListCustomInvoicesForBookingResult } from "#convex/customInvoices";
 import type { SendBookingInvoiceForBookingResult } from "#convex/googleCalendar";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import {
@@ -17,9 +19,23 @@ export function useInvoiceActions(booking: BookingRecord) {
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
+	const customInvoicesResult = useQuery(
+		api.customInvoices.listCustomInvoicesForBooking,
+		isEmailInvoiceDialogOpen ? { bookingId: booking._id } : "skip"
+	) as ListCustomInvoicesForBookingResult | undefined;
+	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
+		useState<Id<"customInvoices"> | null>(null);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+
+	function setEmailInvoiceDialogOpen(open: boolean) {
+		setIsEmailInvoiceDialogOpen(open);
+
+		if (!open) {
+			setSelectedEmailCustomInvoiceId(null);
+		}
+	}
 
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
@@ -79,7 +95,10 @@ export function useInvoiceActions(booking: BookingRecord) {
 		setIsEmailingInvoice(true);
 
 		const [error] = await tryCatch<SendBookingInvoiceForBookingResult>(
-			sendBookingInvoiceForBooking({ bookingId: booking._id })
+			sendBookingInvoiceForBooking({
+				bookingId: booking._id,
+				...(selectedEmailCustomInvoiceId ? { customInvoiceId: selectedEmailCustomInvoiceId } : {})
+			})
 		);
 
 		setIsEmailingInvoice(false);
@@ -95,6 +114,9 @@ export function useInvoiceActions(booking: BookingRecord) {
 				case "BOOKING_NOT_FOUND":
 					toast.error("That booking no longer exists.");
 					return;
+				case "CUSTOM_INVOICE_NOT_FOUND":
+					toast.error("That custom invoice no longer exists.");
+					return;
 				case "INVOICE_SEND_FAILED":
 					toast.error("Unable to send invoice email.");
 					return;
@@ -108,18 +130,21 @@ export function useInvoiceActions(booking: BookingRecord) {
 			}
 		}
 
-		setIsEmailInvoiceDialogOpen(false);
+		setEmailInvoiceDialogOpen(false);
 		toast.success(`Invoice sent to ${booking.email}.`);
 	}
 
 	return {
+		customInvoices: customInvoicesResult?.[1] ?? undefined,
 		handleDownloadInvoice,
 		handleEmailInvoice,
 		isCustomInvoiceDialogOpen,
 		isDownloadingInvoice,
 		isEmailInvoiceDialogOpen,
 		isEmailingInvoice,
+		selectedEmailCustomInvoiceId,
 		setIsCustomInvoiceDialogOpen,
-		setIsEmailInvoiceDialogOpen
+		setIsEmailInvoiceDialogOpen: setEmailInvoiceDialogOpen,
+		setSelectedEmailCustomInvoiceId
 	};
 }

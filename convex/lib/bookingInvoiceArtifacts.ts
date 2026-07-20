@@ -52,8 +52,13 @@ export type MultiBookingInvoiceSource = Pick<
 export function createBookingInvoiceArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
-	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+	options: {
+		customInvoice?: Doc<"customInvoices">;
+		leadTimeMinutes: number;
+		rescheduleUrl?: string;
+	}
 ) {
+	const customInvoice = options.customInvoice;
 	const parsedBooking = bookingSchema.safeParse({
 		name: booking.name,
 		phone: booking.phone,
@@ -64,11 +69,14 @@ export function createBookingInvoiceArtifactsForBooking(
 		packageSize: "",
 		date: booking.date,
 		time: booking.time,
-		duration: booking.duration,
-		service: booking.service,
-		addons: booking.addons,
-		essentialEditQuantity: booking.essentialEditQuantity ?? "",
-		clipsPackageQuantity: booking.clipsPackageQuantity ?? "",
+		duration: customInvoice?.duration ?? booking.duration,
+		// Custom invoices may intentionally omit studio hire and contain only add-ons.
+		// Parse against the booking's valid service, then omit it from the artifact below.
+		service: customInvoice?.service ?? booking.service,
+		addons: customInvoice?.addons ?? booking.addons,
+		essentialEditQuantity:
+			customInvoice?.essentialEditQuantity ?? booking.essentialEditQuantity ?? "",
+		clipsPackageQuantity: customInvoice?.clipsPackageQuantity ?? booking.clipsPackageQuantity ?? "",
 		notes: booking.notes ?? ""
 	});
 
@@ -86,11 +94,16 @@ export function createBookingInvoiceArtifactsForBooking(
 		date: parsedBooking.data.date,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service: parsedBooking.data.service || undefined,
+		service:
+			customInvoice && !customInvoice.service ? undefined : parsedBooking.data.service || undefined,
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
-		createdAt,
+		createdAt: customInvoice?.createdAt ?? createdAt,
+		dueDate: customInvoice?.dueDate,
+		includeDepositLineItem: customInvoice?.includeDepositLineItem,
+		invoiceNumber: customInvoice?.invoiceNumber,
+		customTotalDueAmount: customInvoice?.customTotalDueAmount,
 		leadTimeMinutes: options.leadTimeMinutes,
 		rescheduleUrl: options.rescheduleUrl
 	});

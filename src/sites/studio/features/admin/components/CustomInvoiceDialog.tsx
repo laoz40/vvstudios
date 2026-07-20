@@ -26,15 +26,12 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
-import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
-import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import {
 	formatCustomInvoiceAddonText,
-	formatCustomInvoiceCurrency,
+	formatCustomInvoiceTotal,
 	parseCustomInvoiceTotalDraft
 } from "#studio/features/admin/lib/custom-invoices";
-import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
+import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 import {
 	toDeliverableCountOption,
 	type BookingFormValues
@@ -60,37 +57,8 @@ export type CustomInvoiceDialogProps = {
 	onOpenChange: (open: boolean) => void;
 };
 
-function isBookingDuration(value: string): value is BookingDuration {
-	return value in DURATION_PRICES;
-}
-
 function isBookingService(value: string | undefined): value is BookingService {
-	return Boolean(value);
-}
-
-function formatInvoiceTotal(input: {
-	service?: string;
-	addons: BookingFormValues["addons"];
-	duration: string;
-	includeDepositLineItem: boolean;
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	customTotalDueAmount?: number;
-}) {
-	const serviceAmount =
-		isBookingService(input.service) && isBookingDuration(input.duration)
-			? DURATION_PRICES[input.duration]
-			: 0;
-	const addonsAmount = input.addons.reduce(
-		(total, addon) => total + getAddonAmount(addon, input),
-		0
-	);
-	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
-
-	const computedTotal = Math.max(serviceAmount + addonsAmount - depositAmount, 0);
-	const totalDueAmount = input.customTotalDueAmount ?? computedTotal;
-
-	return formatCustomInvoiceCurrency(totalDueAmount);
+	return value === "Table Setup" || value === "Armchair Setup";
 }
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
@@ -326,7 +294,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				id: invoice._id,
 				invoiceNumber: invoice.invoiceNumber,
 				description: `${invoice.service ?? "Add-ons only"}${addonText}`,
-				total: formatInvoiceTotal({
+				total: formatCustomInvoiceTotal({
 					service: invoice.service,
 					addons: invoice.addons as BookingFormValues["addons"],
 					duration: invoice.duration ?? "",

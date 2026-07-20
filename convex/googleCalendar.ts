@@ -59,7 +59,10 @@ function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
 }
 
-type SendBookingInvoiceForBookingArgs = { bookingId: Id<"bookings"> };
+type SendBookingInvoiceForBookingArgs = {
+	bookingId: Id<"bookings">;
+	customInvoiceId?: Id<"customInvoices">;
+};
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
 export type DeleteBookingFromAdminResult = Result<
@@ -632,7 +635,7 @@ export type UpdateBookingFromAdminResult = Awaited<
 >;
 
 export const sendBookingInvoiceForBooking = action({
-	args: { bookingId: v.id("bookings") },
+	args: { bookingId: v.id("bookings"), customInvoiceId: v.optional(v.id("customInvoices")) },
 	handler: (ctx, args) => sendBookingInvoiceForBookingHandler(ctx, args)
 });
 
@@ -652,6 +655,17 @@ async function sendBookingInvoiceForBookingHandler(
 		return err(bookingError);
 	}
 
+	const customInvoice = args.customInvoiceId
+		? await ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSourceInternal, {
+				bookingId: booking._id,
+				customInvoiceId: args.customInvoiceId
+			})
+		: undefined;
+
+	if (args.customInvoiceId && !customInvoice) {
+		return err({ reason: "CUSTOM_INVOICE_NOT_FOUND" });
+	}
+
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
 	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 
@@ -660,6 +674,7 @@ async function sendBookingInvoiceForBookingHandler(
 	}
 
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+		customInvoice: customInvoice ?? undefined,
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl
 	});
