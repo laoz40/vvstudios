@@ -296,6 +296,44 @@ export function checkBookingMeetsAvailabilitySettings({
 		return err(dateError);
 	}
 
+	const [dateRangeError, daySchedule] = validateBookingDateRange(
+		bookingDate,
+		latestBookableDate,
+		now,
+		settings
+	);
+
+	if (dateRangeError !== null) {
+		return err(dateRangeError);
+	}
+
+	const [scheduleError] = validateBookingDaySchedule(duration, time, daySchedule);
+
+	if (scheduleError !== null) {
+		return err(scheduleError);
+	}
+
+	const [startError, bookingStart] = getUtcDateForZonedDateTime(date, time, timeZone);
+
+	if (startError !== null) {
+		return err(startError);
+	}
+
+	const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
+
+	if (bookingStart.getTime() < earliestStartAt) {
+		return err({ reason: "BOOKING_TOO_SOON" });
+	}
+
+	return ok(null);
+}
+
+function validateBookingDateRange(
+	bookingDate: Date,
+	latestBookableDate: Date | undefined,
+	now: number,
+	settings: BookingAvailabilitySettings
+): Result<{ endTime: string; startTime: string }, BookingAvailabilityValidationError> {
 	const today = startOfToday(new Date(now));
 	const lastBookableDate = latestBookableDate ?? addDays(today, settings.maxDaysAhead);
 
@@ -309,10 +347,19 @@ export function checkBookingMeetsAvailabilitySettings({
 
 	const bookingDay = bookingDate.getDay();
 	const daySchedule = settings.weekSchedule.find((_schedule, day) => day === bookingDay);
+
 	if (!daySchedule) {
 		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" });
 	}
 
+	return ok(daySchedule);
+}
+
+function validateBookingDaySchedule(
+	duration: string,
+	time: string,
+	daySchedule: { endTime: string; startTime: string }
+): Result<null, BookingAvailabilityValidationError> {
 	const [durationError, durationMinutes] = parseDurationMinutes(duration);
 
 	if (durationError !== null) {
@@ -331,19 +378,6 @@ export function checkBookingMeetsAvailabilitySettings({
 
 	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
 		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" });
-	}
-
-	const [startError, bookingStart] = getUtcDateForZonedDateTime(date, time, timeZone);
-
-	if (startError !== null) {
-		return err(startError);
-	}
-
-	const bookingStartAt = bookingStart.getTime();
-	const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
-
-	if (bookingStartAt < earliestStartAt) {
-		return err({ reason: "BOOKING_TOO_SOON" });
 	}
 
 	return ok(null);

@@ -34,9 +34,9 @@ function StarRating() {
 		<div
 			className="flex shrink-0 gap-1 text-primary"
 			aria-label="Five stars">
-			{Array.from({ length: 5 }).map((_, index) => (
+			{[1, 2, 3, 4, 5].map((star) => (
 				<Star
-					key={index}
+					key={star}
 					className="size-4 fill-current stroke-0"
 					aria-hidden
 				/>

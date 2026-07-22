@@ -2,13 +2,68 @@ import { useState } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
 import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
+
+type BookingUpdateError = NonNullable<UpdateBookingFromAdminResult[0]> | UnexpectedError;
+type ParsedBookingValues = ReturnType<typeof bookingSchema.parse>;
+type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
+
+const bookingUpdateErrorMessageMap = {
+	NOT_AUTHENTICATED: "You are not signed in.",
+	NOT_AUTHORIZED: "You do not have access to update bookings.",
+	BOOKING_NOT_FOUND: "That booking no longer exists.",
+	BOOKING_INVALID_DATE: "Enter a valid booking date.",
+	BOOKING_INVALID_TIME: "Enter a valid booking time.",
+	BOOKING_INVALID_INPUT: "Check the booking details and balance, then try again.",
+	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",
+	GOOGLE_CALENDAR_AUTH_FAILED: "Google Calendar authentication failed. Booking was not updated.",
+	GOOGLE_CALENDAR_CREATE_FAILED: "Google Calendar failed to create the event. Please try again.",
+	GOOGLE_CALENDAR_UPDATE_FAILED: "Google Calendar failed to update the event. Please try again.",
+	GOOGLE_CALENDAR_RATE_LIMITED: "Google Calendar is busy right now. Wait a minute, then try again.",
+	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
+		"Something went wrong while updating the booking. Please try again.",
+	UNEXPECTED_ERROR: "Something went wrong while updating the booking. Please try again."
+} satisfies Record<BookingUpdateError["reason"], string>;
+
+function showBookingUpdateError(error: BookingUpdateError) {
+	toast.error(bookingUpdateErrorMessageMap[error.reason]);
+}
+
+function buildBookingUpdateInput(
+	booking: BookingRecord,
+	parsedValues: ParsedBookingValues,
+	remainingBalanceAmountResult: RemainingBalanceResult
+) {
+	return {
+		bookingId: booking._id,
+		name: parsedValues.name,
+		phone: parsedValues.phone,
+		accountName: parsedValues.accountName,
+		...(parsedValues.abn ? { abn: parsedValues.abn } : {}),
+		email: parsedValues.email,
+		date: parsedValues.date,
+		time: parsedValues.time,
+		duration: parsedValues.duration,
+		service: parsedValues.service,
+		addons: parsedValues.addons,
+		...(parsedValues.essentialEditQuantity
+			? { essentialEditQuantity: parsedValues.essentialEditQuantity }
+			: {}),
+		...(parsedValues.clipsPackageQuantity
+			? { clipsPackageQuantity: parsedValues.clipsPackageQuantity }
+			: {}),
+		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
+		...(remainingBalanceAmountResult?.status === "valid"
+			? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
+			: {})
+	};
+}
 
 export function useEditAction(booking: BookingRecord) {
 	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
@@ -71,78 +126,17 @@ export function useEditAction(booking: BookingRecord) {
 
 		setIsSaving(true);
 
+		const updateInput = buildBookingUpdateInput(
+			booking,
+			parsedValues.data,
+			remainingBalanceAmountResult
+		);
 		const [error, result] = await tryCatch<UpdateBookingFromAdminResult>(
-			updateBooking({
-				bookingId: booking._id,
-				name: parsedValues.data.name,
-				phone: parsedValues.data.phone,
-				accountName: parsedValues.data.accountName,
-				...(parsedValues.data.abn ? { abn: parsedValues.data.abn } : {}),
-				email: parsedValues.data.email,
-				date: parsedValues.data.date,
-				time: parsedValues.data.time,
-				duration: parsedValues.data.duration,
-				service: parsedValues.data.service,
-				addons: parsedValues.data.addons,
-				...(parsedValues.data.essentialEditQuantity
-					? { essentialEditQuantity: parsedValues.data.essentialEditQuantity }
-					: {}),
-				...(parsedValues.data.clipsPackageQuantity
-					? { clipsPackageQuantity: parsedValues.data.clipsPackageQuantity }
-					: {}),
-				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {}),
-				...(remainingBalanceAmountResult !== null
-					? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
-					: {})
-			})
+			updateBooking(updateInput)
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to update bookings.");
-					break;
-				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
-					break;
-				case "BOOKING_INVALID_DATE":
-					toast.error("Enter a valid booking date.");
-					break;
-				case "BOOKING_INVALID_TIME":
-					toast.error("Enter a valid booking time.");
-					break;
-				case "BOOKING_INVALID_INPUT":
-					toast.error("Check the booking details and balance, then try again.");
-					break;
-				case "BOOKING_TIME_UNAVAILABLE":
-					toast.error("That time is no longer available. Choose another time.");
-					break;
-				case "GOOGLE_CALENDAR_AUTH_FAILED":
-					toast.error("Google Calendar authentication failed. Booking was not updated.");
-					break;
-				case "GOOGLE_CALENDAR_CREATE_FAILED":
-					toast.error("Google Calendar failed to create the event. Please try again.");
-					break;
-				case "GOOGLE_CALENDAR_UPDATE_FAILED":
-					toast.error("Google Calendar failed to update the event. Please try again.");
-					break;
-				case "GOOGLE_CALENDAR_RATE_LIMITED":
-					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
-					break;
-				case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while updating the booking. Please try again.");
-					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			showBookingUpdateError(error);
 			setIsSaving(false);
 			return;
 		}

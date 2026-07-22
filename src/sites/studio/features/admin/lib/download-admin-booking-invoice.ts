@@ -30,24 +30,10 @@ export type DownloadAdminBookingInvoiceResult = Result<
 	{ message: string; reason: "INVALID_INVOICE_INPUT" }
 >;
 
-export async function downloadAdminBookingInvoice({
-	booking,
-	addons,
-	createdAt,
-	essentialEditQuantity = booking.essentialEditQuantity ?? "",
-	clipsPackageQuantity = booking.clipsPackageQuantity ?? "",
-	dueDate,
-	duration = toAdminBookingDuration(booking.duration),
-	includeDepositLineItem,
-	invoiceNumber,
-	leadTimeMinutes,
-	service,
-	customTotalDueAmount
-}: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
-	const { downloadBookingInvoicePdf } =
-		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-	const invoiceAddons = addons ?? toAdminBookingAddons(booking.addons);
-	const parsedBooking = bookingSchema.safeParse({
+function getInvoiceFormValues(input: DownloadAdminBookingInvoiceInput) {
+	const { booking } = input;
+
+	return {
 		name: booking.name,
 		phone: booking.phone,
 		accountName: booking.accountName,
@@ -57,13 +43,33 @@ export async function downloadAdminBookingInvoice({
 		packageSize: "",
 		date: booking.date,
 		time: booking.time,
-		duration,
+		duration: input.duration ?? toAdminBookingDuration(booking.duration),
 		service: booking.service,
-		addons: invoiceAddons,
-		essentialEditQuantity,
-		clipsPackageQuantity,
+		addons: input.addons ?? toAdminBookingAddons(booking.addons),
+		essentialEditQuantity: input.essentialEditQuantity ?? booking.essentialEditQuantity ?? "",
+		clipsPackageQuantity: input.clipsPackageQuantity ?? booking.clipsPackageQuantity ?? "",
 		notes: booking.notes ?? ""
-	});
+	};
+}
+
+function resolveInvoiceService(
+	service: BookingService | null | undefined,
+	parsedService: BookingFormValues["service"]
+) {
+	if (service === undefined) {
+		return parsedService || undefined;
+	}
+
+	return service ?? undefined;
+}
+
+export async function downloadAdminBookingInvoice(
+	input: DownloadAdminBookingInvoiceInput
+): Promise<DownloadAdminBookingInvoiceResult> {
+	const { booking } = input;
+	const { downloadBookingInvoicePdf } =
+		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
+	const parsedBooking = bookingSchema.safeParse(getInvoiceFormValues(input));
 
 	if (!parsedBooking.success) {
 		return err({
@@ -80,19 +86,18 @@ export async function downloadAdminBookingInvoice({
 		abn: parsedBooking.data.abn,
 		email: parsedBooking.data.email,
 		date: parsedBooking.data.date,
-		dueDate,
+		dueDate: input.dueDate,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service:
-			service === undefined ? parsedBooking.data.service || undefined : (service ?? undefined),
+		service: resolveInvoiceService(input.service, parsedBooking.data.service),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
-		createdAt,
-		leadTimeMinutes,
-		includeDepositLineItem,
-		invoiceNumber,
-		customTotalDueAmount
+		createdAt: input.createdAt,
+		leadTimeMinutes: input.leadTimeMinutes,
+		includeDepositLineItem: input.includeDepositLineItem,
+		invoiceNumber: input.invoiceNumber,
+		customTotalDueAmount: input.customTotalDueAmount
 	});
 
 	return ok({ downloaded: true });

@@ -1,5 +1,9 @@
+import { ok } from "../../src/lib/result";
 import type { Doc, Id } from "../_generated/dataModel";
+import { env } from "../env";
 import type { MutationCtx } from "../_generated/server";
+import type { BookingAvailabilitySettings } from "./bookingCalendarTime";
+import { sendBookingInvoiceEmailsForBooking } from "./email";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 const rescheduleTokenByteLength = 32;
@@ -11,6 +15,68 @@ export type BookingRescheduleLinkStatus = "active" | "used" | "expired";
 type BookingRescheduleLink = { expiresAt: number };
 
 type ReschedulableBooking = { sessionStartAt: number };
+
+type RescheduleBookingArgs = { date: string; time: string; token: string };
+
+type RescheduledBookingTimingUpdate = {
+	googleCalendarId?: string;
+	googleEventId?: string;
+	sessionStartAt: number;
+};
+
+type ClientBookingRescheduleOptionalArgs = {
+	service?: string;
+	addons?: string[];
+	notes?: string;
+	confirmBooking?: boolean;
+	googleCalendarId?: string;
+	googleEventId?: string;
+};
+
+export function buildClientBookingRescheduleOptionalPatch(
+	args: ClientBookingRescheduleOptionalArgs
+) {
+	return {
+		...(args.service !== undefined ? { service: args.service } : {}),
+		...(args.addons !== undefined ? { addons: args.addons } : {}),
+		...(args.notes !== undefined ? { notes: args.notes } : {}),
+		...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+		...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+		...(args.confirmBooking
+			? {
+					status: "confirmed" as const,
+					bookingConfirmedAt: Date.now(),
+					bookingFailureCode: undefined
+				}
+			: {})
+	};
+}
+
+export async function finishRescheduledBooking(
+	booking: Doc<"bookings">,
+	args: RescheduleBookingArgs,
+	timingUpdate: RescheduledBookingTimingUpdate,
+	settings: BookingAvailabilitySettings
+) {
+	const updatedBooking = {
+		...booking,
+		date: args.date,
+		time: args.time,
+		sessionStartAt: timingUpdate.sessionStartAt,
+		googleCalendarId: timingUpdate.googleCalendarId ?? booking.googleCalendarId,
+		googleEventId: timingUpdate.googleEventId ?? booking.googleEventId
+	};
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl: getRescheduleUrlForToken(args.token)
+	});
+
+	if (emailError !== null) {
+		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" as const });
+	}
+
+	return ok({ bookingId: booking._id });
+}
 
 function bytesToHex(bytes: Uint8Array) {
 	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");
@@ -31,6 +97,10 @@ export async function hashRescheduleToken(token: string) {
 export function buildRescheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/reschedule/${encodeURIComponent(token)}`, baseUrl);
 	return url.toString();
+}
+
+export function getRescheduleUrlForToken(token: string) {
+	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
 }
 
 export function isRescheduleLinkExpired(

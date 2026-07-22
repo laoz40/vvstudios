@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
 	Table,
@@ -9,114 +8,23 @@ import {
 	TableHeader,
 	TableRow
 } from "#/components/ui/table";
-import { cn } from "#/lib/utils";
-import {
-	CopyableText,
-	SortHeaderButton,
-	formatDashboardAddonLabel,
-	formatInstagramHandle
-} from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { PackageActions } from "#studio/features/admin/components/PackageActions";
-import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
+import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { PackageTableRow } from "#studio/features/admin/components/PackageTableRow";
 import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
 import {
 	filterAdminPackages,
-	getAdminPackageDashboardDate,
-	getAdminPackageStatusDisplay,
-	isAdminPackagePaymentDueClose,
-	isAdminPackageExpiryClose,
-	isAdminPackageExpired,
-	isAdminPackageOverdue,
 	mapPackageToAdminRow,
 	sortAdminPackages,
 	type AdminPackageFilters,
 	type AdminPackageRecord,
-	type AdminPackageRow,
 	type AdminPackageSort
 } from "#studio/features/admin/lib/admin-packages";
 import {
 	readStoredPackageTableFilters,
 	storePackageTableFilters
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
-import {
-	formatShortMonthFullDate,
-	formatBookingRelativeDate,
-	formatBookingTimestampTime,
-	getSydneyDateValue
-} from "#studio/lib/bookingdatetime";
 
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
-
-function PackageTableDateCell({
-	isPastDue,
-	packageRow
-}: {
-	isPastDue: boolean;
-	packageRow: AdminPackageRow;
-}) {
-	const dashboardDate = getAdminPackageDashboardDate(packageRow);
-	const isPaymentDueClose = isAdminPackagePaymentDueClose(packageRow);
-	const isExpiryClose = isAdminPackageExpiryClose(packageRow);
-	const relativeDateLabel =
-		dashboardDate.kind === "missing_package_expiry"
-			? null
-			: formatBookingRelativeDate(getSydneyDateValue(new Date(dashboardDate.timestamp)));
-
-	switch (dashboardDate.kind) {
-		case "adjustment_due":
-			return (
-				<div className="flex flex-col gap-1">
-					<span
-						className={cn(
-							"cursor-help",
-							isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary"
-						)}
-						title={relativeDateLabel ?? undefined}>
-						{formatShortMonthFullDate(dashboardDate.timestamp)}
-					</span>
-					<span className="text-xs text-muted-foreground">Adjustment due</span>
-				</div>
-			);
-
-		case "payment_due":
-			return (
-				<div className="flex flex-col gap-1">
-					<span
-						className={cn(
-							"cursor-help",
-							isPastDue ? "text-destructive" : isPaymentDueClose && "text-primary"
-						)}
-						title={relativeDateLabel ?? undefined}>
-						{formatShortMonthFullDate(dashboardDate.timestamp)}
-					</span>
-					<span className="text-xs text-muted-foreground">Payment due</span>
-				</div>
-			);
-
-		case "package_expiry":
-			return (
-				<div className="flex flex-col gap-1">
-					<span
-						className={cn(
-							"cursor-help",
-							isPastDue ? "text-destructive" : isExpiryClose && "text-primary"
-						)}
-						title={relativeDateLabel ?? undefined}>
-						{formatShortMonthFullDate(dashboardDate.timestamp)}
-					</span>
-					<span className="text-xs text-muted-foreground">Package expiry</span>
-				</div>
-			);
-
-		case "missing_package_expiry":
-			return <span className="text-muted-foreground">Expiry not set</span>;
-
-		default: {
-			const _exhaustive: never = dashboardDate;
-			return _exhaustive;
-		}
-	}
-}
 
 export function PackagesTable({
 	canLoadMorePackages,
@@ -220,162 +128,13 @@ export function PackagesTable({
 					</TableHeader>
 					<TableBody>
 						{visiblePackages.length > 0 ? (
-							visiblePackages.map((packageRow) => {
-								const isOverdue = isAdminPackageOverdue(packageRow);
-								const isExpired = isAdminPackageExpired(packageRow);
-								const isInactivePackage = isOverdue || isExpired;
-								const dashboardDate = getAdminPackageDashboardDate(packageRow);
-								const isDashboardDateOutstanding =
-									dashboardDate.kind !== "adjustment_due" ||
-									packageRow.adjustment?.paymentStatus === "unpaid";
-								const isDashboardDatePastDue =
-									dashboardDate.kind !== "missing_package_expiry" &&
-									isDashboardDateOutstanding &&
-									Date.now() > dashboardDate.timestamp;
-								const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
-
-								return (
-									<TableRow
-										key={packageRow.id}
-										className={cn(isInactivePackage && "text-muted-foreground")}>
-										<TableCell className={cn("text-center", isInactivePackage && "opacity-70")}>
-											<div className="flex justify-center">
-												<StatusIcon {...packageStatusDisplay} />
-											</div>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-col gap-1 whitespace-normal">
-												<p className="font-medium text-foreground">
-													<CopyableText
-														value={packageRow.customerName}
-														label="customer name">
-														{packageRow.customerName}
-													</CopyableText>
-												</p>
-												{packageRow.accountName || packageRow.abn ? (
-													<p className="text-sm">
-														{packageRow.accountName ? (
-															<CopyableText
-																value={packageRow.accountName}
-																label="account name">
-																{packageRow.accountName}
-															</CopyableText>
-														) : null}
-														{packageRow.abn ? (
-															<>
-																{packageRow.accountName ? " · " : ""}
-																<CopyableText
-																	value={packageRow.abn}
-																	label="ABN">
-																	ABN
-																</CopyableText>
-															</>
-														) : null}
-													</p>
-												) : null}
-											</div>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<Button
-												type="button"
-												variant="link"
-												className="h-auto flex-col items-start gap-1 p-0 text-left"
-												onClick={() => onViewPackageSessions(packageRow.invoiceNumber)}>
-												<span className="font-medium text-foreground">
-													{packageRow.packageSize} sessions ({packageRow.duration})
-												</span>
-												<span className="text-sm text-muted-foreground">
-													{packageRow.bookedSessions} / {packageRow.packageSize} booked
-												</span>
-											</Button>
-										</TableCell>
-										<TableCell
-											className={cn(
-												"min-w-48 whitespace-normal",
-												isInactivePackage && "opacity-70"
-											)}>
-											{packageRow.addons.length > 0 ? (
-												<div className="flex flex-wrap gap-1">
-													{packageRow.addons.map((addon) => (
-														<Badge
-															key={addon}
-															variant="outline">
-															{formatDashboardAddonLabel(addon, packageRow)}
-														</Badge>
-													))}
-												</div>
-											) : (
-												<p className="text-sm text-muted-foreground">No add-ons</p>
-											)}
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-col gap-1 whitespace-normal">
-												<p className="break-all font-medium">
-													<CopyableText
-														value={packageRow.customerEmail}
-														label="email">
-														{packageRow.customerEmail}
-													</CopyableText>
-												</p>
-												<p className="text-sm">
-													<CopyableText
-														value={packageRow.customerPhone}
-														label="phone number">
-														{packageRow.customerPhone}
-													</CopyableText>
-													{packageRow.instagramHandle ? (
-														<>
-															{" · "}
-															<CopyableText
-																value={formatInstagramHandle(packageRow.instagramHandle)}
-																label="Instagram handle">
-																{formatInstagramHandle(packageRow.instagramHandle)}
-															</CopyableText>
-														</>
-													) : null}
-												</p>
-											</div>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<PackageTableDateCell
-												packageRow={packageRow}
-												isPastDue={isDashboardDatePastDue}
-											/>
-										</TableCell>
-										<TableCell
-											className={cn("tabular-nums text-right", isInactivePackage && "opacity-70")}>
-											<div className="flex flex-col gap-1">
-												<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
-													{packageRow.totalDueLabel}
-												</p>
-												{packageRow.adjustment ? (
-													<p
-														className={
-															packageRow.adjustment.paymentStatus === "paid"
-																? "text-green"
-																: "text-destructive"
-														}>
-														{packageRow.adjustment.amountLabel}
-													</p>
-												) : null}
-											</div>
-										</TableCell>
-										<TableCell className={cn(isInactivePackage && "opacity-70")}>
-											<div className="flex flex-col gap-1 whitespace-normal">
-												<p className="font-medium">
-													{formatShortMonthFullDate(packageRow.createdAt)}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													{formatBookingTimestampTime(packageRow.createdAt)}
-												</p>
-											</div>
-										</TableCell>
-										<TableCell>
-											<PackageActions packageRow={packageRow} />
-										</TableCell>
-									</TableRow>
-								);
-							})
+							visiblePackages.map((packageRow) => (
+								<PackageTableRow
+									key={packageRow.id}
+									onViewPackageSessions={onViewPackageSessions}
+									packageRow={packageRow}
+								/>
+							))
 						) : (
 							<TableRow>
 								<TableCell

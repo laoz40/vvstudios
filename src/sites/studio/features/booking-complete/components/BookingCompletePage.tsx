@@ -23,32 +23,46 @@ const multiBookingIdSchema = z.custom<Id<"multiBookingPackages">>(
 	(value) => typeof value === "string" && value.length > 0
 );
 const DEV_MULTI_BOOKING_ID = multiBookingIdSchema.parse("dev-multi-booking-package");
-export function BookingCompletePage({
-	search: {
-		dev_scenario: devScenario,
-		multi_booking_id: multiBookingId,
-		package_size: packageSize,
-		session_id: stripeSessionId
-	}
-}: {
-	search: BookingCompleteSearch;
-}): ReactNode {
-	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
-	const usableStripeSessionId =
-		stripeSessionId && stripeSessionId !== "{CHECKOUT_SESSION_ID}" ? stripeSessionId : null;
-	const liveBooking = useQuery(
-		api.bookings.getBookingStatusByStripeSessionId,
+function useBookingCompletePageData(search: BookingCompleteSearch) {
+	const activeDevScenario = import.meta.env.DEV ? search.dev_scenario : undefined;
+	const stripeSessionId = search.session_id;
+	const usableStripeSessionId = [undefined, "", "{CHECKOUT_SESSION_ID}"].includes(stripeSessionId)
+		? null
+		: stripeSessionId;
+	const bookingQueryArgs: "skip" | { stripeSessionId: string } =
 		usableStripeSessionId && !activeDevScenario
 			? { stripeSessionId: usableStripeSessionId }
-			: "skip"
-	);
-	const booking = activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking;
-	const previewStripeSessionId =
-		usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null);
-	const isLoading =
-		!activeDevScenario && Boolean(usableStripeSessionId) && liveBooking === undefined;
+			: "skip";
+	const liveBooking = useQuery(api.bookings.getBookingStatusByStripeSessionId, bookingQueryArgs);
 
-	if ((multiBookingId && packageSize) || activeDevScenario === "package_request") {
+	return {
+		booking: activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking,
+		hasBookingRequest: Boolean(stripeSessionId || activeDevScenario),
+		isLoading: bookingQueryArgs !== "skip" && liveBooking === undefined,
+		isPackageRequest:
+			Boolean(search.multi_booking_id && search.package_size) ||
+			activeDevScenario === "package_request",
+		multiBookingId: search.multi_booking_id,
+		packageSize: search.package_size,
+		previewStripeSessionId:
+			usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null),
+		usableStripeSessionId
+	};
+}
+
+export function BookingCompletePage({ search }: { search: BookingCompleteSearch }): ReactNode {
+	const {
+		booking,
+		hasBookingRequest,
+		isLoading,
+		isPackageRequest,
+		multiBookingId,
+		packageSize,
+		previewStripeSessionId,
+		usableStripeSessionId
+	} = useBookingCompletePageData(search);
+
+	if (isPackageRequest) {
 		const previewPackageSize = packageSize ?? 8;
 		const previewMultiBookingId = multiBookingId
 			? multiBookingIdSchema.parse(multiBookingId)
@@ -68,7 +82,7 @@ export function BookingCompletePage({
 		);
 	}
 
-	if (!stripeSessionId && !activeDevScenario) {
+	if (!hasBookingRequest) {
 		return (
 			<BookingStatusLayout>
 				{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}

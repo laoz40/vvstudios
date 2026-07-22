@@ -17,6 +17,7 @@ import { getAdminIdentity } from "./lib/auth";
 import {
 	buildRescheduleUrl,
 	createActiveRescheduleLinkForBooking,
+	getRescheduleUrlForToken,
 	hashRescheduleToken,
 	isRescheduleLinkExpired,
 	markExistingActiveRescheduleLinksUsed
@@ -60,10 +61,6 @@ function isBookingReschedulable(booking: Doc<"bookings">) {
 		(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
 			booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
 	);
-}
-
-export function getRescheduleUrlForToken(token: string) {
-	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
 }
 
 export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc<"bookings">) {

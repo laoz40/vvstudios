@@ -15,7 +15,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
@@ -42,6 +42,9 @@ import {
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
+type CreatePackageCustomInvoiceError =
+	| Exclude<CreatePackageCustomInvoiceResult[0], null>
+	| UnexpectedError;
 
 type PackageCustomInvoiceDraft = {
 	duration: BookingFormValues["duration"] | "";
@@ -59,6 +62,30 @@ type PackageCustomInvoiceDialogProps = {
 	packageRow: AdminPackageRow;
 	onOpenChange: (open: boolean) => void;
 };
+
+function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceError) {
+	switch (error.reason) {
+		case "NOT_AUTHENTICATED":
+			toast.error("Please sign in first.");
+			break;
+		case "NOT_AUTHORIZED":
+			toast.error("You do not have permission to create custom invoices.");
+			break;
+		case "PACKAGE_NOT_FOUND":
+			toast.error("This package no longer exists.");
+			break;
+		case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
+			toast.error("Enter a valid custom invoice price.");
+			break;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong with creating the custom invoice.");
+			break;
+		default: {
+			const _exhaustive: never = error;
+			void _exhaustive;
+		}
+	}
+}
 
 function formatPackageInvoiceTotal(input: {
 	addons: BookingFormValues["addons"];
@@ -215,29 +242,7 @@ export function PackageCustomInvoiceDialog({
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("Please sign in first.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have permission to create custom invoices.");
-					break;
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
-					toast.error("Enter a valid custom invoice price.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong with creating the custom invoice.");
-					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			showCreatePackageCustomInvoiceError(error);
 			setIsGenerating(false);
 			return;
 		}

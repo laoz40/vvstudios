@@ -51,67 +51,47 @@ export function useBookingSubmit({
 	const submitAfterTermsRef = useRef(false);
 	const navigate = useNavigate();
 
-	const handleSubmit = async (value: BookingFormValues) => {
-		if (isSubmittingRef.current || hasCompletedMultiBooking) {
+	const submitMultiBooking = async (parsedValue: BookingFormValues) => {
+		const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
+
+		isSubmittingRef.current = true;
+		setIsSubmitting(true);
+		const [error, result] = await tryCatch<CreateMultiBookingRequestResult>(
+			createMultiBookingRequest({
+				name: multiBookingValue.name,
+				phone: multiBookingValue.phone,
+				accountName: multiBookingValue.accountName,
+				abn: multiBookingValue.abn || undefined,
+				email: multiBookingValue.email,
+				duration: multiBookingValue.duration,
+				addons: multiBookingValue.addons,
+				essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
+				clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
+				notes: multiBookingValue.notes,
+				packageSize: multiBookingValue.packageSize
+			})
+		);
+		isSubmittingRef.current = false;
+		setIsSubmitting(false);
+
+		if (error !== null) {
+			toast.error(createMultiBookingToastMessages[error.reason]);
 			return;
 		}
 
-		const parsedValue = bookingSchema.parse(value);
-
-		if (!submitAfterTermsRef.current) {
-			openTermsModal();
-
-			if (parsedValue.bookingMode === "single") {
-				void loadBookingPaymentModal();
+		persistBookingInfoFromForm({ ...parsedValue, notes: "" });
+		setHasCompletedMultiBooking(true);
+		closeBookingModal();
+		await navigate({
+			to: studioSite.routes.packageComplete,
+			search: {
+				multi_booking_id: result.multiBookingId,
+				package_size: multiBookingValue.packageSize
 			}
+		});
+	};
 
-			throw termsDialogPendingError;
-		}
-
-		submitAfterTermsRef.current = false;
-
-		if (parsedValue.bookingMode === "multi") {
-			const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
-
-			isSubmittingRef.current = true;
-			setIsSubmitting(true);
-
-			const [error, result] = await tryCatch<CreateMultiBookingRequestResult>(
-				createMultiBookingRequest({
-					name: multiBookingValue.name,
-					phone: multiBookingValue.phone,
-					accountName: multiBookingValue.accountName,
-					abn: multiBookingValue.abn || undefined,
-					email: multiBookingValue.email,
-					duration: multiBookingValue.duration,
-					addons: multiBookingValue.addons,
-					essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
-					clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
-					notes: multiBookingValue.notes,
-					packageSize: multiBookingValue.packageSize
-				})
-			);
-			isSubmittingRef.current = false;
-			setIsSubmitting(false);
-
-			if (error !== null) {
-				toast.error(createMultiBookingToastMessages[error.reason]);
-				return;
-			}
-
-			persistBookingInfoFromForm({ ...parsedValue, notes: "" });
-			setHasCompletedMultiBooking(true);
-			closeBookingModal();
-			await navigate({
-				to: studioSite.routes.packageComplete,
-				search: {
-					multi_booking_id: result.multiBookingId,
-					package_size: multiBookingValue.packageSize
-				}
-			});
-			return;
-		}
-
+	const submitSingleBooking = async (parsedValue: BookingFormValues) => {
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
 		const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
@@ -142,6 +122,33 @@ export function useBookingSubmit({
 
 		persistBookingInfoFromForm(parsedValue);
 		openPaymentModal(session);
+	};
+
+	const handleSubmit = async (value: BookingFormValues) => {
+		if (isSubmittingRef.current || hasCompletedMultiBooking) {
+			return;
+		}
+
+		const parsedValue = bookingSchema.parse(value);
+
+		if (!submitAfterTermsRef.current) {
+			openTermsModal();
+
+			if (parsedValue.bookingMode === "single") {
+				void loadBookingPaymentModal();
+			}
+
+			throw termsDialogPendingError;
+		}
+
+		submitAfterTermsRef.current = false;
+
+		if (parsedValue.bookingMode === "multi") {
+			await submitMultiBooking(parsedValue);
+			return;
+		}
+
+		await submitSingleBooking(parsedValue);
 	};
 
 	const handleTermsConfirm = () => {

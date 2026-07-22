@@ -1,10 +1,97 @@
+import type { Id } from "#convex/_generated/dataModel";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import type { BookingDuration } from "#studio/features/booking-invoice/lib/types";
+import type { BookingDuration, BookingService } from "#studio/features/booking-invoice/lib/types";
+
+export type CustomInvoiceDraft = {
+	service: BookingService | "";
+	duration: BookingFormValues["duration"] | "";
+	addons: BookingFormValues["addons"];
+	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
+	dueDate: string;
+	includeDepositLineItem: boolean;
+	customTotalDueAmount: string;
+};
+
+type CustomInvoiceGenerationData =
+	| { status: "invalidTotal" }
+	| {
+			status: "ready";
+			createInput: {
+				bookingId: Id<"bookings">;
+				dueDate: string;
+				service?: BookingService;
+				duration?: BookingFormValues["duration"];
+				addons: BookingFormValues["addons"];
+				essentialEditQuantity?: BookingFormValues["essentialEditQuantity"];
+				clipsPackageQuantity?: BookingFormValues["clipsPackageQuantity"];
+				includeDepositLineItem: boolean;
+				customTotalDueAmount?: number;
+			};
+			downloadInput: {
+				service: BookingService | null;
+				duration?: BookingFormValues["duration"];
+				addons: BookingFormValues["addons"];
+				essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
+				clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
+				dueDate: string;
+				includeDepositLineItem: boolean;
+				customTotalDueAmount?: number;
+			};
+	  };
+
+export function buildCustomInvoiceGenerationData(
+	bookingId: Id<"bookings">,
+	draft: CustomInvoiceDraft
+): CustomInvoiceGenerationData {
+	const customTotalResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
+
+	if (customTotalResult.status === "invalid") {
+		return { status: "invalidTotal" };
+	}
+
+	const customTotalDueAmount =
+		customTotalResult.status === "valid" ? customTotalResult.amount : undefined;
+	const sessionSelection =
+		draft.service === "" || draft.duration === ""
+			? ({ status: "empty" } as const)
+			: ({ status: "complete", service: draft.service, duration: draft.duration } as const);
+	const selectedSessionInput =
+		sessionSelection.status === "complete"
+			? { service: sessionSelection.service, duration: sessionSelection.duration }
+			: {};
+
+	return {
+		status: "ready",
+		createInput: {
+			bookingId,
+			dueDate: draft.dueDate,
+			...selectedSessionInput,
+			addons: draft.addons,
+			...(draft.essentialEditQuantity
+				? { essentialEditQuantity: draft.essentialEditQuantity }
+				: {}),
+			...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
+			includeDepositLineItem: draft.includeDepositLineItem,
+			...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
+		},
+		downloadInput: {
+			service: sessionSelection.status === "complete" ? sessionSelection.service : null,
+			duration: sessionSelection.status === "complete" ? sessionSelection.duration : undefined,
+			addons: draft.addons,
+			essentialEditQuantity: draft.essentialEditQuantity,
+			clipsPackageQuantity: draft.clipsPackageQuantity,
+			dueDate: draft.dueDate,
+			includeDepositLineItem: draft.includeDepositLineItem,
+			customTotalDueAmount
+		}
+	};
+}
 
 export type CustomInvoiceTotalDraftResult =
 	| { status: "empty" }

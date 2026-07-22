@@ -41,23 +41,152 @@ type SessionTableRowProps = {
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
 
+function SessionCustomerCell({ booking }: { booking: BookingRecord }) {
+	return (
+		<div className="flex flex-col gap-1 whitespace-normal">
+			<p className="font-medium">
+				<CopyableText
+					value={booking.name}
+					label="customer name">
+					{booking.name}
+				</CopyableText>
+			</p>
+			{booking.accountName || booking.abn ? (
+				<p className="text-sm">
+					{booking.accountName ? (
+						<CopyableText
+							value={booking.accountName}
+							label="account name">
+							{booking.accountName}
+						</CopyableText>
+					) : null}
+					{booking.abn ? (
+						<>
+							{booking.accountName ? " · " : ""}
+							<CopyableText
+								value={booking.abn}
+								label="ABN">
+								ABN
+							</CopyableText>
+						</>
+					) : null}
+				</p>
+			) : null}
+		</div>
+	);
+}
+
+function SessionContactCell({ booking }: { booking: BookingRecord }) {
+	return (
+		<div className="flex flex-col gap-1 whitespace-normal">
+			<p className="break-all font-medium">
+				<CopyableText
+					value={booking.email}
+					label="email">
+					{booking.email}
+				</CopyableText>
+			</p>
+			<p className="text-sm">
+				{booking.phone ? (
+					<CopyableText
+						value={booking.phone}
+						label="phone number">
+						{booking.phone}
+					</CopyableText>
+				) : (
+					<span>No phone provided</span>
+				)}
+				{booking.instagramHandle ? (
+					<>
+						{" · "}
+						<CopyableText
+							value={formatInstagramHandle(booking.instagramHandle)}
+							label="Instagram handle">
+							{formatInstagramHandle(booking.instagramHandle)}
+						</CopyableText>
+					</>
+				) : null}
+			</p>
+		</div>
+	);
+}
+
+function SessionDetailsCell({ booking }: { booking: BookingRecord }) {
+	return (
+		<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
+			<p className="font-medium">{booking.service}</p>
+			{booking.addons.length > 0 ? (
+				<div className="flex flex-wrap gap-1">
+					{booking.addons.map((addon) => (
+						<Badge
+							key={addon}
+							variant="outline">
+							{formatDashboardAddonLabel(addon, booking)}
+						</Badge>
+					))}
+				</div>
+			) : (
+				<p className="text-sm text-muted-foreground">No add-ons</p>
+			)}
+		</div>
+	);
+}
+
+function RemainingBalanceCell({ booking }: { booking: BookingRecord }) {
+	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
+	const showRemainingBalance =
+		!packageSessionProgressLabel &&
+		(booking.status === "confirmed" || booking.status === "email_failed");
+
+	if (!showRemainingBalance) {
+		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
+	}
+
+	const className = booking.paidRemainingBalance === true ? "text-green" : "text-destructive";
+	return <p className={className}>{formatAudAmount(getRemainingBalanceAmount(booking))}</p>;
+}
+
+function PackageSessionProgress({
+	invoiceNumber,
+	label,
+	onPackageFilterClick
+}: {
+	invoiceNumber: string | undefined;
+	label: string | null;
+	onPackageFilterClick: (invoiceNumber: string) => void;
+}) {
+	if (!label) {
+		return <p>-</p>;
+	}
+
+	if (!invoiceNumber) {
+		return <p className="text-sm font-medium">{label}</p>;
+	}
+
+	return (
+		<Button
+			type="button"
+			variant="link"
+			className="h-auto p-0 text-sm font-medium text-foreground"
+			onClick={() => onPackageFilterClick(invoiceNumber)}>
+			{label}
+		</Button>
+	);
+}
+
 export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableRowProps) {
 	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
 	const relativeDateLabel = formatBookingRelativeDate(booking.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
 	const packageInvoiceNumber = booking.multiBookingInvoiceNumber;
-	const isRemainingBalancePaid = booking.paidRemainingBalance === true;
-	const remainingBalanceLabel = formatAudAmount(getRemainingBalanceAmount(booking));
-	const showRemainingBalance =
-		!packageSessionProgressLabel &&
-		(booking.status === "confirmed" || booking.status === "email_failed");
 	const deliverableStatus = isDeliverableSession(booking) ? getDeliverableStatus(booking) : null;
+	const pastCellClassName = isPastBooking ? "opacity-70" : undefined;
 
 	return (
 		<TableRow
 			key={booking._id}
-			className={cn(isPastBooking && "text-muted-foreground")}>
-			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
+			className={isPastBooking ? "text-muted-foreground" : undefined}>
+			<TableCell className={cn("text-center", pastCellClassName)}>
 				<div className="flex justify-center">
 					<StatusIcon
 						icon={bookingStatusIconMap[booking.status]}
@@ -66,39 +195,10 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					/>
 				</div>
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">
-						<CopyableText
-							value={booking.name}
-							label="customer name">
-							{booking.name}
-						</CopyableText>
-					</p>
-					{booking.accountName || booking.abn ? (
-						<p className="text-sm">
-							{booking.accountName ? (
-								<CopyableText
-									value={booking.accountName}
-									label="account name">
-									{booking.accountName}
-								</CopyableText>
-							) : null}
-							{booking.abn ? (
-								<>
-									{booking.accountName ? " · " : ""}
-									<CopyableText
-										value={booking.abn}
-										label="ABN">
-										ABN
-									</CopyableText>
-								</>
-							) : null}
-						</p>
-					) : null}
-				</div>
+			<TableCell className={pastCellClassName}>
+				<SessionCustomerCell booking={booking} />
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
+			<TableCell className={pastCellClassName}>
 				<div
 					className="flex cursor-help flex-col gap-1 whitespace-normal"
 					title={relativeDateLabel}>
@@ -109,88 +209,26 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					</p>
 				</div>
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
-					<p className="font-medium">{booking.service}</p>
-					{booking.addons.length > 0 ? (
-						<div className="flex flex-wrap gap-1">
-							{booking.addons.map((addon) => (
-								<Badge
-									key={addon}
-									variant="outline">
-									{formatDashboardAddonLabel(addon, booking)}
-								</Badge>
-							))}
-						</div>
-					) : (
-						<p className="text-sm text-muted-foreground">No add-ons</p>
-					)}
-				</div>
+			<TableCell className={pastCellClassName}>
+				<SessionDetailsCell booking={booking} />
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="break-all font-medium">
-						<CopyableText
-							value={booking.email}
-							label="email">
-							{booking.email}
-						</CopyableText>
-					</p>
-					<p className="text-sm">
-						{booking.phone ? (
-							<CopyableText
-								value={booking.phone}
-								label="phone number">
-								{booking.phone}
-							</CopyableText>
-						) : (
-							<span>No phone provided</span>
-						)}
-						{booking.instagramHandle ? (
-							<>
-								{" · "}
-								<CopyableText
-									value={formatInstagramHandle(booking.instagramHandle)}
-									label="Instagram handle">
-									{formatInstagramHandle(booking.instagramHandle)}
-								</CopyableText>
-							</>
-						) : null}
-					</p>
-				</div>
+			<TableCell className={pastCellClassName}>
+				<SessionContactCell booking={booking} />
 			</TableCell>
-			<TableCell className={cn("text-center", isPastBooking && "opacity-70")}>
-				{packageSessionProgressLabel ? (
-					packageInvoiceNumber ? (
-						<Button
-							type="button"
-							variant="link"
-							className="h-auto p-0 text-sm font-medium text-foreground"
-							onClick={() => onPackageFilterClick(packageInvoiceNumber)}>
-							{packageSessionProgressLabel}
-						</Button>
-					) : (
-						<p className="text-sm font-medium">{packageSessionProgressLabel}</p>
-					)
-				) : (
-					<p>-</p>
-				)}
+			<TableCell className={cn("text-center", pastCellClassName)}>
+				<PackageSessionProgress
+					invoiceNumber={packageInvoiceNumber}
+					label={packageSessionProgressLabel}
+					onPackageFilterClick={onPackageFilterClick}
+				/>
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
+			<TableCell className={pastCellClassName}>
 				<p className="whitespace-normal text-sm text-muted-foreground">
 					{booking.notes?.trim() || "No notes"}
 				</p>
 			</TableCell>
-			<TableCell className={cn("text-center tabular-nums", isPastBooking && "opacity-70")}>
-				{packageSessionProgressLabel ? (
-					<p className="text-muted-foreground">-</p>
-				) : showRemainingBalance ? (
-					<p className={isRemainingBalancePaid ? "text-green" : "text-destructive"}>
-						{remainingBalanceLabel}
-					</p>
-				) : (
-					<p>-</p>
-				)}
+			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
+				<RemainingBalanceCell booking={booking} />
 			</TableCell>
 			<TableCell className="text-center">
 				{deliverableStatus ? (
@@ -201,7 +239,7 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 					</Badge>
 				) : null}
 			</TableCell>
-			<TableCell className={cn(isPastBooking && "opacity-70")}>
+			<TableCell className={pastCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{formatShortMonthFullDate(booking.pendingPaymentCreatedAt)}</p>
 					<p className="text-sm text-muted-foreground">

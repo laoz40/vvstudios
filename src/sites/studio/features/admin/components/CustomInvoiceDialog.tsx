@@ -18,7 +18,7 @@ import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import {
 	Dialog,
 	DialogClose,
@@ -28,29 +28,16 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import {
+	buildCustomInvoiceGenerationData,
 	formatCustomInvoiceAddonText,
 	formatCustomInvoiceTotal,
-	parseCustomInvoiceTotalDraft
+	type CustomInvoiceDraft
 } from "#studio/features/admin/lib/custom-invoices";
+import { toDeliverableCountOption } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
-import {
-	toDeliverableCountOption,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingRecord = Doc<"bookings">;
 type CustomInvoiceRecord = Doc<"customInvoices">;
-
-type CustomInvoiceDraft = {
-	service: BookingService | "";
-	duration: BookingFormValues["duration"] | "";
-	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-	dueDate: string;
-	includeDepositLineItem: boolean;
-	customTotalDueAmount: string;
-};
 
 export type CustomInvoiceDialogProps = {
 	open: boolean;
@@ -60,6 +47,30 @@ export type CustomInvoiceDialogProps = {
 
 function isBookingService(value: string | undefined): value is BookingService {
 	return value === "Table Setup" || value === "Armchair Setup";
+}
+
+function showCreateCustomInvoiceError(
+	error: NonNullable<CreateCustomInvoiceResult[0]> | UnexpectedError
+) {
+	const messages: Record<typeof error.reason, string> = {
+		NOT_AUTHENTICATED: "Please sign in first.",
+		NOT_AUTHORIZED: "You do not have permission to create custom invoices.",
+		BOOKING_NOT_FOUND: "This booking no longer exists.",
+		INVALID_CUSTOM_TOTAL_DUE_AMOUNT: "Enter a valid custom invoice price.",
+		UNEXPECTED_ERROR: "Something went wrong with creating the custom invoice."
+	};
+	toast.error(messages[error.reason]);
+}
+
+function showInvoiceDownloadError(
+	error: NonNullable<DownloadAdminBookingInvoiceResult[0]> | UnexpectedError
+) {
+	if (error.reason === "INVALID_INVOICE_INPUT") {
+		toast.error(error.message);
+		return;
+	}
+
+	toast.error("Unable to generate invoice.");
 }
 
 export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
@@ -148,22 +159,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "INVALID_INVOICE_INPUT":
-					toast.error(error.message);
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Unable to generate invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			showInvoiceDownloadError(error);
 			setDownloadingInvoiceId(null);
 			return;
 		}
@@ -182,64 +178,21 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
-		const customTotalDueAmountResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
+		const generationData = buildCustomInvoiceGenerationData(booking._id, draft);
 
-		if (customTotalDueAmountResult.status === "invalid") {
+		if (generationData.status === "invalidTotal") {
 			toast.error("Enter a valid custom invoice price.");
 			return;
 		}
 
-		const customTotalDueAmount =
-			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
-		const selectedService = isBookingService(draft.service) ? draft.service : null;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
-			createCustomInvoice({
-				bookingId: booking._id,
-				dueDate: draft.dueDate,
-				...(hasCompleteSessionSelection
-					? { service: draft.service, duration: draft.duration }
-					: {}),
-				addons: draft.addons,
-				...(draft.essentialEditQuantity
-					? { essentialEditQuantity: draft.essentialEditQuantity }
-					: {}),
-				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
-				includeDepositLineItem: draft.includeDepositLineItem,
-				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
-			})
+			createCustomInvoice(generationData.createInput)
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("Please sign in first.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have permission to create custom invoices.");
-					break;
-
-				case "BOOKING_NOT_FOUND":
-					toast.error("This booking no longer exists.");
-					break;
-
-				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
-					toast.error("Enter a valid custom invoice price.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong with creating the custom invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			showCreateCustomInvoiceError(error);
 			setIsGenerating(false);
 			return;
 		}
@@ -247,37 +200,15 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		const [downloadError] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
 				booking,
-				addons: draft.addons,
+				...generationData.downloadInput,
 				createdAt: customInvoice.createdAt,
-				essentialEditQuantity: draft.essentialEditQuantity,
-				clipsPackageQuantity: draft.clipsPackageQuantity,
-				dueDate: draft.dueDate,
-				duration: hasCompleteSessionSelection ? draft.duration : undefined,
-				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
-				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: hasCompleteSessionSelection ? selectedService : null,
-				customTotalDueAmount
+				leadTimeMinutes: bookingSettings.leadTimeMinutes
 			})
 		);
 
 		if (downloadError !== null) {
-			switch (downloadError.reason) {
-				case "INVALID_INVOICE_INPUT":
-					toast.error(downloadError.message);
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Unable to generate invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = downloadError;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			showInvoiceDownloadError(downloadError);
 			setIsGenerating(false);
 			return;
 		}

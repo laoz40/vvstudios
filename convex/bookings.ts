@@ -32,10 +32,15 @@ import {
 	createMultiBookingInvoiceLineItemSnapshot,
 	formatBookingInvoiceNumber
 } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { generateRescheduleToken, hashRescheduleToken } from "./lib/bookingRescheduleLinks";
+import {
+	buildClientBookingRescheduleOptionalPatch,
+	generateRescheduleToken,
+	hashRescheduleToken
+} from "./lib/bookingRescheduleLinks";
 import {
 	bookingConsumesPackageCapacity,
-	getCapacityConsumingPackageBookings
+	getCapacityConsumingPackageBookings,
+	getPackageAdminUpdateValidationError
 } from "./lib/packageScheduling";
 import {
 	bookingHasReservation,
@@ -355,19 +360,14 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 		multiBooking.packageSize
 	);
 
-	if (multiBookingData.packageSize < activeBookedSessions.length) {
-		return err({ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" });
-	}
+	const validationError = getPackageAdminUpdateValidationError(
+		args,
+		activeBookedSessions.length,
+		multiBookingData.packageSize
+	);
 
-	if (args.expiresAt !== undefined && !Number.isFinite(args.expiresAt)) {
-		return err({ reason: "PACKAGE_INVALID_EXPIRY" });
-	}
-
-	if (
-		args.totalDueAmount !== undefined &&
-		(!Number.isFinite(args.totalDueAmount) || args.totalDueAmount < 0)
-	) {
-		return err({ reason: "PACKAGE_INVALID_TOTAL_DUE_AMOUNT" });
+	if (validationError !== null) {
+		return err({ reason: validationError });
 	}
 
 	const amounts = calculateMultiBookingAmounts({
@@ -895,6 +895,27 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 	}
 });
 
+function getBookingCompletionStatusResult(status: Doc<"bookings">["status"]) {
+	switch (status) {
+		case "confirmed":
+		case "email_failed":
+			return ok({ outcome: "already_confirmed" as const });
+		case "cancelled":
+		case "abandoned":
+			return err({ reason: "BOOKING_INVALID_STATUS" as const, status });
+		case "expired":
+			return err({ reason: "BOOKING_EXPIRED" as const });
+		case "failed":
+			return err({ reason: "BOOKING_FAILED" as const });
+		case "pending_payment":
+			return null;
+		default: {
+			const _exhaustive: never = status;
+			return _exhaustive;
+		}
+	}
+}
+
 export const claimBookingCompletion = internalMutation({
 	args: {
 		bookingId: v.string(),
@@ -920,30 +941,10 @@ export const claimBookingCompletion = internalMutation({
 			return err({ reason: "STRIPE_SESSION_MISMATCH" });
 		}
 
-		switch (booking.status) {
-			case "confirmed":
-			case "email_failed":
-				return ok({ outcome: "already_confirmed" });
+		const statusResult = getBookingCompletionStatusResult(booking.status);
 
-			case "cancelled":
-				return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
-
-			case "expired":
-				return err({ reason: "BOOKING_EXPIRED" });
-
-			case "failed":
-				return err({ reason: "BOOKING_FAILED" });
-
-			case "abandoned":
-				return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
-
-			case "pending_payment":
-				break;
-
-			default: {
-				const _exhaustive: never = booking.status;
-				return _exhaustive;
-			}
+		if (statusResult !== null) {
+			return statusResult;
 		}
 
 		if (booking.bookingConfirmationClaimedAt) {
@@ -1374,22 +1375,11 @@ export const saveClientBookingRescheduleInternal = internalMutation({
 		await ctx.db.patch(args.bookingId, {
 			date: args.date,
 			time: args.time,
-			...(args.service !== undefined ? { service: args.service } : {}),
-			...(args.addons !== undefined ? { addons: args.addons } : {}),
-			...(args.notes !== undefined ? { notes: args.notes } : {}),
 			sessionStartAt: args.sessionStartAt,
-			...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
-			...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
 			reminderEmailClaimedAt: undefined,
 			reminderEmailSentAt: undefined,
 			reminderEmailFailureCode: undefined,
-			...(args.confirmBooking
-				? {
-						status: "confirmed" as const,
-						bookingConfirmedAt: Date.now(),
-						bookingFailureCode: undefined
-					}
-				: {}),
+			...buildClientBookingRescheduleOptionalPatch(args),
 			...clearedBookingReservationPatch
 		});
 
