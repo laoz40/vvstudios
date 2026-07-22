@@ -9,8 +9,8 @@ import { multiBookingFormSchema } from "../src/sites/studio/features/booking-for
 import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "../src/lib/result";
 import type {
-	MarkPackagePaidAndCreateScheduleTokenInternalResult,
-	RefreshPackageScheduleTokenInternalResult
+	MarkPackagePaidAndCreateScheduleTokenResult,
+	RefreshPackageScheduleTokenResult
 } from "./packages";
 import { env } from "./env";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
@@ -76,10 +76,9 @@ async function createMultiBookingRequestHandler(
 
 	const multiBooking = parsedMultiBooking.data;
 
-	const [rateLimitError] = await ctx.runMutation(
-		internal.packages.checkPackageSubmitRateLimitInternal,
-		{ submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email) }
-	);
+	const [rateLimitError] = await ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
+		submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email)
+	});
 
 	if (rateLimitError !== null) {
 		return err(rateLimitError);
@@ -174,7 +173,7 @@ async function resendMultiBookingInvoiceEmailHandler(
 	}
 
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.packages.getPackageByIdInternal,
+		internal.packages.getPackageById,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -241,8 +240,8 @@ async function confirmPackagePaymentHandler(
 	}
 
 	const paidAt = Date.now();
-	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenInternalResult =
-		await ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleTokenInternal, {
+	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenResult =
+		await ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
 			multiBookingId: args.multiBookingId,
 			paidAt
 		});
@@ -309,10 +308,10 @@ async function retryMultiBookingSchedulingEmailHandler(
 		return err(authError);
 	}
 
-	const [tokenError, tokenResult]: RefreshPackageScheduleTokenInternalResult =
-		await ctx.runMutation(internal.packages.refreshPackageScheduleTokenInternal, {
-			multiBookingId: args.multiBookingId
-		});
+	const [tokenError, tokenResult]: RefreshPackageScheduleTokenResult = await ctx.runMutation(
+		internal.packages.refreshPackageScheduleToken,
+		{ multiBookingId: args.multiBookingId }
+	);
 
 	if (tokenError !== null) {
 		return err(tokenError);

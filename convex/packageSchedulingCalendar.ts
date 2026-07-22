@@ -71,7 +71,7 @@ async function getPackageBusyWindowsHandler(
 	>
 > {
 	const [lookupError, multiBooking]: Result<ValidPackage, ValidPackageByTokenError> =
-		await ctx.runQuery(internal.packageScheduling.getValidPackageByTokenInternal, {
+		await ctx.runQuery(internal.packageScheduling.getValidPackageByToken, {
 			now: Date.now(),
 			token: args.token
 		});
@@ -123,7 +123,7 @@ async function getPackageBusyWindowsHandler(
 
 export type GetPackageBusyWindowsResult = Awaited<ReturnType<typeof getPackageBusyWindowsHandler>>;
 
-export const createPackageSessionCalendarEventInternal = internalAction({
+export const createPackageSessionCalendarEvent = internalAction({
 	args: {
 		session: v.union(v.null(), packageCalendarBookingValidator),
 		details: packageCalendarDetailsValidator
@@ -131,19 +131,19 @@ export const createPackageSessionCalendarEventInternal = internalAction({
 	handler: (_ctx, args) => savePackageSessionCalendarEvent(args)
 });
 
-export const updatePackageSessionCalendarEventInternal = internalAction({
+export const updatePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
 	handler: (_ctx, args) => savePackageSessionCalendarEvent(args)
 });
 
 type DeletePackageSessionCalendarEventArgs = { session: SessionCalendarEventRecord };
 
-export const deletePackageSessionCalendarEventInternal = internalAction({
+export const deletePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator },
-	handler: (ctx, args) => deletePackageSessionCalendarEventInternalHandler(ctx, args)
+	handler: (ctx, args) => deletePackageSessionCalendarEventHandler(ctx, args)
 });
 
-async function deletePackageSessionCalendarEventInternalHandler(
+async function deletePackageSessionCalendarEventHandler(
 	_ctx: ActionCtx,
 	args: DeletePackageSessionCalendarEventArgs
 ) {

@@ -33,7 +33,7 @@ export const clearSessionReservation = internalMutation({
 	handler: (ctx, args) => unreserveSessionTime(ctx, args.bookingId, args.reservation)
 });
 
-export const saveAdminSessionUpdateInternal = internalMutation({
+export const saveAdminSessionUpdate = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		name: v.string(),
@@ -98,7 +98,7 @@ export const saveAdminSessionUpdateInternal = internalMutation({
 	}
 });
 
-export const saveClientSessionRescheduleInternal = internalMutation({
+export const saveClientSessionReschedule = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		date: v.string(),
@@ -147,7 +147,7 @@ export const saveClientSessionRescheduleInternal = internalMutation({
 		if (args.multiBookingPackageId !== undefined) {
 			await ctx.scheduler.runAfter(
 				0,
-				internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+				internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
 				{ multiBookingId: args.multiBookingPackageId }
 			);
 		}

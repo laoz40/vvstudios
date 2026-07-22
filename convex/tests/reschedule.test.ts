@@ -121,10 +121,10 @@ describe("customer booking rescheduling", () => {
 				});
 			}
 
-			const result = await t.query(
-				internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
-				{ token, now }
-			);
+			const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+				token,
+				now
+			});
 			expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
 		}
 
@@ -140,10 +140,10 @@ describe("customer booking rescheduling", () => {
 			const seeded = await seedReschedulableSession(t);
 			await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
 
-			const result = await t.query(
-				internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
-				{ token: seeded.token, now }
-			);
+			const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+				token: seeded.token,
+				now
+			});
 			expect(result[0]).toBeNull();
 			expect(result[1]?.session._id).toBe(seeded.bookingId);
 		}
@@ -312,10 +312,11 @@ async function seedReschedulableSession(t: TestClient) {
 			reminderEmailFailureCode: "SEND_FAILED"
 		});
 	});
-	const linkResult = await t.mutation(
-		internal.sessionReschedule.createActiveRescheduleLinkInternal,
-		{ bookingId, expiresAt: originalSessionStartAt, now }
-	);
+	const linkResult = await t.mutation(internal.sessionReschedule.createActiveRescheduleLink, {
+		bookingId,
+		expiresAt: originalSessionStartAt,
+		now
+	});
 	if (linkResult[0] !== null) throw new Error("Failed to seed reschedule link");
 
 	return { bookingId, linkId: linkResult[1].linkId, token: linkResult[1].token };

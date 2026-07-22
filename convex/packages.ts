@@ -34,7 +34,7 @@ const bookingInvoiceLineItemValidator = v.object({
 	rate: v.number()
 });
 
-export const checkPackageSubmitRateLimitInternal = internalMutation({
+export const checkPackageSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
 	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
 });
@@ -406,12 +406,12 @@ export type MarkPackagePaymentStatusResult = Awaited<
 	ReturnType<typeof markPackagePaymentStatusHandler>
 >;
 
-export const markPackagePaidAndCreateScheduleTokenInternal = internalMutation({
+export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), paidAt: v.number() },
-	handler: (ctx, args) => markPackagePaidAndCreateScheduleTokenInternalHandler(ctx, args)
+	handler: (ctx, args) => markPackagePaidAndCreateScheduleTokenHandler(ctx, args)
 });
 
-async function markPackagePaidAndCreateScheduleTokenInternalHandler(
+async function markPackagePaidAndCreateScheduleTokenHandler(
 	ctx: MutationCtx,
 	args: { multiBookingId: Id<"multiBookingPackages">; paidAt: number }
 ) {
@@ -440,7 +440,7 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 		});
 		await ctx.scheduler.runAt(
 			expiresAt,
-			internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
+			internal.packageScheduling.processPackageAdjustmentAtExpiry,
 			{ multiBookingId: args.multiBookingId, expectedExpiresAt: expiresAt }
 		);
 	} catch {
@@ -462,16 +462,16 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 	});
 }
 
-export type MarkPackagePaidAndCreateScheduleTokenInternalResult = Awaited<
-	ReturnType<typeof markPackagePaidAndCreateScheduleTokenInternalHandler>
+export type MarkPackagePaidAndCreateScheduleTokenResult = Awaited<
+	ReturnType<typeof markPackagePaidAndCreateScheduleTokenHandler>
 >;
 
-export const refreshPackageScheduleTokenInternal = internalMutation({
+export const refreshPackageScheduleToken = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => refreshPackageScheduleTokenInternalHandler(ctx, args)
+	handler: (ctx, args) => refreshPackageScheduleTokenHandler(ctx, args)
 });
 
-async function refreshPackageScheduleTokenInternalHandler(
+async function refreshPackageScheduleTokenHandler(
 	ctx: MutationCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
@@ -506,11 +506,11 @@ async function refreshPackageScheduleTokenInternalHandler(
 	});
 }
 
-export type RefreshPackageScheduleTokenInternalResult = Awaited<
-	ReturnType<typeof refreshPackageScheduleTokenInternalHandler>
+export type RefreshPackageScheduleTokenResult = Awaited<
+	ReturnType<typeof refreshPackageScheduleTokenHandler>
 >;
 
-export const markPackageScheduleEmailAttemptInternal = internalMutation({
+export const markPackageScheduleEmailAttempt = internalMutation({
 	args: {
 		multiBookingId: v.id("multiBookingPackages"),
 		status: v.union(v.literal("sent"), v.literal("failed"))
@@ -571,7 +571,7 @@ export type SavePackageInstagramHandleResult = Awaited<
 	ReturnType<typeof savePackageInstagramHandleHandler>
 >;
 
-export const getPackageByIdInternal = internalQuery({
+export const getPackageById = internalQuery({
 	args: { multiBookingId: v.id("multiBookingPackages") },
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.multiBookingId);

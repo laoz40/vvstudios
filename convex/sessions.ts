@@ -19,7 +19,7 @@ import {
 	getCapacityConsumingPackageSessions
 } from "./lib/packageScheduling";
 
-export const getSessionByIdInternal = internalQuery({
+export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.bookingId);

@@ -86,7 +86,7 @@ async function createEmbeddedCheckoutSessionHandler(
 
 	const booking = parsedBooking.data;
 	const [rateLimitError] = await ctx.runMutation(
-		internal.sessionCheckout.checkSessionSubmitRateLimitInternal,
+		internal.sessionCheckout.checkSessionSubmitRateLimit,
 		{ submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email) }
 	);
 

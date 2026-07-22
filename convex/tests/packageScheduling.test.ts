@@ -376,9 +376,7 @@ describe("package session rescheduling", () => {
 		expect(state.booking).not.toHaveProperty("reminderEmailFailureCode");
 		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 		expect(
-			state.jobs.some((job) =>
-				job.name.includes("processPackageAdjustmentWhenSessionsCompleteInternal")
-			)
+			state.jobs.some((job) => job.name.includes("processPackageAdjustmentWhenSessionsComplete"))
 		).toBe(true);
 	});
 });

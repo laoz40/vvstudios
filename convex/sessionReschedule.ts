@@ -66,7 +66,7 @@ function isSessionReschedulable(session: Doc<"bookings">) {
 export async function createRescheduleUrlForSession(ctx: ActionCtx, session: Doc<"bookings">) {
 	const now = Date.now();
 	const [linkError, link] = await ctx.runMutation(
-		internal.sessionReschedule.createActiveRescheduleLinkInternal,
+		internal.sessionReschedule.createActiveRescheduleLink,
 		{ bookingId: session._id, expiresAt: session.sessionStartAt, now }
 	);
 
@@ -182,7 +182,7 @@ async function getRescheduleSessionByTokenHandler(
 	args: GetRescheduleSessionByTokenArgs
 ): Promise<Result<RescheduleSessionSummary, RescheduleLinkLookupError>> {
 	const [lookupError, result]: GetValidRescheduleLinkAndSessionResult = await ctx.runQuery(
-		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSession,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -209,12 +209,12 @@ export type GetRescheduleSessionByTokenResult = Awaited<
 	ReturnType<typeof getRescheduleSessionByTokenHandler>
 >;
 
-export const getValidRescheduleLinkAndSessionInternal = internalQuery({
+export const getValidRescheduleLinkAndSession = internalQuery({
 	args: { token: v.string(), now: v.number() },
-	handler: (ctx, args) => getValidRescheduleLinkAndSessionInternalHandler(ctx, args)
+	handler: (ctx, args) => getValidRescheduleLinkAndSessionHandler(ctx, args)
 });
 
-async function getValidRescheduleLinkAndSessionInternalHandler(
+async function getValidRescheduleLinkAndSessionHandler(
 	ctx: QueryCtx,
 	args: { now: number; token: string }
 ): Promise<Result<ValidRescheduleLinkAndSession, RescheduleLinkLookupError>> {
@@ -254,10 +254,10 @@ async function getValidRescheduleLinkAndSessionInternalHandler(
 }
 
 type GetValidRescheduleLinkAndSessionResult = Awaited<
-	ReturnType<typeof getValidRescheduleLinkAndSessionInternalHandler>
+	ReturnType<typeof getValidRescheduleLinkAndSessionHandler>
 >;
 
-export const createActiveRescheduleLinkInternal = internalMutation({
+export const createActiveRescheduleLink = internalMutation({
 	args: { bookingId: v.id("bookings"), expiresAt: v.number(), now: v.number() },
 	handler: async (ctx, args) => {
 		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
@@ -277,7 +277,7 @@ export const createActiveRescheduleLinkInternal = internalMutation({
 	}
 });
 
-export const markActiveRescheduleLinksUsedForSessionInternal = internalMutation({
+export const markActiveRescheduleLinksUsedForSession = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
 	handler: async (ctx, args) => {
 		const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
@@ -296,7 +296,7 @@ export const markActiveRescheduleLinksUsedForSessionInternal = internalMutation(
 	}
 });
 
-export const unlockRescheduleLinkInternal = internalMutation({
+export const unlockRescheduleLink = internalMutation({
 	args: {
 		linkId: v.id("bookingRescheduleLinks"),
 		lockedAt: v.number(),
@@ -320,7 +320,7 @@ export const unlockRescheduleLinkInternal = internalMutation({
 	}
 });
 
-export const lockRescheduleLinkInternal = internalMutation({
+export const lockRescheduleLink = internalMutation({
 	args: { linkId: v.id("bookingRescheduleLinks"), now: v.number() },
 	handler: async (ctx, args) => {
 		const link = await ctx.db.get(args.linkId);

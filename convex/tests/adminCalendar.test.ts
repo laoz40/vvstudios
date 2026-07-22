@@ -212,7 +212,7 @@ describe("admin booking state integrity", () => {
 		const timingTest = createConvexTest();
 		const timingBookingId = await seedConfirmedBooking(timingTest);
 		const timingResult = await timingTest.mutation(
-			internal.sessionScheduling.saveAdminSessionUpdateInternal,
+			internal.sessionScheduling.saveAdminSessionUpdate,
 			adminBookingValues(timingBookingId, { date: "2030-01-11" })
 		);
 		const timingBooking = await readBooking(timingTest, timingBookingId);
@@ -225,7 +225,7 @@ describe("admin booking state integrity", () => {
 		const ordinaryTest = createConvexTest();
 		const ordinaryBookingId = await seedConfirmedBooking(ordinaryTest);
 		const ordinaryResult = await ordinaryTest.mutation(
-			internal.sessionScheduling.saveAdminSessionUpdateInternal,
+			internal.sessionScheduling.saveAdminSessionUpdate,
 			adminBookingValues(ordinaryBookingId, { name: "Ordinary edit" })
 		);
 		const ordinaryBooking = await readBooking(ordinaryTest, ordinaryBookingId);

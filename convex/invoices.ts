@@ -41,7 +41,7 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 	ctx: ActionCtx,
 	args: GetBookingInvoicePdfByStripeSessionIdArgs
 ) {
-	const booking = await ctx.runQuery(internal.sessionCheckout.getSessionByStripeSessionIdInternal, {
+	const booking = await ctx.runQuery(internal.sessionCheckout.getSessionByStripeSessionId, {
 		stripeSessionId: args.stripeSessionId
 	});
 
@@ -105,7 +105,7 @@ async function getMultiBookingInvoicePdfByIdHandler(
 	args: GetMultiBookingInvoicePdfByIdArgs
 ): Promise<Result<InvoicePdfPayload, PublicMultiBookingInvoicePdfError>> {
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.packages.getPackageByIdInternal,
+		internal.packages.getPackageById,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -141,7 +141,7 @@ async function getAdminMultiBookingInvoicePdfByIdHandler(
 	}
 
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.packages.getPackageByIdInternal,
+		internal.packages.getPackageById,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -174,10 +174,7 @@ async function getAdminCustomMultiBookingInvoicePdfByIdHandler(
 		return err(authError);
 	}
 
-	const source = await ctx.runQuery(
-		internal.customInvoices.getPackageCustomInvoiceSourceInternal,
-		args
-	);
+	const source = await ctx.runQuery(internal.customInvoices.getPackageCustomInvoiceSource, args);
 
 	if (!source) {
 		return err({ reason: "PACKAGE_NOT_FOUND" });

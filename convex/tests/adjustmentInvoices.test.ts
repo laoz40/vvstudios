@@ -163,7 +163,7 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiryInternal, {
+		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
 			multiBookingId: packageId,
 			expectedExpiresAt: now - 1
 		});
@@ -304,13 +304,13 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal, {
+		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 		const staleResult = await t.mutation(
-			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSentInternal,
+			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent,
 			{ adjustmentId, claimedAt: firstClaimedAt }
 		);
 
@@ -328,13 +328,13 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal, {
+		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 		const staleResult = await t.mutation(
-			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal,
+			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed,
 			{ adjustmentId, claimedAt: firstClaimedAt }
 		);
 
@@ -437,17 +437,16 @@ async function seedPackageSession(
 }
 
 async function processExpiredPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
-	return await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiryInternal, {
+	return await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
 		multiBookingId: packageId,
 		expectedExpiresAt: now
 	});
 }
 
 async function processCompletedPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
-	return await t.mutation(
-		internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
-		{ multiBookingId: packageId }
-	);
+	return await t.mutation(internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete, {
+		multiBookingId: packageId
+	});
 }
 
 async function seedInvoiceAdjustment(
@@ -479,7 +478,7 @@ async function seedFailedAdjustment(t: TestClient) {
 }
 
 async function claimInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">, at: number) {
-	return await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmailInternal, {
+	return await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmail, {
 		adjustmentId,
 		attempt: "retry",
 		now: at

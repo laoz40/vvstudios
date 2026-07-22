@@ -20,10 +20,9 @@ export async function getSessionFromQuery(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const session: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.sessions.getSessionByIdInternal,
-		{ bookingId }
-	);
+	const session: Doc<"bookings"> | null = await ctx.runQuery(internal.sessions.getSessionById, {
+		bookingId
+	});
 
 	if (!session) {
 		return err({ reason: "BOOKING_NOT_FOUND" });

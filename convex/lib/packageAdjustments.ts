@@ -173,7 +173,7 @@ async function schedulePackageAdjustmentReevaluation(
 	if (args.trigger === "package_expired") {
 		await ctx.scheduler.runAt(
 			nextCheckAt,
-			internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
+			internal.packageScheduling.processPackageAdjustmentAtExpiry,
 			args
 		);
 		return null;
@@ -181,7 +181,7 @@ async function schedulePackageAdjustmentReevaluation(
 
 	await ctx.scheduler.runAt(
 		nextCheckAt,
-		internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+		internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
 		args
 	);
 	return null;
@@ -225,10 +225,9 @@ async function savePackageAdjustment(
 	await ctx.db.patch(adjustmentId, {
 		invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
 	});
-	await ctx.scheduler.runAfter(
-		0,
-		internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoiceInternal,
-		{ adjustmentId, attempt: "automatic" }
-	);
+	await ctx.scheduler.runAfter(0, internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {
+		adjustmentId,
+		attempt: "automatic"
+	});
 	return null;
 }

@@ -427,16 +427,13 @@ async function promoteFailedSessionFromAdmin({
 	}
 
 	// Promote to confirmed and clear the previous failure code in the save mutation.
-	const [saveError] = await ctx.runMutation(
-		internal.sessionScheduling.saveAdminSessionUpdateInternal,
-		{
-			...args,
-			confirmBooking: true,
-			googleCalendarId: client.calendarId,
-			googleEventId,
-			...(reservation ? { reservation } : {})
-		}
-	);
+	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+		...args,
+		confirmBooking: true,
+		googleCalendarId: client.calendarId,
+		googleEventId,
+		...(reservation ? { reservation } : {})
+	});
 
 	if (saveError !== null) {
 		return err(saveError);
@@ -544,15 +541,12 @@ async function updateConfirmedSessionGoogleEventOrCreateReplacement({
 		return ok(null);
 	}
 
-	const [saveError] = await ctx.runMutation(
-		internal.sessionScheduling.saveAdminSessionUpdateInternal,
-		{
-			...args,
-			googleCalendarId: timingUpdate.googleCalendarId,
-			googleEventId: timingUpdate.googleEventId,
-			...(reservation ? { reservation } : {})
-		}
-	);
+	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+		...args,
+		googleCalendarId: timingUpdate.googleCalendarId,
+		googleEventId: timingUpdate.googleEventId,
+		...(reservation ? { reservation } : {})
+	});
 
 	if (saveError !== null) {
 		return err(saveError);
@@ -663,10 +657,10 @@ async function applyAdminSessionUpdate({
 			return err(timingError);
 		}
 
-		const [saveError] = await ctx.runMutation(
-			internal.sessionScheduling.saveAdminSessionUpdateInternal,
-			{ ...args, ...(reservation ? { reservation } : {}) }
-		);
+		const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+			...args,
+			...(reservation ? { reservation } : {})
+		});
 
 		if (saveError !== null) {
 			return err(saveError);
@@ -693,10 +687,10 @@ async function applyAdminSessionUpdate({
 		return ok(replacementOutcome);
 	}
 
-	const [saveError] = await ctx.runMutation(
-		internal.sessionScheduling.saveAdminSessionUpdateInternal,
-		{ ...args, ...(reservation ? { reservation } : {}) }
-	);
+	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+		...args,
+		...(reservation ? { reservation } : {})
+	});
 
 	if (saveError !== null) {
 		return err(saveError);

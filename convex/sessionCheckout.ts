@@ -16,7 +16,7 @@ type CreatePendingSessionResult = Result<
 	SessionAvailabilityValidationError
 >;
 
-export const checkSessionSubmitRateLimitInternal = internalMutation({
+export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
 	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
 });
@@ -84,7 +84,7 @@ export const createPendingSession = internalMutation({
 	}
 });
 
-export const getSessionByStripeSessionIdInternal = internalQuery({
+export const getSessionByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) => {
 		return await ctx.db

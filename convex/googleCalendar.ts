@@ -274,7 +274,7 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 	>
 > {
 	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
-		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSession,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -324,7 +324,7 @@ async function getAvailableRescheduleTimesHandler(
 	args: GetAvailableRescheduleTimesArgs
 ): Promise<Result<GetAvailableRescheduleTimesSuccess, GetAvailableRescheduleTimesError>> {
 	const [lookupError, result] = await ctx.runQuery(
-		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSession,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -403,7 +403,7 @@ async function rescheduleSessionHandler(
 	// Check that the reschedule link still exists, has not expired, and belongs to a session.
 	const now = Date.now();
 	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
-		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSession,
 		{ now, token: args.token }
 	);
 
@@ -447,7 +447,7 @@ async function rescheduleSessionHandler(
 
 	// Lock the link so two requests cannot reschedule the session at the same time.
 	const lockedAt = Date.now();
-	const [lockError] = await ctx.runMutation(internal.sessionReschedule.lockRescheduleLinkInternal, {
+	const [lockError] = await ctx.runMutation(internal.sessionReschedule.lockRescheduleLink, {
 		linkId: link._id,
 		now: lockedAt
 	});
@@ -462,7 +462,7 @@ async function rescheduleSessionHandler(
 		calendarClient.timeZone
 	);
 	if (startError !== null) {
-		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -481,7 +481,7 @@ async function rescheduleSessionHandler(
 		}
 	);
 	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -513,7 +513,7 @@ async function rescheduleSessionHandler(
 			reservation
 		});
 		// Unlock the link so the customer can retry after a Calendar failure.
-		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -526,7 +526,7 @@ async function rescheduleSessionHandler(
 	const googleEventId = timingUpdate.googleEventId;
 
 	const [saveError] = await ctx.runMutation(
-		internal.sessionScheduling.saveClientSessionRescheduleInternal,
+		internal.sessionScheduling.saveClientSessionReschedule,
 		{
 			bookingId: session._id,
 			date: args.date,
@@ -545,7 +545,7 @@ async function rescheduleSessionHandler(
 			reservation
 		});
 		// Unlock the link so the customer can retry after a save failure.
-		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -553,7 +553,7 @@ async function rescheduleSessionHandler(
 	}
 
 	// Unlock the link after the move so the customer can use it again.
-	await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
+	await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 		linkId: link._id,
 		lockedAt,
 		expiresAt: sessionStartAt
@@ -643,7 +643,7 @@ async function sendBookingInvoiceForBookingHandler(
 	}
 
 	const customInvoice = args.customInvoiceId
-		? await ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSourceInternal, {
+		? await ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSource, {
 				bookingId: session._id,
 				customInvoiceId: args.customInvoiceId
 			})

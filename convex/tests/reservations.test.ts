@@ -68,7 +68,7 @@ describe("booking time reservations", () => {
 			reservation: firstReservationResult[1].reservation
 		});
 		const staleSaveResult = await t.mutation(
-			internal.sessionScheduling.saveClientSessionRescheduleInternal,
+			internal.sessionScheduling.saveClientSessionReschedule,
 			{
 				bookingId,
 				date: "2030-01-11",
@@ -97,16 +97,13 @@ describe("booking time reservations", () => {
 			throw new Error("Failed to reserve target");
 		}
 
-		const saveResult = await t.mutation(
-			internal.sessionScheduling.saveClientSessionRescheduleInternal,
-			{
-				bookingId,
-				date: "2030-01-11",
-				time: "10:00",
-				sessionStartAt: targetStartAt,
-				reservation: reservationResult[1].reservation
-			}
-		);
+		const saveResult = await t.mutation(internal.sessionScheduling.saveClientSessionReschedule, {
+			bookingId,
+			date: "2030-01-11",
+			time: "10:00",
+			sessionStartAt: targetStartAt,
+			reservation: reservationResult[1].reservation
+		});
 		const booking = await readBooking(t, bookingId);
 
 		expect(saveResult).toEqual([null, { saved: true }]);

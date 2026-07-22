@@ -28,7 +28,7 @@ export async function sendAndRecordPackageScheduleEmail(
 	if (scheduleEmailError !== null) {
 		// Email failed, so record that failure on the package before returning the email error.
 		const [statusUpdateError] = await ctx.runMutation(
-			internal.packages.markPackageScheduleEmailAttemptInternal,
+			internal.packages.markPackageScheduleEmailAttempt,
 			{ multiBookingId: args.multiBookingId, status: "failed" }
 		);
 
@@ -42,7 +42,7 @@ export async function sendAndRecordPackageScheduleEmail(
 
 	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const [statusUpdateError] = await ctx.runMutation(
-		internal.packages.markPackageScheduleEmailAttemptInternal,
+		internal.packages.markPackageScheduleEmailAttempt,
 		{ multiBookingId: args.multiBookingId, status: "sent" }
 	);
 
