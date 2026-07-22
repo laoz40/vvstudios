@@ -4,14 +4,15 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type {
-	CreateCustomInvoiceResult,
-	ListCustomInvoicesForBookingResult
-} from "#convex/customInvoices";
+import type { CreateCustomInvoiceResult } from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
+import {
+	toAdminBookingAddons,
+	toAdminBookingDuration
+} from "#studio/features/admin/lib/admin-bookings";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	type DownloadAdminBookingInvoiceResult,
@@ -65,7 +66,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
 		bookingId: booking._id
-	}) as ListCustomInvoicesForBookingResult | undefined;
+	});
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
@@ -132,12 +133,12 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
 				booking,
-				addons: input.addons as BookingFormValues["addons"],
+				addons: toAdminBookingAddons(input.addons),
 				createdAt: input.createdAt,
 				essentialEditQuantity: input.essentialEditQuantity ?? booking.essentialEditQuantity,
 				clipsPackageQuantity: input.clipsPackageQuantity ?? booking.clipsPackageQuantity,
 				dueDate: input.dueDate,
-				duration: input.duration as BookingFormValues["duration"] | undefined,
+				duration: input.duration ? toAdminBookingDuration(input.duration) : undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
@@ -158,7 +159,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -189,6 +191,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 		const customTotalDueAmount =
 			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
+		const selectedService = isBookingService(draft.service) ? draft.service : null;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
@@ -232,7 +235,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -252,7 +256,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: hasCompleteSessionSelection ? (draft.service as BookingService) : null,
+				service: hasCompleteSessionSelection ? selectedService : null,
 				customTotalDueAmount
 			})
 		);
@@ -269,7 +273,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 				default: {
 					const _exhaustive: never = downloadError;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -285,7 +290,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: invoice.addons as BookingFormValues["addons"],
+				addons: toAdminBookingAddons(invoice.addons),
 				essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
 				clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
 			});
@@ -296,7 +301,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				description: `${invoice.service ?? "Add-ons only"}${addonText}`,
 				total: formatCustomInvoiceTotal({
 					service: invoice.service,
-					addons: invoice.addons as BookingFormValues["addons"],
+					addons: invoice.addons,
 					duration: invoice.duration ?? "",
 					includeDepositLineItem: invoice.includeDepositLineItem,
 					essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,

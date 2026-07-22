@@ -55,7 +55,7 @@ function BookingPage() {
 	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
 
-	const formApi = useForm({
+	const formApi: BookingFormApi = useForm({
 		defaultValues: INITIAL_FORM,
 		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
 		onSubmit: async ({ value }) => {
@@ -80,7 +80,7 @@ function BookingPage() {
 	const completeBookingShortcut = useCompleteBookingShortcut(isDateTimeIncomplete);
 
 	const savedBookingInfo = useSavedBookingInfo({
-		formApi: formApi as unknown as BookingFormApi,
+		formApi,
 		onReuseSavedBookingInfo: () => completeBookingShortcut.setShowScrollToCompleteBooking(true)
 	});
 
@@ -117,7 +117,7 @@ function BookingPage() {
 				/>
 			) : null}
 
-			<bookingFormContext.Provider value={formApi as unknown as BookingFormApi}>
+			<bookingFormContext.Provider value={formApi}>
 				<form
 					ref={formRef}
 					onSubmit={(event) => {

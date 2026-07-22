@@ -133,7 +133,6 @@ export function BookingDateTimePicker({
 							onMonthChange={disabled ? undefined : setCalendarMonth}
 							selected={selectedDate}
 							onSelect={(date) => {
-								if (!date) return;
 								setCalendarMonth(startOfMonth(date));
 								onDateChange(formatDateValue(date));
 							}}

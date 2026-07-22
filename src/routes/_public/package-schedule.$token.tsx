@@ -190,13 +190,15 @@ function PackageScheduleContent({
 	// Load package-specific calendar availability up to the package expiry date.
 	useEffect(() => {
 		if (!availabilityRateLimitKey || availabilityError) {
-			return;
+			return undefined;
 		}
 
 		const rateLimitKey = availabilityRateLimitKey;
-		const hasAllMonthsCached = bookableMonthKeys.every((month) => monthlyBusyWindowsByMonth[month]);
+		const hasAllMonthsCached = bookableMonthKeys.every((month) =>
+			Object.hasOwn(monthlyBusyWindowsByMonth, month)
+		);
 		if (bookableMonthKeys.length === 0 || hasAllMonthsCached) {
-			return;
+			return undefined;
 		}
 
 		let isCancelled = false;
@@ -241,7 +243,7 @@ function PackageScheduleContent({
 	// Fade the updated session border back after the success highlight.
 	useEffect(() => {
 		if (highlightedBookingId === null) {
-			return;
+			return undefined;
 		}
 
 		const timeout = window.setTimeout(() => {
@@ -491,7 +493,9 @@ function PackageScheduleContent({
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
-					onMakeDefaultSpace={handleMakeDefaultSpace}
+					onMakeDefaultSpace={() => {
+						void handleMakeDefaultSpace();
+					}}
 					onNotesChange={setSelectedNotes}
 					onRemotePodcastChange={handleRemotePodcastChange}
 					onServiceChange={setSelectedService}
@@ -508,7 +512,9 @@ function PackageScheduleContent({
 			</div>
 			<BookingModalHost
 				isSubmitting={savingSessionKey !== null || unschedulingBookingId !== null}
-				onPackageUnscheduleConfirm={handleConfirmUnschedule}
+				onPackageUnscheduleConfirm={() => {
+					void handleConfirmUnschedule();
+				}}
 				onPaymentClose={() => {}}
 				onTermsConfirm={() => {}}
 			/>

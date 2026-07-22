@@ -36,7 +36,9 @@ const HomeIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				strokeLinecap="round"
 				strokeLinejoin="round"
 				className={`cursor-pointer ${className}`}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}>
 				<path
 					stroke="none"

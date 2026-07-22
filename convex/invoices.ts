@@ -25,9 +25,7 @@ import { getAdminIdentity } from "./lib/auth";
 type GetBookingInvoicePdfByStripeSessionIdArgs = { stripeSessionId: string };
 
 function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
-	return DURATION_OPTIONS.some((duration) => duration === value)
-		? (value as BookingFormValues["duration"])
-		: "";
+	return DURATION_OPTIONS.find((duration) => duration === value) ?? "";
 }
 
 const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;

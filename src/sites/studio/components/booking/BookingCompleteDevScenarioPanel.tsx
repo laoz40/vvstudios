@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { api } from "#convex/_generated/api";
+import { z } from "zod";
 
 const DEV_SCENARIO_OPTIONS = [
 	{ label: "Processing", value: "processing" },
@@ -29,6 +30,10 @@ export interface BookingCompleteSearch {
 export type BookingStatus = NonNullable<
 	ReturnType<typeof useQuery<typeof api.bookings.getBookingStatusByStripeSessionId>>
 >;
+
+const devBookingIdSchema = z.custom<BookingStatus["_id"]>(
+	(value) => typeof value === "string" && value.length > 0
+);
 
 export function BookingCompleteDevScenarioPanel() {
 	return (
@@ -72,7 +77,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 
 	const now = Date.now();
 	const baseBooking: BookingStatus = {
-		_id: "dev-booking" as BookingStatus["_id"],
+		_id: devBookingIdSchema.parse("dev-booking"),
 		addons: [...ADDON_OPTIONS],
 		bookingConfirmedAt: undefined,
 		bookingFailureCode: undefined,
@@ -132,9 +137,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 }
 
 function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
-	return DEV_SCENARIO_OPTIONS.some((scenario) => scenario.value === value)
-		? (value as DevBookingScenario)
-		: undefined;
+	return DEV_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)?.value;
 }
 
 function parseNonEmptyString(value: unknown): string | undefined {

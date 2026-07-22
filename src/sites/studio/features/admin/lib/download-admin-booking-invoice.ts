@@ -1,6 +1,10 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { err, ok, type Result } from "#/lib/result";
 import {
+	toAdminBookingAddons,
+	toAdminBookingDuration
+} from "#studio/features/admin/lib/admin-bookings";
+import {
 	bookingSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -33,7 +37,7 @@ export async function downloadAdminBookingInvoice({
 	essentialEditQuantity = booking.essentialEditQuantity ?? "",
 	clipsPackageQuantity = booking.clipsPackageQuantity ?? "",
 	dueDate,
-	duration = booking.duration as BookingFormValues["duration"],
+	duration = toAdminBookingDuration(booking.duration),
 	includeDepositLineItem,
 	invoiceNumber,
 	leadTimeMinutes,
@@ -42,7 +46,7 @@ export async function downloadAdminBookingInvoice({
 }: DownloadAdminBookingInvoiceInput): Promise<DownloadAdminBookingInvoiceResult> {
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
-	const invoiceAddons = addons ?? (booking.addons as BookingFormValues["addons"]);
+	const invoiceAddons = addons ?? toAdminBookingAddons(booking.addons);
 	const parsedBooking = bookingSchema.safeParse({
 		name: booking.name,
 		phone: booking.phone,

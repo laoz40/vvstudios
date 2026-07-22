@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
 	"plugins": ["eslint", "oxc", "nextjs", "typescript", "unicorn", "react", "import", "jsx-a11y"],
 	"categories": { "correctness": "error", "suspicious": "warn" },
-	"options": { "reportUnusedDisableDirectives": "error" },
+	"options": { "typeAware": true, "reportUnusedDisableDirectives": "error" },
 	"env": { "builtin": true },
 	"ignorePatterns": [".next/**", "out/**", "build/**", "convex/_generated/**", "next-env.d.ts"],
 	"rules": {
@@ -46,7 +46,18 @@
 		"@typescript-eslint/no-wrapper-object-types": "error",
 		"@typescript-eslint/prefer-as-const": "error",
 		"@typescript-eslint/prefer-namespace-keyword": "error",
-		"@typescript-eslint/triple-slash-reference": "error"
+		"@typescript-eslint/triple-slash-reference": "error",
+		"typescript/await-thenable": "error",
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": "error",
+		"typescript/no-unsafe-argument": "error",
+		"typescript/no-unsafe-assignment": "error",
+		"typescript/no-unsafe-call": "error",
+		"typescript/no-unsafe-member-access": "error",
+		"typescript/no-unsafe-return": "error",
+		"typescript/no-unnecessary-condition": "error",
+		"typescript/no-unnecessary-type-assertion": "error",
+		"typescript/switch-exhaustiveness-check": "error"
 	},
 	"overrides": [
 		{

@@ -1,11 +1,26 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { bookingConsumesPackageCapacity } from "#convex/lib/packageScheduling";
+import {
+	DURATION_OPTIONS,
+	isAddonOption,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export type BookingRecord = Doc<"bookings"> & {
 	multiBookingInvoiceNumber?: string;
 	multiBookingPackageSize?: 4 | 8 | 12;
 	multiBookingPackageSessionPosition?: number;
 };
+
+export function toAdminBookingAddons(addons: readonly string[]): BookingFormValues["addons"] {
+	return addons.filter(isAddonOption);
+}
+
+export function toAdminBookingDuration(
+	duration: string | undefined
+): BookingFormValues["duration"] {
+	return DURATION_OPTIONS.find((option) => option === duration) ?? "";
+}
 
 export function isCapacityConsumingPackageBooking(booking: BookingRecord) {
 	return booking.multiBookingPackageId !== undefined && bookingConsumesPackageCapacity(booking);

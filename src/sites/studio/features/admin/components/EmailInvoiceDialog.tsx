@@ -60,6 +60,19 @@ export function EmailInvoiceDialog({
 		}
 	}
 
+	function handleInvoiceSelection(value: string) {
+		if (value === "original") {
+			onSelectedCustomInvoiceIdChange(null);
+			return;
+		}
+
+		const selectedInvoice = customInvoices?.find((invoice) => invoice._id === value);
+
+		if (selectedInvoice) {
+			onSelectedCustomInvoiceIdChange(selectedInvoice._id);
+		}
+	}
+
 	return (
 		<Dialog
 			open={open}
@@ -97,11 +110,7 @@ export function EmailInvoiceDialog({
 					<Select
 						value={selectedCustomInvoiceId ?? "original"}
 						disabled={isSending || customInvoices === undefined}
-						onValueChange={(value) =>
-							onSelectedCustomInvoiceIdChange(
-								value === "original" ? null : (value as Id<"customInvoices">)
-							)
-						}>
+						onValueChange={handleInvoiceSelection}>
 						<SelectTrigger
 							id="invoice-email-selection"
 							className="w-full">

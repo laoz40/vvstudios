@@ -90,7 +90,7 @@ export function Modal({
 
 	useEffect(() => {
 		if (!open) {
-			return;
+			return undefined;
 		}
 
 		const previousOverflow = document.body.style.overflow;
@@ -127,7 +127,7 @@ export function Modal({
 				}
 
 				const focusableElements = getFocusableElements(event.currentTarget);
-				const firstElement = focusableElements[0];
+				const firstElement = focusableElements.at(0);
 				const lastElement = focusableElements.at(-1);
 
 				if (!firstElement || !lastElement) {

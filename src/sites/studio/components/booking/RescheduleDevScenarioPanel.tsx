@@ -219,7 +219,5 @@ export function getDevRescheduleUpdateResult(
 }
 
 function parseDevRescheduleScenario(value: unknown): DevRescheduleScenario | undefined {
-	return DEV_RESCHEDULE_SCENARIO_OPTIONS.some((scenario) => scenario.value === value)
-		? (value as DevRescheduleScenario)
-		: undefined;
+	return DEV_RESCHEDULE_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)?.value;
 }

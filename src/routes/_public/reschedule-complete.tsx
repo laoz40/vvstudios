@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import type { GetPublicRescheduleCompleteBookingResult } from "#convex/bookings";
+import type { Result } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
@@ -12,6 +12,16 @@ import {
 	RescheduleCompleteDevScenarioPanel,
 	type DevRescheduleCompleteScenario
 } from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
+
+// Dev scenarios use a readable fake string ID, while live Convex results retain their branded booking ID.
+type RescheduleCompleteBooking = Omit<
+	NonNullable<GetPublicRescheduleCompleteBookingResult[1]>,
+	"_id"
+> & { _id: string };
+type RescheduleCompletePageResult = Result<
+	RescheduleCompleteBooking,
+	NonNullable<GetPublicRescheduleCompleteBookingResult[0]>
+>;
 
 export const Route = createFileRoute("/_public/reschedule-complete")({
 	validateSearch: parseRescheduleCompleteSearch,
@@ -80,7 +90,7 @@ function RescheduleCompleteMissing() {
 
 function buildDevRescheduleCompleteBookingResult(
 	devScenario: DevRescheduleCompleteScenario
-): GetPublicRescheduleCompleteBookingResult | undefined {
+): RescheduleCompletePageResult | undefined {
 	if (devScenario === "loading") {
 		return undefined;
 	}
@@ -92,7 +102,7 @@ function buildDevRescheduleCompleteBookingResult(
 	return [
 		null,
 		{
-			_id: "dev-reschedule-booking" as Id<"bookings">,
+			_id: "dev-reschedule-booking",
 			status: "confirmed",
 			bookingConfirmedAt: Date.now(),
 			bookingFailureCode: undefined,

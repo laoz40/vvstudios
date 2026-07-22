@@ -45,7 +45,7 @@ function parseSavedBookingInfo(rawValue: string | null) {
 export function toSavedBookingInfo(values: BookingFormValues): SavedBookingInfo {
 	return {
 		bookingMode: values.bookingMode || "single",
-		packageSize: values.packageSize ?? "",
+		packageSize: values.packageSize,
 		service: values.service,
 		duration: values.duration,
 		addons: [...values.addons],

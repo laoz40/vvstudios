@@ -6,7 +6,7 @@ const DotsHorizontalIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 	({ size = 24, color = "currentColor", strokeWidth = 2, className = "" }, ref) => {
 		const [scope, animate] = useAnimate();
 
-		const start = useCallback(async () => {
+		const start = useCallback(() => {
 			animate(".dot-left", { x: [-2, 0], scale: [1, 1.2, 1] }, { duration: 0.3, ease: "easeOut" });
 
 			animate(

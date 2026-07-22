@@ -30,7 +30,9 @@ const LogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				data-slot="animated-icon"
 				ref={scope}
 				className={`inline-flex cursor-pointer ${className}`}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"

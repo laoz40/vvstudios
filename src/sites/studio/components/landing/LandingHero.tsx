@@ -23,9 +23,9 @@ const heroCopy = {
 	addressLabel: "23 Fields Rd, Macquarie Fields NSW"
 } as const;
 
-const mobileBackgroundStyle = {
+const mobileBackgroundStyle: CSSProperties & { "--landing-hero-mobile-background": string } = {
 	"--landing-hero-mobile-background": `url(${heroMobile})`
-} as CSSProperties;
+};
 
 export function LandingHero() {
 	const heroRef = useRef<HTMLElement>(null);

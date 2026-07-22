@@ -14,7 +14,9 @@ export interface BookingResultContent {
 }
 
 export function getBookingResultContent(booking: BookingStatus): BookingResultContent {
-	switch (booking.status) {
+	const status = booking.status;
+
+	switch (status) {
 		case "failed": {
 			switch (booking.bookingFailureCode) {
 				case "BOOKING_TIME_UNAVAILABLE":
@@ -30,6 +32,14 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 						title: "We received your payment and need to confirm your booking manually",
 						description:
 							"Your payment went through, but the calendar event could not be created automatically. Please use the reschedule button below to pick a time.",
+						isBookingCompletionFailure: true
+					};
+
+				case undefined:
+					return {
+						title: "We received your payment and need to confirm your booking manually",
+						description:
+							"Your payment went through, but the booking could not be completed automatically. Please contact us and we’ll finalise it for you.",
 						isBookingCompletionFailure: true
 					};
 
@@ -79,8 +89,13 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 				isBookingCompletionFailure: false
 			};
 
-		default:
-			throw new Error(`Unhandled booking status: ${booking.status}`);
+		case "abandoned":
+			throw new Error(`Unhandled booking status: ${status}`);
+
+		default: {
+			const _exhaustive: never = status;
+			return _exhaustive;
+		}
 	}
 }
 

@@ -120,7 +120,8 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

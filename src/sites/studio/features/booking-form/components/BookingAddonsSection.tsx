@@ -20,10 +20,10 @@ import {
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
+	isDeliverableCountOption,
 	isPackageUnavailableAddon,
 	toFieldErrorObjects,
-	type BookingAddon,
-	type BookingFormValues
+	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingAddonQuantityFieldProps = {
@@ -60,8 +60,10 @@ function BookingAddonQuantityField({
 								<RadioGroup
 									value={quantityField.state.value}
 									onValueChange={(value) => {
-										quantityField.handleChange(value as BookingFormValues["essentialEditQuantity"]);
-										quantityField.handleBlur();
+										if (isDeliverableCountOption(value)) {
+											quantityField.handleChange(value);
+											quantityField.handleBlur();
+										}
 									}}
 									className="flex flex-wrap gap-x-5 gap-y-3">
 									{DELIVERABLE_COUNT_OPTIONS.map((count) => (
@@ -118,7 +120,7 @@ export function BookingAddonsSection() {
 							nextAddons = [...field.state.value, addon];
 						}
 
-						field.handleChange(nextAddons as BookingFormValues["addons"]);
+						field.handleChange(nextAddons);
 						field.handleBlur();
 
 						// Clear each hidden editing add-on quantity when its add-on is removed,

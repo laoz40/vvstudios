@@ -516,10 +516,6 @@ async function markPackagePaidAndCreateScheduleTokenInternalHandler(
 		return err({ reason: "PACKAGE_ALREADY_PAID" });
 	}
 
-	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "invoice_email_failed") {
-		return err({ reason: "PACKAGE_NOT_UNPAID" });
-	}
-
 	const token = generateRescheduleToken();
 	const scheduleTokenHash = await hashRescheduleToken(token);
 	const expiresAt = getMultiBookingExpiresAt(args.paidAt, multiBooking.packageSize);
@@ -901,13 +897,20 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 
 export const claimBookingCompletion = internalMutation({
 	args: {
-		bookingId: v.id("bookings"),
+		bookingId: v.string(),
 		stripeSessionId: v.string(),
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeEventId: v.string()
 	},
 	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
+		// Stripe metadata provides a plain string, so validate it as a Convex booking ID before database access.
+		const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
+
+		if (bookingId === null) {
+			return err({ reason: "BOOKING_NOT_FOUND" });
+		}
+
+		const booking = await ctx.db.get(bookingId);
 
 		if (!booking) {
 			return err({ reason: "BOOKING_NOT_FOUND" });

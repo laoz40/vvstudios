@@ -33,7 +33,8 @@ function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
 			break;
 		default: {
 			const _exhaustive: never = statusError;
-			return _exhaustive;
+			void _exhaustive;
+			break;
 		}
 	}
 }
@@ -93,7 +94,8 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = emailError;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

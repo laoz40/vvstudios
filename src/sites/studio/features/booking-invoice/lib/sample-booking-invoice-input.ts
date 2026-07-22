@@ -4,9 +4,14 @@ import {
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { createMultiBookingInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { BookingInvoiceBuilderInput } from "#studio/features/booking-invoice/lib/types";
+import { z } from "zod";
+
+const bookingInvoiceIdSchema = z.custom<BookingInvoiceBuilderInput["bookingId"]>(
+	(value) => typeof value === "string" && value.length > 0
+);
 
 export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
-	bookingId: "preview-booking-001" as BookingInvoiceBuilderInput["bookingId"],
+	bookingId: bookingInvoiceIdSchema.parse("preview-booking-001"),
 	name: "Alex Morgan",
 	phone: "0400 123 456",
 	accountName: "North Star Media",
@@ -41,7 +46,7 @@ const SAMPLE_MULTI_BOOKING_LINE_ITEMS = createMultiBookingInvoiceLineItemSnapsho
 });
 
 export const SAMPLE_MULTI_BOOKING_INVOICE_INPUT = {
-	bookingId: "preview-package-001" as BookingInvoiceBuilderInput["bookingId"],
+	bookingId: bookingInvoiceIdSchema.parse("preview-package-001"),
 	name: "Jamie Carter",
 	phone: "0400 987 654",
 	accountName: "Southern Cross Shows",

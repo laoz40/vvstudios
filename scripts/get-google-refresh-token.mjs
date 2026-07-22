@@ -26,7 +26,11 @@ const redirectUrl = new URL(redirectUri);
 const port = Number(redirectUrl.port || 80);
 const origin = `${redirectUrl.protocol}//${redirectUrl.host}`;
 
-const server = http.createServer(async (req, res) => {
+/**
+ * @param {http.IncomingMessage} req
+ * @param {http.ServerResponse} res
+ */
+async function handleOAuthCallback(req, res) {
 	try {
 		const reqUrl = new URL(req.url ?? "/", origin);
 
@@ -72,6 +76,10 @@ const server = http.createServer(async (req, res) => {
 		console.error("Failed to get Google refresh token:", error);
 		server.close();
 	}
+}
+
+const server = http.createServer((req, res) => {
+	void handleOAuthCallback(req, res);
 });
 
 server.listen(port, () => {
@@ -94,6 +102,7 @@ function loadEnvFiles() {
 	}
 }
 
+/** @param {string} filePath */
 function loadEnvFile(filePath) {
 	if (!fs.existsSync(filePath)) {
 		return;
@@ -122,6 +131,7 @@ function loadEnvFile(filePath) {
 	}
 }
 
+/** @param {string} value */
 function stripWrappingQuotes(value) {
 	if (
 		(value.startsWith('"') && value.endsWith('"')) ||

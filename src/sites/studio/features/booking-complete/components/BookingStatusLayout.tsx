@@ -97,6 +97,10 @@ export function BookingStatusLayout({
 			setIsCreatingRescheduleLink(false);
 		}
 	}
+	function startReschedule(): void {
+		void handleRescheduleClick();
+	}
+
 	return (
 		<main
 			className={cn(
@@ -131,7 +135,7 @@ export function BookingStatusLayout({
 									)}>
 									<button
 										type="button"
-										onClick={handleRescheduleClick}>
+										onClick={startReschedule}>
 										{isCreatingRescheduleLink ? "Creating link..." : "Reschedule booking"}
 									</button>
 								</AnimatedIconButton>

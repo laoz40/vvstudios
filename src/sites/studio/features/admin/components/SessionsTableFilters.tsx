@@ -57,19 +57,19 @@ export function SessionsTableFilters({
 							<DropdownMenuGroup>
 								<DropdownMenuCheckboxItem
 									checked={showUpcomingOnly}
-									onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked === true)}
+									onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Show due
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={showStaleBookings}
-									onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
+									onCheckedChange={(checked) => onShowStaleBookingsChange(checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Show unconfirmed
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={showArchived}
-									onCheckedChange={(checked) => onShowArchivedChange(checked === true)}
+									onCheckedChange={(checked) => onShowArchivedChange(checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Show archived
 								</DropdownMenuCheckboxItem>

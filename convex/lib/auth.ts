@@ -14,7 +14,7 @@ function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
 		return null;
 	}
 
-	return publicMetadata as PublicMetadata;
+	return publicMetadata;
 }
 
 export function isAdminIdentity(identity: UserIdentity): boolean {

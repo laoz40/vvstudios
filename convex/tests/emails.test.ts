@@ -174,18 +174,21 @@ describe("feedback email", () => {
 	});
 
 	test("escapes untrusted feedback in the provider HTML payload", async () => {
-		const fetchFake = vi.fn().mockResolvedValue({ ok: true });
+		const fetchFake = vi.fn<typeof fetch>().mockResolvedValue(new Response());
 		vi.stubGlobal("fetch", fetchFake);
 		const { sendFeedbackEmailForMessage } =
 			await vi.importActual<typeof import("../lib/email")>("../lib/email");
 
 		const result = await sendFeedbackEmailForMessage("<script>alert('unsafe')</script>\nNext");
-		const request = fetchFake.mock.calls[0]?.[1] as { body?: string } | undefined;
-		const body = JSON.parse(request?.body ?? "{}") as { html?: string };
+		const requestBody = fetchFake.mock.calls[0]?.[1]?.body;
+
+		if (typeof requestBody !== "string") {
+			throw new Error("Expected the email request body to be JSON");
+		}
 
 		expect(result).toEqual([null, { sent: true }]);
-		expect(body.html).toContain("&lt;script&gt;alert(&#39;unsafe&#39;)&lt;/script&gt;<br />Next");
-		expect(body.html).not.toContain("<script>");
+		expect(requestBody).toContain("&lt;script&gt;alert(&#39;unsafe&#39;)&lt;/script&gt;<br />Next");
+		expect(requestBody).not.toContain("<script>");
 		vi.unstubAllGlobals();
 	});
 

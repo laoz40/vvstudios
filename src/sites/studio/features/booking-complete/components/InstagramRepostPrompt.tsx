@@ -100,7 +100,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 				</div>
 				<form
 					className="flex flex-col gap-2 sm:flex-row"
-					onSubmit={handleSubmit}>
+					onSubmit={(event) => void handleSubmit(event)}>
 					<Input
 						aria-label="Instagram handle"
 						disabled={isSubmitting || isSubmitted}

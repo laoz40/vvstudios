@@ -12,6 +12,8 @@ export interface BusyDayWindow {
 	label: string;
 }
 
+export type BusyWindowsByMonth = Partial<Record<string, BusyDayWindow[]>>;
+
 export interface BookableRangeBusyWindowsResult {
 	busyWindowsByMonth: Record<string, BusyDayWindow[]>;
 }
@@ -34,7 +36,7 @@ export function getBookableMonthKeys(startDate: Date, endDate: Date) {
 
 export function getUncachedMonthKeys(
 	bookableMonthKeys: string[],
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth
 ) {
 	return bookableMonthKeys.filter((month) => !monthlyBusyWindowsByMonth[month]);
 }
@@ -45,15 +47,22 @@ export function mergeBookableRangeBusyWindows({
 	result
 }: {
 	bookableMonthKeys: string[];
-	current: Record<string, BusyDayWindow[]>;
+	current: BusyWindowsByMonth;
 	result: BookableRangeBusyWindowsResult;
 }) {
-	return {
-		...current,
-		...Object.fromEntries(
-			bookableMonthKeys.map((month) => [month, result.busyWindowsByMonth[month] ?? []] as const)
-		)
-	};
+	const merged: Record<string, BusyDayWindow[]> = {};
+
+	for (const [month, busyWindows] of Object.entries(current)) {
+		if (busyWindows) {
+			merged[month] = busyWindows;
+		}
+	}
+
+	for (const month of bookableMonthKeys) {
+		merged[month] = result.busyWindowsByMonth[month] ?? [];
+	}
+
+	return merged;
 }
 
 export function getSelectedBusyDay({
@@ -62,29 +71,34 @@ export function getSelectedBusyDay({
 	selectedMonth
 }: {
 	date: string;
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
 	selectedMonth: string;
 }) {
 	return monthlyBusyWindowsByMonth[selectedMonth]?.find((day) => day.date === date) ?? null;
 }
 
-export function excludeBusyEvent(
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>,
-	eventId?: string
-) {
+export function excludeBusyEvent(monthlyBusyWindowsByMonth: BusyWindowsByMonth, eventId?: string) {
 	if (!eventId) {
 		return monthlyBusyWindowsByMonth;
 	}
 
-	return Object.fromEntries(
-		Object.entries(monthlyBusyWindowsByMonth).map(([month, days]) => [
+	const filteredMonths: Array<[string, BusyDayWindow[]]> = [];
+
+	for (const [month, days] of Object.entries(monthlyBusyWindowsByMonth)) {
+		if (!days) {
+			continue;
+		}
+
+		filteredMonths.push([
 			month,
 			days.map((day) => ({
 				...day,
 				busyPeriods: day.busyPeriods.filter((period) => period.eventId !== eventId)
 			}))
-		])
-	);
+		]);
+	}
+
+	return Object.fromEntries(filteredMonths);
 }
 
 export function getBookableAvailableTimes({
@@ -104,7 +118,7 @@ export function getBookableAvailableTimes({
 	duration: string;
 	isViewingSelectedMonth: boolean;
 	lastBookableDate: Date;
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
 	selectedBusyDay: BusyDayWindow | null;
 	selectedDate: Date | undefined;
 	selectedDateValue: string;
@@ -154,7 +168,7 @@ export function isBookingDateDisabled({
 	duration: string;
 	isAvailabilityRateLimited: boolean;
 	lastBookableDate: Date;
-	monthlyBusyWindowsByMonth: Record<string, BusyDayWindow[]>;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
 	settings: BookingAvailabilitySettings;
 	today: Date;
 }) {

@@ -38,15 +38,13 @@ export function RecurringDeliverablesEmail({
 			<Preview>Your final deliverables are ready.</Preview>
 			<Body style={body}>
 				<Container style={container}>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>Hi {name},</Heading>
 					<Text style={paragraph}>
 						Great working with you again on the {bookingDate}. Your final deliverables are polished

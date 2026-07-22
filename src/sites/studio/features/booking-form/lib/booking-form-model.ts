@@ -15,7 +15,7 @@ const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 
 export function isAddonOption(value: string): value is BookingAddon {
-	return ADDON_OPTIONS.includes(value as BookingAddon);
+	return ADDON_OPTIONS.some((option) => option === value);
 }
 
 export function isPackageUnavailableAddon(addon: BookingAddon) {
@@ -36,13 +36,17 @@ export function getPackageSessionAddons(
 }
 
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
-	return addons.some((addon) => EDITING_ADDONS.includes(addon as (typeof EDITING_ADDONS)[number]));
+	return addons.some((addon) => EDITING_ADDONS.some((editingAddon) => editingAddon === addon));
+}
+
+export function isDeliverableCountOption(
+	value: string | undefined
+): value is (typeof DELIVERABLE_COUNT_OPTIONS)[number] {
+	return DELIVERABLE_COUNT_OPTIONS.some((option) => option === value);
 }
 
 export function toDeliverableCountOption(value: string | undefined) {
-	return DELIVERABLE_COUNT_OPTIONS.includes(value as (typeof DELIVERABLE_COUNT_OPTIONS)[number])
-		? (value as (typeof DELIVERABLE_COUNT_OPTIONS)[number])
-		: "";
+	return DELIVERABLE_COUNT_OPTIONS.find((option) => option === value) ?? "";
 }
 
 const name = z
@@ -95,6 +99,10 @@ const bookingMode = z
 const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
+
+export function isDurationOption(value: string): value is (typeof DURATION_OPTIONS)[number] {
+	return DURATION_OPTIONS.some((option) => option === value);
+}
 
 export const recordingSpaceSchema = z.enum(SERVICES);
 const service = z.union([z.literal(""), recordingSpaceSchema]);

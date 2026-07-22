@@ -26,6 +26,7 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import { toAdminBookingDuration } from "#studio/features/admin/lib/admin-bookings";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
@@ -44,7 +45,7 @@ export type SessionEditDraft = {
 	name: string;
 	notes: string;
 	phone: string;
-	service: BookingRecord["service"] | "";
+	service: BookingRecord["service"];
 	remainingBalanceAmount: string;
 	time: string;
 };
@@ -67,7 +68,7 @@ function buildSessionEditDraft(booking: BookingRecord): SessionEditDraft {
 		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
 		time: booking.time,
-		duration: booking.duration as BookingFormValues["duration"],
+		duration: toAdminBookingDuration(booking.duration),
 		service: booking.service,
 		addons: booking.addons.filter(isAddonOption),
 		email: booking.email,
@@ -266,10 +267,11 @@ export function SessionEditDialog({
 						<RadioGroup
 							value={draft.duration}
 							onValueChange={(value) => {
-								setDraft((current) => ({
-									...current,
-									duration: value as BookingFormValues["duration"]
-								}));
+								const duration = DURATION_OPTIONS.find((option) => option === value);
+
+								if (duration) {
+									setDraft((current) => ({ ...current, duration }));
+								}
 							}}
 							className="grid gap-3 sm:grid-cols-3">
 							{DURATION_OPTIONS.map((duration) => {
@@ -303,7 +305,7 @@ export function SessionEditDialog({
 						<RadioGroup
 							value={draft.service}
 							onValueChange={(value) => {
-								setDraft((current) => ({ ...current, service: value as BookingRecord["service"] }));
+								setDraft((current) => ({ ...current, service: value }));
 							}}
 							className="grid gap-3 sm:grid-cols-2">
 							{SERVICES.map((service) => {

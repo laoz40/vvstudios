@@ -42,6 +42,10 @@ const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
 	remainingBalanceAmount: "Remaining balance due"
 };
 
+function isBookingEditWarningField(field: string): field is BookingEditWarningField {
+	return Object.hasOwn(bookingEditFieldLabels, field);
+}
+
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
 	if (currentValue.length !== nextValue.length) {
 		return true;
@@ -64,7 +68,7 @@ function getBookingDraftValue(booking: BookingRecord, field: BookingEditWarningF
 		return booking.remainingBalanceAmount?.toString() ?? "";
 	}
 
-	return booking[field] ?? undefined;
+	return booking[field];
 }
 
 function didBookingEditFieldChange(
@@ -79,7 +83,7 @@ function didBookingEditFieldChange(
 		return didArrayChange(currentValue, nextValue);
 	}
 
-	return (currentValue ?? undefined) !== (nextValue ?? undefined);
+	return currentValue !== nextValue;
 }
 
 function getChangedFieldLabels(
@@ -92,9 +96,9 @@ function getChangedFieldLabels(
 }
 
 export function getBookingEditWarningState(booking: BookingRecord, draft: SessionEditDraft) {
-	const changedFields = (Object.keys(draft) as BookingEditWarningField[]).filter((field) =>
-		didBookingEditFieldChange(booking, draft, field)
-	);
+	const changedFields = Object.keys(draft)
+		.filter(isBookingEditWarningField)
+		.filter((field) => didBookingEditFieldChange(booking, draft, field));
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 

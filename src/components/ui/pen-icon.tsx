@@ -47,7 +47,9 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				strokeMiterlimit="10"
 				className={`cursor-pointer ${className}`}
 				style={{ overflow: "visible" }}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}>
 				<motion.g
 					className="pen-group"

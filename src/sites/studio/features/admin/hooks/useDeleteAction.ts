@@ -49,7 +49,8 @@ export function useDeleteAction(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -88,7 +89,8 @@ export function useDeleteAction(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

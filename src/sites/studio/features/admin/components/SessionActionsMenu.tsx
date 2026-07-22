@@ -236,7 +236,7 @@ export function SessionActionsMenu({
 						{details.canManageConfirmedBooking ? (
 							<>
 								<AnimatedDropdownMenuItem
-									onSelect={() => navigator.clipboard.writeText(details.customerBookingId)}
+									onSelect={() => void navigator.clipboard.writeText(details.customerBookingId)}
 									renderIcon={(iconRef) => (
 										<HashtagIcon
 											ref={iconRef}
@@ -248,7 +248,7 @@ export function SessionActionsMenu({
 									Copy invoice number
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
-									onSelect={() => navigator.clipboard.writeText(String(booking._id))}
+									onSelect={() => void navigator.clipboard.writeText(String(booking._id))}
 									renderIcon={(iconRef) => (
 										<Stack3Icon
 											ref={iconRef}
@@ -262,7 +262,7 @@ export function SessionActionsMenu({
 								<DropdownMenuSeparator />
 								<AnimatedDropdownMenuItem
 									disabled={invoiceActions.isDownloadingInvoice}
-									onSelect={invoiceActions.handleDownloadInvoice}
+									onSelect={() => void invoiceActions.handleDownloadInvoice()}
 									renderIcon={(iconRef) => (
 										<DownloadIcon
 											ref={iconRef}
@@ -303,7 +303,7 @@ export function SessionActionsMenu({
 							</>
 						) : (
 							<AnimatedDropdownMenuItem
-								onSelect={() => navigator.clipboard.writeText(String(booking._id))}
+								onSelect={() => void navigator.clipboard.writeText(String(booking._id))}
 								renderIcon={(iconRef) => (
 									<Stack3Icon
 										ref={iconRef}

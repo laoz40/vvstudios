@@ -52,7 +52,7 @@ export function filterAdminSessionBookings(
 }
 
 export function sortAdminSessionBookings(bookings: BookingRecord[], sorting: SessionSorting) {
-	const activeSort = sorting[0];
+	const activeSort = sorting.at(0);
 
 	if (!activeSort) {
 		return bookings;

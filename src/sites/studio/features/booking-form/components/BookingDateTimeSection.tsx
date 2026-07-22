@@ -5,8 +5,7 @@ import { BookingSessionSummary } from "#studio/features/booking-form/components/
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getBookingTimeSelectionMessage,
-	toFieldErrorObjects,
-	type BookingFormValues
+	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -17,7 +16,7 @@ export interface BookingDateTimeSectionProps {
 
 export function BookingDateTimeSection({ availability }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
-	const formValues = useSelector(formApi.store, (state) => state.values as BookingFormValues);
+	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
@@ -55,7 +54,7 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 									dateField.handleBlur();
 								}}
 								onTimeChange={(time) => {
-									timeField.handleChange(time as BookingFormValues["time"]);
+									timeField.handleChange(time);
 									timeField.handleBlur();
 								}}
 								selectedTime={timeField.state.value}

@@ -6,7 +6,7 @@ const HashtagIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 	({ size = 24, color = "currentColor", strokeWidth = 2, className = "" }, ref) => {
 		const [scope, animate] = useAnimate();
 
-		const start = useCallback(async () => {
+		const start = useCallback(() => {
 			// Animate horizontal lines
 			animate(
 				".line-horizontal",
@@ -22,7 +22,7 @@ const HashtagIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			);
 		}, [animate]);
 
-		const stop = useCallback(async () => {
+		const stop = useCallback(() => {
 			animate(
 				".line-horizontal, .line-vertical",
 				{ scaleX: 1, scaleY: 1, opacity: 1 },

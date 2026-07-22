@@ -35,15 +35,13 @@ export function PackagePaymentReminderEmail({
 			<Preview>Please complete your studio package payment soon.</Preview>
 			<Body style={body}>
 				<Container style={container}>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>Hello {name},</Heading>
 					<Text style={paragraph}>
 						Just a friendly reminder to complete your session package payment soon.

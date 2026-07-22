@@ -35,6 +35,10 @@ export type DeliverablesEmailDialogProps = {
 	open: boolean;
 };
 
+function isDeliverablesEmailVariant(value: string): value is DeliverablesEmailVariant {
+	return value === "first-time" || value === "recurring";
+}
+
 export function DeliverablesEmailDialog({
 	bookingEmail,
 	bookingId,
@@ -100,7 +104,11 @@ export function DeliverablesEmailDialog({
 						<FieldLabel>Customer type</FieldLabel>
 						<RadioGroup
 							value={emailVariant}
-							onValueChange={(value) => onEmailVariantChange(value as DeliverablesEmailVariant)}
+							onValueChange={(value) => {
+								if (isDeliverablesEmailVariant(value)) {
+									onEmailVariantChange(value);
+								}
+							}}
 							className="gap-2"
 							disabled={isSending}>
 							<FieldLabel className="w-full rounded-md border p-3">

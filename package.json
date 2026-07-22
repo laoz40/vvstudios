@@ -75,6 +75,7 @@
 		"nitro": "^3.0.260522-beta",
 		"oxfmt": "^0.53.0",
 		"oxlint": "^1.68.0",
+		"oxlint-tsgolint": "^0.25.0",
 		"react-email": "^6.5.0",
 		"typescript": "rc",
 		"vite": "^8.0.16",

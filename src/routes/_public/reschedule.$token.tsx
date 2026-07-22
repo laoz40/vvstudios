@@ -146,7 +146,7 @@ function ReschedulePage() {
 	// Fetch calendar availability for uncached bookable months
 	useEffect(() => {
 		if (activeDevScenario || !availabilityRateLimitKey) {
-			return;
+			return undefined;
 		}
 
 		const rateLimitKey = availabilityRateLimitKey;
@@ -154,7 +154,7 @@ function ReschedulePage() {
 		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
 		if (uncachedMonthKeys.length === 0) {
 			setIsLoadingMonthAvailability(false);
-			return;
+			return undefined;
 		}
 
 		let isCancelled = false;
@@ -191,7 +191,8 @@ function ReschedulePage() {
 
 					default: {
 						const _exhaustive: never = error;
-						return _exhaustive;
+						void _exhaustive;
+						return;
 					}
 				}
 			}
@@ -460,7 +461,9 @@ function ReschedulePage() {
 			<BookingModalHost
 				isSubmitting={isUpdatingBooking}
 				onPaymentClose={() => {}}
-				onRescheduleConfirm={handleConfirmUpdateBooking}
+				onRescheduleConfirm={() => {
+					void handleConfirmUpdateBooking();
+				}}
 				onTermsConfirm={() => {}}
 			/>
 		</BookingStatusLayout>

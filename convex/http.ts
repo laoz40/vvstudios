@@ -1,7 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import Stripe from "stripe";
 import { env } from "./env";
 
@@ -31,7 +30,7 @@ http.route({
 		}
 
 		if (event.type === "checkout.session.completed") {
-			const session = event.data.object as Stripe.Checkout.Session;
+			const session = event.data.object;
 
 			const bookingId = session.metadata?.bookingId;
 			if (!bookingId) {
@@ -48,7 +47,7 @@ http.route({
 					: session.payment_intent?.id;
 
 			const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
-				bookingId: bookingId as Id<"bookings">,
+				bookingId,
 				stripeSessionId: session.id,
 				stripePaymentIntentId,
 				stripeEventId: event.id
@@ -75,7 +74,7 @@ http.route({
 
 			const [completionError, completionResult] = await ctx.runAction(
 				internal.googleCalendar.completeClaimedBooking,
-				{ bookingId: bookingId as Id<"bookings"> }
+				{ bookingId: claim.booking._id }
 			);
 
 			if (completionError !== null) {
@@ -97,7 +96,7 @@ http.route({
 		}
 
 		if (event.type === "checkout.session.expired") {
-			const session = event.data.object as Stripe.Checkout.Session;
+			const session = event.data.object;
 
 			await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
 				stripeSessionId: session.id

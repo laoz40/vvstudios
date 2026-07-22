@@ -35,10 +35,15 @@ import {
 import { hashRescheduleToken } from "../lib/bookingRescheduleLinks";
 import { createConvexTest } from "../test.setup";
 
+type SendInvoiceEmail = typeof import("../lib/email").sendMultiBookingInvoiceEmail;
+type SendScheduleEmail = (
+	args: Parameters<typeof import("../lib/email").sendMultiBookingScheduleEmail>[0]
+) => unknown;
+
 const providerFakes = vi.hoisted(() => ({
 	resolveMx: vi.fn(),
-	sendInvoiceEmail: vi.fn(),
-	sendScheduleEmail: vi.fn()
+	sendInvoiceEmail: vi.fn<SendInvoiceEmail>(),
+	sendScheduleEmail: vi.fn<SendScheduleEmail>()
 }));
 
 vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
@@ -101,8 +106,8 @@ describe("package payment confirmation", () => {
 			.withIdentity(adminIdentity)
 			.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
-		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0]?.[0];
-		const scheduleToken = getScheduleToken(emailArgs?.scheduleUrl);
+		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
+		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
 		expect(result).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
 		expect(packageRecord).toMatchObject({
@@ -119,9 +124,9 @@ describe("package payment confirmation", () => {
 			email: "customer@example.com",
 			expiresAt,
 			name: "Test customer",
-			packageSize: 4,
-			scheduleUrl: expect.stringContaining("https://example.com/package-schedule/")
+			packageSize: 4
 		});
+		expect(emailArgs.scheduleUrl).toContain("https://example.com/package-schedule/");
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
 			args: [{ expectedExpiresAt: expiresAt, multiBookingId }],

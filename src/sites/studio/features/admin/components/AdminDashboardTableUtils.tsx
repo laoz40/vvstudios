@@ -113,9 +113,7 @@ export function CopyableText({ value, label, children }: CopyableTextProps) {
 }
 
 export function customerFilter(row: { original: BookingRecord }, value: unknown) {
-	const query = String(value ?? "")
-		.trim()
-		.toLowerCase();
+	const query = typeof value === "string" ? value.trim().toLowerCase() : "";
 
 	if (!query) {
 		return true;

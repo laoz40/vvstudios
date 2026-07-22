@@ -88,7 +88,7 @@ export function SessionsTable({
 
 	function updateSorting(id: SessionSortId) {
 		applyTableControlChange(setSorting, (currentSorting) => {
-			const currentSort = currentSorting[0];
+			const currentSort = currentSorting.at(0);
 
 			if (currentSort?.id === id) {
 				return [{ id, desc: !currentSort.desc }];
@@ -99,7 +99,7 @@ export function SessionsTable({
 	}
 
 	function renderSortButton(label: string, id: SessionSortId) {
-		const activeSort = sorting[0];
+		const activeSort = sorting.at(0);
 
 		return (
 			<SortHeaderButton

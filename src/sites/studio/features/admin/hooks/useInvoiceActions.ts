@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch } from "#/lib/result";
-import type { ListCustomInvoicesForBookingResult } from "#convex/customInvoices";
 import type { SendBookingInvoiceForBookingResult } from "#convex/googleCalendar";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import {
@@ -22,7 +21,7 @@ export function useInvoiceActions(booking: BookingRecord) {
 	const customInvoicesResult = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
 		isEmailInvoiceDialogOpen ? { bookingId: booking._id } : "skip"
-	) as ListCustomInvoicesForBookingResult | undefined;
+	);
 	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
 		useState<Id<"customInvoices"> | null>(null);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
@@ -83,7 +82,8 @@ export function useInvoiceActions(booking: BookingRecord) {
 					return;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					return;
 				}
 			}
 		}
@@ -125,7 +125,8 @@ export function useInvoiceActions(booking: BookingRecord) {
 					return;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					return;
 				}
 			}
 		}

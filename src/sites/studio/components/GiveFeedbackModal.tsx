@@ -88,7 +88,7 @@ export function GiveFeedbackModal() {
 			size="md">
 			<form
 				className="grid gap-4"
-				onSubmit={handleSubmit}>
+				onSubmit={(event) => void handleSubmit(event)}>
 				<div className="grid gap-2">
 					<label
 						htmlFor="feedback-message"

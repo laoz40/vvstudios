@@ -46,15 +46,13 @@ export function ReminderEmail({
 			<Preview>Your studio session is scheduled for tomorrow at {bookingTime}.</Preview>
 			<Body style={body}>
 				<Container style={container}>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>Hello {name},</Heading>
 					<Text style={paragraph}>
 						This is a reminder that your studio session is scheduled for tomorrow.

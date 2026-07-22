@@ -307,7 +307,8 @@ export function checkBookingMeetsAvailabilitySettings({
 		return err({ reason: "BOOKING_TOO_FAR_AHEAD" });
 	}
 
-	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
+	const bookingDay = bookingDate.getDay();
+	const daySchedule = settings.weekSchedule.find((_schedule, day) => day === bookingDay);
 	if (!daySchedule) {
 		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" });
 	}

@@ -4,10 +4,7 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type {
-	CreatePackageCustomInvoiceResult,
-	ListCustomInvoicesForPackageResult
-} from "#convex/customInvoices";
+import type { CreatePackageCustomInvoiceResult } from "#convex/customInvoices";
 import type { GetAdminCustomMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import { Button } from "#/components/ui/button";
 import {
@@ -23,6 +20,10 @@ import { CustomInvoiceFormFields } from "#studio/features/admin/components/Custo
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
+import {
+	toAdminBookingAddons,
+	toAdminBookingDuration
+} from "#studio/features/admin/lib/admin-bookings";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import {
 	formatCustomInvoiceAddonText,
@@ -91,7 +92,7 @@ export function PackageCustomInvoiceDialog({
 	);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForPackage, {
 		multiBookingId: packageRow.id
-	}) as ListCustomInvoicesForPackageResult | undefined;
+	});
 	const customInvoices: PackageCustomInvoiceRecord[] | undefined =
 		customInvoicesResult?.[1] ?? undefined;
 	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
@@ -111,7 +112,7 @@ export function PackageCustomInvoiceDialog({
 		draft.duration !== "" ||
 		draft.addons.length > 0 ||
 		draft.packageSize !== packageRow.packageSize ||
-		draft.includePackageDiscount !== true ||
+		!draft.includePackageDiscount ||
 		draft.dueDate !== defaultDueDate ||
 		draft.customTotalDueAmount.trim().length > 0;
 
@@ -166,7 +167,8 @@ export function PackageCustomInvoiceDialog({
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -231,7 +233,8 @@ export function PackageCustomInvoiceDialog({
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -247,7 +250,7 @@ export function PackageCustomInvoiceDialog({
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: invoice.addons as BookingFormValues["addons"],
+				addons: toAdminBookingAddons(invoice.addons),
 				essentialEditQuantity: toDeliverableCountOption(
 					invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 				),
@@ -263,12 +266,12 @@ export function PackageCustomInvoiceDialog({
 				invoiceNumber: invoice.invoiceNumber,
 				description: `${packageSize} sessions · ${duration}${addonText}`,
 				total: formatPackageInvoiceTotal({
-					addons: invoice.addons as BookingFormValues["addons"],
+					addons: toAdminBookingAddons(invoice.addons),
 					clipsPackageQuantity: toDeliverableCountOption(
 						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
 					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
-					duration: (invoice.duration ?? "") as BookingFormValues["duration"] | "",
+					duration: toAdminBookingDuration(invoice.duration),
 					essentialEditQuantity: toDeliverableCountOption(
 						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 					),

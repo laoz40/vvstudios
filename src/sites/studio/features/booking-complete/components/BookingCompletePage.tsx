@@ -17,6 +17,12 @@ import {
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { studioSite } from "#/config/sites";
+import { z } from "zod";
+
+const multiBookingIdSchema = z.custom<Id<"multiBookingPackages">>(
+	(value) => typeof value === "string" && value.length > 0
+);
+const DEV_MULTI_BOOKING_ID = multiBookingIdSchema.parse("dev-multi-booking-package");
 export function BookingCompletePage({
 	search: {
 		dev_scenario: devScenario,
@@ -44,23 +50,18 @@ export function BookingCompletePage({
 
 	if ((multiBookingId && packageSize) || activeDevScenario === "package_request") {
 		const previewPackageSize = packageSize ?? 8;
+		const previewMultiBookingId = multiBookingId
+			? multiBookingIdSchema.parse(multiBookingId)
+			: DEV_MULTI_BOOKING_ID;
 		return (
 			<BookingStatusLayout
 				bookingStatus="confirmed"
-				instagramPromptTarget={{
-					kind: "multiBooking",
-					multiBookingId: (multiBookingId ??
-						"dev-multi-booking-package") as Id<"multiBookingPackages">
-				}}
+				instagramPromptTarget={{ kind: "multiBooking", multiBookingId: previewMultiBookingId }}
 				stripeSessionId={null}>
 				<BookingResult
 					booking={null}
 					content={getMultiBookingResultContent(previewPackageSize)}
-					invoiceDownloadTarget={{
-						kind: "multiBooking",
-						multiBookingId: (multiBookingId ??
-							"dev-multi-booking-package") as Id<"multiBookingPackages">
-					}}
+					invoiceDownloadTarget={{ kind: "multiBooking", multiBookingId: previewMultiBookingId }}
 					showBookingDetails={false}
 				/>
 			</BookingStatusLayout>

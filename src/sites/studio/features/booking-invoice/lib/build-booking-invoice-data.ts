@@ -29,7 +29,7 @@ function formatCalendarDate(value: string) {
 
 export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: number) {
 	const datePart = format(invoiceDate, "yyyyMMdd");
-	const suffix = String(invoiceId)
+	const suffix = invoiceId
 		.replace(/[^a-zA-Z0-9]/g, "")
 		.toUpperCase()
 		.slice(-4);

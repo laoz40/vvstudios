@@ -43,6 +43,27 @@ export function getBookingSessionStartAt(date: string, time: string, timeZone: s
 
 type BookingEditField = keyof BookingEditValues;
 
+const bookingEditFieldNames: Record<BookingEditField, null> = {
+	abn: null,
+	accountName: null,
+	addons: null,
+	clipsPackageQuantity: null,
+	date: null,
+	duration: null,
+	email: null,
+	essentialEditQuantity: null,
+	name: null,
+	notes: null,
+	phone: null,
+	remainingBalanceAmount: null,
+	service: null,
+	time: null
+};
+
+function isBookingEditField(field: string): field is BookingEditField {
+	return Object.hasOwn(bookingEditFieldNames, field);
+}
+
 // Timing field changes need availability checks.
 const bookingTimingFields: readonly BookingEditField[] = ["date", "time", "duration"];
 // Google event field changes will later update the calendar event.
@@ -99,7 +120,7 @@ export function getBookingEditFieldChanges(
 	booking: Doc<"bookings">,
 	values: BookingEditValues
 ): BookingFieldChangeSummary {
-	const valueFields = Object.keys(values) as BookingEditField[];
+	const valueFields = Object.keys(values).filter(isBookingEditField);
 	const changedFields = valueFields.filter((field) =>
 		didBookingEditFieldChange(booking, values, field)
 	);

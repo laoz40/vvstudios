@@ -24,7 +24,7 @@ export function ContactCard() {
 		const glare = glareRef.current;
 
 		if (!card || !glare) {
-			return;
+			return undefined;
 		}
 
 		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -33,7 +33,7 @@ export function ContactCard() {
 		);
 
 		if (prefersReducedMotion.matches || !supportsCardHover.matches) {
-			return;
+			return undefined;
 		}
 
 		let frame = 0;

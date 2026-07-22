@@ -135,15 +135,13 @@ export function HostBookingDetailsEmail({
 			<Body style={body}>
 				<Container style={container}>
 					<Text style={invoiceNumberText}>Invoice #{invoiceNumber}</Text>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>{emailCopy.headingText}</Heading>
 
 					<Section style={section}>

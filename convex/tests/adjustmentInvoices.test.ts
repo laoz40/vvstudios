@@ -35,7 +35,9 @@ import {
 } from "../lib/packageAdjustments";
 import { createConvexTest } from "../test.setup";
 
-const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn() }));
+type SendAdjustmentInvoice = typeof import("../lib/email").sendPackageAdjustmentInvoiceEmail;
+
+const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn<SendAdjustmentInvoice>() }));
 
 vi.mock("../lib/email", () => ({
 	sendPackageAdjustmentInvoiceEmail: providerFakes.sendAdjustmentInvoice
@@ -100,7 +102,7 @@ describe("package adjustment closeout", () => {
 			remotePodcastBookingIds: [bookingId],
 			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
 		});
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
+		if (adjustment.outcome !== "invoice_required") {
 			throw new Error("Expected an invoice-required adjustment");
 		}
 		expect(adjustment.invoiceNumber).not.toBe("pending");

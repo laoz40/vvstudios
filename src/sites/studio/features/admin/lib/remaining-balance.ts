@@ -1,3 +1,4 @@
+import type { Doc } from "#convex/_generated/dataModel";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 
 export type RemainingBalanceBooking = {
@@ -7,7 +8,7 @@ export type RemainingBalanceBooking = {
 };
 
 export type RemainingBalancePaymentBooking = RemainingBalanceBooking & {
-	status: "confirmed" | "email_failed" | string;
+	status: Doc<"bookings">["status"];
 	paidRemainingBalance?: boolean;
 };
 

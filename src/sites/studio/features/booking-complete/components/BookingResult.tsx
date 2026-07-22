@@ -54,23 +54,25 @@ export function BookingResult({
 	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
 	const invoiceLead = getInvoiceLeadText({ booking, content, invoiceDownloadTarget });
 
-	async function handleDownloadInvoice(): Promise<void> {
+	function handleDownloadInvoice(): void {
 		if (!invoiceDownloadTarget) {
 			return;
 		}
 
 		setIsDownloadingInvoice(true);
 
-		try {
-			if (invoiceDownloadTarget.kind === "multiBooking") {
-				await downloadMultiBookingInvoice(invoiceDownloadTarget.multiBookingId);
-				return;
-			}
+		void (async () => {
+			try {
+				if (invoiceDownloadTarget.kind === "multiBooking") {
+					await downloadMultiBookingInvoice(invoiceDownloadTarget.multiBookingId);
+					return;
+				}
 
-			await downloadBookingInvoice(invoiceDownloadTarget.stripeSessionId);
-		} finally {
-			setIsDownloadingInvoice(false);
-		}
+				await downloadBookingInvoice(invoiceDownloadTarget.stripeSessionId);
+			} finally {
+				setIsDownloadingInvoice(false);
+			}
+		})();
 	}
 
 	async function downloadBookingInvoice(stripeSessionId: string): Promise<void> {
