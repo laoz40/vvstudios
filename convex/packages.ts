@@ -309,7 +309,7 @@ async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePacka
 			clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
 			notes: multiBookingData.notes,
 			packageSize: multiBookingData.packageSize,
-			expiresAt: args.expiresAt,
+			...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {}),
 			singleSessionAmount: amounts.singleSessionAmount,
 			packageSubtotalAmount: amounts.packageSubtotalAmount,
 			discountPercent: amounts.discountPercent,

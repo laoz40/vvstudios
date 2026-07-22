@@ -6,17 +6,16 @@ import { getSessionFromDb } from "./lib/sessionLookup";
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
 	handler: async (ctx, args) => {
-		const bookings = await ctx.db
+		return await ctx.db
 			.query("bookings")
-			.withIndex("by_status_and_sessionStartAt", (indexQuery) =>
+			.withIndex("by_status_and_reminderEmailSentAt_and_sessionStartAt", (indexQuery) =>
 				indexQuery
 					.eq("status", "confirmed")
+					.eq("reminderEmailSentAt", undefined)
 					.gte("sessionStartAt", args.dayStart)
 					.lt("sessionStartAt", args.dayEnd)
 			)
 			.take(args.limit ?? 50);
-
-		return bookings.filter((session) => !session.reminderEmailSentAt);
 	}
 });
 

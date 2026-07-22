@@ -131,6 +131,7 @@ export function createCustomMultiBookingInvoiceData(
 	}
 
 	const { customInvoiceData, packageSize } = parsed;
+	// An omitted custom duration intentionally produces an add-ons-only invoice.
 	const customDuration = toCustomDuration(source.customInvoice.duration);
 	const amounts = calculateMultiBookingAmounts({
 		addons: customInvoiceData.addons,

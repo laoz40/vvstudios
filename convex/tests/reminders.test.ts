@@ -88,6 +88,24 @@ describe("daily reminder dispatch", () => {
 		});
 	});
 
+	test("returns later unsent bookings when earlier bookings already received reminders", async () => {
+		const t = createConvexTest();
+		await seedBooking(t, { reminderEmailSentAt: now - 1, sessionStartAt: tomorrowSessionStartAt });
+		await seedBooking(t, {
+			reminderEmailSentAt: now - 1,
+			sessionStartAt: tomorrowSessionStartAt + 1
+		});
+		const unsentBookingId = await seedBooking(t, { sessionStartAt: tomorrowSessionStartAt + 2 });
+
+		const bookings = await t.query(internal.sessionReminders.listSessionsDueForReminderEmail, {
+			dayStart: tomorrowSessionStartAt,
+			dayEnd: tomorrowSessionStartAt + 100,
+			limit: 2
+		});
+
+		expect(bookings.map((booking) => booking._id)).toEqual([unsentBookingId]);
+	});
+
 	test("skips ineligible, out-of-range, already-sent, and fully-used records", async () => {
 		const t = createConvexTest();
 		await seedBooking(t, { status: "cancelled" });
