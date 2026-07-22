@@ -1,16 +1,16 @@
 import { err, ok, type Result } from "../../src/lib/result";
-import { isTimeSlotAvailable } from "./bookingCalendarTime";
+import { isTimeSlotAvailable } from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
 import { getGoogleCalendarClient } from "./googleCalendarClient";
 import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
 import {
-	createBookingCalendarEvent,
-	updateBookingCalendarEventTiming,
-	type BookingCalendarEventDetails,
-	type BookingCalendarEventRecord
-} from "./googleCalendarEvents";
+	createSessionCalendarEvent,
+	updateSessionCalendarEventTiming,
+	type SessionCalendarEventDetails,
+	type SessionCalendarEventRecord
+} from "./sessionCalendarEvents";
 
-export type PackageCalendarDetails = BookingCalendarEventDetails & {
+export type PackageCalendarDetails = SessionCalendarEventDetails & {
 	date: string;
 	eventBufferMinutes: number;
 	time: string;
@@ -27,16 +27,16 @@ type PackageCalendarWriteError =
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
 	| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" };
 
-export async function savePackageBookingCalendarEvent(args: {
-	booking: BookingCalendarEventRecord | null;
+export async function savePackageSessionCalendarEvent(args: {
+	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }): Promise<
 	Result<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError>
 > {
 	try {
 		const { calendar, calendarId, calendarIds, timeZone } = getGoogleCalendarClient();
-		const ignoredEvent = args.booking
-			? { calendarId: args.booking.googleCalendarId, eventId: args.booking.googleEventId }
+		const ignoredEvent = args.session
+			? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
 			: undefined;
 		const busyWindows = await getBusyWindows({
 			calendar,
@@ -67,10 +67,10 @@ export async function savePackageBookingCalendarEvent(args: {
 			service: args.details.service
 		};
 
-		if (args.booking) {
+		if (args.session) {
 			return await updatePackageCalendarEvent(
 				calendarClient,
-				args.booking,
+				args.session,
 				args.details,
 				eventDetails
 			);
@@ -84,12 +84,12 @@ export async function savePackageBookingCalendarEvent(args: {
 
 async function updatePackageCalendarEvent(
 	client: PackageCalendarClient,
-	booking: BookingCalendarEventRecord,
+	session: SessionCalendarEventRecord,
 	details: PackageCalendarDetails,
-	eventDetails: BookingCalendarEventDetails
+	eventDetails: SessionCalendarEventDetails
 ) {
-	const [updateError, updateResult] = await updateBookingCalendarEventTiming({
-		booking,
+	const [updateError, updateResult] = await updateSessionCalendarEventTiming({
+		session,
 		client,
 		createMissingEvent: true,
 		date: details.date,
@@ -101,8 +101,8 @@ async function updatePackageCalendarEvent(
 		return err({ reason: getPackageCalendarSyncErrorReason(updateError.reason) });
 	}
 
-	const googleCalendarId = updateResult.googleCalendarId ?? booking.googleCalendarId;
-	const googleEventId = updateResult.googleEventId ?? booking.googleEventId;
+	const googleCalendarId = updateResult.googleCalendarId ?? session.googleCalendarId;
+	const googleEventId = updateResult.googleEventId ?? session.googleEventId;
 
 	return ok({
 		...(googleCalendarId ? { googleCalendarId } : {}),
@@ -113,9 +113,9 @@ async function updatePackageCalendarEvent(
 async function createPackageCalendarEvent(
 	client: PackageCalendarClient,
 	details: PackageCalendarDetails,
-	eventDetails: BookingCalendarEventDetails
+	eventDetails: SessionCalendarEventDetails
 ) {
-	const [createError, createResult] = await createBookingCalendarEvent({
+	const [createError, createResult] = await createSessionCalendarEvent({
 		client,
 		date: details.date,
 		details: eventDetails,

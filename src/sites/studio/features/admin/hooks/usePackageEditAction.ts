@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
-import type { UpdatePackageFromAdminResult } from "#convex/bookings";
+import type { UpdatePackageFromAdminResult } from "#convex/packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
@@ -80,7 +80,7 @@ function showPackageUpdateError(
 }
 
 export function usePackageEditAction(packageRow: AdminPackageRow) {
-	const updatePackage = useMutation(api.bookings.updatePackageFromAdmin);
+	const updatePackage = useMutation(api.packages.updatePackageFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<PackageEditDraft | null>(null);

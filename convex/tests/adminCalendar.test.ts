@@ -212,7 +212,7 @@ describe("admin booking state integrity", () => {
 		const timingTest = createConvexTest();
 		const timingBookingId = await seedConfirmedBooking(timingTest);
 		const timingResult = await timingTest.mutation(
-			internal.bookings.saveAdminBookingUpdateInternal,
+			internal.sessionScheduling.saveAdminSessionUpdateInternal,
 			adminBookingValues(timingBookingId, { date: "2030-01-11" })
 		);
 		const timingBooking = await readBooking(timingTest, timingBookingId);
@@ -225,7 +225,7 @@ describe("admin booking state integrity", () => {
 		const ordinaryTest = createConvexTest();
 		const ordinaryBookingId = await seedConfirmedBooking(ordinaryTest);
 		const ordinaryResult = await ordinaryTest.mutation(
-			internal.bookings.saveAdminBookingUpdateInternal,
+			internal.sessionScheduling.saveAdminSessionUpdateInternal,
 			adminBookingValues(ordinaryBookingId, { name: "Ordinary edit" })
 		);
 		const ordinaryBooking = await readBooking(ordinaryTest, ordinaryBookingId);
@@ -244,7 +244,7 @@ describe("admin booking state integrity", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		const recalculationResult = await admin.mutation(
-			api.bookings.updateBooking,
+			api.sessions.updateSession,
 			adminBookingValues(bookingId, {
 				duration: "2h",
 				addons: ["Essential Edit", "Clips Package"],
@@ -263,7 +263,7 @@ describe("admin booking state integrity", () => {
 		});
 
 		const overrideResult = await admin.action(
-			api.googleCalendar.updateBookingFromAdmin,
+			api.googleCalendar.updateSessionFromAdmin,
 			adminBookingValues(bookingId, { remainingBalanceAmount: 111.25 })
 		);
 
@@ -279,7 +279,7 @@ describe("admin booking state integrity", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.action(
-				api.googleCalendar.updateBookingFromAdmin,
+				api.googleCalendar.updateSessionFromAdmin,
 				adminBookingValues(bookingId, { remainingBalanceAmount: -1 })
 			);
 
@@ -413,7 +413,7 @@ async function updateBooking(t: TestClient, bookingId: Id<"bookings">) {
 	return await t
 		.withIdentity(adminIdentity)
 		.action(
-			api.googleCalendar.updateBookingFromAdmin,
+			api.googleCalendar.updateSessionFromAdmin,
 			adminBookingValues(bookingId, {
 				name: "Updated customer",
 				phone: "0411111111",
@@ -428,7 +428,7 @@ async function updateBooking(t: TestClient, bookingId: Id<"bookings">) {
 async function deleteBooking(t: TestClient, bookingId: Id<"bookings">) {
 	return await t
 		.withIdentity(adminIdentity)
-		.action(api.googleCalendar.deleteBookingFromAdmin, { bookingId });
+		.action(api.googleCalendar.deleteSessionFromAdmin, { bookingId });
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {

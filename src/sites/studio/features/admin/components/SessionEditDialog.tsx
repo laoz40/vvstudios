@@ -26,12 +26,12 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import { toAdminBookingDuration } from "#studio/features/admin/lib/admin-bookings";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
 
-type BookingRecord = Doc<"bookings">;
+type SessionRecord = Doc<"bookings">;
 
 export type SessionEditDraft = {
 	accountName: string;
@@ -45,48 +45,48 @@ export type SessionEditDraft = {
 	name: string;
 	notes: string;
 	phone: string;
-	service: BookingRecord["service"];
+	service: SessionRecord["service"];
 	remainingBalanceAmount: string;
 	time: string;
 };
 
 export type SessionEditDialogProps = {
 	open: boolean;
-	booking: BookingRecord;
+	session: SessionRecord;
 	bookingId: string;
 	onOpenChange: (open: boolean) => void;
 	onSave: (values: SessionEditDraft) => Promise<void>;
 	isSaving: boolean;
 };
 
-function buildSessionEditDraft(booking: BookingRecord): SessionEditDraft {
+function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 	return {
-		name: booking.name,
-		accountName: booking.accountName,
-		abn: booking.abn ?? "",
-		date: booking.date,
-		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
-		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
-		time: booking.time,
-		duration: toAdminBookingDuration(booking.duration),
-		service: booking.service,
-		addons: booking.addons.filter(isAddonOption),
-		email: booking.email,
-		phone: booking.phone,
-		notes: booking.notes ?? "",
-		remainingBalanceAmount: booking.remainingBalanceAmount?.toString() ?? ""
+		name: session.name,
+		accountName: session.accountName,
+		abn: session.abn ?? "",
+		date: session.date,
+		essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+		clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+		time: session.time,
+		duration: toAdminSessionDuration(session.duration),
+		service: session.service,
+		addons: session.addons.filter(isAddonOption),
+		email: session.email,
+		phone: session.phone,
+		notes: session.notes ?? "",
+		remainingBalanceAmount: session.remainingBalanceAmount?.toString() ?? ""
 	};
 }
 
 export function SessionEditDialog({
 	open,
-	booking,
+	session,
 	bookingId,
 	onOpenChange,
 	onSave,
 	isSaving
 }: SessionEditDialogProps) {
-	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(booking));
+	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(session));
 	const defaultRemainingBalanceAmount = calculateBookingInvoiceAmounts({
 		duration: draft.duration,
 		addons: draft.addons,
@@ -96,9 +96,9 @@ export function SessionEditDialog({
 
 	useEffect(() => {
 		if (open) {
-			setDraft(buildSessionEditDraft(booking));
+			setDraft(buildSessionEditDraft(session));
 		}
-	}, [booking, open]);
+	}, [session, open]);
 
 	return (
 		<Dialog
@@ -155,9 +155,9 @@ export function SessionEditDialog({
 					}}>
 					<section className="grid gap-4 md:grid-cols-2">
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-name">Customer name</Label>
+							<Label htmlFor="edit-session-name">Customer name</Label>
 							<Input
-								id="edit-booking-name"
+								id="edit-session-name"
 								name="name"
 								autoComplete="name"
 								value={draft.name}
@@ -169,9 +169,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-account-name">Account name</Label>
+							<Label htmlFor="edit-session-account-name">Account name</Label>
 							<Input
-								id="edit-booking-account-name"
+								id="edit-session-account-name"
 								name="accountName"
 								autoComplete="organization"
 								value={draft.accountName}
@@ -183,9 +183,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-abn">ABN</Label>
+							<Label htmlFor="edit-session-abn">ABN</Label>
 							<Input
-								id="edit-booking-abn"
+								id="edit-session-abn"
 								name="abn"
 								autoComplete="off"
 								spellCheck={false}
@@ -199,9 +199,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-email">Email</Label>
+							<Label htmlFor="edit-session-email">Email</Label>
 							<Input
-								id="edit-booking-email"
+								id="edit-session-email"
 								name="email"
 								type="email"
 								autoComplete="email"
@@ -215,9 +215,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-phone">Phone number</Label>
+							<Label htmlFor="edit-session-phone">Phone number</Label>
 							<Input
-								id="edit-booking-phone"
+								id="edit-session-phone"
 								name="phone"
 								type="tel"
 								autoComplete="tel"
@@ -231,9 +231,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-date">Session date</Label>
+							<Label htmlFor="edit-session-date">Session date</Label>
 							<Input
-								id="edit-booking-date"
+								id="edit-session-date"
 								name="date"
 								type="date"
 								autoComplete="off"
@@ -246,9 +246,9 @@ export function SessionEditDialog({
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="edit-booking-time">Session time</Label>
+							<Label htmlFor="edit-session-time">Session time</Label>
 							<Input
-								id="edit-booking-time"
+								id="edit-session-time"
 								name="time"
 								type="time"
 								autoComplete="off"
@@ -369,9 +369,9 @@ export function SessionEditDialog({
 					) : null}
 
 					<section className="grid gap-2">
-						<Label htmlFor="edit-booking-remaining-balance">Remaining balance due</Label>
+						<Label htmlFor="edit-session-remaining-balance">Remaining balance due</Label>
 						<Input
-							id="edit-booking-remaining-balance"
+							id="edit-session-remaining-balance"
 							name="remainingBalanceAmount"
 							type="number"
 							inputMode="decimal"
@@ -391,9 +391,9 @@ export function SessionEditDialog({
 					</section>
 
 					<div className="grid gap-2">
-						<Label htmlFor="edit-booking-notes">Notes</Label>
+						<Label htmlFor="edit-session-notes">Notes</Label>
 						<Textarea
-							id="edit-booking-notes"
+							id="edit-session-notes"
 							name="notes"
 							autoComplete="off"
 							value={draft.notes}

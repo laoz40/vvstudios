@@ -99,7 +99,7 @@ describe("customer booking rescheduling", () => {
 
 		for (const testCase of rejectedCases) {
 			const t = createConvexTest();
-			const seeded = await seedReschedulableBooking(t);
+			const seeded = await seedReschedulableSession(t);
 			let token = seeded.token;
 
 			if (testCase.kind === "unknown") {
@@ -122,7 +122,7 @@ describe("customer booking rescheduling", () => {
 			}
 
 			const result = await t.query(
-				internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+				internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 				{ token, now }
 			);
 			expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
@@ -137,21 +137,21 @@ describe("customer booking rescheduling", () => {
 
 		for (const bookingState of supportedCases) {
 			const t = createConvexTest();
-			const seeded = await seedReschedulableBooking(t);
+			const seeded = await seedReschedulableSession(t);
 			await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
 
 			const result = await t.query(
-				internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+				internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 				{ token: seeded.token, now }
 			);
 			expect(result[0]).toBeNull();
-			expect(result[1]?.booking._id).toBe(seeded.bookingId);
+			expect(result[1]?.session._id).toBe(seeded.bookingId);
 		}
 	});
 
 	test("leaves the original booking and link untouched when the target is busy", async () => {
 		const t = createConvexTest();
-		const { bookingId, linkId, token } = await seedReschedulableBooking(t);
+		const { bookingId, linkId, token } = await seedReschedulableSession(t);
 		const bookingBefore = await readBooking(t, bookingId);
 		providerFakes.listEvents.mockResolvedValue({
 			data: {
@@ -165,7 +165,7 @@ describe("customer booking rescheduling", () => {
 			}
 		});
 
-		const result = await t.action(api.googleCalendar.rescheduleBooking, { token, ...target });
+		const result = await t.action(api.googleCalendar.rescheduleSession, { token, ...target });
 
 		expect(result).toEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(bookingBefore);
@@ -178,9 +178,9 @@ describe("customer booking rescheduling", () => {
 
 	test("moves the Calendar event and all related booking state once", async () => {
 		const t = createConvexTest();
-		const { bookingId, linkId, token } = await seedReschedulableBooking(t);
+		const { bookingId, linkId, token } = await seedReschedulableSession(t);
 
-		const result = await t.action(api.googleCalendar.rescheduleBooking, { token, ...target });
+		const result = await t.action(api.googleCalendar.rescheduleSession, { token, ...target });
 		const booking = await readBooking(t, bookingId);
 		const links = await readLinks(t, bookingId);
 
@@ -207,7 +207,7 @@ describe("customer booking rescheduling", () => {
 		"recovers a booking with %s into a confirmed booking",
 		async (bookingFailureCode) => {
 			const t = createConvexTest();
-			const { bookingId, token } = await seedReschedulableBooking(t);
+			const { bookingId, token } = await seedReschedulableSession(t);
 			await t.run((ctx) =>
 				ctx.db.patch(bookingId, {
 					status: "failed",
@@ -217,7 +217,7 @@ describe("customer booking rescheduling", () => {
 				})
 			);
 
-			const result = await t.action(api.googleCalendar.rescheduleBooking, { token, ...target });
+			const result = await t.action(api.googleCalendar.rescheduleSession, { token, ...target });
 			const booking = await readBooking(t, bookingId);
 
 			expect(result).toEqual([null, { bookingId }]);
@@ -239,11 +239,11 @@ describe("customer booking rescheduling", () => {
 
 	test("reactivates the token when the Calendar update fails", async () => {
 		const t = createConvexTest();
-		const { bookingId, linkId, token } = await seedReschedulableBooking(t);
+		const { bookingId, linkId, token } = await seedReschedulableSession(t);
 		const bookingBefore = await readBooking(t, bookingId);
 		providerFakes.patchEvent.mockRejectedValue(new Error("Calendar unavailable"));
 
-		const result = await t.action(api.googleCalendar.rescheduleBooking, { token, ...target });
+		const result = await t.action(api.googleCalendar.rescheduleSession, { token, ...target });
 
 		expect(result).toEqual([{ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(bookingBefore);
@@ -255,7 +255,7 @@ describe("customer booking rescheduling", () => {
 
 	test("allows only one concurrent reschedule with the same token", async () => {
 		const t = createConvexTest();
-		const { bookingId, token } = await seedReschedulableBooking(t);
+		const { bookingId, token } = await seedReschedulableSession(t);
 		let availabilityChecks = 0;
 		let releaseChecks: (() => void) | undefined;
 		const bothChecking = new Promise<void>((resolve) => {
@@ -269,8 +269,8 @@ describe("customer booking rescheduling", () => {
 		});
 
 		const results = await Promise.all([
-			t.action(api.googleCalendar.rescheduleBooking, { token, ...target }),
-			t.action(api.googleCalendar.rescheduleBooking, { token, ...target })
+			t.action(api.googleCalendar.rescheduleSession, { token, ...target }),
+			t.action(api.googleCalendar.rescheduleSession, { token, ...target })
 		]);
 		const links = await readLinks(t, bookingId);
 
@@ -282,7 +282,7 @@ describe("customer booking rescheduling", () => {
 	});
 });
 
-async function seedReschedulableBooking(t: TestClient) {
+async function seedReschedulableSession(t: TestClient) {
 	const bookingId = await t.run(async (ctx) => {
 		await ctx.db.insert("bookingSettings", {
 			key: "main",
@@ -313,7 +313,7 @@ async function seedReschedulableBooking(t: TestClient) {
 		});
 	});
 	const linkResult = await t.mutation(
-		internal.bookingReschedule.createActiveRescheduleLinkInternal,
+		internal.sessionReschedule.createActiveRescheduleLinkInternal,
 		{ bookingId, expiresAt: originalSessionStartAt, now }
 	);
 	if (linkResult[0] !== null) throw new Error("Failed to seed reschedule link");

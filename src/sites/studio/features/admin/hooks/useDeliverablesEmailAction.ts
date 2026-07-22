@@ -3,18 +3,18 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { UpdateBookingEditStatusResult } from "#convex/bookings";
-import type { SendBookingDeliverablesEmailResult } from "#convex/deliverablesEmail";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { UpdateSessionEditStatusResult } from "#convex/sessions";
+import type { SendSessionDeliverablesEmailResult } from "#convex/deliverablesEmail";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
 
-type UpdateBookingEditStatusError = NonNullable<
-	Awaited<ReturnType<typeof tryCatch<UpdateBookingEditStatusResult>>>[0]
+type UpdateSessionEditStatusError = NonNullable<
+	Awaited<ReturnType<typeof tryCatch<UpdateSessionEditStatusResult>>>[0]
 >;
 
-function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
+function showStatusUpdateError(statusError: UpdateSessionEditStatusError) {
 	switch (statusError.reason) {
 		case "NOT_AUTHENTICATED":
 			toast.error("Deliverables email sent, but you need to sign in again to update the status.");
@@ -23,7 +23,7 @@ function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
 			toast.error("Deliverables email sent, but you do not have access to update the status.");
 			break;
 		case "BOOKING_NOT_FOUND":
-			toast.error("Deliverables email sent, but the booking could not be found in the database.");
+			toast.error("Deliverables email sent, but the session could not be found in the database.");
 			break;
 		case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
 			toast.error("Deliverables email sent, but the status could not be updated.");
@@ -39,11 +39,11 @@ function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
 	}
 }
 
-export function useDeliverablesEmailAction(booking: BookingRecord) {
-	const sendBookingDeliverablesEmail = useAction(
-		api.deliverablesEmail.sendBookingDeliverablesEmail
+export function useDeliverablesEmailAction(session: SessionRecord) {
+	const sendSessionDeliverablesEmail = useAction(
+		api.deliverablesEmail.sendSessionDeliverablesEmail
 	);
-	const updateBookingEditStatus = useMutation(api.bookings.updateBookingEditStatus);
+	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
@@ -63,9 +63,9 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 			return;
 		}
 
-		const [emailError] = await tryCatch<SendBookingDeliverablesEmailResult>(
-			sendBookingDeliverablesEmail({
-				bookingId: booking._id,
+		const [emailError] = await tryCatch<SendSessionDeliverablesEmailResult>(
+			sendSessionDeliverablesEmail({
+				bookingId: session._id,
 				driveLink: deliverablesDriveLinkDraft,
 				editorNotes: deliverablesEditorNotesDraft,
 				emailVariant: deliverablesEmailVariantDraft
@@ -81,7 +81,7 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 					toast.error("You do not have access to send deliverables emails.");
 					break;
 				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
+					toast.error("That session no longer exists.");
 					break;
 				case "INVALID_DRIVE_LINK":
 					toast.error("Enter a valid Google Drive link.");
@@ -105,17 +105,17 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 
 		if (!markDeliverablesAsSentAfterSending) {
 			resetDeliverablesEmailDialog();
-			toast.success(`Deliverables email sent to ${booking.email}.`);
+			toast.success(`Deliverables email sent to ${session.email}.`);
 			setIsEmailingDeliverables(false);
 			return;
 		}
 
-		await repairDeliverablesStatusAfterEmailSent(`Deliverables email sent to ${booking.email}.`);
+		await repairDeliverablesStatusAfterEmailSent(`Deliverables email sent to ${session.email}.`);
 	}
 
 	async function repairDeliverablesStatusAfterEmailSent(successMessage: string) {
-		const [statusError] = await tryCatch<UpdateBookingEditStatusResult>(
-			updateBookingEditStatus({ bookingId: booking._id, editStatus: "completed" })
+		const [statusError] = await tryCatch<UpdateSessionEditStatusResult>(
+			updateSessionEditStatus({ bookingId: session._id, editStatus: "completed" })
 		);
 
 		if (statusError !== null) {

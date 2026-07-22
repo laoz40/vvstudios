@@ -3,7 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/bookings";
+import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/packages";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import type {
 	GetAdminPackageAdjustmentInvoicePdfResult,
@@ -33,8 +33,8 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	const retryAdjustmentInvoiceEmail = useAction(
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
-	const archivePackage = useMutation(api.bookings.archivePackage);
-	const markPaymentStatus = useMutation(api.bookings.markPackagePaymentStatus);
+	const archivePackage = useMutation(api.packages.archivePackage);
+	const markPaymentStatus = useMutation(api.packages.markPackagePaymentStatus);
 	const markAdjustmentPaymentStatus = useMutation(
 		api.packageAdjustments.markPackageAdjustmentPaymentStatus
 	);

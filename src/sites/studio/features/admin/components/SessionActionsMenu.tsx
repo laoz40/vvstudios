@@ -29,9 +29,9 @@ import {
 	EDIT_STATUS_OPTIONS,
 	deliverableStatusDotClassNameMap,
 	deliverableStatusLabelMap
-} from "#studio/features/admin/lib/booking-edit-status";
-import type { BookingActionDetails } from "#studio/features/admin/lib/admin-bookings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+} from "#studio/features/admin/lib/session-edit-status";
+import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -41,8 +41,8 @@ import type { useRescheduleAction } from "#studio/features/admin/hooks/useResche
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
 type SessionActionsMenuProps = {
-	booking: BookingRecord;
-	details: BookingActionDetails;
+	session: SessionRecord;
+	details: SessionActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
@@ -53,7 +53,7 @@ type SessionActionsMenuProps = {
 };
 
 export function SessionActionsMenu({
-	booking,
+	session,
 	details,
 	deleteAction,
 	deliverablesEmailAction,
@@ -68,7 +68,7 @@ export function SessionActionsMenu({
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
-	const isArchived = booking.hiddenAt !== undefined;
+	const isArchived = session.hiddenAt !== undefined;
 	let archiveActionLabel = "Unarchive session";
 
 	if (deleteAction.isUpdatingArchive) {
@@ -101,7 +101,7 @@ export function SessionActionsMenu({
 				<DropdownMenuGroup>
 					<div className="flex items-center gap-2 px-2 py-1">
 						<a
-							href={`mailto:${booking.email}`}
+							href={`mailto:${session.email}`}
 							aria-label="Email customer"
 							title="Email customer"
 							className={cn(
@@ -121,9 +121,9 @@ export function SessionActionsMenu({
 								aria-hidden
 							/>
 						</a>
-						{booking.phone ? (
+						{session.phone ? (
 							<a
-								href={`tel:${booking.phone}`}
+								href={`tel:${session.phone}`}
 								aria-label="Call customer"
 								title="Call customer"
 								className={cn(
@@ -146,7 +146,7 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.canManageConfirmedBooking ? (
+				{details.canManageConfirmedSession ? (
 					<>
 						<DropdownMenuSeparator />
 						<DropdownMenuLabel className="text-muted-foreground text-sm">
@@ -181,7 +181,7 @@ export function SessionActionsMenu({
 					</>
 				) : null}
 				<DropdownMenuSeparator />
-				{details.canManageConfirmedBooking && details.isPastBooking ? (
+				{details.canManageConfirmedSession && details.isPastSession ? (
 					<>
 						<DropdownMenuLabel className="text-muted-foreground text-sm">
 							Deliverables status
@@ -233,10 +233,10 @@ export function SessionActionsMenu({
 						Other
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-72 touch-manipulation">
-						{details.canManageConfirmedBooking ? (
+						{details.canManageConfirmedSession ? (
 							<>
 								<AnimatedDropdownMenuItem
-									onSelect={() => void navigator.clipboard.writeText(details.customerBookingId)}
+									onSelect={() => void navigator.clipboard.writeText(details.customerSessionId)}
 									renderIcon={(iconRef) => (
 										<HashtagIcon
 											ref={iconRef}
@@ -248,7 +248,7 @@ export function SessionActionsMenu({
 									Copy invoice number
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
-									onSelect={() => void navigator.clipboard.writeText(String(booking._id))}
+									onSelect={() => void navigator.clipboard.writeText(String(session._id))}
 									renderIcon={(iconRef) => (
 										<Stack3Icon
 											ref={iconRef}
@@ -303,7 +303,7 @@ export function SessionActionsMenu({
 							</>
 						) : (
 							<AnimatedDropdownMenuItem
-								onSelect={() => void navigator.clipboard.writeText(String(booking._id))}
+								onSelect={() => void navigator.clipboard.writeText(String(session._id))}
 								renderIcon={(iconRef) => (
 									<Stack3Icon
 										ref={iconRef}

@@ -10,19 +10,19 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import {
-	bookingStatusIconClassNameMap,
-	bookingStatusIconMap,
-	bookingStatusLabelMap,
+	sessionStatusIconClassNameMap,
+	sessionStatusIconMap,
+	sessionStatusLabelMap,
 	deliverableStatusBadgeClassNameMap,
 	deliverableStatusBadgeVariantMap,
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
 	isDeliverableSession
-} from "#studio/features/admin/lib/booking-edit-status";
+} from "#studio/features/admin/lib/session-edit-status";
 import {
 	getPackageSessionProgressLabel,
-	type BookingRecord
-} from "#studio/features/admin/lib/admin-bookings";
+	type SessionRecord
+} from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
 	getRemainingBalanceAmount
@@ -37,34 +37,34 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type SessionTableRowProps = {
-	booking: BookingRecord;
+	session: SessionRecord;
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
 
-function SessionCustomerCell({ booking }: { booking: BookingRecord }) {
+function SessionCustomerCell({ session }: { session: SessionRecord }) {
 	return (
 		<div className="flex flex-col gap-1 whitespace-normal">
 			<p className="font-medium">
 				<CopyableText
-					value={booking.name}
+					value={session.name}
 					label="customer name">
-					{booking.name}
+					{session.name}
 				</CopyableText>
 			</p>
-			{booking.accountName || booking.abn ? (
+			{session.accountName || session.abn ? (
 				<p className="text-sm">
-					{booking.accountName ? (
+					{session.accountName ? (
 						<CopyableText
-							value={booking.accountName}
+							value={session.accountName}
 							label="account name">
-							{booking.accountName}
+							{session.accountName}
 						</CopyableText>
 					) : null}
-					{booking.abn ? (
+					{session.abn ? (
 						<>
-							{booking.accountName ? " · " : ""}
+							{session.accountName ? " · " : ""}
 							<CopyableText
-								value={booking.abn}
+								value={session.abn}
 								label="ABN">
 								ABN
 							</CopyableText>
@@ -76,33 +76,33 @@ function SessionCustomerCell({ booking }: { booking: BookingRecord }) {
 	);
 }
 
-function SessionContactCell({ booking }: { booking: BookingRecord }) {
+function SessionContactCell({ session }: { session: SessionRecord }) {
 	return (
 		<div className="flex flex-col gap-1 whitespace-normal">
 			<p className="break-all font-medium">
 				<CopyableText
-					value={booking.email}
+					value={session.email}
 					label="email">
-					{booking.email}
+					{session.email}
 				</CopyableText>
 			</p>
 			<p className="text-sm">
-				{booking.phone ? (
+				{session.phone ? (
 					<CopyableText
-						value={booking.phone}
+						value={session.phone}
 						label="phone number">
-						{booking.phone}
+						{session.phone}
 					</CopyableText>
 				) : (
 					<span>No phone provided</span>
 				)}
-				{booking.instagramHandle ? (
+				{session.instagramHandle ? (
 					<>
 						{" · "}
 						<CopyableText
-							value={formatInstagramHandle(booking.instagramHandle)}
+							value={formatInstagramHandle(session.instagramHandle)}
 							label="Instagram handle">
-							{formatInstagramHandle(booking.instagramHandle)}
+							{formatInstagramHandle(session.instagramHandle)}
 						</CopyableText>
 					</>
 				) : null}
@@ -111,17 +111,17 @@ function SessionContactCell({ booking }: { booking: BookingRecord }) {
 	);
 }
 
-function SessionDetailsCell({ booking }: { booking: BookingRecord }) {
+function SessionDetailsCell({ session }: { session: SessionRecord }) {
 	return (
 		<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
-			<p className="font-medium">{booking.service}</p>
-			{booking.addons.length > 0 ? (
+			<p className="font-medium">{session.service}</p>
+			{session.addons.length > 0 ? (
 				<div className="flex flex-wrap gap-1">
-					{booking.addons.map((addon) => (
+					{session.addons.map((addon) => (
 						<Badge
 							key={addon}
 							variant="outline">
-							{formatDashboardAddonLabel(addon, booking)}
+							{formatDashboardAddonLabel(addon, session)}
 						</Badge>
 					))}
 				</div>
@@ -132,18 +132,18 @@ function SessionDetailsCell({ booking }: { booking: BookingRecord }) {
 	);
 }
 
-function RemainingBalanceCell({ booking }: { booking: BookingRecord }) {
-	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
+function RemainingBalanceCell({ session }: { session: SessionRecord }) {
+	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const showRemainingBalance =
 		!packageSessionProgressLabel &&
-		(booking.status === "confirmed" || booking.status === "email_failed");
+		(session.status === "confirmed" || session.status === "email_failed");
 
 	if (!showRemainingBalance) {
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
-	const className = booking.paidRemainingBalance === true ? "text-green" : "text-destructive";
-	return <p className={className}>{formatAudAmount(getRemainingBalanceAmount(booking))}</p>;
+	const className = session.paidRemainingBalance === true ? "text-green" : "text-destructive";
+	return <p className={className}>{formatAudAmount(getRemainingBalanceAmount(session))}</p>;
 }
 
 function PackageSessionProgress({
@@ -174,46 +174,46 @@ function PackageSessionProgress({
 	);
 }
 
-export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableRowProps) {
-	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
-	const relativeDateLabel = formatBookingRelativeDate(booking.date);
-	const packageSessionProgressLabel = getPackageSessionProgressLabel(booking);
-	const packageInvoiceNumber = booking.multiBookingInvoiceNumber;
-	const deliverableStatus = isDeliverableSession(booking) ? getDeliverableStatus(booking) : null;
-	const pastCellClassName = isPastBooking ? "opacity-70" : undefined;
+export function SessionTableRow({ session, onPackageFilterClick }: SessionTableRowProps) {
+	const isPastSession = !isUpcomingBooking(session.date, session.time);
+	const relativeDateLabel = formatBookingRelativeDate(session.date);
+	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
+	const packageInvoiceNumber = session.multiBookingInvoiceNumber;
+	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
+	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
 
 	return (
 		<TableRow
-			key={booking._id}
-			className={isPastBooking ? "text-muted-foreground" : undefined}>
+			key={session._id}
+			className={isPastSession ? "text-muted-foreground" : undefined}>
 			<TableCell className={cn("text-center", pastCellClassName)}>
 				<div className="flex justify-center">
 					<StatusIcon
-						icon={bookingStatusIconMap[booking.status]}
-						label={bookingStatusLabelMap[booking.status]}
-						className={bookingStatusIconClassNameMap[booking.status]}
+						icon={sessionStatusIconMap[session.status]}
+						label={sessionStatusLabelMap[session.status]}
+						className={sessionStatusIconClassNameMap[session.status]}
 					/>
 				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionCustomerCell booking={booking} />
+				<SessionCustomerCell session={session} />
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div
 					className="flex cursor-help flex-col gap-1 whitespace-normal"
 					title={relativeDateLabel}>
-					<p className="font-medium">{formatBookingDateMedium(booking.date)}</p>
+					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
 					<p className="text-sm">
-						{formatBookingTimeLabel(booking.time)}
-						{booking.duration ? ` · ${booking.duration}` : ""}
+						{formatBookingTimeLabel(session.time)}
+						{session.duration ? ` · ${session.duration}` : ""}
 					</p>
 				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionDetailsCell booking={booking} />
+				<SessionDetailsCell session={session} />
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionContactCell booking={booking} />
+				<SessionContactCell session={session} />
 			</TableCell>
 			<TableCell className={cn("text-center", pastCellClassName)}>
 				<PackageSessionProgress
@@ -224,11 +224,11 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<p className="whitespace-normal text-sm text-muted-foreground">
-					{booking.notes?.trim() || "No notes"}
+					{session.notes?.trim() || "No notes"}
 				</p>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
-				<RemainingBalanceCell booking={booking} />
+				<RemainingBalanceCell session={session} />
 			</TableCell>
 			<TableCell className="text-center">
 				{deliverableStatus ? (
@@ -241,14 +241,14 @@ export function SessionTableRow({ booking, onPackageFilterClick }: SessionTableR
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatShortMonthFullDate(booking.pendingPaymentCreatedAt)}</p>
+					<p className="font-medium">{formatShortMonthFullDate(session.pendingPaymentCreatedAt)}</p>
 					<p className="text-sm text-muted-foreground">
-						{formatBookingTimestampTime(booking.pendingPaymentCreatedAt)}
+						{formatBookingTimestampTime(session.pendingPaymentCreatedAt)}
 					</p>
 				</div>
 			</TableCell>
 			<TableCell>
-				<SessionActions booking={booking} />
+				<SessionActions session={session} />
 			</TableCell>
 		</TableRow>
 	);

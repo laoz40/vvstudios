@@ -12,23 +12,23 @@ import {
 } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { env } from "./env";
-import { getBookingFromDb } from "./lib/bookingLookup";
+import { getSessionFromDb } from "./lib/sessionLookup";
 import { getAdminIdentity } from "./lib/auth";
 import {
 	buildRescheduleUrl,
-	createActiveRescheduleLinkForBooking,
+	createActiveRescheduleLinkForSession,
 	getRescheduleUrlForToken,
 	hashRescheduleToken,
 	isRescheduleLinkExpired,
-	markExistingActiveRescheduleLinksUsed
-} from "./lib/bookingRescheduleLinks";
+	markExistingActiveSessionRescheduleLinksUsed
+} from "./lib/sessionRescheduleLinks";
 
-interface GetRescheduleBookingByTokenArgs {
+interface GetRescheduleSessionByTokenArgs {
 	token: string;
 }
 
-interface RescheduleBookingSummary {
-	booking: {
+interface RescheduleSessionSummary {
+	session: {
 		date: string;
 		time: string;
 		duration: string;
@@ -46,28 +46,28 @@ export type RescheduleLinkLookupError =
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "BOOKING_NOT_RESCHEDULABLE" };
 
-interface ValidRescheduleLinkAndBooking {
-	booking: Doc<"bookings">;
+interface ValidRescheduleLinkAndSession {
+	session: Doc<"bookings">;
 	link: Doc<"bookingRescheduleLinks">;
 }
 
-function isBookingReschedulable(booking: Doc<"bookings">) {
-	if (booking.status === "confirmed" || booking.status === "email_failed") {
+function isSessionReschedulable(session: Doc<"bookings">) {
+	if (session.status === "confirmed" || session.status === "email_failed") {
 		return true;
 	}
 
 	return (
-		booking.status === "failed" &&
-		(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
-			booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
+		session.status === "failed" &&
+		(session.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+			session.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
 	);
 }
 
-export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc<"bookings">) {
+export async function createRescheduleUrlForSession(ctx: ActionCtx, session: Doc<"bookings">) {
 	const now = Date.now();
 	const [linkError, link] = await ctx.runMutation(
-		internal.bookingReschedule.createActiveRescheduleLinkInternal,
-		{ bookingId: booking._id, expiresAt: booking.sessionStartAt, now }
+		internal.sessionReschedule.createActiveRescheduleLinkInternal,
+		{ bookingId: session._id, expiresAt: session.sessionStartAt, now }
 	);
 
 	if (linkError !== null) {
@@ -77,43 +77,43 @@ export async function createRescheduleUrlForBooking(ctx: ActionCtx, booking: Doc
 	return ok(getRescheduleUrlForToken(link.token));
 }
 
-export const createPublicFailedBookingRescheduleLink = mutation({
+export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },
-	handler: (ctx, args) => createPublicFailedBookingRescheduleLinkHandler(ctx, args)
+	handler: (ctx, args) => createPublicFailedSessionRescheduleLinkHandler(ctx, args)
 });
 
-async function createPublicFailedBookingRescheduleLinkHandler(
+async function createPublicFailedSessionRescheduleLinkHandler(
 	ctx: MutationCtx,
 	args: { stripeSessionId: string }
 ) {
-	const booking = await ctx.db
+	const session = await ctx.db
 		.query("bookings")
 		.withIndex("by_stripeSessionId", (indexQuery) =>
 			indexQuery.eq("stripeSessionId", args.stripeSessionId)
 		)
 		.unique();
 
-	if (booking === null) {
+	if (session === null) {
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	if (!isBookingReschedulable(booking)) {
+	if (!isSessionReschedulable(session)) {
 		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
-	if (booking.status !== "failed") {
+	if (session.status !== "failed") {
 		return err({ reason: "BOOKING_NOT_FAILED" });
 	}
 
-	if (booking.sessionStartAt <= Date.now()) {
+	if (session.sessionStartAt <= Date.now()) {
 		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	const now = Date.now();
-	const link = await createActiveRescheduleLinkForBooking({
+	const link = await createActiveRescheduleLinkForSession({
 		ctx,
-		booking,
-		expiresAt: booking.sessionStartAt,
+		session,
+		expiresAt: session.sessionStartAt,
 		now
 	});
 
@@ -122,8 +122,8 @@ async function createPublicFailedBookingRescheduleLinkHandler(
 	});
 }
 
-export type CreatePublicFailedBookingRescheduleLinkResult = Awaited<
-	ReturnType<typeof createPublicFailedBookingRescheduleLinkHandler>
+export type CreatePublicFailedSessionRescheduleLinkResult = Awaited<
+	ReturnType<typeof createPublicFailedSessionRescheduleLinkHandler>
 >;
 
 export const createAdminRescheduleLink = mutation({
@@ -141,25 +141,25 @@ async function createAdminRescheduleLinkHandler(
 		return err(authError);
 	}
 
-	const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+	const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
 	}
 
-	if (!isBookingReschedulable(booking)) {
+	if (!isSessionReschedulable(session)) {
 		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
-	if (booking.sessionStartAt <= Date.now()) {
+	if (session.sessionStartAt <= Date.now()) {
 		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	const now = Date.now();
-	const link = await createActiveRescheduleLinkForBooking({
+	const link = await createActiveRescheduleLinkForSession({
 		ctx,
-		booking,
-		expiresAt: booking.sessionStartAt,
+		session,
+		expiresAt: session.sessionStartAt,
 		now
 	});
 
@@ -172,17 +172,17 @@ export type CreateAdminRescheduleLinkResult = Awaited<
 	ReturnType<typeof createAdminRescheduleLinkHandler>
 >;
 
-export const getRescheduleBookingByToken = query({
+export const getRescheduleSessionByToken = query({
 	args: { token: v.string() },
-	handler: (ctx, args) => getRescheduleBookingByTokenHandler(ctx, args)
+	handler: (ctx, args) => getRescheduleSessionByTokenHandler(ctx, args)
 });
 
-async function getRescheduleBookingByTokenHandler(
+async function getRescheduleSessionByTokenHandler(
 	ctx: QueryCtx,
-	args: GetRescheduleBookingByTokenArgs
-): Promise<Result<RescheduleBookingSummary, RescheduleLinkLookupError>> {
-	const [lookupError, result]: GetValidRescheduleLinkAndBookingResult = await ctx.runQuery(
-		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+	args: GetRescheduleSessionByTokenArgs
+): Promise<Result<RescheduleSessionSummary, RescheduleLinkLookupError>> {
+	const [lookupError, result]: GetValidRescheduleLinkAndSessionResult = await ctx.runQuery(
+		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -190,34 +190,34 @@ async function getRescheduleBookingByTokenHandler(
 		return err(lookupError);
 	}
 
-	const { booking, link } = result;
+	const { session, link } = result;
 
 	return ok({
-		booking: {
-			date: booking.date,
-			time: booking.time,
-			duration: booking.duration,
-			service: booking.service,
-			addons: booking.addons,
-			name: booking.name
+		session: {
+			date: session.date,
+			time: session.time,
+			duration: session.duration,
+			service: session.service,
+			addons: session.addons,
+			name: session.name
 		},
 		expiresAt: link.expiresAt
 	});
 }
 
-export type GetRescheduleBookingByTokenResult = Awaited<
-	ReturnType<typeof getRescheduleBookingByTokenHandler>
+export type GetRescheduleSessionByTokenResult = Awaited<
+	ReturnType<typeof getRescheduleSessionByTokenHandler>
 >;
 
-export const getValidRescheduleLinkAndBookingInternal = internalQuery({
+export const getValidRescheduleLinkAndSessionInternal = internalQuery({
 	args: { token: v.string(), now: v.number() },
-	handler: (ctx, args) => getValidRescheduleLinkAndBookingInternalHandler(ctx, args)
+	handler: (ctx, args) => getValidRescheduleLinkAndSessionInternalHandler(ctx, args)
 });
 
-async function getValidRescheduleLinkAndBookingInternalHandler(
+async function getValidRescheduleLinkAndSessionInternalHandler(
 	ctx: QueryCtx,
 	args: { now: number; token: string }
-): Promise<Result<ValidRescheduleLinkAndBooking, RescheduleLinkLookupError>> {
+): Promise<Result<ValidRescheduleLinkAndSession, RescheduleLinkLookupError>> {
 	const tokenHash = await hashRescheduleToken(args.token);
 	const link = await ctx.db
 		.query("bookingRescheduleLinks")
@@ -236,38 +236,38 @@ async function getValidRescheduleLinkAndBookingInternalHandler(
 		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
-	const booking = await ctx.db.get(link.bookingId);
+	const session = await ctx.db.get(link.bookingId);
 
-	if (booking === null) {
+	if (session === null) {
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	if (isRescheduleLinkExpired(link, booking, args.now)) {
+	if (isRescheduleLinkExpired(link, session, args.now)) {
 		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
-	if (!isBookingReschedulable(booking)) {
+	if (!isSessionReschedulable(session)) {
 		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
-	return ok({ booking, link });
+	return ok({ session, link });
 }
 
-type GetValidRescheduleLinkAndBookingResult = Awaited<
-	ReturnType<typeof getValidRescheduleLinkAndBookingInternalHandler>
+type GetValidRescheduleLinkAndSessionResult = Awaited<
+	ReturnType<typeof getValidRescheduleLinkAndSessionInternalHandler>
 >;
 
 export const createActiveRescheduleLinkInternal = internalMutation({
 	args: { bookingId: v.id("bookings"), expiresAt: v.number(), now: v.number() },
 	handler: async (ctx, args) => {
-		const [bookingError, booking] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
 		}
 
-		const link = await createActiveRescheduleLinkForBooking({
-			booking,
+		const link = await createActiveRescheduleLinkForSession({
+			session,
 			ctx,
 			expiresAt: args.expiresAt,
 			now: args.now
@@ -277,16 +277,20 @@ export const createActiveRescheduleLinkInternal = internalMutation({
 	}
 });
 
-export const markActiveRescheduleLinksUsedForBookingInternal = internalMutation({
+export const markActiveRescheduleLinksUsedForSessionInternal = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
 	handler: async (ctx, args) => {
-		const [bookingError] = await getBookingFromDb(ctx, args.bookingId);
+		const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
 
 		if (bookingError !== null) {
 			return err(bookingError);
 		}
 
-		await markExistingActiveRescheduleLinksUsed({ ctx, bookingId: args.bookingId, now: args.now });
+		await markExistingActiveSessionRescheduleLinksUsed({
+			ctx,
+			bookingId: args.bookingId,
+			now: args.now
+		});
 
 		return ok({ used: true });
 	}

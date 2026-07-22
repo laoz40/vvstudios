@@ -28,7 +28,7 @@ export interface BookingCompleteSearch {
 }
 
 export type BookingStatus = NonNullable<
-	ReturnType<typeof useQuery<typeof api.bookings.getBookingStatusByStripeSessionId>>
+	ReturnType<typeof useQuery<typeof api.sessions.getSessionStatusByStripeSessionId>>
 >;
 
 const devBookingIdSchema = z.custom<BookingStatus["_id"]>(

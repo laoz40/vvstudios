@@ -29,7 +29,7 @@ vi.mock("../env", () => ({
 }));
 
 vi.mock("../lib/email", () => ({
-	sendBookingDeliverablesEmailForBooking: providerFakes.sendDeliverablesEmail,
+	sendSessionDeliverablesEmail: providerFakes.sendDeliverablesEmail,
 	sendFeedbackEmailForMessage: providerFakes.sendFeedbackEmail
 }));
 
@@ -61,7 +61,7 @@ describe("deliverables email", () => {
 		const bookingId = await seedBooking(t);
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		const result = await client.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+		const result = await client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 			bookingId,
 			driveLink: validDriveLink,
 			emailVariant: "first-time"
@@ -79,14 +79,14 @@ describe("deliverables email", () => {
 
 		const missingResult = await missingBookingTest
 			.withIdentity(adminIdentity)
-			.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId: missingBookingId,
 				driveLink: validDriveLink,
 				emailVariant: "first-time"
 			});
 		const invalidLinkResult = await invalidLinkTest
 			.withIdentity(adminIdentity)
-			.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId,
 				driveLink: "https://example.com/not-drive",
 				emailVariant: "first-time"
@@ -103,7 +103,7 @@ describe("deliverables email", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId,
 				driveLink: `${validDriveLink}/?usp=sharing`,
 				editorNotes: "Final mix included",
@@ -132,7 +132,7 @@ describe("deliverables email", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId,
 				driveLink: validDriveLink,
 				emailVariant: "first-time"

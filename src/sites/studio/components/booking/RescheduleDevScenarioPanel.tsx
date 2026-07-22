@@ -3,9 +3,9 @@ import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { err, ok, type Result } from "#/lib/result";
 import type {
-	GetRescheduleBookingByTokenResult,
+	GetRescheduleSessionByTokenResult,
 	RescheduleLinkLookupError
-} from "#convex/bookingReschedule";
+} from "#convex/sessionReschedule";
 
 const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Ready", value: "ready" },
@@ -31,7 +31,7 @@ export interface RescheduleSearch {
 	dev_scenario?: DevRescheduleScenario;
 }
 
-export type RescheduleBookingLookup = NonNullable<GetRescheduleBookingByTokenResult>;
+export type RescheduleBookingLookup = NonNullable<GetRescheduleSessionByTokenResult>;
 
 type DevRescheduleAvailabilityError =
 	| RescheduleLinkLookupError
@@ -112,7 +112,7 @@ export function buildDevRescheduleBooking(
 	}
 
 	return ok({
-		booking: {
+		session: {
 			addons: ["Essential Edit", "Clips Package"],
 			date: "2026-05-12",
 			duration: "2h",

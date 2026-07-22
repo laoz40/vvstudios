@@ -35,7 +35,7 @@ export function AdminPage() {
 	if (!isConvexAuthenticated) {
 		return (
 			<main>
-				<h1>Past bookings</h1>
+				<h1>Past sessions</h1>
 				<p>
 					You are signed in with Clerk, but the backend is not receiving a valid Convex auth token
 					yet.
@@ -121,27 +121,27 @@ function AdminForbiddenPage() {
 }
 
 function AdminPageContent() {
-	const bookings = usePaginatedQuery(
-		api.bookings.getBookings,
+	const sessions = usePaginatedQuery(
+		api.sessions.listSessions,
 		{},
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const packages = usePaginatedQuery(
-		api.bookings.listPackages,
+		api.packages.listPackages,
 		{},
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const { user } = useUser();
-	const [activeView, setActiveView] = useState<AdminDashboardView>("sessions");
+	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
 	function viewPackageSessions(invoiceNumber: string) {
 		setSessionSearchQuery(invoiceNumber);
-		setActiveView("sessions");
+		setActiveView("bookings");
 	}
 
-	if (bookings.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
+	if (sessions.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
 				<StudioLoadingState label="Decrypting classified files" />
@@ -154,12 +154,12 @@ function AdminPageContent() {
 			activeView={activeView}
 			email={email ?? null}
 			onActiveViewChange={setActiveView}>
-			<Activity mode={activeView === "sessions" ? "visible" : "hidden"}>
+			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
 				<SessionsTable
-					bookings={bookings.results}
-					canLoadMoreBookings={bookings.status === "CanLoadMore"}
-					isLoadingMoreBookings={bookings.status === "LoadingMore"}
-					loadMoreBookings={() => bookings.loadMore(ADMIN_PAGE_SIZE)}
+					sessions={sessions.results}
+					canLoadMoreSessions={sessions.status === "CanLoadMore"}
+					isLoadingMoreSessions={sessions.status === "LoadingMore"}
+					loadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
 					searchQuery={sessionSearchQuery}
 					onSearchQueryChange={setSessionSearchQuery}
 				/>

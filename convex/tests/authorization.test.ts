@@ -40,20 +40,20 @@ const identities = [
 ] as const;
 
 describe("admin list authorization", () => {
-	test.each(identities)("rejects $label from getBookings", async ({ identity, reason }) => {
+	test.each(identities)("rejects $label from listSessions", async ({ identity, reason }) => {
 		const t = createConvexTest();
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		await expect(client.query(api.bookings.getBookings, { paginationOpts })).rejects.toMatchObject({
-			data: { reason }
-		});
+		await expect(client.query(api.sessions.listSessions, { paginationOpts })).rejects.toMatchObject(
+			{ data: { reason } }
+		);
 	});
 
 	test.each(identities)("rejects $label from listPackages", async ({ identity, reason }) => {
 		const t = createConvexTest();
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		await expect(client.query(api.bookings.listPackages, { paginationOpts })).rejects.toMatchObject(
+		await expect(client.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
 			{ data: { reason } }
 		);
 	});
@@ -63,8 +63,8 @@ describe("admin list authorization", () => {
 		const admin = t.withIdentity({ publicMetadata: { role: "admin" } });
 
 		const [bookings, packages] = await Promise.all([
-			admin.query(api.bookings.getBookings, { paginationOpts }),
-			admin.query(api.bookings.listPackages, { paginationOpts })
+			admin.query(api.sessions.listSessions, { paginationOpts }),
+			admin.query(api.packages.listPackages, { paginationOpts })
 		]);
 
 		expect(bookings.page).toEqual([]);
@@ -101,7 +101,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "set a session remaining balance as paid or unpaid",
 		call: (client, { bookingId }) =>
-			client.mutation(api.bookings.updateBookingPaidRemainingBalance, {
+			client.mutation(api.sessions.updateSessionPaidRemainingBalance, {
 				bookingId,
 				paidRemainingBalance: true
 			})
@@ -109,7 +109,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "mark a package as unpaid",
 		call: (client, { multiBookingId }) =>
-			client.mutation(api.bookings.markPackagePaymentStatus, { multiBookingId, paid: false })
+			client.mutation(api.packages.markPackagePaymentStatus, { multiBookingId, paid: false })
 	},
 	{
 		name: "confirm a package payment",
@@ -137,12 +137,12 @@ const operations: AdminOperation[] = [
 	{
 		name: "edit a session",
 		call: (client, { bookingId }) =>
-			client.action(api.googleCalendar.updateBookingFromAdmin, { bookingId, ...bookingEditArgs })
+			client.action(api.googleCalendar.updateSessionFromAdmin, { bookingId, ...bookingEditArgs })
 	},
 	{
 		name: "edit a package",
 		call: (client, { multiBookingId }) =>
-			client.mutation(api.bookings.updatePackageFromAdmin, {
+			client.mutation(api.packages.updatePackageFromAdmin, {
 				multiBookingId,
 				name: "Updated name",
 				phone: "0400000000",
@@ -156,22 +156,22 @@ const operations: AdminOperation[] = [
 	{
 		name: "delete a session Calendar event",
 		call: (client, { bookingId }) =>
-			client.action(api.googleCalendar.deleteBookingFromAdmin, { bookingId })
+			client.action(api.googleCalendar.deleteSessionFromAdmin, { bookingId })
 	},
 	{
 		name: "archive a session",
 		call: (client, { bookingId }) =>
-			client.mutation(api.bookings.archiveSession, { bookingId, archived: true })
+			client.mutation(api.sessions.archiveSession, { bookingId, archived: true })
 	},
 	{
 		name: "archive a package",
 		call: (client, { multiBookingId }) =>
-			client.mutation(api.bookings.archivePackage, { multiBookingId, archived: true })
+			client.mutation(api.packages.archivePackage, { multiBookingId, archived: true })
 	},
 	{
 		name: "send a deliverables email",
 		call: (client, { bookingId }) =>
-			client.action(api.deliverablesEmail.sendBookingDeliverablesEmail, {
+			client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId,
 				driveLink: "https://drive.google.com/drive/folders/example",
 				emailVariant: "first-time"
@@ -190,7 +190,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "generate a new reschedule link",
 		call: (client, { bookingId }) =>
-			client.mutation(api.bookingReschedule.createAdminRescheduleLink, { bookingId })
+			client.mutation(api.sessionReschedule.createAdminRescheduleLink, { bookingId })
 	},
 	{
 		name: "create a session custom invoice",

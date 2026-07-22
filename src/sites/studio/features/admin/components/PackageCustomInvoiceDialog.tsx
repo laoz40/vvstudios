@@ -21,9 +21,9 @@ import { PreviousCustomInvoices } from "#studio/features/admin/components/Previo
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
-	toAdminBookingAddons,
-	toAdminBookingDuration
-} from "#studio/features/admin/lib/admin-bookings";
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import {
 	formatCustomInvoiceAddonText,
@@ -255,7 +255,7 @@ export function PackageCustomInvoiceDialog({
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: toAdminBookingAddons(invoice.addons),
+				addons: toAdminSessionAddons(invoice.addons),
 				essentialEditQuantity: toDeliverableCountOption(
 					invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 				),
@@ -271,12 +271,12 @@ export function PackageCustomInvoiceDialog({
 				invoiceNumber: invoice.invoiceNumber,
 				description: `${packageSize} sessions · ${duration}${addonText}`,
 				total: formatPackageInvoiceTotal({
-					addons: toAdminBookingAddons(invoice.addons),
+					addons: toAdminSessionAddons(invoice.addons),
 					clipsPackageQuantity: toDeliverableCountOption(
 						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
 					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
-					duration: toAdminBookingDuration(invoice.duration),
+					duration: toAdminSessionDuration(invoice.duration),
 					essentialEditQuantity: toDeliverableCountOption(
 						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 					),

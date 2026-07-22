@@ -14,22 +14,22 @@ import { Label } from "#/components/ui/label";
 type SessionsTableFiltersProps = {
 	onSearchQueryChange: (searchQuery: string) => void;
 	onShowArchivedChange: (checked: boolean) => void;
-	onShowStaleBookingsChange: (checked: boolean) => void;
+	onShowStaleSessionsChange: (checked: boolean) => void;
 	onShowUpcomingOnlyChange: (checked: boolean) => void;
 	searchQuery: string;
 	showArchived: boolean;
-	showStaleBookings: boolean;
+	showStaleSessions: boolean;
 	showUpcomingOnly: boolean;
 };
 
 export function SessionsTableFilters({
 	onSearchQueryChange,
 	onShowArchivedChange,
-	onShowStaleBookingsChange,
+	onShowStaleSessionsChange,
 	onShowUpcomingOnlyChange,
 	searchQuery,
 	showArchived,
-	showStaleBookings,
+	showStaleSessions,
 	showUpcomingOnly
 }: SessionsTableFiltersProps) {
 	return (
@@ -62,8 +62,8 @@ export function SessionsTableFilters({
 									Show due
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
-									checked={showStaleBookings}
-									onCheckedChange={(checked) => onShowStaleBookingsChange(checked)}
+									checked={showStaleSessions}
+									onCheckedChange={(checked) => onShowStaleSessionsChange(checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Show unconfirmed
 								</DropdownMenuCheckboxItem>
@@ -93,24 +93,24 @@ export function SessionsTableFilters({
 				</div>
 				<div className="flex items-center gap-2">
 					<Checkbox
-						id="show-stale-bookings"
-						checked={showStaleBookings}
-						onCheckedChange={(checked) => onShowStaleBookingsChange(checked === true)}
+						id="show-stale-sessions"
+						checked={showStaleSessions}
+						onCheckedChange={(checked) => onShowStaleSessionsChange(checked === true)}
 					/>
 					<Label
-						htmlFor="show-stale-bookings"
+						htmlFor="show-stale-sessions"
 						className="text-sm font-medium text-foreground">
 						Show unconfirmed
 					</Label>
 				</div>
 				<div className="flex items-center gap-2">
 					<Checkbox
-						id="show-archived-bookings"
+						id="show-archived-sessions"
 						checked={showArchived}
 						onCheckedChange={(checked) => onShowArchivedChange(checked === true)}
 					/>
 					<Label
-						htmlFor="show-archived-bookings"
+						htmlFor="show-archived-sessions"
 						className="text-sm font-medium text-foreground">
 						Show archived
 					</Label>

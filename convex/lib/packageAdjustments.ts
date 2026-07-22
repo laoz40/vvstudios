@@ -3,7 +3,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { ADDON_PRICES } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { formatBookingInvoiceNumber } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { getCapacityConsumingPackageBookings } from "./packageScheduling";
+import { getCapacityConsumingPackageSessions } from "./packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 // Prevent concurrent sends; a stalled send becomes failed so an admin can retry it.
@@ -98,7 +98,7 @@ export async function processPackageAdjustment(
 
 	if (existingAdjustment) return null;
 
-	const bookings = await getCapacityConsumingPackageBookings(
+	const bookings = await getCapacityConsumingPackageSessions(
 		ctx,
 		multiBooking._id,
 		multiBooking.packageSize

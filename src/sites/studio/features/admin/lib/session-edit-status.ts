@@ -16,10 +16,10 @@ export const EDIT_STATUS_OPTIONS = ["to_edit", "editing", "completed"] as const;
 
 export type DeliverableStatus = (typeof EDIT_STATUS_OPTIONS)[number];
 
-type BookingRecord = Doc<"bookings">;
-type BookingStatus = BookingRecord["status"];
+type SessionRecord = Doc<"bookings">;
+type SessionStatus = SessionRecord["status"];
 
-export const bookingStatusLabelMap: Record<BookingStatus, string> = {
+export const sessionStatusLabelMap: Record<SessionStatus, string> = {
 	abandoned: "Abandoned",
 	confirmed: "Confirmed",
 	cancelled: "Cancelled",
@@ -29,7 +29,7 @@ export const bookingStatusLabelMap: Record<BookingStatus, string> = {
 	pending_payment: "Pending"
 };
 
-export const bookingStatusIconMap: Record<BookingStatus, LucideIcon> = {
+export const sessionStatusIconMap: Record<SessionStatus, LucideIcon> = {
 	abandoned: Ban,
 	confirmed: Check,
 	cancelled: Ban,
@@ -39,7 +39,7 @@ export const bookingStatusIconMap: Record<BookingStatus, LucideIcon> = {
 	pending_payment: Clock
 };
 
-export const bookingStatusIconClassNameMap: Record<BookingStatus, string> = {
+export const sessionStatusIconClassNameMap: Record<SessionStatus, string> = {
 	abandoned: "size-5 text-muted-foreground",
 	confirmed: "size-5 text-green",
 	cancelled: "size-5 text-muted-foreground",
@@ -72,18 +72,18 @@ export const deliverableStatusBadgeVariantMap: Record<
 	ComponentProps<typeof Badge>["variant"]
 > = { to_edit: "destructive", editing: "default", completed: "default" };
 
-export function getDeliverableStatus(booking: BookingRecord): DeliverableStatus {
-	return booking.editStatus ?? "to_edit";
+export function getDeliverableStatus(session: SessionRecord): DeliverableStatus {
+	return session.editStatus ?? "to_edit";
 }
 
-export function isDeliverableSession(booking: BookingRecord) {
-	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+export function isDeliverableSession(session: SessionRecord) {
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
 		return false;
 	}
 
-	return !isUpcomingBooking(booking.date, booking.time);
+	return !isUpcomingBooking(session.date, session.time);
 }
 
-export function hasUnsentDeliverables(booking: BookingRecord) {
-	return isDeliverableSession(booking) && getDeliverableStatus(booking) !== "completed";
+export function hasUnsentDeliverables(session: SessionRecord) {
+	return isDeliverableSession(session) && getDeliverableStatus(session) !== "completed";
 }

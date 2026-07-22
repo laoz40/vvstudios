@@ -41,7 +41,7 @@ async function getBookingInvoicePdfByStripeSessionIdHandler(
 	ctx: ActionCtx,
 	args: GetBookingInvoicePdfByStripeSessionIdArgs
 ) {
-	const booking = await ctx.runQuery(internal.bookings.getBookingByStripeSessionIdInternal, {
+	const booking = await ctx.runQuery(internal.sessionCheckout.getSessionByStripeSessionIdInternal, {
 		stripeSessionId: args.stripeSessionId
 	});
 
@@ -105,7 +105,7 @@ async function getMultiBookingInvoicePdfByIdHandler(
 	args: GetMultiBookingInvoicePdfByIdArgs
 ): Promise<Result<InvoicePdfPayload, PublicMultiBookingInvoicePdfError>> {
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.bookings.getPackageByIdInternal,
+		internal.packages.getPackageByIdInternal,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -141,7 +141,7 @@ async function getAdminMultiBookingInvoicePdfByIdHandler(
 	}
 
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.bookings.getPackageByIdInternal,
+		internal.packages.getPackageByIdInternal,
 		{ multiBookingId: args.multiBookingId }
 	);
 

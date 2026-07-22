@@ -15,7 +15,7 @@ import { studioSite } from "#/config/sites";
 import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
-import type { CreatePublicFailedBookingRescheduleLinkResult } from "#convex/bookingReschedule";
+import type { CreatePublicFailedSessionRescheduleLinkResult } from "#convex/sessionReschedule";
 import type { Id } from "#convex/_generated/dataModel";
 
 type InstagramPromptTarget =
@@ -43,8 +43,8 @@ export function BookingStatusLayout({
 	devPanel = <BookingCompleteDevScenarioPanel />
 }: BookingStatusLayoutProps): ReactNode {
 	const [isCreatingRescheduleLink, setIsCreatingRescheduleLink] = useState(false);
-	const createFailedBookingRescheduleLink = useMutation(
-		api.bookingReschedule.createPublicFailedBookingRescheduleLink
+	const createFailedSessionRescheduleLink = useMutation(
+		api.sessionReschedule.createPublicFailedSessionRescheduleLink
 	);
 	const isFailedBooking = bookingStatus === "failed";
 	const resolvedInstagramPromptTarget =
@@ -62,8 +62,8 @@ export function BookingStatusLayout({
 		setIsCreatingRescheduleLink(true);
 
 		try {
-			const [error, result] = await tryCatch<CreatePublicFailedBookingRescheduleLinkResult>(
-				createFailedBookingRescheduleLink({ stripeSessionId })
+			const [error, result] = await tryCatch<CreatePublicFailedSessionRescheduleLinkResult>(
+				createFailedSessionRescheduleLink({ stripeSessionId })
 			);
 
 			if (error !== null) {

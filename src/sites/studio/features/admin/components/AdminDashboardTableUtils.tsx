@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
 import { cn } from "#/lib/utils";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	getEditingAddonQuantity,
 	type EditingAddonQuantities
@@ -112,7 +112,7 @@ export function CopyableText({ value, label, children }: CopyableTextProps) {
 	);
 }
 
-export function customerFilter(row: { original: BookingRecord }, value: unknown) {
+export function customerFilter(row: { original: SessionRecord }, value: unknown) {
 	const query = typeof value === "string" ? value.trim().toLowerCase() : "";
 
 	if (!query) {

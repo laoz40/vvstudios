@@ -29,7 +29,7 @@ import {
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { toAdminBookingDuration } from "#studio/features/admin/lib/admin-bookings";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -91,7 +91,7 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		customerEmail: packageRow.customerEmail,
 		customerName: packageRow.customerName,
 		customerPhone: packageRow.customerPhone,
-		duration: toAdminBookingDuration(packageRow.duration),
+		duration: toAdminSessionDuration(packageRow.duration),
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",

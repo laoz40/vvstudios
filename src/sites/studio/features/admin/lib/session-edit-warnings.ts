@@ -1,10 +1,10 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 
-type BookingRecord = Doc<"bookings">;
-export type BookingEditWarningField = keyof SessionEditDraft;
+type SessionRecord = Doc<"bookings">;
+export type SessionEditWarningField = keyof SessionEditDraft;
 
-const googleEventFields: readonly BookingEditWarningField[] = [
+const googleEventFields: readonly SessionEditWarningField[] = [
 	"name",
 	"email",
 	"service",
@@ -17,7 +17,7 @@ const googleEventFields: readonly BookingEditWarningField[] = [
 	"notes"
 ];
 
-const pricingFields: readonly BookingEditWarningField[] = [
+const pricingFields: readonly SessionEditWarningField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
@@ -25,7 +25,7 @@ const pricingFields: readonly BookingEditWarningField[] = [
 	"remainingBalanceAmount"
 ];
 
-const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
+const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
 	abn: "ABN",
 	accountName: "Account name",
 	addons: "Add-ons",
@@ -42,8 +42,8 @@ const bookingEditFieldLabels: Record<BookingEditWarningField, string> = {
 	remainingBalanceAmount: "Remaining balance due"
 };
 
-function isBookingEditWarningField(field: string): field is BookingEditWarningField {
-	return Object.hasOwn(bookingEditFieldLabels, field);
+function isSessionEditWarningField(field: string): field is SessionEditWarningField {
+	return Object.hasOwn(sessionEditFieldLabels, field);
 }
 
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
@@ -54,29 +54,29 @@ function didArrayChange(currentValue: readonly string[], nextValue: readonly str
 	return currentValue.some((value, index) => value !== nextValue[index]);
 }
 
-function getBookingDraftValue(booking: BookingRecord, field: BookingEditWarningField) {
+function getSessionDraftValue(session: SessionRecord, field: SessionEditWarningField) {
 	if (
 		field === "abn" ||
 		field === "notes" ||
 		field === "essentialEditQuantity" ||
 		field === "clipsPackageQuantity"
 	) {
-		return booking[field] ?? "";
+		return session[field] ?? "";
 	}
 
 	if (field === "remainingBalanceAmount") {
-		return booking.remainingBalanceAmount?.toString() ?? "";
+		return session.remainingBalanceAmount?.toString() ?? "";
 	}
 
-	return booking[field];
+	return session[field];
 }
 
-function didBookingEditFieldChange(
-	booking: BookingRecord,
+function didSessionEditFieldChange(
+	session: SessionRecord,
 	draft: SessionEditDraft,
-	field: BookingEditWarningField
+	field: SessionEditWarningField
 ) {
-	const currentValue = getBookingDraftValue(booking, field);
+	const currentValue = getSessionDraftValue(session, field);
 	const nextValue = draft[field];
 
 	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
@@ -87,25 +87,25 @@ function didBookingEditFieldChange(
 }
 
 function getChangedFieldLabels(
-	changedFields: BookingEditWarningField[],
-	warningFields: readonly BookingEditWarningField[]
+	changedFields: SessionEditWarningField[],
+	warningFields: readonly SessionEditWarningField[]
 ) {
 	return changedFields
 		.filter((field) => warningFields.includes(field))
-		.map((field) => bookingEditFieldLabels[field]);
+		.map((field) => sessionEditFieldLabels[field]);
 }
 
-export function getBookingEditWarningState(booking: BookingRecord, draft: SessionEditDraft) {
+export function getSessionEditWarningState(session: SessionRecord, draft: SessionEditDraft) {
 	const changedFields = Object.keys(draft)
-		.filter(isBookingEditWarningField)
-		.filter((field) => didBookingEditFieldChange(booking, draft, field));
+		.filter(isSessionEditWarningField)
+		.filter((field) => didSessionEditFieldChange(session, draft, field));
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
 	const manualPriceWillBeUsed = draft.remainingBalanceAmount.trim().length > 0;
 
 	return {
-		changedFieldLabels: changedFields.map((field) => bookingEditFieldLabels[field]),
+		changedFieldLabels: changedFields.map((field) => sessionEditFieldLabels[field]),
 		googleEventFieldLabels,
 		manualPriceWillBeUsed,
 		pricingFieldLabels,

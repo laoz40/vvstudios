@@ -9,7 +9,7 @@ import { bookingSchema } from "../src/sites/studio/features/booking-form/lib/boo
 import { err, ok, type Result } from "../src/lib/result";
 import { env } from "./env";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
-import type { BookingAvailabilityValidationError } from "./lib/bookingCalendarTime";
+import type { SessionAvailabilityValidationError } from "./lib/sessionCalendarTime";
 
 function getStripeClient() {
 	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
@@ -17,7 +17,7 @@ function getStripeClient() {
 
 type PendingBookingCreationResult = Result<
 	{ bookingId: Id<"bookings"> },
-	BookingAvailabilityValidationError
+	SessionAvailabilityValidationError
 >;
 
 export const createEmbeddedCheckoutSession = action({
@@ -86,7 +86,7 @@ async function createEmbeddedCheckoutSessionHandler(
 
 	const booking = parsedBooking.data;
 	const [rateLimitError] = await ctx.runMutation(
-		internal.bookings.checkBookingSubmitRateLimitInternal,
+		internal.sessionCheckout.checkSessionSubmitRateLimitInternal,
 		{ submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email) }
 	);
 
@@ -103,7 +103,7 @@ async function createEmbeddedCheckoutSessionHandler(
 	const stripe = getStripeClient();
 	// Save the booking first so Stripe metadata can point back to it.
 	const pendingBookingResult: PendingBookingCreationResult = await ctx.runMutation(
-		internal.bookings.createPendingBooking,
+		internal.sessionCheckout.createPendingSession,
 		{
 			name: booking.name,
 			phone: booking.phone,
@@ -120,7 +120,7 @@ async function createEmbeddedCheckoutSessionHandler(
 			notes: booking.notes || undefined
 		}
 	);
-	// Some booking rules are checked inside createPendingBooking, such as time availability.
+	// Some booking rules are checked inside createPendingSession, such as time availability.
 
 	// Stop before Stripe checkout if creating the pending booking failed.
 	const [pendingBookingError, pendingBooking] = pendingBookingResult;
@@ -151,7 +151,7 @@ async function createEmbeddedCheckoutSessionHandler(
 
 	// Store the Stripe session ID so webhooks and cleanup can match the payment to this booking.
 	try {
-		await ctx.runMutation(internal.bookings.setBookingStripeSessionId, {
+		await ctx.runMutation(internal.sessionCheckout.setSessionStripeSessionId, {
 			bookingId,
 			stripeSessionId: session.id
 		});
@@ -197,16 +197,16 @@ async function closeEmbeddedCheckoutSessionHandler(
 		return ok({ outcome: "already_complete" });
 	}
 
-	const [deletePendingBookingError, deletePendingBooking] = await ctx.runMutation(
-		internal.bookings.deletePendingBooking,
+	const [deletePendingSessionError, deletePendingSession] = await ctx.runMutation(
+		internal.sessionCheckout.deletePendingSession,
 		{ bookingId: args.bookingId, stripeSessionId: args.stripeSessionId }
 	);
 
-	if (deletePendingBookingError !== null) {
+	if (deletePendingSessionError !== null) {
 		return err({ reason: "STRIPE_SESSION_MISMATCH" });
 	}
 
-	return ok({ outcome: deletePendingBooking.outcome });
+	return ok({ outcome: deletePendingSession.outcome });
 }
 
 export type CloseEmbeddedCheckoutSessionResult = Awaited<

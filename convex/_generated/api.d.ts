@@ -9,9 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as bookingReschedule from "../bookingReschedule.js";
 import type * as bookingSettings from "../bookingSettings.js";
-import type * as bookings from "../bookings.js";
 import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
@@ -21,21 +19,21 @@ import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_auth from "../lib/auth.js";
-import type * as lib_bookingAdminEdit from "../lib/bookingAdminEdit.js";
-import type * as lib_bookingCalendarTime from "../lib/bookingCalendarTime.js";
+import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
+import type * as lib_sessionCalendarTime from "../lib/sessionCalendarTime.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
-import type * as lib_bookingLookup from "../lib/bookingLookup.js";
-import type * as lib_bookingRescheduleLinks from "../lib/bookingRescheduleLinks.js";
-import type * as lib_bookingReservations from "../lib/bookingReservations.js";
+import type * as lib_sessionLookup from "../lib/sessionLookup.js";
+import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.js";
+import type * as lib_sessionReservations from "../lib/sessionReservations.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
 import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
-import type * as lib_googleCalendarEvents from "../lib/googleCalendarEvents.js";
+import type * as lib_sessionCalendarEvents from "../lib/sessionCalendarEvents.js";
 import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
-import type * as lib_multiBookingScheduleEmail from "../lib/multiBookingScheduleEmail.js";
+import type * as lib_packageScheduleEmail from "../lib/packageScheduleEmail.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
 import type * as lib_packageScheduling from "../lib/packageScheduling.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
@@ -45,7 +43,14 @@ import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js
 import type * as packageAdjustments from "../packageAdjustments.js";
 import type * as packageScheduling from "../packageScheduling.js";
 import type * as packageSchedulingCalendar from "../packageSchedulingCalendar.js";
+import type * as packages from "../packages.js";
 import type * as reminders from "../reminders.js";
+import type * as sessionCheckout from "../sessionCheckout.js";
+import type * as sessionCompletion from "../sessionCompletion.js";
+import type * as sessionScheduling from "../sessionScheduling.js";
+import type * as sessionReminders from "../sessionReminders.js";
+import type * as sessionReschedule from "../sessionReschedule.js";
+import type * as sessions from "../sessions.js";
 import type * as stripe from "../stripe.js";
 
 import type {
@@ -56,9 +61,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  bookingReschedule: typeof bookingReschedule;
   bookingSettings: typeof bookingSettings;
-  bookings: typeof bookings;
   crons: typeof crons;
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
@@ -68,21 +71,21 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   invoices: typeof invoices;
   "lib/auth": typeof lib_auth;
-  "lib/bookingAdminEdit": typeof lib_bookingAdminEdit;
-  "lib/bookingCalendarTime": typeof lib_bookingCalendarTime;
+  "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;
+  "lib/sessionCalendarTime": typeof lib_sessionCalendarTime;
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
-  "lib/bookingLookup": typeof lib_bookingLookup;
-  "lib/bookingRescheduleLinks": typeof lib_bookingRescheduleLinks;
-  "lib/bookingReservations": typeof lib_bookingReservations;
+  "lib/sessionLookup": typeof lib_sessionLookup;
+  "lib/sessionRescheduleLinks": typeof lib_sessionRescheduleLinks;
+  "lib/sessionReservations": typeof lib_sessionReservations;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;
   "lib/googleCalendarClient": typeof lib_googleCalendarClient;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
-  "lib/googleCalendarEvents": typeof lib_googleCalendarEvents;
+  "lib/sessionCalendarEvents": typeof lib_sessionCalendarEvents;
   "lib/googleDriveLinks": typeof lib_googleDriveLinks;
-  "lib/multiBookingScheduleEmail": typeof lib_multiBookingScheduleEmail;
+  "lib/packageScheduleEmail": typeof lib_packageScheduleEmail;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
   "lib/packageScheduling": typeof lib_packageScheduling;
   "lib/rateLimits": typeof lib_rateLimits;
@@ -92,7 +95,14 @@ declare const fullApi: ApiFromModules<{
   packageAdjustments: typeof packageAdjustments;
   packageScheduling: typeof packageScheduling;
   packageSchedulingCalendar: typeof packageSchedulingCalendar;
+  packages: typeof packages;
   reminders: typeof reminders;
+  sessionCheckout: typeof sessionCheckout;
+  sessionCompletion: typeof sessionCompletion;
+  sessionScheduling: typeof sessionScheduling;
+  sessionReminders: typeof sessionReminders;
+  sessionReschedule: typeof sessionReschedule;
+  sessions: typeof sessions;
   stripe: typeof stripe;
 }>;
 

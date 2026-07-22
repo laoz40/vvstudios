@@ -13,11 +13,11 @@ import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/Re
 import { formatBookingTimeRange } from "../../src/sites/studio/lib/bookingdatetime";
 import { env } from "../env";
 import {
-	formatBookingDateLong,
-	formatBookingDateShort,
-	formatBookingDateWithoutYear,
+	formatSessionDateLong,
+	formatSessionDateShort,
+	formatSessionDateWithoutYear,
 	formatCalendarEventDate
-} from "./bookingCalendarTime";
+} from "./sessionCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createMultiBookingInvoiceArtifacts,
@@ -42,13 +42,13 @@ interface SendBookingReminderEmailForBookingArgs {
 	time: string;
 	timeZone: string;
 	rescheduleUrl?: string;
-	isPackageBooking?: boolean;
+	isPackageSession?: boolean;
 	service: string;
 	duration: string;
 	addons: string[];
 }
 
-interface SendBookingHostDetailsEmailArgs {
+interface SendSessionHostDetailsEmailArgs {
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -93,7 +93,7 @@ interface SendPackageExpiryReminderEmailArgs {
 	remainingSessions: number;
 }
 
-interface SendBookingDeliverablesEmailArgs {
+interface SendSessionDeliverablesEmailArgs {
 	date: string;
 	driveLink: string;
 	editorNotes?: string;
@@ -102,7 +102,7 @@ interface SendBookingDeliverablesEmailArgs {
 	name: string;
 }
 
-interface SendMultiBookingScheduleEmailArgs {
+interface SendPackageScheduleEmailArgs {
 	addons: string[];
 	leadTimeMinutes: number;
 	clipsPackageQuantity?: string;
@@ -218,7 +218,7 @@ async function sendEmail(args: {
 	return ok({ sent: true });
 }
 
-export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEmailArgs) {
+export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
@@ -234,7 +234,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 			phone: args.phone,
 			accountName: args.accountName,
 			abn: args.abn,
-			date: formatBookingDateLong(args.date),
+			date: formatSessionDateLong(args.date),
 			time: formatBookingTimeRange(args.time, args.duration),
 			service: args.service,
 			duration: args.duration,
@@ -245,7 +245,7 @@ export async function sendBookingHostDetailsEmail(args: SendBookingHostDetailsEm
 
 	return await sendEmail({
 		to: hostEmails,
-		subject: `New Studio Booking - ${args.name} - ${formatBookingDateShort(args.date)}`,
+		subject: `New Studio Booking - ${args.name} - ${formatSessionDateShort(args.date)}`,
 		html
 	});
 }
@@ -319,7 +319,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 
 	const [invoiceEmailError] = await sendEmail({
 		to: [booking.email],
-		subject: `Your Studio Booking Invoice - ${formatBookingDateShort(booking.date)}`,
+		subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
 		attachments: [{ ...artifacts.pdf, content: pdfContent }]
 	});
@@ -333,7 +333,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [hostEmailError] = await sendBookingHostDetailsEmail({
+	const [hostEmailError] = await sendSessionHostDetailsEmail({
 		invoiceNumber: artifacts.data.invoice.number,
 		name: parsedBooking.name,
 		email: parsedBooking.email,
@@ -475,7 +475,7 @@ export async function sendMultiBookingInvoiceEmail(
 	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
 }
 
-export async function sendMultiBookingScheduleEmail({
+export async function sendPackageScheduleEmail({
 	addons,
 	clipsPackageQuantity,
 	duration,
@@ -487,7 +487,7 @@ export async function sendMultiBookingScheduleEmail({
 	leadTimeMinutes,
 	bookedAt,
 	scheduleUrl
-}: SendMultiBookingScheduleEmailArgs): Promise<
+}: SendPackageScheduleEmailArgs): Promise<
 	Result<{ sent: true }, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
 > {
 	const signoffName =
@@ -589,19 +589,19 @@ export async function sendFeedbackEmailForMessage(message: string) {
 	});
 }
 
-export async function sendBookingDeliverablesEmailForBooking({
+export async function sendSessionDeliverablesEmail({
 	date,
 	driveLink,
 	editorNotes,
 	email,
 	emailVariant,
 	name
-}: SendBookingDeliverablesEmailArgs) {
+}: SendSessionDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 	const html = await render(
 		createElement(DeliverablesEmail, {
-			bookingDate: formatBookingDateWithoutYear(date),
+			bookingDate: formatSessionDateWithoutYear(date),
 			driveLink,
 			editorNotes: editorNotes?.trim() || undefined,
 			emailVariant,
@@ -612,12 +612,12 @@ export async function sendBookingDeliverablesEmailForBooking({
 
 	return await sendEmail({
 		to: [email],
-		subject: `Your VV Studios Deliverables Folder - ${formatBookingDateShort(date)}`,
+		subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(date)}`,
 		html
 	});
 }
 
-export async function sendBookingReminderEmailForBooking({
+export async function sendSessionReminderEmail({
 	name,
 	email,
 	date,
@@ -627,7 +627,7 @@ export async function sendBookingReminderEmailForBooking({
 	service,
 	duration,
 	addons,
-	isPackageBooking,
+	isPackageSession,
 	rescheduleUrl
 }: SendBookingReminderEmailForBookingArgs) {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
@@ -644,14 +644,14 @@ export async function sendBookingReminderEmailForBooking({
 			name,
 			service,
 			rescheduleUrl,
-			isPackageBooking,
+			isPackageSession,
 			signoffName
 		})
 	);
 
 	return await sendEmail({
 		to: [email, ...getHostEmails()],
-		subject: `Reminder: Your Studio Session Tomorrow - ${formatBookingDateShort(date)}`,
+		subject: `Reminder: Your Studio Session Tomorrow - ${formatSessionDateShort(date)}`,
 		html
 	});
 }

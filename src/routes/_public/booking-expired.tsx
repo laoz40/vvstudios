@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_public/booking-expired")({
 function BookingExpiredPage() {
 	const { session_id: stripeSessionId } = Route.useSearch();
 	const booking = useQuery(
-		api.bookings.getBookingStatusByStripeSessionId,
+		api.sessions.getSessionStatusByStripeSessionId,
 		stripeSessionId ? { stripeSessionId } : "skip"
 	);
 	const supportReference = booking

@@ -1,19 +1,19 @@
 import type { Result } from "../../src/lib/result";
-import { createRescheduleUrlForBooking } from "../bookingReschedule";
+import { createRescheduleUrlForSession } from "../sessionReschedule";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import type { BookingAvailabilitySettings } from "./bookingCalendarTime";
+import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
 import type { getGoogleCalendarClient } from "./googleCalendarClient";
 import { sendBookingInvoiceEmailsForBooking } from "./email";
-import type { BookingReservation } from "./bookingReservations";
+import type { SessionReservation } from "./sessionReservations";
 
-type MarkBookingCompletedResult = Result<
+type MarkSessionCompletedResult = Result<
 	{ updated: true },
 	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
 >;
 
-async function removeOrphanedBookingCalendarEvent(
+async function removeOrphanedSessionCalendarEvent(
 	bookingId: Id<"bookings">,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
 	googleEventId: string
@@ -25,7 +25,7 @@ async function removeOrphanedBookingCalendarEvent(
 			sendUpdates: "all"
 		});
 	} catch (error) {
-		console.error("Orphaned booking Calendar event cleanup failed", {
+		console.error("Orphaned session Calendar event cleanup failed", {
 			bookingId,
 			googleEventId,
 			error
@@ -33,17 +33,17 @@ async function removeOrphanedBookingCalendarEvent(
 	}
 }
 
-export async function saveCompletedBooking(
+export async function saveCompletedSession(
 	ctx: ActionCtx,
-	booking: Doc<"bookings">,
+	session: Doc<"bookings">,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
-	reservation: BookingReservation,
+	reservation: SessionReservation,
 	googleEventId: string | undefined
 ) {
-	const [completionError]: MarkBookingCompletedResult = await ctx.runMutation(
-		internal.bookings.markBookingCompleted,
+	const [completionError]: MarkSessionCompletedResult = await ctx.runMutation(
+		internal.sessionCompletion.markSessionCompleted,
 		{
-			bookingId: booking._id,
+			bookingId: session._id,
 			googleEventId,
 			googleCalendarId: calendarClient.calendarId,
 			reservation
@@ -56,7 +56,7 @@ export async function saveCompletedBooking(
 
 	// This attempt no longer owns the reservation, so remove its untracked Calendar event.
 	if (googleEventId) {
-		await removeOrphanedBookingCalendarEvent(booking._id, calendarClient, googleEventId);
+		await removeOrphanedSessionCalendarEvent(session._id, calendarClient, googleEventId);
 	}
 
 	return false;
@@ -64,35 +64,35 @@ export async function saveCompletedBooking(
 
 export async function sendCompletedBookingInvoice(
 	ctx: ActionCtx,
-	booking: Doc<"bookings">,
-	settings: BookingAvailabilitySettings
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
 ) {
 	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
-	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	const [linkError, rescheduleUrl] = await createRescheduleUrlForSession(ctx, session);
 
 	if (linkError !== null) {
 		console.error("Booking invoice reschedule link create failed", {
-			bookingId: booking._id,
+			bookingId: session._id,
 			reason: linkError.reason
 		});
-		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
-			bookingId: booking._id
+		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailFailed, {
+			bookingId: session._id
 		});
 		return;
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(session, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl
 	});
 
 	if (emailError !== null) {
-		console.error("Booking invoice email failed during booking completion", {
-			bookingId: booking._id,
+		console.error("Booking invoice email failed during session completion", {
+			bookingId: session._id,
 			reason: emailError.reason
 		});
-		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailFailed, {
-			bookingId: booking._id
+		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailFailed, {
+			bookingId: session._id
 		});
 	}
 }

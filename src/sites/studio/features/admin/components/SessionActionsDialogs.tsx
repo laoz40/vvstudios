@@ -15,8 +15,8 @@ import { SessionEditDialog } from "#studio/features/admin/components/SessionEdit
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
-import type { BookingActionDetails } from "#studio/features/admin/lib/admin-bookings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -24,8 +24,8 @@ import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceA
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 
 type SessionActionsDialogsProps = {
-	booking: BookingRecord;
-	details: BookingActionDetails;
+	session: SessionRecord;
+	details: SessionActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
@@ -34,7 +34,7 @@ type SessionActionsDialogsProps = {
 };
 
 export function SessionActionsDialogs({
-	booking,
+	session,
 	details,
 	deleteAction,
 	deliverablesEmailAction,
@@ -51,7 +51,7 @@ export function SessionActionsDialogs({
 					<DialogHeader>
 						<DialogTitle>Generate reschedule link?</DialogTitle>
 						<DialogDescription>
-							This will create a new reschedule link for {booking.name}. Any existing active
+							This will create a new reschedule link for {session.name}. Any existing active
 							reschedule link they have will stop working.
 						</DialogDescription>
 					</DialogHeader>
@@ -99,8 +99,8 @@ export function SessionActionsDialogs({
 
 			<EmailInvoiceDialog
 				open={invoiceActions.isEmailInvoiceDialogOpen}
-				bookingName={booking.name}
-				bookingEmail={booking.email}
+				bookingName={session.name}
+				bookingEmail={session.email}
 				customInvoices={invoiceActions.customInvoices}
 				isSending={invoiceActions.isEmailingInvoice}
 				selectedCustomInvoiceId={invoiceActions.selectedEmailCustomInvoiceId}
@@ -113,9 +113,9 @@ export function SessionActionsDialogs({
 
 			<DeliverablesEmailDialog
 				open={deliverablesEmailAction.isDeliverablesEmailDialogOpen}
-				bookingEmail={booking.email}
-				bookingId={booking._id}
-				bookingName={booking.name}
+				bookingEmail={session.email}
+				bookingId={session._id}
+				bookingName={session.name}
 				driveLink={deliverablesEmailAction.deliverablesDriveLinkDraft}
 				editorNotes={deliverablesEmailAction.deliverablesEditorNotesDraft}
 				emailVariant={deliverablesEmailAction.deliverablesEmailVariantDraft}
@@ -135,24 +135,24 @@ export function SessionActionsDialogs({
 
 			<CustomInvoiceDialog
 				open={invoiceActions.isCustomInvoiceDialogOpen}
-				booking={booking}
+				session={session}
 				onOpenChange={invoiceActions.setIsCustomInvoiceDialogOpen}
 			/>
 
 			<SessionDeleteDialog
 				open={deleteAction.isDeleteDialogOpen}
-				bookingName={booking.name}
-				bookingId={details.customerBookingId}
-				sessionDate={booking.date}
-				sessionTime={booking.time}
+				bookingName={session.name}
+				bookingId={details.customerSessionId}
+				sessionDate={session.date}
+				sessionTime={session.time}
 				onOpenChange={deleteAction.setIsDeleteDialogOpen}
 				onConfirm={deleteAction.handleDeleteBooking}
 				isDeleting={deleteAction.isDeleting}
 			/>
 			<SessionEditDialog
 				open={editAction.isEditDialogOpen}
-				booking={booking}
-				bookingId={details.customerBookingId}
+				session={session}
+				bookingId={details.customerSessionId}
 				onOpenChange={editAction.setIsEditDialogOpen}
 				onSave={editAction.handleEditBooking}
 				isSaving={editAction.isSaving}
@@ -164,7 +164,7 @@ export function SessionActionsDialogs({
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
 				description={
 					editAction.pendingEditWarningState?.manualPriceWillBeUsed
-						? "Review what this save will affect before making the booking changes permanent. The manual remaining balance due will be used instead of the recalculated default."
+						? "Review what this save will affect before making the session changes permanent. The manual remaining balance due will be used instead of the recalculated default."
 						: undefined
 				}
 				onCancel={editAction.closeEditConfirmationDialog}
@@ -188,7 +188,7 @@ export function SessionActionsDialogs({
 						<DialogTitle>Google Calendar event repaired</DialogTitle>
 						<DialogDescription>
 							The old Google Calendar event was missing or deleted, so a replacement event was
-							created and linked to this booking.
+							created and linked to this session.
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>

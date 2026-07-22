@@ -4,23 +4,23 @@ import { calculateBookingInvoiceAmounts } from "../../src/sites/studio/features/
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import type { BookingReservation } from "./bookingReservations";
+import type { SessionReservation } from "./sessionReservations";
 import {
-	checkBookingMeetsAvailabilitySettings,
+	checkSessionMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
 	isTimeSlotAvailable,
-	type BookingAvailabilitySettings
-} from "./bookingCalendarTime";
+	type SessionAvailabilitySettings
+} from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
 import {
-	buildBookingCalendarEventPayload,
-	type BookingCalendarEventDetails,
-	type BookingCalendarTimingUpdateResult,
-	updateBookingCalendarEventTiming
-} from "./googleCalendarEvents";
+	buildSessionCalendarEventPayload,
+	type SessionCalendarEventDetails,
+	type SessionCalendarTimingUpdateResult,
+	updateSessionCalendarEventTiming
+} from "./sessionCalendarEvents";
 import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
 
-type BookingEditValues = Pick<
+type SessionEditValues = Pick<
 	Doc<"bookings">,
 	"accountName" | "addons" | "date" | "duration" | "email" | "name" | "phone" | "service" | "time"
 > & {
@@ -31,7 +31,7 @@ type BookingEditValues = Pick<
 	essentialEditQuantity?: string;
 };
 
-export function getBookingSessionStartAt(date: string, time: string, timeZone: string) {
+export function getSessionStartAt(date: string, time: string, timeZone: string) {
 	const [startError, startDate] = getUtcDateForZonedDateTime(date, time, timeZone);
 
 	if (startError !== null) {
@@ -41,9 +41,9 @@ export function getBookingSessionStartAt(date: string, time: string, timeZone: s
 	return ok(startDate.getTime());
 }
 
-type BookingEditField = keyof BookingEditValues;
+type SessionEditField = keyof SessionEditValues;
 
-const bookingEditFieldNames: Record<BookingEditField, null> = {
+const sessionEditFieldNames: Record<SessionEditField, null> = {
 	abn: null,
 	accountName: null,
 	addons: null,
@@ -60,14 +60,14 @@ const bookingEditFieldNames: Record<BookingEditField, null> = {
 	time: null
 };
 
-function isBookingEditField(field: string): field is BookingEditField {
-	return Object.hasOwn(bookingEditFieldNames, field);
+function isSessionEditField(field: string): field is SessionEditField {
+	return Object.hasOwn(sessionEditFieldNames, field);
 }
 
 // Timing field changes need availability checks.
-const bookingTimingFields: readonly BookingEditField[] = ["date", "time", "duration"];
+const sessionTimingFields: readonly SessionEditField[] = ["date", "time", "duration"];
 // Google event field changes will later update the calendar event.
-const bookingGoogleEventFields: readonly BookingEditField[] = [
+const sessionGoogleEventFields: readonly SessionEditField[] = [
 	"name",
 	"email",
 	"service",
@@ -80,28 +80,28 @@ const bookingGoogleEventFields: readonly BookingEditField[] = [
 	"notes"
 ];
 // Pricing field changes may recalculate the remaining balance.
-const bookingPricingFields: readonly BookingEditField[] = [
+const sessionPricingFields: readonly SessionEditField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
 	"clipsPackageQuantity"
 ];
 
-type BookingFieldChangeSummary = {
-	changedFields: BookingEditField[];
+type SessionFieldChangeSummary = {
+	changedFields: SessionEditField[];
 	timingFieldsChanged: boolean;
 	googleEventFieldsChanged: boolean;
 	pricingFieldsChanged: boolean;
 };
 
-// Compare one editable field from the saved booking with the admin's draft.
+// Compare one editable field from the saved session with the admin's draft.
 // Addons are arrays, so compare their contents instead of the array objects.
-function didBookingEditFieldChange(
-	booking: Doc<"bookings">,
-	values: BookingEditValues,
-	field: BookingEditField
+function didSessionEditFieldChange(
+	session: Doc<"bookings">,
+	values: SessionEditValues,
+	field: SessionEditField
 ) {
-	const currentValue = booking[field];
+	const currentValue = session[field];
 	const nextValue = values[field];
 
 	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
@@ -116,28 +116,28 @@ function didBookingEditFieldChange(
 }
 
 // Build summary of what changed
-export function getBookingEditFieldChanges(
-	booking: Doc<"bookings">,
-	values: BookingEditValues
-): BookingFieldChangeSummary {
-	const valueFields = Object.keys(values).filter(isBookingEditField);
+export function getSessionEditFieldChanges(
+	session: Doc<"bookings">,
+	values: SessionEditValues
+): SessionFieldChangeSummary {
+	const valueFields = Object.keys(values).filter(isSessionEditField);
 	const changedFields = valueFields.filter((field) =>
-		didBookingEditFieldChange(booking, values, field)
+		didSessionEditFieldChange(session, values, field)
 	);
 
 	return {
 		changedFields,
-		timingFieldsChanged: bookingTimingFields.some((field) => changedFields.includes(field)),
-		googleEventFieldsChanged: bookingGoogleEventFields.some((field) =>
+		timingFieldsChanged: sessionTimingFields.some((field) => changedFields.includes(field)),
+		googleEventFieldsChanged: sessionGoogleEventFields.some((field) =>
 			changedFields.includes(field)
 		),
-		pricingFieldsChanged: bookingPricingFields.some((field) => changedFields.includes(field))
+		pricingFieldsChanged: sessionPricingFields.some((field) => changedFields.includes(field))
 	};
 }
 
-export function calculateBookingRemainingBalanceAmount(
+export function calculateSessionRemainingBalanceAmount(
 	values: Pick<
-		BookingEditValues,
+		SessionEditValues,
 		"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
 	>
 ) {
@@ -149,31 +149,27 @@ export function calculateBookingRemainingBalanceAmount(
 	}).totalDueAmount;
 }
 
-export function isValidBookingRemainingBalanceAmount(amount?: number) {
+export function isValidSessionRemainingBalanceAmount(amount?: number) {
 	return amount === undefined || (Number.isFinite(amount) && amount >= 0);
 }
 
-export function buildAdminBookingUpdatePatch({
-	booking,
+export function buildAdminSessionUpdatePatch({
+	session,
 	timeZone,
 	values
 }: {
-	booking: Doc<"bookings">;
+	session: Doc<"bookings">;
 	timeZone: string;
-	values: BookingEditValues;
+	values: SessionEditValues;
 }) {
-	if (!isValidBookingRemainingBalanceAmount(values.remainingBalanceAmount)) {
+	if (!isValidSessionRemainingBalanceAmount(values.remainingBalanceAmount)) {
 		return err({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 
-	const changes = getBookingEditFieldChanges(booking, values);
+	const changes = getSessionEditFieldChanges(session, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
-	const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(
-		values.date,
-		values.time,
-		timeZone
-	);
+	const [sessionStartError, sessionStartAt] = getSessionStartAt(values.date, values.time, timeZone);
 
 	if (sessionStartError !== null) {
 		return err(sessionStartError);
@@ -189,7 +185,7 @@ export function buildAdminBookingUpdatePatch({
 		time: values.time,
 		duration: values.duration,
 		remainingBalanceAmount:
-			values.remainingBalanceAmount ?? calculateBookingRemainingBalanceAmount(values),
+			values.remainingBalanceAmount ?? calculateSessionRemainingBalanceAmount(values),
 		sessionStartAt,
 		service: values.service,
 		addons: values.addons,
@@ -208,56 +204,56 @@ export function buildAdminBookingUpdatePatch({
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
-interface VerifyBookingCanBeScheduledArgs {
-	booking: Doc<"bookings">;
+interface VerifySessionCanBeScheduledArgs {
+	session: Doc<"bookings">;
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
-	settings: BookingAvailabilitySettings;
+	settings: SessionAvailabilitySettings;
 	timeZone: string;
 }
 
-type BookingTimingValues = Pick<Doc<"bookings">, "date" | "duration" | "time">;
+type SessionTimingValues = Pick<Doc<"bookings">, "date" | "duration" | "time">;
 
-interface ExistingBookingTiming extends BookingTimingValues {
+interface ExistingSessionTiming extends SessionTimingValues {
 	googleCalendarId?: string;
 	googleEventId?: string;
 }
 
-interface ValidateBookingTimingEditArgs {
+interface ValidateSessionTimingEditArgs {
 	bypassAvailabilitySettings?: boolean;
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
-	existing: ExistingBookingTiming;
-	next: BookingTimingValues;
-	settings: BookingAvailabilitySettings;
+	existing: ExistingSessionTiming;
+	next: SessionTimingValues;
+	settings: SessionAvailabilitySettings;
 	timeZone: string;
 }
 
-export async function failBookingCompletion(
+export async function failSessionCompletion(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	failureCode: string,
-	reservation?: BookingReservation
+	reservation?: SessionReservation
 ) {
-	await ctx.runMutation(internal.bookings.markBookingCompletionFailed, {
+	await ctx.runMutation(internal.sessionCompletion.markSessionCompletionFailed, {
 		bookingId,
 		failureCode,
 		...(reservation ? { reservation } : {})
 	});
 }
 
-export async function verifyBookingCanBeScheduled({
-	booking,
+export async function verifySessionCanBeScheduled({
+	session,
 	calendar,
 	calendarIds,
 	settings,
 	timeZone
-}: VerifyBookingCanBeScheduledArgs) {
-	const [availabilityError] = checkBookingMeetsAvailabilitySettings({
-		date: booking.date,
-		duration: booking.duration,
+}: VerifySessionCanBeScheduledArgs) {
+	const [availabilityError] = checkSessionMeetsAvailabilitySettings({
+		date: session.date,
+		duration: session.duration,
 		settings,
-		time: booking.time,
+		time: session.time,
 		timeZone
 	});
 
@@ -265,19 +261,19 @@ export async function verifyBookingCanBeScheduled({
 		return false;
 	}
 
-	const busyWindows = await getBusyWindows({ calendar, calendarIds, date: booking.date, timeZone });
+	const busyWindows = await getBusyWindows({ calendar, calendarIds, date: session.date, timeZone });
 
 	return isTimeSlotAvailable({
 		busyWindows,
-		date: booking.date,
-		duration: booking.duration,
+		date: session.date,
+		duration: session.duration,
 		eventBufferMinutes: settings.eventBufferMinutes,
-		time: booking.time,
+		time: session.time,
 		timeZone
 	});
 }
 
-export type AdminBookingUpdateError =
+export type AdminSessionUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
@@ -289,7 +285,7 @@ export type AdminBookingUpdateError =
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
 	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" };
 
-export async function validateBookingTimingEdit({
+export async function validateSessionTimingEdit({
 	bypassAvailabilitySettings = false,
 	calendar,
 	calendarIds,
@@ -297,14 +293,14 @@ export async function validateBookingTimingEdit({
 	next,
 	settings,
 	timeZone
-}: ValidateBookingTimingEditArgs) {
-	if (!didBookingTimingChange(existing, next)) {
+}: ValidateSessionTimingEditArgs) {
+	if (!didSessionTimingChange(existing, next)) {
 		return ok({ valid: true });
 	}
 
 	try {
 		if (!bypassAvailabilitySettings) {
-			const [availabilityError] = checkBookingMeetsAvailabilitySettings({
+			const [availabilityError] = checkSessionMeetsAvailabilitySettings({
 				date: next.date,
 				duration: next.duration,
 				settings,
@@ -346,7 +342,7 @@ export async function validateBookingTimingEdit({
 	}
 }
 
-function didBookingTimingChange(existing: BookingTimingValues, next: BookingTimingValues) {
+function didSessionTimingChange(existing: SessionTimingValues, next: SessionTimingValues) {
 	return (
 		existing.date !== next.date ||
 		existing.time !== next.time ||
@@ -354,21 +350,21 @@ function didBookingTimingChange(existing: BookingTimingValues, next: BookingTimi
 	);
 }
 
-export type AdminBookingUpdateArgs = BookingEditValues & { bookingId: Id<"bookings"> };
+export type AdminSessionUpdateArgs = SessionEditValues & { bookingId: Id<"bookings"> };
 
-export type AdminBookingUpdateResult = {
+export type AdminSessionUpdateResult = {
 	ok: true;
 	googleOutcome?: "createdFromFailed" | "replacementCreated";
 };
 
-export interface AdminBookingGoogleCalendarClient {
+export interface AdminSessionGoogleCalendarClient {
 	calendar: GoogleCalendarLike;
 	calendarId: string;
 	calendarIds: string[];
 	timeZone: string;
 }
 
-function getAdminBookingEventDetails(args: AdminBookingUpdateArgs) {
+function getAdminSessionEventDetails(args: AdminSessionUpdateArgs) {
 	return {
 		addons: args.addons,
 		duration: args.duration,
@@ -378,24 +374,24 @@ function getAdminBookingEventDetails(args: AdminBookingUpdateArgs) {
 	};
 }
 
-async function promoteFailedBookingFromAdmin({
+async function promoteFailedSessionFromAdmin({
 	args,
-	booking,
+	session,
 	client,
 	ctx,
 	reservation,
 	settings
 }: {
-	args: AdminBookingUpdateArgs;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
-	reservation?: BookingReservation;
-	settings: BookingAvailabilitySettings;
-}): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
+	reservation?: SessionReservation;
+	settings: SessionAvailabilitySettings;
+}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
 	// Failed bookings are only promoted when the edited time is valid and available.
-	const canBeScheduled = await verifyBookingCanBeScheduled({
-		booking: { ...booking, date: args.date, duration: args.duration, time: args.time },
+	const canBeScheduled = await verifySessionCanBeScheduled({
+		session: { ...session, date: args.date, duration: args.duration, time: args.time },
 		calendar: client.calendar,
 		calendarIds: client.calendarIds,
 		settings,
@@ -409,9 +405,9 @@ async function promoteFailedBookingFromAdmin({
 	// Create the Calendar event before saving so Google failures block the Convex update.
 	let googleEventId: string | undefined;
 	try {
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
 			date: args.date,
-			details: getAdminBookingEventDetails(args),
+			details: getAdminSessionEventDetails(args),
 			time: args.time,
 			timeZone: client.timeZone
 		});
@@ -431,13 +427,16 @@ async function promoteFailedBookingFromAdmin({
 	}
 
 	// Promote to confirmed and clear the previous failure code in the save mutation.
-	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-		...args,
-		confirmBooking: true,
-		googleCalendarId: client.calendarId,
-		googleEventId,
-		...(reservation ? { reservation } : {})
-	});
+	const [saveError] = await ctx.runMutation(
+		internal.sessionScheduling.saveAdminSessionUpdateInternal,
+		{
+			...args,
+			confirmBooking: true,
+			googleCalendarId: client.calendarId,
+			googleEventId,
+			...(reservation ? { reservation } : {})
+		}
+	);
 
 	if (saveError !== null) {
 		return err(saveError);
@@ -446,9 +445,9 @@ async function promoteFailedBookingFromAdmin({
 	return ok({ ok: true, googleOutcome: "createdFromFailed" });
 }
 
-export async function updateBookingTimingWithGoogleCalendar({
+export async function updateSessionTimingWithGoogleCalendar({
 	bypassAvailabilitySettings = false,
-	booking,
+	session,
 	client,
 	date,
 	details,
@@ -458,33 +457,33 @@ export async function updateBookingTimingWithGoogleCalendar({
 	time
 }: {
 	bypassAvailabilitySettings?: boolean;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
 	date: string;
-	details: BookingCalendarEventDetails;
+	details: SessionCalendarEventDetails;
 	duration: string;
 	createMissingEvent?: boolean;
-	settings: BookingAvailabilitySettings;
+	settings: SessionAvailabilitySettings;
 	time: string;
 }): Promise<
-	Result<BookingCalendarTimingUpdateResult & { sessionStartAt: number }, AdminBookingUpdateError>
+	Result<SessionCalendarTimingUpdateResult & { sessionStartAt: number }, AdminSessionUpdateError>
 > {
-	const [sessionStartError, sessionStartAt] = getBookingSessionStartAt(date, time, client.timeZone);
+	const [sessionStartError, sessionStartAt] = getSessionStartAt(date, time, client.timeZone);
 
 	if (sessionStartError !== null) {
 		return err(sessionStartError);
 	}
 
-	const [timingError] = await validateBookingTimingEdit({
+	const [timingError] = await validateSessionTimingEdit({
 		bypassAvailabilitySettings,
 		calendar: client.calendar,
 		calendarIds: client.calendarIds,
 		existing: {
-			date: booking.date,
-			duration: booking.duration,
-			googleCalendarId: booking.googleCalendarId,
-			googleEventId: booking.googleEventId,
-			time: booking.time
+			date: session.date,
+			duration: session.duration,
+			googleCalendarId: session.googleCalendarId,
+			googleEventId: session.googleEventId,
+			time: session.time
 		},
 		next: { date, duration, time },
 		settings,
@@ -495,8 +494,8 @@ export async function updateBookingTimingWithGoogleCalendar({
 		return err(timingError);
 	}
 
-	const [calendarError, calendarUpdate] = await updateBookingCalendarEventTiming({
-		booking,
+	const [calendarError, calendarUpdate] = await updateSessionCalendarEventTiming({
+		session,
 		client,
 		date,
 		details,
@@ -511,27 +510,27 @@ export async function updateBookingTimingWithGoogleCalendar({
 	return ok({ ...calendarUpdate, sessionStartAt });
 }
 
-async function updateConfirmedBookingGoogleEventOrCreateReplacement({
+async function updateConfirmedSessionGoogleEventOrCreateReplacement({
 	args,
-	booking,
+	session,
 	client,
 	ctx,
 	reservation,
 	settings
 }: {
-	args: AdminBookingUpdateArgs;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
-	reservation?: BookingReservation;
-	settings: BookingAvailabilitySettings;
-}): Promise<Result<AdminBookingUpdateResult | null, AdminBookingUpdateError>> {
-	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
+	reservation?: SessionReservation;
+	settings: SessionAvailabilitySettings;
+}): Promise<Result<AdminSessionUpdateResult | null, AdminSessionUpdateError>> {
+	const [timingUpdateError, timingUpdate] = await updateSessionTimingWithGoogleCalendar({
 		bypassAvailabilitySettings: true,
-		booking,
+		session,
 		client,
 		date: args.date,
-		details: getAdminBookingEventDetails(args),
+		details: getAdminSessionEventDetails(args),
 		duration: args.duration,
 		settings,
 		time: args.time
@@ -545,12 +544,15 @@ async function updateConfirmedBookingGoogleEventOrCreateReplacement({
 		return ok(null);
 	}
 
-	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-		...args,
-		googleCalendarId: timingUpdate.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId,
-		...(reservation ? { reservation } : {})
-	});
+	const [saveError] = await ctx.runMutation(
+		internal.sessionScheduling.saveAdminSessionUpdateInternal,
+		{
+			...args,
+			googleCalendarId: timingUpdate.googleCalendarId,
+			googleEventId: timingUpdate.googleEventId,
+			...(reservation ? { reservation } : {})
+		}
+	);
 
 	if (saveError !== null) {
 		return err(saveError);
@@ -559,37 +561,33 @@ async function updateConfirmedBookingGoogleEventOrCreateReplacement({
 	return ok({ ok: true, googleOutcome: timingUpdate.outcome });
 }
 
-export async function updateBookingFromAdminWithGoogleCalendar({
+export async function updateSessionFromAdminWithGoogleCalendar({
 	args,
-	booking,
+	session,
 	client,
 	ctx,
 	settings
 }: {
-	args: AdminBookingUpdateArgs;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
-	settings: BookingAvailabilitySettings;
-}): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// Updates that do not move the booking do not need a slot reservation.
-	if (!didBookingTimingChange(booking, args)) {
-		return applyAdminBookingUpdate({ args, booking, client, ctx, settings });
+	settings: SessionAvailabilitySettings;
+}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
+	// Updates that do not move the session do not need a slot reservation.
+	if (!didSessionTimingChange(session, args)) {
+		return applyAdminSessionUpdate({ args, session, client, ctx, settings });
 	}
 
 	// Convert the requested date and time into one timestamp.
-	const [startError, sessionStartAt] = getBookingSessionStartAt(
-		args.date,
-		args.time,
-		client.timeZone
-	);
+	const [startError, sessionStartAt] = getSessionStartAt(args.date, args.time, client.timeZone);
 	if (startError !== null) return err(startError);
 
-	// Reserve the new time before updating the booking or Google Calendar.
+	// Reserve the new time before updating the session or Google Calendar.
 	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.bookings.reserveBookingReservation,
+		internal.sessionScheduling.reserveSessionReservation,
 		{
-			bookingId: booking._id,
+			bookingId: session._id,
 			duration: args.duration,
 			eventBufferMinutes: settings.eventBufferMinutes,
 			now: Date.now(),
@@ -602,9 +600,9 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 
 	// Pass the reservation through so the save can prove it owns the time.
 	const reservation = reservationResult.reservation;
-	const [updateError, updateResult] = await applyAdminBookingUpdate({
+	const [updateError, updateResult] = await applyAdminSessionUpdate({
 		args,
-		booking,
+		session,
 		client,
 		ctx,
 		reservation,
@@ -612,8 +610,8 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 	});
 	// Release the reservation if any part of the update fails.
 	if (updateError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingReservation, {
-			bookingId: booking._id,
+		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+			bookingId: session._id,
 			reservation
 		});
 		return err(updateError);
@@ -623,38 +621,38 @@ export async function updateBookingFromAdminWithGoogleCalendar({
 	return ok(updateResult);
 }
 
-async function applyAdminBookingUpdate({
+async function applyAdminSessionUpdate({
 	args,
-	booking,
+	session,
 	client,
 	ctx,
 	reservation,
 	settings
 }: {
-	args: AdminBookingUpdateArgs;
-	booking: Doc<"bookings">;
-	client: AdminBookingGoogleCalendarClient;
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
-	reservation?: BookingReservation;
-	settings: BookingAvailabilitySettings;
-}): Promise<Result<AdminBookingUpdateResult, AdminBookingUpdateError>> {
-	// Failed checkouts have no Calendar event, so an admin edit creates one and confirms the booking.
-	if (booking.status === "failed") {
-		return promoteFailedBookingFromAdmin({ args, booking, client, ctx, reservation, settings });
+	reservation?: SessionReservation;
+	settings: SessionAvailabilitySettings;
+}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
+	// Failed checkouts have no Calendar event, so an admin edit creates one and confirms the session.
+	if (session.status === "failed") {
+		return promoteFailedSessionFromAdmin({ args, session, client, ctx, reservation, settings });
 	}
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
-	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
-		const [timingError] = await validateBookingTimingEdit({
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
+		const [timingError] = await validateSessionTimingEdit({
 			bypassAvailabilitySettings: true,
 			calendar: client.calendar,
 			calendarIds: client.calendarIds,
 			existing: {
-				date: booking.date,
-				duration: booking.duration,
-				googleCalendarId: booking.googleCalendarId,
-				googleEventId: booking.googleEventId,
-				time: booking.time
+				date: session.date,
+				duration: session.duration,
+				googleCalendarId: session.googleCalendarId,
+				googleEventId: session.googleEventId,
+				time: session.time
 			},
 			next: { date: args.date, duration: args.duration, time: args.time },
 			settings,
@@ -665,10 +663,10 @@ async function applyAdminBookingUpdate({
 			return err(timingError);
 		}
 
-		const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-			...args,
-			...(reservation ? { reservation } : {})
-		});
+		const [saveError] = await ctx.runMutation(
+			internal.sessionScheduling.saveAdminSessionUpdateInternal,
+			{ ...args, ...(reservation ? { reservation } : {}) }
+		);
 
 		if (saveError !== null) {
 			return err(saveError);
@@ -679,9 +677,9 @@ async function applyAdminBookingUpdate({
 
 	// Update the linked Google event. If it is missing/cancelled, this creates and saves a replacement.
 	const [replacementError, replacementOutcome] =
-		await updateConfirmedBookingGoogleEventOrCreateReplacement({
+		await updateConfirmedSessionGoogleEventOrCreateReplacement({
 			args,
-			booking,
+			session,
 			client,
 			ctx,
 			reservation,
@@ -695,10 +693,10 @@ async function applyAdminBookingUpdate({
 		return ok(replacementOutcome);
 	}
 
-	const [saveError] = await ctx.runMutation(internal.bookings.saveAdminBookingUpdateInternal, {
-		...args,
-		...(reservation ? { reservation } : {})
-	});
+	const [saveError] = await ctx.runMutation(
+		internal.sessionScheduling.saveAdminSessionUpdateInternal,
+		{ ...args, ...(reservation ? { reservation } : {}) }
+	);
 
 	if (saveError !== null) {
 		return err(saveError);

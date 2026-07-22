@@ -1,9 +1,9 @@
 import type {
-	CreatePackageBookingResult,
+	CreatePackageSessionResult,
 	GetPackageByTokenResult,
 	SetDefaultSpaceResult,
-	ReschedulePackageBookingResult,
-	UnschedulePackageBookingResult
+	ReschedulePackageSessionResult,
+	UnschedulePackageSessionResult
 } from "#convex/packageScheduling";
 import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import type { UnexpectedError } from "#/lib/result";
@@ -12,11 +12,11 @@ type PackageLookupError = NonNullable<GetPackageByTokenResult[0]>;
 type PackageBusyWindowsError = NonNullable<GetPackageBusyWindowsResult[0]> | UnexpectedError;
 type SaveDefaultSpaceError = NonNullable<SetDefaultSpaceResult[0]> | UnexpectedError;
 type SavePackageBookingError =
-	| NonNullable<CreatePackageBookingResult[0]>
-	| NonNullable<ReschedulePackageBookingResult[0]>
+	| NonNullable<CreatePackageSessionResult[0]>
+	| NonNullable<ReschedulePackageSessionResult[0]>
 	| UnexpectedError;
-type UnschedulePackageBookingError =
-	| NonNullable<UnschedulePackageBookingResult[0]>
+type UnschedulePackageSessionError =
+	| NonNullable<UnschedulePackageSessionResult[0]>
 	| UnexpectedError;
 
 export function getPackageLinkInvalidMessage(error: PackageLookupError) {
@@ -123,7 +123,7 @@ export function getSavePackageBookingToastMessage(
 }
 
 export function getUnschedulePackageBookingToastMessage(
-	error: UnschedulePackageBookingError,
+	error: UnschedulePackageSessionError,
 	noticeWindowLabel: string
 ) {
 	switch (error.reason) {

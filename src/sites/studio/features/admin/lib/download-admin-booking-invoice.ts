@@ -1,9 +1,9 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { err, ok, type Result } from "#/lib/result";
 import {
-	toAdminBookingAddons,
-	toAdminBookingDuration
-} from "#studio/features/admin/lib/admin-bookings";
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import {
 	bookingSchema,
 	type BookingFormValues
@@ -11,7 +11,7 @@ import {
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 export type DownloadAdminBookingInvoiceInput = {
-	booking: Doc<"bookings">;
+	session: Doc<"bookings">;
 	addons?: BookingFormValues["addons"];
 	createdAt?: number;
 	essentialEditQuantity?: string;
@@ -31,24 +31,24 @@ export type DownloadAdminBookingInvoiceResult = Result<
 >;
 
 function getInvoiceFormValues(input: DownloadAdminBookingInvoiceInput) {
-	const { booking } = input;
+	const { session } = input;
 
 	return {
-		name: booking.name,
-		phone: booking.phone,
-		accountName: booking.accountName,
-		abn: booking.abn,
-		email: booking.email,
+		name: session.name,
+		phone: session.phone,
+		accountName: session.accountName,
+		abn: session.abn,
+		email: session.email,
 		bookingMode: "single",
 		packageSize: "",
-		date: booking.date,
-		time: booking.time,
-		duration: input.duration ?? toAdminBookingDuration(booking.duration),
-		service: booking.service,
-		addons: input.addons ?? toAdminBookingAddons(booking.addons),
-		essentialEditQuantity: input.essentialEditQuantity ?? booking.essentialEditQuantity ?? "",
-		clipsPackageQuantity: input.clipsPackageQuantity ?? booking.clipsPackageQuantity ?? "",
-		notes: booking.notes ?? ""
+		date: session.date,
+		time: session.time,
+		duration: input.duration ?? toAdminSessionDuration(session.duration),
+		service: session.service,
+		addons: input.addons ?? toAdminSessionAddons(session.addons),
+		essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity ?? "",
+		clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity ?? "",
+		notes: session.notes ?? ""
 	};
 }
 
@@ -66,7 +66,7 @@ function resolveInvoiceService(
 export async function downloadAdminBookingInvoice(
 	input: DownloadAdminBookingInvoiceInput
 ): Promise<DownloadAdminBookingInvoiceResult> {
-	const { booking } = input;
+	const { session } = input;
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
 	const parsedBooking = bookingSchema.safeParse(getInvoiceFormValues(input));
@@ -79,7 +79,7 @@ export async function downloadAdminBookingInvoice(
 	}
 
 	await downloadBookingInvoicePdf({
-		bookingId: booking._id,
+		bookingId: session._id,
 		name: parsedBooking.data.name,
 		phone: parsedBooking.data.phone,
 		accountName: parsedBooking.data.accountName,

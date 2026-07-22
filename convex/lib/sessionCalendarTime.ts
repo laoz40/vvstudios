@@ -32,14 +32,14 @@ interface TimeParts {
 	minutes: number;
 }
 
-export type BookingAvailabilitySettings = {
+export type SessionAvailabilitySettings = {
 	eventBufferMinutes: number;
 	leadTimeMinutes: number;
 	maxDaysAhead: number;
 	weekSchedule: Array<{ endTime: string; startTime: string }>;
 };
 
-export type BookingAvailabilityValidationError = {
+export type SessionAvailabilityValidationError = {
 	reason:
 		| "BOOKING_INVALID_DATE"
 		| "BOOKING_INVALID_DURATION"
@@ -50,7 +50,7 @@ export type BookingAvailabilityValidationError = {
 		| "BOOKING_TIME_UNAVAILABLE";
 };
 
-type BookingTimeParseError =
+type SessionTimeParseError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_DURATION" }
 	| { reason: "BOOKING_INVALID_TIME" };
@@ -103,7 +103,7 @@ export function getUtcDateForZonedDateTime(
 	timeZone: string
 ): Result<
 	Date,
-	| Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
+	| Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 	| { reason: "BOOKING_INVALID_TIME" }
 > {
 	const [dateError, dateParts] = parseDate(date);
@@ -139,7 +139,7 @@ export function buildEventWindow(
 	time: string,
 	duration: string,
 	timeZone: string
-): Result<{ startDateTime: string; endDateTime: string }, BookingTimeParseError> {
+): Result<{ startDateTime: string; endDateTime: string }, SessionTimeParseError> {
 	const [durationError, durationMinutes] = parseDurationMinutes(duration);
 
 	if (durationError !== null) {
@@ -188,7 +188,7 @@ interface IsTimeSlotAvailableArgs {
 	timeZone: string;
 }
 
-export function doBookingWindowsOverlap({
+export function doSessionWindowsOverlap({
 	firstDuration,
 	firstStartAt,
 	secondDuration,
@@ -273,7 +273,7 @@ function addDays(date: Date, days: number) {
 	return result;
 }
 
-export function checkBookingMeetsAvailabilitySettings({
+export function checkSessionMeetsAvailabilitySettings({
 	date,
 	duration,
 	latestBookableDate,
@@ -286,10 +286,10 @@ export function checkBookingMeetsAvailabilitySettings({
 	duration: string;
 	latestBookableDate?: Date;
 	now?: number;
-	settings: BookingAvailabilitySettings;
+	settings: SessionAvailabilitySettings;
 	time: string;
 	timeZone: string;
-}): Result<null, BookingAvailabilityValidationError> {
+}): Result<null, SessionAvailabilityValidationError> {
 	const [dateError, bookingDate] = parseDateValue(date);
 
 	if (dateError !== null) {
@@ -332,8 +332,8 @@ function validateBookingDateRange(
 	bookingDate: Date,
 	latestBookableDate: Date | undefined,
 	now: number,
-	settings: BookingAvailabilitySettings
-): Result<{ endTime: string; startTime: string }, BookingAvailabilityValidationError> {
+	settings: SessionAvailabilitySettings
+): Result<{ endTime: string; startTime: string }, SessionAvailabilityValidationError> {
 	const today = startOfToday(new Date(now));
 	const lastBookableDate = latestBookableDate ?? addDays(today, settings.maxDaysAhead);
 
@@ -359,7 +359,7 @@ function validateBookingDaySchedule(
 	duration: string,
 	time: string,
 	daySchedule: { endTime: string; startTime: string }
-): Result<null, BookingAvailabilityValidationError> {
+): Result<null, SessionAvailabilityValidationError> {
 	const [durationError, durationMinutes] = parseDurationMinutes(duration);
 
 	if (durationError !== null) {
@@ -396,7 +396,7 @@ export function getDateAvailabilityRange(
 	timeZone: string
 ): Result<
 	{ timeMax: string; timeMin: string },
-	Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
+	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
 	const [timeMaxError, timeMaxDate] = getUtcDateForZonedDateTime(
 		getNextDate(endDate),
@@ -420,7 +420,7 @@ export function getDateAvailabilityRange(
 export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string
-): Result<BusyDayWindow[], Exclude<BookingTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
+): Result<BusyDayWindow[], Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
 	const dayBuckets = new Map<string, BusyDayWindow>();
 
 	for (const window of busyWindows) {
@@ -588,7 +588,7 @@ export function formatCalendarEventTime(dateTime: string, timeZone: string) {
 	}).format(new Date(dateTime));
 }
 
-export function formatBookingDateLong(date: string) {
+export function formatSessionDateLong(date: string) {
 	const [year, month, day] = date.split("-").map(Number);
 
 	if (!year || !month || !day) {
@@ -603,7 +603,7 @@ export function formatBookingDateLong(date: string) {
 	}).format(new Date(year, month - 1, day));
 }
 
-export function formatBookingDateWithoutYear(date: string) {
+export function formatSessionDateWithoutYear(date: string) {
 	const [, month, day] = date.split("-").map(Number);
 
 	if (!month || !day) {
@@ -635,7 +635,7 @@ function getOrdinalSuffix(day: number) {
 	}
 }
 
-export function formatBookingDateShort(date: string) {
+export function formatSessionDateShort(date: string) {
 	const [year, month, day] = date.split("-");
 
 	if (!year || !month || !day) {

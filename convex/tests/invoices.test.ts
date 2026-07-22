@@ -41,8 +41,8 @@ vi.mock("../lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../bookingReschedule", () => ({
-	createRescheduleUrlForBooking: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
+vi.mock("../sessionReschedule", () => ({
+	createRescheduleUrlForSession: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
 }));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");

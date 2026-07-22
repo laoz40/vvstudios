@@ -3,45 +3,45 @@ import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
-import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
+import type { UpdateSessionFromAdminResult } from "#convex/googleCalendar";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
-import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
-type BookingUpdateError = NonNullable<UpdateBookingFromAdminResult[0]> | UnexpectedError;
-type ParsedBookingValues = ReturnType<typeof bookingSchema.parse>;
+type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
+type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
 type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
-const bookingUpdateErrorMessageMap = {
+const sessionUpdateErrorMessageMap = {
 	NOT_AUTHENTICATED: "You are not signed in.",
-	NOT_AUTHORIZED: "You do not have access to update bookings.",
-	BOOKING_NOT_FOUND: "That booking no longer exists.",
-	BOOKING_INVALID_DATE: "Enter a valid booking date.",
-	BOOKING_INVALID_TIME: "Enter a valid booking time.",
-	BOOKING_INVALID_INPUT: "Check the booking details and balance, then try again.",
+	NOT_AUTHORIZED: "You do not have access to update sessions.",
+	BOOKING_NOT_FOUND: "That session no longer exists.",
+	BOOKING_INVALID_DATE: "Enter a valid session date.",
+	BOOKING_INVALID_TIME: "Enter a valid session time.",
+	BOOKING_INVALID_INPUT: "Check the session details and balance, then try again.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",
 	GOOGLE_CALENDAR_AUTH_FAILED: "Google Calendar authentication failed. Booking was not updated.",
 	GOOGLE_CALENDAR_CREATE_FAILED: "Google Calendar failed to create the event. Please try again.",
 	GOOGLE_CALENDAR_UPDATE_FAILED: "Google Calendar failed to update the event. Please try again.",
 	GOOGLE_CALENDAR_RATE_LIMITED: "Google Calendar is busy right now. Wait a minute, then try again.",
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
-		"Something went wrong while updating the booking. Please try again.",
-	UNEXPECTED_ERROR: "Something went wrong while updating the booking. Please try again."
-} satisfies Record<BookingUpdateError["reason"], string>;
+		"Something went wrong while updating the session. Please try again.",
+	UNEXPECTED_ERROR: "Something went wrong while updating the session. Please try again."
+} satisfies Record<SessionUpdateError["reason"], string>;
 
-function showBookingUpdateError(error: BookingUpdateError) {
-	toast.error(bookingUpdateErrorMessageMap[error.reason]);
+function showSessionUpdateError(error: SessionUpdateError) {
+	toast.error(sessionUpdateErrorMessageMap[error.reason]);
 }
 
-function buildBookingUpdateInput(
-	booking: BookingRecord,
-	parsedValues: ParsedBookingValues,
+function buildSessionUpdateInput(
+	session: SessionRecord,
+	parsedValues: ParsedSessionValues,
 	remainingBalanceAmountResult: RemainingBalanceResult
 ) {
 	return {
-		bookingId: booking._id,
+		bookingId: session._id,
 		name: parsedValues.name,
 		phone: parsedValues.phone,
 		accountName: parsedValues.accountName,
@@ -65,18 +65,18 @@ function buildBookingUpdateInput(
 	};
 }
 
-export function useEditAction(booking: BookingRecord) {
-	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
+export function useEditAction(session: SessionRecord) {
+	const updateSession = useAction(api.googleCalendar.updateSessionFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getBookingEditWarningState
+		typeof getSessionEditWarningState
 	> | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 
-	async function saveEditBooking(
+	async function saveSessionEdit(
 		values: SessionEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
@@ -99,7 +99,7 @@ export function useEditAction(booking: BookingRecord) {
 		});
 
 		if (!parsedValues.success) {
-			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the session details.");
 			return;
 		}
 
@@ -114,7 +114,7 @@ export function useEditAction(booking: BookingRecord) {
 		}
 
 		if (!options?.skipConfirmation) {
-			const warningState = getBookingEditWarningState(booking, values);
+			const warningState = getSessionEditWarningState(session, values);
 
 			if (warningState.requiresConfirmation) {
 				setPendingEditDraft(values);
@@ -126,17 +126,17 @@ export function useEditAction(booking: BookingRecord) {
 
 		setIsSaving(true);
 
-		const updateInput = buildBookingUpdateInput(
-			booking,
+		const updateInput = buildSessionUpdateInput(
+			session,
 			parsedValues.data,
 			remainingBalanceAmountResult
 		);
-		const [error, result] = await tryCatch<UpdateBookingFromAdminResult>(
-			updateBooking(updateInput)
+		const [error, result] = await tryCatch<UpdateSessionFromAdminResult>(
+			updateSession(updateInput)
 		);
 
 		if (error !== null) {
-			showBookingUpdateError(error);
+			showSessionUpdateError(error);
 			setIsSaving(false);
 			return;
 		}
@@ -155,7 +155,7 @@ export function useEditAction(booking: BookingRecord) {
 	}
 
 	async function handleEditBooking(values: SessionEditDraft) {
-		await saveEditBooking(values);
+		await saveSessionEdit(values);
 	}
 
 	function closeEditConfirmationDialog() {
@@ -172,7 +172,7 @@ export function useEditAction(booking: BookingRecord) {
 
 		const draftToSave = pendingEditDraft;
 		setIsEditConfirmationDialogOpen(false);
-		await saveEditBooking(draftToSave, { skipConfirmation: true });
+		await saveSessionEdit(draftToSave, { skipConfirmation: true });
 		setPendingEditWarningState(null);
 		setPendingEditDraft(null);
 	}

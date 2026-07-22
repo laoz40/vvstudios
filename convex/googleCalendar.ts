@@ -11,51 +11,51 @@ import {
 	getLastBookableDate,
 	startOfToday
 } from "../src/sites/studio/lib/bookingdatetime";
-import { createRescheduleUrlForBooking } from "./bookingReschedule";
+import { createRescheduleUrlForSession } from "./sessionReschedule";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getAdminIdentity } from "./lib/auth";
-import { getBookingFromQuery } from "./lib/bookingLookup";
+import { getSessionFromQuery } from "./lib/sessionLookup";
 import {
 	buildEventWindow,
-	type BookingAvailabilitySettings,
+	type SessionAvailabilitySettings,
 	type BusyDayWindow,
-	checkBookingMeetsAvailabilitySettings,
+	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
 	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
 	groupBusyWindowsByDay
-} from "./lib/bookingCalendarTime";
+} from "./lib/sessionCalendarTime";
 import {
 	sendBookingInvoiceEmailsForBooking,
-	sendBookingReminderEmailForBooking as sendReminderEmailForBookingDetails
+	sendSessionReminderEmail as sendReminderEmailForBookingDetails
 } from "./lib/email";
 import {
-	failBookingCompletion,
-	getBookingSessionStartAt,
-	isValidBookingRemainingBalanceAmount,
-	type AdminBookingUpdateArgs,
-	type AdminBookingUpdateError,
-	type AdminBookingUpdateResult,
-	validateBookingTimingEdit,
-	verifyBookingCanBeScheduled,
-	updateBookingFromAdminWithGoogleCalendar,
-	updateBookingTimingWithGoogleCalendar
-} from "./lib/bookingAdminEdit";
+	failSessionCompletion,
+	getSessionStartAt,
+	isValidSessionRemainingBalanceAmount,
+	type AdminSessionUpdateArgs,
+	type AdminSessionUpdateError,
+	type AdminSessionUpdateResult,
+	validateSessionTimingEdit,
+	verifySessionCanBeScheduled,
+	updateSessionFromAdminWithGoogleCalendar,
+	updateSessionTimingWithGoogleCalendar
+} from "./lib/sessionAdminEdit";
 import {
-	buildBookingCalendarEventPayload,
-	deleteBookingCalendarEvent
-} from "./lib/googleCalendarEvents";
+	buildSessionCalendarEventPayload,
+	deleteSessionCalendarEvent
+} from "./lib/sessionCalendarEvents";
 import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
 import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import {
 	checkBookingSubmitRateLimit,
 	checkGoogleCalendarAvailabilityRateLimit
 } from "./lib/rateLimits";
-import type { RescheduleLinkLookupError } from "./bookingReschedule";
-import type { MarkBookingCalendarEventDeletedResult } from "./bookings";
-import type { BookingReservation } from "./lib/bookingReservations";
-import { saveCompletedBooking, sendCompletedBookingInvoice } from "./lib/bookingCompletion";
-import { finishRescheduledBooking } from "./lib/bookingRescheduleLinks";
+import type { RescheduleLinkLookupError } from "./sessionReschedule";
+import type { MarkSessionCalendarEventDeletedResult } from "./sessionCompletion";
+import type { SessionReservation } from "./lib/sessionReservations";
+import { saveCompletedSession, sendCompletedBookingInvoice } from "./lib/sessionCompletion";
+import { finishRescheduledSession } from "./lib/sessionRescheduleLinks";
 
 function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
@@ -67,7 +67,7 @@ type SendBookingInvoiceForBookingArgs = {
 };
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
-export type DeleteBookingFromAdminResult = Result<
+export type DeleteSessionFromAdminResult = Result<
 	{ deleted: boolean },
 	{
 		reason:
@@ -87,7 +87,7 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 	settings
 }: {
 	ignoredEvent?: IgnoredBusyEvent;
-	settings: BookingAvailabilitySettings;
+	settings: SessionAvailabilitySettings;
 }): Promise<
 	Result<
 		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
@@ -122,12 +122,12 @@ async function getBookableRangeBusyWindowsFromGoogleCalendar({
 	return ok({ busyWindowsByMonth: groupBusyDaysByMonth(busyDays), timeZone });
 }
 
-async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking: Doc<"bookings">) {
+async function sendBookingReminderEmailForSessionRecord(ctx: ActionCtx, session: Doc<"bookings">) {
 	const { timeZone } = getGoogleCalendarClient();
 	const [windowError, eventWindow] = buildEventWindow(
-		booking.date,
-		booking.time,
-		booking.duration,
+		session.date,
+		session.time,
+		session.duration,
 		timeZone
 	);
 
@@ -139,34 +139,34 @@ async function sendBookingReminderEmailForBookingRecord(ctx: ActionCtx, booking:
 
 	let rescheduleUrl: string | undefined;
 
-	if (booking.multiBookingPackageId === undefined) {
-		const [linkError, bookingRescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	if (session.multiBookingPackageId === undefined) {
+		const [linkError, sessionRescheduleUrl] = await createRescheduleUrlForSession(ctx, session);
 
 		if (linkError !== null) {
 			return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
 		}
 
-		rescheduleUrl = bookingRescheduleUrl;
+		rescheduleUrl = sessionRescheduleUrl;
 	}
 
 	const [emailError] = await sendReminderEmailForBookingDetails({
-		name: booking.name,
-		email: booking.email,
-		date: booking.date,
+		name: session.name,
+		email: session.email,
+		date: session.date,
 		startDateTime,
-		time: booking.time,
+		time: session.time,
 		timeZone,
-		service: booking.service,
-		duration: booking.duration,
-		addons: booking.addons,
+		service: session.service,
+		duration: session.duration,
+		addons: session.addons,
 		rescheduleUrl,
-		isPackageBooking: booking.multiBookingPackageId !== undefined
+		isPackageSession: session.multiBookingPackageId !== undefined
 	});
 
 	if (emailError !== null) {
 		console.error("Booking reminder email send failed", {
-			bookingId: booking._id,
-			bookingEmail: booking.email,
+			bookingId: session._id,
+			bookingEmail: session.email,
 			reason: emailError.reason
 		});
 		return err({ reason: "RESEND_SEND_FAILED" });
@@ -252,7 +252,7 @@ export type GetAvailableRescheduleTimesError =
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" };
 
 type RescheduleLinkAndBookingLookupResult = Result<
-	{ booking: Doc<"bookings">; link: Doc<"bookingRescheduleLinks"> },
+	{ session: Doc<"bookings">; link: Doc<"bookingRescheduleLinks"> },
 	RescheduleLinkLookupError
 >;
 
@@ -274,7 +274,7 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 	>
 > {
 	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
-		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -292,8 +292,8 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
 		const [availabilityError, availability] = await getBookableRangeBusyWindowsFromGoogleCalendar({
 			ignoredEvent: {
-				calendarId: result.booking.googleCalendarId,
-				eventId: result.booking.googleEventId
+				calendarId: result.session.googleCalendarId,
+				eventId: result.session.googleEventId
 			},
 			settings
 		});
@@ -324,7 +324,7 @@ async function getAvailableRescheduleTimesHandler(
 	args: GetAvailableRescheduleTimesArgs
 ): Promise<Result<GetAvailableRescheduleTimesSuccess, GetAvailableRescheduleTimesError>> {
 	const [lookupError, result] = await ctx.runQuery(
-		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 		{ now: Date.now(), token: args.token }
 	);
 
@@ -340,23 +340,23 @@ async function getAvailableRescheduleTimesHandler(
 			calendarIds,
 			date: args.date,
 			ignoredEvent: {
-				calendarId: result.booking.googleCalendarId,
-				eventId: result.booking.googleEventId
+				calendarId: result.session.googleCalendarId,
+				eventId: result.session.googleEventId
 			},
 			timeZone
 		});
 		const calendarAvailableTimes = getAvailableTimeOptions({
 			busyWindows,
 			date: args.date,
-			duration: result.booking.duration,
+			duration: result.session.duration,
 			eventBufferMinutes: settings.eventBufferMinutes,
 			timeZone
 		});
 		const now = Date.now();
 		const times = calendarAvailableTimes.filter((time) => {
-			const [availabilityError] = checkBookingMeetsAvailabilitySettings({
+			const [availabilityError] = checkSessionMeetsAvailabilitySettings({
 				date: args.date,
-				duration: result.booking.duration,
+				duration: result.session.duration,
 				now,
 				settings,
 				time,
@@ -382,28 +382,28 @@ export type GetAvailableRescheduleTimesResult = Awaited<
 	ReturnType<typeof getAvailableRescheduleTimesHandler>
 >;
 
-type RescheduleBookingArgs = { date: string; time: string; token: string };
+type RescheduleSessionArgs = { date: string; time: string; token: string };
 
-export const rescheduleBooking = action({
+export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: (ctx, args) => rescheduleBookingHandler(ctx, args)
+	handler: (ctx, args) => rescheduleSessionHandler(ctx, args)
 });
 
-async function rescheduleBookingHandler(
+async function rescheduleSessionHandler(
 	ctx: ActionCtx,
-	args: RescheduleBookingArgs
+	args: RescheduleSessionArgs
 ): Promise<
 	Result<
 		{ bookingId: Id<"bookings">; warning?: "INVOICE_SEND_FAILED" },
 		| RescheduleLinkLookupError
-		| AdminBookingUpdateError
+		| AdminSessionUpdateError
 		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 	>
 > {
-	// Check that the reschedule link still exists, has not expired, and belongs to a booking.
+	// Check that the reschedule link still exists, has not expired, and belongs to a session.
 	const now = Date.now();
 	const [lookupError, result]: RescheduleLinkAndBookingLookupResult = await ctx.runQuery(
-		internal.bookingReschedule.getValidRescheduleLinkAndBookingInternal,
+		internal.sessionReschedule.getValidRescheduleLinkAndSessionInternal,
 		{ now, token: args.token }
 	);
 
@@ -413,30 +413,30 @@ async function rescheduleBookingHandler(
 
 	const [rateLimitError] = await checkBookingSubmitRateLimit(
 		ctx,
-		getBookingSubmitRateLimitKey(result.booking.email)
+		getBookingSubmitRateLimitKey(result.session.email)
 	);
 
 	if (rateLimitError !== null) {
 		return err(rateLimitError);
 	}
 
-	// Load the booking, Google Calendar client, and booking settings needed to move the event.
-	const { booking, link } = result;
+	// Load the session, Google Calendar client, and session settings needed to move the event.
+	const { session, link } = result;
 	const calendarClient = getGoogleCalendarClient();
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	// Check the new time before temporarily locking the reschedule link.
-	const [timingValidationError] = await validateBookingTimingEdit({
+	const [timingValidationError] = await validateSessionTimingEdit({
 		calendar: calendarClient.calendar,
 		calendarIds: calendarClient.calendarIds,
 		existing: {
-			date: booking.date,
-			duration: booking.duration,
-			googleCalendarId: booking.googleCalendarId,
-			googleEventId: booking.googleEventId,
-			time: booking.time
+			date: session.date,
+			duration: session.duration,
+			googleCalendarId: session.googleCalendarId,
+			googleEventId: session.googleEventId,
+			time: session.time
 		},
-		next: { date: args.date, duration: booking.duration, time: args.time },
+		next: { date: args.date, duration: session.duration, time: args.time },
 		settings,
 		timeZone: calendarClient.timeZone
 	});
@@ -445,9 +445,9 @@ async function rescheduleBookingHandler(
 		return err(timingValidationError);
 	}
 
-	// Lock the link so two requests cannot reschedule the booking at the same time.
+	// Lock the link so two requests cannot reschedule the session at the same time.
 	const lockedAt = Date.now();
-	const [lockError] = await ctx.runMutation(internal.bookingReschedule.lockRescheduleLinkInternal, {
+	const [lockError] = await ctx.runMutation(internal.sessionReschedule.lockRescheduleLinkInternal, {
 		linkId: link._id,
 		now: lockedAt
 	});
@@ -456,32 +456,32 @@ async function rescheduleBookingHandler(
 		return err(lockError);
 	}
 
-	const [startError, targetSessionStartAt] = getBookingSessionStartAt(
+	const [startError, targetSessionStartAt] = getSessionStartAt(
 		args.date,
 		args.time,
 		calendarClient.timeZone
 	);
 	if (startError !== null) {
-		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
 			linkId: link._id,
 			lockedAt
 		});
 		return err(startError);
 	}
 
-	// Reserve before moving the Calendar event so every booking flow sees this target.
+	// Reserve before moving the Calendar event so every session flow sees this target.
 	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.bookings.reserveBookingReservation,
+		internal.sessionScheduling.reserveSessionReservation,
 		{
-			bookingId: booking._id,
-			duration: booking.duration,
+			bookingId: session._id,
+			duration: session.duration,
 			eventBufferMinutes: settings.eventBufferMinutes,
 			now: Date.now(),
 			sessionStartAt: targetSessionStartAt
 		}
 	);
 	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -489,60 +489,63 @@ async function rescheduleBookingHandler(
 	}
 	const reservation = reservationResult.reservation;
 
-	// Move the booking to the requested date and time in Google Calendar first.
-	const [timingUpdateError, timingUpdate] = await updateBookingTimingWithGoogleCalendar({
-		booking,
+	// Move the session to the requested date and time in Google Calendar first.
+	const [timingUpdateError, timingUpdate] = await updateSessionTimingWithGoogleCalendar({
+		session,
 		client: calendarClient,
 		date: args.date,
 		details: {
-			addons: booking.addons,
-			duration: booking.duration,
-			email: booking.email,
-			name: booking.name,
-			service: booking.service
+			addons: session.addons,
+			duration: session.duration,
+			email: session.email,
+			name: session.name,
+			service: session.service
 		},
-		duration: booking.duration,
-		createMissingEvent: booking.status === "failed",
+		duration: session.duration,
+		createMissingEvent: session.status === "failed",
 		settings,
 		time: args.time
 	});
 
 	if (timingUpdateError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingReservation, {
-			bookingId: booking._id,
+		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+			bookingId: session._id,
 			reservation
 		});
 		// Unlock the link so the customer can retry after a Calendar failure.
-		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
 			linkId: link._id,
 			lockedAt
 		});
 		return err(timingUpdateError);
 	}
 
-	// Save the new booking time and any Google Calendar ids returned by the update to Convex
+	// Save the new session time and any Google Calendar ids returned by the update to Convex
 	const sessionStartAt = timingUpdate.sessionStartAt;
 	const googleCalendarId = timingUpdate.googleCalendarId;
 	const googleEventId = timingUpdate.googleEventId;
 
-	const [saveError] = await ctx.runMutation(internal.bookings.saveClientBookingRescheduleInternal, {
-		bookingId: booking._id,
-		date: args.date,
-		time: args.time,
-		sessionStartAt,
-		confirmBooking: booking.status === "failed",
-		reservation,
-		...(googleCalendarId ? { googleCalendarId } : {}),
-		...(googleEventId ? { googleEventId } : {})
-	});
+	const [saveError] = await ctx.runMutation(
+		internal.sessionScheduling.saveClientSessionRescheduleInternal,
+		{
+			bookingId: session._id,
+			date: args.date,
+			time: args.time,
+			sessionStartAt,
+			confirmBooking: session.status === "failed",
+			reservation,
+			...(googleCalendarId ? { googleCalendarId } : {}),
+			...(googleEventId ? { googleEventId } : {})
+		}
+	);
 
 	if (saveError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingReservation, {
-			bookingId: booking._id,
+		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+			bookingId: session._id,
 			reservation
 		});
 		// Unlock the link so the customer can retry after a save failure.
-		await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+		await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
 			linkId: link._id,
 			lockedAt
 		});
@@ -550,24 +553,24 @@ async function rescheduleBookingHandler(
 	}
 
 	// Unlock the link after the move so the customer can use it again.
-	await ctx.runMutation(internal.bookingReschedule.unlockRescheduleLinkInternal, {
+	await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLinkInternal, {
 		linkId: link._id,
 		lockedAt,
 		expiresAt: sessionStartAt
 	});
 
-	return finishRescheduledBooking(booking, args, timingUpdate, settings);
+	return finishRescheduledSession(session, args, timingUpdate, settings);
 }
 
-export type RescheduleBookingResult = Awaited<ReturnType<typeof rescheduleBookingHandler>>;
+export type RescheduleSessionResult = Awaited<ReturnType<typeof rescheduleSessionHandler>>;
 
 type UpdateBookingFromAdminError =
-	| AdminBookingUpdateError
+	| AdminSessionUpdateError
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" };
 
-export const updateBookingFromAdmin = action({
+export const updateSessionFromAdmin = action({
 	args: {
 		bookingId: v.id("bookings"),
 		name: v.string(),
@@ -585,37 +588,37 @@ export const updateBookingFromAdmin = action({
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number())
 	},
-	handler: updateBookingFromAdminHandler
+	handler: updateSessionFromAdminHandler
 });
 
-async function updateBookingFromAdminHandler(
+async function updateSessionFromAdminHandler(
 	ctx: ActionCtx,
-	args: AdminBookingUpdateArgs
-): Promise<Result<AdminBookingUpdateResult, UpdateBookingFromAdminError>> {
+	args: AdminSessionUpdateArgs
+): Promise<Result<AdminSessionUpdateResult, UpdateBookingFromAdminError>> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
 		return err(authError);
 	}
 
-	if (!isValidBookingRemainingBalanceAmount(args.remainingBalanceAmount)) {
+	if (!isValidSessionRemainingBalanceAmount(args.remainingBalanceAmount)) {
 		return err({ reason: "BOOKING_INVALID_INPUT" });
 	}
 
-	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
 	}
 
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
 	const client = getGoogleCalendarClient();
 
-	return updateBookingFromAdminWithGoogleCalendar({ args, booking, client, ctx, settings });
+	return updateSessionFromAdminWithGoogleCalendar({ args, session, client, ctx, settings });
 }
 
-export type UpdateBookingFromAdminResult = Awaited<
-	ReturnType<typeof updateBookingFromAdminHandler>
+export type UpdateSessionFromAdminResult = Awaited<
+	ReturnType<typeof updateSessionFromAdminHandler>
 >;
 
 export const sendBookingInvoiceForBooking = action({
@@ -633,7 +636,7 @@ async function sendBookingInvoiceForBookingHandler(
 		return err(authError);
 	}
 
-	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
@@ -641,7 +644,7 @@ async function sendBookingInvoiceForBookingHandler(
 
 	const customInvoice = args.customInvoiceId
 		? await ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSourceInternal, {
-				bookingId: booking._id,
+				bookingId: session._id,
 				customInvoiceId: args.customInvoiceId
 			})
 		: undefined;
@@ -650,14 +653,14 @@ async function sendBookingInvoiceForBookingHandler(
 		return err({ reason: "CUSTOM_INVOICE_NOT_FOUND" });
 	}
 
-	const [linkError, rescheduleUrl] = await createRescheduleUrlForBooking(ctx, booking);
+	const [linkError, rescheduleUrl] = await createRescheduleUrlForSession(ctx, session);
 	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 
 	if (linkError !== null) {
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(booking, {
+	const [emailError] = await sendBookingInvoiceEmailsForBooking(session, {
 		customInvoice: customInvoice ?? undefined,
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl
@@ -672,8 +675,8 @@ async function sendBookingInvoiceForBookingHandler(
 	// We accept this because it needs a very specific failure after the email is already sent,
 	// and the admin can send the customer the newest email/link if it ever happens.
 	try {
-		await ctx.runMutation(internal.bookings.markBookingInvoiceEmailSent, {
-			bookingId: booking._id
+		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailSent, {
+			bookingId: session._id
 		});
 	} catch {
 		return err({ reason: "INVOICE_SEND_FAILED" });
@@ -686,37 +689,37 @@ export type SendBookingInvoiceForBookingResult = Awaited<
 	ReturnType<typeof sendBookingInvoiceForBookingHandler>
 >;
 
-export const deleteBookingFromAdmin = action({
+export const deleteSessionFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
-	handler: deleteBookingFromAdminHandler
+	handler: deleteSessionFromAdminHandler
 });
 
-async function deleteBookingFromAdminHandler(
+async function deleteSessionFromAdminHandler(
 	ctx: ActionCtx,
 	args: DeleteBookingFromAdminArgs
-): Promise<DeleteBookingFromAdminResult> {
+): Promise<DeleteSessionFromAdminResult> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
 		return err(authError);
 	}
 
-	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
 	}
 
 	const client = getGoogleCalendarClient();
-	const [error] = await deleteBookingCalendarEvent({ booking, client });
+	const [error] = await deleteSessionCalendarEvent({ session, client });
 
 	if (error !== null) {
 		return err(error);
 	}
 
 	try {
-		const [statusUpdateError]: MarkBookingCalendarEventDeletedResult = await ctx.runMutation(
-			internal.bookings.markBookingCalendarEventDeleted,
+		const [statusUpdateError]: MarkSessionCalendarEventDeletedResult = await ctx.runMutation(
+			internal.sessionCompletion.markSessionCalendarEventDeleted,
 			{ bookingId: args.bookingId }
 		);
 
@@ -730,28 +733,28 @@ async function deleteBookingFromAdminHandler(
 	return ok({ deleted: true });
 }
 
-export const sendBookingReminderEmailForBooking = internalAction({
+export const sendSessionReminderEmail = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingReminderEmail, {
-			bookingId: args.bookingId,
-			now
-		});
+		const [claimError, claim] = await ctx.runMutation(
+			internal.sessionReminders.claimSessionReminderEmail,
+			{ bookingId: args.bookingId, now }
+		);
 
 		if (claimError !== null) return null;
 
-		const [reminderEmailError] = await sendBookingReminderEmailForBookingRecord(ctx, claim.booking);
+		const [reminderEmailError] = await sendBookingReminderEmailForSessionRecord(ctx, claim.session);
 
 		if (reminderEmailError !== null) {
-			await ctx.runMutation(internal.bookings.markBookingReminderEmailFailed, {
+			await ctx.runMutation(internal.sessionReminders.markSessionReminderEmailFailed, {
 				bookingId: args.bookingId,
 				failureCode: reminderEmailError.reason
 			});
 			return null;
 		}
 
-		await ctx.runMutation(internal.bookings.markBookingReminderEmailSent, {
+		await ctx.runMutation(internal.sessionReminders.markSessionReminderEmailSent, {
 			bookingId: args.bookingId,
 			now: Date.now()
 		});
@@ -761,35 +764,35 @@ export const sendBookingReminderEmailForBooking = internalAction({
 });
 
 type ReserveBookingResult = Result<
-	{ outcome: "unavailable" } | { outcome: "reserved"; reservation: BookingReservation },
+	{ outcome: "unavailable" } | { outcome: "reserved"; reservation: SessionReservation },
 	{ reason: "BOOKING_NOT_FOUND" }
 >;
 
-export const completeClaimedBooking = internalAction({
+export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => completeClaimedBookingHandler(ctx, args)
+	handler: (ctx, args) => completeClaimedSessionHandler(ctx, args)
 });
 
-async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
+	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
 	}
 
-	if (!booking.bookingConfirmationClaimedAt) {
+	if (!session.bookingConfirmationClaimedAt) {
 		return err({ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" });
 	}
 
-	if (booking.status === "confirmed" || booking.status === "email_failed") {
+	if (session.status === "confirmed" || session.status === "email_failed") {
 		return ok({ completed: true, outcome: "already_completed" });
 	}
 
 	const settings = await ctx.runQuery(api.bookingSettings.get, {});
 	const calendarClient = getGoogleCalendarClient();
 
-	const canBeScheduled = await verifyBookingCanBeScheduled({
-		booking,
+	const canBeScheduled = await verifySessionCanBeScheduled({
+		session,
 		calendar: calendarClient.calendar,
 		calendarIds: calendarClient.calendarIds,
 		settings,
@@ -797,43 +800,43 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 	});
 
 	if (!canBeScheduled) {
-		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+		await failSessionCompletion(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
 	// Atomically reserve the window so concurrent payment completions cannot both create events.
 	const [reservationError, reservationResult]: ReserveBookingResult = await ctx.runMutation(
-		internal.bookings.reserveBookingReservation,
+		internal.sessionScheduling.reserveSessionReservation,
 		{
-			bookingId: booking._id,
-			duration: booking.duration,
+			bookingId: session._id,
+			duration: session.duration,
 			eventBufferMinutes: settings.eventBufferMinutes,
 			now: Date.now(),
-			sessionStartAt: booking.sessionStartAt
+			sessionStartAt: session.sessionStartAt
 		}
 	);
 
 	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		await failBookingCompletion(ctx, booking._id, "BOOKING_TIME_UNAVAILABLE");
+		await failSessionCompletion(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
 	const reservation = reservationResult.reservation;
-	const [payloadError, requestBody] = buildBookingCalendarEventPayload({
-		date: booking.date,
-		time: booking.time,
+	const [payloadError, requestBody] = buildSessionCalendarEventPayload({
+		date: session.date,
+		time: session.time,
 		timeZone: calendarClient.timeZone,
 		details: {
-			addons: booking.addons,
-			name: booking.name,
-			duration: booking.duration,
-			email: booking.email,
-			service: booking.service
+			addons: session.addons,
+			name: session.name,
+			duration: session.duration,
+			email: session.email,
+			service: session.service
 		}
 	});
 
 	if (payloadError !== null) {
-		await failBookingCompletion(ctx, booking._id, "BOOKING_INVALID_INPUT", reservation);
+		await failSessionCompletion(ctx, session._id, "BOOKING_INVALID_INPUT", reservation);
 		return ok({ completed: false, outcome: "booking_invalid_input" });
 	}
 
@@ -847,14 +850,14 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
-		await failBookingCompletion(ctx, booking._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
+		await failSessionCompletion(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
 
 		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
 
-	const completionSaved = await saveCompletedBooking(
+	const completionSaved = await saveCompletedSession(
 		ctx,
-		booking,
+		session,
 		calendarClient,
 		reservation,
 		googleEventId
@@ -864,10 +867,10 @@ async function completeClaimedBookingHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: false, outcome: "reservation_lost" as const });
 	}
 
-	await sendCompletedBookingInvoice(ctx, booking, settings);
+	await sendCompletedBookingInvoice(ctx, session, settings);
 	return ok({ completed: true, outcome: "completed" });
 }
 
-export type CompleteClaimedBookingResult = Awaited<
-	ReturnType<typeof completeClaimedBookingHandler>
+export type CompleteClaimedSessionResult = Awaited<
+	ReturnType<typeof completeClaimedSessionHandler>
 >;

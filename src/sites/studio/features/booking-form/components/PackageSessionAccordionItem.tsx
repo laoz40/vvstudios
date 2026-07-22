@@ -36,7 +36,7 @@ const SESSION_STATUS_DETAILS = {
 } as const;
 
 type PackageData = NonNullable<GetPackageByTokenResult[1]>;
-type PackageBooking = PackageData["bookings"][number];
+type PackageBooking = PackageData["sessions"][number];
 type PackageSession =
 	| { booking: PackageBooking; key: string; status: "completed" | "upcoming" }
 	| { booking: null; key: string; status: "dateRequired" };

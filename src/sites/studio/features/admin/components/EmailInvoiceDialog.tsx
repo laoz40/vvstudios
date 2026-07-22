@@ -118,7 +118,7 @@ export function EmailInvoiceDialog({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
-								<SelectItem value="original">Original booking invoice</SelectItem>
+								<SelectItem value="original">Original session invoice</SelectItem>
 								{customInvoices?.map((invoice) => (
 									<SelectItem
 										key={invoice._id}

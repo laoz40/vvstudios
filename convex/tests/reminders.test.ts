@@ -39,7 +39,7 @@ vi.mock("../lib/googleCalendarClient", () => ({
 }));
 
 vi.mock("../lib/email", () => ({
-	sendBookingReminderEmailForBooking: providerFakes.sendBookingReminder,
+	sendSessionReminderEmail: providerFakes.sendBookingReminder,
 	sendPackageExpiryReminderEmail: providerFakes.sendPackageExpiryReminder,
 	sendPackagePaymentReminderEmail: providerFakes.sendPackagePaymentReminder
 }));

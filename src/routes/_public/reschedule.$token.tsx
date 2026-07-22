@@ -4,7 +4,7 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { api } from "#convex/_generated/api";
-import type { RescheduleBookingResult } from "#convex/googleCalendar";
+import type { RescheduleSessionResult } from "#convex/googleCalendar";
 import { studioSite } from "#/config/sites";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
@@ -48,9 +48,9 @@ function ReschedulePage() {
 	const navigate = useNavigate();
 
 	// Convex reads and actions
-	const rescheduleBooking = useAction(api.googleCalendar.rescheduleBooking);
+	const rescheduleSession = useAction(api.googleCalendar.rescheduleSession);
 	const liveRescheduleBooking = useQuery(
-		api.bookingReschedule.getRescheduleBookingByToken,
+		api.sessionReschedule.getRescheduleSessionByToken,
 		activeDevScenario ? "skip" : { token }
 	);
 
@@ -58,7 +58,7 @@ function ReschedulePage() {
 	const getRescheduleBooking = activeDevScenario
 		? buildDevRescheduleBooking(activeDevScenario)
 		: liveRescheduleBooking;
-	const bookingDuration = getRescheduleBooking?.[1]?.booking.duration ?? "";
+	const bookingDuration = getRescheduleBooking?.[1]?.session.duration ?? "";
 	const {
 		availability,
 		hasCompleteSelection,
@@ -112,7 +112,7 @@ function ReschedulePage() {
 		);
 	}
 
-	const booking = data.booking;
+	const booking = data.session;
 	async function navigateToRescheduleComplete(bookingId: string): Promise<void> {
 		await navigate({
 			to: studioSite.routes.rescheduleComplete,
@@ -159,8 +159,8 @@ function ReschedulePage() {
 				return;
 			}
 
-			const [rescheduleError, result] = await tryCatch<RescheduleBookingResult>(
-				rescheduleBooking({ date: confirmation.date, time: confirmation.time, token })
+			const [rescheduleError, result] = await tryCatch<RescheduleSessionResult>(
+				rescheduleSession({ date: confirmation.date, time: confirmation.time, token })
 			);
 
 			if (rescheduleError !== null) {

@@ -33,7 +33,7 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 		usableStripeSessionId && !activeDevScenario
 			? { stripeSessionId: usableStripeSessionId }
 			: "skip";
-	const liveBooking = useQuery(api.bookings.getBookingStatusByStripeSessionId, bookingQueryArgs);
+	const liveBooking = useQuery(api.sessions.getSessionStatusByStripeSessionId, bookingQueryArgs);
 
 	return {
 		booking: activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking,

@@ -61,10 +61,10 @@ export function PackageSessionsAccordion({
 	onTimeChange
 }: PackageSessionsAccordionProps) {
 	const dateRequiredSessions = Array.from(
-		{ length: packageData.packageSize - packageData.bookings.length },
+		{ length: packageData.packageSize - packageData.sessions.length },
 		(_, index) => ({ booking: null, key: `empty-${index}`, status: "dateRequired" as const })
 	);
-	const scheduledSessions = packageData.bookings
+	const scheduledSessions = packageData.sessions
 		.toSorted(
 			(firstBooking, secondBooking) => firstBooking.sessionStartAt - secondBooking.sessionStartAt
 		)

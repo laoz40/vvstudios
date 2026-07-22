@@ -2,7 +2,7 @@ import { ok } from "../../src/lib/result";
 import type { Doc, Id } from "../_generated/dataModel";
 import { env } from "../env";
 import type { MutationCtx } from "../_generated/server";
-import type { BookingAvailabilitySettings } from "./bookingCalendarTime";
+import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
 import { sendBookingInvoiceEmailsForBooking } from "./email";
 
 const rescheduleLinkInvalidationBatchSize = 100;
@@ -10,21 +10,21 @@ const rescheduleTokenByteLength = 32;
 const hexRadix = 16;
 const hexByteLength = 2;
 
-export type BookingRescheduleLinkStatus = "active" | "used" | "expired";
+export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
 
-type BookingRescheduleLink = { expiresAt: number };
+type SessionRescheduleLink = { expiresAt: number };
 
-type ReschedulableBooking = { sessionStartAt: number };
+type ReschedulableSession = { sessionStartAt: number };
 
-type RescheduleBookingArgs = { date: string; time: string; token: string };
+type RescheduleSessionArgs = { date: string; time: string; token: string };
 
-type RescheduledBookingTimingUpdate = {
+type RescheduledSessionTimingUpdate = {
 	googleCalendarId?: string;
 	googleEventId?: string;
 	sessionStartAt: number;
 };
 
-type ClientBookingRescheduleOptionalArgs = {
+type ClientSessionRescheduleOptionalArgs = {
 	service?: string;
 	addons?: string[];
 	notes?: string;
@@ -33,8 +33,8 @@ type ClientBookingRescheduleOptionalArgs = {
 	googleEventId?: string;
 };
 
-export function buildClientBookingRescheduleOptionalPatch(
-	args: ClientBookingRescheduleOptionalArgs
+export function buildClientSessionRescheduleOptionalPatch(
+	args: ClientSessionRescheduleOptionalArgs
 ) {
 	return {
 		...(args.service !== undefined ? { service: args.service } : {}),
@@ -52,19 +52,19 @@ export function buildClientBookingRescheduleOptionalPatch(
 	};
 }
 
-export async function finishRescheduledBooking(
-	booking: Doc<"bookings">,
-	args: RescheduleBookingArgs,
-	timingUpdate: RescheduledBookingTimingUpdate,
-	settings: BookingAvailabilitySettings
+export async function finishRescheduledSession(
+	session: Doc<"bookings">,
+	args: RescheduleSessionArgs,
+	timingUpdate: RescheduledSessionTimingUpdate,
+	settings: SessionAvailabilitySettings
 ) {
 	const updatedBooking = {
-		...booking,
+		...session,
 		date: args.date,
 		time: args.time,
 		sessionStartAt: timingUpdate.sessionStartAt,
-		googleCalendarId: timingUpdate.googleCalendarId ?? booking.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId ?? booking.googleEventId
+		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
+		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
 	};
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
@@ -72,10 +72,10 @@ export async function finishRescheduledBooking(
 	});
 
 	if (emailError !== null) {
-		return ok({ bookingId: booking._id, warning: "INVOICE_SEND_FAILED" as const });
+		return ok({ bookingId: session._id, warning: "INVOICE_SEND_FAILED" as const });
 	}
 
-	return ok({ bookingId: booking._id });
+	return ok({ bookingId: session._id });
 }
 
 function bytesToHex(bytes: Uint8Array) {
@@ -104,30 +104,30 @@ export function getRescheduleUrlForToken(token: string) {
 }
 
 export function isRescheduleLinkExpired(
-	link: Pick<BookingRescheduleLink, "expiresAt">,
-	booking: ReschedulableBooking,
+	link: Pick<SessionRescheduleLink, "expiresAt">,
+	session: ReschedulableSession,
 	now: number
 ) {
-	return now >= link.expiresAt || now >= booking.sessionStartAt;
+	return now >= link.expiresAt || now >= session.sessionStartAt;
 }
 
-export async function createActiveRescheduleLinkForBooking({
-	booking,
+export async function createActiveRescheduleLinkForSession({
+	session,
 	ctx,
 	expiresAt,
 	now
 }: {
-	booking: Doc<"bookings">;
+	session: Doc<"bookings">;
 	ctx: MutationCtx;
 	expiresAt: number;
 	now: number;
 }) {
-	await markExistingActiveRescheduleLinksUsed({ ctx, bookingId: booking._id, now });
+	await markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now });
 
 	const token = generateRescheduleToken();
 	const tokenHash = await hashRescheduleToken(token);
 	const linkId = await ctx.db.insert("bookingRescheduleLinks", {
-		bookingId: booking._id,
+		bookingId: session._id,
 		tokenHash,
 		status: "active" as const,
 		expiresAt,
@@ -137,7 +137,7 @@ export async function createActiveRescheduleLinkForBooking({
 	return { linkId, token };
 }
 
-export async function markExistingActiveRescheduleLinksUsed(args: {
+export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 	ctx: MutationCtx;
 	bookingId: Id<"bookings">;
 	now: number;

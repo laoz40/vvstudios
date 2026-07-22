@@ -48,7 +48,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { hashRescheduleToken } from "../lib/bookingRescheduleLinks";
+import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
 import { createConvexTest } from "../test.setup";
 
 const providerFakes = vi.hoisted(() => ({
@@ -140,7 +140,7 @@ describe("package session creation validation", () => {
 	test("rejects an invalid token without creating records", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.packageScheduling.createPackageBooking, {
+		const result = await t.action(api.packageScheduling.createPackageSession, {
 			token: "unknown-token",
 			...target
 		});
@@ -153,7 +153,7 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { token } = await seedPackage(t, { expiresAt: now });
 
-		const result = await t.action(api.packageScheduling.createPackageBooking, { token, ...target });
+		const result = await t.action(api.packageScheduling.createPackageSession, { token, ...target });
 
 		expect(result).toEqual([{ reason: "PACKAGE_LINK_EXPIRED" }, null]);
 		await expectNoBookingOrCalendarEvent(t);
@@ -163,10 +163,10 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
 		for (let index = 0; index < 4; index += 1) {
-			await seedPackageBooking(t, packageId, index);
+			await seedPackageSession(t, packageId, index);
 		}
 
-		const result = await t.action(api.packageScheduling.createPackageBooking, { token, ...target });
+		const result = await t.action(api.packageScheduling.createPackageSession, { token, ...target });
 
 		expect(result).toEqual([{ reason: "PACKAGE_CAPACITY_EXCEEDED" }, null]);
 		expect(await readBookings(t)).toHaveLength(4);
@@ -188,7 +188,7 @@ describe("package session creation validation", () => {
 			}
 		});
 
-		const result = await t.action(api.packageScheduling.createPackageBooking, { token, ...target });
+		const result = await t.action(api.packageScheduling.createPackageSession, { token, ...target });
 
 		expect(result).toEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
 		await expectNoBookingOrCalendarEvent(t);
@@ -198,7 +198,7 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
 
-		const result = await t.action(api.packageScheduling.createPackageBooking, {
+		const result = await t.action(api.packageScheduling.createPackageSession, {
 			token,
 			...target,
 			notes: "Use the side entrance",
@@ -232,7 +232,7 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
 		for (let index = 0; index < 3; index += 1) {
-			await seedPackageBooking(t, packageId, index);
+			await seedPackageSession(t, packageId, index);
 		}
 		let nextEventNumber = 0;
 		providerFakes.insertEvent.mockImplementation(async () => {
@@ -241,8 +241,8 @@ describe("package session creation validation", () => {
 		});
 
 		const results = await Promise.all([
-			t.action(api.packageScheduling.createPackageBooking, { token, ...target }),
-			t.action(api.packageScheduling.createPackageBooking, { token, ...target })
+			t.action(api.packageScheduling.createPackageSession, { token, ...target }),
+			t.action(api.packageScheduling.createPackageSession, { token, ...target })
 		]);
 
 		expect(results.filter(([error]) => error === null)).toHaveLength(1);
@@ -256,7 +256,7 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
 		for (let index = 0; index < 3; index += 1) {
-			await seedPackageBooking(t, packageId, index);
+			await seedPackageSession(t, packageId, index);
 		}
 		let releaseCalendarCreation: (() => void) | undefined;
 		const calendarCreationBlocked = new Promise<void>((resolve) => {
@@ -272,12 +272,12 @@ describe("package session creation validation", () => {
 			return { data: { id: "orphaned-event" } };
 		});
 
-		const schedulingRequest = t.action(api.packageScheduling.createPackageBooking, {
+		const schedulingRequest = t.action(api.packageScheduling.createPackageSession, {
 			token,
 			...target
 		});
 		await calendarCreationStarted;
-		await seedPackageBooking(t, packageId, 3);
+		await seedPackageSession(t, packageId, 3);
 		releaseCalendarCreation?.();
 		const result = await schedulingRequest;
 
@@ -298,15 +298,15 @@ describe("package session rescheduling", () => {
 		const t = createConvexTest();
 		const owner = await seedPackage(t);
 		const other = await seedPackage(t, {}, "other-package-token");
-		const bookingId = await seedPackageBooking(t, owner.packageId, 0);
+		const bookingId = await seedPackageSession(t, owner.packageId, 0);
 
-		const wrongOwnerResult = await t.action(api.packageScheduling.reschedulePackageBooking, {
+		const wrongOwnerResult = await t.action(api.packageScheduling.reschedulePackageSession, {
 			bookingId,
 			token: other.token,
 			...target
 		});
 		await t.run((ctx) => ctx.db.patch(bookingId, { sessionStartAt: now + 30 * 60_000 }));
-		const lockedResult = await t.action(api.packageScheduling.reschedulePackageBooking, {
+		const lockedResult = await t.action(api.packageScheduling.reschedulePackageSession, {
 			bookingId,
 			token: owner.token,
 			...target
@@ -320,7 +320,7 @@ describe("package session rescheduling", () => {
 	test("preserves the original booking and event when the target is busy", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		const bookingId = await seedPackageBooking(t, packageId, 0);
+		const bookingId = await seedPackageSession(t, packageId, 0);
 		const original = await t.run((ctx) => ctx.db.get(bookingId));
 		providerFakes.listEvents.mockResolvedValue({
 			data: {
@@ -334,7 +334,7 @@ describe("package session rescheduling", () => {
 			}
 		});
 
-		const result = await t.action(api.packageScheduling.reschedulePackageBooking, {
+		const result = await t.action(api.packageScheduling.reschedulePackageSession, {
 			bookingId,
 			token,
 			...target
@@ -348,9 +348,9 @@ describe("package session rescheduling", () => {
 	test("moves Calendar and Convex together, resets reminders, and schedules reevaluation", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		const bookingId = await seedPackageBooking(t, packageId, 0);
+		const bookingId = await seedPackageSession(t, packageId, 0);
 
-		const result = await t.action(api.packageScheduling.reschedulePackageBooking, {
+		const result = await t.action(api.packageScheduling.reschedulePackageSession, {
 			bookingId,
 			token,
 			...target,
@@ -387,10 +387,10 @@ describe("package session unscheduling", () => {
 	test("keeps the booking active when Calendar deletion fails", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		const bookingId = await seedPackageBooking(t, packageId, 0);
+		const bookingId = await seedPackageSession(t, packageId, 0);
 		providerFakes.deleteEvent.mockRejectedValue(new Error("provider unavailable"));
 
-		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+		const result = await t.action(api.packageScheduling.unschedulePackageSession, {
 			bookingId,
 			token
 		});
@@ -402,10 +402,10 @@ describe("package session unscheduling", () => {
 	test("cancels when the saved Calendar event is already missing", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		const bookingId = await seedPackageBooking(t, packageId, 0);
+		const bookingId = await seedPackageSession(t, packageId, 0);
 		providerFakes.deleteEvent.mockRejectedValue({ response: { status: 404 } });
 
-		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+		const result = await t.action(api.packageScheduling.unschedulePackageSession, {
 			bookingId,
 			token
 		});
@@ -417,14 +417,14 @@ describe("package session unscheduling", () => {
 	test("cancels after deletion and frees capacity for another session", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		for (let index = 0; index < 3; index += 1) await seedPackageBooking(t, packageId, index);
-		const bookingId = await seedPackageBooking(t, packageId, 3);
+		for (let index = 0; index < 3; index += 1) await seedPackageSession(t, packageId, index);
+		const bookingId = await seedPackageSession(t, packageId, 3);
 
-		const result = await t.action(api.packageScheduling.unschedulePackageBooking, {
+		const result = await t.action(api.packageScheduling.unschedulePackageSession, {
 			bookingId,
 			token
 		});
-		const replacement = await t.action(api.packageScheduling.createPackageBooking, {
+		const replacement = await t.action(api.packageScheduling.createPackageSession, {
 			token,
 			...target
 		});
@@ -479,7 +479,7 @@ async function seedPackage(
 	return { packageId, token };
 }
 
-async function seedPackageBooking(
+async function seedPackageSession(
 	t: TestClient,
 	packageId: Id<"multiBookingPackages">,
 	index: number

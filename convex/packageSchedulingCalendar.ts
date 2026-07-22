@@ -14,16 +14,16 @@ import {
 	groupBusyDaysByMonth,
 	groupBusyWindowsByDay,
 	type BusyDayWindow
-} from "./lib/bookingCalendarTime";
+} from "./lib/sessionCalendarTime";
 import { getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
 import {
-	deleteBookingCalendarEvent,
-	type BookingCalendarEventRecord
-} from "./lib/googleCalendarEvents";
+	deleteSessionCalendarEvent,
+	type SessionCalendarEventRecord
+} from "./lib/sessionCalendarEvents";
 import type { ValidPackage, ValidPackageByTokenError } from "./lib/packageScheduling";
-import { savePackageBookingCalendarEvent } from "./lib/packageSchedulingCalendar";
+import { savePackageSessionCalendarEvent } from "./lib/packageSchedulingCalendar";
 import { checkGoogleCalendarAvailabilityRateLimit } from "./lib/rateLimits";
 
 const packageCalendarBookingValidator = v.object({
@@ -123,34 +123,34 @@ async function getPackageBusyWindowsHandler(
 
 export type GetPackageBusyWindowsResult = Awaited<ReturnType<typeof getPackageBusyWindowsHandler>>;
 
-export const createPackageBookingCalendarEventInternal = internalAction({
+export const createPackageSessionCalendarEventInternal = internalAction({
 	args: {
-		booking: v.union(v.null(), packageCalendarBookingValidator),
+		session: v.union(v.null(), packageCalendarBookingValidator),
 		details: packageCalendarDetailsValidator
 	},
-	handler: (_ctx, args) => savePackageBookingCalendarEvent(args)
+	handler: (_ctx, args) => savePackageSessionCalendarEvent(args)
 });
 
-export const updatePackageBookingCalendarEventInternal = internalAction({
-	args: { booking: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
-	handler: (_ctx, args) => savePackageBookingCalendarEvent(args)
+export const updatePackageSessionCalendarEventInternal = internalAction({
+	args: { session: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
+	handler: (_ctx, args) => savePackageSessionCalendarEvent(args)
 });
 
-type DeletePackageBookingCalendarEventArgs = { booking: BookingCalendarEventRecord };
+type DeletePackageSessionCalendarEventArgs = { session: SessionCalendarEventRecord };
 
-export const deletePackageBookingCalendarEventInternal = internalAction({
-	args: { booking: packageCalendarBookingValidator },
-	handler: (ctx, args) => deletePackageBookingCalendarEventInternalHandler(ctx, args)
+export const deletePackageSessionCalendarEventInternal = internalAction({
+	args: { session: packageCalendarBookingValidator },
+	handler: (ctx, args) => deletePackageSessionCalendarEventInternalHandler(ctx, args)
 });
 
-async function deletePackageBookingCalendarEventInternalHandler(
+async function deletePackageSessionCalendarEventInternalHandler(
 	_ctx: ActionCtx,
-	args: DeletePackageBookingCalendarEventArgs
+	args: DeletePackageSessionCalendarEventArgs
 ) {
 	try {
 		const { calendar, calendarId, timeZone } = getGoogleCalendarClient();
-		const [deleteError, deleteResult] = await deleteBookingCalendarEvent({
-			booking: args.booking,
+		const [deleteError, deleteResult] = await deleteSessionCalendarEvent({
+			session: args.session,
 			client: { calendar, calendarId, timeZone }
 		});
 

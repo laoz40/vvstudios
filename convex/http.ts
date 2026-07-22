@@ -27,12 +27,10 @@ async function handleCompletedCheckout(
 		typeof session.payment_intent === "string"
 			? session.payment_intent
 			: session.payment_intent?.id;
-	const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
-		bookingId,
-		stripeSessionId: session.id,
-		stripePaymentIntentId,
-		stripeEventId: event.id
-	});
+	const [claimError, claim] = await ctx.runMutation(
+		internal.sessionCompletion.claimSessionCompletion,
+		{ bookingId, stripeSessionId: session.id, stripePaymentIntentId, stripeEventId: event.id }
+	);
 
 	if (claimError !== null) {
 		console.error("Booking completion claim failed", {
@@ -53,8 +51,8 @@ async function handleCompletedCheckout(
 	}
 
 	const [completionError, completionResult] = await ctx.runAction(
-		internal.googleCalendar.completeClaimedBooking,
-		{ bookingId: claim.booking._id }
+		internal.googleCalendar.completeClaimedSession,
+		{ bookingId: claim.session._id }
 	);
 
 	if (completionError !== null) {
@@ -80,7 +78,7 @@ async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
 	}
 
 	if (event.type === "checkout.session.expired") {
-		await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
+		await ctx.runMutation(internal.sessionCheckout.markSessionExpiredByStripeSessionId, {
 			stripeSessionId: event.data.object.id
 		});
 		return new Response("expired", { status: 200 });

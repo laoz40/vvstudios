@@ -8,39 +8,39 @@ import { usePaymentActions } from "#studio/features/admin/hooks/usePaymentAction
 import { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 import {
-	type BookingActionDetails,
-	type BookingRecord,
-	isManageableConfirmedBooking
-} from "#studio/features/admin/lib/admin-bookings";
+	type SessionActionDetails,
+	type SessionRecord,
+	isManageableConfirmedSession
+} from "#studio/features/admin/lib/admin-sessions";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
-export type SessionActionsProps = { booking: BookingRecord };
+export type SessionActionsProps = { session: SessionRecord };
 
-export function SessionActions({ booking }: SessionActionsProps) {
-	const canManageConfirmedBooking = isManageableConfirmedBooking(booking);
-	const isPastBooking = !isUpcomingBooking(booking.date, booking.time);
-	const details: BookingActionDetails = {
-		canGenerateRescheduleLink: getCanGenerateRescheduleLink(booking, isPastBooking),
-		customerBookingId:
-			booking.multiBookingInvoiceNumber ??
-			formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt),
-		canManageConfirmedBooking,
-		isPastBooking
+export function SessionActions({ session }: SessionActionsProps) {
+	const canManageConfirmedSession = isManageableConfirmedSession(session);
+	const isPastSession = !isUpcomingBooking(session.date, session.time);
+	const details: SessionActionDetails = {
+		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
+		customerSessionId:
+			session.multiBookingInvoiceNumber ??
+			formatBookingInvoiceNumber(session._id, session.pendingPaymentCreatedAt),
+		canManageConfirmedSession,
+		isPastSession
 	};
 
-	const deleteAction = useDeleteAction(booking);
-	const deliverablesEmailAction = useDeliverablesEmailAction(booking);
-	const editAction = useEditAction(booking);
-	const invoiceActions = useInvoiceActions(booking);
-	const paymentActions = usePaymentActions(booking);
-	const rescheduleAction = useRescheduleAction(booking);
-	const statusActions = useStatusActions(booking);
+	const deleteAction = useDeleteAction(session);
+	const deliverablesEmailAction = useDeliverablesEmailAction(session);
+	const editAction = useEditAction(session);
+	const invoiceActions = useInvoiceActions(session);
+	const paymentActions = usePaymentActions(session);
+	const rescheduleAction = useRescheduleAction(session);
+	const statusActions = useStatusActions(session);
 
 	return (
 		<>
 			<SessionActionsMenu
-				booking={booking}
+				session={session}
 				details={details}
 				deleteAction={deleteAction}
 				deliverablesEmailAction={deliverablesEmailAction}
@@ -51,7 +51,7 @@ export function SessionActions({ booking }: SessionActionsProps) {
 				statusActions={statusActions}
 			/>
 			<SessionActionsDialogs
-				booking={booking}
+				session={session}
 				details={details}
 				deleteAction={deleteAction}
 				deliverablesEmailAction={deliverablesEmailAction}
@@ -63,13 +63,13 @@ export function SessionActions({ booking }: SessionActionsProps) {
 	);
 }
 
-function getCanGenerateRescheduleLink(booking: BookingRecord, isPastBooking: boolean) {
+function getCanGenerateRescheduleLink(session: SessionRecord, isPastSession: boolean) {
 	return (
-		!isPastBooking &&
-		(booking.status === "confirmed" ||
-			booking.status === "email_failed" ||
-			(booking.status === "failed" &&
-				(booking.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
-					booking.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")))
+		!isPastSession &&
+		(session.status === "confirmed" ||
+			session.status === "email_failed" ||
+			(session.status === "failed" &&
+				(session.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+					session.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")))
 	);
 }
