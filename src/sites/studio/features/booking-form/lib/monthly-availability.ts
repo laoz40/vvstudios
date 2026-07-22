@@ -18,12 +18,15 @@ export interface BookableRangeBusyWindowsResult {
 
 export function getBookableMonthKeys(startDate: Date, endDate: Date) {
 	const monthKeys: string[] = [];
-	const month = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+	const firstMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
 	const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
-	while (month <= endMonth) {
+	for (
+		let month = firstMonth;
+		month <= endMonth;
+		month = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+	) {
 		monthKeys.push(formatMonthKey(month));
-		month.setMonth(month.getMonth() + 1);
 	}
 
 	return monthKeys;

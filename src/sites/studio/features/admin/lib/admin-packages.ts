@@ -245,7 +245,7 @@ export function getAdminPackageDashboardDate(
 }
 
 export function sortAdminPackages(rows: AdminPackageRow[], sort: AdminPackageSort) {
-	return [...rows].sort((firstPackage, secondPackage) => {
+	return rows.toSorted((firstPackage, secondPackage) => {
 		if (sort.column === "customer") {
 			return comparePackageNames(firstPackage, secondPackage, sort.isDescending);
 		}

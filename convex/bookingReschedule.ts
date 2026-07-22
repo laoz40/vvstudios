@@ -91,7 +91,9 @@ async function createPublicFailedBookingRescheduleLinkHandler(
 ) {
 	const booking = await ctx.db
 		.query("bookings")
-		.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+		.withIndex("by_stripeSessionId", (indexQuery) =>
+			indexQuery.eq("stripeSessionId", args.stripeSessionId)
+		)
 		.unique();
 
 	if (booking === null) {

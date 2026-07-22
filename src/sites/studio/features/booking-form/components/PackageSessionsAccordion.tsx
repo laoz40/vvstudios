@@ -1,3 +1,4 @@
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Interactive spans avoid invalid nested buttons inside the accordion trigger button. */
 import { Armchair, EllipsisVertical, Globe, LoaderCircle } from "lucide-react";
 import {
 	Accordion,
@@ -98,8 +99,8 @@ export function PackageSessionsAccordion({
 		{ length: packageData.packageSize - packageData.bookings.length },
 		(_, index) => ({ booking: null, key: `empty-${index}`, status: "dateRequired" as const })
 	);
-	const scheduledSessions = [...packageData.bookings]
-		.sort(
+	const scheduledSessions = packageData.bookings
+		.toSorted(
 			(firstBooking, secondBooking) => firstBooking.sessionStartAt - secondBooking.sessionStartAt
 		)
 		.map((booking) => ({

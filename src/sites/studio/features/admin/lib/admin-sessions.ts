@@ -58,7 +58,7 @@ export function sortAdminSessionBookings(bookings: BookingRecord[], sorting: Ses
 		return bookings;
 	}
 
-	return [...bookings].sort((firstBooking, secondBooking) => {
+	return bookings.toSorted((firstBooking, secondBooking) => {
 		let comparison = 0;
 
 		switch (activeSort.id) {

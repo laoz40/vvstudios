@@ -83,7 +83,7 @@ export async function getCapacityConsumingPackageBookings(
 			.take(packageSize);
 		bookings.push(...statusBookings);
 	}
-	return bookings.sort((a, b) => a.sessionStartAt - b.sessionStartAt);
+	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
 export async function getPackageBookingForToken(

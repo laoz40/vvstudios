@@ -68,6 +68,15 @@ export const Route = createFileRoute("/_public/package-schedule/$token")({
 
 type SavePackageBookingResult = CreatePackageBookingResult | ReschedulePackageBookingResult;
 
+function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
+	openPackageUnscheduleConfirmationModal({
+		bookingId,
+		dateSummary: formatBookingDateSummary(date),
+		modal: "packageUnscheduleConfirmation",
+		type: "unschedule"
+	});
+}
+
 function MultiBookingSchedulePage() {
 	const { token } = Route.useParams();
 	const packageResult = useQuery(api.packageScheduling.getPackageByToken, { token });
@@ -299,15 +308,6 @@ function PackageScheduleContent({
 		}
 
 		void handleSaveSession();
-	}
-
-	function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
-		openPackageUnscheduleConfirmationModal({
-			bookingId,
-			dateSummary: formatBookingDateSummary(date),
-			modal: "packageUnscheduleConfirmation",
-			type: "unschedule"
-		});
 	}
 
 	async function handleConfirmUnschedule() {

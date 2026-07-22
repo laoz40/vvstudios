@@ -260,8 +260,8 @@ export const listPackages = query({
 					),
 					ctx.db
 						.query("packageAdjustments")
-						.withIndex("by_multiBookingId", (query) =>
-							query.eq("multiBookingId", multiBookingPackage._id)
+						.withIndex("by_multiBookingId", (indexQuery) =>
+							indexQuery.eq("multiBookingId", multiBookingPackage._id)
 						)
 						.unique()
 				]);
@@ -734,7 +734,9 @@ export const getBookingStatusByStripeSessionId = query({
 	handler: async (ctx, args) => {
 		const booking = await ctx.db
 			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", args.stripeSessionId)
+			)
 			.unique();
 
 		if (!booking) return null;
@@ -756,7 +758,9 @@ async function saveBookingInstagramHandleHandler(
 ) {
 	const booking = await ctx.db
 		.query("bookings")
-		.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+		.withIndex("by_stripeSessionId", (indexQuery) =>
+			indexQuery.eq("stripeSessionId", args.stripeSessionId)
+		)
 		.unique();
 
 	if (!booking) {
@@ -829,7 +833,9 @@ export const getBookingByStripeSessionIdInternal = internalQuery({
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", args.stripeSessionId)
+			)
 			.unique();
 	}
 });
@@ -846,8 +852,8 @@ export const listBookingsDueForReminderEmail = internalQuery({
 	handler: async (ctx, args) => {
 		const bookings = await ctx.db
 			.query("bookings")
-			.withIndex("by_status_and_sessionStartAt", (query) =>
-				query
+			.withIndex("by_status_and_sessionStartAt", (indexQuery) =>
+				indexQuery
 					.eq("status", "confirmed")
 					.gte("sessionStartAt", args.dayStart)
 					.lt("sessionStartAt", args.dayEnd)
@@ -870,7 +876,9 @@ export const markBookingExpiredByStripeSessionId = internalMutation({
 	handler: async (ctx, args) => {
 		const booking = await ctx.db
 			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", args.stripeSessionId)
+			)
 			.unique();
 
 		if (!booking) {

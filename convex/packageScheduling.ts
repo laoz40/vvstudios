@@ -375,7 +375,9 @@ async function processPackageAdjustment(ctx: MutationCtx, args: ProcessPackageAd
 
 	const existingAdjustment = await ctx.db
 		.query("packageAdjustments")
-		.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
+		.withIndex("by_multiBookingId", (indexQuery) =>
+			indexQuery.eq("multiBookingId", args.multiBookingId)
+		)
 		.unique();
 
 	if (existingAdjustment) return null;

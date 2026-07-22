@@ -103,7 +103,10 @@ export function CopyableText({ value, label, children }: CopyableTextProps) {
 						aria-hidden
 					/>
 				)}>
-				<button onClick={() => void copyText(value, label)} />
+				<button
+					aria-label={`Copy ${label}`}
+					onClick={() => void copyText(value, label)}
+				/>
 			</AnimatedIconButton>
 		</span>
 	);

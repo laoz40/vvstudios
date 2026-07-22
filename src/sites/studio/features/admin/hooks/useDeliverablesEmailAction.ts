@@ -14,6 +14,30 @@ type UpdateBookingEditStatusError = NonNullable<
 	Awaited<ReturnType<typeof tryCatch<UpdateBookingEditStatusResult>>>[0]
 >;
 
+function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
+	switch (statusError.reason) {
+		case "NOT_AUTHENTICATED":
+			toast.error("Deliverables email sent, but you need to sign in again to update the status.");
+			break;
+		case "NOT_AUTHORIZED":
+			toast.error("Deliverables email sent, but you do not have access to update the status.");
+			break;
+		case "BOOKING_NOT_FOUND":
+			toast.error("Deliverables email sent, but the booking could not be found in the database.");
+			break;
+		case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
+			toast.error("Deliverables email sent, but the status could not be updated.");
+			break;
+		case "UNEXPECTED_ERROR":
+			toast.error("Deliverables email sent, but something went wrong updating the status.");
+			break;
+		default: {
+			const _exhaustive: never = statusError;
+			return _exhaustive;
+		}
+	}
+}
+
 export function useDeliverablesEmailAction(booking: BookingRecord) {
 	const sendBookingDeliverablesEmail = useAction(
 		api.deliverablesEmail.sendBookingDeliverablesEmail
@@ -102,30 +126,6 @@ export function useDeliverablesEmailAction(booking: BookingRecord) {
 		resetDeliverablesEmailDialog();
 		toast.success(successMessage);
 		setIsEmailingDeliverables(false);
-	}
-
-	function showStatusUpdateError(statusError: UpdateBookingEditStatusError) {
-		switch (statusError.reason) {
-			case "NOT_AUTHENTICATED":
-				toast.error("Deliverables email sent, but you need to sign in again to update the status.");
-				break;
-			case "NOT_AUTHORIZED":
-				toast.error("Deliverables email sent, but you do not have access to update the status.");
-				break;
-			case "BOOKING_NOT_FOUND":
-				toast.error("Deliverables email sent, but the booking could not be found in the database.");
-				break;
-			case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
-				toast.error("Deliverables email sent, but the status could not be updated.");
-				break;
-			case "UNEXPECTED_ERROR":
-				toast.error("Deliverables email sent, but something went wrong updating the status.");
-				break;
-			default: {
-				const _exhaustive: never = statusError;
-				return _exhaustive;
-			}
-		}
 	}
 
 	function resetDeliverablesEmailDialog() {

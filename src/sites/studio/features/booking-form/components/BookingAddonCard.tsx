@@ -84,6 +84,7 @@ export function BookingAddonCard({
 					id={addonId}
 					type="checkbox"
 					checked={checked}
+					aria-label={addon}
 					disabled={disabled}
 					onChange={(event) => onCheckedChange(addon, event.target.checked)}
 					className="sr-only"

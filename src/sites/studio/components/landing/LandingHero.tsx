@@ -54,6 +54,7 @@ export function LandingHero() {
 						style={mobileBackgroundStyle}
 					/>
 					<video
+						aria-label="Studio showcase background"
 						className="hidden h-full w-full object-cover brightness-65 md:block"
 						autoPlay
 						loop
