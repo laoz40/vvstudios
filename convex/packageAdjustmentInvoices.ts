@@ -34,12 +34,12 @@ export type RetryPackageAdjustmentInvoiceEmailResult = Result<
 	RetryPackageAdjustmentInvoiceError
 >;
 
-export const sendPackageAdjustmentInvoiceInternal = internalAction({
+export const sendPackageAdjustmentInvoice = internalAction({
 	args: {
 		adjustmentId: v.id("packageAdjustments"),
 		attempt: v.union(v.literal("automatic"), v.literal("retry"))
 	},
-	handler: (ctx, args) => sendPackageAdjustmentInvoice(ctx, args)
+	handler: (ctx, args) => sendPackageAdjustmentInvoiceHandler(ctx, args)
 });
 
 export const retryPackageAdjustmentInvoiceEmail = action({
@@ -51,11 +51,11 @@ export const retryPackageAdjustmentInvoiceEmail = action({
 			return err(authError);
 		}
 
-		return sendPackageAdjustmentInvoice(ctx, { ...args, attempt: "retry" });
+		return sendPackageAdjustmentInvoiceHandler(ctx, { ...args, attempt: "retry" });
 	}
 });
 
-async function sendPackageAdjustmentInvoice(
+async function sendPackageAdjustmentInvoiceHandler(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; attempt: "automatic" | "retry" }
 ): Promise<SendPackageAdjustmentInvoiceResult> {
@@ -63,10 +63,11 @@ async function sendPackageAdjustmentInvoice(
 	const [claimError, source]: Result<
 		PackageAdjustmentInvoiceSource,
 		PackageAdjustmentEmailClaimError
-	> = await ctx.runMutation(
-		internal.packageAdjustments.claimPackageAdjustmentInvoiceEmailInternal,
-		{ adjustmentId: args.adjustmentId, attempt: args.attempt, now: claimedAt }
-	);
+	> = await ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmail, {
+		adjustmentId: args.adjustmentId,
+		attempt: args.attempt,
+		now: claimedAt
+	});
 
 	if (claimError !== null) {
 		return err(claimError);
@@ -75,14 +76,14 @@ async function sendPackageAdjustmentInvoice(
 	const [emailError] = await sendPackageAdjustmentInvoiceEmail(source);
 
 	if (emailError !== null) {
-		await ctx.runMutation(
-			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal,
-			{ adjustmentId: args.adjustmentId, claimedAt }
-		);
+		await ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
+			adjustmentId: args.adjustmentId,
+			claimedAt
+		});
 		return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" });
 	}
 
-	await ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSentInternal, {
+	await ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
 		adjustmentId: args.adjustmentId,
 		claimedAt
 	});
@@ -106,7 +107,7 @@ async function getAdminPackageAdjustmentInvoicePdfHandler(
 	}
 
 	const source = await ctx.runQuery(
-		internal.packageAdjustments.getPackageAdjustmentInvoiceSourceInternal,
+		internal.packageAdjustments.getPackageAdjustmentInvoiceSource,
 		args
 	);
 

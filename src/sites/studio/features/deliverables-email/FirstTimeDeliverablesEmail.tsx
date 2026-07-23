@@ -40,15 +40,13 @@ export function FirstTimeDeliverablesEmail({
 			<Preview>Your final deliverables are ready.</Preview>
 			<Body style={body}>
 				<Container style={container}>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>Hi {name},</Heading>
 					<Text style={paragraph}>
 						Congrats on your first booking with us! It was great working with you on the{" "}

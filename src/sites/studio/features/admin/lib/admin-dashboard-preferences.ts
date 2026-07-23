@@ -18,7 +18,7 @@ const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
 	showUpcomingOnly: true
 };
 
-const sortableColumnIds = new Set<SessionSortId>(["name", "session", "createdAt"]);
+const sortableColumnIds = new Set(["name", "session", "createdAt"]);
 
 type SessionsTablePreferences = {
 	sorting: SessionSorting;
@@ -60,7 +60,7 @@ function parseStoredSorting(value: unknown) {
 }
 
 function isSessionSortId(id: unknown): id is SessionSortId {
-	return typeof id === "string" && sortableColumnIds.has(id as SessionSortId);
+	return typeof id === "string" && sortableColumnIds.has(id);
 }
 
 function readAdminDashboardPreferences(): AdminDashboardPreferences {

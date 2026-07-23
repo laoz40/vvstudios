@@ -3,6 +3,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
+	isMultiBookingSize,
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
@@ -217,9 +218,9 @@ function PackageSizeOptions({
 	onChange: (value: MultiBookingSize) => void;
 	packageSize: MultiBookingSize;
 }) {
-	const packageSizeOptions = Object.keys(MULTI_BOOKING_PLANS).map(
-		(packageSizeOption) => Number(packageSizeOption) as MultiBookingSize
-	);
+	const packageSizeOptions = Object.keys(MULTI_BOOKING_PLANS)
+		.map(Number)
+		.filter(isMultiBookingSize);
 
 	return (
 		<section className="grid gap-3">

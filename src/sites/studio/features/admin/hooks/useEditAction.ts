@@ -2,26 +2,81 @@ import { useState } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
-import type { UpdateBookingFromAdminResult } from "#convex/googleCalendar";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
+import type { UpdateSessionFromAdminResult } from "#convex/googleCalendar";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
-import { getBookingEditWarningState } from "#studio/features/admin/lib/booking-edit-warnings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
-export function useEditAction(booking: BookingRecord) {
-	const updateBooking = useAction(api.googleCalendar.updateBookingFromAdmin);
+type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
+type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
+type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
+
+const sessionUpdateErrorMessageMap = {
+	NOT_AUTHENTICATED: "You are not signed in.",
+	NOT_AUTHORIZED: "You do not have access to update sessions.",
+	BOOKING_NOT_FOUND: "That session no longer exists.",
+	BOOKING_INVALID_DATE: "Enter a valid session date.",
+	BOOKING_INVALID_TIME: "Enter a valid session time.",
+	BOOKING_INVALID_INPUT: "Check the session details and balance, then try again.",
+	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",
+	GOOGLE_CALENDAR_AUTH_FAILED: "Google Calendar authentication failed. Booking was not updated.",
+	GOOGLE_CALENDAR_CREATE_FAILED: "Google Calendar failed to create the event. Please try again.",
+	GOOGLE_CALENDAR_UPDATE_FAILED: "Google Calendar failed to update the event. Please try again.",
+	GOOGLE_CALENDAR_RATE_LIMITED: "Google Calendar is busy right now. Wait a minute, then try again.",
+	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
+		"Something went wrong while updating the session. Please try again.",
+	UNEXPECTED_ERROR: "Something went wrong while updating the session. Please try again."
+} satisfies Record<SessionUpdateError["reason"], string>;
+
+function showSessionUpdateError(error: SessionUpdateError) {
+	toast.error(sessionUpdateErrorMessageMap[error.reason]);
+}
+
+function buildSessionUpdateInput(
+	session: SessionRecord,
+	parsedValues: ParsedSessionValues,
+	remainingBalanceAmountResult: RemainingBalanceResult
+) {
+	return {
+		bookingId: session._id,
+		name: parsedValues.name,
+		phone: parsedValues.phone,
+		accountName: parsedValues.accountName,
+		...(parsedValues.abn ? { abn: parsedValues.abn } : {}),
+		email: parsedValues.email,
+		date: parsedValues.date,
+		time: parsedValues.time,
+		duration: parsedValues.duration,
+		service: parsedValues.service,
+		addons: parsedValues.addons,
+		...(parsedValues.essentialEditQuantity
+			? { essentialEditQuantity: parsedValues.essentialEditQuantity }
+			: {}),
+		...(parsedValues.clipsPackageQuantity
+			? { clipsPackageQuantity: parsedValues.clipsPackageQuantity }
+			: {}),
+		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
+		...(remainingBalanceAmountResult?.status === "valid"
+			? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
+			: {})
+	};
+}
+
+export function useEditAction(session: SessionRecord) {
+	const updateSession = useAction(api.googleCalendar.updateSessionFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getBookingEditWarningState
+		typeof getSessionEditWarningState
 	> | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 
-	async function saveEditBooking(
+	async function saveSessionEdit(
 		values: SessionEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
@@ -44,7 +99,7 @@ export function useEditAction(booking: BookingRecord) {
 		});
 
 		if (!parsedValues.success) {
-			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the booking details.");
+			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the session details.");
 			return;
 		}
 
@@ -59,7 +114,7 @@ export function useEditAction(booking: BookingRecord) {
 		}
 
 		if (!options?.skipConfirmation) {
-			const warningState = getBookingEditWarningState(booking, values);
+			const warningState = getSessionEditWarningState(session, values);
 
 			if (warningState.requiresConfirmation) {
 				setPendingEditDraft(values);
@@ -71,77 +126,17 @@ export function useEditAction(booking: BookingRecord) {
 
 		setIsSaving(true);
 
-		const [error, result] = await tryCatch<UpdateBookingFromAdminResult>(
-			updateBooking({
-				bookingId: booking._id,
-				name: parsedValues.data.name,
-				phone: parsedValues.data.phone,
-				accountName: parsedValues.data.accountName,
-				...(parsedValues.data.abn ? { abn: parsedValues.data.abn } : {}),
-				email: parsedValues.data.email,
-				date: parsedValues.data.date,
-				time: parsedValues.data.time,
-				duration: parsedValues.data.duration,
-				service: parsedValues.data.service,
-				addons: parsedValues.data.addons,
-				...(parsedValues.data.essentialEditQuantity
-					? { essentialEditQuantity: parsedValues.data.essentialEditQuantity }
-					: {}),
-				...(parsedValues.data.clipsPackageQuantity
-					? { clipsPackageQuantity: parsedValues.data.clipsPackageQuantity }
-					: {}),
-				...(parsedValues.data.notes ? { notes: parsedValues.data.notes } : {}),
-				...(remainingBalanceAmountResult !== null
-					? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
-					: {})
-			})
+		const updateInput = buildSessionUpdateInput(
+			session,
+			parsedValues.data,
+			remainingBalanceAmountResult
+		);
+		const [error, result] = await tryCatch<UpdateSessionFromAdminResult>(
+			updateSession(updateInput)
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to update bookings.");
-					break;
-				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
-					break;
-				case "BOOKING_INVALID_DATE":
-					toast.error("Enter a valid booking date.");
-					break;
-				case "BOOKING_INVALID_TIME":
-					toast.error("Enter a valid booking time.");
-					break;
-				case "BOOKING_INVALID_INPUT":
-					toast.error("Check the booking details and balance, then try again.");
-					break;
-				case "BOOKING_TIME_UNAVAILABLE":
-					toast.error("That time is no longer available. Choose another time.");
-					break;
-				case "GOOGLE_CALENDAR_AUTH_FAILED":
-					toast.error("Google Calendar authentication failed. Booking was not updated.");
-					break;
-				case "GOOGLE_CALENDAR_CREATE_FAILED":
-					toast.error("Google Calendar failed to create the event. Please try again.");
-					break;
-				case "GOOGLE_CALENDAR_UPDATE_FAILED":
-					toast.error("Google Calendar failed to update the event. Please try again.");
-					break;
-				case "GOOGLE_CALENDAR_RATE_LIMITED":
-					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
-					break;
-				case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while updating the booking. Please try again.");
-					break;
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
+			showSessionUpdateError(error);
 			setIsSaving(false);
 			return;
 		}
@@ -160,7 +155,7 @@ export function useEditAction(booking: BookingRecord) {
 	}
 
 	async function handleEditBooking(values: SessionEditDraft) {
-		await saveEditBooking(values);
+		await saveSessionEdit(values);
 	}
 
 	function closeEditConfirmationDialog() {
@@ -177,7 +172,7 @@ export function useEditAction(booking: BookingRecord) {
 
 		const draftToSave = pendingEditDraft;
 		setIsEditConfirmationDialogOpen(false);
-		await saveEditBooking(draftToSave, { skipConfirmation: true });
+		await saveSessionEdit(draftToSave, { skipConfirmation: true });
 		setPendingEditWarningState(null);
 		setPendingEditDraft(null);
 	}

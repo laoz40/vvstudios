@@ -18,7 +18,7 @@ export interface ReminderEmailProps {
 	bookingTime: string;
 	duration: string;
 	name: string;
-	isPackageBooking?: boolean;
+	isPackageSession?: boolean;
 	rescheduleUrl?: string;
 	service: string;
 	signoffName: string;
@@ -29,7 +29,7 @@ export function ReminderEmail({
 	bookingDate,
 	bookingTime,
 	duration,
-	isPackageBooking = false,
+	isPackageSession = false,
 	name,
 	rescheduleUrl,
 	service,
@@ -46,15 +46,13 @@ export function ReminderEmail({
 			<Preview>Your studio session is scheduled for tomorrow at {bookingTime}.</Preview>
 			<Body style={body}>
 				<Container style={container}>
-					{BOOKING_INVOICE_BUSINESS.logoUrl ? (
-						<Img
-							alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
-							height="100"
-							width="100"
-							src={BOOKING_INVOICE_BUSINESS.logoUrl}
-							style={logo}
-						/>
-					) : null}
+					<Img
+						alt={`${BOOKING_INVOICE_BUSINESS.businessName} logo`}
+						height="100"
+						width="100"
+						src={BOOKING_INVOICE_BUSINESS.logoUrl}
+						style={logo}
+					/>
 					<Heading style={heading}>Hello {name},</Heading>
 					<Text style={paragraph}>
 						This is a reminder that your studio session is scheduled for tomorrow.
@@ -121,7 +119,7 @@ export function ReminderEmail({
 									Reschedule booking
 								</Button>
 							</>
-						) : isPackageBooking ? (
+						) : isPackageSession ? (
 							<Text style={paragraph}>
 								To reschedule this package session, open your package session scheduling email and
 								edit the session date and time there.

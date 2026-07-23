@@ -59,7 +59,6 @@ function parseOptionalSearchString(value: unknown): string | undefined {
 function parseDevRescheduleCompleteScenario(
 	value: unknown
 ): DevRescheduleCompleteScenario | undefined {
-	return DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS.some((scenario) => scenario.value === value)
-		? (value as DevRescheduleCompleteScenario)
-		: undefined;
+	return DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)
+		?.value;
 }

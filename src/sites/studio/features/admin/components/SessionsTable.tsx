@@ -11,10 +11,10 @@ import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboa
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
-	filterAdminSessionBookings,
-	sortAdminSessionBookings,
+	filterAdminSessions,
+	sortAdminSessions,
 	type SessionSortId
 } from "#studio/features/admin/lib/admin-sessions";
 import {
@@ -23,10 +23,10 @@ import {
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 
 type SessionsTableProps = {
-	bookings: BookingRecord[];
-	canLoadMoreBookings: boolean;
-	isLoadingMoreBookings: boolean;
-	loadMoreBookings: () => void;
+	sessions: SessionRecord[];
+	canLoadMoreSessions: boolean;
+	isLoadingMoreSessions: boolean;
+	loadMoreSessions: () => void;
 	onSearchQueryChange: (searchQuery: string) => void;
 	searchQuery: string;
 };
@@ -34,10 +34,10 @@ type SessionsTableProps = {
 const pageSize = 10;
 
 export function SessionsTable({
-	bookings,
-	canLoadMoreBookings,
-	isLoadingMoreBookings,
-	loadMoreBookings,
+	sessions,
+	canLoadMoreSessions,
+	isLoadingMoreSessions,
+	loadMoreSessions,
 	onSearchQueryChange,
 	searchQuery
 }: SessionsTableProps) {
@@ -49,32 +49,37 @@ export function SessionsTable({
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
 		initialTablePreferences.showUpcomingOnly
 	);
-	const [showStaleBookings, setShowStaleBookings] = useState(
+	const [showStaleSessions, setShowStaleSessions] = useState(
 		initialTablePreferences.showStaleBookings
 	);
 
 	// Persist table preferences.
 	useEffect(() => {
-		storeSessionsTableFilters({ sorting, showArchived, showStaleBookings, showUpcomingOnly });
-	}, [sorting, showArchived, showStaleBookings, showUpcomingOnly]);
-
-	// Visible booking rows after dashboard-level filters.
-	const filteredBookings = useMemo(() => {
-		return filterAdminSessionBookings(bookings, {
-			searchQuery,
+		storeSessionsTableFilters({
+			sorting,
 			showArchived,
-			showStaleBookings,
+			showStaleBookings: showStaleSessions,
 			showUpcomingOnly
 		});
-	}, [bookings, searchQuery, showArchived, showStaleBookings, showUpcomingOnly]);
+	}, [sorting, showArchived, showStaleSessions, showUpcomingOnly]);
 
-	const sortedBookings = useMemo(() => {
-		return sortAdminSessionBookings(filteredBookings, sorting);
-	}, [filteredBookings, sorting]);
+	// Visible session rows after dashboard-level filters.
+	const filteredSessions = useMemo(() => {
+		return filterAdminSessions(sessions, {
+			searchQuery,
+			showArchived,
+			showStaleSessions,
+			showUpcomingOnly
+		});
+	}, [sessions, searchQuery, showArchived, showStaleSessions, showUpcomingOnly]);
 
-	const pageCount = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
+	const sortedSessions = useMemo(() => {
+		return sortAdminSessions(filteredSessions, sorting);
+	}, [filteredSessions, sorting]);
 
-	const paginatedBookings = sortedBookings.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+	const pageCount = Math.max(1, Math.ceil(sortedSessions.length / pageSize));
+
+	const paginatedSessions = sortedSessions.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
 	// Reset pagination when another dashboard view changes the controlled search.
 	useEffect(() => {
@@ -88,7 +93,7 @@ export function SessionsTable({
 
 	function updateSorting(id: SessionSortId) {
 		applyTableControlChange(setSorting, (currentSorting) => {
-			const currentSort = currentSorting[0];
+			const currentSort = currentSorting.at(0);
 
 			if (currentSort?.id === id) {
 				return [{ id, desc: !currentSort.desc }];
@@ -99,7 +104,7 @@ export function SessionsTable({
 	}
 
 	function renderSortButton(label: string, id: SessionSortId) {
-		const activeSort = sorting[0];
+		const activeSort = sorting.at(0);
 
 		return (
 			<SortHeaderButton
@@ -116,11 +121,11 @@ export function SessionsTable({
 			<SessionsTableFilters
 				searchQuery={searchQuery}
 				showArchived={showArchived}
-				showStaleBookings={showStaleBookings}
+				showStaleSessions={showStaleSessions}
 				showUpcomingOnly={showUpcomingOnly}
 				onSearchQueryChange={(value) => applyTableControlChange(onSearchQueryChange, value)}
 				onShowArchivedChange={(value) => applyTableControlChange(setShowArchived, value)}
-				onShowStaleBookingsChange={(value) => applyTableControlChange(setShowStaleBookings, value)}
+				onShowStaleSessionsChange={(value) => applyTableControlChange(setShowStaleSessions, value)}
 				onShowUpcomingOnlyChange={(value) => applyTableControlChange(setShowUpcomingOnly, value)}
 			/>
 
@@ -146,11 +151,11 @@ export function SessionsTable({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{paginatedBookings.length > 0 ? (
-							paginatedBookings.map((booking) => (
+						{paginatedSessions.length > 0 ? (
+							paginatedSessions.map((session) => (
 								<SessionTableRow
-									key={booking._id}
-									booking={booking}
+									key={session._id}
+									session={session}
 									onPackageFilterClick={onSearchQueryChange}
 								/>
 							))
@@ -159,7 +164,7 @@ export function SessionsTable({
 								<TableCell
 									colSpan={11}
 									className="h-24 text-center text-muted-foreground">
-									No bookings yet. L business.
+									No sessions yet. L business.
 								</TableCell>
 							</TableRow>
 						)}
@@ -168,13 +173,13 @@ export function SessionsTable({
 			</div>
 
 			<SessionsTableFooter
-				filteredBookingsCount={filteredBookings.length}
-				totalBookingsCount={bookings.length}
-				canLoadMoreBookings={canLoadMoreBookings}
-				isLoadingMoreBookings={isLoadingMoreBookings}
+				filteredSessionsCount={filteredSessions.length}
+				totalSessionsCount={sessions.length}
+				canLoadMoreSessions={canLoadMoreSessions}
+				isLoadingMoreSessions={isLoadingMoreSessions}
 				pageIndex={pageIndex}
 				pageCount={pageCount}
-				onLoadMoreBookings={loadMoreBookings}
+				onLoadMoreSessions={loadMoreSessions}
 				onPreviousPage={() => setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1))}
 				onNextPage={() =>
 					setPageIndex((currentPageIndex) => Math.min(pageCount - 1, currentPageIndex + 1))

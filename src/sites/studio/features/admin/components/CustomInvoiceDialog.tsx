@@ -4,20 +4,21 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type {
-	CreateCustomInvoiceResult,
-	ListCustomInvoicesForBookingResult
-} from "#convex/customInvoices";
+import type { CreateCustomInvoiceResult } from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
+import {
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import {
 	Dialog,
 	DialogClose,
@@ -27,33 +28,20 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import {
+	buildCustomInvoiceGenerationData,
 	formatCustomInvoiceAddonText,
 	formatCustomInvoiceTotal,
-	parseCustomInvoiceTotalDraft
+	type CustomInvoiceDraft
 } from "#studio/features/admin/lib/custom-invoices";
+import { toDeliverableCountOption } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
-import {
-	toDeliverableCountOption,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
 
-type BookingRecord = Doc<"bookings">;
+type SessionRecord = Doc<"bookings">;
 type CustomInvoiceRecord = Doc<"customInvoices">;
-
-type CustomInvoiceDraft = {
-	service: BookingService | "";
-	duration: BookingFormValues["duration"] | "";
-	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-	dueDate: string;
-	includeDepositLineItem: boolean;
-	customTotalDueAmount: string;
-};
 
 export type CustomInvoiceDialogProps = {
 	open: boolean;
-	booking: BookingRecord;
+	session: SessionRecord;
 	onOpenChange: (open: boolean) => void;
 };
 
@@ -61,20 +49,44 @@ function isBookingService(value: string | undefined): value is BookingService {
 	return value === "Table Setup" || value === "Armchair Setup";
 }
 
-export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoiceDialogProps) {
+function showCreateCustomInvoiceError(
+	error: NonNullable<CreateCustomInvoiceResult[0]> | UnexpectedError
+) {
+	const messages: Record<typeof error.reason, string> = {
+		NOT_AUTHENTICATED: "Please sign in first.",
+		NOT_AUTHORIZED: "You do not have permission to create custom invoices.",
+		BOOKING_NOT_FOUND: "This session no longer exists.",
+		INVALID_CUSTOM_TOTAL_DUE_AMOUNT: "Enter a valid custom invoice price.",
+		UNEXPECTED_ERROR: "Something went wrong with creating the custom invoice."
+	};
+	toast.error(messages[error.reason]);
+}
+
+function showInvoiceDownloadError(
+	error: NonNullable<DownloadAdminBookingInvoiceResult[0]> | UnexpectedError
+) {
+	if (error.reason === "INVALID_INVOICE_INPUT") {
+		toast.error(error.message);
+		return;
+	}
+
+	toast.error("Unable to generate invoice.");
+}
+
+export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoiceDialogProps) {
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
-		bookingId: booking._id
-	}) as ListCustomInvoicesForBookingResult | undefined;
+		bookingId: session._id
+	});
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		duration: "",
 		addons: [],
-		essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
-		clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
-		dueDate: booking.date,
+		essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+		clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+		dueDate: session.date,
 		includeDepositLineItem: false,
 		customTotalDueAmount: ""
 	});
@@ -88,25 +100,25 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		draft.includeDepositLineItem ||
 		draft.customTotalDueAmount.trim().length > 0;
 
-	// Reset the draft each time the dialog opens for this booking.
+	// Reset the draft each time the dialog opens for this session.
 	useEffect(() => {
 		if (open) {
 			setDraft({
 				service: "",
 				duration: "",
 				addons: [],
-				essentialEditQuantity: toDeliverableCountOption(booking.essentialEditQuantity),
-				clipsPackageQuantity: toDeliverableCountOption(booking.clipsPackageQuantity),
-				dueDate: booking.date,
+				essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+				clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+				dueDate: session.date,
 				includeDepositLineItem: false,
 				customTotalDueAmount: ""
 			});
 		}
 	}, [
-		booking.clipsPackageQuantity,
-		booking.date,
-		booking.duration,
-		booking.essentialEditQuantity,
+		session.clipsPackageQuantity,
+		session.date,
+		session.duration,
+		session.essentialEditQuantity,
 		open
 	]);
 
@@ -131,13 +143,13 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
-				booking,
-				addons: input.addons as BookingFormValues["addons"],
+				session,
+				addons: toAdminSessionAddons(input.addons),
 				createdAt: input.createdAt,
-				essentialEditQuantity: input.essentialEditQuantity ?? booking.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+				essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity,
+				clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity,
 				dueDate: input.dueDate,
-				duration: input.duration as BookingFormValues["duration"] | undefined,
+				duration: input.duration ? toAdminSessionDuration(input.duration) : undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
 				invoiceNumber: input.invoiceNumber,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes,
@@ -147,21 +159,7 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "INVALID_INVOICE_INPUT":
-					toast.error(error.message);
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Unable to generate invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
+			showInvoiceDownloadError(error);
 			setDownloadingInvoiceId(null);
 			return;
 		}
@@ -180,99 +178,37 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 			return;
 		}
 
-		const customTotalDueAmountResult = parseCustomInvoiceTotalDraft(draft.customTotalDueAmount);
+		const generationData = buildCustomInvoiceGenerationData(session._id, draft);
 
-		if (customTotalDueAmountResult.status === "invalid") {
+		if (generationData.status === "invalidTotal") {
 			toast.error("Enter a valid custom invoice price.");
 			return;
 		}
 
-		const customTotalDueAmount =
-			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
-			createCustomInvoice({
-				bookingId: booking._id,
-				dueDate: draft.dueDate,
-				...(hasCompleteSessionSelection
-					? { service: draft.service, duration: draft.duration }
-					: {}),
-				addons: draft.addons,
-				...(draft.essentialEditQuantity
-					? { essentialEditQuantity: draft.essentialEditQuantity }
-					: {}),
-				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
-				includeDepositLineItem: draft.includeDepositLineItem,
-				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
-			})
+			createCustomInvoice(generationData.createInput)
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("Please sign in first.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have permission to create custom invoices.");
-					break;
-
-				case "BOOKING_NOT_FOUND":
-					toast.error("This booking no longer exists.");
-					break;
-
-				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
-					toast.error("Enter a valid custom invoice price.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong with creating the custom invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
+			showCreateCustomInvoiceError(error);
 			setIsGenerating(false);
 			return;
 		}
 
 		const [downloadError] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
-				booking,
-				addons: draft.addons,
+				session,
+				...generationData.downloadInput,
 				createdAt: customInvoice.createdAt,
-				essentialEditQuantity: draft.essentialEditQuantity,
-				clipsPackageQuantity: draft.clipsPackageQuantity,
-				dueDate: draft.dueDate,
-				duration: hasCompleteSessionSelection ? draft.duration : undefined,
-				includeDepositLineItem: draft.includeDepositLineItem,
 				invoiceNumber: customInvoice.invoiceNumber,
-				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				service: hasCompleteSessionSelection ? (draft.service as BookingService) : null,
-				customTotalDueAmount
+				leadTimeMinutes: bookingSettings.leadTimeMinutes
 			})
 		);
 
 		if (downloadError !== null) {
-			switch (downloadError.reason) {
-				case "INVALID_INVOICE_INPUT":
-					toast.error(downloadError.message);
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Unable to generate invoice.");
-					break;
-
-				default: {
-					const _exhaustive: never = downloadError;
-					return _exhaustive;
-				}
-			}
-
+			showInvoiceDownloadError(downloadError);
 			setIsGenerating(false);
 			return;
 		}
@@ -285,9 +221,9 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: invoice.addons as BookingFormValues["addons"],
-				essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
-				clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity
+				addons: toAdminSessionAddons(invoice.addons),
+				essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
+				clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity
 			});
 
 			return {
@@ -296,11 +232,11 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				description: `${invoice.service ?? "Add-ons only"}${addonText}`,
 				total: formatCustomInvoiceTotal({
 					service: invoice.service,
-					addons: invoice.addons as BookingFormValues["addons"],
+					addons: invoice.addons,
 					duration: invoice.duration ?? "",
 					includeDepositLineItem: invoice.includeDepositLineItem,
-					essentialEditQuantity: invoice.essentialEditQuantity ?? booking.essentialEditQuantity,
-					clipsPackageQuantity: invoice.clipsPackageQuantity ?? booking.clipsPackageQuantity,
+					essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
+					clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity,
 					customTotalDueAmount: invoice.customTotalDueAmount
 				})
 			};
@@ -357,8 +293,8 @@ export function CustomInvoiceDialog({ open, booking, onOpenChange }: CustomInvoi
 				</DialogHeader>
 
 				<SessionCustomerSummary
-					bookingName={booking.name}
-					bookingEmail={booking.email}
+					bookingName={session.name}
+					bookingEmail={session.email}
 				/>
 
 				<form

@@ -2,18 +2,18 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { err, ok, type Result } from "../../src/lib/result";
-import { sendMultiBookingScheduleEmail } from "./email";
+import { sendPackageScheduleEmail } from "./email";
 
-export function buildMultiBookingScheduleUrl(baseUrl: string, token: string) {
+export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/package-schedule/${encodeURIComponent(token)}`, baseUrl);
 	return url.toString();
 }
 
-type MultiBookingScheduleEmailArgs = Parameters<typeof sendMultiBookingScheduleEmail>[0];
+type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
 
-export async function sendAndRecordMultiBookingScheduleEmail(
+export async function sendAndRecordPackageScheduleEmail(
 	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; email: MultiBookingScheduleEmailArgs }
+	args: { multiBookingId: Id<"multiBookingPackages">; email: PackageScheduleEmailArgs }
 ): Promise<
 	Result<
 		{ scheduleEmailStatus: "sent" },
@@ -23,12 +23,12 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 	>
 > {
 	// First try to send the schedule email. The database status is updated after we know the result.
-	const [scheduleEmailError] = await sendMultiBookingScheduleEmail(args.email);
+	const [scheduleEmailError] = await sendPackageScheduleEmail(args.email);
 
 	if (scheduleEmailError !== null) {
 		// Email failed, so record that failure on the package before returning the email error.
 		const [statusUpdateError] = await ctx.runMutation(
-			internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
+			internal.packages.markPackageScheduleEmailAttempt,
 			{ multiBookingId: args.multiBookingId, status: "failed" }
 		);
 
@@ -42,7 +42,7 @@ export async function sendAndRecordMultiBookingScheduleEmail(
 
 	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const [statusUpdateError] = await ctx.runMutation(
-		internal.bookings.markMultiBookingScheduleEmailAttemptInternal,
+		internal.packages.markPackageScheduleEmailAttempt,
 		{ multiBookingId: args.multiBookingId, status: "sent" }
 	);
 

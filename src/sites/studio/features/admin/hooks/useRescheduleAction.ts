@@ -3,11 +3,11 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { CreateAdminRescheduleLinkResult } from "#convex/bookingReschedule";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { CreateAdminRescheduleLinkResult } from "#convex/sessionReschedule";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-export function useRescheduleAction(booking: BookingRecord) {
-	const createAdminRescheduleLink = useMutation(api.bookingReschedule.createAdminRescheduleLink);
+export function useRescheduleAction(session: SessionRecord) {
+	const createAdminRescheduleLink = useMutation(api.sessionReschedule.createAdminRescheduleLink);
 	const [isRescheduleLinkDialogOpen, setIsRescheduleLinkDialogOpen] = useState(false);
 	const [isGeneratingRescheduleLink, setIsGeneratingRescheduleLink] = useState(false);
 	const [generatedRescheduleUrl, setGeneratedRescheduleUrl] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export function useRescheduleAction(booking: BookingRecord) {
 		setIsGeneratingRescheduleLink(true);
 
 		const [error, result] = await tryCatch<CreateAdminRescheduleLinkResult>(
-			createAdminRescheduleLink({ bookingId: booking._id })
+			createAdminRescheduleLink({ bookingId: session._id })
 		);
 
 		if (error !== null) {
@@ -28,20 +28,21 @@ export function useRescheduleAction(booking: BookingRecord) {
 					toast.error("You do not have access to create reschedule links.");
 					break;
 				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
+					toast.error("That session no longer exists.");
 					break;
 				case "BOOKING_NOT_RESCHEDULABLE":
-					toast.error("This booking cannot be rescheduled online.");
+					toast.error("This session cannot be rescheduled online.");
 					break;
 				case "RESCHEDULE_LINK_EXPIRED":
-					toast.error("This booking is in the past, so a reschedule link cannot be created.");
+					toast.error("This session is in the past, so a reschedule link cannot be created.");
 					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while creating the reschedule link.");
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

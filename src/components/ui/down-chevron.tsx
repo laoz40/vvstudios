@@ -21,7 +21,9 @@ const DownChevron = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				data-slot="animated-icon"
 				ref={scope}
 				className={`inline-flex cursor-pointer items-center justify-center ${className}`}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"

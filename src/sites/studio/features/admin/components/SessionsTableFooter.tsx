@@ -2,27 +2,27 @@ import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
 type SessionsTableFooterProps = {
-	canLoadMoreBookings: boolean;
-	filteredBookingsCount: number;
-	isLoadingMoreBookings: boolean;
-	onLoadMoreBookings: () => void;
+	canLoadMoreSessions: boolean;
+	filteredSessionsCount: number;
+	isLoadingMoreSessions: boolean;
+	onLoadMoreSessions: () => void;
 	onNextPage: () => void;
 	onPreviousPage: () => void;
 	pageCount: number;
 	pageIndex: number;
-	totalBookingsCount: number;
+	totalSessionsCount: number;
 };
 
 export function SessionsTableFooter({
-	canLoadMoreBookings,
-	filteredBookingsCount,
-	isLoadingMoreBookings,
-	onLoadMoreBookings,
+	canLoadMoreSessions,
+	filteredSessionsCount,
+	isLoadingMoreSessions,
+	onLoadMoreSessions,
 	onNextPage,
 	onPreviousPage,
 	pageCount,
 	pageIndex,
-	totalBookingsCount
+	totalSessionsCount
 }: SessionsTableFooterProps) {
 	return (
 		<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-3">
@@ -33,17 +33,17 @@ export function SessionsTableFooter({
 						"md:w-auto md:justify-start md:gap-6"
 					)}>
 					<p className="text-sm text-muted-foreground">
-						Showing {filteredBookingsCount} {filteredBookingsCount === 1 ? "session" : "sessions"} ·{" "}
-						{totalBookingsCount} {totalBookingsCount === 1 ? "session" : "sessions"} loaded
+						Showing {filteredSessionsCount} {filteredSessionsCount === 1 ? "session" : "sessions"} ·{" "}
+						{totalSessionsCount} {totalSessionsCount === 1 ? "session" : "sessions"} loaded
 					</p>
 				</div>
-				{canLoadMoreBookings || isLoadingMoreBookings ? (
+				{canLoadMoreSessions || isLoadingMoreSessions ? (
 					<Button
 						variant="outline"
 						size="sm"
-						onClick={onLoadMoreBookings}
-						disabled={isLoadingMoreBookings}>
-						{isLoadingMoreBookings ? "Loading..." : "Load more"}
+						onClick={onLoadMoreSessions}
+						disabled={isLoadingMoreSessions}>
+						{isLoadingMoreSessions ? "Loading..." : "Load more"}
 					</Button>
 				) : null}
 			</div>

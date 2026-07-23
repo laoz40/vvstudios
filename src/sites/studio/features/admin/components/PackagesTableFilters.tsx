@@ -50,25 +50,25 @@ export function PackagesTableFilters({
 							<DropdownMenuGroup>
 								<DropdownMenuCheckboxItem
 									checked={filters.showPaid}
-									onCheckedChange={(checked) => onFilterChange("showPaid", checked === true)}
+									onCheckedChange={(checked) => onFilterChange("showPaid", checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Paid only
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={filters.showOverdue}
-									onCheckedChange={(checked) => onFilterChange("showOverdue", checked === true)}
+									onCheckedChange={(checked) => onFilterChange("showOverdue", checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Overdue only
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={filters.showUpcoming}
-									onCheckedChange={(checked) => onFilterChange("showUpcoming", checked === true)}
+									onCheckedChange={(checked) => onFilterChange("showUpcoming", checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Upcoming only
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={filters.showArchived}
-									onCheckedChange={(checked) => onFilterChange("showArchived", checked === true)}
+									onCheckedChange={(checked) => onFilterChange("showArchived", checked)}
 									onSelect={(event) => event.preventDefault()}>
 									Show archived
 								</DropdownMenuCheckboxItem>

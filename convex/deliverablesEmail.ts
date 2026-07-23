@@ -2,14 +2,14 @@
 
 import { v } from "convex/values";
 import { err, ok, type Result } from "../src/lib/result";
-import { getBookingFromQuery } from "./lib/bookingLookup";
+import { getSessionFromQuery } from "./lib/sessionLookup";
 import { action, type ActionCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getAdminIdentity } from "./lib/auth";
-import { sendBookingDeliverablesEmailForBooking as sendDeliverablesEmail } from "./lib/email";
+import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "./lib/email";
 import { parseGoogleDriveLink } from "./lib/googleDriveLinks";
 
-type SendBookingDeliverablesEmailArgs = {
+type SendSessionDeliverablesEmailArgs = {
 	bookingId: Id<"bookings">;
 	driveLink: string;
 	editorNotes?: string;
@@ -17,7 +17,7 @@ type SendBookingDeliverablesEmailArgs = {
 };
 
 async function sendDeliverablesEmailForRecord(
-	booking: Doc<"bookings">,
+	session: Doc<"bookings">,
 	driveLink: string,
 	editorNotes: string | undefined,
 	emailVariant: "first-time" | "recurring"
@@ -31,18 +31,18 @@ async function sendDeliverablesEmailForRecord(
 	}
 
 	const [emailError] = await sendDeliverablesEmail({
-		date: booking.date,
+		date: session.date,
 		driveLink: parsedDriveLink,
 		editorNotes,
-		email: booking.email,
+		email: session.email,
 		emailVariant,
-		name: booking.name
+		name: session.name
 	});
 
 	if (emailError !== null) {
-		console.error("Manual booking deliverables email send failed", {
-			bookingId: booking._id,
-			bookingEmail: booking.email,
+		console.error("Manual session deliverables email send failed", {
+			bookingId: session._id,
+			bookingEmail: session.email,
 			reason: emailError.reason
 		});
 		return err({ reason: "DELIVERABLES_SEND_FAILED" });
@@ -51,9 +51,9 @@ async function sendDeliverablesEmailForRecord(
 	return ok({ sent: true });
 }
 
-async function sendBookingDeliverablesEmailHandler(
+async function sendSessionDeliverablesEmailHandler(
 	ctx: ActionCtx,
-	args: SendBookingDeliverablesEmailArgs
+	args: SendSessionDeliverablesEmailArgs
 ): Promise<
 	Result<
 		{ sent: true },
@@ -70,30 +70,30 @@ async function sendBookingDeliverablesEmailHandler(
 		return err(authError);
 	}
 
-	const [bookingError, booking] = await getBookingFromQuery(ctx, args.bookingId);
+	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
 
 	if (bookingError !== null) {
 		return err(bookingError);
 	}
 
 	return await sendDeliverablesEmailForRecord(
-		booking,
+		session,
 		args.driveLink,
 		args.editorNotes,
 		args.emailVariant
 	);
 }
 
-export type SendBookingDeliverablesEmailResult = Awaited<
-	ReturnType<typeof sendBookingDeliverablesEmailHandler>
+export type SendSessionDeliverablesEmailResult = Awaited<
+	ReturnType<typeof sendSessionDeliverablesEmailHandler>
 >;
 
-export const sendBookingDeliverablesEmail = action({
+export const sendSessionDeliverablesEmail = action({
 	args: {
 		bookingId: v.id("bookings"),
 		driveLink: v.string(),
 		editorNotes: v.optional(v.string()),
 		emailVariant: v.union(v.literal("first-time"), v.literal("recurring"))
 	},
-	handler: sendBookingDeliverablesEmailHandler
+	handler: sendSessionDeliverablesEmailHandler
 });

@@ -163,6 +163,11 @@ export default defineSchema({
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
+		.index("by_status_and_reminderEmailSentAt_and_sessionStartAt", [
+			"status",
+			"reminderEmailSentAt",
+			"sessionStartAt"
+		])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])

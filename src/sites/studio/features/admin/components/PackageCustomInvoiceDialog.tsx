@@ -4,10 +4,7 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type {
-	CreatePackageCustomInvoiceResult,
-	ListCustomInvoicesForPackageResult
-} from "#convex/customInvoices";
+import type { CreatePackageCustomInvoiceResult } from "#convex/customInvoices";
 import type { GetAdminCustomMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import { Button } from "#/components/ui/button";
 import {
@@ -18,11 +15,15 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
+import {
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import {
 	formatCustomInvoiceAddonText,
@@ -41,6 +42,9 @@ import {
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
+type CreatePackageCustomInvoiceError =
+	| Exclude<CreatePackageCustomInvoiceResult[0], null>
+	| UnexpectedError;
 
 type PackageCustomInvoiceDraft = {
 	duration: BookingFormValues["duration"] | "";
@@ -58,6 +62,30 @@ type PackageCustomInvoiceDialogProps = {
 	packageRow: AdminPackageRow;
 	onOpenChange: (open: boolean) => void;
 };
+
+function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceError) {
+	switch (error.reason) {
+		case "NOT_AUTHENTICATED":
+			toast.error("Please sign in first.");
+			break;
+		case "NOT_AUTHORIZED":
+			toast.error("You do not have permission to create custom invoices.");
+			break;
+		case "PACKAGE_NOT_FOUND":
+			toast.error("This package no longer exists.");
+			break;
+		case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
+			toast.error("Enter a valid custom invoice price.");
+			break;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong with creating the custom invoice.");
+			break;
+		default: {
+			const _exhaustive: never = error;
+			void _exhaustive;
+		}
+	}
+}
 
 function formatPackageInvoiceTotal(input: {
 	addons: BookingFormValues["addons"];
@@ -91,7 +119,7 @@ export function PackageCustomInvoiceDialog({
 	);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForPackage, {
 		multiBookingId: packageRow.id
-	}) as ListCustomInvoicesForPackageResult | undefined;
+	});
 	const customInvoices: PackageCustomInvoiceRecord[] | undefined =
 		customInvoicesResult?.[1] ?? undefined;
 	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
@@ -111,7 +139,7 @@ export function PackageCustomInvoiceDialog({
 		draft.duration !== "" ||
 		draft.addons.length > 0 ||
 		draft.packageSize !== packageRow.packageSize ||
-		draft.includePackageDiscount !== true ||
+		!draft.includePackageDiscount ||
 		draft.dueDate !== defaultDueDate ||
 		draft.customTotalDueAmount.trim().length > 0;
 
@@ -166,7 +194,8 @@ export function PackageCustomInvoiceDialog({
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -213,28 +242,7 @@ export function PackageCustomInvoiceDialog({
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("Please sign in first.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have permission to create custom invoices.");
-					break;
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-				case "INVALID_CUSTOM_TOTAL_DUE_AMOUNT":
-					toast.error("Enter a valid custom invoice price.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong with creating the custom invoice.");
-					break;
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
-			}
-
+			showCreatePackageCustomInvoiceError(error);
 			setIsGenerating(false);
 			return;
 		}
@@ -247,7 +255,7 @@ export function PackageCustomInvoiceDialog({
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: invoice.addons as BookingFormValues["addons"],
+				addons: toAdminSessionAddons(invoice.addons),
 				essentialEditQuantity: toDeliverableCountOption(
 					invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 				),
@@ -263,12 +271,12 @@ export function PackageCustomInvoiceDialog({
 				invoiceNumber: invoice.invoiceNumber,
 				description: `${packageSize} sessions · ${duration}${addonText}`,
 				total: formatPackageInvoiceTotal({
-					addons: invoice.addons as BookingFormValues["addons"],
+					addons: toAdminSessionAddons(invoice.addons),
 					clipsPackageQuantity: toDeliverableCountOption(
 						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
 					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
-					duration: (invoice.duration ?? "") as BookingFormValues["duration"] | "",
+					duration: toAdminSessionDuration(invoice.duration),
 					essentialEditQuantity: toDeliverableCountOption(
 						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
 					),

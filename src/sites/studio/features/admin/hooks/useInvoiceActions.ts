@@ -4,25 +4,24 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch } from "#/lib/result";
-import type { ListCustomInvoicesForBookingResult } from "#convex/customInvoices";
 import type { SendBookingInvoiceForBookingResult } from "#convex/googleCalendar";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
-export function useInvoiceActions(booking: BookingRecord) {
+export function useInvoiceActions(session: SessionRecord) {
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const customInvoicesResult = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
-		isEmailInvoiceDialogOpen ? { bookingId: booking._id } : "skip"
-	) as ListCustomInvoicesForBookingResult | undefined;
+		isEmailInvoiceDialogOpen ? { bookingId: session._id } : "skip"
+	);
 	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
 		useState<Id<"customInvoices"> | null>(null);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
@@ -40,9 +39,9 @@ export function useInvoiceActions(booking: BookingRecord) {
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
 
-		if (booking.multiBookingPackageId) {
+		if (session.multiBookingPackageId) {
 			const [packageError, invoice] = await tryCatch<GetAdminMultiBookingInvoicePdfByIdResult>(
-				getAdminPackageInvoicePdf({ multiBookingId: booking.multiBookingPackageId })
+				getAdminPackageInvoicePdf({ multiBookingId: session.multiBookingPackageId })
 			);
 
 			setIsDownloadingInvoice(false);
@@ -65,8 +64,8 @@ export function useInvoiceActions(booking: BookingRecord) {
 
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
-				booking,
-				createdAt: booking.pendingPaymentCreatedAt,
+				session,
+				createdAt: session.pendingPaymentCreatedAt,
 				leadTimeMinutes: bookingSettings.leadTimeMinutes
 			})
 		);
@@ -83,7 +82,8 @@ export function useInvoiceActions(booking: BookingRecord) {
 					return;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					return;
 				}
 			}
 		}
@@ -96,7 +96,7 @@ export function useInvoiceActions(booking: BookingRecord) {
 
 		const [error] = await tryCatch<SendBookingInvoiceForBookingResult>(
 			sendBookingInvoiceForBooking({
-				bookingId: booking._id,
+				bookingId: session._id,
 				...(selectedEmailCustomInvoiceId ? { customInvoiceId: selectedEmailCustomInvoiceId } : {})
 			})
 		);
@@ -112,7 +112,7 @@ export function useInvoiceActions(booking: BookingRecord) {
 					toast.error("You do not have access to send invoice emails.");
 					return;
 				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
+					toast.error("That session no longer exists.");
 					return;
 				case "CUSTOM_INVOICE_NOT_FOUND":
 					toast.error("That custom invoice no longer exists.");
@@ -125,13 +125,14 @@ export function useInvoiceActions(booking: BookingRecord) {
 					return;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					return;
 				}
 			}
 		}
 
 		setEmailInvoiceDialogOpen(false);
-		toast.success(`Invoice sent to ${booking.email}.`);
+		toast.success(`Invoice sent to ${session.email}.`);
 	}
 
 	return {

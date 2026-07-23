@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
 import { cn } from "#/lib/utils";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	getEditingAddonQuantity,
 	type EditingAddonQuantities
@@ -103,16 +103,17 @@ export function CopyableText({ value, label, children }: CopyableTextProps) {
 						aria-hidden
 					/>
 				)}>
-				<button onClick={() => void copyText(value, label)} />
+				<button
+					aria-label={`Copy ${label}`}
+					onClick={() => void copyText(value, label)}
+				/>
 			</AnimatedIconButton>
 		</span>
 	);
 }
 
-export function customerFilter(row: { original: BookingRecord }, value: unknown) {
-	const query = String(value ?? "")
-		.trim()
-		.toLowerCase();
+export function customerFilter(row: { original: SessionRecord }, value: unknown) {
+	const query = typeof value === "string" ? value.trim().toLowerCase() : "";
 
 	if (!query) {
 		return true;

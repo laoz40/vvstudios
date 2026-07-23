@@ -1,16 +1,49 @@
 import { err, ok, type Result } from "../../src/lib/result";
 import type {
-	BookingAvailabilitySettings,
-	BookingAvailabilityValidationError
-} from "./bookingCalendarTime";
-import { checkBookingMeetsAvailabilitySettings } from "./bookingCalendarTime";
+	SessionAvailabilitySettings,
+	SessionAvailabilityValidationError
+} from "./sessionCalendarTime";
+import { checkSessionMeetsAvailabilitySettings } from "./sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "./googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "./rateLimits";
-import { hashRescheduleToken } from "./bookingRescheduleLinks";
-import type { BookingCalendarEventRecord } from "./googleCalendarEvents";
+import { hashRescheduleToken } from "./sessionRescheduleLinks";
+import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
+import { getSessionStartAt } from "./sessionAdminEdit";
+import {
+	getPackageSessionAddons,
+	isDurationOption
+} from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
+import type { MultiBookingSize } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
+import { isPackageSessionLocked } from "../../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
+import { api } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { env } from "../env";
+
+type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
+
+export function getPackageAdminUpdateValidationError(
+	values: PackageAdminUpdateValues,
+	bookedSessionCount: number,
+	packageSize: MultiBookingSize
+) {
+	if (packageSize < bookedSessionCount) {
+		return "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" as const;
+	}
+
+	if (values.expiresAt !== undefined && !Number.isFinite(values.expiresAt)) {
+		return "PACKAGE_INVALID_EXPIRY" as const;
+	}
+
+	if (
+		values.totalDueAmount !== undefined &&
+		(!Number.isFinite(values.totalDueAmount) || values.totalDueAmount < 0)
+	) {
+		return "PACKAGE_INVALID_TOTAL_DUE_AMOUNT" as const;
+	}
+
+	return null;
+}
 
 export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INVALID" }
@@ -18,40 +51,40 @@ export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INACTIVE" }
 	| { reason: "PACKAGE_NOT_PAID" };
 
-export type PackageBookingEditError =
+export type PackageSessionEditError =
 	| { reason: "PACKAGE_BOOKING_NOT_FOUND" }
 	| { reason: "PACKAGE_BOOKING_LOCKED" };
 
-export type CreatePackageBookingError =
+export type CreatePackageSessionError =
 	| ValidPackageByTokenError
 	| { reason: "PACKAGE_CAPACITY_EXCEEDED" }
-	| BookingAvailabilityValidationError
+	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
 	| GoogleCalendarWriteError
 	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
 
-export type ReschedulePackageBookingError =
+export type ReschedulePackageSessionError =
 	| ValidPackageByTokenError
-	| PackageBookingEditError
-	| BookingAvailabilityValidationError
+	| PackageSessionEditError
+	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
 	| GoogleCalendarWriteError
 	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
 
-export type UnschedulePackageBookingError =
+export type UnschedulePackageSessionError =
 	| ValidPackageByTokenError
-	| PackageBookingEditError
+	| PackageSessionEditError
 	| GoogleCalendarWriteError
 	| { reason: "PACKAGE_BOOKING_CANCEL_FAILED" };
 
 export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
 
-const capacityConsumingBookingStatuses = ["confirmed", "email_failed"] as const;
+const capacityConsumingSessionStatuses = ["confirmed", "email_failed"] as const;
 
-export function bookingConsumesPackageCapacity(booking: Pick<Doc<"bookings">, "status">) {
-	switch (booking.status) {
+export function sessionConsumesPackageCapacity(session: Pick<Doc<"bookings">, "status">) {
+	switch (session.status) {
 		case "confirmed":
 		case "email_failed":
 			return true;
@@ -62,19 +95,19 @@ export function bookingConsumesPackageCapacity(booking: Pick<Doc<"bookings">, "s
 		case "abandoned":
 			return false;
 		default: {
-			const _exhaustive: never = booking.status;
+			const _exhaustive: never = session.status;
 			return _exhaustive;
 		}
 	}
 }
 
-export async function getCapacityConsumingPackageBookings(
+export async function getCapacityConsumingPackageSessions(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"multiBookingPackages">,
 	packageSize: 4 | 8 | 12
 ) {
 	const bookings: Doc<"bookings">[] = [];
-	for (const status of capacityConsumingBookingStatuses) {
+	for (const status of capacityConsumingSessionStatuses) {
 		const statusBookings = await ctx.db
 			.query("bookings")
 			.withIndex("by_multiBookingPackageId_and_status_and_sessionStartAt", (q) =>
@@ -83,30 +116,30 @@ export async function getCapacityConsumingPackageBookings(
 			.take(packageSize);
 		bookings.push(...statusBookings);
 	}
-	return bookings.sort((a, b) => a.sessionStartAt - b.sessionStartAt);
+	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
-export async function getPackageBookingForToken(
+export async function getPackageSessionForToken(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"multiBookingPackages">,
 	bookingId: Id<"bookings">
 ) {
-	const booking = await ctx.db.get(bookingId);
+	const session = await ctx.db.get(bookingId);
 
-	if (!booking || booking.multiBookingPackageId !== packageId) {
+	if (!session || session.multiBookingPackageId !== packageId) {
 		return null;
 	}
 
-	return booking;
+	return session;
 }
 
-export function checkPackageBookingAvailability(
+export function checkPackageSessionAvailability(
 	args: { date: string; time: string },
 	multiBooking: ValidPackage,
-	settings: BookingAvailabilitySettings,
+	settings: SessionAvailabilitySettings,
 	now: number
 ) {
-	return checkBookingMeetsAvailabilitySettings({
+	return checkSessionMeetsAvailabilitySettings({
 		date: args.date,
 		duration: multiBooking.duration,
 		latestBookableDate: new Date(multiBooking.expiresAt),
@@ -117,16 +150,71 @@ export function checkPackageBookingAvailability(
 	});
 }
 
-export function toPackageCalendarBooking(booking: Doc<"bookings">): BookingCalendarEventRecord {
+export function toPackageCalendarSession(session: Doc<"bookings">): SessionCalendarEventRecord {
 	return {
-		date: booking.date,
-		duration: booking.duration,
-		email: booking.email,
-		name: booking.name,
-		time: booking.time,
-		...(booking.googleCalendarId ? { googleCalendarId: booking.googleCalendarId } : {}),
-		...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
+		date: session.date,
+		duration: session.duration,
+		email: session.email,
+		name: session.name,
+		time: session.time,
+		...(session.googleCalendarId ? { googleCalendarId: session.googleCalendarId } : {}),
+		...(session.googleEventId ? { googleEventId: session.googleEventId } : {})
 	};
+}
+
+export function toPackageCalendarDetails(
+	args: {
+		date: string;
+		time: string;
+		service: "Table Setup" | "Armchair Setup";
+		remotePodcast: boolean;
+	},
+	multiBooking: ValidPackage,
+	eventBufferMinutes: number
+) {
+	if (!isDurationOption(multiBooking.duration)) {
+		throw new Error("Package duration is invalid");
+	}
+
+	return {
+		addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
+		date: args.date,
+		duration: multiBooking.duration,
+		email: multiBooking.email,
+		eventBufferMinutes,
+		name: multiBooking.name,
+		service: args.service,
+		time: args.time
+	};
+}
+
+export function getPackageSessionStartAt(args: { date: string; time: string }) {
+	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
+}
+
+export async function getEditablePackageSession(
+	ctx: QueryCtx,
+	args: { token: string; bookingId: Id<"bookings">; now: number }
+) {
+	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+
+	if (error !== null) {
+		return err(error);
+	}
+
+	const session = await getPackageSessionForToken(ctx, multiBooking._id, args.bookingId);
+
+	if (!session || !sessionConsumesPackageCapacity(session)) {
+		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+	}
+
+	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+
+	if (isPackageSessionLocked(session.sessionStartAt, settings.leadTimeMinutes, args.now)) {
+		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+	}
+
+	return ok({ session, multiBooking, settings });
 }
 
 export async function getValidPackageByToken(

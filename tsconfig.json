@@ -2,7 +2,7 @@
 	"include": ["**/*.ts", "**/*.tsx"],
 	"exclude": ["node_modules", "dist", "build", "coverage", "convex/_generated"],
 	"compilerOptions": {
-		"target": "ES2022",
+		"target": "ES2023",
 		"jsx": "react-jsx",
 		"module": "ESNext",
 		"paths": {
@@ -11,7 +11,7 @@
 			"#studio/*": ["./src/sites/studio/*"],
 			"@/*": ["./src/*"]
 		},
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"types": ["vite/client"],
 
 		/* Bundler mode */

@@ -49,7 +49,7 @@ export function AdminEditConfirmationDialog({
 	pricingFieldLabels,
 	nonPricingTitle = "Google Calendar event will update",
 	pricingTitle = "Pricing or remaining balance may recalculate",
-	description = "Review what this save will affect before making the booking changes permanent.",
+	description = "Review what this save will affect before making the session changes permanent.",
 	onCancel,
 	onConfirm,
 	onOpenChange
@@ -66,7 +66,7 @@ export function AdminEditConfirmationDialog({
 			}}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Confirm booking changes</DialogTitle>
+					<DialogTitle>Confirm session changes</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-3">

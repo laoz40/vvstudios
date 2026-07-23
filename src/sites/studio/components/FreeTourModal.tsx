@@ -1,3 +1,4 @@
+/* oxlint-disable react/iframe-missing-sandbox -- The trusted tour app requires scripts and same-origin access to function. */
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import MagnifierIcon from "#/components/ui/magnifier-icon";
 import { env } from "#/env";

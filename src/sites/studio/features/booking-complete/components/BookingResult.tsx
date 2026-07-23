@@ -43,34 +43,26 @@ export function BookingResult({
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
 	const getMultiBookingInvoicePdf = useAction(api.invoices.getMultiBookingInvoicePdfById);
-	const titleClassName =
-		"font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase";
-	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
-	const canDownloadInvoice = Boolean(invoiceDownloadTarget);
-	const showInvoiceDownloadLink =
-		canDownloadInvoice && invoiceDownloadTarget?.kind !== "multiBooking";
-	const showErrorIcon = content.isBookingCompletionFailure;
-	const showSuccessIcon = hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
-	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
-	const invoiceLead = getInvoiceLeadText({ booking, content, invoiceDownloadTarget });
 
-	async function handleDownloadInvoice(): Promise<void> {
+	function handleDownloadInvoice(): void {
 		if (!invoiceDownloadTarget) {
 			return;
 		}
 
 		setIsDownloadingInvoice(true);
 
-		try {
-			if (invoiceDownloadTarget.kind === "multiBooking") {
-				await downloadMultiBookingInvoice(invoiceDownloadTarget.multiBookingId);
-				return;
-			}
+		void (async () => {
+			try {
+				if (invoiceDownloadTarget.kind === "multiBooking") {
+					await downloadMultiBookingInvoice(invoiceDownloadTarget.multiBookingId);
+					return;
+				}
 
-			await downloadBookingInvoice(invoiceDownloadTarget.stripeSessionId);
-		} finally {
-			setIsDownloadingInvoice(false);
-		}
+				await downloadBookingInvoice(invoiceDownloadTarget.stripeSessionId);
+			} finally {
+				setIsDownloadingInvoice(false);
+			}
+		})();
 	}
 
 	async function downloadBookingInvoice(stripeSessionId: string): Promise<void> {
@@ -103,88 +95,158 @@ export function BookingResult({
 
 	return (
 		<section className="flex flex-col gap-8">
-			<div className="space-y-8">
-				<h1 className={titleClassName}>
-					{showSuccessIcon ? (
-						<CheckedIcon
-							className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
-							aria-hidden="true"
-							focusable="false"
-						/>
-					) : null}
-					{showErrorIcon ? (
-						<CircleX
-							className="mr-3 inline size-7 -translate-y-1 text-destructive sm:size-8 md:size-9"
-							aria-hidden
-						/>
-					) : null}
-					{content.title}
-				</h1>
-				{showDescription ? (
-					<div className="max-w-2xl space-y-4">
-						{content.descriptionHeading ? (
-							<h2 className="text-lg font-semibold">{content.descriptionHeading}</h2>
-						) : null}
-						{content.descriptionSteps ? (
-							<ol className="list-decimal space-y-3 pl-5 text-base leading-normal text-muted-foreground">
-								{content.descriptionSteps.map((step) => (
-									<li key={step.title}>
-										<strong className="block font-semibold text-foreground">{step.title}</strong>
-										<p>
-											{step.description}
-											{step.showInvoiceDownloadLink && invoiceDownloadTarget ? (
-												<>
-													{" "}
-													<button
-														type="button"
-														className={cn(
-															// Invoice download link style
-															"accent-link",
-															"inline bg-transparent p-0",
-															"text-base font-medium leading-normal text-foreground",
-															"disabled:pointer-events-none disabled:opacity-50"
-														)}
-														disabled={isDownloadingInvoice}
-														onClick={handleDownloadInvoice}>
-														{isDownloadingInvoice ? "generating invoice..." : "here"}
-													</button>
-													{step.invoiceDownloadLinkSuffix}
-												</>
-											) : null}
-										</p>
-									</li>
-								))}
-							</ol>
-						) : (
-							<p className="text-base leading-normal text-muted-foreground">
-								{content.description}
-							</p>
-						)}
-					</div>
-				) : null}
-				{showInvoiceDownloadLink ? (
-					<p className="max-w-2xl text-base leading-normal text-muted-foreground">
-						{invoiceLead}{" "}
-						<button
-							type="button"
-							className={cn(
-								// Invoice download link style
-								"accent-link",
-								"inline bg-transparent p-0",
-								"text-base font-medium leading-normal text-foreground",
-								"disabled:pointer-events-none disabled:opacity-50"
-							)}
-							disabled={isDownloadingInvoice}
-							onClick={handleDownloadInvoice}>
-							{isDownloadingInvoice ? "generating invoice..." : "here"}
-						</button>
-						.
-					</p>
-				) : null}
-			</div>
-
+			<BookingResultContentView
+				booking={booking}
+				content={content}
+				invoiceDownloadTarget={invoiceDownloadTarget}
+				isDownloadingInvoice={isDownloadingInvoice}
+				onDownloadInvoice={handleDownloadInvoice}
+			/>
 			{showBookingDetails && booking ? <BookingDetails booking={booking} /> : null}
 		</section>
+	);
+}
+
+interface BookingResultContentViewProps {
+	booking: BookingStatus | null;
+	content: BookingResultContent;
+	invoiceDownloadTarget?: InvoiceDownloadTarget;
+	isDownloadingInvoice: boolean;
+	onDownloadInvoice: () => void;
+}
+
+function BookingResultContentView({
+	booking,
+	content,
+	invoiceDownloadTarget,
+	isDownloadingInvoice,
+	onDownloadInvoice
+}: BookingResultContentViewProps): ReactNode {
+	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
+	const showInvoiceDownloadLink =
+		Boolean(invoiceDownloadTarget) && invoiceDownloadTarget?.kind !== "multiBooking";
+	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
+
+	return (
+		<div className="space-y-8">
+			<BookingResultHeading
+				content={content}
+				hasConfirmedBooking={hasConfirmedBooking}
+				isMultiBooking={invoiceDownloadTarget?.kind === "multiBooking"}
+			/>
+			{showDescription ? (
+				<BookingResultDescription
+					content={content}
+					invoiceDownloadTarget={invoiceDownloadTarget}
+					isDownloadingInvoice={isDownloadingInvoice}
+					onDownloadInvoice={onDownloadInvoice}
+				/>
+			) : null}
+			{showInvoiceDownloadLink ? (
+				<p className="max-w-2xl text-base leading-normal text-muted-foreground">
+					{getInvoiceLeadText({ booking, content, invoiceDownloadTarget })}{" "}
+					<InvoiceDownloadButton
+						isDownloading={isDownloadingInvoice}
+						onDownload={onDownloadInvoice}
+					/>
+					.
+				</p>
+			) : null}
+		</div>
+	);
+}
+
+function BookingResultHeading({
+	content,
+	hasConfirmedBooking,
+	isMultiBooking
+}: {
+	content: BookingResultContent;
+	hasConfirmedBooking: boolean;
+	isMultiBooking: boolean;
+}): ReactNode {
+	const showSuccessIcon = hasConfirmedBooking || isMultiBooking;
+
+	return (
+		<h1 className="font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase">
+			{showSuccessIcon ? (
+				<CheckedIcon
+					className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
+					aria-hidden="true"
+					focusable="false"
+				/>
+			) : null}
+			{content.isBookingCompletionFailure ? (
+				<CircleX
+					className="mr-3 inline size-7 -translate-y-1 text-destructive sm:size-8 md:size-9"
+					aria-hidden
+				/>
+			) : null}
+			{content.title}
+		</h1>
+	);
+}
+
+function BookingResultDescription({
+	content,
+	invoiceDownloadTarget,
+	isDownloadingInvoice,
+	onDownloadInvoice
+}: Omit<BookingResultContentViewProps, "booking">): ReactNode {
+	return (
+		<div className="max-w-2xl space-y-4">
+			{content.descriptionHeading ? (
+				<h2 className="text-lg font-semibold">{content.descriptionHeading}</h2>
+			) : null}
+			{content.descriptionSteps ? (
+				<ol className="list-decimal space-y-3 pl-5 text-base leading-normal text-muted-foreground">
+					{content.descriptionSteps.map((step) => (
+						<li key={step.title}>
+							<strong className="block font-semibold text-foreground">{step.title}</strong>
+							<p>
+								{step.description}
+								{step.showInvoiceDownloadLink && invoiceDownloadTarget ? (
+									<>
+										{" "}
+										<InvoiceDownloadButton
+											isDownloading={isDownloadingInvoice}
+											onDownload={onDownloadInvoice}
+										/>
+										{step.invoiceDownloadLinkSuffix}
+									</>
+								) : null}
+							</p>
+						</li>
+					))}
+				</ol>
+			) : (
+				<p className="text-base leading-normal text-muted-foreground">{content.description}</p>
+			)}
+		</div>
+	);
+}
+
+function InvoiceDownloadButton({
+	isDownloading,
+	onDownload
+}: {
+	isDownloading: boolean;
+	onDownload: () => void;
+}): ReactNode {
+	return (
+		<button
+			type="button"
+			className={cn(
+				// Invoice download link style
+				"accent-link",
+				"inline bg-transparent p-0",
+				"text-base font-medium leading-normal text-foreground",
+				"disabled:pointer-events-none disabled:opacity-50"
+			)}
+			disabled={isDownloading}
+			onClick={onDownload}>
+			{isDownloading ? "generating invoice..." : "here"}
+		</button>
 	);
 }
 

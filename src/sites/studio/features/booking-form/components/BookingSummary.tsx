@@ -22,6 +22,59 @@ function formatQuantityLabel(quantity: number, label: string) {
 	return `${quantity} x ${label}`;
 }
 
+function BookingSummaryTotal({
+	isWaitingForPackage,
+	multiBookingAmounts,
+	total
+}: {
+	isWaitingForPackage: boolean;
+	multiBookingAmounts: ReturnType<typeof calculateMultiBookingAmounts> | null;
+	total: number;
+}) {
+	if (multiBookingAmounts) {
+		return (
+			<>
+				<div className="flex items-center justify-between text-muted-foreground">
+					<p>Package subtotal</p>
+					<p>{formatBookingPriceWithCents(multiBookingAmounts.packageSubtotalAmount)}</p>
+				</div>
+				<div className="flex items-center justify-between text-primary">
+					<p>{multiBookingAmounts.discountPercent}% package discount</p>
+					<p>-{formatBookingPriceWithCents(multiBookingAmounts.discountAmount)}</p>
+				</div>
+				<div className="flex items-center justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
+					<p>Total</p>
+					<p>{formatBookingPriceWithCents(multiBookingAmounts.totalDueAmount)}</p>
+				</div>
+				<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
+					You can schedule session dates after payment.
+				</p>
+			</>
+		);
+	}
+
+	if (isWaitingForPackage) {
+		return (
+			<p className="text-sm italic leading-snug text-muted-foreground">
+				Select a package size to see your package total.
+			</p>
+		);
+	}
+
+	return (
+		<>
+			<div className="flex items-center justify-between text-lg font-semibold text-foreground">
+				<p>Total</p>
+				<p>{formatBookingPriceWithCents(total)}</p>
+			</div>
+			<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
+				Only $50 booking deposit required to secure your time slot, which gets deducted from your
+				total.
+			</p>
+		</>
+	);
+}
+
 export function BookingSummary() {
 	const [openSummaryItem, setOpenSummaryItem] = useState<string | undefined>();
 	const formApi = useBookingFormContext();
@@ -87,40 +140,11 @@ export function BookingSummary() {
 				</AccordionItem>
 			</Accordion>
 			<div className="space-y-2 border-border pt-2">
-				{multiBookingAmounts ? (
-					<>
-						<div className="flex items-center justify-between text-muted-foreground">
-							<p>Package subtotal</p>
-							<p>{formatBookingPriceWithCents(multiBookingAmounts.packageSubtotalAmount)}</p>
-						</div>
-						<div className="flex items-center justify-between text-primary">
-							<p>{multiBookingAmounts.discountPercent}% package discount</p>
-							<p>-{formatBookingPriceWithCents(multiBookingAmounts.discountAmount)}</p>
-						</div>
-						<div className="flex items-center justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
-							<p>Total</p>
-							<p>{formatBookingPriceWithCents(multiBookingAmounts.totalDueAmount)}</p>
-						</div>
-						<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
-							You can schedule session dates after payment.
-						</p>
-					</>
-				) : isWaitingForPackage ? (
-					<p className="text-sm italic leading-snug text-muted-foreground">
-						Select a package size to see your package total.
-					</p>
-				) : (
-					<>
-						<div className="flex items-center justify-between text-lg font-semibold text-foreground">
-							<p>Total</p>
-							<p>{formatBookingPriceWithCents(total)}</p>
-						</div>
-						<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
-							Only $50 booking deposit required to secure your time slot, which gets deducted from
-							your total.
-						</p>
-					</>
-				)}
+				<BookingSummaryTotal
+					isWaitingForPackage={isWaitingForPackage}
+					multiBookingAmounts={multiBookingAmounts}
+					total={total}
+				/>
 			</div>
 		</div>
 	);

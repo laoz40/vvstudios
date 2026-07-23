@@ -6,11 +6,9 @@ export function StatusIcon({ className, icon: Icon, label }: StatusIconProps) {
 	return (
 		<span
 			className="cursor-help"
-			role="img"
-			aria-label={label}
 			title={label}>
 			<Icon
-				aria-hidden
+				aria-label={label}
 				className={className}
 			/>
 		</span>

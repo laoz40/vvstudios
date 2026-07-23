@@ -21,7 +21,7 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
 
 		const handleHoverStart = () => {
-			start();
+			void start();
 		};
 
 		const handleHoverEnd = () => {

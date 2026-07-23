@@ -1,6 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 
-import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./bookingCalendarTime";
+import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./sessionCalendarTime";
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
@@ -72,18 +72,9 @@ export async function getBusyWindowsInRange({
 			});
 
 			for (const event of response.data.items ?? []) {
-				if (shouldIgnoreBusyEvent({ calendarId, event, ignoredEvent })) {
-					continue;
-				}
+				const busyWindow = toBusyWindow({ calendarId, event, ignoredEvent, timeZone });
 
-				const start = getEventDateTime(event.start, timeZone);
-				const end = getEventDateTime(event.end, timeZone);
-
-				if (!start || !end) {
-					continue;
-				}
-
-				busyWindows.push({ calendarId, end, ...(event.id ? { eventId: event.id } : {}), start });
+				busyWindows.push(...(busyWindow ? [busyWindow] : []));
 			}
 
 			pageToken = response.data.nextPageToken ?? undefined;
@@ -91,6 +82,31 @@ export async function getBusyWindowsInRange({
 	}
 
 	return busyWindows;
+}
+
+function toBusyWindow({
+	calendarId,
+	event,
+	ignoredEvent,
+	timeZone
+}: {
+	calendarId: string;
+	event: calendar_v3.Schema$Event;
+	ignoredEvent?: IgnoredBusyEvent;
+	timeZone: string;
+}): BusyWindow | undefined {
+	if (shouldIgnoreBusyEvent({ calendarId, event, ignoredEvent })) {
+		return undefined;
+	}
+
+	const start = getEventDateTime(event.start, timeZone);
+	const end = getEventDateTime(event.end, timeZone);
+
+	if (!start || !end) {
+		return undefined;
+	}
+
+	return { calendarId, end, ...(event.id ? { eventId: event.id } : {}), start };
 }
 
 function shouldIgnoreBusyEvent({

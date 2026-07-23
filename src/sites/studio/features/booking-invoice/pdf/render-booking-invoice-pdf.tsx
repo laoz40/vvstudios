@@ -1,13 +1,33 @@
-import type { Readable } from "node:stream";
 import type { BookingInvoiceData } from "#studio/features/booking-invoice/lib/types";
 import { createBookingInvoicePdfInstance } from "#studio/features/booking-invoice/pdf/create-booking-invoice-pdf-base";
 
-async function readStream(stream: Readable) {
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+	return (
+		value !== null &&
+		typeof value === "object" &&
+		Symbol.asyncIterator in value &&
+		typeof value[Symbol.asyncIterator] === "function"
+	);
+}
+
+async function readStream(stream: AsyncIterable<unknown>) {
 	const chunks: Uint8Array[] = [];
 	let totalLength = 0;
 
 	for await (const chunk of stream) {
-		const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+		const chunkValue: unknown = chunk;
+		let bytes: Uint8Array;
+
+		if (chunkValue instanceof Uint8Array) {
+			bytes = chunkValue;
+		} else if (typeof chunkValue === "string") {
+			bytes = new TextEncoder().encode(chunkValue);
+		} else if (chunkValue instanceof ArrayBuffer) {
+			bytes = new Uint8Array(chunkValue);
+		} else {
+			throw new TypeError("PDF stream emitted an unsupported chunk type.");
+		}
+
 		chunks.push(bytes);
 		totalLength += bytes.byteLength;
 	}
@@ -24,6 +44,11 @@ async function readStream(stream: Readable) {
 
 export async function renderBookingInvoicePdf(data: BookingInvoiceData) {
 	const instance = createBookingInvoicePdfInstance(data);
-	const stream = (await instance.toBuffer()) as Readable;
+	const stream: unknown = await instance.toBuffer();
+
+	if (!isAsyncIterable(stream)) {
+		throw new TypeError("PDF renderer returned an unsupported stream.");
+	}
+
 	return await readStream(stream);
 }

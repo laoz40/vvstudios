@@ -3,22 +3,22 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { UpdateBookingPaidRemainingBalanceResult } from "#convex/bookings";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { UpdateSessionPaidRemainingBalanceResult } from "#convex/sessions";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-export function usePaymentActions(booking: BookingRecord) {
-	const updateBookingPaidRemainingBalance = useMutation(
-		api.bookings.updateBookingPaidRemainingBalance
+export function usePaymentActions(session: SessionRecord) {
+	const updateSessionPaidRemainingBalance = useMutation(
+		api.sessions.updateSessionPaidRemainingBalance
 	);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 
-	const isPaidRemainingBalance = booking.paidRemainingBalance === true;
+	const isPaidRemainingBalance = session.paidRemainingBalance === true;
 
 	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
-		const [error] = await tryCatch<UpdateBookingPaidRemainingBalanceResult>(
-			updateBookingPaidRemainingBalance({ bookingId: booking._id, paidRemainingBalance })
+		const [error] = await tryCatch<UpdateSessionPaidRemainingBalanceResult>(
+			updateSessionPaidRemainingBalance({ bookingId: session._id, paidRemainingBalance })
 		);
 
 		if (error !== null) {
@@ -27,10 +27,10 @@ export function usePaymentActions(booking: BookingRecord) {
 					toast.error("You are not signed in.");
 					break;
 				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to update bookings.");
+					toast.error("You do not have access to update sessions.");
 					break;
 				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
+					toast.error("That session no longer exists.");
 					break;
 				case "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED":
 					toast.error("Could not update the payment status. Please try again.");
@@ -40,7 +40,8 @@ export function usePaymentActions(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

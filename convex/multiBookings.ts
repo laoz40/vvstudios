@@ -9,18 +9,18 @@ import { multiBookingFormSchema } from "../src/sites/studio/features/booking-for
 import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "../src/lib/result";
 import type {
-	MarkPackagePaidAndCreateScheduleTokenInternalResult,
-	RefreshPackageScheduleTokenInternalResult
-} from "./bookings";
+	MarkPackagePaidAndCreateScheduleTokenResult,
+	RefreshPackageScheduleTokenResult
+} from "./packages";
 import { env } from "./env";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { getAdminIdentity } from "./lib/auth";
 import {
-	buildMultiBookingScheduleUrl,
-	sendAndRecordMultiBookingScheduleEmail
-} from "./lib/multiBookingScheduleEmail";
+	buildPackageScheduleUrl,
+	sendAndRecordPackageScheduleEmail
+} from "./lib/packageScheduleEmail";
 
 type PendingMultiBookingCreationResult = Result<
 	{ multiBooking: MultiBookingInvoiceSource },
@@ -76,10 +76,9 @@ async function createMultiBookingRequestHandler(
 
 	const multiBooking = parsedMultiBooking.data;
 
-	const [rateLimitError] = await ctx.runMutation(
-		internal.bookings.checkBookingSubmitRateLimitInternal,
-		{ submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email) }
-	);
+	const [rateLimitError] = await ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
+		submitRateLimitKey: getBookingSubmitRateLimitKey(multiBooking.email)
+	});
 
 	if (rateLimitError !== null) {
 		return err(rateLimitError);
@@ -103,7 +102,7 @@ async function createMultiBookingRequestHandler(
 	});
 
 	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
-		await ctx.runMutation(internal.bookings.createPendingMultiBooking, {
+		await ctx.runMutation(internal.packages.createPendingPackage, {
 			name: multiBooking.name,
 			phone: multiBooking.phone,
 			accountName: multiBooking.accountName,
@@ -136,7 +135,7 @@ async function createMultiBookingRequestHandler(
 	);
 
 	if (invoiceEmailError !== null) {
-		await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+		await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
 			multiBookingId: createdMultiBooking._id,
 			status: "failed",
 			failureCode: invoiceEmailError.reason
@@ -145,7 +144,7 @@ async function createMultiBookingRequestHandler(
 		return ok({ multiBookingId: createdMultiBooking._id, invoiceEmailStatus: "failed" });
 	}
 
-	await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+	await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
 		multiBookingId: createdMultiBooking._id,
 		invoiceNumber: invoiceEmail.invoiceNumber,
 		status: "sent"
@@ -174,7 +173,7 @@ async function resendMultiBookingInvoiceEmailHandler(
 	}
 
 	const multiBooking: Doc<"multiBookingPackages"> | null = await ctx.runQuery(
-		internal.bookings.getPackageByIdInternal,
+		internal.packages.getPackageById,
 		{ multiBookingId: args.multiBookingId }
 	);
 
@@ -192,7 +191,7 @@ async function resendMultiBookingInvoiceEmailHandler(
 	});
 
 	if (invoiceEmailError !== null) {
-		await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+		await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
 			multiBookingId: multiBooking._id,
 			status: "failed",
 			failureCode: invoiceEmailError.reason
@@ -201,7 +200,7 @@ async function resendMultiBookingInvoiceEmailHandler(
 		return err({ reason: "PACKAGE_INVOICE_EMAIL_FAILED" });
 	}
 
-	await ctx.runMutation(internal.bookings.markMultiBookingInvoiceEmailAttempt, {
+	await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
 		multiBookingId: multiBooking._id,
 		invoiceNumber: invoiceEmail.invoiceNumber,
 		status: "sent"
@@ -241,8 +240,8 @@ async function confirmPackagePaymentHandler(
 	}
 
 	const paidAt = Date.now();
-	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenInternalResult =
-		await ctx.runMutation(internal.bookings.markPackagePaidAndCreateScheduleTokenInternal, {
+	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenResult =
+		await ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
 			multiBookingId: args.multiBookingId,
 			paidAt
 		});
@@ -251,13 +250,13 @@ async function confirmPackagePaymentHandler(
 		return err(paymentError);
 	}
 
-	const scheduleUrl = buildMultiBookingScheduleUrl(
+	const scheduleUrl = buildPackageScheduleUrl(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		paymentResult.token
 	);
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 
-	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
+	const [scheduleEmailError] = await sendAndRecordPackageScheduleEmail(ctx, {
 		multiBookingId: args.multiBookingId,
 		email: {
 			addons: paymentResult.multiBooking.addons,
@@ -309,22 +308,22 @@ async function retryMultiBookingSchedulingEmailHandler(
 		return err(authError);
 	}
 
-	const [tokenError, tokenResult]: RefreshPackageScheduleTokenInternalResult =
-		await ctx.runMutation(internal.bookings.refreshPackageScheduleTokenInternal, {
-			multiBookingId: args.multiBookingId
-		});
+	const [tokenError, tokenResult]: RefreshPackageScheduleTokenResult = await ctx.runMutation(
+		internal.packages.refreshPackageScheduleToken,
+		{ multiBookingId: args.multiBookingId }
+	);
 
 	if (tokenError !== null) {
 		return err(tokenError);
 	}
 
-	const scheduleUrl = buildMultiBookingScheduleUrl(
+	const scheduleUrl = buildPackageScheduleUrl(
 		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
 		tokenResult.token
 	);
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 
-	const [scheduleEmailError] = await sendAndRecordMultiBookingScheduleEmail(ctx, {
+	const [scheduleEmailError] = await sendAndRecordPackageScheduleEmail(ctx, {
 		multiBookingId: args.multiBookingId,
 		email: {
 			addons: tokenResult.multiBooking.addons,

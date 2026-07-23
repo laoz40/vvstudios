@@ -21,7 +21,7 @@ export function SmoothScroll() {
 		const mobileScroll = window.matchMedia(MOBILE_SCROLL_MEDIA_QUERY);
 
 		if (prefersReducedMotion.matches || mobileScroll.matches) {
-			return;
+			return undefined;
 		}
 
 		let isMounted = true;
@@ -94,7 +94,6 @@ export function SmoothScroll() {
 
 				target.scrollIntoView({ behavior: "smooth", block: "start" });
 			});
-			return;
 		}
 	}, [hash]);
 

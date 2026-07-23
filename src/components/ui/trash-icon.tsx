@@ -66,9 +66,9 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			await dangerHoverAnimation();
 		}, [openLid, dangerHoverAnimation]);
 
-		const hoverEndAnimation = useCallback(async () => {
-			resetColor();
-			closeLid();
+		const hoverEndAnimation = useCallback(() => {
+			void resetColor();
+			void closeLid();
 		}, [resetColor, closeLid]);
 
 		const clickAnimation = useCallback(async () => {
@@ -91,9 +91,13 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 			<motion.svg
 				ref={scope}
 				className={`cursor-pointer ${className} trash-icon`}
-				onHoverStart={hoverAnimation}
+				onHoverStart={() => {
+					void hoverAnimation();
+				}}
 				onHoverEnd={hoverEndAnimation}
-				onTap={clickAnimation}
+				onTap={() => {
+					void clickAnimation();
+				}}
 				xmlns="http://www.w3.org/2000/svg"
 				width={size}
 				height={size}

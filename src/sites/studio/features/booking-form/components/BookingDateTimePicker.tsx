@@ -65,9 +65,6 @@ export function BookingDateTimePicker({
 		selectedDate,
 		setCalendarMonth
 	} = availability;
-	const hasAvailableTimes = availableTimes.length > 0;
-	const isTimeSelectionReady = !timeSelectionMessage;
-
 	return (
 		<div className="grid max-w-7xl gap-6 xl:grid-cols-3 xl:items-start xl:gap-4">
 			<div className="xl:col-span-2">
@@ -133,7 +130,6 @@ export function BookingDateTimePicker({
 							onMonthChange={disabled ? undefined : setCalendarMonth}
 							selected={selectedDate}
 							onSelect={(date) => {
-								if (!date) return;
 								setCalendarMonth(startOfMonth(date));
 								onDateChange(formatDateValue(date));
 							}}
@@ -143,107 +139,212 @@ export function BookingDateTimePicker({
 				</Field>
 			</div>
 
-			<div className="flex h-full min-w-0 flex-col xl:max-w-sm">
-				<FieldSet
-					data-field-name="time"
-					className="min-w-0 gap-3">
-					<FieldLegend className={sectionHeadingClassName}>{copy.timeLabel}</FieldLegend>
-					{timeSelectionMessage ? (
-						<FieldDescription
-							className={cn(timeSelectionMessage.variant === "error" && "text-destructive")}>
-							{timeSelectionMessage.text}
-						</FieldDescription>
-					) : null}
-					{isTimeSelectionReady && isViewingSelectedMonth && isSelectedDateInPast ? (
-						<FieldDescription>{copy.pastDatesUnavailable}</FieldDescription>
-					) : null}
-					{isTimeSelectionReady && isViewingSelectedMonth && isLoadingMonthAvailability ? (
-						<FieldDescription className="flex items-center gap-2">
-							<LoaderCircle className="size-4 animate-spin" />
-							{copy.loadingAvailability}
-						</FieldDescription>
-					) : null}
-					{isTimeSelectionReady &&
-					!isLoadingMonthAvailability &&
-					isViewingSelectedMonth &&
-					!isSelectedDateInPast &&
-					!hasAvailableTimes &&
-					!availabilityError ? (
-						<FieldDescription>{copy.noTimesAvailable}</FieldDescription>
-					) : null}
-					{hasAvailableTimes ? (
-						<div
-							data-lenis-prevent
-							className={cn(
-								"-m-1 -mr-2 max-h-76 overflow-y-auto overscroll-contain p-1 pr-2",
-								"outline-none focus-visible:ring-2 focus-visible:ring-primary",
-								"focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-								"xl:h-128 xl:max-h-none xl:-mr-3 xl:pr-3"
-							)}>
-							<RadioGroup
-								value={selectedTime}
-								onValueChange={onTimeChange}
-								disabled={
-									disabled ||
-									!isTimeSelectionReady ||
-									!isViewingSelectedMonth ||
-									isLoadingMonthAvailability
-								}
-								className="flex flex-col gap-6">
-								<div className="grid grid-cols-1 gap-3">
-									{availableTimes.map((time) => {
-										const isSelected = selectedTime === time;
-										const timeOptionId = `time-${toOptionId(time)}`;
+			<TimeSelectionField
+				availabilityError={availabilityError}
+				availableTimes={availableTimes}
+				disabled={disabled}
+				isLoadingMonthAvailability={isLoadingMonthAvailability}
+				isSelectedDateInPast={isSelectedDateInPast}
+				isViewingSelectedMonth={isViewingSelectedMonth}
+				onTimeChange={onTimeChange}
+				selectedTime={selectedTime}
+				timeError={timeError}
+				timeSelectionMessage={timeSelectionMessage}
+			/>
+		</div>
+	);
+}
 
-										return (
-											<div
-												key={time}
-												className="relative rounded-lg">
-												<RadioGroupItem
-													value={time}
-													id={timeOptionId}
-													className="peer sr-only size-0"
-												/>
-												<FieldLabel
-													htmlFor={timeOptionId}
-													className={cn(
-														"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-card",
-														"shadow-lg shadow-background/25",
-														"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary",
-														"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-														transitionClassName,
-														getCardStateClassName(isSelected),
-														isSelected && "shadow-primary/20"
-													)}>
-													<Field
-														orientation="horizontal"
-														className={cn(
-															"relative h-14 w-full items-center justify-center",
-															"rounded-lg px-3.5 py-2"
-														)}>
-														<FieldTitle
-															className={cn(
-																"w-full justify-center text-center",
-																"whitespace-nowrap text-base font-semibold text-card-foreground",
-																getTextStateClassName(isSelected)
-															)}>
-															{formatTimeValue(time)}
-														</FieldTitle>
-													</Field>
-												</FieldLabel>
-											</div>
-										);
-									})}
-								</div>
-							</RadioGroup>
-						</div>
-					) : null}
-					{availabilityError ? (
-						<FieldDescription className="text-destructive">{availabilityError}</FieldDescription>
-					) : null}
-					{timeError}
-				</FieldSet>
-			</div>
+interface TimeSelectionFieldProps {
+	availabilityError: string | null;
+	availableTimes: string[];
+	disabled: boolean;
+	isLoadingMonthAvailability: boolean;
+	isSelectedDateInPast: boolean;
+	isViewingSelectedMonth: boolean;
+	onTimeChange: (time: string) => void;
+	selectedTime: string;
+	timeError?: React.ReactNode;
+	timeSelectionMessage: BookingTimeSelectionMessage | null;
+}
+
+function TimeSelectionField({
+	availabilityError,
+	availableTimes,
+	disabled,
+	isLoadingMonthAvailability,
+	isSelectedDateInPast,
+	isViewingSelectedMonth,
+	onTimeChange,
+	selectedTime,
+	timeError,
+	timeSelectionMessage
+}: TimeSelectionFieldProps) {
+	const hasAvailableTimes = availableTimes.length > 0;
+	const isTimeSelectionReady = !timeSelectionMessage;
+	const isTimePickerDisabled =
+		disabled || !isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability;
+
+	return (
+		<div className="flex h-full min-w-0 flex-col xl:max-w-sm">
+			<FieldSet
+				data-field-name="time"
+				className="min-w-0 gap-3">
+				<FieldLegend className={sectionHeadingClassName}>{copy.timeLabel}</FieldLegend>
+				<TimeSelectionStatus
+					availabilityError={availabilityError}
+					hasAvailableTimes={hasAvailableTimes}
+					isLoadingMonthAvailability={isLoadingMonthAvailability}
+					isSelectedDateInPast={isSelectedDateInPast}
+					isViewingSelectedMonth={isViewingSelectedMonth}
+					timeSelectionMessage={timeSelectionMessage}
+				/>
+				{hasAvailableTimes ? (
+					<div
+						data-lenis-prevent
+						className={cn(
+							"-m-1 -mr-2 max-h-76 overflow-y-auto overscroll-contain p-1 pr-2",
+							"outline-none focus-visible:ring-2 focus-visible:ring-primary",
+							"focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+							"xl:h-128 xl:max-h-none xl:-mr-3 xl:pr-3"
+						)}>
+						<RadioGroup
+							value={selectedTime}
+							onValueChange={onTimeChange}
+							disabled={isTimePickerDisabled}
+							className="flex flex-col gap-6">
+							<div className="grid grid-cols-1 gap-3">
+								{availableTimes.map((time) => (
+									<TimeOption
+										key={time}
+										isSelected={selectedTime === time}
+										time={time}
+									/>
+								))}
+							</div>
+						</RadioGroup>
+					</div>
+				) : null}
+				{availabilityError ? (
+					<FieldDescription className="text-destructive">{availabilityError}</FieldDescription>
+				) : null}
+				{timeError}
+			</FieldSet>
+		</div>
+	);
+}
+
+function TimeSelectionStatus({
+	availabilityError,
+	hasAvailableTimes,
+	isLoadingMonthAvailability,
+	isSelectedDateInPast,
+	isViewingSelectedMonth,
+	timeSelectionMessage
+}: Pick<
+	TimeSelectionFieldProps,
+	| "availabilityError"
+	| "isLoadingMonthAvailability"
+	| "isSelectedDateInPast"
+	| "isViewingSelectedMonth"
+	| "timeSelectionMessage"
+> & { hasAvailableTimes: boolean }) {
+	if (timeSelectionMessage) {
+		return (
+			<FieldDescription
+				className={cn(timeSelectionMessage.variant === "error" && "text-destructive")}>
+				{timeSelectionMessage.text}
+			</FieldDescription>
+		);
+	}
+
+	return (
+		<>
+			{isViewingSelectedMonth && isSelectedDateInPast ? (
+				<FieldDescription>{copy.pastDatesUnavailable}</FieldDescription>
+			) : null}
+			{isViewingSelectedMonth && isLoadingMonthAvailability ? (
+				<FieldDescription className="flex items-center gap-2">
+					<LoaderCircle className="size-4 animate-spin" />
+					{copy.loadingAvailability}
+				</FieldDescription>
+			) : null}
+			<NoAvailableTimesMessage
+				availabilityError={availabilityError}
+				hasAvailableTimes={hasAvailableTimes}
+				isLoadingMonthAvailability={isLoadingMonthAvailability}
+				isSelectedDateInPast={isSelectedDateInPast}
+				isViewingSelectedMonth={isViewingSelectedMonth}
+			/>
+		</>
+	);
+}
+
+function NoAvailableTimesMessage({
+	availabilityError,
+	hasAvailableTimes,
+	isLoadingMonthAvailability,
+	isSelectedDateInPast,
+	isViewingSelectedMonth
+}: Omit<
+	TimeSelectionFieldProps,
+	| "disabled"
+	| "onTimeChange"
+	| "selectedTime"
+	| "timeError"
+	| "timeSelectionMessage"
+	| "availableTimes"
+> & { hasAvailableTimes: boolean }) {
+	if (
+		isLoadingMonthAvailability ||
+		!isViewingSelectedMonth ||
+		isSelectedDateInPast ||
+		hasAvailableTimes ||
+		availabilityError
+	) {
+		return null;
+	}
+
+	return <FieldDescription>{copy.noTimesAvailable}</FieldDescription>;
+}
+
+function TimeOption({ isSelected, time }: { isSelected: boolean; time: string }) {
+	const timeOptionId = `time-${toOptionId(time)}`;
+
+	return (
+		<div className="relative rounded-lg">
+			<RadioGroupItem
+				value={time}
+				id={timeOptionId}
+				className="peer sr-only size-0"
+			/>
+			<FieldLabel
+				htmlFor={timeOptionId}
+				className={cn(
+					"pressable w-full! flex-row! cursor-pointer rounded-lg border border-border bg-card",
+					"shadow-lg shadow-background/25",
+					"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary",
+					"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+					transitionClassName,
+					getCardStateClassName(isSelected),
+					isSelected && "shadow-primary/20"
+				)}>
+				<Field
+					orientation="horizontal"
+					className={cn(
+						"relative h-14 w-full items-center justify-center",
+						"rounded-lg px-3.5 py-2"
+					)}>
+					<FieldTitle
+						className={cn(
+							"w-full justify-center text-center",
+							"whitespace-nowrap text-base font-semibold text-card-foreground",
+							getTextStateClassName(isSelected)
+						)}>
+						{formatTimeValue(time)}
+					</FieldTitle>
+				</Field>
+			</FieldLabel>
 		</div>
 	);
 }

@@ -3,13 +3,13 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { ArchiveSessionResult } from "#convex/bookings";
-import type { DeleteBookingFromAdminResult } from "#convex/googleCalendar";
-import type { BookingRecord } from "#studio/features/admin/lib/admin-bookings";
+import type { ArchiveSessionResult } from "#convex/sessions";
+import type { DeleteSessionFromAdminResult } from "#convex/googleCalendar";
+import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-export function useDeleteAction(booking: BookingRecord) {
-	const archiveSession = useMutation(api.bookings.archiveSession);
-	const deleteBookingEvent = useAction(api.googleCalendar.deleteBookingFromAdmin);
+export function useDeleteAction(session: SessionRecord) {
+	const archiveSession = useMutation(api.sessions.archiveSession);
+	const deleteSessionEvent = useAction(api.googleCalendar.deleteSessionFromAdmin);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isUpdatingArchive, setIsUpdatingArchive] = useState(false);
@@ -17,8 +17,8 @@ export function useDeleteAction(booking: BookingRecord) {
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
 
-		const [error] = await tryCatch<DeleteBookingFromAdminResult>(
-			deleteBookingEvent({ bookingId: booking._id })
+		const [error] = await tryCatch<DeleteSessionFromAdminResult>(
+			deleteSessionEvent({ bookingId: session._id })
 		);
 
 		if (error !== null) {
@@ -30,7 +30,7 @@ export function useDeleteAction(booking: BookingRecord) {
 					toast.error("You do not have access to delete session events.");
 					break;
 				case "BOOKING_NOT_FOUND":
-					toast.error("That booking no longer exists.");
+					toast.error("That session no longer exists.");
 					break;
 				case "GOOGLE_CALENDAR_AUTH_FAILED":
 					toast.error("Google Calendar authentication failed. Session event was not deleted.");
@@ -49,7 +49,8 @@ export function useDeleteAction(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -66,7 +67,7 @@ export function useDeleteAction(booking: BookingRecord) {
 		setIsUpdatingArchive(true);
 
 		const [error] = await tryCatch<ArchiveSessionResult>(
-			archiveSession({ bookingId: booking._id, archived })
+			archiveSession({ bookingId: session._id, archived })
 		);
 
 		if (error !== null) {
@@ -88,7 +89,8 @@ export function useDeleteAction(booking: BookingRecord) {
 					break;
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 

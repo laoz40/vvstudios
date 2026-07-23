@@ -15,7 +15,7 @@ import { studioSite } from "#/config/sites";
 import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
-import type { CreatePublicFailedBookingRescheduleLinkResult } from "#convex/bookingReschedule";
+import type { CreatePublicFailedSessionRescheduleLinkResult } from "#convex/sessionReschedule";
 import type { Id } from "#convex/_generated/dataModel";
 
 type InstagramPromptTarget =
@@ -43,8 +43,8 @@ export function BookingStatusLayout({
 	devPanel = <BookingCompleteDevScenarioPanel />
 }: BookingStatusLayoutProps): ReactNode {
 	const [isCreatingRescheduleLink, setIsCreatingRescheduleLink] = useState(false);
-	const createFailedBookingRescheduleLink = useMutation(
-		api.bookingReschedule.createPublicFailedBookingRescheduleLink
+	const createFailedSessionRescheduleLink = useMutation(
+		api.sessionReschedule.createPublicFailedSessionRescheduleLink
 	);
 	const isFailedBooking = bookingStatus === "failed";
 	const resolvedInstagramPromptTarget =
@@ -62,8 +62,8 @@ export function BookingStatusLayout({
 		setIsCreatingRescheduleLink(true);
 
 		try {
-			const [error, result] = await tryCatch<CreatePublicFailedBookingRescheduleLinkResult>(
-				createFailedBookingRescheduleLink({ stripeSessionId })
+			const [error, result] = await tryCatch<CreatePublicFailedSessionRescheduleLinkResult>(
+				createFailedSessionRescheduleLink({ stripeSessionId })
 			);
 
 			if (error !== null) {
@@ -97,6 +97,10 @@ export function BookingStatusLayout({
 			setIsCreatingRescheduleLink(false);
 		}
 	}
+	function startReschedule(): void {
+		void handleRescheduleClick();
+	}
+
 	return (
 		<main
 			className={cn(
@@ -108,102 +112,13 @@ export function BookingStatusLayout({
 			{import.meta.env.DEV ? devPanel : null}
 
 			{showActions ? (
-				<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-					{isFailedBooking ? (
-						<>
-							{canCreateRescheduleLink && stripeSessionId ? (
-								<AnimatedIconButton
-									size="lg"
-									className={cn(
-										"h-auto w-full sm:w-auto",
-										"px-8 py-3",
-										"text-base font-medium",
-										"shadow-lg shadow-primary/45"
-									)}
-									disabled={isCreatingRescheduleLink}
-									renderIcon={(iconRef) => (
-										<ArrowNarrowRightIcon
-											ref={iconRef}
-											strokeWidth={3}
-											className="translate-y-px"
-											aria-hidden
-										/>
-									)}>
-									<button
-										type="button"
-										onClick={handleRescheduleClick}>
-										{isCreatingRescheduleLink ? "Creating link..." : "Reschedule booking"}
-									</button>
-								</AnimatedIconButton>
-							) : null}
-							<AnimatedIconButton
-								size="lg"
-								className={cn(
-									"h-auto w-full sm:w-auto",
-									"px-8 py-3",
-									"text-base font-medium",
-									canCreateRescheduleLink && stripeSessionId
-										? "border-none shadow-md shadow-background/25"
-										: "shadow-lg shadow-primary/45"
-								)}
-								variant={canCreateRescheduleLink && stripeSessionId ? "outline" : undefined}
-								iconPosition="before"
-								renderIcon={(iconRef) => (
-									<PhoneVolume
-										ref={iconRef}
-										aria-hidden
-										strokeWidth={3}
-									/>
-								)}>
-								<a
-									href={studioSite.routes.contact}
-									rel="noreferrer"
-									target="_blank">
-									Contact us
-								</a>
-							</AnimatedIconButton>
-						</>
-					) : (
-						<>
-							<AnimatedIconButton
-								size="lg"
-								className={cn(
-									"h-auto w-full sm:w-auto",
-									"px-8 py-3",
-									"text-base font-medium",
-									"shadow-lg shadow-primary/45"
-								)}
-								renderIcon={(iconRef) => (
-									<ArrowNarrowRightIcon
-										ref={iconRef}
-										strokeWidth={3}
-										className="translate-y-px"
-										aria-hidden
-									/>
-								)}>
-								<Link to={studioSite.routes.book}>Make a new booking</Link>
-							</AnimatedIconButton>
-							<AnimatedIconButton
-								size="lg"
-								className={cn(
-									"h-auto w-full sm:w-auto",
-									"px-8 py-3",
-									"text-base font-medium",
-									"border-none shadow-md shadow-background/25"
-								)}
-								variant="outline"
-								iconPosition="before"
-								renderIcon={(iconRef) => (
-									<HomeIcon
-										ref={iconRef}
-										aria-hidden
-									/>
-								)}>
-								<Link to={studioSite.routes.home}>Return home</Link>
-							</AnimatedIconButton>
-						</>
-					)}
-				</div>
+				<BookingActions
+					canCreateRescheduleLink={canCreateRescheduleLink}
+					isCreatingRescheduleLink={isCreatingRescheduleLink}
+					isFailedBooking={isFailedBooking}
+					onReschedule={startReschedule}
+					stripeSessionId={stripeSessionId}
+				/>
 			) : null}
 
 			{resolvedInstagramPromptTarget ? (
@@ -212,5 +127,129 @@ export function BookingStatusLayout({
 				</div>
 			) : null}
 		</main>
+	);
+}
+
+interface BookingActionsProps {
+	canCreateRescheduleLink: boolean;
+	isCreatingRescheduleLink: boolean;
+	isFailedBooking: boolean;
+	onReschedule: () => void;
+	stripeSessionId?: string | null;
+}
+
+function BookingActions(props: BookingActionsProps): ReactNode {
+	return (
+		<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+			{props.isFailedBooking ? <FailedBookingActions {...props} /> : <SuccessfulBookingActions />}
+		</div>
+	);
+}
+
+function FailedBookingActions({
+	canCreateRescheduleLink,
+	isCreatingRescheduleLink,
+	onReschedule,
+	stripeSessionId
+}: BookingActionsProps): ReactNode {
+	const canReschedule = canCreateRescheduleLink && Boolean(stripeSessionId);
+
+	return (
+		<>
+			{canReschedule ? (
+				<AnimatedIconButton
+					size="lg"
+					className={cn(
+						"h-auto w-full sm:w-auto",
+						"px-8 py-3",
+						"text-base font-medium",
+						"shadow-lg shadow-primary/45"
+					)}
+					disabled={isCreatingRescheduleLink}
+					renderIcon={(iconRef) => (
+						<ArrowNarrowRightIcon
+							ref={iconRef}
+							strokeWidth={3}
+							className="translate-y-px"
+							aria-hidden
+						/>
+					)}>
+					<button
+						type="button"
+						onClick={onReschedule}>
+						{isCreatingRescheduleLink ? "Creating link..." : "Reschedule booking"}
+					</button>
+				</AnimatedIconButton>
+			) : null}
+			<AnimatedIconButton
+				size="lg"
+				className={cn(
+					"h-auto w-full sm:w-auto",
+					"px-8 py-3",
+					"text-base font-medium",
+					canReschedule
+						? "border-none shadow-md shadow-background/25"
+						: "shadow-lg shadow-primary/45"
+				)}
+				variant={canReschedule ? "outline" : undefined}
+				iconPosition="before"
+				renderIcon={(iconRef) => (
+					<PhoneVolume
+						ref={iconRef}
+						aria-hidden
+						strokeWidth={3}
+					/>
+				)}>
+				<a
+					href={studioSite.routes.contact}
+					rel="noreferrer"
+					target="_blank">
+					Contact us
+				</a>
+			</AnimatedIconButton>
+		</>
+	);
+}
+
+function SuccessfulBookingActions(): ReactNode {
+	return (
+		<>
+			<AnimatedIconButton
+				size="lg"
+				className={cn(
+					"h-auto w-full sm:w-auto",
+					"px-8 py-3",
+					"text-base font-medium",
+					"shadow-lg shadow-primary/45"
+				)}
+				renderIcon={(iconRef) => (
+					<ArrowNarrowRightIcon
+						ref={iconRef}
+						strokeWidth={3}
+						className="translate-y-px"
+						aria-hidden
+					/>
+				)}>
+				<Link to={studioSite.routes.book}>Make a new booking</Link>
+			</AnimatedIconButton>
+			<AnimatedIconButton
+				size="lg"
+				className={cn(
+					"h-auto w-full sm:w-auto",
+					"px-8 py-3",
+					"text-base font-medium",
+					"border-none shadow-md shadow-background/25"
+				)}
+				variant="outline"
+				iconPosition="before"
+				renderIcon={(iconRef) => (
+					<HomeIcon
+						ref={iconRef}
+						aria-hidden
+					/>
+				)}>
+				<Link to={studioSite.routes.home}>Return home</Link>
+			</AnimatedIconButton>
+		</>
 	);
 }

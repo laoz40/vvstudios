@@ -37,7 +37,9 @@ const MailFilledIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				strokeLinecap="round"
 				strokeLinejoin="round"
 				className={`${className} cursor-pointer perspective-distant`}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}>
 				<motion.path
 					stroke="none"

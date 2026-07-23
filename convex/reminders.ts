@@ -14,7 +14,7 @@ import {
 	getTomorrowTimeZoneDayRange
 } from "./lib/reminderScheduleTime";
 import { sendPackageExpiryReminderEmail, sendPackagePaymentReminderEmail } from "./lib/email";
-import { getCapacityConsumingPackageBookings } from "./lib/packageScheduling";
+import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
 
 const REMINDER_BATCH_SIZE = 50;
 const SYDNEY_TIME_ZONE = "Australia/Sydney";
@@ -91,7 +91,7 @@ export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 				remainingSessions:
 					multiBookingPackage.packageSize -
 					(
-						await getCapacityConsumingPackageBookings(
+						await getCapacityConsumingPackageSessions(
 							ctx,
 							multiBookingPackage._id,
 							multiBookingPackage.packageSize
@@ -309,14 +309,14 @@ export const sendDueReminderEmails = internalAction({
 		await sendPackageExpiryRemindersDueToday(ctx, nowDate);
 
 		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
-		const bookings = await ctx.runQuery(internal.bookings.listBookingsDueForReminderEmail, {
+		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
 			dayEnd,
 			dayStart,
 			limit: REMINDER_BATCH_SIZE
 		});
 
 		for (const booking of bookings) {
-			await ctx.runAction(internal.googleCalendar.sendBookingReminderEmailForBooking, {
+			await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
 				bookingId: booking._id
 			});
 		}

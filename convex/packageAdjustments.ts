@@ -8,7 +8,7 @@ import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "./lib/packageAdjustme
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
-export const getPackageAdjustmentInvoiceSourceInternal = internalQuery({
+export const getPackageAdjustmentInvoiceSource = internalQuery({
 	args: { adjustmentId: v.id("packageAdjustments") },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);
@@ -22,16 +22,16 @@ export const getPackageAdjustmentInvoiceSourceInternal = internalQuery({
 	}
 });
 
-export const claimPackageAdjustmentInvoiceEmailInternal = internalMutation({
+export const claimPackageAdjustmentInvoiceEmail = internalMutation({
 	args: {
 		adjustmentId: v.id("packageAdjustments"),
 		attempt: adjustmentEmailAttemptValidator,
 		now: v.number()
 	},
-	handler: (ctx, args) => claimPackageAdjustmentInvoiceEmail(ctx, args)
+	handler: (ctx, args) => claimPackageAdjustmentInvoiceEmailHandler(ctx, args)
 });
 
-async function claimPackageAdjustmentInvoiceEmail(
+async function claimPackageAdjustmentInvoiceEmailHandler(
 	ctx: MutationCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; attempt: "automatic" | "retry"; now: number }
 ) {
@@ -68,14 +68,14 @@ async function claimPackageAdjustmentInvoiceEmail(
 	await ctx.db.patch(adjustment._id, { invoiceEmailClaimedAt: args.now });
 	await ctx.scheduler.runAfter(
 		PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
-		internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailedInternal,
+		internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,
 		{ adjustmentId: adjustment._id, claimedAt: args.now }
 	);
 
 	return ok({ adjustment, multiBooking });
 }
 
-export const markStalledPackageAdjustmentInvoiceEmailFailedInternal = internalMutation({
+export const markStalledPackageAdjustmentInvoiceEmailFailed = internalMutation({
 	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);
@@ -97,7 +97,7 @@ export const markStalledPackageAdjustmentInvoiceEmailFailedInternal = internalMu
 	}
 });
 
-export const markPackageAdjustmentInvoiceEmailSentInternal = internalMutation({
+export const markPackageAdjustmentInvoiceEmailSent = internalMutation({
 	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);
@@ -120,7 +120,7 @@ export const markPackageAdjustmentInvoiceEmailSentInternal = internalMutation({
 	}
 });
 
-export const markPackageAdjustmentInvoiceEmailFailedInternal = internalMutation({
+export const markPackageAdjustmentInvoiceEmailFailed = internalMutation({
 	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: async (ctx, args) => {
 		const adjustment = await ctx.db.get(args.adjustmentId);

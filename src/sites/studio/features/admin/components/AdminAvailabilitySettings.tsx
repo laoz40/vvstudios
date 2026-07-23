@@ -102,7 +102,8 @@ export function AdminAvailabilitySettings() {
 
 				default: {
 					const _exhaustive: never = error;
-					return _exhaustive;
+					void _exhaustive;
+					break;
 				}
 			}
 
@@ -236,7 +237,7 @@ export function AdminAvailabilitySettings() {
 						Cancel
 					</Button>
 					<Button
-						onClick={handleSaveSettings}
+						onClick={() => void handleSaveSettings()}
 						disabled={isSaving || !bookingSettings}>
 						{isSaving ? "Saving..." : "Save settings"}
 					</Button>

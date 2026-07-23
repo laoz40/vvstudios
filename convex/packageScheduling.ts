@@ -12,29 +12,23 @@ import {
 	type QueryCtx
 } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { env } from "./env";
-import { getBookingSessionStartAt } from "./lib/bookingAdminEdit";
-import type { BookingAvailabilitySettings } from "./lib/bookingCalendarTime";
+import type { SessionAvailabilitySettings } from "./lib/sessionCalendarTime";
 import {
-	bookingConsumesPackageCapacity,
-	checkPackageBookingAvailability,
-	getCapacityConsumingPackageBookings,
-	getPackageBookingForToken,
-	getValidPackageByToken,
-	toPackageCalendarBooking,
-	type CreatePackageBookingError,
-	type ReschedulePackageBookingError,
-	type UnschedulePackageBookingError,
-	type ValidPackage
+	sessionConsumesPackageCapacity,
+	checkPackageSessionAvailability,
+	getCapacityConsumingPackageSessions,
+	getEditablePackageSession,
+	getPackageSessionForToken,
+	getPackageSessionStartAt,
+	getValidPackageByToken as findValidPackageByToken,
+	toPackageCalendarSession,
+	toPackageCalendarDetails,
+	type CreatePackageSessionError,
+	type ReschedulePackageSessionError,
+	type UnschedulePackageSessionError
 } from "./lib/packageScheduling";
-import { isPackageSessionLocked } from "../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
 import { getPackageSessionAddons } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
-import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import {
-	evaluatePackageAdjustment,
-	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "./lib/packageAdjustments";
+import { processPackageAdjustment } from "./lib/packageAdjustments";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
@@ -42,13 +36,13 @@ export const getPackageByToken = query({
 });
 
 async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) {
-	const [lookupError, multiBooking] = await getValidPackageByToken(ctx, args.token, Date.now());
+	const [lookupError, multiBooking] = await findValidPackageByToken(ctx, args.token, Date.now());
 
 	if (lookupError !== null) {
 		return err(lookupError);
 	}
 
-	const bookings = await getCapacityConsumingPackageBookings(
+	const sessions = await getCapacityConsumingPackageSessions(
 		ctx,
 		multiBooking._id,
 		multiBooking.packageSize
@@ -65,15 +59,15 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 		packageSize: multiBooking.packageSize,
 		expiresAt: multiBooking.expiresAt,
 		defaultSpace: multiBooking.defaultSpace,
-		bookings: bookings.map((booking) => ({
-			_id: booking._id,
-			date: booking.date,
-			time: booking.time,
-			sessionStartAt: booking.sessionStartAt,
-			notes: booking.notes ?? "",
-			service: booking.service,
-			addons: booking.addons,
-			...(booking.googleEventId ? { googleEventId: booking.googleEventId } : {})
+		sessions: sessions.map((session) => ({
+			_id: session._id,
+			date: session.date,
+			time: session.time,
+			sessionStartAt: session.sessionStartAt,
+			notes: session.notes ?? "",
+			service: session.service,
+			addons: session.addons,
+			...(session.googleEventId ? { googleEventId: session.googleEventId } : {})
 		}))
 	});
 }
@@ -91,7 +85,7 @@ async function setDefaultSpaceHandler(
 	ctx: MutationCtx,
 	args: { service: "Table Setup" | "Armchair Setup"; token: string }
 ) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, Date.now());
+	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, Date.now());
 
 	if (error !== null) {
 		return err(error);
@@ -104,7 +98,7 @@ async function setDefaultSpaceHandler(
 
 export type SetDefaultSpaceResult = Awaited<ReturnType<typeof setDefaultSpaceHandler>>;
 
-const packageBookingInput = {
+const packageSessionInput = {
 	token: v.string(),
 	date: v.string(),
 	time: v.string(),
@@ -113,26 +107,28 @@ const packageBookingInput = {
 	remotePodcast: v.boolean()
 };
 
-export const createPackageBooking = action({
-	args: packageBookingInput,
-	handler: (ctx, args) => createPackageBookingHandler(ctx, args)
+type PackageSessionArgs = {
+	token: string;
+	date: string;
+	time: string;
+	service: "Table Setup" | "Armchair Setup";
+	notes?: string;
+	remotePodcast: boolean;
+};
+
+export const createPackageSession = action({
+	args: packageSessionInput,
+	handler: (ctx, args) => createPackageSessionHandler(ctx, args)
 });
 
-async function createPackageBookingHandler(
+async function createPackageSessionHandler(
 	ctx: ActionCtx,
-	args: {
-		token: string;
-		date: string;
-		time: string;
-		service: "Table Setup" | "Armchair Setup";
-		notes?: string;
-		remotePodcast: boolean;
-	}
-): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageBookingError>> {
+	args: PackageSessionArgs
+): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageBookingRequestInternal,
+		internal.packageScheduling.validatePackageSessionRequest,
 		{ token: args.token, date: args.date, time: args.time, now }
 	);
 
@@ -140,7 +136,7 @@ async function createPackageBookingHandler(
 		return err(validationError);
 	}
 
-	const [rateError] = await ctx.runMutation(internal.bookings.checkBookingSubmitRateLimitInternal, {
+	const [rateError] = await ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
 		submitRateLimitKey: `package:${details.multiBooking._id}`
 	});
 
@@ -149,9 +145,9 @@ async function createPackageBookingHandler(
 	}
 
 	const [calendarError, calendar] = await ctx.runAction(
-		internal.packageSchedulingCalendar.createPackageBookingCalendarEventInternal,
+		internal.packageSchedulingCalendar.createPackageSessionCalendarEvent,
 		{
-			booking: null,
+			session: null,
 			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
 		}
 	);
@@ -161,7 +157,7 @@ async function createPackageBookingHandler(
 	}
 
 	const [databaseError, result] = await ctx.runMutation(
-		internal.packageScheduling.saveCreatedPackageBookingInternal,
+		internal.packageScheduling.saveCreatedPackageSession,
 		{
 			...args,
 			now,
@@ -173,9 +169,9 @@ async function createPackageBookingHandler(
 	if (databaseError !== null) {
 		if (calendar.googleEventId && calendar.googleCalendarId) {
 			const [cleanupError] = await ctx.runAction(
-				internal.packageSchedulingCalendar.deletePackageBookingCalendarEventInternal,
+				internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent,
 				{
-					booking: {
+					session: {
 						date: args.date,
 						duration: details.multiBooking.duration,
 						email: details.multiBooking.email,
@@ -197,29 +193,23 @@ async function createPackageBookingHandler(
 	return ok(result);
 }
 
-export type CreatePackageBookingResult = Awaited<ReturnType<typeof createPackageBookingHandler>>;
+export type CreatePackageSessionResult = Awaited<ReturnType<typeof createPackageSessionHandler>>;
 
-export const reschedulePackageBooking = action({
-	args: { bookingId: v.id("bookings"), ...packageBookingInput },
-	handler: (ctx, args) => reschedulePackageBookingHandler(ctx, args)
+type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<"bookings"> };
+
+export const reschedulePackageSession = action({
+	args: { bookingId: v.id("bookings"), ...packageSessionInput },
+	handler: (ctx, args) => reschedulePackageSessionHandler(ctx, args)
 });
 
-async function reschedulePackageBookingHandler(
+async function reschedulePackageSessionHandler(
 	ctx: ActionCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		token: string;
-		date: string;
-		time: string;
-		service: "Table Setup" | "Armchair Setup";
-		notes?: string;
-		remotePodcast: boolean;
-	}
-): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageBookingError>> {
+	args: ReschedulePackageSessionArgs
+): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageRescheduleRequestInternal,
+		internal.packageScheduling.validatePackageRescheduleRequest,
 		{ token: args.token, bookingId: args.bookingId, date: args.date, time: args.time, now }
 	);
 
@@ -228,7 +218,7 @@ async function reschedulePackageBookingHandler(
 	}
 
 	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.bookings.reserveBookingReservation,
+		internal.sessionScheduling.reserveSessionReservation,
 		{
 			bookingId: args.bookingId,
 			duration: details.multiBooking.duration,
@@ -243,15 +233,15 @@ async function reschedulePackageBookingHandler(
 	const reservation = reservationResult.reservation;
 
 	const [calendarError, calendar] = await ctx.runAction(
-		internal.packageSchedulingCalendar.updatePackageBookingCalendarEventInternal,
+		internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent,
 		{
-			booking: toPackageCalendarBooking(details.booking),
+			session: toPackageCalendarSession(details.session),
 			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
 		}
 	);
 
 	if (calendarError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 			bookingId: args.bookingId,
 			reservation
 		});
@@ -259,7 +249,7 @@ async function reschedulePackageBookingHandler(
 	}
 
 	const [saveError, result] = await ctx.runMutation(
-		internal.bookings.saveClientBookingRescheduleInternal,
+		internal.sessionScheduling.saveClientSessionReschedule,
 		{
 			bookingId: args.bookingId,
 			date: args.date,
@@ -276,7 +266,7 @@ async function reschedulePackageBookingHandler(
 	);
 
 	if (saveError !== null) {
-		await ctx.runMutation(internal.bookings.clearBookingReservation, {
+		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 			bookingId: args.bookingId,
 			reservation
 		});
@@ -286,23 +276,25 @@ async function reschedulePackageBookingHandler(
 	return ok({ ...result, bookingId: args.bookingId });
 }
 
-export type ReschedulePackageBookingResult = Awaited<
-	ReturnType<typeof reschedulePackageBookingHandler>
+export type ReschedulePackageSessionResult = Awaited<
+	ReturnType<typeof reschedulePackageSessionHandler>
 >;
 
-export const unschedulePackageBooking = action({
+type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
+
+export const unschedulePackageSession = action({
 	args: { bookingId: v.id("bookings"), token: v.string() },
-	handler: (ctx, args) => unschedulePackageBookingHandler(ctx, args)
+	handler: (ctx, args) => unschedulePackageSessionHandler(ctx, args)
 });
 
-async function unschedulePackageBookingHandler(
+async function unschedulePackageSessionHandler(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; token: string }
-): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageBookingError>> {
+	args: UnschedulePackageSessionArgs
+): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageUnscheduleRequestInternal,
+		internal.packageScheduling.validatePackageUnscheduleRequest,
 		{ ...args, now }
 	);
 
@@ -311,8 +303,8 @@ async function unschedulePackageBookingHandler(
 	}
 
 	const [calendarError] = await ctx.runAction(
-		internal.packageSchedulingCalendar.deletePackageBookingCalendarEventInternal,
-		{ booking: toPackageCalendarBooking(details.booking) }
+		internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent,
+		{ session: toPackageCalendarSession(details.session) }
 	);
 
 	if (calendarError !== null) {
@@ -320,7 +312,7 @@ async function unschedulePackageBookingHandler(
 	}
 
 	const [saveError, result] = await ctx.runMutation(
-		internal.packageScheduling.cancelPackageBookingInternal,
+		internal.packageScheduling.cancelPackageSession,
 		{ bookingId: args.bookingId, now, token: args.token }
 	);
 
@@ -331,190 +323,48 @@ async function unschedulePackageBookingHandler(
 	return ok(result);
 }
 
-export type UnschedulePackageBookingResult = Awaited<
-	ReturnType<typeof unschedulePackageBookingHandler>
+export type UnschedulePackageSessionResult = Awaited<
+	ReturnType<typeof unschedulePackageSessionHandler>
 >;
 
-export const getValidPackageByTokenInternal = internalQuery({
+export const getValidPackageByToken = internalQuery({
 	args: { now: v.number(), token: v.string() },
-	handler: (ctx, args) => getValidPackageByToken(ctx, args.token, args.now)
+	handler: (ctx, args) => findValidPackageByToken(ctx, args.token, args.now)
 });
 
-type ProcessPackageAdjustmentArgs =
-	| { trigger: "all_sessions_completed"; multiBookingId: Id<"multiBookingPackages"> }
-	| {
-			trigger: "package_expired";
-			multiBookingId: Id<"multiBookingPackages">;
-			expectedExpiresAt: number;
-	  };
-
-export const processPackageAdjustmentAtExpiryInternal = internalMutation({
+export const processPackageAdjustmentAtExpiry = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), expectedExpiresAt: v.number() },
 	handler: (ctx, args) => processPackageAdjustment(ctx, { ...args, trigger: "package_expired" })
 });
 
-export const processPackageAdjustmentWhenSessionsCompleteInternal = internalMutation({
+export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages") },
 	handler: (ctx, args) =>
 		processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" })
 });
 
-async function processPackageAdjustment(ctx: MutationCtx, args: ProcessPackageAdjustmentArgs) {
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-	const isPackagePaidOrScheduleEmailFailed =
-		multiBooking?.status === "paid" || multiBooking?.status === "schedule_email_failed";
-
-	if (!multiBooking || !isPackagePaidOrScheduleEmailFailed) return null;
-
-	if (args.trigger === "package_expired") {
-		// Ignore stale expiry jobs and jobs that run before the package expires.
-		if (multiBooking.expiresAt !== args.expectedExpiresAt || Date.now() < args.expectedExpiresAt) {
-			return null;
-		}
-	}
-
-	const existingAdjustment = await ctx.db
-		.query("packageAdjustments")
-		.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
-		.unique();
-
-	if (existingAdjustment) return null;
-
-	const bookings = await getCapacityConsumingPackageBookings(
-		ctx,
-		multiBooking._id,
-		multiBooking.packageSize
-	);
-
-	// Closing before expiry requires every package session to be scheduled.
-	if (args.trigger === "all_sessions_completed" && bookings.length !== multiBooking.packageSize) {
-		return null;
-	}
-
-	const now = Date.now();
-	const evaluation = evaluatePackageAdjustment(bookings, now);
-
-	switch (evaluation.kind) {
-		case "wait_for_sessions_to_end":
-			// Re-evaluate when the final session ends.
-			if (args.trigger === "package_expired") {
-				await ctx.scheduler.runAt(
-					evaluation.nextCheckAt,
-					internal.packageScheduling.processPackageAdjustmentAtExpiryInternal,
-					args
-				);
-				return null;
-			}
-
-			await ctx.scheduler.runAt(
-				evaluation.nextCheckAt,
-				internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
-				args
-			);
-			return null;
-
-		case "invalid_duration":
-			console.error("Package adjustment could not parse a session duration", {
-				multiBookingId: args.multiBookingId
-			});
-			return null;
-
-		case "ready": {
-			const createdAt = now;
-
-			if (evaluation.quantity === 0) {
-				await ctx.db.insert("packageAdjustments", {
-					outcome: "no_charge",
-					multiBookingId: args.multiBookingId,
-					trigger: args.trigger,
-					remotePodcastBookingIds: [],
-					quantity: 0,
-					rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-					totalAmount: 0,
-					createdAt
-				});
-				return null;
-			}
-
-			const adjustmentId = await ctx.db.insert("packageAdjustments", {
-				outcome: "invoice_required",
-				multiBookingId: args.multiBookingId,
-				trigger: args.trigger,
-				remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
-				quantity: evaluation.quantity,
-				rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-				totalAmount: evaluation.totalAmount,
-				invoiceNumber: "pending",
-				createdAt,
-				invoiceDueAt: createdAt + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-				invoiceEmailStatus: "pending",
-				paymentStatus: "unpaid"
-			});
-
-			await ctx.db.patch(adjustmentId, {
-				invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
-			});
-			await ctx.scheduler.runAfter(
-				0,
-				internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoiceInternal,
-				{ adjustmentId, attempt: "automatic" }
-			);
-			return null;
-		}
-
-		default: {
-			const _exhaustive: never = evaluation;
-			return _exhaustive;
-		}
-	}
-}
-
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
 
-function toPackageCalendarDetails(
-	args: {
-		date: string;
-		time: string;
-		service: "Table Setup" | "Armchair Setup";
-		remotePodcast: boolean;
-	},
-	multiBooking: ValidPackage,
-	eventBufferMinutes: number
-) {
-	return {
-		addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
-		date: args.date,
-		duration: multiBooking.duration,
-		email: multiBooking.email,
-		eventBufferMinutes,
-		name: multiBooking.name,
-		service: args.service,
-		time: args.time
-	};
-}
+type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
 
-function getPackageSessionStartAt(args: { date: string; time: string }) {
-	return getBookingSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
-}
-
-export const validatePackageBookingRequestInternal = internalQuery({
+export const validatePackageSessionRequest = internalQuery({
 	args: requestArgs,
-	handler: (ctx, args) => validatePackageBookingRequest(ctx, args)
+	handler: (ctx, args) => validatePackageSessionRequestHandler(ctx, args)
 });
 
-async function validatePackageBookingRequest(
+async function validatePackageSessionRequestHandler(
 	ctx: QueryCtx,
-	args: { token: string; date: string; time: string; now: number }
+	args: PackageSessionRequestArgs
 ) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, args.now);
 
 	if (error !== null) {
 		return err(error);
 	}
 
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
+	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
 
-	const [availabilityError] = checkPackageBookingAvailability(
+	const [availabilityError] = checkPackageSessionAvailability(
 		args,
 		multiBooking,
 		settings,
@@ -525,7 +375,7 @@ async function validatePackageBookingRequest(
 		return err(availabilityError);
 	}
 
-	const bookings = await getCapacityConsumingPackageBookings(
+	const bookings = await getCapacityConsumingPackageSessions(
 		ctx,
 		multiBooking._id,
 		multiBooking.packageSize
@@ -549,24 +399,26 @@ async function validatePackageBookingRequest(
 	});
 }
 
-export const validatePackageRescheduleRequestInternal = internalQuery({
+type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<"bookings"> };
+
+export const validatePackageRescheduleRequest = internalQuery({
 	args: { ...requestArgs, bookingId: v.id("bookings") },
-	handler: (ctx, args) => validatePackageRescheduleRequest(ctx, args)
+	handler: (ctx, args) => validatePackageRescheduleRequestHandler(ctx, args)
 });
 
-async function validatePackageRescheduleRequest(
+async function validatePackageRescheduleRequestHandler(
 	ctx: QueryCtx,
-	args: { token: string; bookingId: Id<"bookings">; date: string; time: string; now: number }
+	args: PackageRescheduleRequestArgs
 ) {
-	const [error, details] = await getEditablePackageBooking(ctx, args);
+	const [error, details] = await getEditablePackageSession(ctx, args);
 
 	if (error !== null) {
 		return err(error);
 	}
 
-	const { booking, multiBooking, settings } = details;
+	const { session, multiBooking, settings } = details;
 
-	const [availabilityError] = checkPackageBookingAvailability(
+	const [availabilityError] = checkPackageSessionAvailability(
 		args,
 		multiBooking,
 		settings,
@@ -584,87 +436,60 @@ async function validatePackageRescheduleRequest(
 	}
 
 	return ok({
-		booking,
+		session,
 		multiBooking,
 		eventBufferMinutes: settings.eventBufferMinutes,
 		sessionStartAt
 	});
 }
 
-export const validatePackageUnscheduleRequestInternal = internalQuery({
+type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
+
+export const validatePackageUnscheduleRequest = internalQuery({
 	args: { token: v.string(), bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => validatePackageUnscheduleRequest(ctx, args)
+	handler: (ctx, args) => validatePackageUnscheduleRequestHandler(ctx, args)
 });
 
-async function validatePackageUnscheduleRequest(
+async function validatePackageUnscheduleRequestHandler(
 	ctx: QueryCtx,
-	args: { token: string; bookingId: Id<"bookings">; now: number }
+	args: PackageUnscheduleRequestArgs
 ) {
-	const [error, details] = await getEditablePackageBooking(ctx, args);
+	const [error, details] = await getEditablePackageSession(ctx, args);
 
 	if (error !== null) {
 		return err(error);
 	}
 
-	return ok({ booking: details.booking, multiBooking: details.multiBooking });
+	return ok({ session: details.session, multiBooking: details.multiBooking });
 }
 
-async function getEditablePackageBooking(
-	ctx: QueryCtx,
-	args: { token: string; bookingId: Id<"bookings">; now: number }
-) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+type SaveCreatedPackageSessionArgs = PackageSessionArgs & {
+	now: number;
+	googleCalendarId?: string;
+	googleEventId?: string;
+};
 
-	if (error !== null) {
-		return err(error);
-	}
-
-	const booking = await getPackageBookingForToken(ctx, multiBooking._id, args.bookingId);
-
-	if (!booking || !bookingConsumesPackageCapacity(booking)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	const settings: BookingAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-
-	if (isPackageSessionLocked(booking.sessionStartAt, settings.leadTimeMinutes, args.now)) {
-		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
-	}
-
-	return ok({ booking, multiBooking, settings });
-}
-
-export const saveCreatedPackageBookingInternal = internalMutation({
+export const saveCreatedPackageSession = internalMutation({
 	args: {
-		...packageBookingInput,
+		...packageSessionInput,
 		now: v.number(),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string())
 	},
-	handler: (ctx, args) => saveCreatedPackageBooking(ctx, args)
+	handler: (ctx, args) => saveCreatedPackageSessionHandler(ctx, args)
 });
 
-async function saveCreatedPackageBooking(
+async function saveCreatedPackageSessionHandler(
 	ctx: MutationCtx,
-	args: {
-		token: string;
-		date: string;
-		time: string;
-		service: "Table Setup" | "Armchair Setup";
-		notes?: string;
-		remotePodcast: boolean;
-		now: number;
-		googleCalendarId?: string;
-		googleEventId?: string;
-	}
+	args: SaveCreatedPackageSessionArgs
 ) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, args.now);
 
 	if (error !== null) {
 		return err(error);
 	}
 
-	const activeBookings = await getCapacityConsumingPackageBookings(
+	const activeBookings = await getCapacityConsumingPackageSessions(
 		ctx,
 		multiBooking._id,
 		multiBooking.packageSize
@@ -712,7 +537,7 @@ async function saveCreatedPackageBooking(
 
 		await ctx.scheduler.runAfter(
 			0,
-			internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+			internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
 			{ multiBookingId: multiBooking._id }
 		);
 
@@ -722,24 +547,23 @@ async function saveCreatedPackageBooking(
 	}
 }
 
-export const cancelPackageBookingInternal = internalMutation({
+type CancelPackageSessionArgs = UnschedulePackageSessionArgs & { now: number };
+
+export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
-	handler: (ctx, args) => cancelPackageBooking(ctx, args)
+	handler: (ctx, args) => cancelPackageSessionHandler(ctx, args)
 });
 
-async function cancelPackageBooking(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; token: string; now: number }
-) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+async function cancelPackageSessionHandler(ctx: MutationCtx, args: CancelPackageSessionArgs) {
+	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, args.now);
 
 	if (error !== null) {
 		return err(error);
 	}
 
-	const booking = await getPackageBookingForToken(ctx, multiBooking._id, args.bookingId);
+	const session = await getPackageSessionForToken(ctx, multiBooking._id, args.bookingId);
 
-	if (!booking || !bookingConsumesPackageCapacity(booking)) {
+	if (!session || !sessionConsumesPackageCapacity(session)) {
 		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
 	}
 
@@ -755,7 +579,7 @@ async function cancelPackageBooking(
 		});
 		await ctx.scheduler.runAfter(
 			0,
-			internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
+			internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
 			{ multiBookingId: multiBooking._id }
 		);
 

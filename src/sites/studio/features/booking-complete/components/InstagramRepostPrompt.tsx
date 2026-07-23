@@ -5,10 +5,8 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type {
-	SaveBookingInstagramHandleResult,
-	SaveMultiBookingInstagramHandleResult
-} from "#convex/bookings";
+import type { SavePackageInstagramHandleResult } from "#convex/packages";
+import type { SaveSessionInstagramHandleResult } from "#convex/sessions";
 import { tryCatch } from "#/lib/result";
 
 type InstagramRepostTarget =
@@ -16,10 +14,10 @@ type InstagramRepostTarget =
 	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
 
 type BookingInstagramSaveErrorReason =
-	| NonNullable<SaveBookingInstagramHandleResult[0]>["reason"]
+	| NonNullable<SaveSessionInstagramHandleResult[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 type MultiBookingInstagramSaveErrorReason =
-	| NonNullable<SaveMultiBookingInstagramHandleResult[0]>["reason"]
+	| NonNullable<SavePackageInstagramHandleResult[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface InstagramRepostPromptProps {
@@ -30,8 +28,8 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 	const [instagramHandle, setInstagramHandle] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const saveBookingInstagramHandle = useMutation(api.bookings.saveBookingInstagramHandle);
-	const saveMultiBookingInstagramHandle = useMutation(api.bookings.saveMultiBookingInstagramHandle);
+	const saveSessionInstagramHandle = useMutation(api.sessions.saveSessionInstagramHandle);
+	const savePackageInstagramHandle = useMutation(api.packages.savePackageInstagramHandle);
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
 		event.preventDefault();
@@ -58,8 +56,8 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 
 	async function saveInstagramHandle(trimmedInstagramHandle: string): Promise<boolean> {
 		if (target.kind === "multiBooking") {
-			const [error] = await tryCatch<SaveMultiBookingInstagramHandleResult>(
-				saveMultiBookingInstagramHandle({
+			const [error] = await tryCatch<SavePackageInstagramHandleResult>(
+				savePackageInstagramHandle({
 					instagramHandle: trimmedInstagramHandle,
 					multiBookingId: target.multiBookingId
 				})
@@ -73,8 +71,8 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 			return true;
 		}
 
-		const [error] = await tryCatch<SaveBookingInstagramHandleResult>(
-			saveBookingInstagramHandle({
+		const [error] = await tryCatch<SaveSessionInstagramHandleResult>(
+			saveSessionInstagramHandle({
 				stripeSessionId: target.stripeSessionId,
 				instagramHandle: trimmedInstagramHandle
 			})
@@ -100,7 +98,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 				</div>
 				<form
 					className="flex flex-col gap-2 sm:flex-row"
-					onSubmit={handleSubmit}>
+					onSubmit={(event) => void handleSubmit(event)}>
 					<Input
 						aria-label="Instagram handle"
 						disabled={isSubmitting || isSubmitted}

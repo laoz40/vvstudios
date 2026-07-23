@@ -4,7 +4,10 @@ import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	recordingSpaceSchema,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getCardStateClassName,
 	getFooterStateClassName,
@@ -67,7 +70,13 @@ export function RecordingSpaceField({
 				<RadioGroup
 					disabled={disabled}
 					value={value}
-					onValueChange={(nextValue) => onChange(nextValue as Exclude<RecordingSpace, "">)}
+					onValueChange={(nextValue) => {
+						const recordingSpace = recordingSpaceSchema.safeParse(nextValue);
+
+						if (recordingSpace.success) {
+							onChange(recordingSpace.data);
+						}
+					}}
 					className="grid gap-4 md:grid-cols-2">
 					{recordingSpaceOptions.map((option) => (
 						<div key={option.value}>

@@ -10,6 +10,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
+	isDurationOption,
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -82,8 +83,10 @@ export function BookingRecordingSpaceDurationSection() {
 							<RadioGroup
 								value={field.state.value}
 								onValueChange={(value) => {
-									field.handleChange(value as BookingFormValues["duration"]);
-									field.handleBlur();
+									if (isDurationOption(value)) {
+										field.handleChange(value);
+										field.handleBlur();
+									}
 								}}
 								className="grid gap-4 sm:grid-cols-3">
 								{durationOptions.map((option) => {

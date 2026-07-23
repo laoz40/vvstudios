@@ -1,3 +1,4 @@
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- Native dialog backdrop clicks require a pointer handler on the dialog element. */
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "#/components/ui/button";
@@ -89,7 +90,7 @@ export function Modal({
 
 	useEffect(() => {
 		if (!open) {
-			return;
+			return undefined;
 		}
 
 		const previousOverflow = document.body.style.overflow;
@@ -126,7 +127,7 @@ export function Modal({
 				}
 
 				const focusableElements = getFocusableElements(event.currentTarget);
-				const firstElement = focusableElements[0];
+				const firstElement = focusableElements.at(0);
 				const lastElement = focusableElements.at(-1);
 
 				if (!firstElement || !lastElement) {

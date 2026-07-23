@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 
-export type AdminDashboardView = "sessions" | "packages";
+export type AdminDashboardView = "bookings" | "packages";
 
 type AdminDashboardTabsProps = {
 	activeView: AdminDashboardView;
@@ -9,7 +9,7 @@ type AdminDashboardTabsProps = {
 
 export function AdminDashboardTabs({ activeView, onActiveViewChange }: AdminDashboardTabsProps) {
 	function handleValueChange(value: string) {
-		if (value === "sessions" || value === "packages") {
+		if (value === "bookings" || value === "packages") {
 			onActiveViewChange(value);
 		}
 	}
@@ -19,7 +19,7 @@ export function AdminDashboardTabs({ activeView, onActiveViewChange }: AdminDash
 			value={activeView}
 			onValueChange={handleValueChange}>
 			<TabsList variant="line">
-				<TabsTrigger value="sessions">Sessions</TabsTrigger>
+				<TabsTrigger value="bookings">Sessions</TabsTrigger>
 				<TabsTrigger value="packages">Packages</TabsTrigger>
 			</TabsList>
 		</Tabs>

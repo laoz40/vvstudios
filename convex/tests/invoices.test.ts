@@ -33,14 +33,16 @@ import {
 import { createConvexTest } from "../test.setup";
 import { buildBookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 
-const providerFakes = vi.hoisted(() => ({ sendInvoiceEmails: vi.fn() }));
+type SendInvoiceEmails = typeof import("../lib/email").sendBookingInvoiceEmailsForBooking;
+
+const providerFakes = vi.hoisted(() => ({ sendInvoiceEmails: vi.fn<SendInvoiceEmails>() }));
 
 vi.mock("../lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../bookingReschedule", () => ({
-	createRescheduleUrlForBooking: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
+vi.mock("../sessionReschedule", () => ({
+	createRescheduleUrlForSession: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
 }));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
@@ -60,9 +62,10 @@ afterEach(() => {
 });
 
 describe("invoice financial integrity", () => {
-	test("builds a balanced session invoice from quantities, deposit, and an admin override", () => {
+	test("builds a balanced session invoice from quantities, deposit, and an admin override", async () => {
+		const bookingId = await seedBooking(createConvexTest());
 		const data = buildBookingInvoiceData({
-			bookingId: "booking-id" as Id<"bookings">,
+			bookingId,
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -99,9 +102,10 @@ describe("invoice financial integrity", () => {
 		);
 	});
 
-	test("clamps an ordinary session invoice total at zero", () => {
+	test("clamps an ordinary session invoice total at zero", async () => {
+		const bookingId = await seedBooking(createConvexTest());
 		const data = buildBookingInvoiceData({
-			bookingId: "booking-id" as Id<"bookings">,
+			bookingId,
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -383,17 +387,15 @@ describe("session invoice email selection", () => {
 			.withIdentity(adminIdentity)
 			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
 
+		const [sentBooking, sentOptions] = providerFakes.sendInvoiceEmails.mock.calls[0];
+
 		expect(result).toEqual([null, { sent: true }]);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
-			expect.objectContaining({ _id: bookingId }),
-			expect.objectContaining({
-				customInvoice: expect.objectContaining({
-					_id: customInvoiceId,
-					customTotalDueAmount: 321,
-					invoiceNumber: "VV-CUSTOM-001"
-				})
-			})
-		);
+		expect(sentBooking).toMatchObject({ _id: bookingId });
+		expect(sentOptions.customInvoice).toMatchObject({
+			_id: customInvoiceId,
+			customTotalDueAmount: 321,
+			invoiceNumber: "VV-CUSTOM-001"
+		});
 	});
 
 	test("rejects a custom invoice belonging to another booking", async () => {

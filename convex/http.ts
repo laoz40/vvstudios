@@ -1,13 +1,91 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
+import { httpAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import Stripe from "stripe";
 import { env } from "./env";
 
 const http = httpRouter();
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
+
+async function handleCompletedCheckout(
+	ctx: ActionCtx,
+	event: Stripe.CheckoutSessionCompletedEvent
+) {
+	const session = event.data.object;
+	const bookingId = session.metadata?.bookingId;
+
+	if (!bookingId) {
+		console.error("Stripe checkout session missing bookingId metadata", {
+			eventId: event.id,
+			sessionId: session.id
+		});
+		return new Response("Missing bookingId metadata", { status: 400 });
+	}
+
+	const stripePaymentIntentId =
+		typeof session.payment_intent === "string"
+			? session.payment_intent
+			: session.payment_intent?.id;
+	const [claimError, claim] = await ctx.runMutation(
+		internal.sessionCompletion.claimSessionCompletion,
+		{ bookingId, stripeSessionId: session.id, stripePaymentIntentId, stripeEventId: event.id }
+	);
+
+	if (claimError !== null) {
+		console.error("Booking completion claim failed", {
+			eventId: event.id,
+			sessionId: session.id,
+			bookingId,
+			claimError
+		});
+		return new Response("claim failed", { status: 200 });
+	}
+
+	if (claim.outcome === "already_confirmed") {
+		return new Response("already confirmed", { status: 200 });
+	}
+
+	if (claim.outcome === "already_claimed") {
+		return new Response("already claimed", { status: 200 });
+	}
+
+	const [completionError, completionResult] = await ctx.runAction(
+		internal.googleCalendar.completeClaimedSession,
+		{ bookingId: claim.session._id }
+	);
+
+	if (completionError !== null) {
+		console.error("Booking completion failed", {
+			eventId: event.id,
+			sessionId: session.id,
+			bookingId,
+			completionError
+		});
+		return new Response("completion failed", { status: 200 });
+	}
+
+	if (!completionResult.completed) {
+		return new Response(completionResult.outcome, { status: 200 });
+	}
+
+	return new Response("confirmed", { status: 200 });
+}
+
+async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
+	if (event.type === "checkout.session.completed") {
+		return handleCompletedCheckout(ctx, event);
+	}
+
+	if (event.type === "checkout.session.expired") {
+		await ctx.runMutation(internal.sessionCheckout.markSessionExpiredByStripeSessionId, {
+			stripeSessionId: event.data.object.id
+		});
+		return new Response("expired", { status: 200 });
+	}
+
+	return new Response("ignored", { status: 200 });
+}
 
 http.route({
 	path: "/stripe/webhook",
@@ -20,7 +98,6 @@ http.route({
 		}
 
 		const body = await req.text();
-
 		let event: Stripe.Event;
 
 		try {
@@ -30,83 +107,7 @@ http.route({
 			return new Response("Invalid Stripe webhook signature", { status: 400 });
 		}
 
-		if (event.type === "checkout.session.completed") {
-			const session = event.data.object as Stripe.Checkout.Session;
-
-			const bookingId = session.metadata?.bookingId;
-			if (!bookingId) {
-				console.error("Stripe checkout session missing bookingId metadata", {
-					eventId: event.id,
-					sessionId: session.id
-				});
-				return new Response("Missing bookingId metadata", { status: 400 });
-			}
-
-			const stripePaymentIntentId =
-				typeof session.payment_intent === "string"
-					? session.payment_intent
-					: session.payment_intent?.id;
-
-			const [claimError, claim] = await ctx.runMutation(internal.bookings.claimBookingCompletion, {
-				bookingId: bookingId as Id<"bookings">,
-				stripeSessionId: session.id,
-				stripePaymentIntentId,
-				stripeEventId: event.id
-			});
-
-			if (claimError !== null) {
-				console.error("Booking completion claim failed", {
-					eventId: event.id,
-					sessionId: session.id,
-					bookingId,
-					claimError
-				});
-
-				return new Response("claim failed", { status: 200 });
-			}
-
-			if (claim.outcome === "already_confirmed") {
-				return new Response("already confirmed", { status: 200 });
-			}
-
-			if (claim.outcome === "already_claimed") {
-				return new Response("already claimed", { status: 200 });
-			}
-
-			const [completionError, completionResult] = await ctx.runAction(
-				internal.googleCalendar.completeClaimedBooking,
-				{ bookingId: bookingId as Id<"bookings"> }
-			);
-
-			if (completionError !== null) {
-				console.error("Booking completion failed", {
-					eventId: event.id,
-					sessionId: session.id,
-					bookingId,
-					completionError
-				});
-
-				return new Response("completion failed", { status: 200 });
-			}
-
-			if (!completionResult.completed) {
-				return new Response(completionResult.outcome, { status: 200 });
-			}
-
-			return new Response("confirmed", { status: 200 });
-		}
-
-		if (event.type === "checkout.session.expired") {
-			const session = event.data.object as Stripe.Checkout.Session;
-
-			await ctx.runMutation(internal.bookings.markBookingExpiredByStripeSessionId, {
-				stripeSessionId: session.id
-			});
-
-			return new Response("expired", { status: 200 });
-		}
-
-		return new Response("ignored", { status: 200 });
+		return handleStripeEvent(ctx, event);
 	})
 });
 

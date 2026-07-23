@@ -37,18 +37,23 @@ function getTimeZoneFormatter(timeZone: string) {
 	return formatter;
 }
 
+function getTimeZonePartValue(
+	parts: Intl.DateTimeFormatPart[],
+	type: Intl.DateTimeFormatPartTypes
+) {
+	return Number(parts.find((part) => part.type === type)?.value);
+}
+
 function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
 	const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
-	const values = Object.fromEntries(
-		parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)])
-	) as Record<"day" | "hour" | "minute" | "month" | "second" | "year", number>;
+	const hour = getTimeZonePartValue(parts, "hour");
 
 	return {
-		day: values.day,
-		hours: values.hour === 24 ? 0 : values.hour,
-		minutes: values.minute,
-		month: values.month,
-		year: values.year
+		day: getTimeZonePartValue(parts, "day"),
+		hours: hour === 24 ? 0 : hour,
+		minutes: getTimeZonePartValue(parts, "minute"),
+		month: getTimeZonePartValue(parts, "month"),
+		year: getTimeZonePartValue(parts, "year")
 	};
 }
 

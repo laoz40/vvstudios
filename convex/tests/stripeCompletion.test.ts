@@ -60,8 +60,8 @@ vi.mock("../lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../bookingReschedule", () => ({
-	createRescheduleUrlForBooking: vi
+vi.mock("../sessionReschedule", () => ({
+	createRescheduleUrlForSession: vi
 		.fn()
 		.mockResolvedValue([null, "https://example.com/reschedule/test-token"])
 }));
@@ -111,10 +111,10 @@ describe("booking payment completion", () => {
 		const t = createConvexTest();
 		const bookingId = await seedClaimedBooking(t);
 
-		const firstCompletion = await t.action(internal.googleCalendar.completeClaimedBooking, {
+		const firstCompletion = await t.action(internal.googleCalendar.completeClaimedSession, {
 			bookingId
 		});
-		const replayedCompletion = await t.action(internal.googleCalendar.completeClaimedBooking, {
+		const replayedCompletion = await t.action(internal.googleCalendar.completeClaimedSession, {
 			bookingId
 		});
 
@@ -144,7 +144,7 @@ describe("booking payment completion", () => {
 			}
 		});
 
-		const result = await t.action(internal.googleCalendar.completeClaimedBooking, { bookingId });
+		const result = await t.action(internal.googleCalendar.completeClaimedSession, { bookingId });
 
 		expect(result).toEqual([null, { completed: false, outcome: "booking_time_unavailable" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
@@ -160,7 +160,7 @@ describe("booking payment completion", () => {
 		const bookingId = await seedClaimedBooking(t);
 		providerFakes.insertEvent.mockRejectedValue(new Error("Google Calendar unavailable"));
 
-		const result = await t.action(internal.googleCalendar.completeClaimedBooking, { bookingId });
+		const result = await t.action(internal.googleCalendar.completeClaimedSession, { bookingId });
 
 		expect(result).toEqual([null, { completed: false, outcome: "google_calendar_create_failed" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
@@ -189,8 +189,8 @@ describe("booking payment completion", () => {
 		});
 
 		const results = await Promise.all([
-			t.action(internal.googleCalendar.completeClaimedBooking, { bookingId: firstBookingId }),
-			t.action(internal.googleCalendar.completeClaimedBooking, { bookingId: secondBookingId })
+			t.action(internal.googleCalendar.completeClaimedSession, { bookingId: firstBookingId }),
+			t.action(internal.googleCalendar.completeClaimedSession, { bookingId: secondBookingId })
 		]);
 		const bookings = await Promise.all([
 			readBooking(t, firstBookingId),
@@ -274,7 +274,7 @@ async function seedClaimedBooking(t: TestClient, email?: string) {
 }
 
 async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEventId: string) {
-	return await t.mutation(internal.bookings.claimBookingCompletion, {
+	return await t.mutation(internal.sessionCompletion.claimSessionCompletion, {
 		bookingId,
 		stripeSessionId: "cs-1",
 		stripePaymentIntentId: "pi-1",

@@ -3,31 +3,30 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "../_generated/server";
 
-export async function getBookingFromDb(
+export async function getSessionFromDb(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
 ): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const booking = await ctx.db.get(bookingId);
+	const session = await ctx.db.get(bookingId);
 
-	if (!booking) {
+	if (!session) {
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	return ok(booking);
+	return ok(session);
 }
 
-export async function getBookingFromQuery(
+export async function getSessionFromQuery(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const booking: Doc<"bookings"> | null = await ctx.runQuery(
-		internal.bookings.getBookingByIdInternal,
-		{ bookingId }
-	);
+	const session: Doc<"bookings"> | null = await ctx.runQuery(internal.sessions.getSessionById, {
+		bookingId
+	});
 
-	if (!booking) {
+	if (!session) {
 		return err({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	return ok(booking);
+	return ok(session);
 }

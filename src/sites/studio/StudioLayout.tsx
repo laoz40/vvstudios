@@ -10,16 +10,25 @@ import { SiteNavbar } from "#studio/components/NavBar";
 
 export type StudioLayoutProps = { children: ReactNode; pathname: string };
 
+const minimalLayoutRoutes = new Set([
+	studioSite.routes.admin,
+	studioSite.routes.login,
+	studioSite.routes.bookingComplete,
+	studioSite.routes.packageComplete,
+	studioSite.routes.rescheduleComplete,
+	studioSite.routes.bookingExpired
+]);
+
+function isMinimalLayoutPath(pathname: string): boolean {
+	if (minimalLayoutRoutes.has(pathname)) {
+		return true;
+	}
+
+	return ["/package-schedule/", "/reschedule/"].some((prefix) => pathname.startsWith(prefix));
+}
+
 export function StudioLayout({ children, pathname }: StudioLayoutProps) {
-	const useMinimalLayout =
-		pathname === studioSite.routes.admin ||
-		pathname === studioSite.routes.login ||
-		pathname === studioSite.routes.bookingComplete ||
-		pathname === studioSite.routes.packageComplete ||
-		pathname === studioSite.routes.rescheduleComplete ||
-		pathname === studioSite.routes.bookingExpired ||
-		pathname.startsWith("/package-schedule/") ||
-		pathname.startsWith("/reschedule/");
+	const useMinimalLayout = isMinimalLayoutPath(pathname);
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const isHomePage = pathname === studioSite.routes.home;
 	const prefersReducedMotion = useReducedMotion();

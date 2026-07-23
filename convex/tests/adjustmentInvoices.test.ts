@@ -35,7 +35,9 @@ import {
 } from "../lib/packageAdjustments";
 import { createConvexTest } from "../test.setup";
 
-const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn() }));
+type SendAdjustmentInvoice = typeof import("../lib/email").sendPackageAdjustmentInvoiceEmail;
+
+const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn<SendAdjustmentInvoice>() }));
 
 vi.mock("../lib/email", () => ({
 	sendPackageAdjustmentInvoiceEmail: providerFakes.sendAdjustmentInvoice
@@ -62,7 +64,7 @@ describe("package adjustment closeout", () => {
 	test("creates one no-charge record when no completed session used Remote Podcast", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await seedPackageBooking(t, packageId, []);
+		await seedPackageSession(t, packageId, []);
 
 		await processExpiredPackage(t, packageId);
 		const adjustments = await readAdjustments(t, packageId);
@@ -82,7 +84,7 @@ describe("package adjustment closeout", () => {
 	test("creates and sends one invoice snapshot for completed Remote Podcast sessions", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		const bookingId = await seedPackageBooking(t, packageId, ["Remote Podcast"]);
+		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await processExpiredPackage(t, packageId);
 		await t.finishAllScheduledFunctions(() => vi.runAllTimers());
@@ -100,7 +102,7 @@ describe("package adjustment closeout", () => {
 			remotePodcastBookingIds: [bookingId],
 			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
 		});
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
+		if (adjustment.outcome !== "invoice_required") {
 			throw new Error("Expected an invoice-required adjustment");
 		}
 		expect(adjustment.invoiceNumber).not.toBe("pending");
@@ -111,9 +113,9 @@ describe("package adjustment closeout", () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		const otherPackageId = await seedPaidPackage(t);
-		const eligibleBookingId = await seedPackageBooking(t, packageId, ["Remote Podcast"]);
-		await seedPackageBooking(t, packageId, ["Remote Podcast"], { status: "cancelled" });
-		await seedPackageBooking(t, otherPackageId, ["Remote Podcast"]);
+		const eligibleBookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
+		await seedPackageSession(t, packageId, ["Remote Podcast"], { status: "cancelled" });
+		await seedPackageSession(t, otherPackageId, ["Remote Podcast"]);
 
 		await processExpiredPackage(t, packageId);
 		const [adjustment] = await readAdjustments(t, packageId);
@@ -130,9 +132,9 @@ describe("package adjustment closeout", () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		await Promise.all([
-			seedPackageBooking(t, packageId, ["Remote Podcast"]),
-			seedPackageBooking(t, packageId, []),
-			seedPackageBooking(t, packageId, [])
+			seedPackageSession(t, packageId, ["Remote Podcast"]),
+			seedPackageSession(t, packageId, []),
+			seedPackageSession(t, packageId, [])
 		]);
 
 		await processCompletedPackage(t, packageId);
@@ -144,10 +146,10 @@ describe("package adjustment closeout", () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		await Promise.all([
-			seedPackageBooking(t, packageId, ["Remote Podcast"]),
-			seedPackageBooking(t, packageId, []),
-			seedPackageBooking(t, packageId, []),
-			seedPackageBooking(t, packageId, ["Remote Podcast"], { sessionStartAt: now + 60 * 60 * 1000 })
+			seedPackageSession(t, packageId, ["Remote Podcast"]),
+			seedPackageSession(t, packageId, []),
+			seedPackageSession(t, packageId, []),
+			seedPackageSession(t, packageId, ["Remote Podcast"], { sessionStartAt: now + 60 * 60 * 1000 })
 		]);
 
 		await processCompletedPackage(t, packageId);
@@ -159,9 +161,9 @@ describe("package adjustment closeout", () => {
 	test("ignores a closeout job for an old package expiry", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await seedPackageBooking(t, packageId, ["Remote Podcast"]);
+		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiryInternal, {
+		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
 			multiBookingId: packageId,
 			expectedExpiresAt: now - 1
 		});
@@ -177,7 +179,7 @@ describe("package adjustment closeout", () => {
 	test("repeated concurrent closeout creates and sends only one adjustment", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await seedPackageBooking(t, packageId, ["Remote Podcast"]);
+		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await Promise.all([
 			processExpiredPackage(t, packageId),
@@ -302,13 +304,13 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal, {
+		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 		const staleResult = await t.mutation(
-			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSentInternal,
+			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent,
 			{ adjustmentId, claimedAt: firstClaimedAt }
 		);
 
@@ -326,13 +328,13 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal, {
+		await t.mutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 		const staleResult = await t.mutation(
-			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailedInternal,
+			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed,
 			{ adjustmentId, claimedAt: firstClaimedAt }
 		);
 
@@ -409,7 +411,7 @@ async function seedPaidPackage(t: TestClient) {
 	);
 }
 
-async function seedPackageBooking(
+async function seedPackageSession(
 	t: TestClient,
 	packageId: Id<"multiBookingPackages">,
 	addons: string[],
@@ -435,17 +437,16 @@ async function seedPackageBooking(
 }
 
 async function processExpiredPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
-	return await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiryInternal, {
+	return await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
 		multiBookingId: packageId,
 		expectedExpiresAt: now
 	});
 }
 
 async function processCompletedPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
-	return await t.mutation(
-		internal.packageScheduling.processPackageAdjustmentWhenSessionsCompleteInternal,
-		{ multiBookingId: packageId }
-	);
+	return await t.mutation(internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete, {
+		multiBookingId: packageId
+	});
 }
 
 async function seedInvoiceAdjustment(
@@ -477,7 +478,7 @@ async function seedFailedAdjustment(t: TestClient) {
 }
 
 async function claimInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">, at: number) {
-	return await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmailInternal, {
+	return await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmail, {
 		adjustmentId,
 		attempt: "retry",
 		now: at

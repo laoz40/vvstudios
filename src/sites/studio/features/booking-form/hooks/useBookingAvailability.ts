@@ -13,7 +13,7 @@ import {
 	getUncachedMonthKeys,
 	isBookingDateDisabled,
 	mergeBookableRangeBusyWindows,
-	type BusyDayWindow
+	type BusyWindowsByMonth
 } from "#studio/features/booking-form/lib/monthly-availability";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
@@ -72,9 +72,9 @@ export function useBookingAvailability({
 
 	// Availability state
 	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
-	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<
-		Record<string, BusyDayWindow[]>
-	>({});
+	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<BusyWindowsByMonth>(
+		{}
+	);
 	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState<string | null>(null);
 	const [availabilityError, setAvailabilityError] = useState("");
 	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
@@ -103,7 +103,7 @@ export function useBookingAvailability({
 	// Fetch calendar availability for uncached bookable months
 	useEffect(() => {
 		if (!availabilityRateLimitKey) {
-			return;
+			return undefined;
 		}
 
 		const rateLimitKey = availabilityRateLimitKey;
@@ -111,7 +111,7 @@ export function useBookingAvailability({
 		if (uncachedMonthKeys.length === 0) {
 			setAvailabilityError("");
 			setIsLoadingMonthAvailability(false);
-			return;
+			return undefined;
 		}
 
 		let isCancelled = false;

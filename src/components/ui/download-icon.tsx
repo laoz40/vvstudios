@@ -6,12 +6,13 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 	({ size = 24, color = "currentColor", strokeWidth = 2, className = "" }, ref) => {
 		const [scope, animate] = useAnimate();
 		const isAnimatingRef = useRef(false);
+		const isAnimationRunning = useCallback(() => isAnimatingRef.current, []);
 
 		const start = useCallback(async () => {
-			if (isAnimatingRef.current) return;
+			if (isAnimationRunning()) return;
 			isAnimatingRef.current = true;
 
-			while (isAnimatingRef.current) {
+			while (isAnimationRunning()) {
 				// 1. Initial Arrow Drop through Tray
 				animate(
 					".arrow-head",
@@ -25,7 +26,7 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					{ duration: 1, times: [0, 0.3, 0.4, 0.5, 1], ease: "easeInOut" }
 				);
 
-				if (!isAnimatingRef.current) break;
+				if (!isAnimationRunning()) break;
 
 				// 2. Tray "Weight" Pulse
 				await animate(
@@ -34,12 +35,12 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					{ duration: 0.3, ease: "easeOut" }
 				);
 
-				if (!isAnimatingRef.current) break;
+				if (!isAnimationRunning()) break;
 
 				// Slight pause between cycles
 				await new Promise((resolve) => setTimeout(resolve, 200));
 			}
-		}, [animate]);
+		}, [animate, isAnimationRunning]);
 
 		const stop = useCallback(() => {
 			isAnimatingRef.current = false;
@@ -51,7 +52,9 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		return (
 			<motion.svg
 				ref={scope}
-				onHoverStart={start}
+				onHoverStart={() => {
+					void start();
+				}}
 				onHoverEnd={stop}
 				xmlns="http://www.w3.org/2000/svg"
 				width={size}

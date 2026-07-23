@@ -25,26 +25,12 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const packageDetails = data.package;
 	const isAdjustmentInvoice = adjustmentDetails !== undefined;
 	const isPackageInvoice = packageDetails !== undefined;
-	const paymentInstruction =
-		isPackageInvoice || isAdjustmentInvoice
-			? data.notes.paymentNote
-			: data.notes.paymentNote.replace(` ${receiptNote}`, "");
+	const isPackageRelatedInvoice = isPackageInvoice || isAdjustmentInvoice;
+	const paymentInstruction = isPackageRelatedInvoice
+		? data.notes.paymentNote
+		: data.notes.paymentNote.replace(` ${receiptNote}`, "");
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
-	const packageDescription = data.package
-		? `Your ${data.package.size}-session package invoice`
-		: "Your package invoice";
-	let introText = `Your invoice for your session on ${data.booking.bookingDateLabel} is ready and attached to this email.`;
-	let previewText = `Studio booking confirmed! Your booking invoice is ready with a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
-
-	if (packageDetails) {
-		introText = `${packageDescription} is attached. Once your payment clears (usually within 24 hours for first-time payments), we will automatically email you the private scheduling link.`;
-		previewText = `Your ${packageDetails.size} Pack Studio Booking Invoice from ${data.invoice.invoiceDateLabel}`;
-	}
-
-	if (adjustmentDetails) {
-		introText = `Your Remote Podcast adjustment invoice for your ${adjustmentDetails.packageSize}-session package booked on ${adjustmentDetails.bookedAtLabel} is attached.`;
-		previewText = `Your Remote Podcast adjustment invoice for your package booked on ${adjustmentDetails.bookedAtLabel} has a balance due of ${formatAud(data.amounts.totalDueAmount)}.`;
-	}
+	const { introText, previewText } = getEmailCopy(data);
 
 	return (
 		<Html>
@@ -82,13 +68,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					</Section>
 					<Section style={section}>
 						<Text style={sectionTitle}>
-							{isPackageInvoice || isAdjustmentInvoice ? "Payment terms" : "Payment"}
+							{isPackageRelatedInvoice ? "Payment terms" : "Payment"}
 						</Text>
 						<Section style={paymentNoticeCard}>
 							<Text style={noticeLine}>{paymentInstruction}</Text>
-							{isPackageInvoice || isAdjustmentInvoice ? null : (
-								<Text style={noteText}>*{receiptNote}</Text>
-							)}
+							{isPackageRelatedInvoice ? null : <Text style={noteText}>*{receiptNote}</Text>}
 						</Section>
 						<Section style={paymentCard}>
 							<Row>
@@ -121,7 +105,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							</Button>
 						</Section>
 					) : null}
-					{isPackageInvoice || isAdjustmentInvoice ? null : (
+					{isPackageRelatedInvoice ? null : (
 						<Section style={section}>
 							<Text style={sectionTitle}>Studio location</Text>
 							<Text style={paragraph}>{data.branding.locationAddress}</Text>
@@ -139,6 +123,29 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 			</Body>
 		</Html>
 	);
+}
+
+function getEmailCopy(data: BookingInvoiceData): { introText: string; previewText: string } {
+	const totalDue = formatAud(data.amounts.totalDueAmount);
+
+	if (data.adjustment) {
+		return {
+			introText: `Your Remote Podcast adjustment invoice for your ${data.adjustment.packageSize}-session package booked on ${data.adjustment.bookedAtLabel} is attached.`,
+			previewText: `Your Remote Podcast adjustment invoice for your package booked on ${data.adjustment.bookedAtLabel} has a balance due of ${totalDue}.`
+		};
+	}
+
+	if (data.package) {
+		return {
+			introText: `Your ${data.package.size}-session package invoice is attached. Once your payment clears (usually within 24 hours for first-time payments), we will automatically email you the private scheduling link.`,
+			previewText: `Your ${data.package.size} Pack Studio Booking Invoice from ${data.invoice.invoiceDateLabel}`
+		};
+	}
+
+	return {
+		introText: `Your invoice for your session on ${data.booking.bookingDateLabel} is ready and attached to this email.`,
+		previewText: `Studio booking confirmed! Your booking invoice is ready with a balance due of ${totalDue}.`
+	};
 }
 
 const body = {

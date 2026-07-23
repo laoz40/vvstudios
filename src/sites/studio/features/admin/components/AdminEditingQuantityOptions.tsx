@@ -26,9 +26,13 @@ export function AdminEditingQuantityOptions({
 			<Label>{label}</Label>
 			<RadioGroup
 				value={value}
-				onValueChange={(nextValue) =>
-					onChange(nextValue as BookingFormValues["essentialEditQuantity"])
-				}
+				onValueChange={(nextValue) => {
+					const count = DELIVERABLE_COUNT_OPTIONS.find((option) => option === nextValue);
+
+					if (count) {
+						onChange(count);
+					}
+				}}
 				className="grid gap-3 sm:grid-cols-4">
 				{DELIVERABLE_COUNT_OPTIONS.map((count) => {
 					const optionId = `${idPrefix}-${count}`;

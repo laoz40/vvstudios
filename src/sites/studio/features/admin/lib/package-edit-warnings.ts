@@ -29,6 +29,10 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	totalDueAmount: "Package total due"
 };
 
+function isPackageEditWarningField(field: string): field is PackageEditWarningField {
+	return Object.hasOwn(packageEditFieldLabels, field);
+}
+
 function didArrayChange(currentValue: readonly string[], nextValue: readonly string[]) {
 	if (currentValue.length !== nextValue.length) {
 		return true;
@@ -55,7 +59,7 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		return packageRow.totalDueAmount;
 	}
 
-	return packageRow[field] ?? undefined;
+	return packageRow[field];
 }
 
 function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
@@ -99,9 +103,9 @@ function getChangedFieldLabels(
 }
 
 export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: PackageEditDraft) {
-	const changedFields = (Object.keys(draft) as PackageEditWarningField[]).filter((field) =>
-		didPackageEditFieldChange(packageRow, draft, field)
-	);
+	const changedFields = Object.keys(draft)
+		.filter(isPackageEditWarningField)
+		.filter((field) => didPackageEditFieldChange(packageRow, draft, field));
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
 	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;

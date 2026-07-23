@@ -5,11 +5,11 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type {
-	CreatePackageBookingResult,
+	CreatePackageSessionResult,
 	GetPackageByTokenResult,
 	SetDefaultSpaceResult,
-	ReschedulePackageBookingResult,
-	UnschedulePackageBookingResult
+	ReschedulePackageSessionResult,
+	UnschedulePackageSessionResult
 } from "#convex/packageScheduling";
 import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
@@ -66,7 +66,16 @@ export const Route = createFileRoute("/_public/package-schedule/$token")({
 	component: MultiBookingSchedulePage
 });
 
-type SavePackageBookingResult = CreatePackageBookingResult | ReschedulePackageBookingResult;
+type SavePackageBookingResult = CreatePackageSessionResult | ReschedulePackageSessionResult;
+
+function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
+	openPackageUnscheduleConfirmationModal({
+		bookingId,
+		dateSummary: formatBookingDateSummary(date),
+		modal: "packageUnscheduleConfirmation",
+		type: "unschedule"
+	});
+}
 
 function MultiBookingSchedulePage() {
 	const { token } = Route.useParams();
@@ -111,10 +120,10 @@ function PackageScheduleContent({
 }) {
 	// Convex functions
 	const getPackageBusyWindows = useAction(api.packageSchedulingCalendar.getPackageBusyWindows);
-	const createPackageBooking = useAction(api.packageScheduling.createPackageBooking);
+	const createPackageSession = useAction(api.packageScheduling.createPackageSession);
 	const setDefaultSpace = useMutation(api.packageScheduling.setDefaultSpace);
-	const reschedulePackageBooking = useAction(api.packageScheduling.reschedulePackageBooking);
-	const unschedulePackageBooking = useAction(api.packageScheduling.unschedulePackageBooking);
+	const reschedulePackageSession = useAction(api.packageScheduling.reschedulePackageSession);
+	const unschedulePackageSession = useAction(api.packageScheduling.unschedulePackageSession);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 
 	// Availability state
@@ -156,7 +165,7 @@ function PackageScheduleContent({
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
-	const activeBooking = packageData.bookings.find((booking) => booking._id === activeSessionKey);
+	const activeBooking = packageData.sessions.find((booking) => booking._id === activeSessionKey);
 	const visibleMonthlyBusyWindowsByMonth = useMemo(
 		() => excludeBusyEvent(monthlyBusyWindowsByMonth, activeBooking?.googleEventId),
 		[activeBooking?.googleEventId, monthlyBusyWindowsByMonth]
@@ -181,13 +190,15 @@ function PackageScheduleContent({
 	// Load package-specific calendar availability up to the package expiry date.
 	useEffect(() => {
 		if (!availabilityRateLimitKey || availabilityError) {
-			return;
+			return undefined;
 		}
 
 		const rateLimitKey = availabilityRateLimitKey;
-		const hasAllMonthsCached = bookableMonthKeys.every((month) => monthlyBusyWindowsByMonth[month]);
+		const hasAllMonthsCached = bookableMonthKeys.every((month) =>
+			Object.hasOwn(monthlyBusyWindowsByMonth, month)
+		);
 		if (bookableMonthKeys.length === 0 || hasAllMonthsCached) {
-			return;
+			return undefined;
 		}
 
 		let isCancelled = false;
@@ -232,7 +243,7 @@ function PackageScheduleContent({
 	// Fade the updated session border back after the success highlight.
 	useEffect(() => {
 		if (highlightedBookingId === null) {
-			return;
+			return undefined;
 		}
 
 		const timeout = window.setTimeout(() => {
@@ -245,7 +256,7 @@ function PackageScheduleContent({
 	}, [highlightedBookingId]);
 
 	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
-		const booking = packageData.bookings.find((session) => session._id === sessionKey);
+		const booking = packageData.sessions.find((session) => session._id === sessionKey);
 		setActiveSessionKey(sessionKey);
 		setSelectedDateValue(dateValue ?? "");
 		setSelectedNotes(booking?.notes ?? "");
@@ -301,15 +312,6 @@ function PackageScheduleContent({
 		void handleSaveSession();
 	}
 
-	function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
-		openPackageUnscheduleConfirmationModal({
-			bookingId,
-			dateSummary: formatBookingDateSummary(date),
-			modal: "packageUnscheduleConfirmation",
-			type: "unschedule"
-		});
-	}
-
 	async function handleConfirmUnschedule() {
 		const confirmation = useBookingModalStore.getState();
 
@@ -332,7 +334,7 @@ function PackageScheduleContent({
 
 		setSavingSessionKey(activeSessionKey);
 		const saveAction = activeBooking
-			? reschedulePackageBooking({
+			? reschedulePackageSession({
 					bookingId: activeBooking._id,
 					date: selectedDateValue,
 					time: selectedTime,
@@ -341,7 +343,7 @@ function PackageScheduleContent({
 					remotePodcast: selectedRemotePodcast,
 					token
 				})
-			: createPackageBooking({
+			: createPackageSession({
 					date: selectedDateValue,
 					time: selectedTime,
 					service,
@@ -370,8 +372,8 @@ function PackageScheduleContent({
 
 	async function handleUnschedule(bookingId: Id<"bookings">) {
 		setUnschedulingBookingId(bookingId);
-		const [unscheduleError] = await tryCatch<UnschedulePackageBookingResult>(
-			unschedulePackageBooking({ bookingId, token })
+		const [unscheduleError] = await tryCatch<UnschedulePackageSessionResult>(
+			unschedulePackageSession({ bookingId, token })
 		);
 		setUnschedulingBookingId(null);
 
@@ -444,7 +446,7 @@ function PackageScheduleContent({
 		setCalendarMonth
 	};
 	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
-	const sessionsRemaining = packageData.packageSize - packageData.bookings.length;
+	const sessionsRemaining = packageData.packageSize - packageData.sessions.length;
 	let schedulingProgressMessage = "All sessions are scheduled. Your booking is complete.";
 
 	if (sessionsRemaining > 0) {
@@ -491,7 +493,9 @@ function PackageScheduleContent({
 					currentTimestamp={currentTimestamp}
 					leadTimeMinutes={availabilitySettings.leadTimeMinutes}
 					onDateChange={handleDateChange}
-					onMakeDefaultSpace={handleMakeDefaultSpace}
+					onMakeDefaultSpace={() => {
+						void handleMakeDefaultSpace();
+					}}
 					onNotesChange={setSelectedNotes}
 					onRemotePodcastChange={handleRemotePodcastChange}
 					onServiceChange={setSelectedService}
@@ -508,7 +512,9 @@ function PackageScheduleContent({
 			</div>
 			<BookingModalHost
 				isSubmitting={savingSessionKey !== null || unschedulingBookingId !== null}
-				onPackageUnscheduleConfirm={handleConfirmUnschedule}
+				onPackageUnscheduleConfirm={() => {
+					void handleConfirmUnschedule();
+				}}
 				onPaymentClose={() => {}}
 				onTermsConfirm={() => {}}
 			/>

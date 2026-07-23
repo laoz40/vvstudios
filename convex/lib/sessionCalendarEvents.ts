@@ -6,13 +6,13 @@ import {
 	buildEventWindow,
 	formatCalendarEventDate,
 	formatCalendarEventTime
-} from "./bookingCalendarTime";
+} from "./sessionCalendarTime";
 import {
 	getGoogleCalendarErrorCode,
 	isGoogleCalendarEventNotFoundError
 } from "./googleCalendarErrors";
 
-export interface BookingCalendarEventDetails {
+export interface SessionCalendarEventDetails {
 	addons: string[];
 	duration: string;
 	email: string;
@@ -20,7 +20,7 @@ export interface BookingCalendarEventDetails {
 	service: string;
 }
 
-export type BookingCalendarEventRecord = {
+export type SessionCalendarEventRecord = {
 	date: string;
 	duration: string;
 	email: string;
@@ -30,19 +30,19 @@ export type BookingCalendarEventRecord = {
 	time: string;
 };
 
-interface BuildBookingCalendarEventPayloadArgs {
+interface BuildSessionCalendarEventPayloadArgs {
 	date: string;
-	details: BookingCalendarEventDetails;
+	details: SessionCalendarEventDetails;
 	time: string;
 	timeZone: string;
 }
 
-export function buildBookingCalendarEventPayload({
+export function buildSessionCalendarEventPayload({
 	date,
 	details,
 	time,
 	timeZone
-}: BuildBookingCalendarEventPayloadArgs) {
+}: BuildSessionCalendarEventPayloadArgs) {
 	const [windowError, eventWindow] = buildEventWindow(date, time, details.duration, timeZone);
 
 	if (windowError !== null) {
@@ -61,7 +61,7 @@ export function buildBookingCalendarEventPayload({
 		description: [
 			`Hello, ${details.name}!`,
 			"",
-			"Your studio hire booking has been confirmed!",
+			"Your studio hire session has been confirmed!",
 			"",
 			`Recording Space: ${details.service}`,
 			`Add-ons: ${addonsLine}`,
@@ -91,12 +91,12 @@ export type GoogleCalendarEventClient = {
 	timeZone: string;
 };
 
-function isMatchingBookingCalendarEvent(
+function isMatchingSessionCalendarEvent(
 	event: calendar_v3.Schema$Event,
-	booking: BookingCalendarEventRecord
+	session: SessionCalendarEventRecord
 ) {
 	const attendeeMatches =
-		event.attendees?.some((attendee) => attendee.email === booking.email) ?? false;
+		event.attendees?.some((attendee) => attendee.email === session.email) ?? false;
 
 	// This is used when the saved Google event id cannot be used, mainly to find
 	// hidden Calendar events for invites the attendee has declined.
@@ -104,26 +104,26 @@ function isMatchingBookingCalendarEvent(
 	// Match the exact name segment so we do not delete a different event in the same time window.
 	const summaryParts = event.summary?.split("|").map((part) => part.trim()) ?? [];
 	const summaryName = summaryParts.length === 3 ? summaryParts[1] : null;
-	const summaryMatches = summaryName === booking.name;
+	const summaryMatches = summaryName === session.name;
 
 	return attendeeMatches || summaryMatches;
 }
 
-async function findBookingCalendarEventIncludingDeclined({
-	booking,
+async function findSessionCalendarEventIncludingDeclined({
+	session,
 	calendar,
 	calendarId,
 	timeZone
 }: {
-	booking: BookingCalendarEventRecord;
+	session: SessionCalendarEventRecord;
 	calendar: Pick<calendar_v3.Calendar, "events">;
 	calendarId: string;
 	timeZone: string;
 }) {
 	const [windowError, eventWindow] = buildEventWindow(
-		booking.date,
-		booking.time,
-		booking.duration,
+		session.date,
+		session.time,
+		session.duration,
 		timeZone
 	);
 
@@ -142,7 +142,7 @@ async function findBookingCalendarEventIncludingDeclined({
 	});
 
 	return ok(
-		events.data.items?.find((event) => isMatchingBookingCalendarEvent(event, booking)) ?? null
+		events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
 	);
 }
 
@@ -162,16 +162,16 @@ async function deleteCalendarEventIfFound(
 	}
 }
 
-export async function deleteBookingCalendarEvent({
-	booking,
+export async function deleteSessionCalendarEvent({
+	session,
 	client
 }: {
-	booking: BookingCalendarEventRecord;
+	session: SessionCalendarEventRecord;
 	client: GoogleCalendarEventClient;
 }) {
 	try {
-		const calendarId = booking.googleCalendarId ?? client.calendarId;
-		const savedEventId = booking.googleEventId ?? null;
+		const calendarId = session.googleCalendarId ?? client.calendarId;
+		const savedEventId = session.googleEventId ?? null;
 
 		if (savedEventId) {
 			const wasDeleted = await deleteCalendarEventIfFound(
@@ -184,9 +184,9 @@ export async function deleteBookingCalendarEvent({
 			}
 		}
 
-		// Declined Calendar invites can be hidden from direct event lookup, so search the booking window before giving up.
-		const [findEventError, foundEvent] = await findBookingCalendarEventIncludingDeclined({
-			booking,
+		// Declined Calendar invites can be hidden from direct event lookup, so search the session window before giving up.
+		const [findEventError, foundEvent] = await findSessionCalendarEventIncludingDeclined({
+			session,
 			calendar: client.calendar,
 			calendarId,
 			timeZone: client.timeZone
@@ -218,7 +218,7 @@ export async function deleteBookingCalendarEvent({
 	}
 }
 
-export type BookingCalendarTimingUpdateError = {
+export type SessionCalendarTimingUpdateError = {
 	reason:
 		| "GOOGLE_CALENDAR_AUTH_FAILED"
 		| "GOOGLE_CALENDAR_CREATE_FAILED"
@@ -226,39 +226,39 @@ export type BookingCalendarTimingUpdateError = {
 		| "GOOGLE_CALENDAR_UPDATE_FAILED";
 };
 
-export type BookingCalendarTimingUpdateResult = {
+export type SessionCalendarTimingUpdateResult = {
 	googleCalendarId?: string;
 	googleEventId?: string;
 	outcome?: "replacementCreated";
 };
 
-export async function updateBookingCalendarEventTiming({
-	booking,
+export async function updateSessionCalendarEventTiming({
+	session,
 	client,
 	date,
 	details,
 	time,
 	createMissingEvent = false
 }: {
-	booking: BookingCalendarEventRecord;
+	session: SessionCalendarEventRecord;
 	client: GoogleCalendarEventClient;
 	date: string;
-	details: BookingCalendarEventDetails;
+	details: SessionCalendarEventDetails;
 	time: string;
 	createMissingEvent?: boolean;
-}): Promise<Result<BookingCalendarTimingUpdateResult, BookingCalendarTimingUpdateError>> {
+}): Promise<Result<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError>> {
 	// Some reschedulable failed bookings never created a Google event in the original flow.
-	// When requested, create that missing event before saving the new booking time.
-	if (!booking.googleEventId || !booking.googleCalendarId) {
+	// When requested, create that missing event before saving the new session time.
+	if (!session.googleEventId || !session.googleCalendarId) {
 		if (createMissingEvent) {
-			return createBookingCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
 		return ok({});
 	}
 
-	const googleCalendarId = booking.googleCalendarId;
-	const googleEventId = booking.googleEventId;
+	const googleCalendarId = session.googleCalendarId;
+	const googleEventId = session.googleEventId;
 
 	try {
 		const existingGoogleEvent = await client.calendar.events.get({
@@ -267,10 +267,10 @@ export async function updateBookingCalendarEventTiming({
 		});
 
 		if (existingGoogleEvent.data.status === "cancelled") {
-			return createBookingCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
 			date,
 			details,
 			time,
@@ -288,7 +288,7 @@ export async function updateBookingCalendarEventTiming({
 		});
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
-			return createBookingCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
 		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
@@ -297,7 +297,7 @@ export async function updateBookingCalendarEventTiming({
 	return ok({});
 }
 
-export async function createBookingCalendarEvent({
+export async function createSessionCalendarEvent({
 	client,
 	date,
 	details,
@@ -305,11 +305,11 @@ export async function createBookingCalendarEvent({
 }: {
 	client: GoogleCalendarEventClient;
 	date: string;
-	details: BookingCalendarEventDetails;
+	details: SessionCalendarEventDetails;
 	time: string;
 }) {
 	try {
-		const [payloadError, requestBody] = buildBookingCalendarEventPayload({
+		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
 			date,
 			details,
 			time,

@@ -24,7 +24,7 @@ const CheckedIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		});
 
 		const handleHoverStart = () => {
-			start();
+			void start();
 		};
 
 		const handleHoverEnd = () => {

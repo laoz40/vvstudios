@@ -148,10 +148,14 @@ const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
 	timeZone: BOOKING_TIME_ZONE
 });
 
-export const formatShortMonthFullDate = new Intl.DateTimeFormat("en-AU", {
+const shortMonthFullDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeZone: BOOKING_TIME_ZONE
-}).format;
+});
+
+export function formatShortMonthFullDate(date: Date | number) {
+	return shortMonthFullDateFormatter.format(date);
+}
 
 function getDatePartsInSydney(date: Date) {
 	const parts = new Intl.DateTimeFormat("en-AU", {
@@ -242,7 +246,7 @@ export function getAvailableTimesForDate({
 		return [];
 	}
 
-	const daySchedule = settings.weekSchedule[bookingDate.getDay()];
+	const daySchedule = settings.weekSchedule.at(bookingDate.getDay());
 	if (!daySchedule) {
 		return [];
 	}

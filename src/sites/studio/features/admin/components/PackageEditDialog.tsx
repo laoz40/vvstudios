@@ -25,9 +25,11 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculateMultiBookingAmounts,
+	isMultiBookingSize,
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -89,7 +91,7 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		customerEmail: packageRow.customerEmail,
 		customerName: packageRow.customerName,
 		customerPhone: packageRow.customerPhone,
-		duration: packageRow.duration as BookingFormValues["duration"],
+		duration: toAdminSessionDuration(packageRow.duration),
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",
@@ -259,36 +261,40 @@ export function PackageEditDialog({
 						<Label>Package sessions</Label>
 						<RadioGroup
 							value={String(draft.packageSize)}
-							onValueChange={(value) =>
-								setDraft((current) => ({
-									...current,
-									packageSize: Number(value) as MultiBookingSize
-								}))
-							}
-							className="grid gap-3 sm:grid-cols-3">
-							{Object.keys(MULTI_BOOKING_PLANS).map((packageSize) => {
-								const optionId = `edit-package-size-${packageSize}`;
+							onValueChange={(value) => {
+								const packageSize = Number(value);
 
-								return (
-									<label
-										key={packageSize}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<RadioGroupItem
-											id={optionId}
-											value={packageSize}
-											disabled={isSaving}
-										/>
-										<span className="font-medium">{packageSize} sessions</span>
-									</label>
-								);
-							})}
+								if (isMultiBookingSize(packageSize)) {
+									setDraft((current) => ({ ...current, packageSize }));
+								}
+							}}
+							className="grid gap-3 sm:grid-cols-3">
+							{Object.keys(MULTI_BOOKING_PLANS)
+								.map(Number)
+								.filter(isMultiBookingSize)
+								.map((packageSize) => {
+									const optionId = `edit-package-size-${packageSize}`;
+
+									return (
+										<label
+											key={packageSize}
+											htmlFor={optionId}
+											className={cn(
+												"flex cursor-pointer items-center gap-3",
+												"p-3",
+												"rounded-lg border",
+												"transition-colors",
+												"has-checked:border-primary has-checked:bg-primary/5"
+											)}>
+											<RadioGroupItem
+												id={optionId}
+												value={String(packageSize)}
+												disabled={isSaving}
+											/>
+											<span className="font-medium">{packageSize} sessions</span>
+										</label>
+									);
+								})}
 						</RadioGroup>
 					</section>
 
@@ -296,12 +302,13 @@ export function PackageEditDialog({
 						<Label>Session duration</Label>
 						<RadioGroup
 							value={draft.duration}
-							onValueChange={(value) =>
-								setDraft((current) => ({
-									...current,
-									duration: value as BookingFormValues["duration"]
-								}))
-							}
+							onValueChange={(value) => {
+								const duration = DURATION_OPTIONS.find((option) => option === value);
+
+								if (duration) {
+									setDraft((current) => ({ ...current, duration }));
+								}
+							}}
 							className="grid gap-3 sm:grid-cols-3">
 							{DURATION_OPTIONS.map((duration) => {
 								const optionId = `edit-package-duration-${toOptionId(duration)}`;

@@ -32,13 +32,18 @@ import {
 	getMultiBookingExpiresAt,
 	getMultiBookingInvoiceDueAt
 } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { hashRescheduleToken } from "../lib/bookingRescheduleLinks";
+import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
 import { createConvexTest } from "../test.setup";
+
+type SendInvoiceEmail = typeof import("../lib/email").sendMultiBookingInvoiceEmail;
+type SendScheduleEmail = (
+	args: Parameters<typeof import("../lib/email").sendPackageScheduleEmail>[0]
+) => unknown;
 
 const providerFakes = vi.hoisted(() => ({
 	resolveMx: vi.fn(),
-	sendInvoiceEmail: vi.fn(),
-	sendScheduleEmail: vi.fn()
+	sendInvoiceEmail: vi.fn<SendInvoiceEmail>(),
+	sendScheduleEmail: vi.fn<SendScheduleEmail>()
 }));
 
 vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
@@ -49,7 +54,7 @@ vi.mock("../env", () => ({
 
 vi.mock("../lib/email", () => ({
 	sendMultiBookingInvoiceEmail: providerFakes.sendInvoiceEmail,
-	sendMultiBookingScheduleEmail: providerFakes.sendScheduleEmail
+	sendPackageScheduleEmail: providerFakes.sendScheduleEmail
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -101,8 +106,8 @@ describe("package payment confirmation", () => {
 			.withIdentity(adminIdentity)
 			.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
-		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0]?.[0];
-		const scheduleToken = getScheduleToken(emailArgs?.scheduleUrl);
+		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
+		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
 		expect(result).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
 		expect(packageRecord).toMatchObject({
@@ -119,9 +124,9 @@ describe("package payment confirmation", () => {
 			email: "customer@example.com",
 			expiresAt,
 			name: "Test customer",
-			packageSize: 4,
-			scheduleUrl: expect.stringContaining("https://example.com/package-schedule/")
+			packageSize: 4
 		});
+		expect(emailArgs.scheduleUrl).toContain("https://example.com/package-schedule/");
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
 			args: [{ expectedExpiresAt: expiresAt, multiBookingId }],
@@ -232,7 +237,7 @@ describe("package payment confirmation", () => {
 			})
 		);
 
-		const result = await admin.mutation(api.bookings.markPackagePaymentStatus, {
+		const result = await admin.mutation(api.packages.markPackagePaymentStatus, {
 			multiBookingId,
 			paid: false
 		});
@@ -351,13 +356,13 @@ describe("admin package management", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 		for (let index = 0; index < 5; index += 1) {
-			await seedPackageBooking(t, packageId, index, index === 4 ? "email_failed" : "confirmed");
+			await seedPackageSession(t, packageId, index, index === 4 ? "email_failed" : "confirmed");
 		}
 		const packageBefore = await readPackage(t, packageId);
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.mutation(api.bookings.updatePackageFromAdmin, {
+			.mutation(api.packages.updatePackageFromAdmin, {
 				multiBookingId: packageId,
 				...editedPackage,
 				packageSize: 4
@@ -372,7 +377,7 @@ describe("admin package management", () => {
 		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const calculatedResult = await admin.mutation(api.bookings.updatePackageFromAdmin, {
+		const calculatedResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
 			multiBookingId: packageId,
 			...editedPackage
 		});
@@ -393,7 +398,7 @@ describe("admin package management", () => {
 			]
 		});
 
-		const customResult = await admin.mutation(api.bookings.updatePackageFromAdmin, {
+		const customResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
 			multiBookingId: packageId,
 			...editedPackage,
 			totalDueAmount: 2000
@@ -438,7 +443,7 @@ async function seedPackage(t: TestClient) {
 	);
 }
 
-async function seedPackageBooking(
+async function seedPackageSession(
 	t: TestClient,
 	packageId: Id<"multiBookingPackages">,
 	index: number,

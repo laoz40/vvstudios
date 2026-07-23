@@ -1,3 +1,4 @@
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Field is a generic layout group and cannot always introduce fieldset semantics. */
 import { useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -183,13 +184,15 @@ function FieldError({
 
 		const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
 
-		if (uniqueErrors?.length == 1) {
+		if (uniqueErrors.length === 1) {
 			return uniqueErrors[0]?.message;
 		}
 
 		return (
 			<ul className="ml-4 flex list-disc flex-col gap-1">
-				{uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
+				{uniqueErrors.map(
+					(error) => error?.message && <li key={error.message}>{error.message}</li>
+				)}
 			</ul>
 		);
 	}, [children, errors]);

@@ -6,12 +6,11 @@ import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	bookingSchema,
-	toFieldErrorObjects,
-	type BookingFormValues
+	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	MULTI_BOOKING_PLANS,
-	type MultiBookingSize
+	isMultiBookingSize,
+	MULTI_BOOKING_PLANS
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	getCardStateClassName,
@@ -21,11 +20,19 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 
-const packageSizeOptions = Object.entries(MULTI_BOOKING_PLANS).map(([packageSize, plan]) => ({
-	packageSize: Number(packageSize) as MultiBookingSize,
-	discountPercent: plan.discountPercent,
-	validityMonths: Math.round(plan.validityDays / 30)
-}));
+const packageSizeOptions = Object.entries(MULTI_BOOKING_PLANS).map(([packageSize, plan]) => {
+	const numericPackageSize = Number(packageSize);
+
+	if (!isMultiBookingSize(numericPackageSize)) {
+		throw new Error(`Invalid package size: ${packageSize}`);
+	}
+
+	return {
+		packageSize: numericPackageSize,
+		discountPercent: plan.discountPercent,
+		validityMonths: Math.round(plan.validityDays / 30)
+	};
+});
 
 export function BookingPackageSection() {
 	const formApi = useBookingFormContext();
@@ -65,8 +72,12 @@ export function BookingPackageSection() {
 										<RadioGroup
 											value={String(field.state.value)}
 											onValueChange={(value) => {
-												field.handleChange(Number(value) as BookingFormValues["packageSize"]);
-												field.handleBlur();
+												const packageSize = Number(value);
+
+												if (isMultiBookingSize(packageSize)) {
+													field.handleChange(packageSize);
+													field.handleBlur();
+												}
 											}}
 											className="grid gap-4 sm:grid-cols-3">
 											{packageSizeOptions.map((option) => {

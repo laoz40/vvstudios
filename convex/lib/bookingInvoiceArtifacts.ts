@@ -1,13 +1,18 @@
 import { err, ok } from "../../src/lib/result";
 import type { Doc } from "../_generated/dataModel";
+import type { z } from "zod";
+import { calculateMultiBookingAmounts } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
 import {
 	bookingSchema,
-	multiBookingFormSchema
+	DURATION_OPTIONS,
+	multiBookingFormSchema,
+	type BookingFormValues
 } from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
 	buildBookingInvoiceData,
 	buildMultiBookingInvoiceData,
 	buildPackageAdjustmentInvoiceData,
+	createMultiBookingInvoiceLineItemSnapshot,
 	createStoredAmountMultiBookingInvoiceLineItemSnapshot
 } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
@@ -49,6 +54,175 @@ export type MultiBookingInvoiceSource = Pick<
 	| "totalDueAmount"
 > & { invoiceLineItems?: BookingInvoiceLineItem[] };
 
+type CustomMultiBookingInvoiceSource = {
+	customInvoice: Doc<"customInvoices">;
+	multiBooking: Doc<"multiBookingPackages">;
+};
+
+type CustomMultiBookingFormData = z.infer<typeof multiBookingFormSchema>;
+
+function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
+	return DURATION_OPTIONS.find((duration) => duration === value) ?? "";
+}
+
+function parseCustomMultiBookingInvoice(source: CustomMultiBookingInvoiceSource) {
+	const packageSize = source.customInvoice.packageSize ?? source.multiBooking.packageSize;
+	const parsedCustomInvoice = multiBookingFormSchema.safeParse({
+		name: source.multiBooking.name,
+		phone: source.multiBooking.phone,
+		accountName: source.multiBooking.accountName,
+		abn: source.multiBooking.abn,
+		email: source.multiBooking.email,
+		duration: source.customInvoice.duration ?? source.multiBooking.duration,
+		addons: source.customInvoice.addons,
+		essentialEditQuantity:
+			source.customInvoice.essentialEditQuantity ?? source.multiBooking.essentialEditQuantity ?? "",
+		clipsPackageQuantity:
+			source.customInvoice.clipsPackageQuantity ?? source.multiBooking.clipsPackageQuantity ?? "",
+		notes: source.multiBooking.notes ?? "",
+		packageSize
+	});
+
+	if (!parsedCustomInvoice.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	return ok({ customInvoiceData: parsedCustomInvoice.data, packageSize });
+}
+
+function createCustomInvoiceLineItems(
+	customInvoiceData: CustomMultiBookingFormData,
+	customDuration: BookingFormValues["duration"] | "",
+	packageSize: number,
+	amounts: ReturnType<typeof calculateMultiBookingAmounts>,
+	totalDueAmount: number
+) {
+	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
+		addons: customInvoiceData.addons,
+		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
+		discountAmount: amounts.discountAmount,
+		discountPercent: amounts.discountPercent,
+		duration: customDuration,
+		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
+		packageSize
+	});
+	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
+
+	if (priceAdjustmentAmount !== 0) {
+		invoiceLineItems.push({
+			amount: priceAdjustmentAmount,
+			description: "Custom price adjustment",
+			quantity: 1,
+			rate: priceAdjustmentAmount
+		});
+	}
+
+	return invoiceLineItems;
+}
+
+export function createCustomMultiBookingInvoiceData(
+	source: CustomMultiBookingInvoiceSource,
+	leadTimeMinutes: number
+) {
+	const [parseError, parsed] = parseCustomMultiBookingInvoice(source);
+
+	if (parseError !== null) {
+		return err(parseError);
+	}
+
+	const { customInvoiceData, packageSize } = parsed;
+	// An omitted custom duration intentionally produces an add-ons-only invoice.
+	const customDuration = toCustomDuration(source.customInvoice.duration);
+	const amounts = calculateMultiBookingAmounts({
+		addons: customInvoiceData.addons,
+		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity,
+		duration: customDuration,
+		essentialEditQuantity: customInvoiceData.essentialEditQuantity,
+		includeDiscount: source.customInvoice.includePackageDiscount !== false,
+		packageSize
+	});
+	const totalDueAmount = source.customInvoice.customTotalDueAmount ?? amounts.totalDueAmount;
+	const invoiceLineItems = createCustomInvoiceLineItems(
+		customInvoiceData,
+		customDuration,
+		packageSize,
+		amounts,
+		totalDueAmount
+	);
+	const invoiceDueAt = source.customInvoice.dueDate
+		? new Date(`${source.customInvoice.dueDate}T00:00:00`).getTime()
+		: source.multiBooking.invoiceDueAt;
+
+	return ok(
+		buildMultiBookingInvoiceData({
+			bookingId: source.multiBooking._id,
+			name: customInvoiceData.name,
+			phone: customInvoiceData.phone,
+			accountName: customInvoiceData.accountName,
+			abn: customInvoiceData.abn,
+			email: customInvoiceData.email,
+			duration: customDuration || customInvoiceData.duration,
+			addons: customInvoiceData.addons,
+			essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
+			clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
+			createdAt: source.customInvoice.createdAt,
+			invoiceDueAt,
+			invoiceNumber: source.customInvoice.invoiceNumber,
+			packageSize,
+			packageSubtotalAmount: amounts.packageSubtotalAmount,
+			discountPercent: amounts.discountPercent,
+			discountAmount: amounts.discountAmount,
+			totalDueAmount,
+			invoiceLineItems,
+			leadTimeMinutes
+		})
+	);
+}
+
+function getBookingInvoiceParseInput(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined
+) {
+	const {
+		duration = booking.duration,
+		// Custom invoices may intentionally omit studio hire and contain only add-ons.
+		// Parse against the booking's valid service, then omit it from the artifact below.
+		service = booking.service,
+		addons = booking.addons,
+		essentialEditQuantity = booking.essentialEditQuantity ?? "",
+		clipsPackageQuantity = booking.clipsPackageQuantity ?? ""
+	} = customInvoice ?? {};
+
+	return {
+		name: booking.name,
+		phone: booking.phone,
+		accountName: booking.accountName,
+		abn: booking.abn,
+		email: booking.email,
+		bookingMode: "single",
+		packageSize: "",
+		date: booking.date,
+		time: booking.time,
+		duration,
+		service,
+		addons,
+		essentialEditQuantity,
+		clipsPackageQuantity,
+		notes: booking.notes ?? ""
+	};
+}
+
+function getBookingInvoiceService(
+	customInvoice: Doc<"customInvoices"> | undefined,
+	service: "Armchair Setup" | "Table Setup" | ""
+) {
+	if (customInvoice && !customInvoice.service) {
+		return undefined;
+	}
+
+	return service || undefined;
+}
+
 export function createBookingInvoiceArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
@@ -59,26 +233,9 @@ export function createBookingInvoiceArtifactsForBooking(
 	}
 ) {
 	const customInvoice = options.customInvoice;
-	const parsedBooking = bookingSchema.safeParse({
-		name: booking.name,
-		phone: booking.phone,
-		accountName: booking.accountName,
-		abn: booking.abn,
-		email: booking.email,
-		bookingMode: "single",
-		packageSize: "",
-		date: booking.date,
-		time: booking.time,
-		duration: customInvoice?.duration ?? booking.duration,
-		// Custom invoices may intentionally omit studio hire and contain only add-ons.
-		// Parse against the booking's valid service, then omit it from the artifact below.
-		service: customInvoice?.service ?? booking.service,
-		addons: customInvoice?.addons ?? booking.addons,
-		essentialEditQuantity:
-			customInvoice?.essentialEditQuantity ?? booking.essentialEditQuantity ?? "",
-		clipsPackageQuantity: customInvoice?.clipsPackageQuantity ?? booking.clipsPackageQuantity ?? "",
-		notes: booking.notes ?? ""
-	});
+	const parsedBooking = bookingSchema.safeParse(
+		getBookingInvoiceParseInput(booking, customInvoice)
+	);
 
 	if (!parsedBooking.success) {
 		return err({ reason: "INVALID_BOOKING_DATA" });
@@ -94,8 +251,7 @@ export function createBookingInvoiceArtifactsForBooking(
 		date: parsedBooking.data.date,
 		time: parsedBooking.data.time,
 		duration: parsedBooking.data.duration,
-		service:
-			customInvoice && !customInvoice.service ? undefined : parsedBooking.data.service || undefined,
+		service: getBookingInvoiceService(customInvoice, parsedBooking.data.service),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,

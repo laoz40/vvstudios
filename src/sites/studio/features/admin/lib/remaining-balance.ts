@@ -1,22 +1,23 @@
+import type { Doc } from "#convex/_generated/dataModel";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 
-export type RemainingBalanceBooking = {
+export type RemainingBalanceSession = {
 	duration: string;
 	addons: string[];
 	remainingBalanceAmount?: number;
 };
 
-export type RemainingBalancePaymentBooking = RemainingBalanceBooking & {
-	status: "confirmed" | "email_failed" | string;
+export type RemainingBalancePaymentSession = RemainingBalanceSession & {
+	status: Doc<"bookings">["status"];
 	paidRemainingBalance?: boolean;
 };
 
-function getDefaultRemainingBalanceAmount(booking: RemainingBalanceBooking) {
-	return calculateBookingInvoiceAmounts(booking).totalDueAmount;
+function getDefaultRemainingBalanceAmount(session: RemainingBalanceSession) {
+	return calculateBookingInvoiceAmounts(session).totalDueAmount;
 }
 
-export function getRemainingBalanceAmount(booking: RemainingBalanceBooking) {
-	return booking.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(booking);
+export function getRemainingBalanceAmount(session: RemainingBalanceSession) {
+	return session.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(session);
 }
 
 type RemainingBalanceAmountParseResult =
@@ -39,12 +40,12 @@ export function parseRemainingBalanceAmountDraft(draft: string): RemainingBalanc
 	return { status: "valid", amount };
 }
 
-export function hasUnpaidRemainingBalance(booking: RemainingBalancePaymentBooking) {
-	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+export function hasUnpaidRemainingBalance(session: RemainingBalancePaymentSession) {
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
 		return false;
 	}
 
-	return booking.paidRemainingBalance !== true && getRemainingBalanceAmount(booking) > 0;
+	return session.paidRemainingBalance !== true && getRemainingBalanceAmount(session) > 0;
 }
 
 export function formatAudAmount(amount: number) {

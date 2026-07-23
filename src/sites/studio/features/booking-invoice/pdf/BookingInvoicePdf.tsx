@@ -7,8 +7,25 @@ export interface BookingInvoicePdfProps {
 	data: BookingInvoiceData;
 }
 
-export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
+function getSessionSummary(data: BookingInvoiceData) {
+	if (data.adjustment) {
+		return `${data.adjustment.packageSize} pack · Remote Podcast usage`;
+	}
+
+	if (data.package) {
+		return `${data.package.size} pack · ${data.booking.duration} sessions`;
+	}
+
 	const formattedSessionTime = formatTimeValue(data.booking.time);
+
+	if (data.booking.service) {
+		return `${data.booking.service} · ${data.booking.duration} · ${formattedSessionTime}`;
+	}
+
+	return `Add-ons only · ${formattedSessionTime}`;
+}
+
+export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 	const packageDetails = data.package;
 	const adjustmentDetails = data.adjustment;
 	const isPackageInvoice = packageDetails !== undefined;
@@ -18,19 +35,7 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 				.filter((item) => item.amount < 0 && item.description.includes("package discount"))
 				.reduce((total, item) => total + Math.abs(item.amount), 0)
 		: 0;
-	let sessionSummary = `Add-ons only · ${formattedSessionTime}`;
-
-	if (data.booking.service) {
-		sessionSummary = `${data.booking.service} · ${data.booking.duration} · ${formattedSessionTime}`;
-	}
-
-	if (isPackageInvoice) {
-		sessionSummary = `${packageDetails.size} pack · ${data.booking.duration} sessions`;
-	}
-
-	if (isAdjustmentInvoice) {
-		sessionSummary = `${adjustmentDetails.packageSize} pack · Remote Podcast usage`;
-	}
+	const sessionSummary = getSessionSummary(data);
 
 	return (
 		<Document>
@@ -110,9 +115,9 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 							Amount
 						</Text>
 					</View>
-					{data.lineItems.map((item, index) => (
+					{data.lineItems.map((item) => (
 						<View
-							key={`${item.description}-${index}`}
+							key={item.description}
 							style={styles.tableRow}>
 							<Text style={[styles.tableCell, styles.itemColumn]}>{item.description}</Text>
 							<Text style={[styles.tableCell, styles.qtyColumn]}>{item.quantity}</Text>
