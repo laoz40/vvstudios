@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, ok } from "../src/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk } from "../src/lib/result";
 import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -14,6 +14,7 @@ import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
 import { getSessionFromDb } from "./lib/sessionLookup";
+import { archiveSessionService } from "./services/sessions";
 import {
 	sessionConsumesPackageCapacity,
 	getCapacityConsumingPackageSessions
@@ -186,29 +187,11 @@ export const archiveSession = mutation({
 	handler: (ctx, args) => archiveSessionHandler(ctx, args)
 });
 
-async function archiveSessionHandler(
+function archiveSessionHandler(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; archived: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
-
-	if (bookingError !== null) {
-		return err(bookingError);
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
-	} catch {
-		return err({ reason: "SESSION_ARCHIVE_FAILED" });
-	}
-
-	return ok({ archived: args.archived });
+	return archiveSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;

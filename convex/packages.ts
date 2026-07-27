@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "../src/lib/result";
 import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
 	calculateMultiBookingAmounts,
@@ -26,6 +26,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	getPackageAdminUpdateValidationError
 } from "./lib/packageScheduling";
+import { archivePackageService } from "./services/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -333,29 +334,11 @@ export const archivePackage = mutation({
 	handler: (ctx, args) => archivePackageHandler(ctx, args)
 });
 
-async function archivePackageHandler(
+function archivePackageHandler(
 	ctx: MutationCtx,
 	args: { multiBookingId: Id<"multiBookingPackages">; archived: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(args.multiBookingId, { hiddenAt: args.archived ? Date.now() : undefined });
-	} catch {
-		return err({ reason: "PACKAGE_ARCHIVE_FAILED" });
-	}
-
-	return ok({ archived: args.archived });
+	return archivePackageService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ArchivePackageResult = Awaited<ReturnType<typeof archivePackageHandler>>;

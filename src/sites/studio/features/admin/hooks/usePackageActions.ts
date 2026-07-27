@@ -296,10 +296,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 					toast.error("This package no longer exists.");
 					break;
 
-				case "PACKAGE_ARCHIVE_FAILED":
-					toast.error("Unable to update the package archive state.");
-					break;
-
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while archiving the package.");
 					break;

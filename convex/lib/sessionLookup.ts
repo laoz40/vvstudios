@@ -1,7 +1,18 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, ResultAsync } from "neverthrow";
+import { err as tupleErr, ok as tupleOk, type Result } from "../../src/lib/result";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "../_generated/server";
+
+export function getSessionFromDbResult(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return ResultAsync.fromSafePromise(ctx.db.get(bookingId)).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
+
+		return ok(session);
+	});
+}
 
 export async function getSessionFromDb(
 	ctx: MutationCtx,
@@ -10,10 +21,10 @@ export async function getSessionFromDb(
 	const session = await ctx.db.get(bookingId);
 
 	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	return ok(session);
+	return tupleOk(session);
 }
 
 export async function getSessionFromQuery(
@@ -25,8 +36,8 @@ export async function getSessionFromQuery(
 	});
 
 	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	return ok(session);
+	return tupleOk(session);
 }

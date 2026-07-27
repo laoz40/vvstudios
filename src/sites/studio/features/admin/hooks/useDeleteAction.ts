@@ -81,9 +81,6 @@ export function useDeleteAction(session: SessionRecord) {
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
 					break;
-				case "SESSION_ARCHIVE_FAILED":
-					toast.error("Unable to archive the session.");
-					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while archiving the session.");
 					break;
