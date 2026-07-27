@@ -205,9 +205,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
 					toast.error("The adjustment invoice must be sent first.");
 					break;
-				case "PACKAGE_ADJUSTMENT_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to update the adjustment payment.");
-					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the adjustment payment.");
 					break;

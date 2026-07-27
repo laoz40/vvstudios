@@ -1,10 +1,10 @@
 import { v } from "convex/values";
-import { err, ok } from "../src/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk } from "../src/lib/result";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, type MutationCtx } from "./_generated/server";
-import { getAdminIdentity } from "./lib/auth";
 import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "./lib/packageAdjustments";
+import { markPackageAdjustmentPaymentStatusService } from "./services/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
@@ -148,33 +148,11 @@ export const markPackageAdjustmentPaymentStatus = mutation({
 	handler: (ctx, args) => markPackageAdjustmentPaymentStatusHandler(ctx, args)
 });
 
-async function markPackageAdjustmentPaymentStatusHandler(
+function markPackageAdjustmentPaymentStatusHandler(
 	ctx: MutationCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; paid: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const adjustment = await ctx.db.get(args.adjustmentId);
-
-	if (!adjustment || adjustment.outcome !== "invoice_required") {
-		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" });
-	}
-
-	if (adjustment.invoiceEmailStatus !== "sent") {
-		return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" });
-	}
-
-	try {
-		await ctx.db.patch(adjustment._id, { paymentStatus: args.paid ? "paid" : "unpaid" });
-	} catch {
-		return err({ reason: "PACKAGE_ADJUSTMENT_PAYMENT_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+	return markPackageAdjustmentPaymentStatusService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type MarkPackageAdjustmentPaymentStatusResult = Awaited<
