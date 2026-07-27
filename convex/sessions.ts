@@ -13,7 +13,6 @@ import {
 import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
-import { getSessionFromDb } from "./lib/sessionLookup";
 import {
 	archiveSessionService,
 	saveSessionInstagramHandleService,
@@ -177,37 +176,6 @@ function archiveSessionHandler(
 }
 
 export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;
-
-export const deleteSession = mutation({
-	args: { bookingId: v.id("bookings") },
-	handler: deleteSessionHandler
-});
-
-type DeleteSessionArgs = { bookingId: Id<"bookings"> };
-
-async function deleteSessionHandler(ctx: MutationCtx, args: DeleteSessionArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
-
-	if (bookingError !== null) {
-		return err(bookingError);
-	}
-
-	try {
-		await ctx.db.delete(session._id);
-	} catch {
-		return err({ reason: "BOOKING_DELETE_FAILED" });
-	}
-
-	return ok({ deleted: true });
-}
-
-export type DeleteSessionResult = Awaited<ReturnType<typeof deleteSessionHandler>>;
 
 export const updateSession = mutation({
 	args: {
