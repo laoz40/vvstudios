@@ -68,6 +68,7 @@ export async function finishRescheduledSession(
 	};
 	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
+		reschedule: { originalDate: session.date, originalTime: session.time },
 		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 

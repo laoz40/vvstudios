@@ -72,6 +72,14 @@ interface HostSingleBookingDetailsEmailProps extends HostBookingBaseDetailsEmail
 	time: string;
 }
 
+interface HostRescheduledBookingDetailsEmailProps extends HostBookingBaseDetailsEmailProps {
+	kind: "rescheduled";
+	date: string;
+	time: string;
+	originalDate: string;
+	originalTime: string;
+}
+
 interface HostPackageBookingDetailsEmailProps extends HostBookingBaseDetailsEmailProps {
 	kind: "package";
 	packageSize: 4 | 8 | 12;
@@ -80,12 +88,14 @@ interface HostPackageBookingDetailsEmailProps extends HostBookingBaseDetailsEmai
 
 export type HostBookingDetailsEmailProps =
 	| HostSingleBookingDetailsEmailProps
+	| HostRescheduledBookingDetailsEmailProps
 	| HostPackageBookingDetailsEmailProps;
 
 function getHostBookingEmailCopy(
 	name: string,
 	bookingDetails:
 		| Omit<HostSingleBookingDetailsEmailProps, keyof HostBookingBaseDetailsEmailProps>
+		| Omit<HostRescheduledBookingDetailsEmailProps, keyof HostBookingBaseDetailsEmailProps>
 		| Omit<HostPackageBookingDetailsEmailProps, keyof HostBookingBaseDetailsEmailProps>
 ) {
 	if (bookingDetails.kind === "package") {
@@ -95,6 +105,16 @@ function getHostBookingEmailCopy(
 			primarySummaryDetail: `${bookingDetails.packageSize} Pack package request`,
 			secondarySummaryDetail: `Due ${bookingDetails.invoiceDueAtLabel}`,
 			isPackageRequest: true
+		};
+	}
+
+	if (bookingDetails.kind === "rescheduled") {
+		return {
+			headingText: "Studio booking rescheduled",
+			previewText: `${name} rescheduled from ${bookingDetails.originalDate} to ${bookingDetails.date}.`,
+			primarySummaryDetail: bookingDetails.date,
+			secondarySummaryDetail: bookingDetails.time,
+			isPackageRequest: false
 		};
 	}
 
@@ -148,6 +168,15 @@ export function HostBookingDetailsEmail({
 						<Text style={sectionTitle}>Booking summary</Text>
 						<Section style={summaryCard}>
 							<Text style={customerName}>{name}</Text>
+							{bookingDetails.kind === "rescheduled" ? (
+								<Text style={originalTiming}>
+									Originally: <strong>{bookingDetails.originalDate}</strong>,{" "}
+									{bookingDetails.originalTime}
+								</Text>
+							) : null}
+							{bookingDetails.kind === "rescheduled" ? (
+								<Text style={newTimingLabel}>Changed to</Text>
+							) : null}
 							<Text style={emailCopy.isPackageRequest ? secondaryDetail : primaryDetail}>
 								{emailCopy.primarySummaryDetail}
 							</Text>
@@ -266,6 +295,21 @@ const customerName = {
 	fontWeight: "400",
 	lineHeight: "24px",
 	margin: "0 0 12px"
+};
+
+const originalTiming = {
+	color: "#d0d0d0",
+	fontSize: "14px",
+	lineHeight: "20px",
+	margin: "0 0 12px"
+};
+
+const newTimingLabel = {
+	color: "#f5c400",
+	fontSize: "13px",
+	fontWeight: "600",
+	margin: "0 0 4px",
+	textTransform: "uppercase" as const
 };
 
 const primaryDetail = {
