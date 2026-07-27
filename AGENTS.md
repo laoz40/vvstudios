@@ -75,8 +75,6 @@ Booking website for podcast studio.
 ### Convex
 
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
-- For Convex client-facing errors, expected failures, or React handling of Convex responses, read the `convex-result-type-error-handling` skill first.
-- Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*` when they are shared or likely to be reused.
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal`; the `internal.*` namespace already communicates visibility.
 
