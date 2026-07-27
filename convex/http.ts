@@ -28,7 +28,7 @@ async function handleCompletedCheckout(
 			? session.payment_intent
 			: session.payment_intent?.id;
 	const [claimError, claim] = await ctx.runMutation(
-		internal.sessionCompletion.claimSessionCompletion,
+		internal.bookingConfirmation.claimBookingConfirmation,
 		{ bookingId, stripeSessionId: session.id, stripePaymentIntentId, stripeEventId: event.id }
 	);
 

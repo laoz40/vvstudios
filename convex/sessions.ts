@@ -4,6 +4,7 @@ import { err, err as tupleErr, ok, ok as tupleOk } from "../src/lib/result";
 import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+	internalMutation,
 	internalQuery,
 	mutation,
 	query,
@@ -13,6 +14,7 @@ import {
 import { getAdminIdentity } from "./lib/auth";
 import {
 	archiveSessionService,
+	markSessionCalendarEventDeletedService,
 	saveSessionInstagramHandleService,
 	updateSessionEditStatusService,
 	updateSessionPaidStatusService
@@ -208,4 +210,20 @@ function updateSessionEditStatusHandler(
 
 export type UpdateSessionEditStatusResult = Awaited<
 	ReturnType<typeof updateSessionEditStatusHandler>
+>;
+
+export const markSessionCalendarEventDeleted = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => markSessionCalendarEventDeletedHandler(ctx, args)
+});
+
+function markSessionCalendarEventDeletedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return markSessionCalendarEventDeletedService(ctx, args).match(tupleOk, tupleErr);
+}
+
+export type MarkSessionCalendarEventDeletedResult = Awaited<
+	ReturnType<typeof markSessionCalendarEventDeletedHandler>
 >;

@@ -274,7 +274,7 @@ async function seedClaimedBooking(t: TestClient, email?: string) {
 }
 
 async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEventId: string) {
-	return await t.mutation(internal.sessionCompletion.claimSessionCompletion, {
+	return await t.mutation(internal.bookingConfirmation.claimBookingConfirmation, {
 		bookingId,
 		stripeSessionId: "cs-1",
 		stripePaymentIntentId: "pi-1",

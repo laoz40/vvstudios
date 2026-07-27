@@ -35,9 +35,6 @@ export function useDeleteAction(session: SessionRecord) {
 				case "GOOGLE_CALENDAR_AUTH_FAILED":
 					toast.error("Google Calendar authentication failed. Session event was not deleted.");
 					break;
-				case "BOOKING_STATUS_UPDATE_FAILED":
-					toast.error("The event was deleted, but the session could not be marked cancelled.");
-					break;
 				case "GOOGLE_CALENDAR_DELETE_FAILED":
 					toast.error("Google Calendar failed to delete the event. Please try again.");
 					break;

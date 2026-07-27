@@ -12,6 +12,7 @@ type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "completed";
 };
+type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
 
 export function saveSessionInstagramHandleService(
 	ctx: MutationCtx,
@@ -63,4 +64,22 @@ export function updateSessionEditStatusService(
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
 		.andThen((session) => nullResult(ctx.db.patch(session._id, { editStatus: args.editStatus })));
+}
+
+export function markSessionCalendarEventDeletedService(
+	ctx: MutationCtx,
+	args: MarkSessionCalendarEventDeletedArgs
+) {
+	return getSessionFromDbResult(ctx, args.bookingId)
+		.andThen(() =>
+			nullResult(
+				ctx.db.patch(args.bookingId, {
+					bookingFailureCode: undefined,
+					googleCalendarId: undefined,
+					googleEventId: undefined,
+					status: "cancelled"
+				})
+			)
+		)
+		.map(() => ({ cancelled: true }));
 }

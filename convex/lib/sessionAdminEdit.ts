@@ -229,13 +229,13 @@ interface ValidateSessionTimingEditArgs {
 	timeZone: string;
 }
 
-export async function failSessionCompletion(
+export async function failBookingConfirmation(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	failureCode: string,
 	reservation?: SessionReservation
 ) {
-	await ctx.runMutation(internal.sessionCompletion.markSessionCompletionFailed, {
+	await ctx.runMutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
 		bookingId,
 		failureCode,
 		...(reservation ? { reservation } : {})

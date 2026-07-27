@@ -8,7 +8,7 @@ import type { getGoogleCalendarClient } from "./googleCalendarClient";
 import { sendBookingInvoiceEmailsForBooking } from "./email";
 import type { SessionReservation } from "./sessionReservations";
 
-type MarkSessionCompletedResult = Result<
+type MarkBookingConfirmedResult = Result<
 	{ updated: true },
 	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
 >;
@@ -33,15 +33,15 @@ async function removeOrphanedSessionCalendarEvent(
 	}
 }
 
-export async function saveCompletedSession(
+export async function saveConfirmedBooking(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
 	reservation: SessionReservation,
 	googleEventId: string | undefined
 ) {
-	const [completionError]: MarkSessionCompletedResult = await ctx.runMutation(
-		internal.sessionCompletion.markSessionCompleted,
+	const [completionError]: MarkBookingConfirmedResult = await ctx.runMutation(
+		internal.bookingConfirmation.markBookingConfirmed,
 		{
 			bookingId: session._id,
 			googleEventId,
@@ -62,7 +62,7 @@ export async function saveCompletedSession(
 	return false;
 }
 
-export async function sendCompletedBookingInvoice(
+export async function sendConfirmedBookingInvoice(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
@@ -75,7 +75,7 @@ export async function sendCompletedBookingInvoice(
 			bookingId: session._id,
 			reason: linkError.reason
 		});
-		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailFailed, {
+		await ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, {
 			bookingId: session._id
 		});
 		return;
@@ -87,11 +87,11 @@ export async function sendCompletedBookingInvoice(
 	});
 
 	if (emailError !== null) {
-		console.error("Booking invoice email failed during session completion", {
+		console.error("Booking invoice email failed during booking confirmation", {
 			bookingId: session._id,
 			reason: emailError.reason
 		});
-		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailFailed, {
+		await ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, {
 			bookingId: session._id
 		});
 	}

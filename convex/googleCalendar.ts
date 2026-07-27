@@ -30,7 +30,7 @@ import {
 	sendSessionReminderEmail as sendReminderEmailForBookingDetails
 } from "./lib/email";
 import {
-	failSessionCompletion,
+	failBookingConfirmation,
 	getSessionStartAt,
 	isValidSessionRemainingBalanceAmount,
 	type AdminSessionUpdateArgs,
@@ -52,9 +52,9 @@ import {
 	checkGoogleCalendarAvailabilityRateLimit
 } from "./lib/rateLimits";
 import type { RescheduleLinkLookupError } from "./sessionReschedule";
-import type { MarkSessionCalendarEventDeletedResult } from "./sessionCompletion";
+import type { MarkSessionCalendarEventDeletedResult } from "./sessions";
 import type { SessionReservation } from "./lib/sessionReservations";
-import { saveCompletedSession, sendCompletedBookingInvoice } from "./lib/sessionCompletion";
+import { saveConfirmedBooking, sendConfirmedBookingInvoice } from "./lib/bookingConfirmation";
 import { finishRescheduledSession } from "./lib/sessionRescheduleLinks";
 
 function getBookingSubmitRateLimitKey(email: string) {
@@ -76,8 +76,7 @@ export type DeleteSessionFromAdminResult = Result<
 			| "BOOKING_NOT_FOUND"
 			| "GOOGLE_CALENDAR_AUTH_FAILED"
 			| "GOOGLE_CALENDAR_DELETE_FAILED"
-			| "GOOGLE_CALENDAR_RATE_LIMITED"
-			| "BOOKING_STATUS_UPDATE_FAILED";
+			| "GOOGLE_CALENDAR_RATE_LIMITED";
 	}
 >;
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
@@ -675,7 +674,7 @@ async function sendBookingInvoiceForBookingHandler(
 	// We accept this because it needs a very specific failure after the email is already sent,
 	// and the admin can send the customer the newest email/link if it ever happens.
 	try {
-		await ctx.runMutation(internal.sessionCompletion.markSessionInvoiceEmailSent, {
+		await ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
 			bookingId: session._id
 		});
 	} catch {
@@ -717,17 +716,13 @@ async function deleteSessionFromAdminHandler(
 		return err(error);
 	}
 
-	try {
-		const [statusUpdateError]: MarkSessionCalendarEventDeletedResult = await ctx.runMutation(
-			internal.sessionCompletion.markSessionCalendarEventDeleted,
-			{ bookingId: args.bookingId }
-		);
+	const [statusUpdateError]: MarkSessionCalendarEventDeletedResult = await ctx.runMutation(
+		internal.sessions.markSessionCalendarEventDeleted,
+		{ bookingId: args.bookingId }
+	);
 
-		if (statusUpdateError !== null) {
-			return err(statusUpdateError);
-		}
-	} catch {
-		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
+	if (statusUpdateError !== null) {
+		return err(statusUpdateError);
 	}
 
 	return ok({ deleted: true });
@@ -800,7 +795,7 @@ async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: 
 	});
 
 	if (!canBeScheduled) {
-		await failSessionCompletion(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
+		await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
@@ -817,7 +812,7 @@ async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: 
 	);
 
 	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		await failSessionCompletion(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
+		await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
 		return ok({ completed: false, outcome: "booking_time_unavailable" });
 	}
 
@@ -836,7 +831,7 @@ async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: 
 	});
 
 	if (payloadError !== null) {
-		await failSessionCompletion(ctx, session._id, "BOOKING_INVALID_INPUT", reservation);
+		await failBookingConfirmation(ctx, session._id, "BOOKING_INVALID_INPUT", reservation);
 		return ok({ completed: false, outcome: "booking_invalid_input" });
 	}
 
@@ -850,12 +845,12 @@ async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: 
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
-		await failSessionCompletion(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
+		await failBookingConfirmation(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
 
 		return ok({ completed: false, outcome: "google_calendar_create_failed" });
 	}
 
-	const completionSaved = await saveCompletedSession(
+	const completionSaved = await saveConfirmedBooking(
 		ctx,
 		session,
 		calendarClient,
@@ -867,7 +862,7 @@ async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: 
 		return ok({ completed: false, outcome: "reservation_lost" as const });
 	}
 
-	await sendCompletedBookingInvoice(ctx, session, settings);
+	await sendConfirmedBookingInvoice(ctx, session, settings);
 	return ok({ completed: true, outcome: "completed" });
 }
 

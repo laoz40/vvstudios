@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { err, ok } from "../src/lib/result";
-import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { internalMutation } from "./_generated/server";
 import { getSessionFromDb } from "./lib/sessionLookup";
 import {
 	sessionHasReservation,
@@ -30,7 +30,7 @@ function getBookingCompletionStatusResult(status: Doc<"bookings">["status"]) {
 	}
 }
 
-export const claimSessionCompletion = internalMutation({
+export const claimBookingConfirmation = internalMutation({
 	args: {
 		bookingId: v.string(),
 		stripeSessionId: v.string(),
@@ -95,7 +95,7 @@ export const claimSessionCompletion = internalMutation({
 	}
 });
 
-export const markSessionCompleted = internalMutation({
+export const markBookingConfirmed = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		googleEventId: v.optional(v.string()),
@@ -144,7 +144,7 @@ export const markSessionInvoiceEmailFailed = internalMutation({
 	}
 });
 
-export const markSessionInvoiceEmailSent = internalMutation({
+export const markSessionInvoiceEmailRetrySent = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
@@ -163,7 +163,7 @@ export const markSessionInvoiceEmailSent = internalMutation({
 	}
 });
 
-export const markSessionCompletionFailed = internalMutation({
+export const markBookingConfirmationFailed = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		failureCode: v.string(),
@@ -189,36 +189,3 @@ export const markSessionCompletionFailed = internalMutation({
 		return ok({ updated: true });
 	}
 });
-
-export const markSessionCalendarEventDeleted = internalMutation({
-	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => markSessionCalendarEventDeletedHandler(ctx, args)
-});
-
-async function markSessionCalendarEventDeletedHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
-	const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
-
-	if (bookingError !== null) {
-		return err(bookingError);
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, {
-			bookingFailureCode: undefined,
-			googleCalendarId: undefined,
-			googleEventId: undefined,
-			status: "cancelled"
-		});
-	} catch {
-		return err({ reason: "BOOKING_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ cancelled: true });
-}
-
-export type MarkSessionCalendarEventDeletedResult = Awaited<
-	ReturnType<typeof markSessionCalendarEventDeletedHandler>
->;
