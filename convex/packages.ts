@@ -26,7 +26,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	getPackageAdminUpdateValidationError
 } from "./lib/packageScheduling";
-import { archivePackageService } from "./services/packages";
+import { archivePackageService, savePackageInstagramHandleService } from "./services/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -519,35 +519,14 @@ export const markPackageScheduleEmailAttempt = internalMutation({
 
 export const savePackageInstagramHandle = mutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
-	handler: savePackageInstagramHandleHandler
+	handler: (ctx, args) => savePackageInstagramHandleHandler(ctx, args)
 });
 
-type SavePackageInstagramHandleArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
-	instagramHandle: string;
-};
-
-async function savePackageInstagramHandleHandler(
+function savePackageInstagramHandleHandler(
 	ctx: MutationCtx,
-	args: SavePackageInstagramHandleArgs
+	args: { multiBookingId: Id<"multiBookingPackages">; instagramHandle: string }
 ) {
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	if (multiBooking.status !== "pending_payment" && multiBooking.status !== "paid") {
-		return err({ reason: "PACKAGE_NOT_ACTIVE" });
-	}
-
-	try {
-		await ctx.db.patch(multiBooking._id, { instagramHandle: args.instagramHandle });
-	} catch {
-		return err({ reason: "PACKAGE_INSTAGRAM_HANDLE_SAVE_FAILED" });
-	}
-
-	return ok({ saved: true });
+	return savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type SavePackageInstagramHandleResult = Awaited<

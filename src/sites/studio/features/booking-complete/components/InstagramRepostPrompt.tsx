@@ -127,12 +127,14 @@ function handleBookingSaveError(reason: BookingInstagramSaveErrorReason) {
 		case "BOOKING_NOT_CONFIRMED":
 			toast.error("We can only save Instagram handles for confirmed bookings.");
 			return;
-		case "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED":
-			toast.error("Could not save your Instagram handle. Please try again.");
-			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
 			return;
+		default: {
+			const _exhaustive: never = reason;
+			void _exhaustive;
+			return;
+		}
 	}
 }
 
@@ -144,11 +146,13 @@ function handleMultiBookingSaveError(reason: MultiBookingInstagramSaveErrorReaso
 		case "PACKAGE_NOT_ACTIVE":
 			toast.error("We can only save Instagram handles for active package requests.");
 			return;
-		case "PACKAGE_INSTAGRAM_HANDLE_SAVE_FAILED":
-			toast.error("Could not save your Instagram handle. Please try again.");
-			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
 			return;
+		default: {
+			const _exhaustive: never = reason;
+			void _exhaustive;
+			return;
+		}
 	}
 }

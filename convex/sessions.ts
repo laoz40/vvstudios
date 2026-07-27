@@ -14,7 +14,7 @@ import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
 import { getSessionFromDb } from "./lib/sessionLookup";
-import { archiveSessionService } from "./services/sessions";
+import { archiveSessionService, saveSessionInstagramHandleService } from "./services/sessions";
 import {
 	sessionConsumesPackageCapacity,
 	getCapacityConsumingPackageSessions
@@ -145,37 +145,14 @@ export const getSessionStatusByStripeSessionId = query({
 
 export const saveSessionInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
-	handler: saveSessionInstagramHandleHandler
+	handler: (ctx, args) => saveSessionInstagramHandleHandler(ctx, args)
 });
 
-type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
-
-async function saveSessionInstagramHandleHandler(
+function saveSessionInstagramHandleHandler(
 	ctx: MutationCtx,
-	args: SaveSessionInstagramHandleArgs
+	args: { stripeSessionId: string; instagramHandle: string }
 ) {
-	const session = await ctx.db
-		.query("bookings")
-		.withIndex("by_stripeSessionId", (indexQuery) =>
-			indexQuery.eq("stripeSessionId", args.stripeSessionId)
-		)
-		.unique();
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	if (session.status !== "confirmed" && session.status !== "email_failed") {
-		return err({ reason: "BOOKING_NOT_CONFIRMED" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { instagramHandle: args.instagramHandle });
-	} catch {
-		return err({ reason: "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED" });
-	}
-
-	return ok({ saved: true });
+	return saveSessionInstagramHandleService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type SaveSessionInstagramHandleResult = Awaited<
