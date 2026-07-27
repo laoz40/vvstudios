@@ -48,6 +48,11 @@ interface SendBookingReminderEmailForBookingArgs {
 	addons: string[];
 }
 
+interface SessionHostRescheduleDetails {
+	originalDate: string;
+	originalTime: string;
+}
+
 interface SendSessionHostDetailsEmailArgs {
 	invoiceNumber: string;
 	name: string;
@@ -61,6 +66,7 @@ interface SendSessionHostDetailsEmailArgs {
 	duration: string;
 	addons: string[];
 	notes?: string;
+	reschedule?: SessionHostRescheduleDetails;
 }
 
 interface SendPackageHostDetailsEmailArgs {
@@ -226,26 +232,35 @@ export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEm
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
-	const html = await render(
-		createElement(HostBookingDetailsEmail, {
-			invoiceNumber: args.invoiceNumber,
-			name: args.name,
-			email: args.email,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			date: formatSessionDateLong(args.date),
-			time: formatBookingTimeRange(args.time, args.duration),
-			service: args.service,
-			duration: args.duration,
-			addonsLine,
-			notes: args.notes
-		})
-	);
+	const bookingDetails = {
+		invoiceNumber: args.invoiceNumber,
+		name: args.name,
+		email: args.email,
+		phone: args.phone,
+		accountName: args.accountName,
+		abn: args.abn,
+		date: formatSessionDateLong(args.date),
+		time: formatBookingTimeRange(args.time, args.duration),
+		service: args.service,
+		duration: args.duration,
+		addonsLine,
+		notes: args.notes
+	};
+	const emailElement = args.reschedule
+		? createElement(HostBookingDetailsEmail, {
+				...bookingDetails,
+				kind: "rescheduled",
+				originalDate: formatSessionDateLong(args.reschedule.originalDate),
+				originalTime: formatBookingTimeRange(args.reschedule.originalTime, args.duration)
+			})
+		: createElement(HostBookingDetailsEmail, bookingDetails);
+	const html = await render(emailElement);
+
+	const subjectPrefix = args.reschedule ? "Studio Booking Rescheduled" : "New Studio Booking";
 
 	return await sendEmail({
 		to: hostEmails,
-		subject: `New Studio Booking - ${args.name} - ${formatSessionDateShort(args.date)}`,
+		subject: `${subjectPrefix} - ${args.name} - ${formatSessionDateShort(args.date)}`,
 		html
 	});
 }
@@ -290,6 +305,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 	options: {
 		customInvoice?: Doc<"customInvoices">;
 		leadTimeMinutes: number;
+		reschedule?: SessionHostRescheduleDetails;
 		rescheduleUrl?: string;
 	}
 ): Promise<
@@ -345,7 +361,8 @@ export async function sendBookingInvoiceEmailsForBooking(
 		service: parsedBooking.service,
 		duration: parsedBooking.duration,
 		addons: parsedBooking.addons,
-		notes: parsedBooking.notes
+		notes: parsedBooking.notes,
+		reschedule: options.reschedule
 	});
 
 	if (hostEmailError !== null) {
