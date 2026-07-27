@@ -1,13 +1,14 @@
 import { v } from "convex/values";
-import { err, ok } from "../src/lib/result";
-import type { Doc } from "./_generated/dataModel";
-import { internalMutation } from "./_generated/server";
-import { getSessionFromDb } from "./lib/sessionLookup";
+import { err, err as tupleErr, ok, ok as tupleOk } from "../src/lib/result";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalMutation, type MutationCtx } from "./_generated/server";
+import { sessionReservationValidator, type SessionReservation } from "./lib/sessionReservations";
 import {
-	sessionHasReservation,
-	sessionReservationValidator,
-	clearedSessionReservationPatch
-} from "./lib/sessionReservations";
+	markBookingConfirmationFailedService,
+	markBookingConfirmedService,
+	markSessionInvoiceEmailFailedService,
+	markSessionInvoiceEmailRetrySentService
+} from "./services/bookingConfirmation";
 
 function getBookingCompletionStatusResult(status: Doc<"bookings">["status"]) {
 	switch (status) {
@@ -102,66 +103,44 @@ export const markBookingConfirmed = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		reservation: sessionReservationValidator
 	},
-	handler: async (ctx, args) => {
-		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		if (!sessionHasReservation(session, args.reservation, Date.now())) {
-			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
-		}
-
-		await ctx.db.patch(args.bookingId, {
-			status: "confirmed",
-			googleEventId: args.googleEventId,
-			googleCalendarId: args.googleCalendarId,
-			bookingConfirmedAt: Date.now(),
-			bookingFailureCode: undefined,
-			...clearedSessionReservationPatch
-		});
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markBookingConfirmedHandler(ctx, args)
 });
+
+function markBookingConfirmedHandler(
+	ctx: MutationCtx,
+	args: {
+		bookingId: Id<"bookings">;
+		googleEventId?: string;
+		googleCalendarId?: string;
+		reservation: SessionReservation;
+	}
+) {
+	return markBookingConfirmedService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const markSessionInvoiceEmailFailed = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		await ctx.db.patch(args.bookingId, {
-			status: "email_failed",
-			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
-		});
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markSessionInvoiceEmailFailedHandler(ctx, args)
 });
+
+function markSessionInvoiceEmailFailedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return markSessionInvoiceEmailFailedService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const markSessionInvoiceEmailRetrySent = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		if (session.status !== "email_failed") {
-			return ok({ updated: false, reason: "BOOKING_NOT_EMAIL_FAILED" });
-		}
-
-		await ctx.db.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined });
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markSessionInvoiceEmailRetrySentHandler(ctx, args)
 });
+
+function markSessionInvoiceEmailRetrySentHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return markSessionInvoiceEmailRetrySentService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const markBookingConfirmationFailed = internalMutation({
 	args: {
@@ -169,23 +148,12 @@ export const markBookingConfirmationFailed = internalMutation({
 		failureCode: v.string(),
 		reservation: v.optional(sessionReservationValidator)
 	},
-	handler: async (ctx, args) => {
-		const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		if (args.reservation !== undefined && !sessionHasReservation(session, args.reservation)) {
-			return err({ reason: "BOOKING_RESERVATION_MISMATCH" });
-		}
-
-		await ctx.db.patch(args.bookingId, {
-			status: "failed",
-			bookingFailureCode: args.failureCode,
-			...(args.reservation ? clearedSessionReservationPatch : {})
-		});
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markBookingConfirmationFailedHandler(ctx, args)
 });
+
+function markBookingConfirmationFailedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
+) {
+	return markBookingConfirmationFailedService(ctx, args).match(tupleOk, tupleErr);
+}

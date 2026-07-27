@@ -9,7 +9,7 @@ import { sendBookingInvoiceEmailsForBooking } from "./email";
 import type { SessionReservation } from "./sessionReservations";
 
 type MarkBookingConfirmedResult = Result<
-	{ updated: true },
+	null,
 	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
 >;
 
