@@ -243,8 +243,8 @@ describe("admin booking state integrity", () => {
 		const bookingId = await seedConfirmedBooking(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const recalculationResult = await admin.mutation(
-			api.sessions.updateSession,
+		const recalculationResult = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
 			adminBookingValues(bookingId, {
 				duration: "2h",
 				addons: ["Essential Edit", "Clips Package"],
@@ -253,7 +253,7 @@ describe("admin booking state integrity", () => {
 			})
 		);
 
-		expect(recalculationResult).toEqual([null, { updated: true }]);
+		expect(recalculationResult).toEqual([null, { ok: true }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			duration: "2h",
 			addons: ["Essential Edit", "Clips Package"],

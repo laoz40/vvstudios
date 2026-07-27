@@ -10,9 +10,7 @@ import {
 	type MutationCtx,
 	type QueryCtx
 } from "./_generated/server";
-import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
-import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
 import {
 	archiveSessionService,
 	saveSessionInstagramHandleService,
@@ -176,77 +174,6 @@ function archiveSessionHandler(
 }
 
 export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;
-
-export const updateSession = mutation({
-	args: {
-		bookingId: v.id("bookings"),
-		name: v.string(),
-		phone: v.string(),
-		accountName: v.string(),
-		abn: v.optional(v.string()),
-		email: v.string(),
-		date: v.string(),
-		time: v.string(),
-		duration: v.string(),
-		service: v.string(),
-		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string())
-	},
-	handler: updateSessionHandler
-});
-
-type UpdateSessionArgs = {
-	bookingId: Id<"bookings">;
-	name: string;
-	phone: string;
-	accountName: string;
-	abn?: string;
-	email: string;
-	date: string;
-	time: string;
-	duration: string;
-	service: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	notes?: string;
-};
-
-async function updateSessionHandler(ctx: MutationCtx, args: UpdateSessionArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	const [updatePatchError, updatePatch] = buildAdminSessionUpdatePatch({
-		session,
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-		values: args
-	});
-
-	if (updatePatchError !== null) {
-		return err({ reason: "BOOKING_INVALID_INPUT" });
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, updatePatch);
-	} catch {
-		return err({ reason: "BOOKING_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
-}
-
-export type UpdateSessionResult = Awaited<ReturnType<typeof updateSessionHandler>>;
 
 export const updateSessionPaidStatus = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
