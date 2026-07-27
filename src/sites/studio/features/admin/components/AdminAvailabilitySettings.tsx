@@ -92,10 +92,6 @@ export function AdminAvailabilitySettings() {
 					toast.error("Check the availability settings and try again.");
 					break;
 
-				case "BOOKING_SETTINGS_UPDATE_FAILED":
-					toast.error("Failed to save availability settings.");
-					break;
-
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong with saving availability settings.");
 					break;

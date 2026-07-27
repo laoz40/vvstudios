@@ -1,5 +1,6 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok } from "../../src/lib/result";
+import { err, ok, ResultAsync } from "neverthrow";
+import { err as tupleErr, ok as tupleOk } from "../../src/lib/result";
 
 export const ADMIN_ROLE = "admin";
 
@@ -21,16 +22,30 @@ export function isAdminIdentity(identity: UserIdentity): boolean {
 	return getPublicMetadata(identity)?.role === ADMIN_ROLE;
 }
 
+export function getAdminIdentityResult(ctx: AuthContext) {
+	return ResultAsync.fromSafePromise(ctx.auth.getUserIdentity()).andThen((identity) => {
+		if (!identity) {
+			return err({ reason: "NOT_AUTHENTICATED" as const });
+		}
+
+		if (!isAdminIdentity(identity)) {
+			return err({ reason: "NOT_AUTHORIZED" as const });
+		}
+
+		return ok(identity);
+	});
+}
+
 export async function getAdminIdentity(ctx: AuthContext) {
 	const identity = await ctx.auth.getUserIdentity();
 
 	if (!identity) {
-		return err({ reason: "NOT_AUTHENTICATED" });
+		return tupleErr({ reason: "NOT_AUTHENTICATED" });
 	}
 
 	if (!isAdminIdentity(identity)) {
-		return err({ reason: "NOT_AUTHORIZED" });
+		return tupleErr({ reason: "NOT_AUTHORIZED" });
 	}
 
-	return ok(identity);
+	return tupleOk(identity);
 }
