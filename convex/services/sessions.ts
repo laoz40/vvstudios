@@ -6,6 +6,11 @@ import { getSessionFromDbResult } from "../lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
+type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
+type UpdateSessionEditStatusArgs = {
+	bookingId: Id<"bookings">;
+	editStatus: "to_edit" | "editing" | "completed";
+};
 
 export function saveSessionInstagramHandleService(
 	ctx: MutationCtx,
@@ -43,6 +48,38 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 			ResultAsync.fromSafePromise(
 				(async () => {
 					await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
+					return null;
+				})()
+			)
+		);
+}
+
+export function updateSessionPaidStatusService(
+	ctx: MutationCtx,
+	args: UpdateSessionPaidStatusArgs
+) {
+	return getAdminIdentityResult(ctx)
+		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
+		.andThen((session) =>
+			ResultAsync.fromSafePromise(
+				(async () => {
+					await ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance });
+					return null;
+				})()
+			)
+		);
+}
+
+export function updateSessionEditStatusService(
+	ctx: MutationCtx,
+	args: UpdateSessionEditStatusArgs
+) {
+	return getAdminIdentityResult(ctx)
+		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
+		.andThen((session) =>
+			ResultAsync.fromSafePromise(
+				(async () => {
+					await ctx.db.patch(session._id, { editStatus: args.editStatus });
 					return null;
 				})()
 			)

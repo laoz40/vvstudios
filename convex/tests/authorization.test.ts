@@ -101,7 +101,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "set a session remaining balance as paid or unpaid",
 		call: (client, { bookingId }) =>
-			client.mutation(api.sessions.updateSessionPaidRemainingBalance, {
+			client.mutation(api.sessions.updateSessionPaidStatus, {
 				bookingId,
 				paidRemainingBalance: true
 			})

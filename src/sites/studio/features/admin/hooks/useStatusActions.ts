@@ -34,9 +34,6 @@ export function useStatusActions(session: SessionRecord) {
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
 					break;
-				case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
-					toast.error("Could not update the deliverables status. Please try again.");
-					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the deliverables status.");
 					break;

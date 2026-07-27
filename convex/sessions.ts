@@ -14,7 +14,12 @@ import { env } from "./env";
 import { getAdminIdentity } from "./lib/auth";
 import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
 import { getSessionFromDb } from "./lib/sessionLookup";
-import { archiveSessionService, saveSessionInstagramHandleService } from "./services/sessions";
+import {
+	archiveSessionService,
+	saveSessionInstagramHandleService,
+	updateSessionEditStatusService,
+	updateSessionPaidStatusService
+} from "./services/sessions";
 import {
 	sessionConsumesPackageCapacity,
 	getCapacityConsumingPackageSessions
@@ -275,43 +280,20 @@ async function updateSessionHandler(ctx: MutationCtx, args: UpdateSessionArgs) {
 
 export type UpdateSessionResult = Awaited<ReturnType<typeof updateSessionHandler>>;
 
-export const updateSessionPaidRemainingBalance = mutation({
+export const updateSessionPaidStatus = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
-	handler: updateSessionPaidRemainingBalanceHandler
+	handler: (ctx, args) => updateSessionPaidStatusHandler(ctx, args)
 });
 
-type UpdateSessionPaidRemainingBalanceArgs = {
-	bookingId: Id<"bookings">;
-	paidRemainingBalance: boolean;
-};
-
-async function updateSessionPaidRemainingBalanceHandler(
+function updateSessionPaidStatusHandler(
 	ctx: MutationCtx,
-	args: UpdateSessionPaidRemainingBalanceArgs
+	args: { bookingId: Id<"bookings">; paidRemainingBalance: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance });
-	} catch {
-		return err({ reason: "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+	return updateSessionPaidStatusService(ctx, args).match(tupleOk, tupleErr);
 }
 
-export type UpdateSessionPaidRemainingBalanceResult = Awaited<
-	ReturnType<typeof updateSessionPaidRemainingBalanceHandler>
+export type UpdateSessionPaidStatusResult = Awaited<
+	ReturnType<typeof updateSessionPaidStatusHandler>
 >;
 
 export const updateSessionEditStatus = mutation({
@@ -319,34 +301,14 @@ export const updateSessionEditStatus = mutation({
 		bookingId: v.id("bookings"),
 		editStatus: v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
 	},
-	handler: updateSessionEditStatusHandler
+	handler: (ctx, args) => updateSessionEditStatusHandler(ctx, args)
 });
 
-type UpdateSessionEditStatusArgs = {
-	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "completed";
-};
-
-async function updateSessionEditStatusHandler(ctx: MutationCtx, args: UpdateSessionEditStatusArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { editStatus: args.editStatus });
-	} catch {
-		return err({ reason: "BOOKING_EDIT_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+function updateSessionEditStatusHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; editStatus: "to_edit" | "editing" | "completed" }
+) {
+	return updateSessionEditStatusService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type UpdateSessionEditStatusResult = Awaited<
