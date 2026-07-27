@@ -2,6 +2,7 @@ import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
+import { nullResult } from "../lib/result";
 import { getSessionFromDbResult } from "../lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
@@ -32,12 +33,7 @@ export function saveSessionInstagramHandleService(
 			return ok(session);
 		})
 		.andThen((session) =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(session._id, { instagramHandle: args.instagramHandle });
-					return null;
-				})()
-			)
+			nullResult(ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }))
 		);
 }
 
@@ -45,12 +41,7 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
 		.andThen(() =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
-					return null;
-				})()
-			)
+			nullResult(ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined }))
 		);
 }
 
@@ -61,12 +52,7 @@ export function updateSessionPaidStatusService(
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
 		.andThen((session) =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance });
-					return null;
-				})()
-			)
+			nullResult(ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance }))
 		);
 }
 
@@ -76,12 +62,5 @@ export function updateSessionEditStatusService(
 ) {
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
-		.andThen((session) =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(session._id, { editStatus: args.editStatus });
-					return null;
-				})()
-			)
-		);
+		.andThen((session) => nullResult(ctx.db.patch(session._id, { editStatus: args.editStatus })));
 }

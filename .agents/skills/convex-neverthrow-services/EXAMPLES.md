@@ -9,6 +9,7 @@ Alias the tuple helpers so they cannot be confused with neverthrow constructors.
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { nullResult } from "../lib/result";
 
 export function archiveBookingService(ctx: MutationCtx, bookingId: Id<"bookings">) {
   return ResultAsync.fromSafePromise(ctx.db.get(bookingId))
@@ -20,15 +21,12 @@ export function archiveBookingService(ctx: MutationCtx, bookingId: Id<"bookings"
       return ok(booking);
     })
     .andThen((booking) =>
-      ResultAsync.fromSafePromise(
-        ctx.db.patch(booking._id, { status: "cancelled" })
-      )
-    )
-    .map(() => ({ archived: true as const }));
+      nullResult(ctx.db.patch(booking._id, { status: "cancelled" }))
+    );
 }
 ```
 
-A Convex rejection from `get` or `patch` rejects the chain. It does not become an expected `Err`.
+A Convex rejection from `get` or `patch` rejects the chain. It does not become an expected `Err`. `nullResult` discards the successful write value and returns `null`.
 
 ```ts
 // convex/bookings.ts
@@ -92,7 +90,7 @@ export type CompleteBookingResult = Awaited<ReturnType<typeof completeBookingHan
 ## React caller
 
 ```ts
-const [error, result] = await tryCatch<ArchiveBookingResult>(
+const [error] = await tryCatch<ArchiveBookingResult>(
   archiveBooking({ bookingId })
 );
 
@@ -114,7 +112,7 @@ if (error !== null) {
   }
 }
 
-useArchivedBooking(result);
+closeArchiveDialog();
 ```
 
 ## Anti-patterns

@@ -1,8 +1,8 @@
-import { ResultAsync } from "neverthrow";
 import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
 import { validateBookingSettingsResult } from "../lib/bookingSettings";
+import { nullResult } from "../lib/result";
 
 export function updateBookingSettingsService(
 	ctx: MutationCtx,
@@ -11,7 +11,7 @@ export function updateBookingSettingsService(
 	return getAdminIdentityResult(ctx)
 		.andThen((identity) => validateBookingSettingsResult(settings).map(() => identity))
 		.andThen((identity) =>
-			ResultAsync.fromSafePromise(
+			nullResult(
 				(async () => {
 					const existing = await ctx.db
 						.query("bookingSettings")
@@ -27,11 +27,10 @@ export function updateBookingSettingsService(
 
 					if (existing) {
 						await ctx.db.patch(existing._id, value);
-						return null;
+						return;
 					}
 
 					await ctx.db.insert("bookingSettings", value);
-					return null;
 				})()
 			)
 		);

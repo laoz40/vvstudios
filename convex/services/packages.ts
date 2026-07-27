@@ -1,8 +1,9 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
 import { getPackageFromDb } from "../lib/packageLookup";
+import { nullResult } from "../lib/result";
 
 type SavePackageInstagramHandleArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
@@ -22,12 +23,7 @@ export function savePackageInstagramHandleService(
 			return ok(multiBooking);
 		})
 		.andThen((multiBooking) =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(multiBooking._id, { instagramHandle: args.instagramHandle });
-					return null;
-				})()
-			)
+			nullResult(ctx.db.patch(multiBooking._id, { instagramHandle: args.instagramHandle }))
 		);
 }
 
@@ -35,13 +31,8 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
 		.andThen(() =>
-			ResultAsync.fromSafePromise(
-				(async () => {
-					await ctx.db.patch(args.multiBookingId, {
-						hiddenAt: args.archived ? Date.now() : undefined
-					});
-					return null;
-				})()
+			nullResult(
+				ctx.db.patch(args.multiBookingId, { hiddenAt: args.archived ? Date.now() : undefined })
 			)
 		);
 }
