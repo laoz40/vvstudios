@@ -2,7 +2,7 @@ import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 import { getSessionFromDbResult } from "../lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
@@ -34,7 +34,9 @@ export function saveSessionInstagramHandleService(
 			return ok(session);
 		})
 		.andThen((session) =>
-			nullResult(ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }))
+			okOrThrow(
+				ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }).then(() => null)
+			)
 		);
 }
 
@@ -42,7 +44,11 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
 		.andThen(() =>
-			nullResult(ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined }))
+			okOrThrow(
+				ctx.db
+					.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined })
+					.then(() => null)
+			)
 		);
 }
 
@@ -53,7 +59,11 @@ export function updateSessionPaidStatusService(
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
 		.andThen((session) =>
-			nullResult(ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance }))
+			okOrThrow(
+				ctx.db
+					.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance })
+					.then(() => null)
+			)
 		);
 }
 
@@ -63,23 +73,25 @@ export function updateSessionEditStatusService(
 ) {
 	return getAdminIdentityResult(ctx)
 		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
-		.andThen((session) => nullResult(ctx.db.patch(session._id, { editStatus: args.editStatus })));
+		.andThen((session) =>
+			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))
+		);
 }
 
 export function markSessionCalendarEventDeletedService(
 	ctx: MutationCtx,
 	args: MarkSessionCalendarEventDeletedArgs
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId)
-		.andThen(() =>
-			nullResult(
-				ctx.db.patch(args.bookingId, {
+	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+		okOrThrow(
+			ctx.db
+				.patch(args.bookingId, {
 					bookingFailureCode: undefined,
 					googleCalendarId: undefined,
 					googleEventId: undefined,
 					status: "cancelled"
 				})
-			)
+				.then(() => null)
 		)
-		.map(() => ({ cancelled: true }));
+	);
 }

@@ -1,7 +1,7 @@
 import { err, ok } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 import { getSessionFromDbResult } from "../lib/sessionLookup";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
@@ -23,12 +23,16 @@ export function claimReminderService(
 			return ok(session);
 		})
 		.andThen((session) =>
-			nullResult(
-				ctx.db.patch(args.bookingId, {
-					reminderEmailClaimedAt: args.now,
-					reminderEmailFailureCode: undefined
-				})
-			).map(() => ({ session }))
+			okOrThrow(
+				ctx.db
+					.patch(args.bookingId, {
+						reminderEmailClaimedAt: args.now,
+						reminderEmailFailureCode: undefined
+					})
+					.then(() => {
+						return { session };
+					})
+			)
 		);
 }
 
@@ -37,12 +41,14 @@ export function markReminderSentService(
 	args: ReminderBookingArgs & { now: number }
 ) {
 	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
-		nullResult(
-			ctx.db.patch(args.bookingId, {
-				reminderEmailClaimedAt: undefined,
-				reminderEmailSentAt: args.now,
-				reminderEmailFailureCode: undefined
-			})
+		okOrThrow(
+			ctx.db
+				.patch(args.bookingId, {
+					reminderEmailClaimedAt: undefined,
+					reminderEmailSentAt: args.now,
+					reminderEmailFailureCode: undefined
+				})
+				.then(() => null)
 		)
 	);
 }
@@ -52,11 +58,13 @@ export function markReminderFailedService(
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
 	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
-		nullResult(
-			ctx.db.patch(args.bookingId, {
-				reminderEmailClaimedAt: undefined,
-				reminderEmailFailureCode: args.failureCode
-			})
+		okOrThrow(
+			ctx.db
+				.patch(args.bookingId, {
+					reminderEmailClaimedAt: undefined,
+					reminderEmailFailureCode: args.failureCode
+				})
+				.then(() => null)
 		)
 	);
 }

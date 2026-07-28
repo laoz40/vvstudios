@@ -30,13 +30,14 @@ React caller -> Convex handler -> service
 - Use `{ reason: "STABLE_CODE" }` discriminated errors and literal inference.
 - Compose dependent expected outcomes with `andThen`; use `map` for infallible transformations.
 - Use `ResultAsync.fromSafePromise` around Convex operations when rejection must propagate. Its rejection intentionally bypasses the Result channel.
-- When a Convex operation has no useful success payload, wrap its promise with the shared `nullResult` helper:
+- Wrap Convex operations with the shared `okOrThrow` helper and explicitly return the service's success value:
 
 ```ts
-nullResult(ctx.db.patch(documentId, patch));
+okOrThrow(ctx.db.patch(documentId, patch).then(() => null));
 ```
 
-  `nullResult` preserves unexpected promise rejections while converting successful output to the Convex-safe `null` value. Use `ResultAsync.fromSafePromise` directly when the successful value is needed.
+  `okOrThrow` preserves unexpected promise rejections. Use `.then()` to make the successful service return value explicit, such as `null` or `{ session }`.
+- Return only success values that a caller actually uses. Default write-only operations to `null`; do not add confirmation payloads such as `{ updated: true }`, `{ deleted: true }`, or `{ cancelled: true }` unless a caller needs that data.
 - Use `ResultAsync.fromPromise` only when rejection is an expected, explicitly mapped product failure, such as a handled third-party outage.
 - Do not broadly catch Convex/database exceptions or map them to business errors.
 - Check all expected failures before writes. Returning `Err` after a mutation write commits that write unless the handler throws.

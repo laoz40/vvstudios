@@ -270,7 +270,7 @@ describe("package adjustment payment and download", () => {
 				adjustmentId,
 				paid: true
 			})
-		).toEqual([null, { updated: true }]);
+		).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid" });
 
 		expect(
@@ -278,7 +278,7 @@ describe("package adjustment payment and download", () => {
 				adjustmentId,
 				paid: false
 			})
-		).toEqual([null, { updated: true }]);
+		).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
 	});
 });

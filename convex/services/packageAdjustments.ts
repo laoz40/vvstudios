@@ -2,7 +2,7 @@ import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 
 type MarkPackageAdjustmentPaymentStatusArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -25,7 +25,10 @@ export function markPackageAdjustmentPaymentStatusService(
 			return ok(adjustment);
 		})
 		.andThen((adjustment) =>
-			nullResult(ctx.db.patch(adjustment._id, { paymentStatus: args.paid ? "paid" : "unpaid" }))
-		)
-		.map(() => ({ updated: true }));
+			okOrThrow(
+				ctx.db
+					.patch(adjustment._id, { paymentStatus: args.paid ? "paid" : "unpaid" })
+					.then(() => null)
+			)
+		);
 }

@@ -1,7 +1,7 @@
 import { err, ok } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 import { getSessionFromDbResult } from "../lib/sessionLookup";
 import {
 	clearedSessionReservationPatch,
@@ -32,15 +32,17 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 			return ok(session);
 		})
 		.andThen(() =>
-			nullResult(
-				ctx.db.patch(args.bookingId, {
-					status: "confirmed",
-					googleEventId: args.googleEventId,
-					googleCalendarId: args.googleCalendarId,
-					bookingConfirmedAt: Date.now(),
-					bookingFailureCode: undefined,
-					...clearedSessionReservationPatch
-				})
+			okOrThrow(
+				ctx.db
+					.patch(args.bookingId, {
+						status: "confirmed",
+						googleEventId: args.googleEventId,
+						googleCalendarId: args.googleCalendarId,
+						bookingConfirmedAt: Date.now(),
+						bookingFailureCode: undefined,
+						...clearedSessionReservationPatch
+					})
+					.then(() => null)
 			)
 		);
 }
@@ -50,11 +52,13 @@ export function markSessionInvoiceEmailFailedService(
 	args: { bookingId: Id<"bookings"> }
 ) {
 	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
-		nullResult(
-			ctx.db.patch(args.bookingId, {
-				status: "email_failed",
-				bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
-			})
+		okOrThrow(
+			ctx.db
+				.patch(args.bookingId, {
+					status: "email_failed",
+					bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
+				})
+				.then(() => null)
 		)
 	);
 }
@@ -68,8 +72,10 @@ export function markSessionInvoiceEmailRetrySentService(
 			return ok(null);
 		}
 
-		return nullResult(
-			ctx.db.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
+		return okOrThrow(
+			ctx.db
+				.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
+				.then(() => null)
 		);
 	});
 }
@@ -87,12 +93,14 @@ export function markBookingConfirmationFailedService(
 			return ok(session);
 		})
 		.andThen(() =>
-			nullResult(
-				ctx.db.patch(args.bookingId, {
-					status: "failed",
-					bookingFailureCode: args.failureCode,
-					...(args.reservation ? clearedSessionReservationPatch : {})
-				})
+			okOrThrow(
+				ctx.db
+					.patch(args.bookingId, {
+						status: "failed",
+						bookingFailureCode: args.failureCode,
+						...(args.reservation ? clearedSessionReservationPatch : {})
+					})
+					.then(() => null)
 			)
 		);
 }

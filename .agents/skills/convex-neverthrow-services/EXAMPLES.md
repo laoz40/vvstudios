@@ -9,7 +9,7 @@ Alias the tuple helpers so they cannot be confused with neverthrow constructors.
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 
 export function archiveBookingService(ctx: MutationCtx, bookingId: Id<"bookings">) {
   return ResultAsync.fromSafePromise(ctx.db.get(bookingId))
@@ -21,12 +21,14 @@ export function archiveBookingService(ctx: MutationCtx, bookingId: Id<"bookings"
       return ok(booking);
     })
     .andThen((booking) =>
-      nullResult(ctx.db.patch(booking._id, { status: "cancelled" }))
+      okOrThrow(
+        ctx.db.patch(booking._id, { status: "cancelled" }).then(() => null)
+      )
     );
 }
 ```
 
-A Convex rejection from `get` or `patch` rejects the chain. It does not become an expected `Err`. `nullResult` discards the successful write value and returns `null`.
+A Convex rejection from `get` or `patch` rejects the chain. It does not become an expected `Err`. `okOrThrow` keeps the successful value returned by the promise's explicit `.then()`.
 
 ```ts
 // convex/bookings.ts

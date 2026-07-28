@@ -2,7 +2,7 @@ import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/boo
 import type { MutationCtx } from "../_generated/server";
 import { getAdminIdentityResult } from "../lib/auth";
 import { validateBookingSettingsResult } from "../lib/bookingSettings";
-import { nullResult } from "../lib/result";
+import { okOrThrow } from "../lib/result";
 
 export function updateBookingSettingsService(
 	ctx: MutationCtx,
@@ -11,7 +11,7 @@ export function updateBookingSettingsService(
 	return getAdminIdentityResult(ctx)
 		.andThen((identity) => validateBookingSettingsResult(settings).map(() => identity))
 		.andThen((identity) =>
-			nullResult(
+			okOrThrow(
 				(async () => {
 					const existing = await ctx.db
 						.query("bookingSettings")
@@ -27,10 +27,11 @@ export function updateBookingSettingsService(
 
 					if (existing) {
 						await ctx.db.patch(existing._id, value);
-						return;
+						return null;
 					}
 
 					await ctx.db.insert("bookingSettings", value);
+					return null;
 				})()
 			)
 		);
