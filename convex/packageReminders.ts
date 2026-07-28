@@ -2,17 +2,8 @@ import { v } from "convex/values";
 import { err, ok, tryCatch } from "../src/lib/result";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import {
-	internalAction,
-	internalMutation,
-	internalQuery,
-	type ActionCtx
-} from "./_generated/server";
-import {
-	getTimeZoneDateParts,
-	getTimeZoneDayRange,
-	getTomorrowTimeZoneDayRange
-} from "./lib/reminderScheduleTime";
+import { internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
+import { getTimeZoneDateParts, getTimeZoneDayRange } from "./lib/reminderScheduleTime";
 import { sendPackageExpiryReminderEmail, sendPackagePaymentReminderEmail } from "./lib/email";
 import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
 
@@ -202,14 +193,17 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 		SYDNEY_TIME_ZONE,
 		PAYMENT_REMINDER_DAYS_BEFORE_DUE
 	);
-	const paymentPackages = await ctx.runQuery(internal.reminders.listPackagesDueForPaymentReminder, {
-		invoiceDueEnd: paymentDueDay.dayEnd,
-		invoiceDueStart: paymentDueDay.dayStart,
-		limit: REMINDER_BATCH_SIZE
-	});
+	const paymentPackages = await ctx.runQuery(
+		internal.packageReminders.listPackagesDueForPaymentReminder,
+		{
+			invoiceDueEnd: paymentDueDay.dayEnd,
+			invoiceDueStart: paymentDueDay.dayStart,
+			limit: REMINDER_BATCH_SIZE
+		}
+	);
 
 	for (const packageRecord of paymentPackages) {
-		const [claimError] = await ctx.runMutation(internal.reminders.claimPackageReminder, {
+		const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 			multiBookingId: packageRecord._id,
 			now,
 			reminderType: "payment"
@@ -227,7 +221,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 			})
 		);
 		if (sendError === null) {
-			await ctx.runMutation(internal.reminders.markPackageReminderSent, {
+			await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
 				multiBookingId: packageRecord._id,
 				now,
 				reminderType: "payment"
@@ -235,7 +229,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 			continue;
 		}
 
-		await ctx.runMutation(internal.reminders.markPackageReminderFailed, {
+		await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
 			failureCode: sendError.reason,
 			multiBookingId: packageRecord._id,
 			reminderType: "payment"
@@ -248,7 +242,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	const today = getTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
 	const expiryRange = getTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE, MAX_PACKAGE_SESSIONS * 7);
 	const expiryPackages = await ctx.runQuery(
-		internal.reminders.listPackagesPotentiallyDueForExpiryReminder,
+		internal.packageReminders.listPackagesPotentiallyDueForExpiryReminder,
 		{ expiresAfter: today.dayStart, expiresBefore: expiryRange.dayEnd, limit: REMINDER_BATCH_SIZE }
 	);
 
@@ -263,7 +257,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 			continue;
 		}
 
-		const [claimError] = await ctx.runMutation(internal.reminders.claimPackageReminder, {
+		const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 			multiBookingId: packageRecord._id,
 			now,
 			reminderType: "expiry"
@@ -281,7 +275,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 			})
 		);
 		if (sendError === null) {
-			await ctx.runMutation(internal.reminders.markPackageReminderSent, {
+			await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
 				multiBookingId: packageRecord._id,
 				now,
 				reminderType: "expiry"
@@ -289,7 +283,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 			continue;
 		}
 
-		await ctx.runMutation(internal.reminders.markPackageReminderFailed, {
+		await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
 			failureCode: sendError.reason,
 			multiBookingId: packageRecord._id,
 			reminderType: "expiry"
@@ -297,30 +291,11 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	}
 }
 
-// If this action crashes after claiming a reminder, that reminder stays claimed and will not retry.
+// If this workflow crashes after claiming a reminder, that reminder stays claimed and will not retry.
 // Handling that rare case would require expiring claims, scheduling a targeted retry, and preventing
 // the original attempt from later overwriting the retry. We intentionally omit that complexity because
 // these are non-critical reminders; preventing duplicate emails is more important than guaranteed delivery.
-export const sendDueReminderEmails = internalAction({
-	args: {},
-	handler: async (ctx) => {
-		const nowDate = new Date();
-		await sendPackagePaymentRemindersDueToday(ctx, nowDate);
-		await sendPackageExpiryRemindersDueToday(ctx, nowDate);
-
-		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
-		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
-			dayEnd,
-			dayStart,
-			limit: REMINDER_BATCH_SIZE
-		});
-
-		for (const booking of bookings) {
-			await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
-				bookingId: booking._id
-			});
-		}
-
-		return null;
-	}
-});
+export async function sendDuePackageReminders(ctx: ActionCtx, nowDate: Date) {
+	await sendPackagePaymentRemindersDueToday(ctx, nowDate);
+	await sendPackageExpiryRemindersDueToday(ctx, nowDate);
+}

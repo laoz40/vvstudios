@@ -74,7 +74,7 @@ describe("daily reminder dispatch", () => {
 		});
 		const expiryPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
@@ -125,7 +125,7 @@ describe("daily reminder dispatch", () => {
 			});
 		}
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).not.toHaveBeenCalled();
 		expect(providerFakes.sendPackagePaymentReminder).not.toHaveBeenCalled();
@@ -143,10 +143,10 @@ describe("reminder claims and delivery results", () => {
 		});
 
 		await Promise.all([
-			t.action(internal.reminders.sendDueReminderEmails, {}),
-			t.action(internal.reminders.sendDueReminderEmails, {})
+			t.action(internal.sessionReminders.sendDueReminders, {}),
+			t.action(internal.sessionReminders.sendDueReminders, {})
 		]);
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
@@ -170,10 +170,10 @@ describe("reminder claims and delivery results", () => {
 			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
 			.mockResolvedValueOnce([null, { sent: true }]);
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 		const failedBooking = await readBooking(t, bookingId);
 		const failedPackage = await readPackage(t, packageId);
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 		const sentBooking = await readBooking(t, bookingId);
 		const sentPackage = await readPackage(t, packageId);
 

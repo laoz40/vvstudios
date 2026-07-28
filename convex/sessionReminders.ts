@@ -1,7 +1,23 @@
 import { v } from "convex/values";
-import { err, ok } from "../src/lib/result";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { getSessionFromDb } from "./lib/sessionLookup";
+import { err as tupleErr, ok as tupleOk } from "../src/lib/result";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import {
+	internalAction,
+	internalMutation,
+	internalQuery,
+	type MutationCtx
+} from "./_generated/server";
+import { getTomorrowTimeZoneDayRange } from "./lib/reminderScheduleTime";
+import { sendDuePackageReminders } from "./packageReminders";
+import {
+	claimReminderService,
+	markReminderFailedService,
+	markReminderSentService
+} from "./services/sessionReminders";
+
+const REMINDER_BATCH_SIZE = 50;
+const SYDNEY_TIME_ZONE = "Australia/Sydney";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
@@ -19,61 +35,58 @@ export const listSessionsDueForReminderEmail = internalQuery({
 	}
 });
 
-export const claimSessionReminderEmail = internalMutation({
+export const claimReminder = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: async (ctx, args) => {
-		const session = await ctx.db.get(args.bookingId);
-
-		if (!session || (session.status !== "confirmed" && session.status !== "email_failed")) {
-			return err({ reason: "BOOKING_NOT_SENDABLE" });
-		}
-
-		if (session.reminderEmailSentAt || session.reminderEmailClaimedAt) {
-			return err({ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" });
-		}
-
-		await ctx.db.patch(args.bookingId, {
-			reminderEmailClaimedAt: args.now,
-			reminderEmailFailureCode: undefined
-		});
-
-		return ok({ session });
-	}
+	handler: (ctx, args) => claimReminderHandler(ctx, args)
 });
 
-export const markSessionReminderEmailSent = internalMutation({
+function claimReminderHandler(ctx: MutationCtx, args: { bookingId: Id<"bookings">; now: number }) {
+	return claimReminderService(ctx, args).match(tupleOk, tupleErr);
+}
+
+export const markReminderSent = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: async (ctx, args) => {
-		const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
-
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
-
-		await ctx.db.patch(args.bookingId, {
-			reminderEmailClaimedAt: undefined,
-			reminderEmailSentAt: args.now,
-			reminderEmailFailureCode: undefined
-		});
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markReminderSentHandler(ctx, args)
 });
 
-export const markSessionReminderEmailFailed = internalMutation({
+function markReminderSentHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+) {
+	return markReminderSentService(ctx, args).match(tupleOk, tupleErr);
+}
+
+export const markReminderFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
-	handler: async (ctx, args) => {
-		const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
+	handler: (ctx, args) => markReminderFailedHandler(ctx, args)
+});
 
-		if (bookingError !== null) {
-			return err(bookingError);
-		}
+function markReminderFailedHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; failureCode: string }
+) {
+	return markReminderFailedService(ctx, args).match(tupleOk, tupleErr);
+}
 
-		await ctx.db.patch(args.bookingId, {
-			reminderEmailClaimedAt: undefined,
-			reminderEmailFailureCode: args.failureCode
+export const sendDueReminders = internalAction({
+	args: {},
+	handler: async (ctx) => {
+		const nowDate = new Date();
+		await sendDuePackageReminders(ctx, nowDate);
+
+		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
+		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
+			dayEnd,
+			dayStart,
+			limit: REMINDER_BATCH_SIZE
 		});
 
-		return ok({ updated: true });
+		for (const booking of bookings) {
+			await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
+				bookingId: booking._id
+			});
+		}
+
+		return null;
 	}
 });

@@ -732,24 +732,24 @@ export const sendSessionReminderEmail = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		const [claimError, claim] = await ctx.runMutation(
-			internal.sessionReminders.claimSessionReminderEmail,
-			{ bookingId: args.bookingId, now }
-		);
+		const [claimError, claim] = await ctx.runMutation(internal.sessionReminders.claimReminder, {
+			bookingId: args.bookingId,
+			now
+		});
 
 		if (claimError !== null) return null;
 
 		const [reminderEmailError] = await sendBookingReminderEmailForSessionRecord(ctx, claim.session);
 
 		if (reminderEmailError !== null) {
-			await ctx.runMutation(internal.sessionReminders.markSessionReminderEmailFailed, {
+			await ctx.runMutation(internal.sessionReminders.markReminderFailed, {
 				bookingId: args.bookingId,
 				failureCode: reminderEmailError.reason
 			});
 			return null;
 		}
 
-		await ctx.runMutation(internal.sessionReminders.markSessionReminderEmailSent, {
+		await ctx.runMutation(internal.sessionReminders.markReminderSent, {
 			bookingId: args.bookingId,
 			now: Date.now()
 		});

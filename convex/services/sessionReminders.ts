@@ -1,0 +1,62 @@
+import { err, ok } from "neverthrow";
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
+import { nullResult } from "../lib/result";
+import { getSessionFromDbResult } from "../lib/sessionLookup";
+
+type ReminderBookingArgs = { bookingId: Id<"bookings"> };
+
+export function claimReminderService(
+	ctx: MutationCtx,
+	args: ReminderBookingArgs & { now: number }
+) {
+	return getSessionFromDbResult(ctx, args.bookingId)
+		.andThen((session) => {
+			if (session.status !== "confirmed" && session.status !== "email_failed") {
+				return err({ reason: "BOOKING_NOT_SENDABLE" as const });
+			}
+
+			if (session.reminderEmailSentAt || session.reminderEmailClaimedAt) {
+				return err({ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" as const });
+			}
+
+			return ok(session);
+		})
+		.andThen((session) =>
+			nullResult(
+				ctx.db.patch(args.bookingId, {
+					reminderEmailClaimedAt: args.now,
+					reminderEmailFailureCode: undefined
+				})
+			).map(() => ({ session }))
+		);
+}
+
+export function markReminderSentService(
+	ctx: MutationCtx,
+	args: ReminderBookingArgs & { now: number }
+) {
+	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+		nullResult(
+			ctx.db.patch(args.bookingId, {
+				reminderEmailClaimedAt: undefined,
+				reminderEmailSentAt: args.now,
+				reminderEmailFailureCode: undefined
+			})
+		)
+	);
+}
+
+export function markReminderFailedService(
+	ctx: MutationCtx,
+	args: ReminderBookingArgs & { failureCode: string }
+) {
+	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+		nullResult(
+			ctx.db.patch(args.bookingId, {
+				reminderEmailClaimedAt: undefined,
+				reminderEmailFailureCode: args.failureCode
+			})
+		)
+	);
+}
