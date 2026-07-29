@@ -4,7 +4,10 @@ import {
 	calculatePackageAmounts,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import {
+	createPackageInvoiceLineItemSnapshot,
+	createPriceAdjustmentInvoiceLineItem
+} from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Id } from "#convex/_generated/dataModel";
 import { getPackageUpdateValidationError } from "./packageScheduling";
 
@@ -77,6 +80,12 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		essentialEditQuantity: updatedPackage.essentialEditQuantity,
 		packageSize: updatedPackage.packageSize
 	});
+	const totalDueAmount = args.totalDueAmount ?? amounts.totalDueAmount;
+	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
+
+	if (priceAdjustmentAmount !== 0) {
+		invoiceLineItems.push(createPriceAdjustmentInvoiceLineItem(priceAdjustmentAmount));
+	}
 
 	return {
 		name: updatedPackage.name,
@@ -95,7 +104,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		packageSubtotalAmount: amounts.packageSubtotalAmount,
 		discountPercent: amounts.discountPercent,
 		discountAmount: amounts.discountAmount,
-		totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
+		totalDueAmount,
 		invoiceLineItems
 	};
 }

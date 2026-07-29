@@ -381,6 +381,7 @@ describe("admin package management", () => {
 			...editedPackage
 		});
 		const calculatedPackage = await readPackage(t, packageId);
+		if (!calculatedPackage?.invoiceLineItems) throw new Error("Expected package invoice snapshot");
 
 		expect(calculatedResult).toEqual([null, null]);
 		expect(calculatedPackage).toMatchObject({
@@ -405,7 +406,19 @@ describe("admin package management", () => {
 		const customPackage = await readPackage(t, packageId);
 
 		expect(customResult).toEqual([null, null]);
-		expect(customPackage).toEqual({ ...calculatedPackage, totalDueAmount: 2000 });
+		expect(customPackage).toEqual({
+			...calculatedPackage,
+			totalDueAmount: 2000,
+			invoiceLineItems: [
+				...calculatedPackage.invoiceLineItems,
+				{
+					amount: -361.5999999999999,
+					description: "Price adjustment",
+					quantity: 1,
+					rate: -361.5999999999999
+				}
+			]
+		});
 	});
 });
 

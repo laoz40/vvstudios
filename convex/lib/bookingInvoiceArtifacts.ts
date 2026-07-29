@@ -14,6 +14,7 @@ import {
 	buildMultiBookingInvoiceData,
 	buildPackageAdjustmentInvoiceData,
 	createPackageInvoiceLineItemSnapshot,
+	createPriceAdjustmentInvoiceLineItem,
 	createStoredAmountMultiBookingInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
@@ -129,12 +130,7 @@ function createCustomInvoiceLineItems(
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
 
 	if (priceAdjustmentAmount !== 0) {
-		invoiceLineItems.push({
-			amount: priceAdjustmentAmount,
-			description: "Custom price adjustment",
-			quantity: 1,
-			rate: priceAdjustmentAmount
-		});
+		invoiceLineItems.push(createPriceAdjustmentInvoiceLineItem(priceAdjustmentAmount));
 	}
 
 	return invoiceLineItems;
