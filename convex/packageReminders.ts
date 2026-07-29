@@ -203,37 +203,41 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 	);
 
 	for (const packageRecord of paymentPackages) {
-		const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-			multiBookingId: packageRecord._id,
-			now,
-			reminderType: "payment"
-		});
-		if (claimError !== null) {
-			continue;
-		}
-
-		const [sendError] = await tryCatch(
-			sendPackagePaymentReminderEmail({
-				email: packageRecord.email,
-				invoiceDueAt: packageRecord.invoiceDueAt,
-				name: packageRecord.name,
-				requestDate: packageRecord.createdAt
-			})
-		);
-		if (sendError === null) {
-			await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+		try {
+			const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 				multiBookingId: packageRecord._id,
 				now,
 				reminderType: "payment"
 			});
-			continue;
-		}
+			if (claimError !== null) {
+				continue;
+			}
 
-		await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-			failureCode: sendError.reason,
-			multiBookingId: packageRecord._id,
-			reminderType: "payment"
-		});
+			const [sendError] = await tryCatch(
+				sendPackagePaymentReminderEmail({
+					email: packageRecord.email,
+					invoiceDueAt: packageRecord.invoiceDueAt,
+					name: packageRecord.name,
+					requestDate: packageRecord.createdAt
+				})
+			);
+			if (sendError === null) {
+				await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+					multiBookingId: packageRecord._id,
+					now,
+					reminderType: "payment"
+				});
+				continue;
+			}
+
+			await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
+				failureCode: sendError.reason,
+				multiBookingId: packageRecord._id,
+				reminderType: "payment"
+			});
+		} catch (error) {
+			console.error(`Failed to process payment reminder for package ${packageRecord._id}`, error);
+		}
 	}
 }
 
@@ -247,51 +251,55 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	);
 
 	for (const packageRecord of expiryPackages) {
-		const { expiresAt, remainingSessions } = packageRecord;
-		if (
-			expiresAt === undefined ||
-			remainingSessions === 0 ||
-			getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
-				remainingSessions * 7
-		) {
-			continue;
-		}
+		try {
+			const { expiresAt, remainingSessions } = packageRecord;
+			if (
+				expiresAt === undefined ||
+				remainingSessions === 0 ||
+				getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
+					remainingSessions * 7
+			) {
+				continue;
+			}
 
-		const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-			multiBookingId: packageRecord._id,
-			now,
-			reminderType: "expiry"
-		});
-		if (claimError !== null) {
-			continue;
-		}
-
-		const [sendError] = await tryCatch(
-			sendPackageExpiryReminderEmail({
-				email: packageRecord.email,
-				expiresAt,
-				name: packageRecord.name,
-				remainingSessions
-			})
-		);
-		if (sendError === null) {
-			await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+			const [claimError] = await ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 				multiBookingId: packageRecord._id,
 				now,
 				reminderType: "expiry"
 			});
-			continue;
-		}
+			if (claimError !== null) {
+				continue;
+			}
 
-		await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-			failureCode: sendError.reason,
-			multiBookingId: packageRecord._id,
-			reminderType: "expiry"
-		});
+			const [sendError] = await tryCatch(
+				sendPackageExpiryReminderEmail({
+					email: packageRecord.email,
+					expiresAt,
+					name: packageRecord.name,
+					remainingSessions
+				})
+			);
+			if (sendError === null) {
+				await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+					multiBookingId: packageRecord._id,
+					now,
+					reminderType: "expiry"
+				});
+				continue;
+			}
+
+			await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
+				failureCode: sendError.reason,
+				multiBookingId: packageRecord._id,
+				reminderType: "expiry"
+			});
+		} catch (error) {
+			console.error(`Failed to process expiry reminder for package ${packageRecord._id}`, error);
+		}
 	}
 }
 
-// If this workflow crashes after claiming a reminder, that reminder stays claimed and will not retry.
+// If processing throws after claiming a reminder, that reminder stays claimed and will not retry.
 // Handling that rare case would require expiring claims, scheduling a targeted retry, and preventing
 // the original attempt from later overwriting the retry. We intentionally omit that complexity because
 // these are non-critical reminders; preventing duplicate emails is more important than guaranteed delivery.

@@ -82,9 +82,13 @@ export const sendDueReminders = internalAction({
 		});
 
 		for (const booking of bookings) {
-			await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
-				bookingId: booking._id
-			});
+			try {
+				await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
+					bookingId: booking._id
+				});
+			} catch (error) {
+				console.error(`Failed to process session reminder for booking ${booking._id}`, error);
+			}
 		}
 
 		return null;
