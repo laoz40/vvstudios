@@ -24,7 +24,7 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	calculateMultiBookingAmounts,
+	calculatePackageAmounts,
 	isMultiBookingSize,
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
@@ -108,7 +108,7 @@ export function PackageEditDialog({
 	onSave
 }: PackageEditDialogProps) {
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
-	const defaultTotalDueAmount = calculateMultiBookingAmounts({
+	const defaultTotalDueAmount = calculatePackageAmounts({
 		addons: draft.addons,
 		clipsPackageQuantity: draft.clipsPackageQuantity,
 		duration: draft.duration,

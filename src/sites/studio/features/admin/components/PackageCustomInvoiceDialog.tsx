@@ -32,7 +32,7 @@ import {
 } from "#studio/features/admin/lib/custom-invoices";
 import { formatDateValue } from "#studio/lib/bookingdatetime";
 import {
-	calculateMultiBookingAmounts,
+	calculatePackageAmounts,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
@@ -98,7 +98,7 @@ function formatPackageInvoiceTotal(input: {
 }) {
 	const totalDueAmount =
 		input.customTotalDueAmount ??
-		calculateMultiBookingAmounts({ ...input, includeDiscount: input.includePackageDiscount })
+		calculatePackageAmounts({ ...input, includeDiscount: input.includePackageDiscount })
 			.totalDueAmount;
 
 	return formatCustomInvoiceCurrency(totalDueAmount);

@@ -1,5 +1,5 @@
 import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
-import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
+import type { CreatePackageRequestResult } from "#convex/packagePayment";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
@@ -41,9 +41,7 @@ type StartCheckoutToastError =
 
 type CloseCheckoutToastError = NonNullable<CloseEmbeddedCheckoutSessionResult[0]> | UnexpectedError;
 type AvailabilityToastError = NonNullable<GetBookableRangeBusyWindowsResult[0]> | UnexpectedError;
-type CreateMultiBookingToastError =
-	| NonNullable<CreateMultiBookingRequestResult[0]>
-	| UnexpectedError;
+type CreateMultiBookingToastError = NonNullable<CreatePackageRequestResult[0]> | UnexpectedError;
 
 export const devBookingErrorMessages = {
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,

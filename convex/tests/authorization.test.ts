@@ -114,7 +114,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "confirm a package payment",
 		call: (client, { multiBookingId }) =>
-			client.action(api.multiBookings.confirmPackagePayment, { multiBookingId })
+			client.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
 	},
 	{
 		name: "change a package adjustment payment status",
@@ -185,7 +185,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "send a package invoice email",
 		call: (client, { multiBookingId }) =>
-			client.action(api.multiBookings.resendMultiBookingInvoiceEmail, { multiBookingId })
+			client.action(api.packagePayment.resendPackageInvoiceEmail, { multiBookingId })
 	},
 	{
 		name: "generate a new reschedule link",

@@ -23,7 +23,7 @@ import { env } from "../env";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
 
-export function getPackageAdminUpdateValidationError(
+export function getPackageUpdateValidationError(
 	values: PackageAdminUpdateValues,
 	bookedSessionCount: number,
 	packageSize: MultiBookingSize

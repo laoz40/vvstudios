@@ -1,14 +1,10 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "../src/lib/result";
-import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import {
-	calculateMultiBookingAmounts,
 	getMultiBookingExpiresAt,
-	getMultiBookingInvoiceDueAt,
-	type MultiBookingSize
+	getMultiBookingInvoiceDueAt
 } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
@@ -22,11 +18,12 @@ import { getAdminIdentity } from "./lib/auth";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import { generateRescheduleToken, hashRescheduleToken } from "./lib/sessionRescheduleLinks";
+import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
 import {
-	getCapacityConsumingPackageSessions,
-	getPackageAdminUpdateValidationError
-} from "./lib/packageScheduling";
-import { archivePackageService, savePackageInstagramHandleService } from "./services/packages";
+	archivePackageService,
+	savePackageInstagramHandleService,
+	updatePackageService
+} from "./services/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -222,107 +219,11 @@ export const updatePackageFromAdmin = mutation({
 	handler: (ctx, args) => updatePackageFromAdminHandler(ctx, args)
 });
 
-type UpdatePackageFromAdminArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
-	name: string;
-	phone: string;
-	accountName: string;
-	abn?: string;
-	email: string;
-	duration: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	notes?: string;
-	packageSize: MultiBookingSize;
-	expiresAt?: number;
-	totalDueAmount?: number;
-};
-
-async function updatePackageFromAdminHandler(ctx: MutationCtx, args: UpdatePackageFromAdminArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	const parsedMultiBooking = multiBookingFormSchema.safeParse({
-		...args,
-		essentialEditQuantity: args.essentialEditQuantity ?? "",
-		clipsPackageQuantity: args.clipsPackageQuantity ?? "",
-		notes: args.notes ?? ""
-	});
-
-	if (!parsedMultiBooking.success) {
-		return err({ reason: "INVALID_BOOKING_DATA" });
-	}
-
-	const multiBookingData = parsedMultiBooking.data;
-	const activeBookedSessions = await getCapacityConsumingPackageSessions(
-		ctx,
-		multiBooking._id,
-		multiBooking.packageSize
-	);
-
-	const validationError = getPackageAdminUpdateValidationError(
-		args,
-		activeBookedSessions.length,
-		multiBookingData.packageSize
-	);
-
-	if (validationError !== null) {
-		return err({ reason: validationError });
-	}
-
-	const amounts = calculateMultiBookingAmounts({
-		addons: multiBookingData.addons,
-		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
-		duration: multiBookingData.duration,
-		essentialEditQuantity: multiBookingData.essentialEditQuantity,
-		packageSize: multiBookingData.packageSize
-	});
-	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
-		addons: multiBookingData.addons,
-		clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
-		discountAmount: amounts.discountAmount,
-		discountPercent: amounts.discountPercent,
-		duration: multiBookingData.duration,
-		essentialEditQuantity: multiBookingData.essentialEditQuantity,
-		packageSize: multiBookingData.packageSize
-	});
-
-	try {
-		await ctx.db.patch(args.multiBookingId, {
-			name: multiBookingData.name,
-			phone: multiBookingData.phone,
-			accountName: multiBookingData.accountName,
-			abn: multiBookingData.abn,
-			email: multiBookingData.email,
-			duration: multiBookingData.duration,
-			addons: multiBookingData.addons,
-			essentialEditQuantity: multiBookingData.essentialEditQuantity,
-			clipsPackageQuantity: multiBookingData.clipsPackageQuantity,
-			notes: multiBookingData.notes,
-			packageSize: multiBookingData.packageSize,
-			...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {}),
-			singleSessionAmount: amounts.singleSessionAmount,
-			packageSubtotalAmount: amounts.packageSubtotalAmount,
-			discountPercent: amounts.discountPercent,
-			discountAmount: amounts.discountAmount,
-			totalDueAmount: args.totalDueAmount ?? amounts.totalDueAmount,
-			invoiceLineItems
-		});
-	} catch {
-		return err({ reason: "PACKAGE_UPDATE_FAILED" });
-	}
-
-	return ok({ saved: true });
+function updatePackageFromAdminHandler(
+	ctx: MutationCtx,
+	args: Parameters<typeof updatePackageService>[1]
+) {
+	return updatePackageService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type UpdatePackageFromAdminResult = Awaited<

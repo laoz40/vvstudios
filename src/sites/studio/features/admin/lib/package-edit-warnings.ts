@@ -1,6 +1,6 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
-import { calculateMultiBookingAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
 export type PackageEditWarningField = keyof PackageEditDraft;
 
@@ -69,7 +69,7 @@ function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
 		return Number(totalDueDraft);
 	}
 
-	return calculateMultiBookingAmounts({
+	return calculatePackageAmounts({
 		addons: draft.addons,
 		clipsPackageQuantity: draft.clipsPackageQuantity,
 		duration: draft.duration,

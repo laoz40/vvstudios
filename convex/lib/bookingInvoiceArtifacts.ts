@@ -1,7 +1,7 @@
 import { err, ok } from "../../src/lib/result";
 import type { Doc } from "../_generated/dataModel";
 import type { z } from "zod";
-import { calculateMultiBookingAmounts } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
 import {
 	bookingSchema,
 	DURATION_OPTIONS,
@@ -12,7 +12,7 @@ import {
 	buildBookingInvoiceData,
 	buildMultiBookingInvoiceData,
 	buildPackageAdjustmentInvoiceData,
-	createMultiBookingInvoiceLineItemSnapshot,
+	createPackageInvoiceLineItemSnapshot,
 	createStoredAmountMultiBookingInvoiceLineItemSnapshot
 } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
@@ -94,10 +94,10 @@ function createCustomInvoiceLineItems(
 	customInvoiceData: CustomMultiBookingFormData,
 	customDuration: BookingFormValues["duration"] | "",
 	packageSize: number,
-	amounts: ReturnType<typeof calculateMultiBookingAmounts>,
+	amounts: ReturnType<typeof calculatePackageAmounts>,
 	totalDueAmount: number
 ) {
-	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
+	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: customInvoiceData.addons,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
 		discountAmount: amounts.discountAmount,
@@ -133,7 +133,7 @@ export function createCustomMultiBookingInvoiceData(
 	const { customInvoiceData, packageSize } = parsed;
 	// An omitted custom duration intentionally produces an add-ons-only invoice.
 	const customDuration = toCustomDuration(source.customInvoice.duration);
-	const amounts = calculateMultiBookingAmounts({
+	const amounts = calculatePackageAmounts({
 		addons: customInvoiceData.addons,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity,
 		duration: customDuration,

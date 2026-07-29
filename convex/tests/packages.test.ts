@@ -104,7 +104,7 @@ describe("package payment confirmation", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
+			.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
 		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
@@ -139,11 +139,11 @@ describe("package payment confirmation", () => {
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const firstResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const firstState = await readLifecycleState(t, multiBookingId);
-		const secondResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const secondState = await readLifecycleState(t, multiBookingId);
@@ -161,8 +161,8 @@ describe("package payment confirmation", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		const results = await Promise.all([
-			admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId }),
-			admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId })
+			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId }),
+			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
 		]);
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
 
@@ -181,14 +181,14 @@ describe("package payment confirmation", () => {
 			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
 			.mockResolvedValueOnce([null, { sent: true }]);
 
-		const confirmationResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const failedState = await readLifecycleState(t, multiBookingId);
 		const firstToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl
 		);
-		const retryResult = await admin.action(api.multiBookings.retryMultiBookingSchedulingEmail, {
+		const retryResult = await admin.action(api.packagePayment.retryPackageSchedulingEmail, {
 			multiBookingId
 		});
 		const recoveredState = await readLifecycleState(t, multiBookingId);
@@ -229,7 +229,7 @@ describe("package payment confirmation", () => {
 		const t = createConvexTest();
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
-		await admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
+		await admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const token = getScheduleToken(providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl);
 		await t.run((ctx) =>
 			ctx.db.patch(multiBookingId, {
@@ -259,7 +259,7 @@ describe("package request creation", () => {
 	test("stores the normalized commercial snapshot and successful invoice delivery", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
 		expect(result).toEqual([
@@ -306,7 +306,7 @@ describe("package request creation", () => {
 	test("rejects invalid form data before DNS or invoice delivery", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, {
+		const result = await t.action(api.packagePayment.createPackageRequest, {
 			...validRequest,
 			name: "   "
 		});
@@ -321,7 +321,7 @@ describe("package request creation", () => {
 		const t = createConvexTest();
 		providerFakes.resolveMx.mockResolvedValue([]);
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 
 		expect(result).toEqual([{ reason: "BOOKING_EMAIL_DOMAIN_INVALID" }, null]);
 		expect(await readPackages(t)).toEqual([]);
@@ -332,7 +332,7 @@ describe("package request creation", () => {
 		const t = createConvexTest();
 		providerFakes.sendInvoiceEmail.mockResolvedValue([{ reason: "INVOICE_SEND_FAILED" }, null]);
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
 		expect(result).toEqual([
@@ -383,7 +383,7 @@ describe("admin package management", () => {
 		});
 		const calculatedPackage = await readPackage(t, packageId);
 
-		expect(calculatedResult).toEqual([null, { saved: true }]);
+		expect(calculatedResult).toEqual([null, null]);
 		expect(calculatedPackage).toMatchObject({
 			...editedPackage,
 			singleSessionAmount: 328,
@@ -405,7 +405,7 @@ describe("admin package management", () => {
 		});
 		const customPackage = await readPackage(t, packageId);
 
-		expect(customResult).toEqual([null, { saved: true }]);
+		expect(customResult).toEqual([null, null]);
 		expect(customPackage).toEqual({ ...calculatedPackage, totalDueAmount: 2000 });
 	});
 });

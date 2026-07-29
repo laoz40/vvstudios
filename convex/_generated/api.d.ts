@@ -40,7 +40,7 @@ import type * as lib_sessionCalendarTime from "../lib/sessionCalendarTime.js";
 import type * as lib_sessionLookup from "../lib/sessionLookup.js";
 import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.js";
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
-import type * as multiBookings from "../multiBookings.js";
+import type * as packagePayment from "../packagePayment.js";
 import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
 import type * as packageAdjustments from "../packageAdjustments.js";
 import type * as packageScheduling from "../packageScheduling.js";
@@ -95,7 +95,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionLookup": typeof lib_sessionLookup;
   "lib/sessionRescheduleLinks": typeof lib_sessionRescheduleLinks;
   "lib/sessionReservations": typeof lib_sessionReservations;
-  multiBookings: typeof multiBookings;
+  packagePayment: typeof packagePayment;
   packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
   packageAdjustments: typeof packageAdjustments;
   packageScheduling: typeof packageScheduling;

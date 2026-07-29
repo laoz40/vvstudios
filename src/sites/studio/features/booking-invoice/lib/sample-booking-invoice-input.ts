@@ -1,8 +1,8 @@
 import {
-	calculateMultiBookingAmounts,
+	calculatePackageAmounts,
 	getMultiBookingInvoiceDueAt
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { createMultiBookingInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { BookingInvoiceBuilderInput } from "#studio/features/booking-invoice/lib/types";
 import { z } from "zod";
 
@@ -38,8 +38,8 @@ const SAMPLE_MULTI_BOOKING_PRICING = {
 	clipsPackageQuantity: "2" as const,
 	packageSize: 8 as const
 };
-const SAMPLE_MULTI_BOOKING_AMOUNTS = calculateMultiBookingAmounts(SAMPLE_MULTI_BOOKING_PRICING);
-const SAMPLE_MULTI_BOOKING_LINE_ITEMS = createMultiBookingInvoiceLineItemSnapshot({
+const SAMPLE_MULTI_BOOKING_AMOUNTS = calculatePackageAmounts(SAMPLE_MULTI_BOOKING_PRICING);
+const SAMPLE_MULTI_BOOKING_LINE_ITEMS = createPackageInvoiceLineItemSnapshot({
 	...SAMPLE_MULTI_BOOKING_PRICING,
 	discountAmount: SAMPLE_MULTI_BOOKING_AMOUNTS.discountAmount,
 	discountPercent: SAMPLE_MULTI_BOOKING_AMOUNTS.discountPercent

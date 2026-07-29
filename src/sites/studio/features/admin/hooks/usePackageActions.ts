@@ -12,9 +12,9 @@ import type {
 import type { MarkPackageAdjustmentPaymentStatusResult } from "#convex/packageAdjustments";
 import type {
 	ConfirmPackagePaymentResult,
-	ResendMultiBookingInvoiceEmailResult,
-	RetryMultiBookingSchedulingEmailResult
-} from "#convex/multiBookings";
+	ResendPackageInvoiceEmailResult,
+	RetryPackageSchedulingEmailResult
+} from "#convex/packagePayment";
 import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
@@ -23,9 +23,9 @@ import { usePackageEditAction } from "#studio/features/admin/hooks/usePackageEdi
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 export function usePackageActions(packageRow: AdminPackageRow) {
-	const resendInvoice = useAction(api.multiBookings.resendMultiBookingInvoiceEmail);
-	const confirmPackagePayment = useAction(api.multiBookings.confirmPackagePayment);
-	const retrySchedulingEmail = useAction(api.multiBookings.retryMultiBookingSchedulingEmail);
+	const resendInvoice = useAction(api.packagePayment.resendPackageInvoiceEmail);
+	const confirmPackagePayment = useAction(api.packagePayment.confirmPackagePayment);
+	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const getAdjustmentInvoicePdf = useAction(
 		api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf
@@ -226,7 +226,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
-		const [error] = await tryCatch<ResendMultiBookingInvoiceEmailResult>(
+		const [error] = await tryCatch<ResendPackageInvoiceEmailResult>(
 			resendInvoice({ multiBookingId: packageRow.id })
 		);
 
@@ -433,7 +433,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleRetrySchedulingEmail() {
 		setPendingAction("scheduleEmail");
 
-		const [error] = await tryCatch<RetryMultiBookingSchedulingEmailResult>(
+		const [error] = await tryCatch<RetryPackageSchedulingEmailResult>(
 			retrySchedulingEmail({ multiBookingId: packageRow.id })
 		);
 

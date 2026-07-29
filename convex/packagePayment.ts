@@ -4,9 +4,9 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
-import { calculateMultiBookingAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
-import { createMultiBookingInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { createPackageInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "../src/lib/result";
 import type {
 	MarkPackagePaidAndCreateScheduleTokenResult,
@@ -27,7 +27,7 @@ type PendingMultiBookingCreationResult = Result<
 	{ reason: "PACKAGE_CREATE_FAILED" }
 >;
 
-export const createMultiBookingRequest = action({
+export const createPackageRequest = action({
 	args: {
 		name: v.string(),
 		phone: v.string(),
@@ -41,10 +41,10 @@ export const createMultiBookingRequest = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createMultiBookingRequestHandler(ctx, args)
+	handler: (ctx, args) => createPackageRequestHandler(ctx, args)
 });
 
-async function createMultiBookingRequestHandler(
+async function createPackageRequestHandler(
 	ctx: ActionCtx,
 	args: {
 		name: string;
@@ -90,8 +90,8 @@ async function createMultiBookingRequestHandler(
 		return err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" });
 	}
 
-	const amounts = calculateMultiBookingAmounts(multiBooking);
-	const invoiceLineItems = createMultiBookingInvoiceLineItemSnapshot({
+	const amounts = calculatePackageAmounts(multiBooking);
+	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: multiBooking.addons,
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity || undefined,
 		discountAmount: amounts.discountAmount,
@@ -153,16 +153,14 @@ async function createMultiBookingRequestHandler(
 	return ok({ multiBookingId: createdMultiBooking._id, invoiceEmailStatus: "sent" });
 }
 
-export type CreateMultiBookingRequestResult = Awaited<
-	ReturnType<typeof createMultiBookingRequestHandler>
->;
+export type CreatePackageRequestResult = Awaited<ReturnType<typeof createPackageRequestHandler>>;
 
-export const resendMultiBookingInvoiceEmail = action({
+export const resendPackageInvoiceEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => resendMultiBookingInvoiceEmailHandler(ctx, args)
+	handler: (ctx, args) => resendPackageInvoiceEmailHandler(ctx, args)
 });
 
-async function resendMultiBookingInvoiceEmailHandler(
+async function resendPackageInvoiceEmailHandler(
 	ctx: ActionCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
@@ -209,8 +207,8 @@ async function resendMultiBookingInvoiceEmailHandler(
 	return ok({ sent: true });
 }
 
-export type ResendMultiBookingInvoiceEmailResult = Awaited<
-	ReturnType<typeof resendMultiBookingInvoiceEmailHandler>
+export type ResendPackageInvoiceEmailResult = Awaited<
+	ReturnType<typeof resendPackageInvoiceEmailHandler>
 >;
 
 type ConfirmPackagePaymentError =
@@ -282,7 +280,7 @@ async function confirmPackagePaymentHandler(
 
 export type ConfirmPackagePaymentResult = Awaited<ReturnType<typeof confirmPackagePaymentHandler>>;
 
-type RetryMultiBookingSchedulingEmailError =
+type RetryPackageSchedulingEmailError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "PACKAGE_NOT_FOUND" }
@@ -293,15 +291,15 @@ type RetryMultiBookingSchedulingEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" };
 
-export const retryMultiBookingSchedulingEmail = action({
+export const retryPackageSchedulingEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => retryMultiBookingSchedulingEmailHandler(ctx, args)
+	handler: (ctx, args) => retryPackageSchedulingEmailHandler(ctx, args)
 });
 
-async function retryMultiBookingSchedulingEmailHandler(
+async function retryPackageSchedulingEmailHandler(
 	ctx: ActionCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<{ sent: true }, RetryMultiBookingSchedulingEmailError>> {
+): Promise<Result<{ sent: true }, RetryPackageSchedulingEmailError>> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
@@ -347,6 +345,6 @@ async function retryMultiBookingSchedulingEmailHandler(
 	return ok({ sent: true });
 }
 
-export type RetryMultiBookingSchedulingEmailResult = Awaited<
-	ReturnType<typeof retryMultiBookingSchedulingEmailHandler>
+export type RetryPackageSchedulingEmailResult = Awaited<
+	ReturnType<typeof retryPackageSchedulingEmailHandler>
 >;

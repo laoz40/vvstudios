@@ -68,7 +68,6 @@ function showPackageUpdateError(
 		case "PACKAGE_INVALID_TOTAL_DUE_AMOUNT":
 			toast.error("Enter a valid total due amount.");
 			break;
-		case "PACKAGE_UPDATE_FAILED":
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while updating the package.");
 			break;
