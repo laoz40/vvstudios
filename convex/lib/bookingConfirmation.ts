@@ -1,12 +1,64 @@
+import { err, ok, type Result as NeverthrowResult } from "neverthrow";
 import type { Result } from "#/lib/result";
 import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
 import type { getGoogleCalendarClient } from "./googleCalendarClient";
 import { sendBookingInvoiceEmailsForBooking } from "./email";
 import type { SessionReservation } from "./sessionReservations";
+
+type BookingClaimStatus =
+	| { kind: "already_confirmed" }
+	| { kind: "already_claimed" }
+	| { kind: "pending"; session: Doc<"bookings"> };
+
+type BookingClaimStatusError =
+	| { reason: "BOOKING_INVALID_STATUS"; status: "cancelled" | "abandoned" }
+	| { reason: "BOOKING_EXPIRED" }
+	| { reason: "BOOKING_FAILED" };
+
+export function normalizeBookingId(ctx: MutationCtx, bookingId: string) {
+	// Stripe metadata provides a plain string, so validate it before database access.
+	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
+	return normalizedBookingId
+		? ok(normalizedBookingId)
+		: err({ reason: "BOOKING_NOT_FOUND" as const });
+}
+
+export function validateClaimStripeSession(session: Doc<"bookings">, stripeSessionId: string) {
+	if (session.stripeSessionId && session.stripeSessionId !== stripeSessionId) {
+		return err({ reason: "STRIPE_SESSION_MISMATCH" as const });
+	}
+
+	return ok(session);
+}
+
+export function getBookingClaimStatus(
+	session: Doc<"bookings">
+): NeverthrowResult<BookingClaimStatus, BookingClaimStatusError> {
+	switch (session.status) {
+		case "confirmed":
+		case "email_failed":
+			return ok({ kind: "already_confirmed" });
+		case "cancelled":
+		case "abandoned":
+			return err({ reason: "BOOKING_INVALID_STATUS", status: session.status });
+		case "expired":
+			return err({ reason: "BOOKING_EXPIRED" });
+		case "failed":
+			return err({ reason: "BOOKING_FAILED" });
+		case "pending_payment":
+			return session.bookingConfirmationClaimedAt
+				? ok({ kind: "already_claimed" })
+				: ok({ kind: "pending", session });
+		default: {
+			const _exhaustive: never = session.status;
+			return _exhaustive;
+		}
+	}
+}
 
 type MarkBookingConfirmedResult = Result<
 	null,

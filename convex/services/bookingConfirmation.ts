@@ -1,6 +1,11 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import {
+	getBookingClaimStatus,
+	normalizeBookingId,
+	validateClaimStripeSession
+} from "#convex/lib/bookingConfirmation";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
 import {
@@ -8,6 +13,13 @@ import {
 	sessionHasReservation,
 	type SessionReservation
 } from "#convex/lib/sessionReservations";
+
+type ClaimBookingConfirmationArgs = {
+	bookingId: string;
+	stripeSessionId: string;
+	stripePaymentIntentId?: string;
+	stripeEventId: string;
+};
 
 type MarkBookingConfirmedArgs = {
 	bookingId: Id<"bookings">;
@@ -21,6 +33,73 @@ type MarkBookingConfirmationFailedArgs = {
 	failureCode: string;
 	reservation?: SessionReservation;
 };
+
+type BookingClaimOutcome =
+	| { outcome: "already_confirmed" }
+	| { outcome: "already_claimed" }
+	| {
+			outcome: "claimed";
+			session: Pick<
+				Doc<"bookings">,
+				| "_id"
+				| "name"
+				| "phone"
+				| "accountName"
+				| "abn"
+				| "email"
+				| "date"
+				| "time"
+				| "duration"
+				| "service"
+				| "addons"
+				| "notes"
+			>;
+	  };
+
+export function claimBookingConfirmationService(
+	ctx: MutationCtx,
+	args: ClaimBookingConfirmationArgs
+) {
+	return normalizeBookingId(ctx, args.bookingId)
+		.asyncAndThen((bookingId) => getSessionFromDbResult(ctx, bookingId))
+		.andThen((session) => validateClaimStripeSession(session, args.stripeSessionId))
+		.andThen(getBookingClaimStatus)
+		.andThen((status) => {
+			if (status.kind !== "pending") {
+				return okOrThrow<BookingClaimOutcome>(Promise.resolve({ outcome: status.kind }));
+			}
+
+			const { session } = status;
+			const now = Date.now();
+			return okOrThrow<BookingClaimOutcome>(
+				ctx.db
+					.patch(session._id, {
+						paymentCompletedAt: now,
+						bookingConfirmationClaimedAt: now,
+						bookingConfirmationEventId: args.stripeEventId,
+						stripeSessionId: args.stripeSessionId,
+						stripePaymentIntentId: args.stripePaymentIntentId
+					})
+					.then(() => ({
+						outcome: "claimed",
+						session: {
+							_id: session._id,
+							name: session.name,
+							phone: session.phone,
+							accountName: session.accountName,
+							abn: session.abn,
+							email: session.email,
+							date: session.date,
+							time: session.time,
+							duration: session.duration,
+							service: session.service,
+							addons: session.addons,
+							notes: session.notes
+						}
+					}))
+			);
+		});
+}
 
 export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingConfirmedArgs) {
 	return getSessionFromDbResult(ctx, args.bookingId)

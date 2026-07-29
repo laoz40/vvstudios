@@ -1,35 +1,15 @@
 import { v } from "convex/values";
-import { err, err as tupleErr, ok, ok as tupleOk } from "#/lib/result";
-import type { Doc, Id } from "./_generated/dataModel";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import { sessionReservationValidator, type SessionReservation } from "./lib/sessionReservations";
 import {
+	claimBookingConfirmationService,
 	markBookingConfirmationFailedService,
 	markBookingConfirmedService,
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService
 } from "./services/bookingConfirmation";
-
-function getBookingCompletionStatusResult(status: Doc<"bookings">["status"]) {
-	switch (status) {
-		case "confirmed":
-		case "email_failed":
-			return ok({ outcome: "already_confirmed" as const });
-		case "cancelled":
-		case "abandoned":
-			return err({ reason: "BOOKING_INVALID_STATUS" as const, status });
-		case "expired":
-			return err({ reason: "BOOKING_EXPIRED" as const });
-		case "failed":
-			return err({ reason: "BOOKING_FAILED" as const });
-		case "pending_payment":
-			return null;
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
-	}
-}
 
 export const claimBookingConfirmation = internalMutation({
 	args: {
@@ -38,63 +18,20 @@ export const claimBookingConfirmation = internalMutation({
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeEventId: v.string()
 	},
-	handler: async (ctx, args) => {
-		// Stripe metadata provides a plain string, so validate it as a Convex session ID before database access.
-		const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
-
-		if (bookingId === null) {
-			return err({ reason: "BOOKING_NOT_FOUND" });
-		}
-
-		const session = await ctx.db.get(bookingId);
-
-		if (!session) {
-			return err({ reason: "BOOKING_NOT_FOUND" });
-		}
-
-		if (session.stripeSessionId && session.stripeSessionId !== args.stripeSessionId) {
-			return err({ reason: "STRIPE_SESSION_MISMATCH" });
-		}
-
-		const statusResult = getBookingCompletionStatusResult(session.status);
-
-		if (statusResult !== null) {
-			return statusResult;
-		}
-
-		if (session.bookingConfirmationClaimedAt) {
-			return ok({ outcome: "already_claimed" });
-		}
-
-		const now = Date.now();
-
-		await ctx.db.patch(session._id, {
-			paymentCompletedAt: now,
-			bookingConfirmationClaimedAt: now,
-			bookingConfirmationEventId: args.stripeEventId,
-			stripeSessionId: args.stripeSessionId,
-			stripePaymentIntentId: args.stripePaymentIntentId
-		});
-
-		return ok({
-			outcome: "claimed",
-			session: {
-				_id: session._id,
-				name: session.name,
-				phone: session.phone,
-				accountName: session.accountName,
-				abn: session.abn,
-				email: session.email,
-				date: session.date,
-				time: session.time,
-				duration: session.duration,
-				service: session.service,
-				addons: session.addons,
-				notes: session.notes
-			}
-		});
-	}
+	handler: (ctx, args) => claimBookingConfirmationHandler(ctx, args)
 });
+
+function claimBookingConfirmationHandler(
+	ctx: MutationCtx,
+	args: {
+		bookingId: string;
+		stripeSessionId: string;
+		stripePaymentIntentId?: string;
+		stripeEventId: string;
+	}
+) {
+	return claimBookingConfirmationService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const markBookingConfirmed = internalMutation({
 	args: {
