@@ -130,16 +130,20 @@ export function markSessionInvoiceEmailFailedService(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
-		okOrThrow(
+	return getSessionFromDbResult(ctx, args.bookingId).andThen((session) => {
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		return okOrThrow(
 			ctx.db
 				.patch(args.bookingId, {
 					status: "email_failed",
 					bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
 				})
 				.then(() => null)
-		)
-	);
+		);
+	});
 }
 
 export function markSessionInvoiceEmailRetrySentService(
@@ -163,23 +167,23 @@ export function markBookingConfirmationFailedService(
 	ctx: MutationCtx,
 	args: MarkBookingConfirmationFailedArgs
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId)
-		.andThen((session) => {
-			if (args.reservation && !sessionHasReservation(session, args.reservation)) {
-				return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
-			}
+	return getSessionFromDbResult(ctx, args.bookingId).andThen((session) => {
+		if (session.status !== "pending_payment") {
+			return ok(null);
+		}
 
-			return ok(session);
-		})
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.bookingId, {
-						status: "failed",
-						bookingFailureCode: args.failureCode,
-						...(args.reservation ? clearedSessionReservationPatch : {})
-					})
-					.then(() => null)
-			)
+		if (args.reservation && !sessionHasReservation(session, args.reservation)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
+		}
+
+		return okOrThrow(
+			ctx.db
+				.patch(args.bookingId, {
+					status: "failed",
+					bookingFailureCode: args.failureCode,
+					...(args.reservation ? clearedSessionReservationPatch : {})
+				})
+				.then(() => null)
 		);
+	});
 }

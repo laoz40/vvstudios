@@ -29,6 +29,12 @@
  *    The first request confirms the booking. Repeating it must return success without
  *    creating another calendar event or email.
  *
+ * 8. Stale confirmation failure
+ *    A delayed confirmation failure must not regress a booking that already reached a later state.
+ *
+ * 9. Invoice email failure status guard
+ *    Email failures may only move confirmed bookings into the recoverable email-failed state.
+ *
  * Stripe, Google Calendar, and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -168,6 +174,49 @@ describe("booking payment completion", () => {
 			bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
 		});
 		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
+	});
+
+	test("ignores a stale confirmation failure after the booking has moved on", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await t.run((ctx) =>
+			ctx.db.patch(bookingId, { status: "confirmed", bookingFailureCode: undefined })
+		);
+
+		const result = await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
+			bookingId,
+			failureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
+		});
+
+		expect(result).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "confirmed" });
+	});
+
+	test("only records an invoice email failure for a confirmed booking", async () => {
+		const t = createConvexTest();
+		const confirmedBookingId = await seedBooking(t, "confirmed@example.com");
+		const cancelledBookingId = await seedBooking(t, "cancelled@example.com");
+		await t.run(async (ctx) => {
+			await ctx.db.patch(confirmedBookingId, { status: "confirmed" });
+			await ctx.db.patch(cancelledBookingId, { status: "cancelled" });
+		});
+
+		const confirmedResult = await t.mutation(
+			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
+			{ bookingId: confirmedBookingId }
+		);
+		const cancelledResult = await t.mutation(
+			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
+			{ bookingId: cancelledBookingId }
+		);
+
+		expect(confirmedResult).toEqual([null, null]);
+		expect(cancelledResult).toEqual([null, null]);
+		expect(await readBooking(t, confirmedBookingId)).toMatchObject({
+			status: "email_failed",
+			bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
+		});
+		expect(await readBooking(t, cancelledBookingId)).toMatchObject({ status: "cancelled" });
 	});
 
 	test("allows only one concurrent completion for the same time", async () => {
