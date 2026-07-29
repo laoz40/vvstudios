@@ -1,8 +1,8 @@
-import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
-import type { MutationCtx } from "../_generated/server";
-import { getAdminIdentityResult } from "../lib/auth";
-import { validateBookingSettingsResult } from "../lib/bookingSettings";
-import { okOrThrow } from "../lib/result";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import type { MutationCtx } from "#convex/_generated/server";
+import { getAdminIdentityResult } from "#convex/lib/auth";
+import { validateBookingSettingsResult } from "#convex/lib/bookingSettings";
+import { okOrThrow } from "#convex/lib/result";
 
 export function updateBookingSettingsService(
 	ctx: MutationCtx,

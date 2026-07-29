@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
-import { err as tupleErr, ok as tupleOk } from "../src/lib/result";
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "../src/sites/studio/lib/bookingAvailabilitySettings";
-import type { BookingAvailabilitySettings } from "../src/sites/studio/lib/bookingAvailabilitySettings";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { updateBookingSettingsService } from "./services/bookingSettings";
 
 export const get = query({

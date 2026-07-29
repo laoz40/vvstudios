@@ -26,20 +26,20 @@
  * Invoice email delivery is replaced with a fake, so no real provider request is made.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { api, internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "../lib/packageAdjustments";
-import { createConvexTest } from "../test.setup";
+} from "#convex/lib/packageAdjustments";
+import { createConvexTest } from "#convex/test.setup";
 
-type SendAdjustmentInvoice = typeof import("../lib/email").sendPackageAdjustmentInvoiceEmail;
+type SendAdjustmentInvoice = typeof import("#convex/lib/email").sendPackageAdjustmentInvoiceEmail;
 
 const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn<SendAdjustmentInvoice>() }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendPackageAdjustmentInvoiceEmail: providerFakes.sendAdjustmentInvoice
 }));
 

@@ -1,6 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
-import { err, ok, type Result } from "../../src/lib/result";
+import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { err, ok, type Result } from "#/lib/result";
 
 import {
 	buildEventWindow,

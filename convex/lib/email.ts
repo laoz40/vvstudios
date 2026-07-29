@@ -1,17 +1,17 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import type { Doc } from "../_generated/dataModel";
-import { CONTACT_EMAIL } from "../../src/config/contact";
-import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
-import { DeliverablesEmail } from "../../src/sites/studio/features/deliverables-email/DeliverablesEmail";
-import type { DeliverablesEmailVariant } from "../../src/sites/studio/features/deliverables-email/lib/constants";
-import { HostBookingDetailsEmail } from "../../src/sites/studio/features/host-booking-details-email/HostBookingDetailsEmail";
-import { MultiBookingSchedulingEmail } from "../../src/sites/studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
-import { PackageExpiryReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackageExpiryReminderEmail";
-import { PackagePaymentReminderEmail } from "../../src/sites/studio/features/package-reminder-email/PackagePaymentReminderEmail";
-import { ReminderEmail } from "../../src/sites/studio/features/reminder-email/ReminderEmail";
-import { formatBookingTimeRange } from "../../src/sites/studio/lib/bookingdatetime";
-import { env } from "../env";
+import type { Doc } from "#convex/_generated/dataModel";
+import { CONTACT_EMAIL } from "#/config/contact";
+import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
+import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
+import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
+import { MultiBookingSchedulingEmail } from "#studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
+import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
+import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
+import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
+import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
+import { env } from "#convex/env";
 import {
 	formatSessionDateLong,
 	formatSessionDateShort,
@@ -26,8 +26,8 @@ import {
 	type MultiBookingInvoiceSource,
 	type PackageAdjustmentInvoiceSource
 } from "./bookingInvoiceArtifacts";
-import { err, ok, type Result } from "../../src/lib/result";
-import { formatEditingAddonLabel } from "../../src/sites/studio/features/booking-form/lib/editing-addon-quantities";
+import { err, ok, type Result } from "#/lib/result";
+import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 
 type SendEmailResult = Result<
 	{ sent: true },

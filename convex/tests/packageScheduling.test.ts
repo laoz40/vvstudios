@@ -46,10 +46,10 @@
  * requests are made and these tests exercise only package scheduling behavior.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
@@ -59,9 +59,9 @@ const providerFakes = vi.hoisted(() => ({
 	patchEvent: vi.fn()
 }));
 
-vi.mock("../env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
+vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
@@ -78,7 +78,7 @@ vi.mock("../lib/googleCalendarClient", () => ({
 	})
 }));
 
-vi.mock("../lib/rateLimits", () => ({
+vi.mock("#convex/lib/rateLimits", () => ({
 	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
 	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
 }));

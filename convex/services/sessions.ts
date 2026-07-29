@@ -1,9 +1,9 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { getAdminIdentityResult } from "../lib/auth";
-import { okOrThrow } from "../lib/result";
-import { getSessionFromDbResult } from "../lib/sessionLookup";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { getAdminIdentityResult } from "#convex/lib/auth";
+import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };

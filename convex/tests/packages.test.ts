@@ -26,18 +26,18 @@
  * DNS and email providers are replaced with controlled fakes.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	getMultiBookingExpiresAt,
 	getMultiBookingInvoiceDueAt
-} from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
-import { createConvexTest } from "../test.setup";
+} from "#studio/features/booking-form/lib/booking-pricing";
+import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { createConvexTest } from "#convex/test.setup";
 
-type SendInvoiceEmail = typeof import("../lib/email").sendMultiBookingInvoiceEmail;
+type SendInvoiceEmail = typeof import("#convex/lib/email").sendMultiBookingInvoiceEmail;
 type SendScheduleEmail = (
-	args: Parameters<typeof import("../lib/email").sendPackageScheduleEmail>[0]
+	args: Parameters<typeof import("#convex/lib/email").sendPackageScheduleEmail>[0]
 ) => unknown;
 
 const providerFakes = vi.hoisted(() => ({
@@ -48,11 +48,11 @@ const providerFakes = vi.hoisted(() => ({
 
 vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendMultiBookingInvoiceEmail: providerFakes.sendInvoiceEmail,
 	sendPackageScheduleEmail: providerFakes.sendScheduleEmail
 }));

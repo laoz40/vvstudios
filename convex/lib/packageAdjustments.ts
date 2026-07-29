@@ -1,8 +1,8 @@
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { ADDON_PRICES } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { formatBookingInvoiceNumber } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { getCapacityConsumingPackageSessions } from "./packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;

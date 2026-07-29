@@ -10,9 +10,9 @@
  * Email delivery is replaced with controlled fakes.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	rateLimit: vi.fn(),
@@ -20,7 +20,7 @@ const providerFakes = vi.hoisted(() => ({
 	sendFeedbackEmail: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: {
 		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
 		RESEND_API_KEY: "test-key",
@@ -28,12 +28,12 @@ vi.mock("../env", () => ({
 	}
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendSessionDeliverablesEmail: providerFakes.sendDeliverablesEmail,
 	sendFeedbackEmailForMessage: providerFakes.sendFeedbackEmail
 }));
 
-vi.mock("../lib/rateLimits", () => ({ rateLimiter: { limit: providerFakes.rateLimit } }));
+vi.mock("#convex/lib/rateLimits", () => ({ rateLimiter: { limit: providerFakes.rateLimit } }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const adminIdentity = { publicMetadata: { role: "admin" } };
@@ -177,7 +177,7 @@ describe("feedback email", () => {
 		const fetchFake = vi.fn<typeof fetch>().mockResolvedValue(new Response());
 		vi.stubGlobal("fetch", fetchFake);
 		const { sendFeedbackEmailForMessage } =
-			await vi.importActual<typeof import("../lib/email")>("../lib/email");
+			await vi.importActual<typeof import("#convex/lib/email")>("#convex/lib/email");
 
 		const result = await sendFeedbackEmailForMessage("<script>alert('unsafe')</script>\nNext");
 		const requestBody = fetchFake.mock.calls[0]?.[1]?.body;

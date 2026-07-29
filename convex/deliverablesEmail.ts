@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import { getSessionFromQuery } from "./lib/sessionLookup";
 import { action, type ActionCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";

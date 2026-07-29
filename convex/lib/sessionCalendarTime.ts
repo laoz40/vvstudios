@@ -1,12 +1,9 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
 	BOOKING_TIME_OPTIONS
-} from "../../src/sites/studio/lib/bookingAvailabilitySettings";
-import {
-	getTimeZoneDateKey,
-	getUtcDateForZonedParts
-} from "../../src/sites/studio/lib/zonedDateTime";
+} from "#studio/lib/bookingAvailabilitySettings";
+import { getTimeZoneDateKey, getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 export interface BusyWindow {
 	calendarId?: string;

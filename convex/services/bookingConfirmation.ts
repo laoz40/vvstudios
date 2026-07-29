@@ -1,13 +1,13 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { okOrThrow } from "../lib/result";
-import { getSessionFromDbResult } from "../lib/sessionLookup";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
 import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation
-} from "../lib/sessionReservations";
+} from "#convex/lib/sessionReservations";
 
 type MarkBookingConfirmedArgs = {
 	bookingId: Id<"bookings">;

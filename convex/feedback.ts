@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, type ActionCtx } from "./_generated/server";
-import { err, ok } from "../src/lib/result";
+import { err, ok } from "#/lib/result";
 import { sendFeedbackEmailForMessage } from "./lib/email";
 import { rateLimiter } from "./lib/rateLimits";
 

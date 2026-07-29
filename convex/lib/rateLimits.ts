@@ -1,7 +1,7 @@
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
-import { err, ok } from "../../src/lib/result";
-import { components } from "../_generated/api";
-import type { ActionCtx, MutationCtx } from "../_generated/server";
+import { err, ok } from "#/lib/result";
+import { components } from "#convex/_generated/api";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	bookingSubmit: { kind: "token bucket", rate: 1, period: MINUTE, capacity: 10 },

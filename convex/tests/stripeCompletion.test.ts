@@ -32,9 +32,9 @@
  * Stripe, Google Calendar, and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	insertEvent: vi.fn(),
@@ -43,11 +43,11 @@ const providerFakes = vi.hoisted(() => ({
 	verifyStripeWebhook: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: { STRIPE_SECRET_KEY: "sk_test", STRIPE_WEBHOOK_SECRET: "whsec_test" }
 }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
@@ -56,11 +56,11 @@ vi.mock("../lib/googleCalendarClient", () => ({
 	})
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../sessionReschedule", () => ({
+vi.mock("#convex/sessionReschedule", () => ({
 	createRescheduleUrlForSession: vi
 		.fn()
 		.mockResolvedValue([null, "https://example.com/reschedule/test-token"])

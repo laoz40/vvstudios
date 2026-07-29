@@ -6,8 +6,8 @@
  * 3. Unexpected database failures reject instead of becoming expected business errors.
  */
 import { describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import { createConvexTest } from "#convex/test.setup";
 
 const validSettings = {
 	eventBufferMinutes: 15,

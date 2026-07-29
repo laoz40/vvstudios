@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, err as tupleErr, ok, ok as tupleOk } from "../src/lib/result";
-import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { err, err as tupleErr, ok, ok as tupleOk } from "#/lib/result";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
 	internalMutation,

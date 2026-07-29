@@ -1,9 +1,9 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { calculateBookingInvoiceAmounts } from "../../src/sites/studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx } from "../_generated/server";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx } from "#convex/_generated/server";
 import type { SessionReservation } from "./sessionReservations";
 import {
 	checkSessionMeetsAvailabilitySettings,

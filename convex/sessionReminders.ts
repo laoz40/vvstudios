@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "../src/lib/result";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {

@@ -1,8 +1,8 @@
-import type { Result } from "../../src/lib/result";
-import { createRescheduleUrlForSession } from "../sessionReschedule";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx } from "../_generated/server";
+import type { Result } from "#/lib/result";
+import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx } from "#convex/_generated/server";
 import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
 import type { getGoogleCalendarClient } from "./googleCalendarClient";
 import { sendBookingInvoiceEmailsForBooking } from "./email";

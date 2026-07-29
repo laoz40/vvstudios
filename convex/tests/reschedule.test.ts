@@ -29,9 +29,9 @@
  * Google Calendar and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api, internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	getEvent: vi.fn(),
@@ -41,11 +41,11 @@ const providerFakes = vi.hoisted(() => ({
 	sendInvoiceEmails: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
 }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
@@ -61,11 +61,11 @@ vi.mock("../lib/googleCalendarClient", () => ({
 	})
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../lib/rateLimits", () => ({
+vi.mock("#convex/lib/rateLimits", () => ({
 	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
 	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
 }));

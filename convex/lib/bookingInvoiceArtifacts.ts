@@ -1,25 +1,25 @@
-import { err, ok } from "../../src/lib/result";
-import type { Doc } from "../_generated/dataModel";
+import { err, ok } from "#/lib/result";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { z } from "zod";
-import { calculatePackageAmounts } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	bookingSchema,
 	DURATION_OPTIONS,
 	multiBookingFormSchema,
 	type BookingFormValues
-} from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildBookingInvoiceData,
 	buildMultiBookingInvoiceData,
 	buildPackageAdjustmentInvoiceData,
 	createPackageInvoiceLineItemSnapshot,
 	createStoredAmountMultiBookingInvoiceLineItemSnapshot
-} from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { renderBookingInvoiceEmail } from "../../src/sites/studio/features/booking-invoice/email/render-booking-invoice-email";
+} from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import type {
 	BookingInvoiceData,
 	BookingInvoiceLineItem
-} from "../../src/sites/studio/features/booking-invoice/lib/types";
+} from "#studio/features/booking-invoice/lib/types";
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
@@ -426,7 +426,7 @@ export async function createMultiBookingInvoiceArtifacts(
 export async function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
 	try {
 		const { renderBookingInvoicePdf } =
-			await import("../../src/sites/studio/features/booking-invoice/pdf/render-booking-invoice-pdf");
+			await import("#studio/features/booking-invoice/pdf/render-booking-invoice-pdf");
 
 		return ok(await renderBookingInvoicePdf(data));
 	} catch {

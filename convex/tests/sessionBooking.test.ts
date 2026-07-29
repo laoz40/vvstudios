@@ -29,9 +29,9 @@
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	createCheckoutSession: vi.fn(),
@@ -40,7 +40,7 @@ const providerFakes = vi.hoisted(() => ({
 	retrieveCheckoutSession: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: {
 		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
 		STRIPE_BOOKING_DEPOSIT_PRICE_ID: "price_deposit",

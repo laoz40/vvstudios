@@ -1,6 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import { err, ok, ResultAsync } from "neverthrow";
-import { err as tupleErr, ok as tupleOk } from "../../src/lib/result";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
 
 export const ADMIN_ROLE = "admin";
 

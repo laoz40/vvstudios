@@ -1,12 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
-import {
-	DURATION_OPTIONS,
-	SERVICES
-} from "../src/sites/studio/features/booking-form/lib/booking-form-model";
-import { formatDateValue, startOfToday } from "../src/sites/studio/lib/bookingdatetime";
+import { err, ok, type Result } from "#/lib/result";
+import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 import { internal } from "./_generated/api";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import {

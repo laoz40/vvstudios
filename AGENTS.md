@@ -44,7 +44,7 @@ Booking website for podcast studio.
 
 ### Imports
 
-- Prefer absolute imports
+- Prefer absolute import aliases over relative imports
 - Remove unused imports
 - Don't export functions/types if not used in other files
 

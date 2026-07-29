@@ -1,8 +1,8 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { okOrThrow } from "../lib/result";
-import { getSessionFromDbResult } from "../lib/sessionLookup";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 

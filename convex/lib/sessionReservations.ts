@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { err, ok } from "../../src/lib/result";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
+import { err, ok } from "#/lib/result";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
 import { doSessionWindowsOverlap } from "./sessionCalendarTime";
 
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;

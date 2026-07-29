@@ -2,15 +2,11 @@
 
 import { createHash } from "node:crypto";
 import { v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import { api, internal } from "./_generated/api";
 import { action, type ActionCtx, internalAction } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import {
-	formatDateValue,
-	getLastBookableDate,
-	startOfToday
-} from "../src/sites/studio/lib/bookingdatetime";
+import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 import { createRescheduleUrlForSession } from "./sessionReschedule";
 import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
 import { getAdminIdentity } from "./lib/auth";

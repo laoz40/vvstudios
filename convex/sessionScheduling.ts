@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok } from "../src/lib/result";
+import { err, ok } from "#/lib/result";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { env } from "./env";

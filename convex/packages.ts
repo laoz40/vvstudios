@@ -1,10 +1,10 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "../src/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
 import {
 	getMultiBookingExpiresAt,
 	getMultiBookingInvoiceDueAt
-} from "../src/sites/studio/features/booking-form/lib/booking-pricing";
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {

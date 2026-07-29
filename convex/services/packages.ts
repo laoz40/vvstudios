@@ -1,16 +1,16 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { getAdminIdentityResult } from "../lib/auth";
-import { getPackageFromDb } from "../lib/packageLookup";
-import { getCapacityConsumingPackageSessions } from "../lib/packageScheduling";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getPackageFromDb } from "#convex/lib/packageLookup";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
 import {
 	buildPackageUpdatePatch,
 	parsePackageUpdate,
 	type UpdatePackageArgs,
 	validatePackageUpdate
-} from "../lib/packageUpdates";
-import { okOrThrow } from "../lib/result";
+} from "#convex/lib/packageUpdates";
+import { okOrThrow } from "#convex/lib/result";
 
 type SavePackageInstagramHandleArgs = {
 	multiBookingId: Id<"multiBookingPackages">;

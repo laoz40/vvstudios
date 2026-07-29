@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 function isValidTime(value: string) {
 	return /^([01]\d|2[0-3]):(00|30)$/.test(value);

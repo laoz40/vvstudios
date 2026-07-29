@@ -4,10 +4,10 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx } from "./_generated/server";
-import { calculatePackageAmounts } from "../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { multiBookingFormSchema } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
-import { createPackageInvoiceLineItemSnapshot } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { err, ok, type Result } from "../src/lib/result";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { err, ok, type Result } from "#/lib/result";
 import type {
 	MarkPackagePaidAndCreateScheduleTokenResult,
 	RefreshPackageScheduleTokenResult

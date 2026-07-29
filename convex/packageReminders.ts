@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok, tryCatch } from "../src/lib/result";
+import { err, ok, tryCatch } from "#/lib/result";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type ActionCtx } from "./_generated/server";

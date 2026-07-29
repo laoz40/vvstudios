@@ -1,8 +1,8 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import { err as tupleErr, ok as tupleOk, type Result } from "../../src/lib/result";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "../_generated/server";
+import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 
 export function getSessionFromDbResult(ctx: MutationCtx, bookingId: Id<"bookings">) {
 	return ResultAsync.fromSafePromise(ctx.db.get(bookingId)).andThen((session) => {

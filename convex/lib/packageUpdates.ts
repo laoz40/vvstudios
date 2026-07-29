@@ -1,11 +1,11 @@
 import { err, ok } from "neverthrow";
-import { multiBookingFormSchema } from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
+import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
 	type MultiBookingSize
-} from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { createPackageInvoiceLineItemSnapshot } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { Id } from "../_generated/dataModel";
+} from "#studio/features/booking-form/lib/booking-pricing";
+import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import type { Id } from "#convex/_generated/dataModel";
 import { getPackageUpdateValidationError } from "./packageScheduling";
 
 export type UpdatePackageArgs = {

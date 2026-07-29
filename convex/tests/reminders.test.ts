@@ -17,9 +17,9 @@
  *    Email delivery is replaced with controlled fakes, so no real messages are sent.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	sendBookingReminder: vi.fn(),
@@ -27,18 +27,18 @@ const providerFakes = vi.hoisted(() => ({
 	sendPackagePaymentReminder: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: {
 		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
 		STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return"
 	}
 }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({ timeZone: "Australia/Sydney" })
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendSessionReminderEmail: providerFakes.sendBookingReminder,
 	sendPackageExpiryReminderEmail: providerFakes.sendPackageExpiryReminder,
 	sendPackagePaymentReminderEmail: providerFakes.sendPackagePaymentReminder

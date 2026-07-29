@@ -1,7 +1,7 @@
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import type { ActionCtx } from "../_generated/server";
-import { err, ok, type Result } from "../../src/lib/result";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import type { ActionCtx } from "#convex/_generated/server";
+import { err, ok, type Result } from "#/lib/result";
 import { sendPackageScheduleEmail } from "./email";
 
 export function buildPackageScheduleUrl(baseUrl: string, token: string) {

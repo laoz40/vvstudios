@@ -24,24 +24,24 @@
  * Email delivery and reschedule-link creation are replaced with fakes, so no provider is called.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	createBookingInvoiceArtifactsForBooking,
 	createMultiBookingInvoiceArtifacts
-} from "../lib/bookingInvoiceArtifacts";
-import { createConvexTest } from "../test.setup";
-import { buildBookingInvoiceData } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+} from "#convex/lib/bookingInvoiceArtifacts";
+import { createConvexTest } from "#convex/test.setup";
+import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
-type SendInvoiceEmails = typeof import("../lib/email").sendBookingInvoiceEmailsForBooking;
+type SendInvoiceEmails = typeof import("#convex/lib/email").sendBookingInvoiceEmailsForBooking;
 
 const providerFakes = vi.hoisted(() => ({ sendInvoiceEmails: vi.fn<SendInvoiceEmails>() }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../sessionReschedule", () => ({
+vi.mock("#convex/sessionReschedule", () => ({
 	createRescheduleUrlForSession: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
 }));
 

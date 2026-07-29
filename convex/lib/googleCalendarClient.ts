@@ -2,7 +2,7 @@
 
 import { google } from "googleapis";
 
-import { env } from "../env";
+import { env } from "#convex/env";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)

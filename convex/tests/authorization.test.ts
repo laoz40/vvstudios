@@ -25,9 +25,9 @@
  *    unchanged. This proves unauthorized requests cannot cause hidden side effects.
  */
 import { describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 const paginationOpts = { cursor: null, numItems: 10 };
 
 const identities = [

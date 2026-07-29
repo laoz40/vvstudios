@@ -1,8 +1,8 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { getAdminIdentityResult } from "../lib/auth";
-import { okOrThrow } from "../lib/result";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { getAdminIdentityResult } from "#convex/lib/auth";
+import { okOrThrow } from "#convex/lib/result";
 
 type MarkPackageAdjustmentPaymentStatusArgs = {
 	adjustmentId: Id<"packageAdjustments">;

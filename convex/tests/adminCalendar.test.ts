@@ -34,9 +34,9 @@
  * Google Calendar is replaced with fakes, so no real provider requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api, internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
@@ -46,9 +46,9 @@ const providerFakes = vi.hoisted(() => ({
 	patchEvent: vi.fn()
 }));
 
-vi.mock("../env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
+vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import type { Id } from "./_generated/dataModel";
 import {
 	action,
@@ -16,7 +16,7 @@ import {
 	getPackageSessionAddons,
 	SERVICES,
 	type BookingFormValues
-} from "../src/sites/studio/features/booking-form/lib/booking-form-model";
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "./lib/sessionCalendarTime";
 import {
 	sessionConsumesPackageCapacity,

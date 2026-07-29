@@ -1,4 +1,4 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
@@ -13,13 +13,13 @@ import {
 	getPackageSessionAddons,
 	isDurationOption,
 	type BookingFormValues
-} from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
-import type { MultiBookingSize } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { isPackageSessionLocked } from "../../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
-import { api } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
-import { env } from "../env";
+} from "#studio/features/booking-form/lib/booking-form-model";
+import type { MultiBookingSize } from "#studio/features/booking-form/lib/booking-pricing";
+import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
+import { api } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
+import { env } from "#convex/env";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
 

@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type Result } from "#/lib/result";
 import { isTimeSlotAvailable } from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
 import { getGoogleCalendarClient } from "./googleCalendarClient";

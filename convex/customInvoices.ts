@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Id } from "./_generated/dataModel";
 import {
 	internalQuery,
@@ -8,7 +8,7 @@ import {
 	type MutationCtx,
 	type QueryCtx
 } from "./_generated/server";
-import { err, ok } from "../src/lib/result";
+import { err, ok } from "#/lib/result";
 import { getAdminIdentity } from "./lib/auth";
 
 export const createCustomInvoice = mutation({
