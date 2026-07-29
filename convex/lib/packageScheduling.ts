@@ -1,3 +1,4 @@
+import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
 import { err, ok, type Result } from "#/lib/result";
 import type {
 	SessionAvailabilitySettings,
@@ -22,6 +23,22 @@ import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
+
+export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBookingPackages">) {
+	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
+		return neverthrowErr({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" as const });
+	}
+
+	if (packageFromDb.paidAt === undefined || packageFromDb.expiresAt === undefined) {
+		return neverthrowErr({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" as const });
+	}
+
+	return neverthrowOk({
+		...packageFromDb,
+		paidAt: packageFromDb.paidAt,
+		expiresAt: packageFromDb.expiresAt
+	});
+}
 
 export function getPackageUpdateValidationError(
 	values: PackageAdminUpdateValues,

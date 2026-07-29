@@ -1,10 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
-import {
-	getMultiBookingExpiresAt,
-	getMultiBookingInvoiceDueAt
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { getMultiBookingInvoiceDueAt } from "#studio/features/booking-form/lib/booking-pricing";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
@@ -17,11 +14,17 @@ import {
 import { getAdminIdentity } from "./lib/auth";
 import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
-import { generateRescheduleToken, hashRescheduleToken } from "./lib/sessionRescheduleLinks";
 import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
 import {
 	archivePackageService,
+	markPackageInvoiceEmailAttemptService,
+	markPackagePaidAndCreateScheduleTokenService,
+	markPackageUnpaidService,
+	markPackageScheduleEmailAttemptService,
+	refreshPackageScheduleTokenService,
 	savePackageInstagramHandleService,
+	type PackageLookupError,
+	type PaidPackageResult,
 	updatePackageService
 } from "./services/packages";
 
@@ -110,42 +113,15 @@ export const markPackageInvoiceEmailAttempt = internalMutation({
 		invoiceNumber: v.optional(v.string()),
 		failureCode: v.optional(v.string())
 	},
-	handler: async (ctx, args) => {
-		const now = Date.now();
-
-		if (args.status === "sent" && args.invoiceNumber === undefined) {
-			return err({ reason: "INVOICE_NUMBER_REQUIRED" });
-		}
-
-		if (args.status === "failed" && args.failureCode === undefined) {
-			return err({ reason: "INVOICE_FAILURE_CODE_REQUIRED" });
-		}
-
-		if (args.status === "sent") {
-			await ctx.db.patch(args.multiBookingId, {
-				invoiceNumber: args.invoiceNumber,
-				invoiceEmailStatus: args.status,
-				invoiceEmailSentAt: now,
-				invoiceEmailFailureCode: undefined,
-				lastInvoiceEmailAttemptAt: now,
-				status: "pending_payment"
-			});
-
-			return ok({ updated: true });
-		}
-
-		await ctx.db.patch(args.multiBookingId, {
-			invoiceNumber: undefined,
-			invoiceEmailStatus: args.status,
-			invoiceEmailSentAt: undefined,
-			invoiceEmailFailureCode: args.failureCode,
-			lastInvoiceEmailAttemptAt: now,
-			status: "invoice_email_failed"
-		});
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markPackageInvoiceEmailAttemptHandler(ctx, args)
 });
+
+function markPackageInvoiceEmailAttemptHandler(
+	ctx: MutationCtx,
+	args: Parameters<typeof markPackageInvoiceEmailAttemptService>[1]
+) {
+	return markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const listPackages = query({
 	args: { paginationOpts: paginationOptsValidator },
@@ -244,106 +220,35 @@ function archivePackageHandler(
 
 export type ArchivePackageResult = Awaited<ReturnType<typeof archivePackageHandler>>;
 
-export const markPackagePaymentStatus = mutation({
-	args: { multiBookingId: v.id("multiBookingPackages"), paid: v.boolean() },
-	handler: (ctx, args) => markPackagePaymentStatusHandler(ctx, args)
+export const markPackageUnpaid = mutation({
+	args: { packageId: v.id("multiBookingPackages") },
+	handler: (ctx, args) => markPackageUnpaidHandler(ctx, args)
 });
 
-async function markPackagePaymentStatusHandler(
+function markPackageUnpaidHandler(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; paid: boolean }
+	args: Parameters<typeof markPackageUnpaidService>[1]
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	if (args.paid) {
-		return err({ reason: "PACKAGE_PAYMENT_CONFIRMATION_REQUIRED" });
-	}
-
-	try {
-		await ctx.db.patch(args.multiBookingId, {
-			paidAt: undefined,
-			expiresAt: undefined,
-			packageReminderState: undefined,
-			scheduleTokenHash: undefined,
-			scheduleLinkStatus: undefined,
-			status:
-				multiBooking.invoiceEmailStatus === "failed" ? "invoice_email_failed" : "pending_payment"
-		});
-	} catch {
-		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ paid: false });
+	return markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr);
 }
 
-export type MarkPackagePaymentStatusResult = Awaited<
-	ReturnType<typeof markPackagePaymentStatusHandler>
->;
+export type MarkPackageUnpaidResult = Awaited<ReturnType<typeof markPackageUnpaidHandler>>;
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), paidAt: v.number() },
 	handler: (ctx, args) => markPackagePaidAndCreateScheduleTokenHandler(ctx, args)
 });
 
-async function markPackagePaidAndCreateScheduleTokenHandler(
+function markPackagePaidAndCreateScheduleTokenHandler(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; paidAt: number }
-) {
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	if (multiBooking.status === "paid" || multiBooking.status === "schedule_email_failed") {
-		return err({ reason: "PACKAGE_ALREADY_PAID" });
-	}
-
-	const token = generateRescheduleToken();
-	const scheduleTokenHash = await hashRescheduleToken(token);
-	const expiresAt = getMultiBookingExpiresAt(args.paidAt, multiBooking.packageSize);
-
-	try {
-		await ctx.db.patch(args.multiBookingId, {
-			expiresAt,
-			paidAt: args.paidAt,
-			packageReminderState: undefined,
-			scheduleLinkStatus: "active",
-			scheduleTokenHash,
-			status: "schedule_email_failed"
-		});
-		await ctx.scheduler.runAt(
-			expiresAt,
-			internal.packageScheduling.processPackageAdjustmentAtExpiry,
-			{ multiBookingId: args.multiBookingId, expectedExpiresAt: expiresAt }
-		);
-	} catch {
-		return err({ reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({
-		expiresAt,
-		paidAt: args.paidAt,
-		multiBooking: {
-			...multiBooking,
-			expiresAt,
-			paidAt: args.paidAt,
-			scheduleLinkStatus: "active" as const,
-			scheduleTokenHash,
-			status: "schedule_email_failed" as const
-		},
-		token
-	});
+	args: Parameters<typeof markPackagePaidAndCreateScheduleTokenService>[1]
+): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> {
+	return markPackagePaidAndCreateScheduleTokenService(ctx, args, (expiresAt) =>
+		ctx.scheduler.runAt(expiresAt, internal.packageScheduling.processPackageAdjustmentAtExpiry, {
+			multiBookingId: args.multiBookingId,
+			expectedExpiresAt: expiresAt
+		})
+	).match(tupleOk, tupleErr);
 }
 
 export type MarkPackagePaidAndCreateScheduleTokenResult = Awaited<
@@ -355,39 +260,11 @@ export const refreshPackageScheduleToken = internalMutation({
 	handler: (ctx, args) => refreshPackageScheduleTokenHandler(ctx, args)
 });
 
-async function refreshPackageScheduleTokenHandler(
+function refreshPackageScheduleTokenHandler(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
+	args: Parameters<typeof refreshPackageScheduleTokenService>[1]
 ) {
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	if (multiBooking.status !== "paid" && multiBooking.status !== "schedule_email_failed") {
-		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" });
-	}
-
-	if (multiBooking.paidAt === undefined || multiBooking.expiresAt === undefined) {
-		return err({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" });
-	}
-
-	const token = generateRescheduleToken();
-	const scheduleTokenHash = await hashRescheduleToken(token);
-
-	try {
-		await ctx.db.patch(args.multiBookingId, { scheduleLinkStatus: "active", scheduleTokenHash });
-	} catch {
-		return err({ reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" });
-	}
-
-	return ok({
-		expiresAt: multiBooking.expiresAt,
-		paidAt: multiBooking.paidAt,
-		multiBooking: { ...multiBooking, scheduleLinkStatus: "active" as const, scheduleTokenHash },
-		token
-	});
+	return refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type RefreshPackageScheduleTokenResult = Awaited<
@@ -399,24 +276,15 @@ export const markPackageScheduleEmailAttempt = internalMutation({
 		multiBookingId: v.id("multiBookingPackages"),
 		status: v.union(v.literal("sent"), v.literal("failed"))
 	},
-	handler: async (ctx, args) => {
-		const multiBooking = await ctx.db.get(args.multiBookingId);
-
-		if (!multiBooking) {
-			return err({ reason: "PACKAGE_NOT_FOUND" });
-		}
-
-		try {
-			await ctx.db.patch(args.multiBookingId, {
-				status: args.status === "sent" ? "paid" : "schedule_email_failed"
-			});
-		} catch {
-			return err({ reason: "PACKAGE_SCHEDULE_EMAIL_STATUS_UPDATE_FAILED" });
-		}
-
-		return ok({ updated: true });
-	}
+	handler: (ctx, args) => markPackageScheduleEmailAttemptHandler(ctx, args)
 });
+
+function markPackageScheduleEmailAttemptHandler(
+	ctx: MutationCtx,
+	args: Parameters<typeof markPackageScheduleEmailAttemptService>[1]
+) {
+	return markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const savePackageInstagramHandle = mutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },

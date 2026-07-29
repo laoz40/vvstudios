@@ -237,14 +237,13 @@ describe("package payment confirmation", () => {
 			})
 		);
 
-		const result = await admin.mutation(api.packages.markPackagePaymentStatus, {
-			multiBookingId,
-			paid: false
+		const result = await admin.mutation(api.packages.markPackageUnpaid, {
+			packageId: multiBookingId
 		});
 		const { packageRecord } = await readLifecycleState(t, multiBookingId);
 		const tokenResult = await t.query(api.packageScheduling.getPackageByToken, { token });
 
-		expect(result).toEqual([null, { paid: false }]);
+		expect(result).toEqual([null, null]);
 		expect(packageRecord).toMatchObject({ status: "pending_payment" });
 		expect(packageRecord?.paidAt).toBeUndefined();
 		expect(packageRecord?.expiresAt).toBeUndefined();

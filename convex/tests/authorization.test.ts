@@ -109,7 +109,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "mark a package as unpaid",
 		call: (client, { multiBookingId }) =>
-			client.mutation(api.packages.markPackagePaymentStatus, { multiBookingId, paid: false })
+			client.mutation(api.packages.markPackageUnpaid, { packageId: multiBookingId })
 	},
 	{
 		name: "confirm a package payment",

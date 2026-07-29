@@ -31,7 +31,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 		editAction,
 		handleAdjustmentPaymentChange,
 		handleArchiveChange,
-		handlePaymentChange,
+		handleMarkPackageUnpaid,
 		isActionPending,
 		pendingAction,
 		setIsPaymentDialogOpen
@@ -120,7 +120,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 							disabled={isActionPending || !packageRow.isPaid}
 							isSelected={!packageRow.isPaid}
 							onClick={() => {
-								void handlePaymentChange(false);
+								void handleMarkPackageUnpaid();
 							}}
 						/>
 						<StatusCircleButton

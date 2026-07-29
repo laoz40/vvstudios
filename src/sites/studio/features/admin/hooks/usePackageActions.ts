@@ -3,7 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/packages";
+import type { ArchivePackageResult, MarkPackageUnpaidResult } from "#convex/packages";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import type {
 	GetAdminPackageAdjustmentInvoicePdfResult,
@@ -34,7 +34,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
 	const archivePackage = useMutation(api.packages.archivePackage);
-	const markPaymentStatus = useMutation(api.packages.markPackagePaymentStatus);
+	const markPackageUnpaid = useMutation(api.packages.markPackageUnpaid);
 	const markAdjustmentPaymentStatus = useMutation(
 		api.packageAdjustments.markPackageAdjustmentPaymentStatus
 	);
@@ -312,11 +312,11 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		setPendingAction(null);
 	}
 
-	async function handlePaymentChange(paid: boolean) {
+	async function handleMarkPackageUnpaid() {
 		setPendingAction("payment");
 
-		const [error] = await tryCatch<MarkPackagePaymentStatusResult>(
-			markPaymentStatus({ multiBookingId: packageRow.id, paid })
+		const [error] = await tryCatch<MarkPackageUnpaidResult>(
+			markPackageUnpaid({ packageId: packageRow.id })
 		);
 
 		if (error !== null) {
@@ -331,14 +331,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 
 				case "PACKAGE_NOT_FOUND":
 					toast.error("This package no longer exists.");
-					break;
-
-				case "PACKAGE_PAYMENT_CONFIRMATION_REQUIRED":
-					toast.error("Confirm package payments from the payment dialog.");
-					break;
-
-				case "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to update package payment.");
 					break;
 
 				case "UNEXPECTED_ERROR":
@@ -356,7 +348,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 			return;
 		}
 
-		toast.success(paid ? "Package marked paid." : "Package marked unpaid.");
+		toast.success("Package marked unpaid.");
 		setPendingAction(null);
 	}
 
@@ -503,7 +495,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		handleConfirmPayment,
 		handleDownloadAdjustmentInvoice,
 		handleDownloadInvoice,
-		handlePaymentChange,
+		handleMarkPackageUnpaid,
 		handleResendInvoice,
 		handleRetryAdjustmentInvoice,
 		handleRetrySchedulingEmail,

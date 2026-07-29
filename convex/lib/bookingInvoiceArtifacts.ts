@@ -1,5 +1,6 @@
+import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
 import { err, ok } from "#/lib/result";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { z } from "zod";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import {
@@ -20,6 +21,25 @@ import type {
 	BookingInvoiceData,
 	BookingInvoiceLineItem
 } from "#studio/features/booking-invoice/lib/types";
+
+export type MarkPackageInvoiceEmailAttemptArgs = {
+	multiBookingId: Id<"multiBookingPackages">;
+	status: "sent" | "failed";
+	invoiceNumber?: string;
+	failureCode?: string;
+};
+
+export function validatePackageInvoiceEmailAttempt(args: MarkPackageInvoiceEmailAttemptArgs) {
+	if (args.status === "sent" && args.invoiceNumber === undefined) {
+		return neverthrowErr({ reason: "INVOICE_NUMBER_REQUIRED" as const });
+	}
+
+	if (args.status === "failed" && args.failureCode === undefined) {
+		return neverthrowErr({ reason: "INVOICE_FAILURE_CODE_REQUIRED" as const });
+	}
+
+	return neverthrowOk(null);
+}
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
