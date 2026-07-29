@@ -9,23 +9,18 @@ import { multiBookingFormSchema } from "#studio/features/booking-form/lib/bookin
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { err, ok, type Result } from "#/lib/result";
 import type {
+	CreatePendingPackageResult,
 	MarkPackagePaidAndCreateScheduleTokenResult,
 	RefreshPackageScheduleTokenResult
 } from "./packages";
 import { env } from "./env";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
-import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { getAdminIdentity } from "./lib/auth";
 import {
 	buildPackageScheduleUrl,
 	sendAndRecordPackageScheduleEmail
 } from "./lib/packageScheduleEmail";
-
-type PendingMultiBookingCreationResult = Result<
-	{ multiBooking: MultiBookingInvoiceSource },
-	{ reason: "PACKAGE_CREATE_FAILED" }
->;
 
 export const createPackageRequest = action({
 	args: {
@@ -65,7 +60,6 @@ async function createPackageRequestHandler(
 		| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
 		| { reason: "BOOKING_INVALID_INPUT" }
 		| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
-		| { reason: "PACKAGE_CREATE_FAILED" }
 	>
 > {
 	const parsedMultiBooking = multiBookingFormSchema.safeParse(args);
@@ -101,8 +95,9 @@ async function createPackageRequestHandler(
 		packageSize: multiBooking.packageSize
 	});
 
-	const [pendingMultiBookingError, pendingMultiBooking]: PendingMultiBookingCreationResult =
-		await ctx.runMutation(internal.packages.createPendingPackage, {
+	const [, pendingPackage]: CreatePendingPackageResult = await ctx.runMutation(
+		internal.packages.createPendingPackage,
+		{
 			name: multiBooking.name,
 			phone: multiBooking.phone,
 			accountName: multiBooking.accountName,
@@ -120,37 +115,33 @@ async function createPackageRequestHandler(
 			discountAmount: amounts.discountAmount,
 			totalDueAmount: amounts.totalDueAmount,
 			invoiceLineItems
-		});
+		}
+	);
 
-	if (pendingMultiBookingError !== null) {
-		return err(pendingMultiBookingError);
-	}
-
-	const createdMultiBooking = pendingMultiBooking.multiBooking;
+	const createdPackage = pendingPackage!.multiBooking;
 
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
-	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(
-		createdMultiBooking,
-		{ leadTimeMinutes: bookingSettings.leadTimeMinutes }
-	);
+	const [invoiceEmailError, invoiceEmail] = await sendMultiBookingInvoiceEmail(createdPackage, {
+		leadTimeMinutes: bookingSettings.leadTimeMinutes
+	});
 
 	if (invoiceEmailError !== null) {
 		await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
-			multiBookingId: createdMultiBooking._id,
+			multiBookingId: createdPackage._id,
 			status: "failed",
 			failureCode: invoiceEmailError.reason
 		});
 
-		return ok({ multiBookingId: createdMultiBooking._id, invoiceEmailStatus: "failed" });
+		return ok({ multiBookingId: createdPackage._id, invoiceEmailStatus: "failed" });
 	}
 
 	await ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, {
-		multiBookingId: createdMultiBooking._id,
+		multiBookingId: createdPackage._id,
 		invoiceNumber: invoiceEmail.invoiceNumber,
 		status: "sent"
 	});
 
-	return ok({ multiBookingId: createdMultiBooking._id, invoiceEmailStatus: "sent" });
+	return ok({ multiBookingId: createdPackage._id, invoiceEmailStatus: "sent" });
 }
 
 export type CreatePackageRequestResult = Awaited<ReturnType<typeof createPackageRequestHandler>>;

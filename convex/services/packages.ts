@@ -1,7 +1,10 @@
 import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { getMultiBookingExpiresAt } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	getMultiBookingExpiresAt,
+	getMultiBookingInvoiceDueAt
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { getAdminIdentityResult } from "#convex/lib/auth";
 import {
 	validatePackageInvoiceEmailAttempt,
@@ -21,6 +24,25 @@ import {
 } from "#convex/lib/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
 
+type CreatePendingPackageArgs = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	duration: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	packageSize: 4 | 8 | 12;
+	singleSessionAmount: number;
+	packageSubtotalAmount: number;
+	discountPercent: number;
+	discountAmount: number;
+	totalDueAmount: number;
+	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
+};
 type SavePackageInstagramHandleArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
 	instagramHandle: string;
@@ -44,6 +66,43 @@ type RefreshScheduleTokenError =
 type InvoiceAttemptError =
 	| { reason: "INVOICE_NUMBER_REQUIRED" }
 	| { reason: "INVOICE_FAILURE_CODE_REQUIRED" };
+
+export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
+	const createdAt = Date.now();
+	const packageRequest = {
+		name: args.name,
+		phone: args.phone,
+		accountName: args.accountName,
+		...(args.abn !== undefined ? { abn: args.abn } : {}),
+		email: args.email,
+		duration: args.duration,
+		addons: args.addons,
+		...(args.essentialEditQuantity !== undefined
+			? { essentialEditQuantity: args.essentialEditQuantity }
+			: {}),
+		...(args.clipsPackageQuantity !== undefined
+			? { clipsPackageQuantity: args.clipsPackageQuantity }
+			: {}),
+		...(args.notes !== undefined ? { notes: args.notes } : {}),
+		packageSize: args.packageSize,
+		singleSessionAmount: args.singleSessionAmount,
+		packageSubtotalAmount: args.packageSubtotalAmount,
+		discountPercent: args.discountPercent,
+		discountAmount: args.discountAmount,
+		totalDueAmount: args.totalDueAmount,
+		invoiceLineItems: args.invoiceLineItems,
+		status: "pending_payment" as const,
+		createdAt,
+		invoiceDueAt: getMultiBookingInvoiceDueAt(createdAt),
+		invoiceEmailStatus: "pending" as const
+	};
+
+	return okOrThrow(
+		ctx.db
+			.insert("multiBookingPackages", packageRequest)
+			.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRequest } }))
+	);
+}
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
 	return getAdminIdentityResult(ctx)

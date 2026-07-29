@@ -71,7 +71,6 @@ export const createMultiBookingToastMessages = {
 	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
-	PACKAGE_CREATE_FAILED: "Something went wrong while creating your package request.",
 	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
 } satisfies Record<CreateMultiBookingToastError["reason"], string>;
 

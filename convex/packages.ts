@@ -1,7 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
-import { getMultiBookingInvoiceDueAt } from "#studio/features/booking-form/lib/booking-pricing";
+import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
@@ -12,11 +11,11 @@ import {
 	type MutationCtx
 } from "./_generated/server";
 import { getAdminIdentity } from "./lib/auth";
-import type { MultiBookingInvoiceSource } from "./lib/bookingInvoiceArtifacts";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
 import {
 	archivePackageService,
+	createPendingPackageService,
 	markPackageInvoiceEmailAttemptService,
 	markPackagePaidAndCreateScheduleTokenService,
 	markPackageUnpaidService,
@@ -40,11 +39,6 @@ export const checkPackageSubmitRateLimit = internalMutation({
 	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
 });
 
-type CreatePendingPackageResult = Result<
-	{ multiBooking: MultiBookingInvoiceSource },
-	{ reason: "PACKAGE_CREATE_FAILED" }
->;
-
 export const createPendingPackage = internalMutation({
 	args: {
 		name: v.string(),
@@ -65,46 +59,17 @@ export const createPendingPackage = internalMutation({
 		totalDueAmount: v.number(),
 		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
 	},
-	handler: async (ctx, args): Promise<CreatePendingPackageResult> => {
-		const createdAt = Date.now();
-		const invoiceDueAt = getMultiBookingInvoiceDueAt(createdAt);
-		const multiBooking = {
-			name: args.name,
-			phone: args.phone,
-			accountName: args.accountName,
-			...(args.abn !== undefined ? { abn: args.abn } : {}),
-			email: args.email,
-			duration: args.duration,
-			addons: args.addons,
-			...(args.essentialEditQuantity !== undefined
-				? { essentialEditQuantity: args.essentialEditQuantity }
-				: {}),
-			...(args.clipsPackageQuantity !== undefined
-				? { clipsPackageQuantity: args.clipsPackageQuantity }
-				: {}),
-			...(args.notes !== undefined ? { notes: args.notes } : {}),
-			packageSize: args.packageSize,
-			singleSessionAmount: args.singleSessionAmount,
-			packageSubtotalAmount: args.packageSubtotalAmount,
-			discountPercent: args.discountPercent,
-			discountAmount: args.discountAmount,
-			totalDueAmount: args.totalDueAmount,
-			invoiceLineItems: args.invoiceLineItems,
-			status: "pending_payment" as const,
-			createdAt,
-			invoiceDueAt,
-			invoiceEmailStatus: "pending" as const
-		};
-
-		try {
-			const multiBookingId = await ctx.db.insert("multiBookingPackages", multiBooking);
-
-			return ok({ multiBooking: { _id: multiBookingId, ...multiBooking } });
-		} catch {
-			return err({ reason: "PACKAGE_CREATE_FAILED" });
-		}
-	}
+	handler: (ctx, args) => createPendingPackageHandler(ctx, args)
 });
+
+function createPendingPackageHandler(
+	ctx: MutationCtx,
+	args: Parameters<typeof createPendingPackageService>[1]
+) {
+	return createPendingPackageService(ctx, args).match(tupleOk, tupleErr);
+}
+
+export type CreatePendingPackageResult = Awaited<ReturnType<typeof createPendingPackageHandler>>;
 
 export const markPackageInvoiceEmailAttempt = internalMutation({
 	args: {
