@@ -13,6 +13,7 @@ export const ADDON_OPTIONS = [
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
 const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
+export type BookingService = (typeof SERVICES)[number];
 
 export function isAddonOption(value: string): value is BookingAddon {
 	return ADDON_OPTIONS.some((option) => option === value);
@@ -20,6 +21,14 @@ export function isAddonOption(value: string): value is BookingAddon {
 
 export function isPackageUnavailableAddon(addon: BookingAddon) {
 	return addon === "Remote Podcast";
+}
+
+export function isAddonAvailableForService(service: BookingService | "", addon: BookingAddon) {
+	if (service !== "Music Setup") {
+		return true;
+	}
+
+	return addon === "4K UHD Recording" || addon === "Essential Edit";
 }
 
 export function getPackageSessionAddons(

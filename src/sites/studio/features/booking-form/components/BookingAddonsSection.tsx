@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -20,6 +21,7 @@ import {
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
+	isAddonAvailableForService,
 	isDeliverableCountOption,
 	isPackageUnavailableAddon,
 	toFieldErrorObjects,
@@ -107,7 +109,31 @@ export function BookingAddonsSection() {
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 	const isMultiBooking = formValues.bookingMode === "multi";
+	const availableAddonOptions = ADDON_OPTIONS.filter((addon) =>
+		isAddonAvailableForService(formValues.service, addon)
+	);
 	const FormField = formApi.Field;
+
+	// Remove add-ons that become unavailable when the recording space changes.
+	useEffect(() => {
+		const availableAddons = formValues.addons.filter((addon) =>
+			isAddonAvailableForService(formValues.service, addon)
+		);
+
+		if (availableAddons.length === formValues.addons.length) {
+			return;
+		}
+
+		formApi.setFieldValue("addons", availableAddons);
+
+		if (!availableAddons.includes("Essential Edit")) {
+			formApi.setFieldValue("essentialEditQuantity", "");
+		}
+
+		if (!availableAddons.includes("Clips Package")) {
+			formApi.setFieldValue("clipsPackageQuantity", "");
+		}
+	}, [formApi, formValues.addons, formValues.service]);
 
 	return (
 		<FormField name="addons">
@@ -138,7 +164,7 @@ export function BookingAddonsSection() {
 						<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
 						<FieldDescription>Choose add-ons to enhance your session.</FieldDescription>
 						<div className="flex flex-col gap-4">
-							{ADDON_OPTIONS.map((addon) => (
+							{availableAddonOptions.map((addon) => (
 								<div
 									key={addon}
 									className="space-y-3">
