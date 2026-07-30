@@ -76,5 +76,6 @@ Do these practices:
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal`; the `internal.*` namespace already communicates visibility.
+- Refer to the `multiBookingPackages` domain concept as a package in code names, such as `packageId`, `packageFromDb`, and `packageSessions`. Keep existing schema table and field names that contain `multiBooking`; do not rename them or add a migration solely for this naming preference.
 
 - Do not blindly assume a migration needs to occur. Most of the time, the feature being worked on is not yet implemented so there is no live data. Always ask the user whether a migration is necessary.

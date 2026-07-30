@@ -22,13 +22,18 @@ React caller -> Convex handler -> service
 ## Before editing
 
 - Inspect nearby Convex helpers before adding a service or adapter.
+- Put reusable database lookups in the nearest feature lookup module and call them from services instead of rebuilding lookup logic inside a service.
 
 ## Service rules
 
 - Put business orchestration in a named feature service under the nearest appropriate `convex/services/*` module.
 - Return inferred `Result<T, E>` or `ResultAsync<T, E>`; avoid manually duplicating unions.
 - Use `{ reason: "STABLE_CODE" }` discriminated errors and literal inference.
+- Use neverthrow-returning lookups, parsers, and validators directly in service chains. Do not wrap a tuple-returning helper and then unpack `[error, value]` inside `andThen`; convert or replace that helper with a neverthrow boundary.
+- Do not manually propagate tuple errors inside services with checks such as `if (error !== null) return err(error)`. Reserve tuple-to-neverthrow conversion for action calls to internal Convex functions, and reserve neverthrow-to-tuple conversion for Convex handlers.
 - Compose dependent expected outcomes with `andThen`; use `map` for infallible transformations.
+- Keep each `andThen` focused on one business step. For complex chains, add a brief, accurate business-flow comment immediately above every `andThen`.
+- Carry only values required by the next chain section. Return `null` after intermediate write-only steps instead of forwarding unrelated documents or confirmation objects.
 - Use `ResultAsync.fromSafePromise` around Convex operations when rejection must propagate. Its rejection intentionally bypasses the Result channel.
 - Wrap Convex operations with the shared `okOrThrow` helper and explicitly return the service's success value:
 
@@ -37,7 +42,7 @@ okOrThrow(ctx.db.patch(documentId, patch).then(() => null));
 ```
 
   `okOrThrow` preserves unexpected promise rejections. Use `.then()` to make the successful service return value explicit, such as `null` or `{ session }`.
-- Return only success values that a caller actually uses. Default write-only operations to `null`; do not add confirmation payloads such as `{ updated: true }`, `{ deleted: true }`, or `{ cancelled: true }` unless a caller needs that data.
+- Return only final success values that a caller actually uses. Default write-only operations to `null`; do not add confirmation payloads such as `{ updated: true }`, `{ deleted: true }`, or `{ cancelled: true }` unless a caller needs that data.
 - Use `ResultAsync.fromPromise` only when rejection is an expected, explicitly mapped product failure, such as a handled third-party outage.
 - Do not broadly catch Convex/database exceptions or map them to business errors.
 - Check all expected failures before writes. Returning `Err` after a mutation write commits that write unless the handler throws.
