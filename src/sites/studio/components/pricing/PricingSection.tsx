@@ -1,6 +1,5 @@
-import { type ComponentProps, type ComponentType } from "react";
+import { useState, type ComponentProps, type ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
-import { Image } from "@unpic/react";
 import { motion } from "motion/react";
 import { Globe, Scissors, Smartphone, Video } from "lucide-react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
@@ -8,6 +7,8 @@ import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
 import trioTalkingAtTableSetupImage from "#studio/assets/gallery/trio-talking-at-table-setup.webp";
+import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
+import type { PhotoGalleryImage } from "#studio/content/photos";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
@@ -92,6 +93,13 @@ const pricingAddOns: readonly PricingAddOn[] = [
 	}
 ];
 
+const pricingAddOnsImage: PhotoGalleryImage = {
+	src: trioTalkingAtTableSetupImage,
+	alt: "Trio talking at the VV Studios podcast studio table setup in Sydney",
+	width: 1612,
+	height: 1612
+};
+
 export type PricingSectionProps = {
 	headingLevel?: "h1" | "h2";
 	className?: string;
@@ -105,6 +113,7 @@ export function PricingSection({
 	compact = false,
 	fadeIn = false
 }: PricingSectionProps) {
+	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
 	const HeadingTag = headingLevel;
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
@@ -242,25 +251,25 @@ export function PricingSection({
 							</div>
 						</div>
 
-						<div
+						<ImageViewerTrigger
+							image={pricingAddOnsImage}
 							className={cn(
 								"relative h-80 w-full overflow-hidden md:h-full md:max-w-2xl md:justify-self-end",
 								"rounded-lg bg-card",
 								"shadow-xl shadow-background/40"
-							)}>
-							<Image
-								src={trioTalkingAtTableSetupImage}
-								alt="Trio talking at the VV Studios podcast studio table setup in Sydney"
-								layout="constrained"
-								width={1612}
-								height={1612}
-								loading="lazy"
-								className="absolute inset-0 size-full object-cover object-bottom"
-							/>
-						</div>
+							)}
+							imageClassName="absolute inset-0 size-full object-cover object-bottom"
+							onSelect={setPreviewImage}
+						/>
 					</section>
 				</div>
 			</motion.div>
+			<ImageViewer
+				image={previewImage}
+				onClose={() => {
+					setPreviewImage(null);
+				}}
+			/>
 		</section>
 	);
 }

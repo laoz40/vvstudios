@@ -1,4 +1,4 @@
-import { Image } from "@unpic/react";
+import { useState } from "react";
 import {
 	Accordion,
 	AccordionContent,
@@ -9,10 +9,21 @@ import { cn } from "#/lib/utils";
 import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
+import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
+import type { PhotoGalleryImage } from "#studio/content/photos";
 
 export type LandingFaqProps = { id?: string };
 
+const faqImage: PhotoGalleryImage = {
+	src: behindTheScenesWideImage,
+	alt: "Behind the scenes view of VV Studios podcast studio hire space in Sydney",
+	width: 1971,
+	height: 1110
+};
+
 export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
+	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+
 	return (
 		<FaqSection
 			id={id}
@@ -21,23 +32,17 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 			fadeIn>
 			<div className={cn("grid gap-10 md:grid-cols-2 md:items-start", "w-full", "mt-6 md:mt-10")}>
 				<div className={cn("order-2 flex flex-col gap-6 md:order-1", "w-full")}>
-					<div
+					<ImageViewerTrigger
+						image={faqImage}
+						onSelect={setPreviewImage}
 						className={cn(
 							"overflow-hidden",
 							"h-80 md:h-128",
 							"rounded-lg bg-card",
 							"shadow-xl shadow-background/40"
-						)}>
-						<Image
-							src={behindTheScenesWideImage}
-							alt="Behind the scenes view of VV Studios podcast studio hire space in Sydney"
-							layout="constrained"
-							width={1971}
-							height={1110}
-							loading="lazy"
-							className="h-full w-full object-cover"
-						/>
-					</div>
+						)}
+						imageClassName="h-full w-full object-cover"
+					/>
 
 					<ContactActions className="mt-7 md:mt-0 md:justify-start" />
 				</div>
@@ -67,6 +72,12 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 					))}
 				</Accordion>
 			</div>
+			<ImageViewer
+				image={previewImage}
+				onClose={() => {
+					setPreviewImage(null);
+				}}
+			/>
 		</FaqSection>
 	);
 }
