@@ -142,7 +142,7 @@ export function RecordingSpaceField({
 									<span
 										className={cn(
 											"inline-flex items-center justify-center rounded-lg border",
-											"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
+											"px-3 py-0.5",
 											"text-xs font-medium tracking-wider",
 											"shadow-md transition-all duration-200 ease-in",
 											getPillStateClassName(value === option.value)
