@@ -2,14 +2,35 @@ import { err, ok } from "neverthrow";
 import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
+	getMultiBookingInvoiceDueAt,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	createPackageInvoiceLineItemSnapshot,
 	createPriceAdjustmentInvoiceLineItem
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import { getPackageUpdateValidationError } from "./packageScheduling";
+
+export type CreatePendingPackageArgs = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	duration: string;
+	addons: string[];
+	essentialEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	notes?: string;
+	packageSize: MultiBookingSize;
+	singleSessionAmount: number;
+	packageSubtotalAmount: number;
+	discountPercent: number;
+	discountAmount: number;
+	totalDueAmount: number;
+	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
+};
 
 export type UpdatePackageArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
@@ -29,6 +50,36 @@ export type UpdatePackageArgs = {
 };
 
 type ParsedPackage = ReturnType<typeof multiBookingFormSchema.parse>;
+
+export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
+	return {
+		name: args.name,
+		phone: args.phone,
+		accountName: args.accountName,
+		...(args.abn !== undefined ? { abn: args.abn } : {}),
+		email: args.email,
+		duration: args.duration,
+		addons: args.addons,
+		...(args.essentialEditQuantity !== undefined
+			? { essentialEditQuantity: args.essentialEditQuantity }
+			: {}),
+		...(args.clipsPackageQuantity !== undefined
+			? { clipsPackageQuantity: args.clipsPackageQuantity }
+			: {}),
+		...(args.notes !== undefined ? { notes: args.notes } : {}),
+		packageSize: args.packageSize,
+		singleSessionAmount: args.singleSessionAmount,
+		packageSubtotalAmount: args.packageSubtotalAmount,
+		discountPercent: args.discountPercent,
+		discountAmount: args.discountAmount,
+		totalDueAmount: args.totalDueAmount,
+		invoiceLineItems: args.invoiceLineItems,
+		status: "pending_payment" as const,
+		createdAt,
+		invoiceDueAt: getMultiBookingInvoiceDueAt(createdAt),
+		invoiceEmailStatus: "pending" as const
+	};
+}
 
 export function parsePackageUpdate(args: UpdatePackageArgs) {
 	const parsedPackage = multiBookingFormSchema.safeParse({

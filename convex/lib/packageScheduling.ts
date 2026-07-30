@@ -14,7 +14,10 @@ import {
 	isDurationOption,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import type { MultiBookingSize } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	getMultiBookingExpiresAt,
+	type MultiBookingSize
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -25,10 +28,31 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "./packageLookup";
+import { generateRescheduleToken, hashRescheduleToken } from "./sessionRescheduleLinks";
 
 export type { ValidPackage, ValidPackageByTokenError } from "./packageLookup";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
+
+export async function createPackageScheduleToken() {
+	const token = generateRescheduleToken();
+	const scheduleTokenHash = await hashRescheduleToken(token);
+
+	return { scheduleTokenHash, token };
+}
+
+export async function createPackageSchedulingDetails(
+	packageFromDb: Doc<"multiBookingPackages">,
+	paidAt: number
+) {
+	const scheduleToken = await createPackageScheduleToken();
+
+	return {
+		...scheduleToken,
+		expiresAt: getMultiBookingExpiresAt(paidAt, packageFromDb.packageSize),
+		packageFromDb
+	};
+}
 
 export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBookingPackages">) {
 	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {

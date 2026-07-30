@@ -1,10 +1,6 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import {
-	getMultiBookingExpiresAt,
-	getMultiBookingInvoiceDueAt
-} from "#studio/features/booking-form/lib/booking-pricing";
 import { getAdminIdentityResult } from "#convex/lib/auth";
 import {
 	validatePackageInvoiceEmailAttempt,
@@ -12,37 +8,21 @@ import {
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import {
+	createPackageScheduleToken,
+	createPackageSchedulingDetails,
 	getCapacityConsumingPackageSessions,
 	validatePackageScheduleTokenRefresh
 } from "#convex/lib/packageScheduling";
-import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import {
+	buildPendingPackageRecord,
 	buildPackageUpdatePatch,
 	parsePackageUpdate,
+	type CreatePendingPackageArgs,
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
 
-type CreatePendingPackageArgs = {
-	name: string;
-	phone: string;
-	accountName: string;
-	abn?: string;
-	email: string;
-	duration: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	notes?: string;
-	packageSize: 4 | 8 | 12;
-	singleSessionAmount: number;
-	packageSubtotalAmount: number;
-	discountPercent: number;
-	discountAmount: number;
-	totalDueAmount: number;
-	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
-};
 type SavePackageInstagramHandleArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
 	instagramHandle: string;
@@ -59,48 +39,14 @@ export type PaidPackageResult = {
 	multiBooking: Doc<"multiBookingPackages">;
 	token: string;
 };
-type RefreshScheduleTokenError =
-	| PackageLookupError
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
-	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" };
-type InvoiceAttemptError =
-	| { reason: "INVOICE_NUMBER_REQUIRED" }
-	| { reason: "INVOICE_FAILURE_CODE_REQUIRED" };
-
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
 	const createdAt = Date.now();
-	const packageRequest = {
-		name: args.name,
-		phone: args.phone,
-		accountName: args.accountName,
-		...(args.abn !== undefined ? { abn: args.abn } : {}),
-		email: args.email,
-		duration: args.duration,
-		addons: args.addons,
-		...(args.essentialEditQuantity !== undefined
-			? { essentialEditQuantity: args.essentialEditQuantity }
-			: {}),
-		...(args.clipsPackageQuantity !== undefined
-			? { clipsPackageQuantity: args.clipsPackageQuantity }
-			: {}),
-		...(args.notes !== undefined ? { notes: args.notes } : {}),
-		packageSize: args.packageSize,
-		singleSessionAmount: args.singleSessionAmount,
-		packageSubtotalAmount: args.packageSubtotalAmount,
-		discountPercent: args.discountPercent,
-		discountAmount: args.discountAmount,
-		totalDueAmount: args.totalDueAmount,
-		invoiceLineItems: args.invoiceLineItems,
-		status: "pending_payment" as const,
-		createdAt,
-		invoiceDueAt: getMultiBookingInvoiceDueAt(createdAt),
-		invoiceEmailStatus: "pending" as const
-	};
+	const packageRecord = buildPendingPackageRecord(args, createdAt);
 
 	return okOrThrow(
 		ctx.db
-			.insert("multiBookingPackages", packageRequest)
-			.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRequest } }))
+			.insert("multiBookingPackages", packageRecord)
+			.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRecord } }))
 	);
 }
 
@@ -183,91 +129,89 @@ export function markPackagePaidAndCreateScheduleTokenService(
 	ctx: MutationCtx,
 	args: MarkPackagePaidArgs,
 	scheduleExpiry: (expiresAt: number) => Promise<unknown>
-): ResultAsync<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
-	return getPackageFromDb(ctx, args.multiBookingId)
-		.andThen((packageFromDb) => {
-			if (packageFromDb.status === "paid" || packageFromDb.status === "schedule_email_failed") {
-				return err({ reason: "PACKAGE_ALREADY_PAID" as const });
-			}
+) {
+	return (
+		getPackageFromDb(ctx, args.multiBookingId)
+			// Reject packages that have already entered their paid lifecycle.
+			.andThen((packageFromDb) => {
+				if (packageFromDb.status === "paid" || packageFromDb.status === "schedule_email_failed") {
+					return err({ reason: "PACKAGE_ALREADY_PAID" as const });
+				}
 
-			return ok(packageFromDb);
-		})
-		.andThen((packageFromDb) => {
-			const token = generateRescheduleToken();
-			const expiresAt = getMultiBookingExpiresAt(args.paidAt, packageFromDb.packageSize);
-
-			return okOrThrow(hashRescheduleToken(token)).map((scheduleTokenHash) => ({
-				expiresAt,
-				packageFromDb,
-				scheduleTokenHash,
-				token
-			}));
-		})
-		.andThen((packageSchedulingDetails) =>
-			okOrThrow(
-				ctx.db
-					.patch(args.multiBookingId, {
-						expiresAt: packageSchedulingDetails.expiresAt,
-						paidAt: args.paidAt,
-						packageReminderState: undefined,
-						scheduleLinkStatus: "active",
-						scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-						status: "schedule_email_failed"
-					})
-					.then(() => packageSchedulingDetails)
+				return ok(packageFromDb);
+			})
+			// Generate the scheduling token and calculate the package expiry.
+			.andThen((packageFromDb) =>
+				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
 			)
-		)
-		.andThen((packageSchedulingDetails) =>
-			okOrThrow(
-				scheduleExpiry(packageSchedulingDetails.expiresAt).then(() => packageSchedulingDetails)
-			)
-		)
-		.map((packageSchedulingDetails) => ({
-			expiresAt: packageSchedulingDetails.expiresAt,
-			paidAt: args.paidAt,
-			multiBooking: {
-				...packageSchedulingDetails.packageFromDb,
-				expiresAt: packageSchedulingDetails.expiresAt,
-				paidAt: args.paidAt,
-				scheduleLinkStatus: "active" as const,
-				scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-				status: "schedule_email_failed" as const
-			},
-			token: packageSchedulingDetails.token
-		}));
-}
-
-export function refreshPackageScheduleTokenService(
-	ctx: MutationCtx,
-	args: PackageIdArgs
-): ResultAsync<PaidPackageResult, RefreshScheduleTokenError> {
-	return getPackageFromDb(ctx, args.multiBookingId)
-		.andThen(validatePackageScheduleTokenRefresh)
-		.andThen((packageFromDb) => {
-			const token = generateRescheduleToken();
-			return okOrThrow(hashRescheduleToken(token)).andThen((scheduleTokenHash) =>
+			// Persist the package's paid scheduling lifecycle.
+			.andThen((packageSchedulingDetails) =>
 				okOrThrow(
 					ctx.db
-						.patch(args.multiBookingId, { scheduleLinkStatus: "active", scheduleTokenHash })
-						.then(() => ({
-							expiresAt: packageFromDb.expiresAt,
-							paidAt: packageFromDb.paidAt,
-							multiBooking: {
-								...packageFromDb,
-								scheduleLinkStatus: "active" as const,
-								scheduleTokenHash
-							},
-							token
-						}))
+						.patch(args.multiBookingId, {
+							expiresAt: packageSchedulingDetails.expiresAt,
+							paidAt: args.paidAt,
+							packageReminderState: undefined,
+							scheduleLinkStatus: "active",
+							scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
+							status: "schedule_email_failed"
+						})
+						.then(() => packageSchedulingDetails)
 				)
-			);
-		});
+			)
+			// Schedule the package-expiry adjustment check.
+			.andThen((packageSchedulingDetails) =>
+				okOrThrow(
+					scheduleExpiry(packageSchedulingDetails.expiresAt).then(() => packageSchedulingDetails)
+				)
+			)
+			.map((packageSchedulingDetails) => ({
+				expiresAt: packageSchedulingDetails.expiresAt,
+				paidAt: args.paidAt,
+				multiBooking: {
+					...packageSchedulingDetails.packageFromDb,
+					expiresAt: packageSchedulingDetails.expiresAt,
+					paidAt: args.paidAt,
+					scheduleLinkStatus: "active" as const,
+					scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
+					status: "schedule_email_failed" as const
+				},
+				token: packageSchedulingDetails.token
+			}))
+	);
+}
+
+export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: PackageIdArgs) {
+	return getPackageFromDb(ctx, args.multiBookingId)
+		.andThen(validatePackageScheduleTokenRefresh)
+		.andThen((packageFromDb) =>
+			okOrThrow(createPackageScheduleToken()).map((scheduleToken) => ({
+				packageFromDb,
+				...scheduleToken
+			}))
+		)
+		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
+			okOrThrow(
+				ctx.db
+					.patch(args.multiBookingId, { scheduleLinkStatus: "active", scheduleTokenHash })
+					.then(() => ({
+						expiresAt: packageFromDb.expiresAt,
+						paidAt: packageFromDb.paidAt,
+						multiBooking: {
+							...packageFromDb,
+							scheduleLinkStatus: "active" as const,
+							scheduleTokenHash
+						},
+						token
+					}))
+			)
+		);
 }
 
 export function markPackageInvoiceEmailAttemptService(
 	ctx: MutationCtx,
 	args: MarkPackageInvoiceEmailAttemptArgs
-): ResultAsync<null, InvoiceAttemptError> {
+) {
 	return validatePackageInvoiceEmailAttempt(args).asyncAndThen(() => {
 		const now = Date.now();
 		const patch =
