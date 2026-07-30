@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok, type Result } from "#/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
 import type { Id } from "./_generated/dataModel";
 import {
 	action,
@@ -19,11 +19,9 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "./lib/sessionCalendarTime";
 import {
-	sessionConsumesPackageCapacity,
 	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
 	getEditablePackageSession,
-	getPackageSessionForToken,
 	getPackageSessionStartAt,
 	getValidPackageByToken as findValidPackageByToken,
 	toPackageCalendarSession,
@@ -33,6 +31,12 @@ import {
 	type UnschedulePackageSessionError
 } from "./lib/packageScheduling";
 import { processPackageAdjustment } from "./lib/packageAdjustments";
+import {
+	cancelPackageSessionService,
+	saveCreatedPackageSessionService,
+	type CancelPackageSessionArgs,
+	type SaveCreatedPackageSessionArgs
+} from "./services/packageScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
@@ -390,17 +394,17 @@ async function validatePackageSessionRequestHandler(
 		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
 	}
 
-	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
+	const sessionStartResult = getPackageSessionStartAt(args);
 
-	if (startError !== null) {
-		return err(startError);
+	if (sessionStartResult.isErr()) {
+		return err(sessionStartResult.error);
 	}
 
 	return ok({
 		multiBooking,
 		eventBufferMinutes: settings.eventBufferMinutes,
 		leadTimeMinutes: settings.leadTimeMinutes,
-		sessionStartAt
+		sessionStartAt: sessionStartResult.value
 	});
 }
 
@@ -434,17 +438,17 @@ async function validatePackageRescheduleRequestHandler(
 		return err(availabilityError);
 	}
 
-	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
+	const sessionStartResult = getPackageSessionStartAt(args);
 
-	if (startError !== null) {
-		return err(startError);
+	if (sessionStartResult.isErr()) {
+		return err(sessionStartResult.error);
 	}
 
 	return ok({
 		session,
 		multiBooking,
 		eventBufferMinutes: settings.eventBufferMinutes,
-		sessionStartAt
+		sessionStartAt: sessionStartResult.value
 	});
 }
 
@@ -468,12 +472,6 @@ async function validatePackageUnscheduleRequestHandler(
 	return ok({ session: details.session, multiBooking: details.multiBooking });
 }
 
-type SaveCreatedPackageSessionArgs = PackageSessionArgs & {
-	now: number;
-	googleCalendarId?: string;
-	googleEventId?: string;
-};
-
 export const saveCreatedPackageSession = internalMutation({
 	args: {
 		...packageSessionInput,
@@ -487,109 +485,27 @@ export const saveCreatedPackageSession = internalMutation({
 async function saveCreatedPackageSessionHandler(
 	ctx: MutationCtx,
 	args: SaveCreatedPackageSessionArgs
-) {
-	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, args.now);
-
-	if (error !== null) {
-		return err(error);
-	}
-
-	const activeBookings = await getCapacityConsumingPackageSessions(
+): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> {
+	return saveCreatedPackageSessionService(
 		ctx,
-		multiBooking._id,
-		multiBooking.packageSize
-	);
-
-	if (activeBookings.length >= multiBooking.packageSize) {
-		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
-	}
-
-	const [startError, sessionStartAt] = getPackageSessionStartAt(args);
-
-	if (startError !== null) {
-		return err(startError);
-	}
-
-	try {
-		const bookingId = await ctx.db.insert("bookings", {
-			name: multiBooking.name,
-			phone: multiBooking.phone,
-			accountName: multiBooking.accountName,
-			abn: multiBooking.abn,
-			email: multiBooking.email,
-			instagramHandle: multiBooking.instagramHandle,
-			date: args.date,
-			time: args.time,
-			sessionStartAt,
-			duration: multiBooking.duration,
-			service: args.service,
-			addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
-			essentialEditQuantity: multiBooking.essentialEditQuantity,
-			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
-			notes: args.notes,
-			status: "confirmed",
-			pendingPaymentCreatedAt: multiBooking.createdAt,
-			paymentCompletedAt: multiBooking.paidAt,
-			bookingConfirmedAt: args.now,
-			googleCalendarId: args.googleCalendarId,
-			googleEventId: args.googleEventId,
-			multiBookingPackageId: multiBooking._id
-		});
-
-		if (multiBooking.packageReminderState?.type === "expiry") {
-			await ctx.db.patch(multiBooking._id, { packageReminderState: undefined });
-		}
-
-		await ctx.scheduler.runAfter(
-			0,
-			internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-			{ multiBookingId: multiBooking._id }
-		);
-
-		return ok({ bookingId });
-	} catch {
-		return err({ reason: "PACKAGE_BOOKING_SAVE_FAILED" as const });
-	}
+		args,
+		(packageId): Promise<unknown> =>
+			ctx.scheduler.runAfter(
+				0,
+				internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
+				{ multiBookingId: packageId }
+			)
+	).match(tupleOk, tupleErr);
 }
-
-type CancelPackageSessionArgs = UnschedulePackageSessionArgs & { now: number };
 
 export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
 	handler: (ctx, args) => cancelPackageSessionHandler(ctx, args)
 });
 
-async function cancelPackageSessionHandler(ctx: MutationCtx, args: CancelPackageSessionArgs) {
-	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, args.now);
-
-	if (error !== null) {
-		return err(error);
-	}
-
-	const session = await getPackageSessionForToken(ctx, multiBooking._id, args.bookingId);
-
-	if (!session || !sessionConsumesPackageCapacity(session)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, {
-			bookingFailureCode: undefined,
-			googleCalendarId: undefined,
-			googleEventId: undefined,
-			reminderEmailClaimedAt: undefined,
-			reminderEmailSentAt: undefined,
-			reminderEmailFailureCode: undefined,
-			status: "cancelled"
-		});
-		await ctx.scheduler.runAfter(
-			0,
-			internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-			{ multiBookingId: multiBooking._id }
-		);
-
-		return ok({ cancelled: true as const, bookingId: args.bookingId });
-	} catch {
-		return err({ reason: "PACKAGE_BOOKING_CANCEL_FAILED" as const });
-	}
+async function cancelPackageSessionHandler(
+	ctx: MutationCtx,
+	args: CancelPackageSessionArgs
+): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>> {
+	return cancelPackageSessionService(ctx, args).match(tupleOk, tupleErr);
 }

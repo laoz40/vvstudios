@@ -7,7 +7,6 @@ import type {
 import { checkSessionMeetsAvailabilitySettings } from "./sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "./googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "./rateLimits";
-import { hashRescheduleToken } from "./sessionRescheduleLinks";
 import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
 import { getSessionStartAt } from "./sessionAdminEdit";
 import {
@@ -21,6 +20,13 @@ import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import {
+	getValidPackageByToken as getValidPackageByTokenResult,
+	type ValidPackage,
+	type ValidPackageByTokenError
+} from "./packageLookup";
+
+export type { ValidPackage, ValidPackageByTokenError } from "./packageLookup";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
 
@@ -63,12 +69,6 @@ export function getPackageUpdateValidationError(
 	return null;
 }
 
-export type ValidPackageByTokenError =
-	| { reason: "PACKAGE_LINK_INVALID" }
-	| { reason: "PACKAGE_LINK_EXPIRED" }
-	| { reason: "PACKAGE_LINK_INACTIVE" }
-	| { reason: "PACKAGE_NOT_PAID" };
-
 export type PackageSessionEditError =
 	| { reason: "PACKAGE_BOOKING_NOT_FOUND" }
 	| { reason: "PACKAGE_BOOKING_LOCKED" };
@@ -79,8 +79,7 @@ export type CreatePackageSessionError =
 	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
+	| GoogleCalendarWriteError;
 
 export type ReschedulePackageSessionError =
 	| ValidPackageByTokenError
@@ -88,16 +87,12 @@ export type ReschedulePackageSessionError =
 	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
+	| GoogleCalendarWriteError;
 
 export type UnschedulePackageSessionError =
 	| ValidPackageByTokenError
 	| PackageSessionEditError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_CANCEL_FAILED" };
-
-export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
+	| GoogleCalendarWriteError;
 
 const capacityConsumingSessionStatuses = ["confirmed", "email_failed"] as const;
 
@@ -207,7 +202,17 @@ export function toPackageCalendarDetails(
 }
 
 export function getPackageSessionStartAt(args: { date: string; time: string }) {
-	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
+	const [startError, sessionStartAt] = getSessionStartAt(
+		args.date,
+		args.time,
+		env.GOOGLE_CALENDAR_TIMEZONE
+	);
+
+	if (startError !== null) {
+		return neverthrowErr(startError);
+	}
+
+	return neverthrowOk(sessionStartAt);
 }
 
 export async function getEditablePackageSession(
@@ -240,27 +245,5 @@ export async function getValidPackageByToken(
 	token: string,
 	now: number
 ): Promise<Result<ValidPackage, ValidPackageByTokenError>> {
-	const scheduleTokenHash = await hashRescheduleToken(token);
-	const multiBooking = await ctx.db
-		.query("multiBookingPackages")
-		.withIndex("by_scheduleTokenHash", (query) => query.eq("scheduleTokenHash", scheduleTokenHash))
-		.unique();
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_LINK_INVALID" });
-	}
-
-	if (multiBooking.status !== "paid" && multiBooking.status !== "schedule_email_failed") {
-		return err({ reason: "PACKAGE_NOT_PAID" });
-	}
-
-	if (multiBooking.scheduleLinkStatus !== "active") {
-		return err({ reason: "PACKAGE_LINK_INACTIVE" });
-	}
-
-	if (multiBooking.expiresAt === undefined || now >= multiBooking.expiresAt) {
-		return err({ reason: "PACKAGE_LINK_EXPIRED" });
-	}
-
-	return ok({ ...multiBooking, expiresAt: multiBooking.expiresAt });
+	return getValidPackageByTokenResult(ctx, token, now).match(ok, err);
 }

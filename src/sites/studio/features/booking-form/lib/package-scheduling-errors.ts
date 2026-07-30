@@ -110,7 +110,6 @@ const savePackageBookingMessages = {
 	GOOGLE_CALENDAR_SYNC_FAILED: "Could not update the calendar event. Please try again.",
 	GOOGLE_CALENDAR_RATE_LIMITED:
 		"Availability was checked too many times. Please wait a minute and try again.",
-	PACKAGE_BOOKING_SAVE_FAILED: "Could not save this session. Please try again.",
 	UNEXPECTED_ERROR: "Something went wrong while saving this session."
 } satisfies Record<SavePackageBookingError["reason"], SavePackageBookingMessage>;
 
@@ -142,8 +141,6 @@ export function getUnschedulePackageBookingToastMessage(
 			return "Could not remove the calendar event. Please try again.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Calendar updates are busy. Please wait a minute and try again.";
-		case "PACKAGE_BOOKING_CANCEL_FAILED":
-			return "Could not unschedule this session. Please try again.";
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while unscheduling this session.";
 		default: {
