@@ -106,7 +106,7 @@ describe("booking time reservations", () => {
 		});
 		const booking = await readBooking(t, bookingId);
 
-		expect(saveResult).toEqual([null, { saved: true }]);
+		expect(saveResult).toEqual([null, null]);
 		expect(booking).toMatchObject({ sessionStartAt: targetStartAt });
 		expect(booking?.reservationCreatedAt).toBeUndefined();
 		expect(booking?.reservationSessionStartAt).toBeUndefined();

@@ -1,5 +1,6 @@
 import { err, ok, type Result } from "#/lib/result";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
+import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -163,7 +164,7 @@ export function buildAdminSessionUpdatePatch({
 	values: SessionEditValues;
 }) {
 	if (!isValidSessionRemainingBalanceAmount(values.remainingBalanceAmount)) {
-		return err({ reason: "BOOKING_INVALID_INPUT" as const });
+		return neverthrowErr({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 
 	const changes = getSessionEditFieldChanges(session, values);
@@ -172,10 +173,10 @@ export function buildAdminSessionUpdatePatch({
 	const [sessionStartError, sessionStartAt] = getSessionStartAt(values.date, values.time, timeZone);
 
 	if (sessionStartError !== null) {
-		return err(sessionStartError);
+		return neverthrowErr(sessionStartError);
 	}
 
-	return ok({
+	return neverthrowOk({
 		name: values.name,
 		phone: values.phone,
 		accountName: values.accountName,

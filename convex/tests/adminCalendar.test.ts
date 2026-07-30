@@ -217,7 +217,7 @@ describe("admin booking state integrity", () => {
 		);
 		const timingBooking = await readBooking(timingTest, timingBookingId);
 
-		expect(timingResult).toEqual([null, { saved: true }]);
+		expect(timingResult).toEqual([null, null]);
 		expect(timingBooking?.reminderEmailClaimedAt).toBeUndefined();
 		expect(timingBooking?.reminderEmailSentAt).toBeUndefined();
 		expect(timingBooking?.reminderEmailFailureCode).toBeUndefined();
@@ -230,7 +230,7 @@ describe("admin booking state integrity", () => {
 		);
 		const ordinaryBooking = await readBooking(ordinaryTest, ordinaryBookingId);
 
-		expect(ordinaryResult).toEqual([null, { saved: true }]);
+		expect(ordinaryResult).toEqual([null, null]);
 		expect(ordinaryBooking).toMatchObject({
 			reminderEmailClaimedAt: now - 3,
 			reminderEmailSentAt: now - 2,

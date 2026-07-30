@@ -363,7 +363,7 @@ describe("package session rescheduling", () => {
 			jobs: await ctx.db.system.query("_scheduled_functions").collect()
 		}));
 
-		expect(result).toEqual([null, { saved: true, bookingId }]);
+		expect(result).toEqual([null, { bookingId }]);
 		expect(state.booking).toMatchObject({
 			date: target.date,
 			time: target.time,

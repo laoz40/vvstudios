@@ -210,7 +210,7 @@ export const reschedulePackageSession = action({
 async function reschedulePackageSessionHandler(
 	ctx: ActionCtx,
 	args: ReschedulePackageSessionArgs
-): Promise<Result<{ saved: true; bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> {
+): Promise<Result<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> {
 	const now = Date.now();
 
 	const [validationError, details] = await ctx.runQuery(
@@ -253,7 +253,7 @@ async function reschedulePackageSessionHandler(
 		return err(calendarError);
 	}
 
-	const [saveError, result] = await ctx.runMutation(
+	const [saveError] = await ctx.runMutation(
 		internal.sessionScheduling.saveClientSessionReschedule,
 		{
 			bookingId: args.bookingId,
@@ -278,7 +278,7 @@ async function reschedulePackageSessionHandler(
 		return err(saveError);
 	}
 
-	return ok({ ...result, bookingId: args.bookingId });
+	return ok({ bookingId: args.bookingId });
 }
 
 export type ReschedulePackageSessionResult = Awaited<
