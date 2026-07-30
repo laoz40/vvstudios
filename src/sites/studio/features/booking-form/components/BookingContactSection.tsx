@@ -1,12 +1,5 @@
 import { useSelector } from "@tanstack/react-store";
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldLabel,
-	FieldLegend,
-	FieldSet
-} from "#/components/ui/field";
+import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
@@ -15,7 +8,6 @@ import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-f
 
 const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";
-const fieldNoteClassName = "-mt-0.5 italic md:-mt-1";
 const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
 const formControlShadowClassName = "shadow-lg shadow-background/25";
 
@@ -31,8 +23,7 @@ const sectionCopy = {
 	abnLabel: "ABN",
 	abnPlaceholder: "00 000 000 000",
 	emailLabel: "Email *",
-	emailNote: "To receive your booking invoice.",
-	emailPlaceholder: "billing@example.com"
+	emailPlaceholder: "email@example.com"
 } as const;
 
 export function BookingContactSection() {
@@ -96,6 +87,31 @@ export function BookingContactSection() {
 							</Field>
 						)}
 					</formApi.Field>
+
+					<formApi.Field name="email">
+						{(field) => (
+							<Field
+								className={fieldStackClassName}
+								data-field-name="email">
+								<FieldLabel htmlFor="email">{sectionCopy.emailLabel}</FieldLabel>
+								<Input
+									id="email"
+									name="email"
+									type="email"
+									autoComplete="email"
+									spellCheck={false}
+									placeholder={sectionCopy.emailPlaceholder}
+									className={formControlShadowClassName}
+									value={field.state.value}
+									onChange={(event) => field.handleChange(event.target.value)}
+									onBlur={field.handleBlur}
+								/>
+								{field.state.meta.isBlurred || shouldShowFieldError ? (
+									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
+								) : null}
+							</Field>
+						)}
+					</formApi.Field>
 				</div>
 			</FieldSet>
 
@@ -147,34 +163,6 @@ export function BookingContactSection() {
 									onChange={(event) => field.handleChange(event.target.value)}
 									onBlur={field.handleBlur}
 								/>
-								{field.state.meta.isBlurred || shouldShowFieldError ? (
-									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
-								) : null}
-							</Field>
-						)}
-					</formApi.Field>
-
-					<formApi.Field name="email">
-						{(field) => (
-							<Field
-								className={fieldStackClassName}
-								data-field-name="email">
-								<FieldLabel htmlFor="email">{sectionCopy.emailLabel}</FieldLabel>
-								<Input
-									id="email"
-									name="email"
-									type="email"
-									autoComplete="email"
-									spellCheck={false}
-									placeholder={sectionCopy.emailPlaceholder}
-									className={formControlShadowClassName}
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
-									onBlur={field.handleBlur}
-								/>
-								<FieldDescription className={fieldNoteClassName}>
-									{sectionCopy.emailNote}
-								</FieldDescription>
 								{field.state.meta.isBlurred || shouldShowFieldError ? (
 									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
 								) : null}
