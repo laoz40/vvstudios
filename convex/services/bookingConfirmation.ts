@@ -1,7 +1,8 @@
 import { err, ok } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
+	buildClaimedBookingSession,
 	getBookingClaimStatus,
 	normalizeBookingId,
 	validateClaimStripeSession
@@ -37,24 +38,7 @@ type MarkBookingConfirmationFailedArgs = {
 type BookingClaimOutcome =
 	| { outcome: "already_confirmed" }
 	| { outcome: "already_claimed" }
-	| {
-			outcome: "claimed";
-			session: Pick<
-				Doc<"bookings">,
-				| "_id"
-				| "name"
-				| "phone"
-				| "accountName"
-				| "abn"
-				| "email"
-				| "date"
-				| "time"
-				| "duration"
-				| "service"
-				| "addons"
-				| "notes"
-			>;
-	  };
+	| { outcome: "claimed"; session: ReturnType<typeof buildClaimedBookingSession> };
 
 export function claimBookingConfirmationService(
 	ctx: MutationCtx,
@@ -66,7 +50,7 @@ export function claimBookingConfirmationService(
 		.andThen(getBookingClaimStatus)
 		.andThen((status) => {
 			if (status.kind !== "pending") {
-				return okOrThrow<BookingClaimOutcome>(Promise.resolve({ outcome: status.kind }));
+				return ok<BookingClaimOutcome>({ outcome: status.kind });
 			}
 
 			const { session } = status;
@@ -80,50 +64,38 @@ export function claimBookingConfirmationService(
 						stripeSessionId: args.stripeSessionId,
 						stripePaymentIntentId: args.stripePaymentIntentId
 					})
-					.then(() => ({
-						outcome: "claimed",
-						session: {
-							_id: session._id,
-							name: session.name,
-							phone: session.phone,
-							accountName: session.accountName,
-							abn: session.abn,
-							email: session.email,
-							date: session.date,
-							time: session.time,
-							duration: session.duration,
-							service: session.service,
-							addons: session.addons,
-							notes: session.notes
-						}
-					}))
+					.then(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }))
 			);
 		});
 }
 
 export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingConfirmedArgs) {
-	return getSessionFromDbResult(ctx, args.bookingId)
-		.andThen((session) => {
-			if (!sessionHasReservation(session, args.reservation, Date.now())) {
-				return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
-			}
+	return (
+		getSessionFromDbResult(ctx, args.bookingId)
+			// Check that this attempt still holds the booking time.
+			.andThen((session) => {
+				if (!sessionHasReservation(session, args.reservation, Date.now())) {
+					return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
+				}
 
-			return ok(session);
-		})
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.bookingId, {
-						status: "confirmed",
-						googleEventId: args.googleEventId,
-						googleCalendarId: args.googleCalendarId,
-						bookingConfirmedAt: Date.now(),
-						bookingFailureCode: undefined,
-						...clearedSessionReservationPatch
-					})
-					.then(() => null)
+				return ok(session);
+			})
+			// Save the confirmed status and Calendar IDs while clearing the temporary time-slot reservation.
+			.andThen(() =>
+				okOrThrow(
+					ctx.db
+						.patch(args.bookingId, {
+							status: "confirmed",
+							googleEventId: args.googleEventId,
+							googleCalendarId: args.googleCalendarId,
+							bookingConfirmedAt: Date.now(),
+							bookingFailureCode: undefined,
+							...clearedSessionReservationPatch
+						})
+						.then(() => null)
+				)
 			)
-		);
+	);
 }
 
 export function markSessionInvoiceEmailFailedService(

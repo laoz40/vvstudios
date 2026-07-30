@@ -60,6 +60,23 @@ export function getBookingClaimStatus(
 	}
 }
 
+export function buildClaimedBookingSession(session: Doc<"bookings">) {
+	return {
+		_id: session._id,
+		name: session.name,
+		phone: session.phone,
+		accountName: session.accountName,
+		abn: session.abn,
+		email: session.email,
+		date: session.date,
+		time: session.time,
+		duration: session.duration,
+		service: session.service,
+		addons: session.addons,
+		notes: session.notes
+	};
+}
+
 type MarkBookingConfirmedResult = Result<
 	null,
 	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
