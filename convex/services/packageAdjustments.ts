@@ -1,7 +1,7 @@
-import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getSentPackageAdjustmentInvoiceResult } from "#convex/lib/packageAdjustments";
 import { okOrThrow } from "#convex/lib/result";
 
 type MarkPackageAdjustmentPaymentStatusArgs = {
@@ -14,16 +14,7 @@ export function markPackageAdjustmentPaymentStatusService(
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
 	return getAdminIdentityResult(ctx)
-		.andThen(() => ResultAsync.fromSafePromise(ctx.db.get(args.adjustmentId)))
-		.andThen((adjustment) => {
-			if (!adjustment || adjustment.outcome !== "invoice_required") {
-				return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-			}
-			if (adjustment.invoiceEmailStatus !== "sent") {
-				return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
-			}
-			return ok(adjustment);
-		})
+		.andThen(() => getSentPackageAdjustmentInvoiceResult(ctx, args.adjustmentId))
 		.andThen((adjustment) =>
 			okOrThrow(
 				ctx.db

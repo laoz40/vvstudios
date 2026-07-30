@@ -96,27 +96,34 @@ export const getAdminPackageAdjustmentInvoicePdf = action({
 	handler: (ctx, args) => getAdminPackageAdjustmentInvoicePdfHandler(ctx, args)
 });
 
+type AdminPackageAdjustmentInvoicePdfHandlerResult = Result<
+	{ content: ArrayBuffer; contentType: string; filename: string },
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
+	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+	| { reason: "INVALID_BOOKING_DATA" }
+	| { reason: "INVOICE_EMAIL_RENDER_FAILED" }
+	| { reason: "INVOICE_DOWNLOAD_FAILED" }
+>;
+
 async function getAdminPackageAdjustmentInvoicePdfHandler(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments"> }
-) {
+): Promise<AdminPackageAdjustmentInvoicePdfHandlerResult> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
 		return err(authError);
 	}
 
-	const source = await ctx.runQuery(
+	const [sourceError, source] = await ctx.runQuery(
 		internal.packageAdjustments.getPackageAdjustmentInvoiceSource,
 		args
 	);
 
-	if (!source) {
-		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" });
-	}
-
-	if (source.adjustment.invoiceEmailStatus !== "sent") {
-		return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" });
+	if (sourceError !== null) {
+		return err(sourceError);
 	}
 
 	const [artifactsError, artifactsResult] = await createPackageAdjustmentInvoiceArtifacts(source);

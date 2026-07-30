@@ -1,6 +1,7 @@
+import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { getCapacityConsumingPackageSessions } from "./packageScheduling";
@@ -10,6 +11,23 @@ const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
+
+export function getSentPackageAdjustmentInvoiceResult(
+	ctx: QueryCtx | MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return ResultAsync.fromSafePromise(ctx.db.get(adjustmentId)).andThen((adjustment) => {
+		if (!adjustment || adjustment.outcome !== "invoice_required") {
+			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+		}
+
+		if (adjustment.invoiceEmailStatus !== "sent") {
+			return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
+		}
+
+		return ok(adjustment);
+	});
+}
 
 type PackageAdjustmentEvaluation =
 	| { kind: "wait_for_sessions_to_end"; nextCheckAt: number }

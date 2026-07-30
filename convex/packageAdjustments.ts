@@ -3,23 +3,25 @@ import { err, err as tupleErr, ok, ok as tupleOk } from "#/lib/result";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, type MutationCtx } from "./_generated/server";
-import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "./lib/packageAdjustments";
+import {
+	getSentPackageAdjustmentInvoiceResult,
+	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS
+} from "./lib/packageAdjustments";
+import { getPackageFromDb } from "./lib/packageLookup";
 import { markPackageAdjustmentPaymentStatusService } from "./services/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
 export const getPackageAdjustmentInvoiceSource = internalQuery({
 	args: { adjustmentId: v.id("packageAdjustments") },
-	handler: async (ctx, args) => {
-		const adjustment = await ctx.db.get(args.adjustmentId);
-
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
-			return null;
-		}
-
-		const multiBooking = await ctx.db.get(adjustment.multiBookingId);
-		return multiBooking ? { adjustment, multiBooking } : null;
-	}
+	handler: (ctx, args) =>
+		getSentPackageAdjustmentInvoiceResult(ctx, args.adjustmentId)
+			.andThen((adjustment) =>
+				getPackageFromDb(ctx, adjustment.multiBookingId)
+					.map((multiBooking) => ({ adjustment, multiBooking }))
+					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const }))
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const claimPackageAdjustmentInvoiceEmail = internalMutation({

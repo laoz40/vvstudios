@@ -11,7 +11,10 @@ export type ValidPackageByTokenError =
 
 export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
 
-export function getPackageFromDb(ctx: MutationCtx, packageId: Id<"multiBookingPackages">) {
+export function getPackageFromDb(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"multiBookingPackages">
+) {
 	return ResultAsync.fromSafePromise(ctx.db.get(packageId)).andThen((packageFromDb) => {
 		if (!packageFromDb) {
 			return err({ reason: "PACKAGE_NOT_FOUND" as const });
