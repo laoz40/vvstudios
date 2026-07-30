@@ -1,11 +1,14 @@
 import { Image } from "@unpic/react";
-import { Users } from "lucide-react";
-import type { ReactNode } from "react";
+import { Maximize2, Users } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import musicSetupImage from "#studio/assets/gallery/music-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
+import { Button } from "#/components/ui/button";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { ImageViewer } from "#studio/components/photos/ImageViewer";
+import type { PhotoGalleryImage } from "#studio/content/photos";
 import {
 	recordingSpaceSchema,
 	type BookingFormValues
@@ -64,98 +67,130 @@ export function RecordingSpaceField({
 	value,
 	onChange
 }: RecordingSpaceFieldProps) {
-	return (
-		<section
-			data-field-name="service"
-			className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
-			<FieldSet className="gap-1">
-				<div className="flex items-center justify-between gap-4">
-					<FieldLegend className={`${sectionHeadingClassName} mb-0`}>{label}</FieldLegend>
-					{headerAction}
-				</div>
-				<RadioGroup
-					disabled={disabled}
-					value={value}
-					onValueChange={(nextValue) => {
-						const recordingSpace = recordingSpaceSchema.safeParse(nextValue);
+	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
 
-						if (recordingSpace.success) {
-							onChange(recordingSpace.data);
-						}
-					}}
-					className="grid gap-4 md:grid-cols-3">
-					{recordingSpaceOptions.map((option) => (
-						<div key={option.value}>
-							<RadioGroupItem
-								value={option.value}
-								id={`${idPrefix}-${toOptionId(option.value)}`}
-								className="peer sr-only size-0"
-							/>
-							<label
-								htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
-								className={cn(
-									"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
-									"shadow-lg shadow-background/25",
-									"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-									"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-									"md:hover:bg-primary/5",
-									transitionClassName,
-									getCardStateClassName(value === option.value),
-									value === option.value && "md:bg-primary/5 shadow-primary/20",
-									disabled && "cursor-not-allowed opacity-50"
-								)}>
-								<div className="relative w-full overflow-hidden">
-									<Image
-										src={option.image}
-										alt={option.imageAlt}
-										layout="constrained"
-										width={1885}
-										height={1060}
-										className={cn(
-											"h-auto w-full transition-transform duration-300 group-hover:scale-105",
-											value === option.value && "scale-[1.02]"
-										)}
-									/>
-									<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
-								</div>
-								<div
+	return (
+		<>
+			<section
+				data-field-name="service"
+				className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
+				<FieldSet className="gap-1">
+					<div className="flex items-center justify-between gap-4">
+						<FieldLegend className={`${sectionHeadingClassName} mb-0`}>{label}</FieldLegend>
+						{headerAction}
+					</div>
+					<RadioGroup
+						disabled={disabled}
+						value={value}
+						onValueChange={(nextValue) => {
+							const recordingSpace = recordingSpaceSchema.safeParse(nextValue);
+
+							if (recordingSpace.success) {
+								onChange(recordingSpace.data);
+							}
+						}}
+						className="grid gap-4 md:grid-cols-3">
+						{recordingSpaceOptions.map((option) => (
+							<div key={option.value}>
+								<RadioGroupItem
+									value={option.value}
+									id={`${idPrefix}-${toOptionId(option.value)}`}
+									className="peer sr-only size-0"
+								/>
+								<label
+									htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
 									className={cn(
-										"pointer-events-none absolute inset-x-0 bottom-0 z-10",
-										"flex items-center justify-between gap-2",
-										"px-3 py-1 md:static md:px-3 md:py-1.5",
-										"backdrop-blur-[3px] md:group-hover:bg-primary/10",
-										getFooterStateClassName(value === option.value),
-										value === option.value && "md:bg-primary/10"
+										"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
+										"shadow-lg shadow-background/25",
+										"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+										"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+										"md:hover:bg-primary/5",
+										transitionClassName,
+										getCardStateClassName(value === option.value),
+										value === option.value && "md:bg-primary/5 shadow-primary/20",
+										disabled && "cursor-not-allowed opacity-50"
 									)}>
-									<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
-										{option.title}
-										{"capacity" in option ? (
-											<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
-												1-{option.capacity}
-												<Users
-													aria-label="people"
-													className="size-4"
-												/>
-											</span>
-										) : null}
-									</p>
-									<span
+									<div className="relative w-full overflow-hidden">
+										<Image
+											src={option.image}
+											alt={option.imageAlt}
+											layout="constrained"
+											width={1885}
+											height={1060}
+											className={cn(
+												"h-auto w-full transition-transform duration-300 group-hover:scale-105",
+												value === option.value && "scale-[1.02]"
+											)}
+										/>
+										<Button
+											type="button"
+											variant="secondary"
+											size="icon-xs"
+											className="absolute top-3 right-3 z-20 rounded-full bg-background/80 opacity-0 shadow-md backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+											aria-label={`View larger image of ${option.title}`}
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												setPreviewImage({
+													src: option.image,
+													alt: option.imageAlt,
+													width: 1885,
+													height: 1060,
+													caption: option.title
+												});
+											}}>
+											<Maximize2
+												aria-hidden="true"
+												className="size-3"
+											/>
+										</Button>
+										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
+									</div>
+									<div
 										className={cn(
-											"inline-flex items-center justify-center rounded-lg border",
-											"px-3 py-0.5",
-											"text-xs font-medium tracking-wider",
-											"shadow-md transition-all duration-200 ease-in",
-											getPillStateClassName(value === option.value)
+											"pointer-events-none absolute inset-x-0 bottom-0 z-10",
+											"flex items-center justify-between gap-2",
+											"px-3 py-1 md:static md:px-3 md:py-1.5",
+											"backdrop-blur-[3px] md:group-hover:bg-primary/10",
+											getFooterStateClassName(value === option.value),
+											value === option.value && "md:bg-primary/10"
 										)}>
-										{value === option.value ? "SELECTED" : "SELECT"}
-									</span>
-								</div>
-							</label>
-						</div>
-					))}
-				</RadioGroup>
-				{children}
-			</FieldSet>
-		</section>
+										<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
+											{option.title}
+											{"capacity" in option ? (
+												<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
+													1-{option.capacity}
+													<Users
+														aria-label="people"
+														className="size-4"
+													/>
+												</span>
+											) : null}
+										</p>
+										<span
+											className={cn(
+												"inline-flex items-center justify-center rounded-lg border",
+												"px-3 py-0.5",
+												"text-xs font-medium tracking-wider",
+												"shadow-md transition-all duration-200 ease-in",
+												getPillStateClassName(value === option.value)
+											)}>
+											{value === option.value ? "SELECTED" : "SELECT"}
+										</span>
+									</div>
+								</label>
+							</div>
+						))}
+					</RadioGroup>
+					{children}
+				</FieldSet>
+			</section>
+			<ImageViewer
+				image={previewImage}
+				onClose={() => {
+					setPreviewImage(null);
+				}}
+			/>
+		</>
 	);
 }
