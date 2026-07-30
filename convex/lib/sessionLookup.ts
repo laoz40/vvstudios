@@ -14,6 +14,23 @@ export function getSessionFromDbResult(ctx: MutationCtx, bookingId: Id<"bookings
 	});
 }
 
+export function getSessionByStripeSessionIdResult(ctx: MutationCtx, stripeSessionId: string) {
+	return ResultAsync.fromSafePromise(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", stripeSessionId)
+			)
+			.unique()
+	).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
+
+		return ok(session);
+	});
+}
+
 export async function getSessionFromDb(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">

@@ -1,9 +1,12 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getAdminIdentityResult } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
+import {
+	getSessionByStripeSessionIdResult,
+	getSessionFromDbResult
+} from "#convex/lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
@@ -18,16 +21,8 @@ export function saveSessionInstagramHandleService(
 	ctx: MutationCtx,
 	args: SaveSessionInstagramHandleArgs
 ) {
-	return ResultAsync.fromSafePromise(
-		ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", args.stripeSessionId)
-			)
-			.unique()
-	)
+	return getSessionByStripeSessionIdResult(ctx, args.stripeSessionId)
 		.andThen((session) => {
-			if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 			if (session.status !== "confirmed" && session.status !== "email_failed") {
 				return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
 			}

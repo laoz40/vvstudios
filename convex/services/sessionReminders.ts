@@ -29,9 +29,7 @@ export function claimReminderService(
 						reminderEmailClaimedAt: args.now,
 						reminderEmailFailureCode: undefined
 					})
-					.then(() => {
-						return { session };
-					})
+					.then(() => ({ session }))
 			)
 		);
 }
