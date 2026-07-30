@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const BOOKING_MODES = ["single", "multi"] as const;
-export const SERVICES = ["Table Setup", "Armchair Setup"] as const;
+export const SERVICES = ["Table Setup", "Armchair Setup", "Music Setup"] as const;
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 export const ADDON_OPTIONS = [
 	"Remote Podcast",

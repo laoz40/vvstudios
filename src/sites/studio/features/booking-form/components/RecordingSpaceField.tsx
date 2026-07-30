@@ -1,6 +1,8 @@
 import { Image } from "@unpic/react";
+import { Users } from "lucide-react";
 import type { ReactNode } from "react";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
+import musicSetupImage from "#studio/assets/gallery/music-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
@@ -22,16 +24,22 @@ const recordingSpaceOptions = [
 	{
 		value: "Table Setup" as const,
 		title: "Table Setup",
-		capacity: "up to 4 people",
+		capacity: 4,
 		image: tableSetupImage,
 		imageAlt: "Podcast table setup with microphones and studio lighting"
 	},
 	{
 		value: "Armchair Setup" as const,
 		title: "Armchair Setup",
-		capacity: "up to 2 people",
+		capacity: 2,
 		image: armchairSetupImage,
 		imageAlt: "Podcast open setup with warm lamps and casual seating"
+	},
+	{
+		value: "Music Setup" as const,
+		title: "Music Setup",
+		image: musicSetupImage,
+		imageAlt: "Music production setup inside VV Studios"
 	}
 ] as const;
 
@@ -62,9 +70,7 @@ export function RecordingSpaceField({
 			className="scroll-mt-32 space-y-1 sm:scroll-mt-40">
 			<FieldSet className="gap-1">
 				<div className="flex items-center justify-between gap-4">
-					<FieldLegend className={cn(sectionHeadingClassName, headerAction && "mb-0")}>
-						{label}
-					</FieldLegend>
+					<FieldLegend className={`${sectionHeadingClassName} mb-0`}>{label}</FieldLegend>
 					{headerAction}
 				</div>
 				<RadioGroup
@@ -77,7 +83,7 @@ export function RecordingSpaceField({
 							onChange(recordingSpace.data);
 						}
 					}}
-					className="grid gap-4 md:grid-cols-2">
+					className="grid gap-4 md:grid-cols-3">
 					{recordingSpaceOptions.map((option) => (
 						<div key={option.value}>
 							<RadioGroupItem
@@ -121,9 +127,17 @@ export function RecordingSpaceField({
 										getFooterStateClassName(value === option.value),
 										value === option.value && "md:bg-primary/10"
 									)}>
-									<p className="text-base font-semibold text-foreground">
-										{option.title}{" "}
-										<span className="text-muted-foreground font-light">({option.capacity})</span>
+									<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
+										{option.title}
+										{"capacity" in option ? (
+											<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
+												1-{option.capacity}
+												<Users
+													aria-label="people"
+													className="size-4"
+												/>
+											</span>
+										) : null}
 									</p>
 									<span
 										className={cn(

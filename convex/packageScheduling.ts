@@ -12,6 +12,11 @@ import {
 	type QueryCtx
 } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import {
+	getPackageSessionAddons,
+	SERVICES,
+	type BookingFormValues
+} from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "./lib/sessionCalendarTime";
 import {
 	sessionConsumesPackageCapacity,
@@ -27,7 +32,6 @@ import {
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
 } from "./lib/packageScheduling";
-import { getPackageSessionAddons } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 import { processPackageAdjustment } from "./lib/packageAdjustments";
 
 export const getPackageByToken = query({
@@ -74,7 +78,8 @@ async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) 
 
 export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
 
-const recordingSpaceValidator = v.union(v.literal("Table Setup"), v.literal("Armchair Setup"));
+const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(service)));
+type RecordingSpace = Exclude<BookingFormValues["service"], "">;
 
 export const setDefaultSpace = mutation({
 	args: { service: recordingSpaceValidator, token: v.string() },
@@ -83,7 +88,7 @@ export const setDefaultSpace = mutation({
 
 async function setDefaultSpaceHandler(
 	ctx: MutationCtx,
-	args: { service: "Table Setup" | "Armchair Setup"; token: string }
+	args: { service: RecordingSpace; token: string }
 ) {
 	const [error, multiBooking] = await findValidPackageByToken(ctx, args.token, Date.now());
 
@@ -111,7 +116,7 @@ type PackageSessionArgs = {
 	token: string;
 	date: string;
 	time: string;
-	service: "Table Setup" | "Armchair Setup";
+	service: RecordingSpace;
 	notes?: string;
 	remotePodcast: boolean;
 };
