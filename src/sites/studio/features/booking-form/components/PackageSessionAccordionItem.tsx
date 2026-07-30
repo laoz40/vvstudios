@@ -30,9 +30,9 @@ import {
 import { cn } from "#/lib/utils";
 
 const SESSION_STATUS_DETAILS = {
-	dateRequired: { label: "DATE REQUIRED", textClassName: "text-destructive" },
-	upcoming: { label: "UPCOMING", textClassName: "text-green" },
-	completed: { label: "COMPLETED", textClassName: "text-foreground" }
+	dateRequired: { label: "Date Required", textClassName: "text-destructive" },
+	upcoming: { label: "Upcoming", textClassName: "text-green" },
+	completed: { label: "Completed", textClassName: "text-foreground" }
 } as const;
 
 type PackageData = NonNullable<GetPackageByTokenResult[1]>;

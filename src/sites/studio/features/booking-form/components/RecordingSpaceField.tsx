@@ -54,6 +54,7 @@ interface RecordingSpaceFieldProps {
 	headerAction?: ReactNode;
 	idPrefix: string;
 	label: string;
+	selectionIndicatorVisibility?: "all" | "mobile";
 	value: RecordingSpace;
 	onChange: (value: Exclude<RecordingSpace, "">) => void;
 }
@@ -64,6 +65,7 @@ export function RecordingSpaceField({
 	headerAction,
 	idPrefix,
 	label,
+	selectionIndicatorVisibility = "all",
 	value,
 	onChange
 }: RecordingSpaceFieldProps) {
@@ -173,7 +175,8 @@ export function RecordingSpaceField({
 												"px-3 py-0.5",
 												"text-xs font-medium tracking-wider",
 												"shadow-md transition-all duration-200 ease-in",
-												getPillStateClassName(value === option.value)
+												getPillStateClassName(value === option.value),
+												selectionIndicatorVisibility === "mobile" && "md:hidden"
 											)}>
 											{value === option.value ? "SELECTED" : "SELECT"}
 										</span>

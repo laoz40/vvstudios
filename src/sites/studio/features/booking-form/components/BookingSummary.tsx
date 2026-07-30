@@ -105,7 +105,7 @@ export function BookingSummary() {
 						showArrow={false}
 						className="py-3 text-sm hover:text-foreground">
 						<span className="flex w-full items-center justify-between gap-4">
-							<span className={sectionHeadingClassName}>BOOKING SUMMARY</span>
+							<span className={sectionHeadingClassName}>Booking Summary</span>
 							<span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-primary">
 								{openSummaryItem === "booking-summary" ? "Hide" : "Show items"}
 							</span>

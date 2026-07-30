@@ -53,7 +53,7 @@ export function Footer() {
 								<li
 									key={item.label}
 									className="flex flex-col items-start gap-1 text-muted-foreground">
-									<span className="text-xs font-semibold tracking-widest text-primary uppercase">
+									<span className="text-xs font-semibold tracking-widest text-primary">
 										{item.label}
 									</span>
 									<a
@@ -66,9 +66,7 @@ export function Footer() {
 						</ul>
 
 						<div className="flex flex-col items-end gap-1 text-right text-sm text-muted-foreground">
-							<span className="text-xs font-semibold tracking-widest text-primary uppercase">
-								Socials
-							</span>
+							<span className="text-xs font-semibold tracking-widest text-primary">Socials</span>
 							<a
 								className="accent-link text-sm"
 								href={INSTAGRAM_URL}

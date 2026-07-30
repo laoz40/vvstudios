@@ -12,12 +12,12 @@ const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
 const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 const sectionCopy = {
-	contactDetailsLegend: "CONTACT DETAILS",
+	contactDetailsLegend: "Contact Details",
 	fullNameLabel: "Full Name *",
 	fullNamePlaceholder: "Awesome Person",
 	phoneLabel: "Mobile Number *",
 	phonePlaceholder: "0400 000 000",
-	billingInformationLegend: "BILLING INFORMATION",
+	billingInformationLegend: "Billing Information",
 	accountNameLabel: "Account Name *",
 	accountNamePlaceholder: "Account Name",
 	abnLabel: "ABN",

@@ -25,14 +25,14 @@ export function BookingNotesField({
 }: BookingNotesFieldProps) {
 	return (
 		<FieldSet className={fieldSetClassName}>
-			<FieldLegend className={sectionLegendClassName}>Session notes + questions</FieldLegend>
+			<FieldLegend className={sectionLegendClassName}>Session Notes + Questions</FieldLegend>
 			<Field
 				className={fieldStackClassName}
 				data-field-name="notes">
 				<FieldLabel
 					htmlFor="notes"
 					className="sr-only">
-					Session notes + questions
+					Session Notes + Questions
 				</FieldLabel>
 				<Textarea
 					id="notes"
