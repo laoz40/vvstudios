@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { SERVICES } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 
 const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
@@ -193,7 +194,7 @@ export default defineSchema({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
-		defaultSpace: v.optional(v.union(v.literal("Table Setup"), v.literal("Armchair Setup"))),
+		defaultSpace: v.optional(v.union(...SERVICES.map((service) => v.literal(service)))),
 
 		// Package invoice amount snapshot
 		singleSessionAmount: v.number(),

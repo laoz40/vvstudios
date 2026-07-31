@@ -8,7 +8,7 @@ import { nitro } from "nitro/vite";
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
-	server: { allowedHosts: [".trycloudflare.com"] },
+	server: { host: "127.0.0.1", allowedHosts: [".trycloudflare.com", "desktop.tail65a6c6.ts.net"] },
 	plugins: [
 		tailwindcss(),
 		tanstackStart({

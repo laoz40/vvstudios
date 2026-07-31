@@ -214,7 +214,7 @@ function getBookingInvoiceParseInput(
 
 function getBookingInvoiceService(
 	customInvoice: Doc<"customInvoices"> | undefined,
-	service: "Armchair Setup" | "Table Setup" | ""
+	service: BookingFormValues["service"]
 ) {
 	if (customInvoice && !customInvoice.service) {
 		return undefined;

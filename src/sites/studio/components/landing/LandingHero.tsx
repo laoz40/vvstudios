@@ -15,7 +15,7 @@ import { STUDIO_ADDRESS_URL } from "#/config/contact";
 import { cn } from "#/lib/utils";
 
 const heroCopy = {
-	eyebrow: "From Vertigo Visuals",
+	eyebrow: "Brought to you by Vertigo Visuals.",
 	title: "Hire The Top Studio in South West Sydney",
 	lead: "A space to focus on your business or craft. You bring the idea, and we'll make it a reality.",
 	bookCta: "Book session",
@@ -94,25 +94,22 @@ export function LandingHero() {
 							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60",
 							"max-w-xl"
 						)}>
-						<div className="landing-hero-reveal flex flex-col gap-2 md:max-w-xl">
-							<p className="text-primary text-xs font-semibold tracking-widest uppercase md:text-sm">
-								{heroCopy.eyebrow}
-							</p>
+						<div className="landing-hero-reveal flex flex-col md:max-w-xl">
 							<h1
 								id="landing-hero-title"
-								className="font-brand text-[2.75rem] leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-20">
+								className="font-brand text-5xl leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-18">
 								{heroCopy.title}
 							</h1>
 							<p
 								className={cn(
 									"md:max-w-lg",
-									"mt-1 md:mt-4",
+									"mt-2",
 									"text-muted-foreground text-sm leading-relaxed text-pretty md:text-base"
 								)}>
 								{heroCopy.lead}
 							</p>
 
-							<div className="mt-4 flex w-full flex-wrap gap-3 md:mt-4">
+							<div className="mt-8 flex w-full flex-wrap gap-3">
 								<AnimatedIconButton
 									className={cn(
 										"flex-1 gap-1.5 md:flex-none",
@@ -144,6 +141,11 @@ export function LandingHero() {
 									)}
 								/>
 							</div>
+							{/*
+							<p className="mt-8 text-xs tracking-wider text-muted-foreground md:text-sm">
+								{heroCopy.eyebrow}
+							</p>
+*/}
 
 							<div className="mt-8 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
 								<MapPin

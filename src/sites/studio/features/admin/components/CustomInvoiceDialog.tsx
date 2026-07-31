@@ -33,7 +33,10 @@ import {
 	formatCustomInvoiceTotal,
 	type CustomInvoiceDraft
 } from "#studio/features/admin/lib/custom-invoices";
-import { toDeliverableCountOption } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	SERVICES,
+	toDeliverableCountOption
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 type SessionRecord = Doc<"bookings">;
@@ -46,7 +49,7 @@ export type CustomInvoiceDialogProps = {
 };
 
 function isBookingService(value: string | undefined): value is BookingService {
-	return value === "Table Setup" || value === "Armchair Setup";
+	return SERVICES.some((service) => service === value);
 }
 
 function showCreateCustomInvoiceError(

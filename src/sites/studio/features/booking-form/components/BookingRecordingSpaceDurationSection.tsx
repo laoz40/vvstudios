@@ -22,8 +22,8 @@ import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
 const sectionCopy = {
-	recordingSpaceLabel: "RECORDING SPACE",
-	durationLabel: "SESSION DURATION *",
+	recordingSpaceLabel: "Recording Space",
+	durationLabel: "Session Duration *",
 	recordingSpaceNote:
 		"Each session includes three Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting."
 } as const;

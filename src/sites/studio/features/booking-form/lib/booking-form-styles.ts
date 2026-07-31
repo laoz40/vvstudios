@@ -1,6 +1,6 @@
 import { cn } from "#/lib/utils";
 
-export const sectionHeadingClassName = "text-base font-semibold text-primary uppercase";
+export const sectionHeadingClassName = "text-base font-semibold text-primary";
 
 export const transitionClassName =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
@@ -17,7 +17,7 @@ const footerSelectedClassName = "bg-primary/12 md:bg-primary/15";
 
 const pillIdleClassName =
 	"min-w-16 border-foreground/15 bg-background/30 text-foreground/85 group-hover:text-primary";
-const pillSelectedClassName = "min-w-20 border-primary/50 bg-background/30 text-primary";
+const pillSelectedClassName = "min-w-20 border-foreground/15 bg-background/30 text-primary";
 
 export function getCardStateClassName(isSelected: boolean) {
 	return cn(cardHoverClassName, isSelected && cardSelectedClassName);

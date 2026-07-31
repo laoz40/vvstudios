@@ -1,10 +1,12 @@
-import { Image } from "@unpic/react";
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { motion } from "motion/react";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import { cn } from "#/lib/utils";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
+import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
+import type { PhotoGalleryImage } from "#studio/content/photos";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
@@ -29,6 +31,13 @@ const testimonialCopy = {
 	]
 } as const;
 
+const testimonialImage: PhotoGalleryImage = {
+	src: girlSingingImage,
+	alt: "Creator singing into a microphone at VV Studios Sydney",
+	width: 1788,
+	height: 1117
+};
+
 function StarRating() {
 	return (
 		<div
@@ -46,6 +55,7 @@ function StarRating() {
 }
 
 export function LandingTestimonials() {
+	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
 	const fadeInAnimation = useFadeInAnimation(true);
 
 	return (
@@ -67,24 +77,18 @@ export function LandingTestimonials() {
 
 				<div
 					className={cn("grid gap-10 md:grid-cols-2 md:items-stretch", "w-full", "md:text-left")}>
-					<div
+					<ImageViewerTrigger
+						image={testimonialImage}
+						onSelect={setPreviewImage}
 						className={cn(
 							"relative",
 							"overflow-hidden md:hidden",
 							"h-80 w-full",
 							"rounded-lg bg-card",
 							"shadow-xl shadow-background/40"
-						)}>
-						<Image
-							src={girlSingingImage}
-							alt="Creator singing into a microphone at VV Studios Sydney"
-							layout="constrained"
-							width={1788}
-							height={1117}
-							loading="lazy"
-							className="absolute inset-0 size-full object-cover"
-						/>
-					</div>
+						)}
+						imageClassName="absolute inset-0 size-full object-cover"
+					/>
 
 					<div
 						className={cn(
@@ -123,29 +127,29 @@ export function LandingTestimonials() {
 
 					<div
 						className={cn("flex flex-col gap-6 md:order-1 md:justify-between", "w-full md:h-full")}>
-						<div
+						<ImageViewerTrigger
+							image={testimonialImage}
+							onSelect={setPreviewImage}
 							className={cn(
 								"relative",
 								"hidden overflow-hidden md:block",
 								"min-h-0 w-full flex-1",
 								"rounded-lg bg-card",
 								"shadow-xl shadow-background/40"
-							)}>
-							<Image
-								src={girlSingingImage}
-								alt="Creator singing into a microphone at VV Studios Sydney"
-								layout="constrained"
-								width={1788}
-								height={1117}
-								loading="lazy"
-								className="absolute inset-0 size-full object-cover"
-							/>
-						</div>
+							)}
+							imageClassName="absolute inset-0 size-full object-cover"
+						/>
 
 						<ContactActions className="md:justify-start" />
 					</div>
 				</div>
 			</motion.div>
+			<ImageViewer
+				image={previewImage}
+				onClose={() => {
+					setPreviewImage(null);
+				}}
+			/>
 		</section>
 	);
 }

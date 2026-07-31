@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Image } from "@unpic/react";
 import { motion } from "motion/react";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
+import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
@@ -25,6 +25,7 @@ export function PhotosSection({
 	layout = "masonry"
 }: PhotosSectionProps) {
 	const [isMobile, setIsMobile] = useState(false);
+	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	useEffect(() => {
@@ -70,17 +71,12 @@ export function PhotosSection({
 										? "lg:flex-1"
 										: "mb-6 break-inside-avoid overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40"
 								)}>
-								<Image
-									src={image.src}
-									alt={image.alt}
-									layout="constrained"
-									width={image.width}
-									height={image.height}
+								<ImageViewerTrigger
+									image={image}
 									loading={index < 3 ? "eager" : "lazy"}
-									className={cn(
-										"block h-auto w-full",
-										layout === "threeFeature" && "rounded-lg shadow-xl shadow-background/40"
-									)}
+									imageClassName="block h-auto w-full"
+									className={cn(layout === "threeFeature" && "shadow-xl shadow-background/40")}
+									onSelect={setPreviewImage}
 								/>
 								{layout === "threeFeature" && image.caption ? (
 									<figcaption className="pt-3 text-center text-base text-foreground md:text-lg">
@@ -93,6 +89,12 @@ export function PhotosSection({
 				</div>
 				<ContactActions className="max-w-3xl" />
 			</motion.div>
+			<ImageViewer
+				image={previewImage}
+				onClose={() => {
+					setPreviewImage(null);
+				}}
+			/>
 		</section>
 	);
 }

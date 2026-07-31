@@ -26,8 +26,8 @@ import {
 import { cn } from "#/lib/utils";
 
 const copy = {
-	dateLabel: "SESSION DATE *",
-	timeLabel: "SESSION TIME *",
+	dateLabel: "Session Date *",
+	timeLabel: "Session Time *",
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingAvailability: "Loading availability...",
 	noTimesAvailable: "No times available for this date."

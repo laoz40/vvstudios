@@ -11,7 +11,8 @@ import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
 import { getSessionStartAt } from "./sessionAdminEdit";
 import {
 	getPackageSessionAddons,
-	isDurationOption
+	isDurationOption,
+	type BookingFormValues
 } from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
 import type { MultiBookingSize } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
 import { isPackageSessionLocked } from "../../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
@@ -166,7 +167,7 @@ export function toPackageCalendarDetails(
 	args: {
 		date: string;
 		time: string;
-		service: "Table Setup" | "Armchair Setup";
+		service: Exclude<BookingFormValues["service"], "">;
 		remotePodcast: boolean;
 	},
 	multiBooking: ValidPackage,
