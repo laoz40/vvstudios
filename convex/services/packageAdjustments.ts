@@ -1,16 +1,15 @@
-import { err, ok } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import { ok } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getAdminIdentityResult } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoiceResult,
 	getSentPackageAdjustmentInvoiceResult,
-	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS
+	validatePackageAdjustmentEmailClaim,
+	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
-
-type PackageAdjustmentEmailClaim = { attempt: "automatic" | "retry"; now: number };
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {
 	adjustmentId: Id<"packageAdjustments">;
@@ -53,31 +52,6 @@ export function claimPackageAdjustmentInvoiceEmailService(
 				)
 			)
 	);
-}
-
-function validatePackageAdjustmentEmailClaim(
-	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
-	claim: PackageAdjustmentEmailClaim
-) {
-	if (adjustment.invoiceEmailStatus === "sent") {
-		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
-	}
-
-	const emailSendIsInProgress =
-		adjustment.invoiceEmailClaimedAt !== undefined &&
-		claim.now - adjustment.invoiceEmailClaimedAt < PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
-
-	if (emailSendIsInProgress) {
-		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
-	}
-
-	const expectedStatus = claim.attempt === "automatic" ? "pending" : "failed";
-
-	if (adjustment.invoiceEmailStatus !== expectedStatus) {
-		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
-	}
-
-	return ok(adjustment);
 }
 
 // Starting an email records a claim so another sender cannot send it at the same time.

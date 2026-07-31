@@ -377,14 +377,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 					toast.error("This package is already marked paid.");
 					break;
 
-				case "PACKAGE_NOT_UNPAID":
-					toast.error("Only unpaid packages can be confirmed as paid.");
-					break;
-
-				case "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to mark this package paid.");
-					break;
-
 				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
 					toast.error("Package was marked paid, but the scheduling email failed.");
 					setIsPaymentDialogOpen(false);

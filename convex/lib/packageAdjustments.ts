@@ -12,6 +12,33 @@ export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
 
+export type PackageAdjustmentEmailClaim = { attempt: "automatic" | "retry"; now: number };
+
+export function validatePackageAdjustmentEmailClaim(
+	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
+	claim: PackageAdjustmentEmailClaim
+) {
+	if (adjustment.invoiceEmailStatus === "sent") {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	const emailSendIsInProgress =
+		adjustment.invoiceEmailClaimedAt !== undefined &&
+		claim.now - adjustment.invoiceEmailClaimedAt < PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
+
+	if (emailSendIsInProgress) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	const expectedStatus = claim.attempt === "automatic" ? "pending" : "failed";
+
+	if (adjustment.invoiceEmailStatus !== expectedStatus) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	return ok(adjustment);
+}
+
 export function getPackageAdjustmentInvoiceResult(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">

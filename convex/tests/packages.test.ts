@@ -109,7 +109,7 @@ describe("package payment confirmation", () => {
 		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
-		expect(result).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(result).toEqual([null, null]);
 		expect(packageRecord).toMatchObject({
 			expiresAt,
 			paidAt: now,
@@ -148,7 +148,7 @@ describe("package payment confirmation", () => {
 		});
 		const secondState = await readLifecycleState(t, multiBookingId);
 
-		expect(firstResult).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(firstResult).toEqual([null, null]);
 		expect(secondResult).toEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
 		expect(secondState.packageRecord).toEqual(firstState.packageRecord);
 		expect(secondState.scheduledJobs).toEqual(firstState.scheduledJobs);
@@ -166,7 +166,7 @@ describe("package payment confirmation", () => {
 		]);
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
 
-		expect(results).toContainEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(results).toContainEqual([null, null]);
 		expect(results).toContainEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
 		expect(packageRecord).toMatchObject({ paidAt: now, status: "paid" });
 		expect(scheduledJobs).toHaveLength(1);
@@ -202,7 +202,7 @@ describe("package payment confirmation", () => {
 			expiresAt: getMultiBookingExpiresAt(now, 4),
 			status: "schedule_email_failed"
 		});
-		expect(retryResult).toEqual([null, { sent: true }]);
+		expect(retryResult).toEqual([null, null]);
 		expect(recoveredState.packageRecord).toMatchObject({
 			paidAt: failedState.packageRecord?.paidAt,
 			expiresAt: failedState.packageRecord?.expiresAt,

@@ -251,6 +251,10 @@ function markPackageScheduleEmailAttemptHandler(
 	return markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
 }
 
+export type MarkPackageScheduleEmailAttemptResult = Awaited<
+	ReturnType<typeof markPackageScheduleEmailAttemptHandler>
+>;
+
 export const savePackageInstagramHandle = mutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
 	handler: (ctx, args) => savePackageInstagramHandleHandler(ctx, args)

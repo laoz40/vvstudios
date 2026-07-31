@@ -7,20 +7,14 @@ import { action, type ActionCtx } from "./_generated/server";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { err, ok, type Result } from "#/lib/result";
-import type {
-	CreatePendingPackageResult,
-	MarkPackagePaidAndCreateScheduleTokenResult,
-	RefreshPackageScheduleTokenResult
-} from "./packages";
+import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
+import type { CreatePendingPackageResult, RefreshPackageScheduleTokenResult } from "./packages";
 import { env } from "./env";
 import { sendMultiBookingInvoiceEmail } from "./lib/email";
 import { emailDomainCanReceiveMail, getBookingSubmitRateLimitKey } from "./lib/bookingSubmission";
 import { getAdminIdentity } from "./lib/auth";
-import {
-	buildPackageScheduleUrl,
-	sendAndRecordPackageScheduleEmail
-} from "./lib/packageScheduleEmail";
+import { buildPackageScheduleUrl, sendAndRecordPackageScheduleEmail } from "./lib/packagePayment";
+import { confirmPackagePaymentService } from "./services/packagePayment";
 
 export const createPackageRequest = action({
 	args: {
@@ -202,71 +196,16 @@ export type ResendPackageInvoiceEmailResult = Awaited<
 	ReturnType<typeof resendPackageInvoiceEmailHandler>
 >;
 
-type ConfirmPackagePaymentError =
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "PACKAGE_ALREADY_PAID" }
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_NOT_UNPAID" }
-	| { reason: "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
-
 export const confirmPackagePayment = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
 	handler: (ctx, args) => confirmPackagePaymentHandler(ctx, args)
 });
 
-async function confirmPackagePaymentHandler(
+function confirmPackagePaymentHandler(
 	ctx: ActionCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<{ paid: true; scheduleEmailStatus: "sent" }, ConfirmPackagePaymentError>> {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const paidAt = Date.now();
-	const [paymentError, paymentResult]: MarkPackagePaidAndCreateScheduleTokenResult =
-		await ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
-			multiBookingId: args.multiBookingId,
-			paidAt
-		});
-
-	if (paymentError !== null) {
-		return err(paymentError);
-	}
-
-	const scheduleUrl = buildPackageScheduleUrl(
-		new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
-		paymentResult.token
-	);
-	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
-
-	const [scheduleEmailError] = await sendAndRecordPackageScheduleEmail(ctx, {
-		multiBookingId: args.multiBookingId,
-		email: {
-			addons: paymentResult.multiBooking.addons,
-			clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
-			duration: paymentResult.multiBooking.duration,
-			email: paymentResult.multiBooking.email,
-			essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
-			expiresAt: paymentResult.expiresAt,
-			leadTimeMinutes: bookingSettings.leadTimeMinutes,
-			name: paymentResult.multiBooking.name,
-			packageSize: paymentResult.multiBooking.packageSize,
-			bookedAt: paymentResult.paidAt,
-			scheduleUrl
-		}
-	});
-
-	if (scheduleEmailError !== null) {
-		return err(scheduleEmailError);
-	}
-
-	return ok({ paid: true, scheduleEmailStatus: "sent" as const });
+) {
+	return confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ConfirmPackagePaymentResult = Awaited<ReturnType<typeof confirmPackagePaymentHandler>>;
@@ -290,7 +229,7 @@ export const retryPackageSchedulingEmail = action({
 async function retryPackageSchedulingEmailHandler(
 	ctx: ActionCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<{ sent: true }, RetryPackageSchedulingEmailError>> {
+): Promise<Result<null, RetryPackageSchedulingEmailError>> {
 	const [authError] = await getAdminIdentity(ctx);
 
 	if (authError !== null) {
@@ -312,28 +251,19 @@ async function retryPackageSchedulingEmailHandler(
 	);
 	const bookingSettings = await ctx.runQuery(api.bookingSettings.get, {});
 
-	const [scheduleEmailError] = await sendAndRecordPackageScheduleEmail(ctx, {
-		multiBookingId: args.multiBookingId,
-		email: {
-			addons: tokenResult.multiBooking.addons,
-			clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
-			duration: tokenResult.multiBooking.duration,
-			email: tokenResult.multiBooking.email,
-			essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
-			expiresAt: tokenResult.expiresAt,
-			leadTimeMinutes: bookingSettings.leadTimeMinutes,
-			name: tokenResult.multiBooking.name,
-			packageSize: tokenResult.multiBooking.packageSize,
-			bookedAt: tokenResult.paidAt,
-			scheduleUrl
-		}
-	});
-
-	if (scheduleEmailError !== null) {
-		return err(scheduleEmailError);
-	}
-
-	return ok({ sent: true });
+	return sendAndRecordPackageScheduleEmail(ctx, args.multiBookingId, {
+		addons: tokenResult.multiBooking.addons,
+		clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
+		duration: tokenResult.multiBooking.duration,
+		email: tokenResult.multiBooking.email,
+		essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
+		expiresAt: tokenResult.expiresAt,
+		leadTimeMinutes: bookingSettings.leadTimeMinutes,
+		name: tokenResult.multiBooking.name,
+		packageSize: tokenResult.multiBooking.packageSize,
+		bookedAt: tokenResult.paidAt,
+		scheduleUrl
+	}).match(tupleOk, tupleErr);
 }
 
 export type RetryPackageSchedulingEmailResult = Awaited<
