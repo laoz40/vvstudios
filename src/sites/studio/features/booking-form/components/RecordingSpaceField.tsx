@@ -23,6 +23,8 @@ import {
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
+const recordingSpaceImageDimensions = { width: 1885, height: 1060 } as const;
+
 const recordingSpaceOptions = [
 	{
 		value: "Table Setup" as const,
@@ -119,8 +121,7 @@ export function RecordingSpaceField({
 												src={option.image}
 												alt={option.imageAlt}
 												layout="constrained"
-												width={1885}
-												height={1060}
+												{...recordingSpaceImageDimensions}
 												className={cn(
 													"h-auto w-full transition-transform duration-300 group-hover:scale-105",
 													value === option.value && "scale-[1.02]"
@@ -142,8 +143,9 @@ export function RecordingSpaceField({
 												{"capacity" in option ? (
 													<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
 														1-{option.capacity}
+														<span className="sr-only"> people</span>
 														<Users
-															aria-label="people"
+															aria-hidden="true"
 															className="size-4"
 														/>
 													</span>
@@ -174,8 +176,7 @@ export function RecordingSpaceField({
 											setPreviewImage({
 												src: option.image,
 												alt: option.imageAlt,
-												width: 1885,
-												height: 1060,
+												...recordingSpaceImageDimensions,
 												caption: option.title
 											});
 										}}>
