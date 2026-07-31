@@ -8,16 +8,17 @@ import {
 	internalQuery,
 	type MutationCtx
 } from "./_generated/server";
-import { getTomorrowTimeZoneDayRange } from "./lib/reminderScheduleTime";
+import {
+	getTomorrowTimeZoneDayRange,
+	REMINDER_BATCH_SIZE,
+	REMINDER_TIME_ZONE
+} from "./lib/reminderScheduleTime";
 import { sendDuePackageReminders } from "./packageReminders";
 import {
 	claimReminderService,
 	markReminderFailedService,
 	markReminderSentService
 } from "./services/sessionReminders";
-
-const REMINDER_BATCH_SIZE = 50;
-const SYDNEY_TIME_ZONE = "Australia/Sydney";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
@@ -31,7 +32,7 @@ export const listSessionsDueForReminderEmail = internalQuery({
 					.gte("sessionStartAt", args.dayStart)
 					.lt("sessionStartAt", args.dayEnd)
 			)
-			.take(args.limit ?? 50);
+			.take(args.limit ?? REMINDER_BATCH_SIZE);
 	}
 });
 
@@ -74,7 +75,7 @@ export const sendDueReminders = internalAction({
 		const nowDate = new Date();
 		await sendDuePackageReminders(ctx, nowDate);
 
-		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
+		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
 		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
 			dayEnd,
 			dayStart,

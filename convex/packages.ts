@@ -1,18 +1,17 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { internal } from "#convex/_generated/api";
 import {
 	internalMutation,
 	internalQuery,
 	mutation,
 	query,
 	type MutationCtx
-} from "./_generated/server";
-import { getAdminIdentity } from "./lib/auth";
-import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
-import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
+} from "#convex/_generated/server";
+import { getAdminIdentity } from "#convex/lib/auth";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -25,7 +24,7 @@ import {
 	type PackageLookupError,
 	type PaidPackageResult,
 	updatePackageService
-} from "./services/packages";
+} from "#convex/services/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -178,7 +177,7 @@ export const archivePackage = mutation({
 
 function archivePackageHandler(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; archived: boolean }
+	args: Parameters<typeof archivePackageService>[1]
 ) {
 	return archivePackageService(ctx, args).match(tupleOk, tupleErr);
 }
@@ -262,7 +261,7 @@ export const savePackageInstagramHandle = mutation({
 
 function savePackageInstagramHandleHandler(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; instagramHandle: string }
+	args: Parameters<typeof savePackageInstagramHandleService>[1]
 ) {
 	return savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr);
 }

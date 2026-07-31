@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err, err as tupleErr, ok, ok as tupleOk } from "#/lib/result";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -115,16 +115,16 @@ async function getPublicRescheduleCompleteSessionHandler(
 	const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
 
 	if (bookingId === null) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
 	const session = await ctx.db.get(bookingId);
 
 	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
-	return ok(buildPublicSessionStatusResponse(session));
+	return tupleOk(buildPublicSessionStatusResponse(session));
 }
 
 export type GetPublicRescheduleCompleteSessionResult = Awaited<

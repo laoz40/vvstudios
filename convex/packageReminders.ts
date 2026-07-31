@@ -2,13 +2,15 @@ import { v } from "convex/values";
 import { err, ok, tryCatch } from "#/lib/result";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
-import { getTimeZoneDateParts, getTimeZoneDayRange } from "./lib/reminderScheduleTime";
+import { internalMutation, internalQuery, type ActionCtx } from "#convex/_generated/server";
+import {
+	getTimeZoneDateParts,
+	getTimeZoneDayRange,
+	REMINDER_BATCH_SIZE,
+	REMINDER_TIME_ZONE
+} from "./lib/reminderScheduleTime";
 import { sendPackageExpiryReminderEmail, sendPackagePaymentReminderEmail } from "./lib/email";
 import { getCapacityConsumingPackageSessions } from "./lib/packageScheduling";
-
-const REMINDER_BATCH_SIZE = 50;
-const SYDNEY_TIME_ZONE = "Australia/Sydney";
 
 const MAX_PACKAGE_SESSIONS = 12;
 const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
@@ -182,7 +184,7 @@ export const markPackageReminderFailed = internalMutation({
 });
 
 const getSydneyCalendarDayNumber = (timestamp: number) => {
-	const { year, month, day } = getTimeZoneDateParts(new Date(timestamp), SYDNEY_TIME_ZONE);
+	const { year, month, day } = getTimeZoneDateParts(new Date(timestamp), REMINDER_TIME_ZONE);
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
 
@@ -190,7 +192,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 	const now = nowDate.getTime();
 	const paymentDueDay = getTimeZoneDayRange(
 		nowDate,
-		SYDNEY_TIME_ZONE,
+		REMINDER_TIME_ZONE,
 		PAYMENT_REMINDER_DAYS_BEFORE_DUE
 	);
 	const paymentPackages = await ctx.runQuery(
@@ -243,8 +245,8 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 
 async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
 	const now = nowDate.getTime();
-	const today = getTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE);
-	const expiryRange = getTimeZoneDayRange(nowDate, SYDNEY_TIME_ZONE, MAX_PACKAGE_SESSIONS * 7);
+	const today = getTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
+	const expiryRange = getTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE, MAX_PACKAGE_SESSIONS * 7);
 	const expiryPackages = await ctx.runQuery(
 		internal.packageReminders.listPackagesPotentiallyDueForExpiryReminder,
 		{ expiresAfter: today.dayStart, expiresBefore: expiryRange.dayEnd, limit: REMINDER_BATCH_SIZE }

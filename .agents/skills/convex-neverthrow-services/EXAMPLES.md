@@ -7,9 +7,9 @@ Alias the tuple helpers so they cannot be confused with neverthrow constructors.
 ```ts
 // convex/lib/bookingService.ts
 import { err, ok, ResultAsync } from "neverthrow";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { okOrThrow } from "../lib/result";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#/lib/result";
 
 export function archiveBookingService(ctx: MutationCtx, bookingId: Id<"bookings">) {
   return ResultAsync.fromSafePromise(ctx.db.get(bookingId))
@@ -33,10 +33,10 @@ A Convex rejection from `get` or `patch` rejects the chain. It does not become a
 ```ts
 // convex/bookings.ts
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "../src/lib/result";
-import { mutation, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { archiveBookingService } from "./lib/bookingService";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
+import { mutation, type MutationCtx } from "#convex/_generated/server";
+import { archiveBookingService } from "#convex/lib/bookingService";
 
 // args type here if long
 
@@ -60,8 +60,8 @@ Actions cannot use `ctx.db`. Keep atomic persistence in an internal mutation and
 
 ```ts
 import { err, ok, ResultAsync } from "neverthrow";
-import { internal } from "../_generated/api";
-import type { ActionCtx } from "../_generated/server";
+import { internal } from "#convex/_generated/api";
+import type { ActionCtx } from "#convex/_generated/server";
 
 export function completeBookingService(ctx: ActionCtx, bookingId: string) {
   return ResultAsync.fromSafePromise(

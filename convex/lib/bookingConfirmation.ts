@@ -4,10 +4,10 @@ import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
-import type { getGoogleCalendarClient } from "./googleCalendarClient";
-import { sendBookingInvoiceEmailsForBooking } from "./email";
-import type { SessionReservation } from "./sessionReservations";
+import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
+import type { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
+import type { SessionReservation } from "#convex/lib/sessionReservations";
 
 type BookingClaimStatus =
 	| { kind: "already_confirmed" }
@@ -123,12 +123,48 @@ export async function saveConfirmedBooking(
 		return true;
 	}
 
-	// This attempt no longer owns the reservation, so remove its untracked Calendar event.
+	switch (completionError.reason) {
+		case "BOOKING_NOT_FOUND":
+			console.error("Booking disappeared before confirmation completed", {
+				bookingId: session._id
+			});
+			break;
+		case "BOOKING_RESERVATION_MISMATCH":
+			console.error("Booking reservation changed before confirmation completed", {
+				bookingId: session._id
+			});
+			break;
+		default: {
+			const _exhaustive: never = completionError;
+			return _exhaustive;
+		}
+	}
+
+	// Confirmation failed, so remove any Calendar event that was created but not recorded.
 	if (googleEventId) {
 		await removeOrphanedSessionCalendarEvent(session._id, calendarClient, googleEventId);
 	}
 
 	return false;
+}
+
+async function recordInvoiceEmailFailure(
+	ctx: ActionCtx,
+	{ bookingId, message, reason }: { bookingId: Id<"bookings">; message: string; reason: string }
+) {
+	console.error(message, { bookingId, reason });
+
+	const [markFailedError] = await ctx.runMutation(
+		internal.bookingConfirmation.markSessionInvoiceEmailFailed,
+		{ bookingId }
+	);
+
+	if (markFailedError !== null) {
+		console.error("Failed to record booking invoice email failure", {
+			bookingId,
+			reason: markFailedError.reason
+		});
+	}
 }
 
 export async function sendConfirmedBookingInvoice(
@@ -140,12 +176,10 @@ export async function sendConfirmedBookingInvoice(
 	const [linkError, rescheduleUrl] = await createRescheduleUrlForSession(ctx, session);
 
 	if (linkError !== null) {
-		console.error("Booking invoice reschedule link create failed", {
+		await recordInvoiceEmailFailure(ctx, {
 			bookingId: session._id,
+			message: "Booking invoice reschedule link create failed",
 			reason: linkError.reason
-		});
-		await ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, {
-			bookingId: session._id
 		});
 		return;
 	}
@@ -156,12 +190,10 @@ export async function sendConfirmedBookingInvoice(
 	});
 
 	if (emailError !== null) {
-		console.error("Booking invoice email failed during booking confirmation", {
+		await recordInvoiceEmailFailure(ctx, {
 			bookingId: session._id,
+			message: "Booking invoice email failed during booking confirmation",
 			reason: emailError.reason
-		});
-		await ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, {
-			bookingId: session._id
 		});
 	}
 }

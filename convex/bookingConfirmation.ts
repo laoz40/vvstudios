@@ -1,15 +1,15 @@
 import { v } from "convex/values";
 import { err as tupleErr, ok as tupleOk } from "#/lib/result";
-import type { Id } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx } from "./_generated/server";
-import { sessionReservationValidator, type SessionReservation } from "./lib/sessionReservations";
+import type { Id } from "#convex/_generated/dataModel";
+import { internalMutation, type MutationCtx } from "#convex/_generated/server";
+import { sessionReservationValidator } from "#convex/lib/sessionReservations";
 import {
 	claimBookingConfirmationService,
 	markBookingConfirmationFailedService,
 	markBookingConfirmedService,
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService
-} from "./services/bookingConfirmation";
+} from "#convex/services/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
 	args: {
@@ -23,12 +23,7 @@ export const claimBookingConfirmation = internalMutation({
 
 function claimBookingConfirmationHandler(
 	ctx: MutationCtx,
-	args: {
-		bookingId: string;
-		stripeSessionId: string;
-		stripePaymentIntentId?: string;
-		stripeEventId: string;
-	}
+	args: Parameters<typeof claimBookingConfirmationService>[1]
 ) {
 	return claimBookingConfirmationService(ctx, args).match(tupleOk, tupleErr);
 }
@@ -45,12 +40,7 @@ export const markBookingConfirmed = internalMutation({
 
 function markBookingConfirmedHandler(
 	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		googleEventId?: string;
-		googleCalendarId?: string;
-		reservation: SessionReservation;
-	}
+	args: Parameters<typeof markBookingConfirmedService>[1]
 ) {
 	return markBookingConfirmedService(ctx, args).match(tupleOk, tupleErr);
 }
@@ -90,7 +80,7 @@ export const markBookingConfirmationFailed = internalMutation({
 
 function markBookingConfirmationFailedHandler(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
+	args: Parameters<typeof markBookingConfirmationFailedService>[1]
 ) {
 	return markBookingConfirmationFailedService(ctx, args).match(tupleOk, tupleErr);
 }

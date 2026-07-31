@@ -1,6 +1,9 @@
 const HOURS_PER_DAY = 24;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+export const REMINDER_BATCH_SIZE = 50;
+export const REMINDER_TIME_ZONE = "Australia/Sydney";
+
 export type TimeZoneDateParts = { year: number; month: number; day: number; hour: number };
 
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
