@@ -99,8 +99,7 @@ export function RecordingSpaceField({
 									id={`${idPrefix}-${toOptionId(option.value)}`}
 									className="peer sr-only size-0"
 								/>
-								<label
-									htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
+								<div
 									className={cn(
 										"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
 										"shadow-lg shadow-background/25",
@@ -112,76 +111,80 @@ export function RecordingSpaceField({
 										value === option.value && "md:bg-primary/5 shadow-primary/20",
 										disabled && "cursor-not-allowed opacity-50"
 									)}>
-									<div className="relative w-full overflow-hidden">
-										<Image
-											src={option.image}
-											alt={option.imageAlt}
-											layout="constrained"
-											width={1885}
-											height={1060}
-											className={cn(
-												"h-auto w-full transition-transform duration-300 group-hover:scale-105",
-												value === option.value && "scale-[1.02]"
-											)}
-										/>
-										<Button
-											type="button"
-											variant="secondary"
-											size="icon-xs"
-											className="absolute top-3 right-3 z-20 rounded-full bg-background/80 opacity-0 shadow-md backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-											aria-label={`View larger image of ${option.title}`}
-											onClick={(event) => {
-												event.preventDefault();
-												event.stopPropagation();
-												setPreviewImage({
-													src: option.image,
-													alt: option.imageAlt,
-													width: 1885,
-													height: 1060,
-													caption: option.title
-												});
-											}}>
-											<Maximize2
-												aria-hidden="true"
-												className="size-3"
+									<label
+										htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
+										className={cn("block cursor-pointer", disabled && "cursor-not-allowed")}>
+										<div className="relative w-full overflow-hidden">
+											<Image
+												src={option.image}
+												alt={option.imageAlt}
+												layout="constrained"
+												width={1885}
+												height={1060}
+												className={cn(
+													"h-auto w-full transition-transform duration-300 group-hover:scale-105",
+													value === option.value && "scale-[1.02]"
+												)}
 											/>
-										</Button>
-										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
-									</div>
-									<div
-										className={cn(
-											"pointer-events-none absolute inset-x-0 bottom-0 z-10",
-											"flex items-center justify-between gap-2",
-											"px-3 py-1 md:static md:px-3 md:py-1.5",
-											"backdrop-blur-[3px] md:group-hover:bg-primary/10",
-											getFooterStateClassName(value === option.value),
-											value === option.value && "md:bg-primary/10"
-										)}>
-										<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
-											{option.title}
-											{"capacity" in option ? (
-												<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
-													1-{option.capacity}
-													<Users
-														aria-label="people"
-														className="size-4"
-													/>
-												</span>
-											) : null}
-										</p>
-										<span
+											<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
+										</div>
+										<div
 											className={cn(
-												"inline-flex items-center justify-center rounded-lg border",
-												"px-3 py-0.5",
-												"text-xs font-medium tracking-wider",
-												"shadow-md transition-all duration-200 ease-in",
-												getPillStateClassName(value === option.value),
-												selectionIndicatorVisibility === "mobile" && "md:hidden"
+												"pointer-events-none absolute inset-x-0 bottom-0 z-10",
+												"flex items-center justify-between gap-2",
+												"px-3 py-1 md:static md:px-3 md:py-1.5",
+												"backdrop-blur-[3px] md:group-hover:bg-primary/10",
+												getFooterStateClassName(value === option.value),
+												value === option.value && "md:bg-primary/10"
 											)}>
-											{value === option.value ? "SELECTED" : "SELECT"}
-										</span>
-									</div>
-								</label>
+											<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
+												{option.title}
+												{"capacity" in option ? (
+													<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
+														1-{option.capacity}
+														<Users
+															aria-label="people"
+															className="size-4"
+														/>
+													</span>
+												) : null}
+											</p>
+											<span
+												className={cn(
+													"inline-flex items-center justify-center rounded-lg border",
+													"px-3 py-0.5",
+													"text-xs font-medium tracking-wider",
+													"shadow-md transition-all duration-200 ease-in",
+													getPillStateClassName(value === option.value),
+													selectionIndicatorVisibility === "mobile" && "md:hidden"
+												)}>
+												{value === option.value ? "SELECTED" : "SELECT"}
+											</span>
+										</div>
+									</label>
+									<Button
+										type="button"
+										variant="secondary"
+										size="icon-xs"
+										className="absolute top-3 right-3 z-20 rounded-full bg-background/80 opacity-0 shadow-md backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+										aria-label={`View larger image of ${option.title}`}
+										onClick={(event) => {
+											event.preventDefault();
+											event.stopPropagation();
+											setPreviewImage({
+												src: option.image,
+												alt: option.imageAlt,
+												width: 1885,
+												height: 1060,
+												caption: option.title
+											});
+										}}>
+										<Maximize2
+											aria-hidden="true"
+											className="size-3"
+										/>
+									</Button>
+								</div>
 							</div>
 						))}
 					</RadioGroup>
