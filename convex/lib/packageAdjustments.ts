@@ -12,7 +12,7 @@ export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
 
-export function getSentPackageAdjustmentInvoiceResult(
+export function getPackageAdjustmentInvoiceResult(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
@@ -21,6 +21,15 @@ export function getSentPackageAdjustmentInvoiceResult(
 			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
 		}
 
+		return ok(adjustment);
+	});
+}
+
+export function getSentPackageAdjustmentInvoiceResult(
+	ctx: QueryCtx | MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return getPackageAdjustmentInvoiceResult(ctx, adjustmentId).andThen((adjustment) => {
 		if (adjustment.invoiceEmailStatus !== "sent") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
 		}
