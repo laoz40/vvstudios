@@ -26,6 +26,11 @@ import {
 	type MultiBookingInvoiceSource,
 	type PackageAdjustmentInvoiceSource
 } from "./bookingInvoiceArtifacts";
+import {
+	err as neverthrowErr,
+	ok as neverthrowOk,
+	type Result as NeverthrowResult
+} from "neverthrow";
 import { err, ok, type Result } from "#/lib/result";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 
@@ -423,7 +428,7 @@ export async function sendMultiBookingInvoiceEmail(
 	multiBooking: MultiBookingInvoiceSource,
 	options: { leadTimeMinutes: number }
 ): Promise<
-	Result<
+	NeverthrowResult<
 		{ invoiceNumber: string; sent: true },
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
@@ -434,7 +439,7 @@ export async function sendMultiBookingInvoiceEmail(
 	);
 
 	if (artifactsError !== null) {
-		return err(artifactsError);
+		return neverthrowErr(artifactsError);
 	}
 
 	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
@@ -443,7 +448,7 @@ export async function sendMultiBookingInvoiceEmail(
 
 	if (pdfError !== null) {
 		console.error("Multi-booking invoice PDF render failed", { multiBookingId: multiBooking._id });
-		return err({ reason: "INVOICE_SEND_FAILED" });
+		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
@@ -464,7 +469,7 @@ export async function sendMultiBookingInvoiceEmail(
 			multiBookingId: multiBooking._id,
 			reason: invoiceEmailError.reason
 		});
-		return err({ reason: "INVOICE_SEND_FAILED" });
+		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	const [hostEmailError] = await sendPackageHostDetailsEmail({
@@ -489,7 +494,7 @@ export async function sendMultiBookingInvoiceEmail(
 			reason: hostEmailError.reason
 		});
 	}
-	return ok({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
+	return neverthrowOk({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
 }
 
 export async function sendPackageScheduleEmail({

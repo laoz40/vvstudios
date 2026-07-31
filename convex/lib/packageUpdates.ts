@@ -1,4 +1,4 @@
-import { err, ok } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
@@ -32,6 +32,16 @@ export type CreatePendingPackageArgs = {
 	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
 };
 
+export type CreatePackageRequestArgs = Omit<
+	CreatePendingPackageArgs,
+	| "singleSessionAmount"
+	| "packageSubtotalAmount"
+	| "discountPercent"
+	| "discountAmount"
+	| "totalDueAmount"
+	| "invoiceLineItems"
+>;
+
 export type UpdatePackageArgs = {
 	multiBookingId: Id<"multiBookingPackages">;
 	name: string;
@@ -50,6 +60,7 @@ export type UpdatePackageArgs = {
 };
 
 type ParsedPackage = ReturnType<typeof multiBookingFormSchema.parse>;
+export type ParsedPackageRequest = ParsedPackage;
 
 export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
 	return {
@@ -79,6 +90,18 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		invoiceDueAt: getMultiBookingInvoiceDueAt(createdAt),
 		invoiceEmailStatus: "pending" as const
 	};
+}
+
+export function parsePackageRequest(
+	args: CreatePackageRequestArgs
+): ResultAsync<ParsedPackageRequest, { reason: "BOOKING_INVALID_INPUT" }> {
+	const parsedPackage = multiBookingFormSchema.safeParse(args);
+
+	if (!parsedPackage.success) {
+		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
+	}
+
+	return okAsync(parsedPackage.data);
 }
 
 export function parsePackageUpdate(args: UpdatePackageArgs) {

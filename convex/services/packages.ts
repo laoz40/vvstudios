@@ -43,11 +43,9 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 	const createdAt = Date.now();
 	const packageRecord = buildPendingPackageRecord(args, createdAt);
 
-	return okOrThrow(
-		ctx.db
-			.insert("multiBookingPackages", packageRecord)
-			.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRecord } }))
-	);
+	return ctx.db
+		.insert("multiBookingPackages", packageRecord)
+		.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRecord } }));
 }
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {

@@ -2,9 +2,23 @@
 
 import { createHash } from "node:crypto";
 import { resolveMx } from "node:dns/promises";
+import { internal } from "#convex/_generated/api";
+import type { ActionCtx } from "#convex/_generated/server";
+import { err, ok } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 
 export function getBookingSubmitRateLimitKey(email: string) {
 	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
+}
+
+export function checkPackageSubmitRateLimit(ctx: ActionCtx, email: string) {
+	return okOrThrow(
+		ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
+			submitRateLimitKey: getBookingSubmitRateLimitKey(email)
+		})
+	).andThen(([rateLimitError, rateLimitResult]) =>
+		rateLimitError === null ? ok(rateLimitResult) : err(rateLimitError)
+	);
 }
 
 export async function emailDomainCanReceiveMail(email: string) {

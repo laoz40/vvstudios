@@ -65,7 +65,7 @@ function createPendingPackageHandler(
 	ctx: MutationCtx,
 	args: Parameters<typeof createPendingPackageService>[1]
 ) {
-	return createPendingPackageService(ctx, args).match(tupleOk, tupleErr);
+	return createPendingPackageService(ctx, args);
 }
 
 export type CreatePendingPackageResult = Awaited<ReturnType<typeof createPendingPackageHandler>>;
@@ -84,7 +84,12 @@ function markPackageInvoiceEmailAttemptHandler(
 	ctx: MutationCtx,
 	args: Parameters<typeof markPackageInvoiceEmailAttemptService>[1]
 ) {
-	return markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
+	return markPackageInvoiceEmailAttemptService(ctx, args).match(
+		(value) => value,
+		(error) => {
+			throw new Error(`Invalid package invoice email attempt: ${error.reason}`);
+		}
+	);
 }
 
 export const listPackages = query({

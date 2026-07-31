@@ -1,5 +1,5 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type {
@@ -7,7 +7,12 @@ import type {
 	MarkPackageScheduleEmailAttemptResult
 } from "#convex/packages";
 import type { PackageLookupError, PaidPackageResult } from "#convex/services/packages";
-import { sendPackageScheduleEmail } from "./email";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import type { ParsedPackageRequest } from "./packageUpdates";
+import { okOrThrow } from "./result";
+import { sendMultiBookingInvoiceEmail, sendPackageScheduleEmail } from "./email";
 
 type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
 type PackageScheduleEmailResult = ResultAsync<
@@ -20,6 +25,77 @@ type PackageScheduleEmailResult = ResultAsync<
 export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/package-schedule/${encodeURIComponent(token)}`, baseUrl);
 	return url.toString();
+}
+
+type PackageInvoiceSource = Parameters<typeof sendMultiBookingInvoiceEmail>[0];
+
+export function createPendingPackage(
+	ctx: ActionCtx,
+	args: ParsedPackageRequest
+): ResultAsync<PackageInvoiceSource, never> {
+	const amounts = calculatePackageAmounts(args);
+	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
+		addons: args.addons,
+		clipsPackageQuantity: args.clipsPackageQuantity || undefined,
+		discountAmount: amounts.discountAmount,
+		discountPercent: amounts.discountPercent,
+		duration: args.duration,
+		essentialEditQuantity: args.essentialEditQuantity || undefined,
+		packageSize: args.packageSize
+	});
+
+	return okOrThrow(
+		ctx.runMutation(internal.packages.createPendingPackage, {
+			...args,
+			abn: args.abn || undefined,
+			clipsPackageQuantity: args.clipsPackageQuantity || undefined,
+			essentialEditQuantity: args.essentialEditQuantity || undefined,
+			notes: args.notes || undefined,
+			...amounts,
+			invoiceLineItems
+		})
+	).map((createResult) => createResult.multiBooking);
+}
+
+export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoiceSource) {
+	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
+		.andThen((bookingSettings) =>
+			okOrThrow(
+				sendMultiBookingInvoiceEmail(packageFromDb, {
+					leadTimeMinutes: bookingSettings.leadTimeMinutes
+				})
+			).andThen((emailResult) => emailResult)
+		)
+		.map((emailResult) => ({
+			multiBookingId: packageFromDb._id,
+			invoiceNumber: emailResult.invoiceNumber,
+			status: "sent" as const
+		}))
+		.orElse((emailError) =>
+			ok({
+				multiBookingId: packageFromDb._id,
+				status: "failed" as const,
+				failureCode: emailError.reason
+			})
+		)
+		.andThen((emailAttempt) =>
+			okOrThrow(
+				ctx
+					.runMutation(internal.packages.markPackageInvoiceEmailAttempt, emailAttempt)
+					.then(() => emailAttempt.status)
+			)
+		);
+}
+
+export function refreshPackageScheduleToken(
+	ctx: ActionCtx,
+	multiBookingId: Id<"multiBookingPackages">
+) {
+	return okOrThrow(
+		ctx.runMutation(internal.packages.refreshPackageScheduleToken, { multiBookingId })
+	).andThen(([tokenError, tokenResult]) =>
+		tokenError === null ? ok(tokenResult) : err(tokenError)
+	);
 }
 
 export function markPackagePaid(

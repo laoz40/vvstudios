@@ -25,6 +25,7 @@
  * sizing, and pricing edits are covered here. Authorization is covered by authorization.test.ts.
  * DNS and email providers are replaced with controlled fakes.
  */
+import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -89,10 +90,9 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	providerFakes.resolveMx.mockResolvedValue([{ exchange: "mail.example.com", priority: 10 }]);
-	providerFakes.sendInvoiceEmail.mockResolvedValue([
-		null,
-		{ invoiceNumber: "VV-20300101-TEST", sent: true }
-	]);
+	providerFakes.sendInvoiceEmail.mockResolvedValue(
+		ok({ invoiceNumber: "VV-20300101-TEST", sent: true })
+	);
 	providerFakes.sendScheduleEmail.mockResolvedValue([null, { sent: true }]);
 });
 
@@ -329,7 +329,7 @@ describe("package request creation", () => {
 
 	test("preserves the package and records a failed invoice delivery for retry", async () => {
 		const t = createConvexTest();
-		providerFakes.sendInvoiceEmail.mockResolvedValue([{ reason: "INVOICE_SEND_FAILED" }, null]);
+		providerFakes.sendInvoiceEmail.mockResolvedValue(err({ reason: "INVOICE_SEND_FAILED" }));
 
 		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);

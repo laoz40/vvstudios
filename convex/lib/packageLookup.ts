@@ -1,6 +1,8 @@
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { internal } from "#convex/_generated/api";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 
 export type ValidPackageByTokenError =
@@ -17,6 +19,18 @@ export function getPackageFromDb(
 ) {
 	return ResultAsync.fromSafePromise(ctx.db.get(packageId)).andThen((packageFromDb) => {
 		if (!packageFromDb) {
+			return err({ reason: "PACKAGE_NOT_FOUND" as const });
+		}
+
+		return ok(packageFromDb);
+	});
+}
+
+export function getPackageForAction(ctx: ActionCtx, packageId: Id<"multiBookingPackages">) {
+	return okOrThrow<Doc<"multiBookingPackages"> | null>(
+		ctx.runQuery(internal.packages.getPackageById, { multiBookingId: packageId })
+	).andThen((packageFromDb) => {
+		if (packageFromDb === null) {
 			return err({ reason: "PACKAGE_NOT_FOUND" as const });
 		}
 
