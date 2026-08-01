@@ -168,7 +168,7 @@ export function RecordingSpaceField({
 										type="button"
 										variant="secondary"
 										size="icon-xs"
-										className="absolute top-3 right-3 z-20 rounded-full bg-background/80 opacity-0 shadow-md backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+										className="absolute top-3 right-3 z-20 rounded-full bg-background/80 opacity-100 shadow-md backdrop-blur transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
 										aria-label={`View larger image of ${option.title}`}
 										onClick={(event) => {
 											event.preventDefault();
