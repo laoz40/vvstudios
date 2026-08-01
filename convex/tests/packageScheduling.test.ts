@@ -46,6 +46,7 @@
  * requests are made and these tests exercise only package scheduling behavior.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { ok } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
@@ -80,7 +81,8 @@ vi.mock("#convex/lib/googleCalendarClient", () => ({
 
 vi.mock("#convex/lib/rateLimits", () => ({
 	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
-	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
+	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
+	checkGoogleCalendarAvailabilityRateLimitResult: vi.fn(() => ok({ allowed: true }))
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -133,6 +135,42 @@ describe("package scheduling link access", () => {
 		});
 
 		expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+	});
+});
+
+describe("package Calendar availability", () => {
+	// Verifies an invalid package token stops before any Google Calendar request.
+	test("rejects an invalid token before loading Calendar availability", async () => {
+		const t = createConvexTest();
+
+		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
+			rateLimitKey: "invalid-package",
+			token: "unknown-token"
+		});
+
+		expect(result).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
+		expect(providerFakes.listEvents).not.toHaveBeenCalled();
+	});
+
+	// Verifies package availability returns the package expiry, timezone, and grouped provider data.
+	test("loads Calendar availability through the package expiry date", async () => {
+		const t = createConvexTest();
+		const { token } = await seedPackage(t);
+
+		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
+			rateLimitKey: "valid-package",
+			token
+		});
+
+		expect(result).toEqual([
+			null,
+			{
+				busyWindowsByMonth: {},
+				packageExpiresAt: Date.parse("2030-01-20T00:00:00.000Z"),
+				timeZone: "Australia/Sydney"
+			}
+		]);
+		expect(providerFakes.listEvents).toHaveBeenCalledTimes(1);
 	});
 });
 

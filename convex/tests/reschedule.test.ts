@@ -29,6 +29,7 @@
  * Google Calendar and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { ok } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -67,7 +68,8 @@ vi.mock("#convex/lib/email", () => ({
 
 vi.mock("#convex/lib/rateLimits", () => ({
 	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
-	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
+	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
+	checkGoogleCalendarAvailabilityRateLimitResult: vi.fn(() => ok({ allowed: true }))
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

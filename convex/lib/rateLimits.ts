@@ -1,5 +1,6 @@
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
-import { err, ok } from "#/lib/result";
+import { err, ok, ResultAsync } from "neverthrow";
+import { err as tupleErr, ok as tupleOk } from "#/lib/result";
 import { components } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 
@@ -16,14 +17,22 @@ type RateLimitCtx = ActionCtx | MutationCtx;
 export type BookingSubmitRateLimitError = { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
 
 export async function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
-	const globalRateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal");
-	const rateLimitStatus = await rateLimiter.limit(ctx, "googleCalendarAvailability", { key });
+	return await checkGoogleCalendarAvailabilityRateLimitResult(ctx, key).match(tupleOk, tupleErr);
+}
 
-	if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
-		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
-	}
+export function checkGoogleCalendarAvailabilityRateLimitResult(ctx: ActionCtx, key: string) {
+	return ResultAsync.fromSafePromise(
+		Promise.all([
+			rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal"),
+			rateLimiter.limit(ctx, "googleCalendarAvailability", { key })
+		])
+	).andThen(([globalRateLimitStatus, rateLimitStatus]) => {
+		if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
+			return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
+		}
 
-	return ok({ limited: false });
+		return ok(null);
+	});
 }
 
 export async function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
@@ -31,12 +40,15 @@ export async function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string
 	const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", { key });
 
 	if (!globalRateLimitStatus.ok) {
-		return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: globalRateLimitStatus.retryAfter });
+		return tupleErr({
+			reason: "BOOKING_RATE_LIMITED",
+			retryAfter: globalRateLimitStatus.retryAfter
+		});
 	}
 
 	if (!rateLimitStatus.ok) {
-		return err({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
+		return tupleErr({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
 	}
 
-	return ok({ limited: false });
+	return tupleOk({ limited: false });
 }

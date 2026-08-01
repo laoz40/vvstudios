@@ -1,3 +1,4 @@
+import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
 import { err, ok, type Result } from "#/lib/result";
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
@@ -395,6 +396,17 @@ export function getDateAvailabilityRange(
 	{ timeMax: string; timeMin: string },
 	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
+	return getDateAvailabilityRangeResult(startDate, endDate, timeZone).match(
+		(value) => ok(value),
+		(error) => err(error)
+	);
+}
+
+export function getDateAvailabilityRangeResult(
+	startDate: string,
+	endDate: string,
+	timeZone: string
+) {
 	const [timeMaxError, timeMaxDate] = getUtcDateForZonedDateTime(
 		getNextDate(endDate),
 		"00:00",
@@ -402,22 +414,29 @@ export function getDateAvailabilityRange(
 	);
 
 	if (timeMaxError !== null) {
-		return err(timeMaxError);
+		return neverthrowErr(timeMaxError);
 	}
 
 	const [timeMinError, timeMinDate] = getUtcDateForZonedDateTime(startDate, "00:00", timeZone);
 
 	if (timeMinError !== null) {
-		return err(timeMinError);
+		return neverthrowErr(timeMinError);
 	}
 
-	return ok({ timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() });
+	return neverthrowOk({ timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() });
 }
 
 export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string
 ): Result<BusyDayWindow[], Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
+	return groupBusyWindowsByDayResult(busyWindows, timeZone).match(
+		(value) => ok(value),
+		(error) => err(error)
+	);
+}
+
+export function groupBusyWindowsByDayResult(busyWindows: BusyWindow[], timeZone: string) {
 	const dayBuckets = new Map<string, BusyDayWindow>();
 
 	for (const window of busyWindows) {
@@ -434,7 +453,7 @@ export function groupBusyWindowsByDay(
 			);
 
 			if (dayEndError !== null) {
-				return err(dayEndError);
+				return neverthrowErr(dayEndError);
 			}
 
 			const dayEndMs = Date.parse(dayEndDate.toISOString());
@@ -455,7 +474,7 @@ export function groupBusyWindowsByDay(
 		}
 	}
 
-	return ok(Array.from(dayBuckets.values()));
+	return neverthrowOk(Array.from(dayBuckets.values()));
 }
 
 export function groupBusyDaysByMonth(busyDays: BusyDayWindow[]) {

@@ -1,5 +1,10 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import {
+	err as neverthrowErr,
+	ok as neverthrowOk,
+	type Result as NeverthrowResult
+} from "neverthrow";
 import { err, ok, type Result } from "#/lib/result";
 
 import {
@@ -43,10 +48,22 @@ export function buildSessionCalendarEventPayload({
 	time,
 	timeZone
 }: BuildSessionCalendarEventPayloadArgs) {
+	return buildSessionCalendarEventPayloadResult({ date, details, time, timeZone }).match(
+		(value) => ok(value),
+		(error) => err(error)
+	);
+}
+
+export function buildSessionCalendarEventPayloadResult({
+	date,
+	details,
+	time,
+	timeZone
+}: BuildSessionCalendarEventPayloadArgs) {
 	const [windowError, eventWindow] = buildEventWindow(date, time, details.duration, timeZone);
 
 	if (windowError !== null) {
-		return err(windowError);
+		return neverthrowErr(windowError);
 	}
 
 	const { startDateTime, endDateTime } = eventWindow;
@@ -82,7 +99,7 @@ export function buildSessionCalendarEventPayload({
 		attendees: [{ email: details.email }]
 	} satisfies calendar_v3.Schema$Event;
 
-	return ok(payload);
+	return neverthrowOk(payload);
 }
 
 export type GoogleCalendarEventClient = {
@@ -109,7 +126,7 @@ function isMatchingSessionCalendarEvent(
 	return attendeeMatches || summaryMatches;
 }
 
-async function findSessionCalendarEventIncludingDeclined({
+async function findSessionCalendarEventIncludingDeclinedResult({
 	session,
 	calendar,
 	calendarId,
@@ -128,7 +145,7 @@ async function findSessionCalendarEventIncludingDeclined({
 	);
 
 	if (windowError !== null) {
-		return err(windowError);
+		return neverthrowErr(windowError);
 	}
 
 	const { startDateTime, endDateTime } = eventWindow;
@@ -141,7 +158,7 @@ async function findSessionCalendarEventIncludingDeclined({
 		timeMin: startDateTime
 	});
 
-	return ok(
+	return neverthrowOk(
 		events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
 	);
 }
@@ -169,6 +186,21 @@ export async function deleteSessionCalendarEvent({
 	session: SessionCalendarEventRecord;
 	client: GoogleCalendarEventClient;
 }) {
+	return await deleteSessionCalendarEventResult({ session, client }).then((result) =>
+		result.match(
+			(value) => ok(value),
+			(error) => err(error)
+		)
+	);
+}
+
+export async function deleteSessionCalendarEventResult({
+	session,
+	client
+}: {
+	session: SessionCalendarEventRecord;
+	client: GoogleCalendarEventClient;
+}) {
 	try {
 		const calendarId = session.googleCalendarId ?? client.calendarId;
 		const savedEventId = session.googleEventId ?? null;
@@ -180,26 +212,26 @@ export async function deleteSessionCalendarEvent({
 				savedEventId
 			);
 			if (wasDeleted) {
-				return ok({ calendarEventDeleted: true });
+				return neverthrowOk({ calendarEventDeleted: true });
 			}
 		}
 
 		// Declined Calendar invites can be hidden from direct event lookup, so search the session window before giving up.
-		const [findEventError, foundEvent] = await findSessionCalendarEventIncludingDeclined({
+		const foundEventResult = await findSessionCalendarEventIncludingDeclinedResult({
 			session,
 			calendar: client.calendar,
 			calendarId,
 			timeZone: client.timeZone
 		});
 
-		if (findEventError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
+		if (foundEventResult.isErr()) {
+			return neverthrowErr({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const });
 		}
 
-		const foundEventId = foundEvent?.id ?? null;
+		const foundEventId = foundEventResult.value?.id ?? null;
 
 		if (!foundEventId) {
-			return ok({ calendarEventDeleted: false });
+			return neverthrowOk({ calendarEventDeleted: false });
 		}
 
 		const wasFoundEventDeleted = await deleteCalendarEventIfFound(
@@ -208,13 +240,15 @@ export async function deleteSessionCalendarEvent({
 			foundEventId
 		);
 
-		return ok({ calendarEventDeleted: wasFoundEventDeleted });
+		return neverthrowOk({ calendarEventDeleted: wasFoundEventDeleted });
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
-			return ok({ calendarEventDeleted: false });
+			return neverthrowOk({ calendarEventDeleted: false });
 		}
 
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
+		return neverthrowErr({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED")
+		});
 	}
 }
 
@@ -247,14 +281,44 @@ export async function updateSessionCalendarEventTiming({
 	time: string;
 	createMissingEvent?: boolean;
 }): Promise<Result<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError>> {
+	return await updateSessionCalendarEventTimingResult({
+		session,
+		client,
+		date,
+		details,
+		time,
+		createMissingEvent
+	}).then((result) =>
+		result.match(
+			(value) => ok(value),
+			(error) => err(error)
+		)
+	);
+}
+
+export async function updateSessionCalendarEventTimingResult({
+	session,
+	client,
+	date,
+	details,
+	time,
+	createMissingEvent = false
+}: {
+	session: SessionCalendarEventRecord;
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	time: string;
+	createMissingEvent?: boolean;
+}): Promise<NeverthrowResult<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError>> {
 	// Some reschedulable failed bookings never created a Google event in the original flow.
 	// When requested, create that missing event before saving the new session time.
 	if (!session.googleEventId || !session.googleCalendarId) {
 		if (createMissingEvent) {
-			return createSessionCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEventResult({ client, date, details, time });
 		}
 
-		return ok({});
+		return neverthrowOk({});
 	}
 
 	const googleCalendarId = session.googleCalendarId;
@@ -267,34 +331,36 @@ export async function updateSessionCalendarEventTiming({
 		});
 
 		if (existingGoogleEvent.data.status === "cancelled") {
-			return createSessionCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEventResult({ client, date, details, time });
 		}
 
-		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
+		const payloadResult = buildSessionCalendarEventPayloadResult({
 			date,
 			details,
 			time,
 			timeZone: client.timeZone
 		});
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
+		if (payloadResult.isErr()) {
+			return neverthrowErr({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" as const });
 		}
 
 		await client.calendar.events.patch({
 			calendarId: googleCalendarId,
 			eventId: googleEventId,
 			sendUpdates: "all",
-			requestBody
+			requestBody: payloadResult.value
 		});
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
-			return createSessionCalendarEvent({ client, date, details, time });
+			return createSessionCalendarEventResult({ client, date, details, time });
 		}
 
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
+		return neverthrowErr({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED")
+		});
 	}
 
-	return ok({});
+	return neverthrowOk({});
 }
 
 export async function createSessionCalendarEvent({
@@ -308,29 +374,50 @@ export async function createSessionCalendarEvent({
 	details: SessionCalendarEventDetails;
 	time: string;
 }) {
+	return await createSessionCalendarEventResult({ client, date, details, time }).then((result) =>
+		result.match(
+			(value) => ok(value),
+			(error) => err(error)
+		)
+	);
+}
+
+export async function createSessionCalendarEventResult({
+	client,
+	date,
+	details,
+	time
+}: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	time: string;
+}) {
 	try {
-		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
+		const payloadResult = buildSessionCalendarEventPayloadResult({
 			date,
 			details,
 			time,
 			timeZone: client.timeZone
 		});
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
+		if (payloadResult.isErr()) {
+			return neverthrowErr({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const });
 		}
 
 		const replacementEvent = await client.calendar.events.insert({
 			calendarId: client.calendarId,
 			sendUpdates: "all",
-			requestBody
+			requestBody: payloadResult.value
 		});
 
-		return ok({
+		return neverthrowOk({
 			googleCalendarId: client.calendarId,
 			googleEventId: replacementEvent.data.id ?? undefined,
 			outcome: "replacementCreated" as const
 		});
 	} catch (error) {
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
+		return neverthrowErr({
+			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED")
+		});
 	}
 }

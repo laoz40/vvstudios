@@ -216,7 +216,7 @@ function clearPackageSessionReservation(
 	bookingId: Id<"bookings">,
 	reservation: { reservedAt: number; sessionStartAt: number; duration: string }
 ) {
-	return okOrThrow(
+	return fromConvexResult(
 		ctx.runMutation(internal.sessionScheduling.clearSessionReservation, { bookingId, reservation })
 	).map(() => null);
 }
