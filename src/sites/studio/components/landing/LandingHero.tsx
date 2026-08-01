@@ -97,7 +97,7 @@ export function LandingHero() {
 						<div className="landing-hero-reveal flex flex-col md:max-w-xl">
 							<h1
 								id="landing-hero-title"
-								className="font-brand text-5xl leading-12 tracking-tight uppercase text-balance md:text-7xl md:leading-18">
+								className="font-brand text-[2.625rem] leading-11 tracking-tight uppercase text-balance md:text-7xl md:leading-18">
 								{heroCopy.title}
 							</h1>
 							<p
