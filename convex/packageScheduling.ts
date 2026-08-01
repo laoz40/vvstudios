@@ -24,8 +24,6 @@ import {
 	getEditablePackageSession,
 	getPackageSessionStartAt,
 	getValidPackageByToken as findValidPackageByToken,
-	toPackageCalendarSession,
-	toPackageCalendarDetails,
 	type CreatePackageSessionError,
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
@@ -33,7 +31,10 @@ import {
 import { processPackageAdjustment } from "./lib/packageAdjustments";
 import {
 	cancelPackageSessionService,
+	createPackageSessionService,
+	reschedulePackageSessionService,
 	saveCreatedPackageSessionService,
+	unschedulePackageSessionService,
 	type CancelPackageSessionArgs,
 	type SaveCreatedPackageSessionArgs
 } from "./services/packageScheduling";
@@ -134,72 +135,7 @@ async function createPackageSessionHandler(
 	ctx: ActionCtx,
 	args: PackageSessionArgs
 ): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> {
-	const now = Date.now();
-
-	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageSessionRequest,
-		{ token: args.token, date: args.date, time: args.time, now }
-	);
-
-	if (validationError !== null) {
-		return err(validationError);
-	}
-
-	const [rateError] = await ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
-		submitRateLimitKey: `package:${details.multiBooking._id}`
-	});
-
-	if (rateError !== null) {
-		return err(rateError);
-	}
-
-	const [calendarError, calendar] = await ctx.runAction(
-		internal.packageSchedulingCalendar.createPackageSessionCalendarEvent,
-		{
-			session: null,
-			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
-		}
-	);
-
-	if (calendarError !== null) {
-		return err(calendarError);
-	}
-
-	const [databaseError, result] = await ctx.runMutation(
-		internal.packageScheduling.saveCreatedPackageSession,
-		{
-			...args,
-			now,
-			...(calendar.googleCalendarId ? { googleCalendarId: calendar.googleCalendarId } : {}),
-			...(calendar.googleEventId ? { googleEventId: calendar.googleEventId } : {})
-		}
-	);
-
-	if (databaseError !== null) {
-		if (calendar.googleEventId && calendar.googleCalendarId) {
-			const [cleanupError] = await ctx.runAction(
-				internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent,
-				{
-					session: {
-						date: args.date,
-						duration: details.multiBooking.duration,
-						email: details.multiBooking.email,
-						googleCalendarId: calendar.googleCalendarId,
-						googleEventId: calendar.googleEventId,
-						name: details.multiBooking.name,
-						time: args.time
-					}
-				}
-			);
-			if (cleanupError !== null) {
-				console.error("Failed to compensate orphan package Calendar event", cleanupError);
-			}
-		}
-
-		return err(databaseError);
-	}
-
-	return ok(result);
+	return createPackageSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type CreatePackageSessionResult = Awaited<ReturnType<typeof createPackageSessionHandler>>;
@@ -215,74 +151,7 @@ async function reschedulePackageSessionHandler(
 	ctx: ActionCtx,
 	args: ReschedulePackageSessionArgs
 ): Promise<Result<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> {
-	const now = Date.now();
-
-	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageRescheduleRequest,
-		{ token: args.token, bookingId: args.bookingId, date: args.date, time: args.time, now }
-	);
-
-	if (validationError !== null) {
-		return err(validationError);
-	}
-
-	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.sessionScheduling.reserveSessionReservation,
-		{
-			bookingId: args.bookingId,
-			duration: details.multiBooking.duration,
-			eventBufferMinutes: details.eventBufferMinutes,
-			now: Date.now(),
-			sessionStartAt: details.sessionStartAt
-		}
-	);
-	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-	}
-	const reservation = reservationResult.reservation;
-
-	const [calendarError, calendar] = await ctx.runAction(
-		internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent,
-		{
-			session: toPackageCalendarSession(details.session),
-			details: toPackageCalendarDetails(args, details.multiBooking, details.eventBufferMinutes)
-		}
-	);
-
-	if (calendarError !== null) {
-		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-			bookingId: args.bookingId,
-			reservation
-		});
-		return err(calendarError);
-	}
-
-	const [saveError] = await ctx.runMutation(
-		internal.sessionScheduling.saveClientSessionReschedule,
-		{
-			bookingId: args.bookingId,
-			date: args.date,
-			time: args.time,
-			service: args.service,
-			notes: args.notes,
-			addons: getPackageSessionAddons(details.multiBooking.addons, args.remotePodcast),
-			sessionStartAt: details.sessionStartAt,
-			googleCalendarId: calendar.googleCalendarId,
-			googleEventId: calendar.googleEventId,
-			multiBookingPackageId: details.multiBooking._id,
-			reservation
-		}
-	);
-
-	if (saveError !== null) {
-		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-			bookingId: args.bookingId,
-			reservation
-		});
-		return err(saveError);
-	}
-
-	return ok({ bookingId: args.bookingId });
+	return reschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ReschedulePackageSessionResult = Awaited<
@@ -300,36 +169,7 @@ async function unschedulePackageSessionHandler(
 	ctx: ActionCtx,
 	args: UnschedulePackageSessionArgs
 ): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>> {
-	const now = Date.now();
-
-	const [validationError, details] = await ctx.runQuery(
-		internal.packageScheduling.validatePackageUnscheduleRequest,
-		{ ...args, now }
-	);
-
-	if (validationError !== null) {
-		return err(validationError);
-	}
-
-	const [calendarError] = await ctx.runAction(
-		internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent,
-		{ session: toPackageCalendarSession(details.session) }
-	);
-
-	if (calendarError !== null) {
-		return err(calendarError);
-	}
-
-	const [saveError, result] = await ctx.runMutation(
-		internal.packageScheduling.cancelPackageSession,
-		{ bookingId: args.bookingId, now, token: args.token }
-	);
-
-	if (saveError !== null) {
-		return err(saveError);
-	}
-
-	return ok(result);
+	return unschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type UnschedulePackageSessionResult = Awaited<
