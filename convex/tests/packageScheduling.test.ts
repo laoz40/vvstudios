@@ -62,8 +62,8 @@ const providerFakes = vi.hoisted(() => ({
 
 vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("#convex/lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const getClient = () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -76,11 +76,16 @@ vi.mock("#convex/lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	});
+
+	return {
+		getGoogleCalendarClient: getClient,
+		getGoogleCalendarClientResult: () => ok(getClient())
+	};
+});
 
 vi.mock("#convex/lib/rateLimits", () => ({
-	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
+	checkBookingSubmitRateLimitResult: vi.fn(() => ok(null)),
 	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
 	checkGoogleCalendarAvailabilityRateLimitResult: vi.fn(() => ok({ allowed: true }))
 }));

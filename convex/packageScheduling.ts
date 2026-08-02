@@ -22,13 +22,14 @@ import {
 	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
 	getEditablePackageSession,
-	getPackageSessionStartAt,
 	getValidPackageByToken as findValidPackageByToken,
 	type CreatePackageSessionError,
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
 } from "./lib/packageScheduling";
 import { processPackageAdjustment } from "./lib/packageAdjustments";
+import { getSessionStartAt } from "./lib/sessionAdminEdit";
+import { env } from "./env";
 import {
 	cancelPackageSessionService,
 	createPackageSessionService,
@@ -213,15 +214,15 @@ async function validatePackageSessionRequestHandler(
 
 	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
 
-	const [availabilityError] = checkPackageSessionAvailability(
+	const availabilityResult = checkPackageSessionAvailability(
 		args,
 		multiBooking,
 		settings,
 		args.now
 	);
 
-	if (availabilityError !== null) {
-		return err(availabilityError);
+	if (availabilityResult.isErr()) {
+		return err(availabilityResult.error);
 	}
 
 	const bookings = await getCapacityConsumingPackageSessions(
@@ -234,7 +235,7 @@ async function validatePackageSessionRequestHandler(
 		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
 	}
 
-	const sessionStartResult = getPackageSessionStartAt(args);
+	const sessionStartResult = getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
 
 	if (sessionStartResult.isErr()) {
 		return err(sessionStartResult.error);
@@ -267,18 +268,18 @@ async function validatePackageRescheduleRequestHandler(
 
 	const { session, multiBooking, settings } = details;
 
-	const [availabilityError] = checkPackageSessionAvailability(
+	const availabilityResult = checkPackageSessionAvailability(
 		args,
 		multiBooking,
 		settings,
 		args.now
 	);
 
-	if (availabilityError !== null) {
-		return err(availabilityError);
+	if (availabilityResult.isErr()) {
+		return err(availabilityResult.error);
 	}
 
-	const sessionStartResult = getPackageSessionStartAt(args);
+	const sessionStartResult = getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
 
 	if (sessionStartResult.isErr()) {
 		return err(sessionStartResult.error);

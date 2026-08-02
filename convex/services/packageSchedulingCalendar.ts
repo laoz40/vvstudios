@@ -10,9 +10,9 @@ import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
 import { fromConvexResult } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimitResult } from "#convex/lib/rateLimits";
 import {
-	getDateAvailabilityRangeResult,
+	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
-	groupBusyWindowsByDayResult,
+	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 	type BusyDayWindow
 } from "#convex/lib/sessionCalendarTime";
@@ -25,7 +25,7 @@ import {
 	type PackageCalendarWriteError
 } from "#convex/lib/packageSchedulingCalendar";
 import {
-	deleteSessionCalendarEventResult,
+	deleteSessionCalendarEvent,
 	type SessionCalendarEventRecord
 } from "#convex/lib/sessionCalendarEvents";
 import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
@@ -77,7 +77,7 @@ export function getPackageBusyWindowsService(
 				const startDate = formatDateValue(startOfToday());
 				const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
 
-				return getDateAvailabilityRangeResult(startDate, endDate, client.timeZone)
+				return getDateAvailabilityRange(startDate, endDate, client.timeZone)
 					.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
 					.map((availabilityRange) => ({ availabilityRange, client, packageFromDb }));
 			})
@@ -98,7 +98,7 @@ export function getPackageBusyWindowsService(
 			)
 			// Group busy days by month.
 			.andThen(({ busyWindows, client, packageFromDb }) =>
-				groupBusyWindowsByDayResult(busyWindows, client.timeZone)
+				groupBusyWindowsByDay(busyWindows, client.timeZone)
 					.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
 					.map((busyDays) => ({
 						busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
@@ -163,7 +163,7 @@ export function deletePackageSessionCalendarEventService(
 			// Delete the saved event, including declined invitations found by session details.
 			.andThen(({ calendar, calendarId, timeZone }) =>
 				ResultAsync.fromSafePromise(
-					deleteSessionCalendarEventResult({ session, client: { calendar, calendarId, timeZone } })
+					deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } })
 				)
 					.andThen((result) => result)
 					.mapErr(

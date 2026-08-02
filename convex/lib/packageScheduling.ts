@@ -8,7 +8,6 @@ import { checkSessionMeetsAvailabilitySettings } from "./sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "./googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "./rateLimits";
 import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
-import { getSessionStartAt } from "./sessionAdminEdit";
 import {
 	getPackageSessionAddons,
 	isDurationOption,
@@ -223,20 +222,6 @@ export function toPackageCalendarDetails(
 		service: args.service,
 		time: args.time
 	};
-}
-
-export function getPackageSessionStartAt(args: { date: string; time: string }) {
-	const [startError, sessionStartAt] = getSessionStartAt(
-		args.date,
-		args.time,
-		env.GOOGLE_CALENDAR_TIMEZONE
-	);
-
-	if (startError !== null) {
-		return neverthrowErr(startError);
-	}
-
-	return neverthrowOk(sessionStartAt);
 }
 
 export async function getEditablePackageSession(

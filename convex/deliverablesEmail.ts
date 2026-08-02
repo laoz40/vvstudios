@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { err, ok, type Result } from "#/lib/result";
-import { getSessionFromQuery } from "./lib/sessionLookup";
+import { getSessionFromQueryResult } from "./lib/sessionLookup";
 import { action, type ActionCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getAdminIdentity } from "./lib/auth";
@@ -70,14 +70,14 @@ async function sendSessionDeliverablesEmailHandler(
 		return err(authError);
 	}
 
-	const [bookingError, session] = await getSessionFromQuery(ctx, args.bookingId);
+	const sessionResult = await getSessionFromQueryResult(ctx, args.bookingId);
 
-	if (bookingError !== null) {
-		return err(bookingError);
+	if (sessionResult.isErr()) {
+		return err(sessionResult.error);
 	}
 
 	return await sendDeliverablesEmailForRecord(
-		session,
+		sessionResult.value,
 		args.driveLink,
 		args.editorNotes,
 		args.emailVariant

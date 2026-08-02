@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok, type Result } from "#/lib/result";
+import { err, err as tupleErr, ok, ok as tupleOk, type Result } from "#/lib/result";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
@@ -9,7 +9,7 @@ import {
 	checkSessionMeetsAvailabilitySettings,
 	type SessionAvailabilityValidationError
 } from "./lib/sessionCalendarTime";
-import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
+import { checkBookingSubmitRateLimitResult } from "./lib/rateLimits";
 
 type CreatePendingSessionResult = Result<
 	{ bookingId: Doc<"bookings">["_id"] },
@@ -18,7 +18,8 @@ type CreatePendingSessionResult = Result<
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
-	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
+	handler: (ctx, args) =>
+		checkBookingSubmitRateLimitResult(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
 
 export const createPendingSession = internalMutation({
@@ -39,27 +40,19 @@ export const createPendingSession = internalMutation({
 	},
 	handler: async (ctx, args): Promise<CreatePendingSessionResult> => {
 		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		const [availabilityError] = checkSessionMeetsAvailabilitySettings({
+		const sessionStartResult = checkSessionMeetsAvailabilitySettings({
 			date: args.date,
 			duration: args.duration,
 			settings,
 			time: args.time,
 			timeZone: env.GOOGLE_CALENDAR_TIMEZONE
-		});
+		}).andThen(() => getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE));
 
-		if (availabilityError !== null) {
-			return err({ reason: availabilityError.reason });
+		if (sessionStartResult.isErr()) {
+			return err({ reason: sessionStartResult.error.reason });
 		}
 
-		const [sessionStartError, sessionStartAt] = getSessionStartAt(
-			args.date,
-			args.time,
-			env.GOOGLE_CALENDAR_TIMEZONE
-		);
-
-		if (sessionStartError !== null) {
-			return err({ reason: sessionStartError.reason });
-		}
+		const sessionStartAt = sessionStartResult.value;
 
 		const bookingId = await ctx.db.insert("bookings", {
 			name: args.name,

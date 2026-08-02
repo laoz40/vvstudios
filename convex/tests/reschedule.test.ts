@@ -67,7 +67,7 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 vi.mock("#convex/lib/rateLimits", () => ({
-	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
+	checkBookingSubmitRateLimitResult: vi.fn(() => ok(null)),
 	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
 	checkGoogleCalendarAvailabilityRateLimitResult: vi.fn(() => ok({ allowed: true }))
 }));

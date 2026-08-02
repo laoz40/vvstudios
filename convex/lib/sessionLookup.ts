@@ -44,17 +44,17 @@ export async function getSessionFromDb(
 	return tupleOk(session);
 }
 
-export async function getSessionFromQuery(
+export function getSessionFromQueryResult(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
-): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const session: Doc<"bookings"> | null = await ctx.runQuery(internal.sessions.getSessionById, {
-		bookingId
+): ResultAsync<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }> {
+	return ResultAsync.fromSafePromise(
+		ctx.runQuery(internal.sessions.getSessionById, { bookingId })
+	).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
+
+		return ok(session);
 	});
-
-	if (!session) {
-		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return tupleOk(session);
 }

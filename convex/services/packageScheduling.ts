@@ -5,7 +5,6 @@ import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import {
 	getCapacityConsumingPackageSessions,
 	getPackageSessionForToken,
-	getPackageSessionStartAt,
 	sessionConsumesPackageCapacity,
 	toPackageCalendarDetails,
 	toPackageCalendarSession,
@@ -15,6 +14,8 @@ import {
 } from "#convex/lib/packageScheduling";
 import { getValidPackageByToken } from "#convex/lib/packageLookup";
 import { fromConvexResult, okOrThrow } from "#convex/lib/result";
+import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
+import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 
 type PackageSessionArgs = {
@@ -148,9 +149,12 @@ export function reschedulePackageSessionService(
 				)
 					.map((calendar) => ({ calendar, details, reservation }))
 					.orElse((calendarError) =>
-						clearPackageSessionReservation(ctx, args.bookingId, reservation).andThen(() =>
-							err(calendarError)
-						)
+						fromConvexResult(
+							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+								bookingId: args.bookingId,
+								reservation
+							})
+						).andThen(() => err(calendarError))
 					)
 			)
 			// Persist the new booking details and release the reservation if the save is rejected.
@@ -172,9 +176,12 @@ export function reschedulePackageSessionService(
 				)
 					.map(() => ({ bookingId: args.bookingId }))
 					.orElse((saveError) =>
-						clearPackageSessionReservation(ctx, args.bookingId, reservation).andThen(() =>
-							err(saveError)
-						)
+						fromConvexResult(
+							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+								bookingId: args.bookingId,
+								reservation
+							})
+						).andThen(() => err(saveError))
 					)
 			)
 	);
@@ -196,7 +203,7 @@ export function unschedulePackageSessionService(
 					ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
 						session: toPackageCalendarSession(details.session)
 					})
-				).map(() => null)
+				)
 			)
 			// Persist cancellation only after Calendar deletion succeeds or reports the event missing.
 			.andThen(() =>
@@ -209,16 +216,6 @@ export function unschedulePackageSessionService(
 				)
 			)
 	);
-}
-
-function clearPackageSessionReservation(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">,
-	reservation: { reservedAt: number; sessionStartAt: number; duration: string }
-) {
-	return fromConvexResult(
-		ctx.runMutation(internal.sessionScheduling.clearSessionReservation, { bookingId, reservation })
-	).map(() => null);
 }
 
 export type SaveCreatedPackageSessionArgs = PackageSessionArgs & {
@@ -248,10 +245,9 @@ export function saveCreatedPackageSessionService(
 					return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
 				}
 
-				return getPackageSessionStartAt(args).map((sessionStartAt) => ({
-					packageFromDb,
-					sessionStartAt
-				}));
+				return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
+					(sessionStartAt) => ({ packageFromDb, sessionStartAt })
+				);
 			})
 			// Save the confirmed booking with the package and session snapshots.
 			.andThen(({ packageFromDb, sessionStartAt }) =>

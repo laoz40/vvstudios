@@ -11,7 +11,7 @@ import {
 } from "#convex/_generated/server";
 import { getAdminIdentity } from "#convex/lib/auth";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
-import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
+import { checkBookingSubmitRateLimitResult } from "#convex/lib/rateLimits";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -35,7 +35,8 @@ const bookingInvoiceLineItemValidator = v.object({
 
 export const checkPackageSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
-	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
+	handler: (ctx, args) =>
+		checkBookingSubmitRateLimitResult(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
 
 export const createPendingPackage = internalMutation({

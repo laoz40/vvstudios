@@ -1,16 +1,17 @@
-import { err, ok, type Result } from "#/lib/result";
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
+import { fromConvexResult } from "#convex/lib/result";
 import type { SessionReservation } from "./sessionReservations";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
 	isTimeSlotAvailable,
-	type SessionAvailabilitySettings
+	type SessionAvailabilitySettings,
+	type SessionTimeParseError
 } from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
 import {
@@ -32,14 +33,12 @@ type SessionEditValues = Pick<
 	essentialEditQuantity?: string;
 };
 
-export function getSessionStartAt(date: string, time: string, timeZone: string) {
-	const [startError, startDate] = getUtcDateForZonedDateTime(date, time, timeZone);
-
-	if (startError !== null) {
-		return err(startError);
-	}
-
-	return ok(startDate.getTime());
+export function getSessionStartAt(
+	date: string,
+	time: string,
+	timeZone: string
+): Result<number, Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
+	return getUtcDateForZonedDateTime(date, time, timeZone).map((startDate) => startDate.getTime());
 }
 
 type SessionEditField = keyof SessionEditValues;
@@ -164,19 +163,13 @@ export function buildAdminSessionUpdatePatch({
 	values: SessionEditValues;
 }) {
 	if (!isValidSessionRemainingBalanceAmount(values.remainingBalanceAmount)) {
-		return neverthrowErr({ reason: "BOOKING_INVALID_INPUT" as const });
+		return err({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 
 	const changes = getSessionEditFieldChanges(session, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
-	const [sessionStartError, sessionStartAt] = getSessionStartAt(values.date, values.time, timeZone);
-
-	if (sessionStartError !== null) {
-		return neverthrowErr(sessionStartError);
-	}
-
-	return neverthrowOk({
+	return getSessionStartAt(values.date, values.time, timeZone).map((sessionStartAt) => ({
 		name: values.name,
 		phone: values.phone,
 		accountName: values.accountName,
@@ -200,7 +193,7 @@ export function buildAdminSessionUpdatePatch({
 					reminderEmailFailureCode: undefined
 				}
 			: {})
-	});
+	}));
 }
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
@@ -250,7 +243,7 @@ export async function verifySessionCanBeScheduled({
 	settings,
 	timeZone
 }: VerifySessionCanBeScheduledArgs) {
-	const [availabilityError] = checkSessionMeetsAvailabilitySettings({
+	const availabilityResult = checkSessionMeetsAvailabilitySettings({
 		date: session.date,
 		duration: session.duration,
 		settings,
@@ -258,7 +251,7 @@ export async function verifySessionCanBeScheduled({
 		timeZone
 	});
 
-	if (availabilityError !== null) {
+	if (availabilityResult.isErr()) {
 		return false;
 	}
 
@@ -286,7 +279,7 @@ export type AdminSessionUpdateError =
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
 	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" };
 
-export async function validateSessionTimingEdit({
+export function validateSessionTimingEdit({
 	bypassAvailabilitySettings = false,
 	calendar,
 	calendarIds,
@@ -296,51 +289,44 @@ export async function validateSessionTimingEdit({
 	timeZone
 }: ValidateSessionTimingEditArgs) {
 	if (!didSessionTimingChange(existing, next)) {
-		return ok({ valid: true });
+		return okAsync(null);
 	}
 
-	try {
-		if (!bypassAvailabilitySettings) {
-			const [availabilityError] = checkSessionMeetsAvailabilitySettings({
+	const settingsResult = bypassAvailabilitySettings
+		? ok(null)
+		: checkSessionMeetsAvailabilitySettings({
 				date: next.date,
 				duration: next.duration,
 				settings,
 				time: next.time,
 				timeZone
-			});
+			}).mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }));
 
-			if (availabilityError !== null) {
-				return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-			}
-		}
-
-		const busyWindows = await getBusyWindows({
-			calendar,
-			calendarIds,
-			date: next.date,
-			ignoredEvent: { calendarId: existing.googleCalendarId, eventId: existing.googleEventId },
-			timeZone
-		});
-
-		const isAvailable = isTimeSlotAvailable({
-			busyWindows,
-			date: next.date,
-			duration: next.duration,
-			eventBufferMinutes: settings.eventBufferMinutes,
-			time: next.time,
-			timeZone
-		});
-
-		if (!isAvailable) {
-			return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-		}
-
-		return ok({ valid: true });
-	} catch (error) {
-		return err({
-			reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-		});
-	}
+	return settingsResult.asyncAndThen(() =>
+		ResultAsync.fromPromise(
+			getBusyWindows({
+				calendar,
+				calendarIds,
+				date: next.date,
+				ignoredEvent: { calendarId: existing.googleCalendarId, eventId: existing.googleEventId },
+				timeZone
+			}).then((busyWindows) =>
+				isTimeSlotAvailable({
+					busyWindows,
+					date: next.date,
+					duration: next.duration,
+					eventBufferMinutes: settings.eventBufferMinutes,
+					time: next.time,
+					timeZone
+				})
+			),
+			(error) => ({
+				reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+			})
+		).andThen((isAvailable) =>
+			isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
+		)
+	);
 }
 
 function didSessionTimingChange(existing: SessionTimingValues, next: SessionTimingValues) {
@@ -354,7 +340,6 @@ function didSessionTimingChange(existing: SessionTimingValues, next: SessionTimi
 export type AdminSessionUpdateArgs = SessionEditValues & { bookingId: Id<"bookings"> };
 
 export type AdminSessionUpdateResult = {
-	ok: true;
 	googleOutcome?: "createdFromFailed" | "replacementCreated";
 };
 
@@ -375,7 +360,7 @@ function getAdminSessionEventDetails(args: AdminSessionUpdateArgs) {
 	};
 }
 
-async function promoteFailedSessionFromAdmin({
+function promoteFailedSessionFromAdmin({
 	args,
 	session,
 	client,
@@ -389,61 +374,65 @@ async function promoteFailedSessionFromAdmin({
 	ctx: ActionCtx;
 	reservation?: SessionReservation;
 	settings: SessionAvailabilitySettings;
-}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
+}): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Failed bookings are only promoted when the edited time is valid and available.
-	const canBeScheduled = await verifySessionCanBeScheduled({
-		session: { ...session, date: args.date, duration: args.duration, time: args.time },
-		calendar: client.calendar,
-		calendarIds: client.calendarIds,
-		settings,
-		timeZone: client.timeZone
-	});
-
-	if (!canBeScheduled) {
-		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-	}
-
-	// Create the Calendar event before saving so Google failures block the Convex update.
-	let googleEventId: string | undefined;
-	try {
-		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
-			date: args.date,
-			details: getAdminSessionEventDetails(args),
-			time: args.time,
+	return ResultAsync.fromSafePromise(
+		verifySessionCanBeScheduled({
+			session: { ...session, date: args.date, duration: args.duration, time: args.time },
+			calendar: client.calendar,
+			calendarIds: client.calendarIds,
+			settings,
 			timeZone: client.timeZone
-		});
-
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
+		})
+	).andThen((canBeScheduled) => {
+		if (!canBeScheduled) {
+			return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 		}
 
-		const createdEvent = await client.calendar.events.insert({
-			calendarId: client.calendarId,
-			sendUpdates: "all",
-			requestBody
-		});
-		googleEventId = createdEvent.data.id ?? undefined;
-	} catch (error) {
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
-	}
-
-	// Promote to confirmed and clear the previous failure code in the save mutation.
-	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-		...args,
-		confirmBooking: true,
-		googleCalendarId: client.calendarId,
-		googleEventId,
-		...(reservation ? { reservation } : {})
+		// Create the Calendar event before saving so Google failures block the Convex update.
+		return ResultAsync.fromPromise(
+			Promise.resolve().then(() =>
+				buildSessionCalendarEventPayload({
+					date: args.date,
+					details: getAdminSessionEventDetails(args),
+					time: args.time,
+					timeZone: client.timeZone
+				})
+			),
+			(error) => ({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") })
+		)
+			.andThen((payloadResult) =>
+				payloadResult.mapErr(() => ({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const }))
+			)
+			.andThen((requestBody) =>
+				ResultAsync.fromPromise(
+					client.calendar.events.insert({
+						calendarId: client.calendarId,
+						sendUpdates: "all",
+						requestBody
+					}),
+					(error) => ({
+						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED")
+					})
+				)
+			)
+			.andThen((createdEvent) =>
+				// Promote to confirmed and clear the previous failure code in the save mutation.
+				fromConvexResult(
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+						...args,
+						confirmBooking: true,
+						googleCalendarId: client.calendarId,
+						googleEventId: createdEvent.data.id ?? undefined,
+						...(reservation ? { reservation } : {})
+					})
+				)
+			)
+			.map(() => ({ googleOutcome: "createdFromFailed" as const }));
 	});
-
-	if (saveError !== null) {
-		return err(saveError);
-	}
-
-	return ok({ ok: true, googleOutcome: "createdFromFailed" });
 }
 
-export async function updateSessionTimingWithGoogleCalendar({
+export function updateSessionTimingWithGoogleCalendar({
 	bypassAvailabilitySettings = false,
 	session,
 	client,
@@ -463,52 +452,43 @@ export async function updateSessionTimingWithGoogleCalendar({
 	createMissingEvent?: boolean;
 	settings: SessionAvailabilitySettings;
 	time: string;
-}): Promise<
-	Result<SessionCalendarTimingUpdateResult & { sessionStartAt: number }, AdminSessionUpdateError>
+}): ResultAsync<
+	SessionCalendarTimingUpdateResult & { sessionStartAt: number },
+	AdminSessionUpdateError
 > {
-	const [sessionStartError, sessionStartAt] = getSessionStartAt(date, time, client.timeZone);
-
-	if (sessionStartError !== null) {
-		return err(sessionStartError);
-	}
-
-	const [timingError] = await validateSessionTimingEdit({
-		bypassAvailabilitySettings,
-		calendar: client.calendar,
-		calendarIds: client.calendarIds,
-		existing: {
-			date: session.date,
-			duration: session.duration,
-			googleCalendarId: session.googleCalendarId,
-			googleEventId: session.googleEventId,
-			time: session.time
-		},
-		next: { date, duration, time },
-		settings,
-		timeZone: client.timeZone
-	});
-
-	if (timingError !== null) {
-		return err(timingError);
-	}
-
-	const [calendarError, calendarUpdate] = await updateSessionCalendarEventTiming({
-		session,
-		client,
-		date,
-		details,
-		createMissingEvent,
-		time
-	});
-
-	if (calendarError !== null) {
-		return err(calendarError);
-	}
-
-	return ok({ ...calendarUpdate, sessionStartAt });
+	return getSessionStartAt(date, time, client.timeZone).asyncAndThen((sessionStartAt) =>
+		validateSessionTimingEdit({
+			bypassAvailabilitySettings,
+			calendar: client.calendar,
+			calendarIds: client.calendarIds,
+			existing: {
+				date: session.date,
+				duration: session.duration,
+				googleCalendarId: session.googleCalendarId,
+				googleEventId: session.googleEventId,
+				time: session.time
+			},
+			next: { date, duration, time },
+			settings,
+			timeZone: client.timeZone
+		})
+			.andThen(() =>
+				ResultAsync.fromSafePromise(
+					updateSessionCalendarEventTiming({
+						session,
+						client,
+						date,
+						details,
+						createMissingEvent,
+						time
+					})
+				).andThen((calendarResult) => calendarResult)
+			)
+			.map((calendarUpdate) => ({ ...calendarUpdate, sessionStartAt }))
+	);
 }
 
-async function updateConfirmedSessionGoogleEventOrCreateReplacement({
+function updateConfirmedSessionGoogleEventOrCreateReplacement({
 	args,
 	session,
 	client,
@@ -522,8 +502,8 @@ async function updateConfirmedSessionGoogleEventOrCreateReplacement({
 	ctx: ActionCtx;
 	reservation?: SessionReservation;
 	settings: SessionAvailabilitySettings;
-}): Promise<Result<AdminSessionUpdateResult | null, AdminSessionUpdateError>> {
-	const [timingUpdateError, timingUpdate] = await updateSessionTimingWithGoogleCalendar({
+}): ResultAsync<AdminSessionUpdateResult | null, AdminSessionUpdateError> {
+	return updateSessionTimingWithGoogleCalendar({
 		bypassAvailabilitySettings: true,
 		session,
 		client,
@@ -532,31 +512,23 @@ async function updateConfirmedSessionGoogleEventOrCreateReplacement({
 		duration: args.duration,
 		settings,
 		time: args.time
+	}).andThen((timingUpdate) => {
+		if (!timingUpdate.googleEventId && !timingUpdate.googleCalendarId) {
+			return ok(null);
+		}
+
+		return fromConvexResult(
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+				...args,
+				googleCalendarId: timingUpdate.googleCalendarId,
+				googleEventId: timingUpdate.googleEventId,
+				...(reservation ? { reservation } : {})
+			})
+		).map(() => ({ googleOutcome: timingUpdate.outcome }));
 	});
-
-	if (timingUpdateError !== null) {
-		return err(timingUpdateError);
-	}
-
-	if (!timingUpdate.googleEventId && !timingUpdate.googleCalendarId) {
-		return ok(null);
-	}
-
-	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-		...args,
-		googleCalendarId: timingUpdate.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId,
-		...(reservation ? { reservation } : {})
-	});
-
-	if (saveError !== null) {
-		return err(saveError);
-	}
-
-	return ok({ ok: true, googleOutcome: timingUpdate.outcome });
 }
 
-export async function updateSessionFromAdminWithGoogleCalendar({
+export function updateSessionFromAdminWithGoogleCalendar({
 	args,
 	session,
 	client,
@@ -568,55 +540,52 @@ export async function updateSessionFromAdminWithGoogleCalendar({
 	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
 	settings: SessionAvailabilitySettings;
-}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
+}): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Updates that do not move the session do not need a slot reservation.
 	if (!didSessionTimingChange(session, args)) {
 		return applyAdminSessionUpdate({ args, session, client, ctx, settings });
 	}
 
-	// Convert the requested date and time into one timestamp.
-	const [startError, sessionStartAt] = getSessionStartAt(args.date, args.time, client.timeZone);
-	if (startError !== null) return err(startError);
+	// Convert the requested date and time, then reserve it before updating Convex or Google Calendar.
+	return getSessionStartAt(args.date, args.time, client.timeZone).asyncAndThen((sessionStartAt) =>
+		fromConvexResult(
+			ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
+				bookingId: session._id,
+				duration: args.duration,
+				eventBufferMinutes: settings.eventBufferMinutes,
+				now: Date.now(),
+				sessionStartAt
+			})
+		)
+			.mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }))
+			.andThen((reservationResult) => {
+				if (reservationResult.outcome === "unavailable") {
+					return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+				}
 
-	// Reserve the new time before updating the session or Google Calendar.
-	const [reservationError, reservationResult] = await ctx.runMutation(
-		internal.sessionScheduling.reserveSessionReservation,
-		{
-			bookingId: session._id,
-			duration: args.duration,
-			eventBufferMinutes: settings.eventBufferMinutes,
-			now: Date.now(),
-			sessionStartAt
-		}
+				// Pass the reservation through so the save can prove it owns the time.
+				const reservation = reservationResult.reservation;
+				return applyAdminSessionUpdate({
+					args,
+					session,
+					client,
+					ctx,
+					reservation,
+					settings
+				}).orElse((error) =>
+					// Release the reservation if any part of the update fails.
+					ResultAsync.fromSafePromise(
+						ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
+							bookingId: session._id,
+							reservation
+						})
+					).andThen(() => err(error))
+				);
+			})
 	);
-	if (reservationError !== null || reservationResult.outcome === "unavailable") {
-		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
-	}
-
-	// Pass the reservation through so the save can prove it owns the time.
-	const reservation = reservationResult.reservation;
-	const [updateError, updateResult] = await applyAdminSessionUpdate({
-		args,
-		session,
-		client,
-		ctx,
-		reservation,
-		settings
-	});
-	// Release the reservation if any part of the update fails.
-	if (updateError !== null) {
-		await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-			bookingId: session._id,
-			reservation
-		});
-		return err(updateError);
-	}
-
-	// The successful save clears the reservation as part of the same mutation.
-	return ok(updateResult);
 }
 
-async function applyAdminSessionUpdate({
+function applyAdminSessionUpdate({
 	args,
 	session,
 	client,
@@ -630,7 +599,7 @@ async function applyAdminSessionUpdate({
 	ctx: ActionCtx;
 	reservation?: SessionReservation;
 	settings: SessionAvailabilitySettings;
-}): Promise<Result<AdminSessionUpdateResult, AdminSessionUpdateError>> {
+}): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Failed checkouts have no Calendar event, so an admin edit creates one and confirms the session.
 	if (session.status === "failed") {
 		return promoteFailedSessionFromAdmin({ args, session, client, ctx, reservation, settings });
@@ -638,7 +607,7 @@ async function applyAdminSessionUpdate({
 
 	// Pending, expired, and abandoned bookings save in Convex only; no Google event sync.
 	if (session.status !== "confirmed" && session.status !== "email_failed") {
-		const [timingError] = await validateSessionTimingEdit({
+		return validateSessionTimingEdit({
 			bypassAvailabilitySettings: true,
 			calendar: client.calendar,
 			calendarIds: client.calendarIds,
@@ -652,50 +621,36 @@ async function applyAdminSessionUpdate({
 			next: { date: args.date, duration: args.duration, time: args.time },
 			settings,
 			timeZone: client.timeZone
-		});
-
-		if (timingError !== null) {
-			return err(timingError);
-		}
-
-		const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-			...args,
-			...(reservation ? { reservation } : {})
-		});
-
-		if (saveError !== null) {
-			return err(saveError);
-		}
-
-		return ok({ ok: true });
+		})
+			.andThen(() =>
+				fromConvexResult(
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+						...args,
+						...(reservation ? { reservation } : {})
+					})
+				)
+			)
+			.map(() => ({}));
 	}
 
 	// Update the linked Google event. If it is missing/cancelled, this creates and saves a replacement.
-	const [replacementError, replacementOutcome] =
-		await updateConfirmedSessionGoogleEventOrCreateReplacement({
-			args,
-			session,
-			client,
-			ctx,
-			reservation,
-			settings
-		});
-	if (replacementError !== null) {
-		return err(replacementError);
-	}
+	return updateConfirmedSessionGoogleEventOrCreateReplacement({
+		args,
+		session,
+		client,
+		ctx,
+		reservation,
+		settings
+	}).andThen((replacementOutcome) => {
+		if (replacementOutcome) {
+			return ok(replacementOutcome);
+		}
 
-	if (replacementOutcome) {
-		return ok(replacementOutcome);
-	}
-
-	const [saveError] = await ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-		...args,
-		...(reservation ? { reservation } : {})
+		return fromConvexResult(
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+				...args,
+				...(reservation ? { reservation } : {})
+			})
+		).map(() => ({}));
 	});
-
-	if (saveError !== null) {
-		return err(saveError);
-	}
-
-	return ok({ ok: true });
 }

@@ -35,20 +35,27 @@ export function checkGoogleCalendarAvailabilityRateLimitResult(ctx: ActionCtx, k
 	});
 }
 
-export async function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
-	const globalRateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmitGlobal");
-	const rateLimitStatus = await rateLimiter.limit(ctx, "bookingSubmit", { key });
+export function checkBookingSubmitRateLimitResult(ctx: RateLimitCtx, key: string) {
+	return ResultAsync.fromSafePromise(
+		Promise.all([
+			rateLimiter.limit(ctx, "bookingSubmitGlobal"),
+			rateLimiter.limit(ctx, "bookingSubmit", { key })
+		])
+	).andThen(([globalRateLimitStatus, rateLimitStatus]) => {
+		if (!globalRateLimitStatus.ok) {
+			return err({
+				reason: "BOOKING_RATE_LIMITED" as const,
+				retryAfter: globalRateLimitStatus.retryAfter
+			});
+		}
 
-	if (!globalRateLimitStatus.ok) {
-		return tupleErr({
-			reason: "BOOKING_RATE_LIMITED",
-			retryAfter: globalRateLimitStatus.retryAfter
-		});
-	}
+		if (!rateLimitStatus.ok) {
+			return err({
+				reason: "BOOKING_RATE_LIMITED" as const,
+				retryAfter: rateLimitStatus.retryAfter
+			});
+		}
 
-	if (!rateLimitStatus.ok) {
-		return tupleErr({ reason: "BOOKING_RATE_LIMITED", retryAfter: rateLimitStatus.retryAfter });
-	}
-
-	return tupleOk({ limited: false });
+		return ok(null);
+	});
 }

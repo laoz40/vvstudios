@@ -1,8 +1,8 @@
 import { ResultAsync } from "neverthrow";
 import { getGoogleCalendarClient } from "./googleCalendarClient";
 import {
-	createSessionCalendarEventResult,
-	updateSessionCalendarEventTimingResult,
+	createSessionCalendarEvent,
+	updateSessionCalendarEventTiming,
 	type SessionCalendarEventDetails,
 	type SessionCalendarEventRecord
 } from "./sessionCalendarEvents";
@@ -33,7 +33,7 @@ export function updatePackageCalendarEvent(
 	details: PackageCalendarDetails
 ) {
 	return ResultAsync.fromSafePromise(
-		updateSessionCalendarEventTimingResult({
+		updateSessionCalendarEventTiming({
 			session,
 			client,
 			createMissingEvent: true,
@@ -70,7 +70,7 @@ export function createPackageCalendarEvent(
 	details: PackageCalendarDetails
 ) {
 	return ResultAsync.fromSafePromise(
-		createSessionCalendarEventResult({
+		createSessionCalendarEvent({
 			client,
 			date: details.date,
 			details: {

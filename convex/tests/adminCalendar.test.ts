@@ -114,7 +114,7 @@ describe("admin booking Calendar edits", () => {
 		const result = await updateBooking(t, bookingId);
 		const booking = await readBooking(t, bookingId);
 
-		expect(result).toEqual([null, { ok: true }]);
+		expect(result).toEqual([null, {}]);
 		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.patchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ calendarId: "saved-calendar", eventId: "saved-event" })
@@ -138,7 +138,7 @@ describe("admin booking Calendar edits", () => {
 
 		const result = await updateBooking(t, bookingId);
 
-		expect(result).toEqual([null, { googleOutcome: "replacementCreated", ok: true }]);
+		expect(result).toEqual([null, { googleOutcome: "replacementCreated" }]);
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			googleCalendarId: "primary-calendar",
@@ -158,7 +158,7 @@ describe("admin failed booking recovery", () => {
 			const result = await updateBooking(t, bookingId);
 			const booking = await readBooking(t, bookingId);
 
-			expect(result).toEqual([null, { googleOutcome: "createdFromFailed", ok: true }]);
+			expect(result).toEqual([null, { googleOutcome: "createdFromFailed" }]);
 			expect(booking).toMatchObject({
 				status: "confirmed",
 				bookingConfirmedAt: now,
@@ -253,7 +253,7 @@ describe("admin booking state integrity", () => {
 			})
 		);
 
-		expect(recalculationResult).toEqual([null, { ok: true }]);
+		expect(recalculationResult).toEqual([null, {}]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			duration: "2h",
 			addons: ["Essential Edit", "Clips Package"],
@@ -267,7 +267,7 @@ describe("admin booking state integrity", () => {
 			adminBookingValues(bookingId, { remainingBalanceAmount: 111.25 })
 		);
 
-		expect(overrideResult).toEqual([null, { ok: true }]);
+		expect(overrideResult).toEqual([null, {}]);
 		expect((await readBooking(t, bookingId))?.remainingBalanceAmount).toBe(111.25);
 	});
 
