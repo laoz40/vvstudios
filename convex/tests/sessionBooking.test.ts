@@ -15,16 +15,22 @@
  *    A valid request must create one pending booking, open one Stripe checkout, and
  *    save the Stripe session ID on the same booking.
  *
- * 4. Open checkout closure
+ * 4. Unexpected Stripe creation failure
+ *    Provider rejection must escape the expected business-error channel.
+ *
+ * 5. Open checkout closure
  *    Closing an open checkout must expire its Stripe session and mark only its linked
  *    pending booking as abandoned.
  *
- * 5. Completed checkout closure
+ * 6. Completed checkout closure
  *    A completed Stripe session must leave its pending booking untouched so payment
  *    completion can continue through the webhook flow.
  *
- * 6. Mismatched checkout closure
+ * 7. Mismatched checkout closure
  *    A session that does not belong to the supplied booking must not abandon it.
+ *
+ * 8. Stripe closure failure
+ *    Provider rejection while closing must return its stable expected failure.
  *
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
  */
@@ -184,6 +190,16 @@ describe("single-session checkout creation", () => {
 			})
 		);
 	});
+
+	test("allows an unexpected Stripe creation failure to reject", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+		providerFakes.createCheckoutSession.mockRejectedValue(new Error("Stripe unavailable"));
+
+		await expect(t.action(api.stripe.createEmbeddedCheckoutSession, validBooking)).rejects.toThrow(
+			"Stripe unavailable"
+		);
+	});
 });
 
 describe("single-session checkout closure", () => {
@@ -228,6 +244,20 @@ describe("single-session checkout closure", () => {
 		});
 
 		expect(result).toEqual([{ reason: "STRIPE_SESSION_MISMATCH" }, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "pending_payment" });
+	});
+
+	test("returns the expected close failure when Stripe rejects", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedPendingBooking(t, "cs_unavailable");
+		providerFakes.retrieveCheckoutSession.mockRejectedValue(new Error("Stripe unavailable"));
+
+		const result = await t.action(api.stripe.closeEmbeddedCheckoutSession, {
+			bookingId,
+			stripeSessionId: "cs_unavailable"
+		});
+
+		expect(result).toEqual([{ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" }, null]);
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "pending_payment" });
 	});
 });

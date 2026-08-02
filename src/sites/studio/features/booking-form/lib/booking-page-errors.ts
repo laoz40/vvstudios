@@ -63,7 +63,6 @@ export const startCheckoutToastMessages = {
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
 	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
 	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
-	STRIPE_SESSION_LINK_FAILED: bookingPageErrorMessages.START_CHECKOUT_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
 
