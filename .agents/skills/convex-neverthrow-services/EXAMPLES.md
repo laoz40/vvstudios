@@ -59,20 +59,16 @@ Use the same boundary for queries. Query services accept `QueryCtx`, perform no 
 Actions cannot use `ctx.db`. Keep atomic persistence in an internal mutation and let the action service orchestrate it.
 
 ```ts
-import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
+import { fromConvexResult } from "#convex/lib/result";
 
 export function completeBookingService(ctx: ActionCtx, bookingId: string) {
-  return ResultAsync.fromSafePromise(
+  return fromConvexResult(
     ctx.runMutation(internal.bookings.claimCompletion, { bookingId })
   )
-    .andThen(([claimError, claim]) => {
-      if (claimError !== null) return err(claimError);
-      return ok(claim);
-    })
-    .andThen((claim) => sendConfirmationEmail(claim))
-    .map(() => ({ completed: true as const }));
+    .andThen(sendConfirmationEmail)
+    .map(() => null);
 }
 ```
 
@@ -141,6 +137,25 @@ service.match(
   (value) => value,
   (error) => { throw new ConvexError(error); }
 );
+```
+
+### Manually re-propagating errors
+
+```ts
+// Wrong: mechanical tuple/isErr handling leaves legacy flow in place.
+const result = validateInput(args);
+if (result.isErr()) return err(result.error);
+return ok(transform(result.value));
+
+// Right: compose native Results.
+return validateInput(args).map(transform);
+```
+
+### Returning unused success flags
+
+```ts
+return ok({ valid: true }); // Wrong when no caller reads it.
+return ok(null);
 ```
 
 ### Returning an error after a write
