@@ -86,7 +86,7 @@ beforeEach(() => {
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "replacement-event" } });
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
 	providerFakes.patchEvent.mockResolvedValue({ data: {} });
-	providerFakes.sendInvoiceEmails.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendInvoiceEmails.mockResolvedValue(ok(null));
 });
 
 describe("customer booking rescheduling", () => {

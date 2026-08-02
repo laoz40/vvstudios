@@ -66,13 +66,13 @@ export async function finishRescheduledSession(
 		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
 		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
 	};
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		reschedule: { originalDate: session.date, originalTime: session.time },
 		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 
-	if (emailError !== null) {
+	if (emailResult.isErr()) {
 		return ok({ bookingId: session._id, warning: "INVOICE_SEND_FAILED" as const });
 	}
 

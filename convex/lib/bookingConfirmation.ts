@@ -1,12 +1,15 @@
-import { err, ok, type Result as NeverthrowResult } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Result as NeverthrowResult } from "neverthrow";
 import type { Result } from "#/lib/result";
 import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
-import type { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
+import { sendBookingInvoiceEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
+import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import {
+	buildEventWindow,
+	type SessionAvailabilitySettings
+} from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
 
 type BookingClaimStatus =
@@ -18,6 +21,50 @@ type BookingClaimStatusError =
 	| { reason: "BOOKING_INVALID_STATUS"; status: "cancelled" | "abandoned" }
 	| { reason: "BOOKING_EXPIRED" }
 	| { reason: "BOOKING_FAILED" };
+
+function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
+	if (session.multiBookingPackageId !== undefined) {
+		return okAsync<string | undefined>(undefined);
+	}
+
+	return createRescheduleUrlForSession(ctx, session).map(
+		(rescheduleUrl): string | undefined => rescheduleUrl
+	);
+}
+
+export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<"bookings">) {
+	const { timeZone } = getGoogleCalendarClient();
+
+	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
+		({ startDateTime }) =>
+			getReminderRescheduleUrl(ctx, session).andThen((rescheduleUrl) =>
+				ResultAsync.fromSafePromise(
+					sendSessionReminderEmail({
+						name: session.name,
+						email: session.email,
+						date: session.date,
+						startDateTime,
+						time: session.time,
+						timeZone,
+						service: session.service,
+						duration: session.duration,
+						addons: session.addons,
+						rescheduleUrl,
+						isPackageSession: session.multiBookingPackageId !== undefined
+					})
+				)
+					.andThen((emailResult) => emailResult)
+					.mapErr((emailError) => {
+						console.error("Booking reminder email send failed", {
+							bookingId: session._id,
+							bookingEmail: session.email,
+							reason: emailError.reason
+						});
+						return { reason: "RESEND_SEND_FAILED" as const };
+					})
+			)
+	);
+}
 
 export function normalizeBookingId(ctx: MutationCtx, bookingId: string) {
 	// Stripe metadata provides a plain string, so validate it before database access.
@@ -173,27 +220,27 @@ export async function sendConfirmedBookingInvoice(
 	settings: SessionAvailabilitySettings
 ) {
 	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
-	const [linkError, rescheduleUrl] = await createRescheduleUrlForSession(ctx, session);
+	const linkResult = await createRescheduleUrlForSession(ctx, session);
 
-	if (linkError !== null) {
+	if (linkResult.isErr()) {
 		await recordInvoiceEmailFailure(ctx, {
 			bookingId: session._id,
 			message: "Booking invoice reschedule link create failed",
-			reason: linkError.reason
+			reason: linkResult.error.reason
 		});
 		return;
 	}
 
-	const [emailError] = await sendBookingInvoiceEmailsForBooking(session, {
+	const emailResult = await sendBookingInvoiceEmailsForBooking(session, {
 		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl
+		rescheduleUrl: linkResult.value
 	});
 
-	if (emailError !== null) {
+	if (emailResult.isErr()) {
 		await recordInvoiceEmailFailure(ctx, {
 			bookingId: session._id,
 			message: "Booking invoice email failed during booking confirmation",
-			reason: emailError.reason
+			reason: emailResult.error.reason
 		});
 	}
 }

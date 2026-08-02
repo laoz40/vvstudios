@@ -38,6 +38,7 @@
  * Stripe, Google Calendar, and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { ok, okAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -67,9 +68,7 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 vi.mock("#convex/sessionReschedule", () => ({
-	createRescheduleUrlForSession: vi
-		.fn()
-		.mockResolvedValue([null, "https://example.com/reschedule/test-token"])
+	createRescheduleUrlForSession: vi.fn(() => okAsync("https://example.com/reschedule/test-token"))
 }));
 
 vi.mock("stripe", () => ({
@@ -90,7 +89,7 @@ beforeEach(() => {
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "google-event-1" } });
-	providerFakes.sendInvoiceEmails.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendInvoiceEmails.mockResolvedValue(ok(null));
 });
 
 describe("booking payment completion", () => {
@@ -124,8 +123,8 @@ describe("booking payment completion", () => {
 			bookingId
 		});
 
-		expect(firstCompletion).toEqual([null, { completed: true, outcome: "completed" }]);
-		expect(replayedCompletion).toEqual([null, { completed: true, outcome: "already_completed" }]);
+		expect(firstCompletion).toEqual([null, { outcome: "completed" }]);
+		expect(replayedCompletion).toEqual([null, { outcome: "already_completed" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			status: "confirmed",
 			googleCalendarId: "primary-calendar",
@@ -152,7 +151,7 @@ describe("booking payment completion", () => {
 
 		const result = await t.action(internal.googleCalendar.completeClaimedSession, { bookingId });
 
-		expect(result).toEqual([null, { completed: false, outcome: "booking_time_unavailable" }]);
+		expect(result).toEqual([null, { outcome: "booking_time_unavailable" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			status: "failed",
 			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE"
@@ -168,7 +167,7 @@ describe("booking payment completion", () => {
 
 		const result = await t.action(internal.googleCalendar.completeClaimedSession, { bookingId });
 
-		expect(result).toEqual([null, { completed: false, outcome: "google_calendar_create_failed" }]);
+		expect(result).toEqual([null, { outcome: "google_calendar_create_failed" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			status: "failed",
 			bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
@@ -246,11 +245,8 @@ describe("booking payment completion", () => {
 			readBooking(t, secondBookingId)
 		]);
 
-		expect(results).toContainEqual([null, { completed: true, outcome: "completed" }]);
-		expect(results).toContainEqual([
-			null,
-			{ completed: false, outcome: "booking_time_unavailable" }
-		]);
+		expect(results).toContainEqual([null, { outcome: "completed" }]);
+		expect(results).toContainEqual([null, { outcome: "booking_time_unavailable" }]);
 		expect(bookings.filter((booking) => booking?.status === "confirmed")).toHaveLength(1);
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);

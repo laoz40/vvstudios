@@ -65,7 +65,10 @@ async function handleCompletedCheckout(
 		return new Response("completion failed", { status: 200 });
 	}
 
-	if (!completionResult.completed) {
+	if (
+		completionResult.outcome !== "completed" &&
+		completionResult.outcome !== "already_completed"
+	) {
 		return new Response(completionResult.outcome, { status: 200 });
 	}
 

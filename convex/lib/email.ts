@@ -314,8 +314,8 @@ export async function sendBookingInvoiceEmailsForBooking(
 		rescheduleUrl?: string;
 	}
 ): Promise<
-	Result<
-		{ sent: true },
+	NeverthrowResult<
+		null,
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
@@ -326,7 +326,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 	);
 
 	if (artifactsError !== null) {
-		return err(artifactsError);
+		return neverthrowErr(artifactsError);
 	}
 
 	const { artifacts, booking: parsedBooking } = artifactsResult;
@@ -335,7 +335,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 
 	if (pdfError !== null) {
 		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
-		return err({ reason: "INVOICE_SEND_FAILED" });
+		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	const [invoiceEmailError] = await sendEmail({
@@ -351,7 +351,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 			bookingEmail: booking.email,
 			reason: invoiceEmailError.reason
 		});
-		return err({ reason: "INVOICE_SEND_FAILED" });
+		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	const [hostEmailError] = await sendSessionHostDetailsEmail({
@@ -377,7 +377,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 		});
 	}
 
-	return ok({ sent: true });
+	return neverthrowOk(null);
 }
 
 export async function sendPackageAdjustmentInvoiceEmail(
@@ -671,11 +671,13 @@ export async function sendSessionReminderEmail({
 		})
 	);
 
-	return await sendEmail({
+	const [emailError] = await sendEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatSessionDateShort(date)}`,
 		html
 	});
+
+	return emailError === null ? neverthrowOk(null) : neverthrowErr(emailError);
 }
 
 export function getHostEmails() {

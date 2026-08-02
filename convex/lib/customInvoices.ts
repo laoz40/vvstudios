@@ -1,6 +1,7 @@
-import { err, ok } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import { err, ok, okAsync, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
@@ -8,6 +9,23 @@ type CustomInvoiceInsert = Omit<
 	Doc<"customInvoices">,
 	"_id" | "_creationTime" | "invoiceNumber" | "createdAt"
 >;
+
+export function getSelectedBookingCustomInvoice(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	customInvoiceId?: Id<"customInvoices">
+): ResultAsync<Doc<"customInvoices"> | null | undefined, never> {
+	if (customInvoiceId === undefined) {
+		return okAsync(undefined);
+	}
+
+	return okOrThrow(
+		ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSource, {
+			bookingId,
+			customInvoiceId
+		})
+	);
+}
 
 export function validateCustomTotalDueAmount(amount: number | undefined) {
 	if (amount !== undefined && (!Number.isFinite(amount) || amount < 0)) {

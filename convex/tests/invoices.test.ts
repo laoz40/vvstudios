@@ -24,6 +24,7 @@
  * Email delivery and reschedule-link creation are replaced with fakes, so no provider is called.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { ok, okAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import {
@@ -42,7 +43,7 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 vi.mock("#convex/sessionReschedule", () => ({
-	createRescheduleUrlForSession: vi.fn().mockResolvedValue([null, "https://example.com/reschedule"])
+	createRescheduleUrlForSession: vi.fn(() => okAsync("https://example.com/reschedule"))
 }));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
@@ -54,7 +55,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendInvoiceEmails.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendInvoiceEmails.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -370,7 +371,7 @@ describe("session invoice email selection", () => {
 			.withIdentity(adminIdentity)
 			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
 
-		expect(result).toEqual([null, { sent: true }]);
+		expect(result).toEqual([null, null]);
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
 			expect.objectContaining({ _id: bookingId }),
 			expect.objectContaining({ customInvoice: undefined })
@@ -389,7 +390,7 @@ describe("session invoice email selection", () => {
 
 		const [sentBooking, sentOptions] = providerFakes.sendInvoiceEmails.mock.calls[0];
 
-		expect(result).toEqual([null, { sent: true }]);
+		expect(result).toEqual([null, null]);
 		expect(sentBooking).toMatchObject({ _id: bookingId });
 		expect(sentOptions.customInvoice).toMatchObject({
 			_id: customInvoiceId,

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { err, ok, type Result } from "#/lib/result";
 import { internal } from "./_generated/api";
 import {
@@ -14,6 +15,7 @@ import type { Doc } from "./_generated/dataModel";
 import { env } from "./env";
 import { getSessionFromDb } from "./lib/sessionLookup";
 import { getAdminIdentity } from "./lib/auth";
+import { fromConvexResult } from "./lib/result";
 import {
 	buildRescheduleUrl,
 	createActiveRescheduleLinkForSession,
@@ -63,18 +65,18 @@ function isSessionReschedulable(session: Doc<"bookings">) {
 	);
 }
 
-export async function createRescheduleUrlForSession(ctx: ActionCtx, session: Doc<"bookings">) {
+export function createRescheduleUrlForSession(
+	ctx: ActionCtx,
+	session: Doc<"bookings">
+): NeverthrowResultAsync<string, { reason: "BOOKING_NOT_FOUND" }> {
 	const now = Date.now();
-	const [linkError, link] = await ctx.runMutation(
-		internal.sessionReschedule.createActiveRescheduleLink,
-		{ bookingId: session._id, expiresAt: session.sessionStartAt, now }
-	);
-
-	if (linkError !== null) {
-		return err({ reason: "RESCHEDULE_LINK_CREATE_FAILED" });
-	}
-
-	return ok(getRescheduleUrlForToken(link.token));
+	return fromConvexResult(
+		ctx.runMutation(internal.sessionReschedule.createActiveRescheduleLink, {
+			bookingId: session._id,
+			expiresAt: session.sessionStartAt,
+			now
+		})
+	).map(({ token }) => getRescheduleUrlForToken(token));
 }
 
 export const createPublicFailedSessionRescheduleLink = mutation({

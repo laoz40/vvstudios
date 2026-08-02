@@ -17,6 +17,7 @@
  *    Email delivery is replaced with controlled fakes, so no real messages are sent.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { err, ok } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -55,7 +56,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendBookingReminder.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendBookingReminder.mockResolvedValue(ok(null));
 	providerFakes.sendPackageExpiryReminder.mockResolvedValue([null, { sent: true }]);
 	providerFakes.sendPackagePaymentReminder.mockResolvedValue([null, { sent: true }]);
 });
@@ -164,8 +165,8 @@ describe("reminder claims and delivery results", () => {
 			status: "pending_payment"
 		});
 		providerFakes.sendBookingReminder
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 		providerFakes.sendPackagePaymentReminder
 			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
 			.mockResolvedValueOnce([null, { sent: true }]);
