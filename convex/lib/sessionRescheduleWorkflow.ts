@@ -60,6 +60,10 @@ export function lockAndReserveReschedule(
 ) {
 	const lockedAt = Date.now();
 
+	const unlockAndReturnReservationError = <Error extends { reason: string }>(
+		reservationError: Error
+	) => releaseRescheduleLink(ctx, details.link._id, lockedAt).andThen(() => err(reservationError));
+
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionReschedule.lockRescheduleLink, {
 			linkId: details.link._id,
@@ -74,34 +78,62 @@ export function lockAndReserveReschedule(
 				now: Date.now(),
 				sessionStartAt
 			})
-		).andThen((reservationResult) =>
-			reservationResult.outcome === "unavailable"
-				? ResultAsync.fromSafePromise(
-						ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
-							linkId: details.link._id,
-							lockedAt
-						})
-					).andThen(() => err({ reason: "BOOKING_TIME_UNAVAILABLE" as const }))
-				: ok({
-						link: details.link,
-						lockedAt,
-						reservation: reservationResult.reservation,
-						session: details.session,
-						settings
-					})
 		)
+			.andThen((reservationResult) =>
+				reservationResult.outcome === "unavailable"
+					? err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
+					: ok({
+							link: details.link,
+							lockedAt,
+							reservation: reservationResult.reservation,
+							session: details.session,
+							settings
+						})
+			)
+			.orElse(unlockAndReturnReservationError)
 	);
 }
 
-async function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
-	await ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-		bookingId: state.session._id,
-		reservation: state.reservation
-	});
-	await ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
-		linkId: state.link._id,
-		lockedAt: state.lockedAt
-	});
+function releaseRescheduleLink(
+	ctx: ActionCtx,
+	linkId: Doc<"bookingRescheduleLinks">["_id"],
+	lockedAt: number
+) {
+	return ResultAsync.fromPromise(
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, { linkId, lockedAt })
+		).match(
+			() => null,
+			(error) => {
+				console.error("Reschedule link unlock failed", { linkId, error });
+				return null;
+			}
+		),
+		(error) => error
+	)
+		.mapErr((error) => {
+			console.error("Reschedule link unlock failed", { linkId, error });
+			return error;
+		})
+		.orElse(() => ok(null));
+}
+
+function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
+	return ResultAsync.fromPromise(
+		ctx
+			.runMutation(internal.sessionScheduling.clearSessionReservation, {
+				bookingId: state.session._id,
+				reservation: state.reservation
+			})
+			.then(() => null),
+		(error) => error
+	)
+		.mapErr((error) => {
+			console.error("Session reservation cleanup failed", { bookingId: state.session._id, error });
+			return error;
+		})
+		.orElse(() => ok(null))
+		.andThen(() => releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
 }
 
 export function updateRescheduleCalendar(
@@ -130,9 +162,7 @@ export function updateRescheduleCalendar(
 	)
 		.andThen((result) => result)
 		.map((timingUpdate) => ({ ...state, timingUpdate }))
-		.orElse((error) =>
-			ResultAsync.fromSafePromise(clearReservationThenUnlock(ctx, state)).andThen(() => err(error))
-		);
+		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }
 
 export function saveRescheduledSession(
@@ -159,7 +189,5 @@ export function saveRescheduledSession(
 		})
 	)
 		.map(() => state)
-		.orElse((error) =>
-			ResultAsync.fromSafePromise(clearReservationThenUnlock(ctx, state)).andThen(() => err(error))
-		);
+		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }

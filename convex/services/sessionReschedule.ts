@@ -182,7 +182,7 @@ export function markActiveRescheduleLinksUsedForSessionService(
 				ctx,
 				bookingId: args.bookingId,
 				now: args.now
-			}).then(() => ({ used: true as const }))
+			}).then(() => null)
 		)
 	);
 }
@@ -205,7 +205,7 @@ export function unlockRescheduleLinkService(
 					usedAt: undefined,
 					...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {})
 				})
-				.then(() => ({ reactivated: true as const }))
+				.then(() => null)
 		);
 	});
 }
@@ -220,7 +220,7 @@ export function lockRescheduleLinkService(
 			okOrThrow(
 				ctx.db
 					.patch(args.linkId, { status: "used", usedAt: args.now })
-					.then(() => ({ used: true as const }))
+					.then(() => null)
 			)
 		);
 }
