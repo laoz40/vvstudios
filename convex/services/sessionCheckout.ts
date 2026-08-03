@@ -1,4 +1,4 @@
-import { ok, type ResultAsync } from "neverthrow";
+import { err, ok, type ResultAsync } from "neverthrow";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -55,16 +55,29 @@ export function createPendingSessionService(
 			)
 			// Convert the validated local date and time to the stored timestamp.
 			.andThen(() => getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE))
-			// Create the pending booking only after every expected failure has been checked.
+			// Check and insert in one transaction so concurrent checkouts cannot claim the same time.
 			.andThen((sessionStartAt) =>
 				okOrThrow(
-					ctx.db.insert("bookings", {
-						...args,
-						sessionStartAt,
-						status: "pending_payment",
-						pendingPaymentCreatedAt: Date.now()
-					})
-				).map((bookingId) => ({ bookingId }))
+					ctx.db
+						.query("bookings")
+						.withIndex("by_status_and_sessionStartAt", (query) =>
+							query.eq("status", "pending_payment").eq("sessionStartAt", sessionStartAt)
+						)
+						.first()
+				).andThen((pendingBooking) => {
+					if (pendingBooking !== null) {
+						return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+					}
+
+					return okOrThrow(
+						ctx.db.insert("bookings", {
+							...args,
+							sessionStartAt,
+							status: "pending_payment",
+							pendingPaymentCreatedAt: Date.now()
+						})
+					).map((bookingId) => ({ bookingId }));
+				})
 			)
 	);
 }

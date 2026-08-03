@@ -7,7 +7,10 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { getAdminIdentity } from "#convex/lib/auth";
 import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
 import { getBusyWindows } from "#convex/lib/googleCalendarAvailability";
-import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import {
+	getGoogleCalendarClient,
+	loadGoogleCalendarClient
+} from "#convex/lib/googleCalendarClient";
 import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
 import {
 	getSessionStartAt,
@@ -169,8 +172,6 @@ export function rescheduleSessionService(
 	{ bookingId: Id<"bookings">; warning?: "INVOICE_SEND_FAILED" },
 	RescheduleSessionError
 > {
-	const calendarClient = getGoogleCalendarClient();
-
 	return (
 		// Check that the link is valid and apply the customer's submit rate limit.
 		fromConvexTuple(
@@ -192,18 +193,30 @@ export function rescheduleSessionService(
 				}))
 			)
 			.andThen(({ details, settings }) =>
+				loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((calendarClient) => ({
+					calendarClient,
+					details,
+					settings
+				}))
+			)
+			.andThen(({ calendarClient, details, settings }) =>
 				validateRescheduleTiming(args, details.session, settings, calendarClient).andThen(() =>
 					getSessionStartAt(args.date, args.time, calendarClient.timeZone).map(
-						(sessionStartAt) => ({ details, sessionStartAt, settings })
+						(sessionStartAt) => ({ calendarClient, details, sessionStartAt, settings })
 					)
 				)
 			)
 			// Lock the link and reserve the target before changing Google Calendar.
-			.andThen(({ details, sessionStartAt, settings }) =>
-				lockAndReserveReschedule(ctx, details, sessionStartAt, settings)
+			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
+				lockAndReserveReschedule(ctx, details, sessionStartAt, settings).map((state) => ({
+					calendarClient,
+					state
+				}))
 			)
 			// Move Calendar first; clear the reservation and then unlock on provider failure.
-			.andThen((state) => updateRescheduleCalendar(ctx, args, state, calendarClient))
+			.andThen(({ calendarClient, state }) =>
+				updateRescheduleCalendar(ctx, args, state, calendarClient)
+			)
 			// Persist the new time; preserve the same compensation ordering on save failure.
 			.andThen((state) => saveRescheduledSession(ctx, args, state))
 			// Unlock after persistence, then send the updated invoice email.
@@ -244,16 +257,17 @@ export function updateSessionFromAdminService(
 					settings
 				}))
 			)
-			// Apply the edit while preserving reservation and Calendar compensation behavior.
 			.andThen(({ session, settings }) =>
+				loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+					client,
+					session,
+					settings
+				}))
+			)
+			// Apply the edit while preserving reservation and Calendar compensation behavior.
+			.andThen(({ client, session, settings }) =>
 				ResultAsync.fromSafePromise(
-					updateSessionFromAdminWithGoogleCalendar({
-						args,
-						session,
-						client: getGoogleCalendarClient(),
-						ctx,
-						settings
-					})
+					updateSessionFromAdminWithGoogleCalendar({ args, session, client, ctx, settings })
 				).andThen((result) => result)
 			)
 	);
@@ -267,11 +281,17 @@ export function deleteSessionFromAdminService(
 		getAdminIdentity(ctx)
 			// Load the booking only after admin authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, bookingId))
-			// Delete the provider event before cancelling the booking in Convex.
 			.andThen((session) =>
-				ResultAsync.fromSafePromise(
-					deleteSessionCalendarEvent({ session, client: getGoogleCalendarClient() })
-				).andThen((result) => result)
+				loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map((client) => ({
+					client,
+					session
+				}))
+			)
+			// Delete the provider event before cancelling the booking in Convex.
+			.andThen(({ client, session }) =>
+				ResultAsync.fromSafePromise(deleteSessionCalendarEvent({ session, client })).andThen(
+					(result) => result
+				)
 			)
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>

@@ -172,25 +172,27 @@ export function saveRescheduledSession(
 		timingUpdate: { googleCalendarId?: string; googleEventId?: string; sessionStartAt: number };
 	}
 ) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
-			bookingId: state.session._id,
-			date: args.date,
-			time: args.time,
-			sessionStartAt: state.timingUpdate.sessionStartAt,
-			confirmBooking: state.session.status === "failed",
-			reservation: state.reservation,
-			...(state.timingUpdate.googleCalendarId
-				? { googleCalendarId: state.timingUpdate.googleCalendarId }
-				: {}),
-			...(state.timingUpdate.googleEventId
-				? { googleEventId: state.timingUpdate.googleEventId }
-				: {})
-		})
-	)
-		.map(() => state)
-		// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time
-		// while the booking keeps the old time. Mark the booking with a Calendar sync
-		// warning so an admin can compare it with Calendar and update it manually.
-		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
+	return (
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
+				bookingId: state.session._id,
+				date: args.date,
+				time: args.time,
+				sessionStartAt: state.timingUpdate.sessionStartAt,
+				confirmBooking: state.session.status === "failed",
+				reservation: state.reservation,
+				...(state.timingUpdate.googleCalendarId
+					? { googleCalendarId: state.timingUpdate.googleCalendarId }
+					: {}),
+				...(state.timingUpdate.googleEventId
+					? { googleEventId: state.timingUpdate.googleEventId }
+					: {})
+			})
+		)
+			.map(() => state)
+			// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time
+			// while the booking keeps the old time. Mark the booking with a Calendar sync
+			// warning so an admin can compare it with Calendar and update it manually.
+			.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)))
+	);
 }

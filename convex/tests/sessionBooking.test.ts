@@ -15,21 +15,24 @@
  *    A valid request must create one pending booking, open one Stripe checkout, and
  *    save the Stripe session ID on the same booking.
  *
- * 4. Unexpected Stripe creation failure
+ * 4. Concurrent checkout creation
+ *    Two requests for the same time must create only one payable pending booking.
+ *
+ * 5. Unexpected Stripe creation failure
  *    Provider rejection must escape the expected business-error channel.
  *
- * 5. Open checkout closure
+ * 6. Open checkout closure
  *    Closing an open checkout must expire its Stripe session and mark only its linked
  *    pending booking as abandoned.
  *
- * 6. Completed checkout closure
+ * 7. Completed checkout closure
  *    A completed Stripe session must leave its pending booking untouched so payment
  *    completion can continue through the webhook flow.
  *
- * 7. Mismatched checkout closure
+ * 8. Mismatched checkout closure
  *    A session that does not belong to the supplied booking must not abandon it.
  *
- * 8. Stripe closure failure
+ * 9. Stripe closure failure
  *    Provider rejection while closing must return its stable expected failure.
  *
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
@@ -189,6 +192,21 @@ describe("single-session checkout creation", () => {
 				metadata: { bookingId: bookings[0]?._id }
 			})
 		);
+	});
+
+	test("allows only one concurrent checkout for the same session time", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+
+		const results = await Promise.all([
+			t.action(api.stripe.createEmbeddedCheckoutSession, validBooking),
+			t.action(api.stripe.createEmbeddedCheckoutSession, validBooking)
+		]);
+
+		expect(results).toContainEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
+		expect(results.filter(([error]) => error === null)).toHaveLength(1);
+		expect(await listBookings(t)).toHaveLength(1);
+		expect(providerFakes.createCheckoutSession).toHaveBeenCalledTimes(1);
 	});
 
 	test("allows an unexpected Stripe creation failure to reject", async () => {
