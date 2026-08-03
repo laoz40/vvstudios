@@ -2,7 +2,7 @@ import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
@@ -107,7 +107,7 @@ export function claimBookingConfirmationService(
 	args: ClaimBookingConfirmationArgs
 ) {
 	return normalizeBookingId(ctx, args.bookingId)
-		.asyncAndThen((bookingId) => getSessionFromDbResult(ctx, bookingId))
+		.asyncAndThen((bookingId) => getSessionFromDb(ctx, bookingId))
 		.andThen((session) => validateClaimStripeSession(session, args.stripeSessionId))
 		.andThen(getBookingClaimStatus)
 		.andThen((status) => {
@@ -133,7 +133,7 @@ export function claimBookingConfirmationService(
 
 export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingConfirmedArgs) {
 	return (
-		getSessionFromDbResult(ctx, args.bookingId)
+		getSessionFromDb(ctx, args.bookingId)
 			// Check that this attempt still holds the booking time.
 			.andThen((session) => {
 				if (!sessionHasReservation(session, args.reservation, Date.now())) {
@@ -164,7 +164,7 @@ export function markSessionInvoiceEmailFailedService(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen((session) => {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
 		if (session.status !== "confirmed" && session.status !== "email_failed") {
 			return ok(null);
 		}
@@ -184,7 +184,7 @@ export function markSessionInvoiceEmailRetrySentService(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen((session) => {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
 		if (session.status !== "email_failed") {
 			return ok(null);
 		}
@@ -201,7 +201,7 @@ export function markBookingConfirmationFailedService(
 	ctx: MutationCtx,
 	args: MarkBookingConfirmationFailedArgs
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen((session) => {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
 		if (session.status !== "pending_payment") {
 			return ok(null);
 		}

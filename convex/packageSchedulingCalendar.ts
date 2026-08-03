@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import type { SessionCalendarEventRecord } from "./lib/sessionCalendarEvents";

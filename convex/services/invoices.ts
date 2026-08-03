@@ -4,7 +4,7 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	createBookingInvoiceArtifactsForBooking,
 	createCustomMultiBookingInvoiceData,
@@ -121,7 +121,7 @@ export function getAdminMultiBookingInvoicePdfByIdService(
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ): ResultAsync<InvoicePdfPayload, AdminPackageInvoicePdfError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Load the package only after admin authorization succeeds.
 			.andThen(() => getPackageForAction(ctx, args.multiBookingId))
 			// Load current lead-time guidance used by the package invoice artifact.
@@ -143,7 +143,7 @@ export function getAdminCustomMultiBookingInvoicePdfByIdService(
 	args: { customInvoiceId: Id<"customInvoices"> }
 ): ResultAsync<InvoicePdfPayload, AdminPackageInvoicePdfError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Load the custom invoice and package input only after authorization succeeds.
 			.andThen(() =>
 				okOrThrow<CustomMultiBookingInvoiceInput | null>(

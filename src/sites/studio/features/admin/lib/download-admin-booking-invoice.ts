@@ -1,5 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import { err, ok, type Result } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import {
 	toAdminSessionAddons,
 	toAdminSessionDuration
@@ -72,7 +72,7 @@ export async function downloadAdminBookingInvoice(
 	const parsedBooking = bookingSchema.safeParse(getInvoiceFormValues(input));
 
 	if (!parsedBooking.success) {
-		return err({
+		return tupleErr({
 			message: parsedBooking.error.issues[0]?.message ?? "Unable to generate invoice.",
 			reason: "INVALID_INVOICE_INPUT"
 		});
@@ -100,5 +100,5 @@ export async function downloadAdminBookingInvoice(
 		customTotalDueAmount: input.customTotalDueAmount
 	});
 
-	return ok({ downloaded: true });
+	return tupleOk({ downloaded: true });
 }

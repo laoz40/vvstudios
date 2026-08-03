@@ -7,8 +7,9 @@ import {
 	type MutationCtx,
 	type QueryCtx
 } from "./_generated/server";
-import { err, err as tupleErr, ok, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { getAdminIdentity } from "./lib/auth";
+import { okOrThrow } from "./lib/result";
 import {
 	createBookingCustomInvoiceService,
 	createPackageCustomInvoiceService,
@@ -73,19 +74,17 @@ async function listCustomInvoicesForBookingHandler(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const customInvoices = await ctx.db
-		.query("customInvoices")
-		.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
-		.order("desc")
-		.collect();
-
-	return ok(customInvoices);
+	return getAdminIdentity(ctx)
+		.andThen(() =>
+			okOrThrow(
+				ctx.db
+					.query("customInvoices")
+					.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
+					.order("desc")
+					.collect()
+			)
+		)
+		.match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForBookingResult = Awaited<
@@ -101,19 +100,17 @@ async function listCustomInvoicesForPackageHandler(
 	ctx: QueryCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const customInvoices = await ctx.db
-		.query("customInvoices")
-		.withIndex("by_multiBookingId", (q) => q.eq("multiBookingId", args.multiBookingId))
-		.order("desc")
-		.collect();
-
-	return ok(customInvoices);
+	return getAdminIdentity(ctx)
+		.andThen(() =>
+			okOrThrow(
+				ctx.db
+					.query("customInvoices")
+					.withIndex("by_multiBookingId", (q) => q.eq("multiBookingId", args.multiBookingId))
+					.order("desc")
+					.collect()
+			)
+		)
+		.match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForPackageResult = Awaited<

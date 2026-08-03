@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { action, type ActionCtx } from "./_generated/server";
 import {
 	sendSessionDeliverablesEmailService,

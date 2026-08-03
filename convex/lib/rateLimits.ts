@@ -1,8 +1,8 @@
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
-import { err, ok, ResultAsync } from "neverthrow";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { err, ok } from "neverthrow";
 import { components } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	bookingSubmit: { kind: "token bucket", rate: 1, period: MINUTE, capacity: 10 },
@@ -16,12 +16,8 @@ type RateLimitCtx = ActionCtx | MutationCtx;
 
 export type BookingSubmitRateLimitError = { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
 
-export async function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
-	return await checkGoogleCalendarAvailabilityRateLimitResult(ctx, key).match(tupleOk, tupleErr);
-}
-
-export function checkGoogleCalendarAvailabilityRateLimitResult(ctx: ActionCtx, key: string) {
-	return ResultAsync.fromSafePromise(
+export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
+	return okOrThrow(
 		Promise.all([
 			rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal"),
 			rateLimiter.limit(ctx, "googleCalendarAvailability", { key })
@@ -35,8 +31,8 @@ export function checkGoogleCalendarAvailabilityRateLimitResult(ctx: ActionCtx, k
 	});
 }
 
-export function checkBookingSubmitRateLimitResult(ctx: RateLimitCtx, key: string) {
-	return ResultAsync.fromSafePromise(
+export function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
+	return okOrThrow(
 		Promise.all([
 			rateLimiter.limit(ctx, "bookingSubmitGlobal"),
 			rateLimiter.limit(ctx, "bookingSubmit", { key })

@@ -1,9 +1,12 @@
 import { err, ok, type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { api, internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
 import {
+	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
+	getEditablePackageSession,
 	getPackageSessionForToken,
 	sessionConsumesPackageCapacity,
 	toPackageCalendarDetails,
@@ -12,9 +15,14 @@ import {
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
 } from "#convex/lib/packageScheduling";
-import { getValidPackageByToken } from "#convex/lib/packageLookup";
-import { fromConvexResult, okOrThrow } from "#convex/lib/result";
+import {
+	getValidPackageByToken,
+	type ValidPackage,
+	type ValidPackageByTokenError
+} from "#convex/lib/packageLookup";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 
@@ -30,6 +38,73 @@ type PackageSessionArgs = {
 type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<"bookings"> };
 type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
 
+type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
+type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<"bookings"> };
+type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
+
+export type PackageSessionRequestDetails = {
+	multiBooking: ValidPackage;
+	eventBufferMinutes: number;
+	leadTimeMinutes: number;
+	sessionStartAt: number;
+};
+
+export type PackageRescheduleRequestDetails = {
+	session: Doc<"bookings">;
+	multiBooking: ValidPackage;
+	eventBufferMinutes: number;
+	sessionStartAt: number;
+};
+
+export type PackageUnscheduleRequestDetails = {
+	session: Doc<"bookings">;
+	multiBooking: ValidPackage;
+};
+
+export function getPackageByTokenService(ctx: QueryCtx, token: string) {
+	return getValidPackageByToken(ctx, token, Date.now())
+		.andThen((multiBooking) =>
+			okOrThrow(
+				getCapacityConsumingPackageSessions(ctx, multiBooking._id, multiBooking.packageSize)
+			).map((sessions) => ({ multiBooking, sessions }))
+		)
+		.map(({ multiBooking, sessions }) => ({
+			_id: multiBooking._id,
+			name: multiBooking.name,
+			email: multiBooking.email,
+			duration: multiBooking.duration,
+			addons: multiBooking.addons,
+			essentialEditQuantity: multiBooking.essentialEditQuantity,
+			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
+			packageSize: multiBooking.packageSize,
+			expiresAt: multiBooking.expiresAt,
+			defaultSpace: multiBooking.defaultSpace,
+			sessions: sessions.map((session) => ({
+				_id: session._id,
+				date: session.date,
+				time: session.time,
+				sessionStartAt: session.sessionStartAt,
+				notes: session.notes ?? "",
+				service: session.service,
+				addons: session.addons,
+				...(session.googleEventId ? { googleEventId: session.googleEventId } : {})
+			}))
+		}));
+}
+
+export function setPackageDefaultSpaceService(
+	ctx: MutationCtx,
+	args: { service: "Table Setup" | "Armchair Setup"; token: string }
+) {
+	return getValidPackageByToken(ctx, args.token, Date.now()).andThen((multiBooking) =>
+		okOrThrow(
+			ctx.db
+				.patch(multiBooking._id, { defaultSpace: args.service })
+				.then(() => ({ defaultSpace: args.service }))
+		)
+	);
+}
+
 export function createPackageSessionService(
 	ctx: ActionCtx,
 	args: PackageSessionArgs
@@ -37,7 +112,7 @@ export function createPackageSessionService(
 	const now = Date.now();
 
 	return (
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runQuery(internal.packageScheduling.validatePackageSessionRequest, {
 				token: args.token,
 				date: args.date,
@@ -47,7 +122,7 @@ export function createPackageSessionService(
 		)
 			// Apply the package-scoped submit limit before creating an external Calendar event.
 			.andThen((details) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
 						submitRateLimitKey: `package:${details.multiBooking._id}`
 					})
@@ -55,7 +130,7 @@ export function createPackageSessionService(
 			)
 			// Create the Calendar event before persisting its identifiers with the booking.
 			.andThen((details) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runAction(internal.packageSchedulingCalendar.createPackageSessionCalendarEvent, {
 						session: null,
 						details: toPackageCalendarDetails(
@@ -68,7 +143,7 @@ export function createPackageSessionService(
 			)
 			// Save the booking, deleting an orphaned Calendar event if an expected save check loses a race.
 			.andThen(({ calendar, details }) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.packageScheduling.saveCreatedPackageSession, {
 						...args,
 						now,
@@ -80,7 +155,7 @@ export function createPackageSessionService(
 						return err(saveError);
 					}
 
-					return fromConvexResult(
+					return fromConvexTuple(
 						ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
 							session: {
 								date: args.date,
@@ -110,7 +185,7 @@ export function reschedulePackageSessionService(
 	const now = Date.now();
 
 	return (
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runQuery(internal.packageScheduling.validatePackageRescheduleRequest, {
 				token: args.token,
 				bookingId: args.bookingId,
@@ -121,7 +196,7 @@ export function reschedulePackageSessionService(
 		)
 			// Reserve the requested time before updating the external Calendar event.
 			.andThen((details) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 						bookingId: args.bookingId,
 						duration: details.multiBooking.duration,
@@ -137,7 +212,7 @@ export function reschedulePackageSessionService(
 			)
 			// Update Calendar while holding the reservation; release it on an expected provider failure.
 			.andThen(({ details, reservation }) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runAction(internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent, {
 						session: toPackageCalendarSession(details.session),
 						details: toPackageCalendarDetails(
@@ -149,7 +224,7 @@ export function reschedulePackageSessionService(
 				)
 					.map((calendar) => ({ calendar, details, reservation }))
 					.orElse((calendarError) =>
-						fromConvexResult(
+						fromConvexTuple(
 							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 								bookingId: args.bookingId,
 								reservation
@@ -159,7 +234,7 @@ export function reschedulePackageSessionService(
 			)
 			// Persist the new booking details and release the reservation if the save is rejected.
 			.andThen(({ calendar, details, reservation }) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
 						bookingId: args.bookingId,
 						date: args.date,
@@ -176,7 +251,7 @@ export function reschedulePackageSessionService(
 				)
 					.map(() => ({ bookingId: args.bookingId }))
 					.orElse((saveError) =>
-						fromConvexResult(
+						fromConvexTuple(
 							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 								bookingId: args.bookingId,
 								reservation
@@ -194,12 +269,12 @@ export function unschedulePackageSessionService(
 	const now = Date.now();
 
 	return (
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runQuery(internal.packageScheduling.validatePackageUnscheduleRequest, { ...args, now })
 		)
 			// Delete the Calendar event before marking the booking cancelled.
 			.andThen((details) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
 						session: toPackageCalendarSession(details.session)
 					})
@@ -207,7 +282,7 @@ export function unschedulePackageSessionService(
 			)
 			// Persist cancellation only after Calendar deletion succeeds or reports the event missing.
 			.andThen(() =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.packageScheduling.cancelPackageSession, {
 						bookingId: args.bookingId,
 						now,
@@ -225,6 +300,100 @@ export type SaveCreatedPackageSessionArgs = PackageSessionArgs & {
 };
 
 export type CancelPackageSessionArgs = { bookingId: Id<"bookings">; token: string; now: number };
+
+export function validatePackageSessionRequestService(
+	ctx: QueryCtx,
+	args: PackageSessionRequestArgs
+): ResultAsync<PackageSessionRequestDetails, CreatePackageSessionError> {
+	return (
+		getValidPackageByToken(ctx, args.token, args.now)
+			// Load availability settings after validating the package link.
+			.andThen((multiBooking) =>
+				okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
+					(settings) => ({ multiBooking, settings })
+				)
+			)
+			// Enforce package availability before reading sessions that consume capacity.
+			.andThen(({ multiBooking, settings }) =>
+				checkPackageSessionAvailability(args, multiBooking, settings, args.now).map(() => ({
+					multiBooking,
+					settings
+				}))
+			)
+			// Confirm a package slot remains before parsing the requested start time.
+			.andThen(({ multiBooking, settings }) =>
+				okOrThrow(
+					getCapacityConsumingPackageSessions(ctx, multiBooking._id, multiBooking.packageSize)
+				).andThen((bookings) => {
+					if (bookings.length >= multiBooking.packageSize) {
+						return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
+					}
+
+					return ok({ multiBooking, settings });
+				})
+			)
+			// Parse the start time and return only the details needed by the action service.
+			.andThen(({ multiBooking, settings }) =>
+				getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
+					(sessionStartAt) => ({
+						multiBooking,
+						eventBufferMinutes: settings.eventBufferMinutes,
+						leadTimeMinutes: settings.leadTimeMinutes,
+						sessionStartAt
+					})
+				)
+			)
+	);
+}
+
+export function validatePackageRescheduleRequestService(
+	ctx: QueryCtx,
+	args: PackageRescheduleRequestArgs
+): ResultAsync<PackageRescheduleRequestDetails, ReschedulePackageSessionError> {
+	return getEditablePackageSession(ctx, args)
+		.andThen((details) =>
+			checkPackageSessionAvailability(args, details.multiBooking, details.settings, args.now).map(
+				() => details
+			)
+		)
+		.andThen(({ session, multiBooking, settings }) =>
+			getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
+				(sessionStartAt) => ({
+					session,
+					multiBooking,
+					eventBufferMinutes: settings.eventBufferMinutes,
+					sessionStartAt
+				})
+			)
+		);
+}
+
+export function validatePackageUnscheduleRequestService(
+	ctx: QueryCtx,
+	args: PackageUnscheduleRequestArgs
+): ResultAsync<
+	PackageUnscheduleRequestDetails,
+	ValidPackageByTokenError | UnschedulePackageSessionError
+> {
+	return getEditablePackageSession(ctx, args).map(({ session, multiBooking }) => ({
+		session,
+		multiBooking
+	}));
+}
+
+export function processPackageAdjustmentAtExpiryService(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages">; expectedExpiresAt: number }
+) {
+	return processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
+}
+
+export function processPackageAdjustmentWhenSessionsCompleteService(
+	ctx: MutationCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+) {
+	return processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
+}
 
 export function saveCreatedPackageSessionService(
 	ctx: MutationCtx,

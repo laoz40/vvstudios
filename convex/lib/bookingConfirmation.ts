@@ -1,8 +1,7 @@
 "use node";
 
 import { okAsync, ResultAsync } from "neverthrow";
-import type { Result } from "#/lib/result";
-import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
+import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -13,6 +12,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
+import { fromConvexTuple } from "#convex/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
 	if (session.multiBookingPackageId !== undefined) {
@@ -58,11 +58,6 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 	);
 }
 
-type MarkBookingConfirmedResult = Result<
-	null,
-	{ reason: "BOOKING_NOT_FOUND" } | { reason: "BOOKING_RESERVATION_MISMATCH" }
->;
-
 async function removeOrphanedSessionCalendarEvent(
 	bookingId: Id<"bookings">,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
@@ -90,21 +85,20 @@ export async function saveConfirmedBooking(
 	reservation: SessionReservation,
 	googleEventId: string | undefined
 ) {
-	const [completionError]: MarkBookingConfirmedResult = await ctx.runMutation(
-		internal.bookingConfirmation.markBookingConfirmed,
-		{
+	const completionResult = await fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.markBookingConfirmed, {
 			bookingId: session._id,
 			googleEventId,
 			googleCalendarId: calendarClient.calendarId,
 			reservation
-		}
+		})
 	);
 
-	if (completionError === null) {
+	if (completionResult.isOk()) {
 		return true;
 	}
 
-	switch (completionError.reason) {
+	switch (completionResult.error.reason) {
 		case "BOOKING_NOT_FOUND":
 			console.error("Booking disappeared before confirmation completed", {
 				bookingId: session._id
@@ -116,7 +110,7 @@ export async function saveConfirmedBooking(
 			});
 			break;
 		default: {
-			const _exhaustive: never = completionError;
+			const _exhaustive: never = completionResult.error;
 			return _exhaustive;
 		}
 	}
@@ -135,15 +129,14 @@ async function recordInvoiceEmailFailure(
 ) {
 	console.error(message, { bookingId, reason });
 
-	const [markFailedError] = await ctx.runMutation(
-		internal.bookingConfirmation.markSessionInvoiceEmailFailed,
-		{ bookingId }
+	const markFailedResult = await fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, { bookingId })
 	);
 
-	if (markFailedError !== null) {
+	if (markFailedResult.isErr()) {
 		console.error("Failed to record booking invoice email failure", {
 			bookingId,
-			reason: markFailedError.reason
+			reason: markFailedResult.error.reason
 		});
 	}
 }

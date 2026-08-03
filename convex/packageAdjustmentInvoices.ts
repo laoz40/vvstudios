@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "#convex/_generated/server";
 import {

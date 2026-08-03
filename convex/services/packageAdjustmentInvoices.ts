@@ -5,14 +5,14 @@ import type { Result as ConvexResult } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
 	type PackageAdjustmentInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { sendPackageAdjustmentInvoiceEmail } from "#convex/lib/email";
-import { fromConvexResult } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -46,7 +46,7 @@ function markPackageAdjustmentInvoiceEmailFailed(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; claimedAt: number }
 ): NeverthrowResultAsync<never, { reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" }> {
-	return fromConvexResult<Promise<ConvexResult<{ updated: boolean }, { reason: string }>>>(
+	return fromConvexTuple<Promise<ConvexResult<{ updated: boolean }, { reason: string }>>>(
 		ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, args)
 	)
 		.orElse(() => ok(null))
@@ -59,7 +59,7 @@ export function sendPackageAdjustmentInvoiceService(
 ): NeverthrowResultAsync<null, SendPackageAdjustmentInvoiceError> {
 	const claimedAt = Date.now();
 	return (
-		fromConvexResult<
+		fromConvexTuple<
 			Promise<ConvexResult<PackageAdjustmentInvoiceInput, PackageAdjustmentClaimError>>
 		>(
 			ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoiceEmail, {
@@ -83,7 +83,7 @@ export function sendPackageAdjustmentInvoiceService(
 			)
 			// Mark successful delivery only if this attempt still owns the claim.
 			.andThen(() =>
-				fromConvexResult<
+				fromConvexTuple<
 					Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
 				>(
 					ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
@@ -104,7 +104,7 @@ export function retryPackageAdjustmentInvoiceEmailService(
 	null,
 	SendPackageAdjustmentInvoiceError | { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" }
 > {
-	return getAdminIdentityResult(ctx).andThen(() =>
+	return getAdminIdentity(ctx).andThen(() =>
 		sendPackageAdjustmentInvoiceService(ctx, { ...args, attempt: "retry" })
 	);
 }
@@ -114,10 +114,10 @@ export function getAdminPackageAdjustmentInvoicePdfService(
 	args: { adjustmentId: Id<"packageAdjustments"> }
 ): NeverthrowResultAsync<InvoicePdfPayload, PackageAdjustmentInvoicePdfError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Load the sent adjustment invoice input only after admin authorization succeeds.
 			.andThen(() =>
-				fromConvexResult<PackageAdjustmentInvoiceInputQueryResult>(
+				fromConvexTuple<PackageAdjustmentInvoiceInputQueryResult>(
 					ctx.runQuery(internal.packageAdjustments.getPackageAdjustmentInvoiceInput, args)
 				)
 			)

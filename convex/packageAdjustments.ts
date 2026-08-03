@@ -1,10 +1,10 @@
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, type MutationCtx } from "./_generated/server";
 import {
-	getSentPackageAdjustmentInvoiceResult,
+	getSentPackageAdjustmentInvoice,
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS
 } from "./lib/packageAdjustments";
 import { getPackageFromDb } from "./lib/packageLookup";
@@ -21,7 +21,7 @@ const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.litera
 export const getPackageAdjustmentInvoiceInput = internalQuery({
 	args: { adjustmentId: v.id("packageAdjustments") },
 	handler: (ctx, args) =>
-		getSentPackageAdjustmentInvoiceResult(ctx, args.adjustmentId)
+		getSentPackageAdjustmentInvoice(ctx, args.adjustmentId)
 			.andThen((adjustment) =>
 				getPackageFromDb(ctx, adjustment.multiBookingId)
 					.map((multiBooking) => ({ adjustment, multiBooking }))

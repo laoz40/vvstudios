@@ -31,7 +31,7 @@ function isValidScheduleWindow(startTime: string, endTime: string) {
 	return startMinutes !== null && endMinutes !== null && startMinutes < endMinutes;
 }
 
-export function validateBookingSettingsResult(settings: BookingAvailabilitySettings) {
+export function validateBookingSettings(settings: BookingAvailabilitySettings) {
 	if (
 		settings.weekSchedule.length !== 7 ||
 		settings.leadTimeMinutes < 0 ||

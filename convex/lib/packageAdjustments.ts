@@ -39,7 +39,7 @@ export function validatePackageAdjustmentEmailClaim(
 	return ok(adjustment);
 }
 
-export function getPackageAdjustmentInvoiceResult(
+export function getPackageAdjustmentInvoice(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
@@ -52,11 +52,11 @@ export function getPackageAdjustmentInvoiceResult(
 	});
 }
 
-export function getSentPackageAdjustmentInvoiceResult(
+export function getSentPackageAdjustmentInvoice(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
-	return getPackageAdjustmentInvoiceResult(ctx, adjustmentId).andThen((adjustment) => {
+	return getPackageAdjustmentInvoice(ctx, adjustmentId).andThen((adjustment) => {
 		if (adjustment.invoiceEmailStatus !== "sent") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
 		}

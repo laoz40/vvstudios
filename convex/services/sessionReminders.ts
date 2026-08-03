@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessionLookup";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 
@@ -10,7 +10,7 @@ export function claimReminderService(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId)
+	return getSessionFromDb(ctx, args.bookingId)
 		.andThen((session) => {
 			if (session.status !== "confirmed" && session.status !== "email_failed") {
 				return err({ reason: "BOOKING_NOT_SENDABLE" as const });
@@ -38,7 +38,7 @@ export function markReminderSentService(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
 		okOrThrow(
 			ctx.db
 				.patch(args.bookingId, {
@@ -55,7 +55,7 @@ export function markReminderFailedService(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
 		okOrThrow(
 			ctx.db
 				.patch(args.bookingId, {

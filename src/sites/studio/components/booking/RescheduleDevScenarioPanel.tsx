@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
-import { err, ok, type Result } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type {
 	GetRescheduleSessionByTokenResult,
 	RescheduleLinkLookupError
@@ -92,26 +92,26 @@ export function buildDevRescheduleBooking(
 	devScenario: DevRescheduleScenario | undefined
 ): RescheduleBookingLookup {
 	if (devScenario === "link_not_found") {
-		return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 	}
 
 	if (devScenario === "link_used") {
-		return err({ reason: "RESCHEDULE_LINK_USED" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_USED" });
 	}
 
 	if (devScenario === "link_expired") {
-		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	if (devScenario === "booking_missing") {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
 	if (devScenario === "not_reschedulable") {
-		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+		return tupleErr({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
-	return ok({
+	return tupleOk({
 		session: {
 			addons: ["Essential Edit", "Clips Package"],
 			date: "2026-05-12",
@@ -128,38 +128,38 @@ export function getDevRescheduleAvailability(
 	devScenario: DevRescheduleScenario | undefined
 ): DevRescheduleAvailabilityResult {
 	if (devScenario === "link_not_found") {
-		return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 	}
 
 	if (devScenario === "link_used") {
-		return err({ reason: "RESCHEDULE_LINK_USED" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_USED" });
 	}
 
 	if (devScenario === "link_expired") {
-		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+		return tupleErr({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
 
 	if (devScenario === "booking_missing") {
-		return err({ reason: "BOOKING_NOT_FOUND" });
+		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
 	}
 
 	if (devScenario === "not_reschedulable") {
-		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+		return tupleErr({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
 
 	if (devScenario === "availability_error") {
-		return err({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
+		return tupleErr({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" });
 	}
 
 	if (devScenario === "rate_limited") {
-		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+		return tupleErr({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
 	}
 
 	if (devScenario === "no_times") {
-		return ok({ times: [] });
+		return tupleOk({ times: [] });
 	}
 
-	return ok({ times: ["09:00", "10:00", "13:00", "15:00"] });
+	return tupleOk({ times: ["09:00", "10:00", "13:00", "15:00"] });
 }
 
 export function getDevRescheduleAvailabilityStatus(devScenario: DevRescheduleScenario | undefined) {
@@ -192,30 +192,30 @@ export function getDevRescheduleUpdateResult(
 	devScenario: DevRescheduleScenario | undefined
 ): DevRescheduleUpdateResult {
 	if (devScenario === "update_invalid_date") {
-		return err({ reason: "BOOKING_INVALID_DATE" });
+		return tupleErr({ reason: "BOOKING_INVALID_DATE" });
 	}
 
 	if (devScenario === "update_invalid_time") {
-		return err({ reason: "BOOKING_INVALID_TIME" });
+		return tupleErr({ reason: "BOOKING_INVALID_TIME" });
 	}
 
 	if (devScenario === "update_time_unavailable") {
-		return err({ reason: "BOOKING_TIME_UNAVAILABLE" });
+		return tupleErr({ reason: "BOOKING_TIME_UNAVAILABLE" });
 	}
 
 	if (devScenario === "update_calendar_error") {
-		return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
+		return tupleErr({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
 	}
 
 	if (devScenario === "update_rate_limited") {
-		return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
+		return tupleErr({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" });
 	}
 
 	if (devScenario === "update_unexpected") {
-		return err({ reason: "UNEXPECTED_ERROR" });
+		return tupleErr({ reason: "UNEXPECTED_ERROR" });
 	}
 
-	return ok({ bookingId: "dev-reschedule-booking" });
+	return tupleOk({ bookingId: "dev-reschedule-booking" });
 }
 
 function parseDevRescheduleScenario(value: unknown): DevRescheduleScenario | undefined {

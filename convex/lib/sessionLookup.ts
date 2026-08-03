@@ -1,11 +1,11 @@
-import { err, ok, ResultAsync } from "neverthrow";
-import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
+import { err, ok, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
-export function getSessionFromDbResult(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return ResultAsync.fromSafePromise(ctx.db.get(bookingId)).andThen((session) => {
+export function getSessionFromDb(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });
 		}
@@ -14,8 +14,8 @@ export function getSessionFromDbResult(ctx: MutationCtx, bookingId: Id<"bookings
 	});
 }
 
-export function getSessionByStripeSessionIdResult(ctx: MutationCtx, stripeSessionId: string) {
-	return ResultAsync.fromSafePromise(
+export function getSessionByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
+	return okOrThrow(
 		ctx.db
 			.query("bookings")
 			.withIndex("by_stripeSessionId", (indexQuery) =>
@@ -31,30 +31,17 @@ export function getSessionByStripeSessionIdResult(ctx: MutationCtx, stripeSessio
 	});
 }
 
-export async function getSessionFromDb(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">
-): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const session = await ctx.db.get(bookingId);
-
-	if (!session) {
-		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return tupleOk(session);
-}
-
-export function getSessionFromQueryResult(
+export function getSessionFromQuery(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }> {
-	return ResultAsync.fromSafePromise(
-		ctx.runQuery(internal.sessions.getSessionById, { bookingId })
-	).andThen((session) => {
-		if (!session) {
-			return err({ reason: "BOOKING_NOT_FOUND" as const });
-		}
+	return okOrThrow(ctx.runQuery(internal.sessions.getSessionById, { bookingId })).andThen(
+		(session) => {
+			if (!session) {
+				return err({ reason: "BOOKING_NOT_FOUND" as const });
+			}
 
-		return ok(session);
-	});
+			return ok(session);
+		}
+	);
 }

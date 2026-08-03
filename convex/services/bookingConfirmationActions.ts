@@ -4,7 +4,7 @@ import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	saveConfirmedBooking,
 	sendBookingReminderEmailForSession,
@@ -16,9 +16,9 @@ import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessionAdminEdit";
-import { getSessionFromQueryResult } from "#convex/lib/sessionLookup";
-import { fromConvexResult, okOrThrow } from "#convex/lib/result";
-import { createRescheduleUrlForSession } from "#convex/sessionReschedule";
+import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
 
 export type SendBookingInvoiceForBookingArgs = {
 	bookingId: Id<"bookings">;
@@ -50,9 +50,9 @@ export function sendBookingInvoiceForBookingService(
 	args: SendBookingInvoiceForBookingArgs
 ): ResultAsync<null, SendBookingInvoiceError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Load the booking only after admin authorization succeeds.
-			.andThen(() => getSessionFromQueryResult(ctx, args.bookingId))
+			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Resolve and validate the optional stored custom invoice.
 			.andThen((session) =>
 				getSelectedBookingCustomInvoice(ctx, session._id, args.customInvoiceId).andThen(
@@ -90,7 +90,7 @@ export function sendBookingInvoiceForBookingService(
 			)
 			// Record recovery from a previous invoice-email failure.
 			.andThen((session) =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
 						bookingId: session._id
 					})
@@ -104,20 +104,20 @@ export async function sendSessionReminderEmailService(
 	args: { bookingId: Id<"bookings"> }
 ): Promise<Result<null, never>> {
 	const now = Date.now();
-	return await fromConvexResult(
+	return await fromConvexTuple(
 		ctx.runMutation(internal.sessionReminders.claimReminder, { bookingId: args.bookingId, now })
 	)
 		.map((claim) => ({ kind: "claimed" as const, claim }))
 		.orElse(() => okAsync({ kind: "skipped" as const }))
 		// A failed or duplicate claim means this worker has nothing to deliver.
 		.andThen((claimState) => {
-			if (claimState.kind === "skipped" || claimState.claim === null) return okAsync(null);
+			if (claimState.kind === "skipped") return okAsync(null);
 
 			return (
 				sendBookingReminderEmailForSession(ctx, claimState.claim.session)
 					// Record successful delivery and clear the reminder claim.
 					.andThen(() =>
-						fromConvexResult(
+						fromConvexTuple(
 							ctx.runMutation(internal.sessionReminders.markReminderSent, {
 								bookingId: args.bookingId,
 								now: Date.now()
@@ -126,7 +126,7 @@ export async function sendSessionReminderEmailService(
 					)
 					// Delivery failures are persisted for retry rather than returned to the scheduler.
 					.orElse((reminderError) =>
-						fromConvexResult(
+						fromConvexTuple(
 							ctx.runMutation(internal.sessionReminders.markReminderFailed, {
 								bookingId: args.bookingId,
 								failureCode: reminderError.reason
@@ -144,7 +144,7 @@ export async function completeClaimedSessionService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> {
-	return await getSessionFromQueryResult(ctx, args.bookingId)
+	return await getSessionFromQuery(ctx, args.bookingId)
 		.andThen((session) =>
 			session.bookingConfirmationClaimedAt
 				? ok(session)
@@ -188,7 +188,7 @@ async function completeClaimedSession(
 	}
 
 	// Atomically reserve the window so concurrent payment completions cannot both create events.
-	const reservationResult = await fromConvexResult(
+	const reservationResult = await fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 			bookingId: session._id,
 			duration: session.duration,

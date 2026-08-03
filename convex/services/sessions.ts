@@ -1,12 +1,9 @@
 import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
-import {
-	getSessionByStripeSessionIdResult,
-	getSessionFromDbResult
-} from "#convex/lib/sessionLookup";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
@@ -21,7 +18,7 @@ export function saveSessionInstagramHandleService(
 	ctx: MutationCtx,
 	args: SaveSessionInstagramHandleArgs
 ) {
-	return getSessionByStripeSessionIdResult(ctx, args.stripeSessionId)
+	return getSessionByStripeSessionId(ctx, args.stripeSessionId)
 		.andThen((session) => {
 			if (session.status !== "confirmed" && session.status !== "email_failed") {
 				return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
@@ -36,8 +33,8 @@ export function saveSessionInstagramHandleService(
 }
 
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
-	return getAdminIdentityResult(ctx)
-		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
+	return getAdminIdentity(ctx)
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
@@ -51,8 +48,8 @@ export function updateSessionPaidStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionPaidStatusArgs
 ) {
-	return getAdminIdentityResult(ctx)
-		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
+	return getAdminIdentity(ctx)
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen((session) =>
 			okOrThrow(
 				ctx.db
@@ -66,8 +63,8 @@ export function updateSessionEditStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionEditStatusArgs
 ) {
-	return getAdminIdentityResult(ctx)
-		.andThen(() => getSessionFromDbResult(ctx, args.bookingId))
+	return getAdminIdentity(ctx)
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen((session) =>
 			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))
 		);
@@ -77,7 +74,7 @@ export function markSessionCalendarEventDeletedService(
 	ctx: MutationCtx,
 	args: MarkSessionCalendarEventDeletedArgs
 ) {
-	return getSessionFromDbResult(ctx, args.bookingId).andThen(() =>
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
 		okOrThrow(
 			ctx.db
 				.patch(args.bookingId, {

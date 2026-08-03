@@ -3,10 +3,10 @@
 import { errAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email";
 import { parseGoogleDriveLink } from "#convex/lib/googleDriveLinks";
-import { getSessionFromQueryResult } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
 export type SendSessionDeliverablesEmailArgs = {
 	bookingId: Id<"bookings">;
@@ -55,7 +55,7 @@ export function sendSessionDeliverablesEmailService(
 	| { reason: "INVALID_DRIVE_LINK" }
 	| { reason: "DELIVERABLES_SEND_FAILED" }
 > {
-	return getAdminIdentityResult(ctx)
-		.andThen(() => getSessionFromQueryResult(ctx, args.bookingId))
+	return getAdminIdentity(ctx)
+		.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 		.andThen((session) => sendDeliverablesEmailForSession(session, args));
 }

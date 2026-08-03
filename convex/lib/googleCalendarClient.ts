@@ -16,7 +16,7 @@ function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 		.filter(Boolean);
 }
 
-export function getGoogleCalendarClientResult<T extends GoogleCalendarFallbackErrorCode>(
+export function loadGoogleCalendarClient<T extends GoogleCalendarFallbackErrorCode>(
 	fallbackReason: T
 ) {
 	return ResultAsync.fromPromise(

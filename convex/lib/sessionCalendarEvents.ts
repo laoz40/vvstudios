@@ -106,7 +106,7 @@ function isMatchingSessionCalendarEvent(
 	return attendeeMatches || summaryMatches;
 }
 
-async function findSessionCalendarEventIncludingDeclinedResult({
+async function findSessionCalendarEventIncludingDeclined({
 	session,
 	calendar,
 	calendarId,
@@ -182,7 +182,7 @@ export async function deleteSessionCalendarEvent({
 		}
 
 		// Declined Calendar invites can be hidden from direct event lookup, so search the session window before giving up.
-		const foundEventResult = await findSessionCalendarEventIncludingDeclinedResult({
+		const foundEventResult = await findSessionCalendarEventIncludingDeclined({
 			session,
 			calendar: client.calendar,
 			calendarId,

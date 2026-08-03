@@ -1,7 +1,8 @@
+import type { PaginationOptions } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	validatePackageInvoiceEmailAttempt,
 	type MarkPackageInvoiceEmailAttemptArgs
@@ -48,8 +49,57 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 		.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRecord } }));
 }
 
+export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOptions) {
+	return getAdminIdentity(ctx)
+		.andThen(() =>
+			okOrThrow(
+				ctx.db
+					.query("multiBookingPackages")
+					.withIndex("by_createdAt")
+					.order("desc")
+					.paginate(paginationOpts)
+			)
+		)
+		.andThen((packagesPage) =>
+			okOrThrow(
+				Promise.all(
+					packagesPage.page.map(async (packageFromDb) => {
+						const [packageSessions, packageAdjustment] = await Promise.all([
+							getCapacityConsumingPackageSessions(
+								ctx,
+								packageFromDb._id,
+								packageFromDb.packageSize
+							),
+							ctx.db
+								.query("packageAdjustments")
+								.withIndex("by_multiBookingId", (indexQuery) =>
+									indexQuery.eq("multiBookingId", packageFromDb._id)
+								)
+								.unique()
+						]);
+
+						return {
+							...packageFromDb,
+							bookedSessions: packageSessions.length,
+							adjustment:
+								packageAdjustment?.outcome === "invoice_required"
+									? {
+											_id: packageAdjustment._id,
+											totalAmount: packageAdjustment.totalAmount,
+											invoiceDueAt: packageAdjustment.invoiceDueAt,
+											invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
+											paymentStatus: packageAdjustment.paymentStatus
+										}
+									: null
+						};
+					})
+				).then((page) => ({ ...packagesPage, page }))
+			)
+		);
+}
+
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
-	return getAdminIdentityResult(ctx)
+	return getAdminIdentity(ctx)
 		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
 		.andThen((existingPackage) =>
 			parsePackageUpdate(args).map((updatedPackage) => ({ existingPackage, updatedPackage }))
@@ -90,7 +140,7 @@ export function savePackageInstagramHandleService(
 }
 
 export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs) {
-	return getAdminIdentityResult(ctx)
+	return getAdminIdentity(ctx)
 		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
 		.andThen(() =>
 			okOrThrow(
@@ -102,7 +152,7 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 }
 
 export function markPackageUnpaidService(ctx: MutationCtx, args: MarkPackageUnpaidArgs) {
-	return getAdminIdentityResult(ctx)
+	return getAdminIdentity(ctx)
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen((packageFromDb) =>
 			okOrThrow(

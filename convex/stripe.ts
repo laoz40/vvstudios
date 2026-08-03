@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { action, type ActionCtx } from "./_generated/server";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	closeEmbeddedCheckoutSessionService,
 	createEmbeddedCheckoutSessionService,

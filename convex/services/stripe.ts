@@ -10,7 +10,7 @@ import {
 	emailDomainCanReceiveMail,
 	getBookingSubmitRateLimitKey
 } from "#convex/lib/bookingSubmission";
-import { fromConvexResult, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 
@@ -70,7 +70,7 @@ export function createEmbeddedCheckoutSessionService(
 	const booking = parsedBooking.data;
 
 	return (
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runMutation(internal.sessionCheckout.checkSessionSubmitRateLimit, {
 				submitRateLimitKey: getBookingSubmitRateLimitKey(booking.email)
 			})
@@ -83,7 +83,7 @@ export function createEmbeddedCheckoutSessionService(
 			)
 			// Persist the pending booking so its ID can identify the Stripe checkout.
 			.andThen(() =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionCheckout.createPendingSession, {
 						name: booking.name,
 						phone: booking.phone,
@@ -159,7 +159,7 @@ export function closeEmbeddedCheckoutSessionService(
 			return ok<CloseEmbeddedCheckoutSessionSuccess>({ outcome: "already_complete" });
 		}
 
-		return fromConvexResult(
+		return fromConvexTuple(
 			ctx.runMutation(internal.sessionCheckout.deletePendingSession, args)
 		).map<CloseEmbeddedCheckoutSessionSuccess>(({ outcome }) => ({ outcome }));
 	});

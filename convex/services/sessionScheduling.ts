@@ -6,7 +6,7 @@ import {
 	buildAdminSessionUpdatePatch,
 	type AdminSessionUpdateArgs
 } from "#convex/lib/sessionAdminEdit";
-import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import { buildClientSessionRescheduleOptionalPatch } from "#convex/lib/sessionRescheduleLinks";
 import {
 	clearedSessionReservationPatch,
@@ -40,7 +40,7 @@ export type SaveClientSessionRescheduleArgs = {
 
 export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
 	return (
-		getSessionFromDbResult(ctx, args.bookingId)
+		getSessionFromDb(ctx, args.bookingId)
 			.andThen((session) =>
 				buildAdminSessionUpdatePatch({
 					session,
@@ -89,7 +89,7 @@ export function saveClientSessionRescheduleService(
 	schedulePackageAdjustment: (multiBookingId: Id<"multiBookingPackages">) => Promise<unknown>
 ) {
 	return (
-		getSessionFromDbResult(ctx, args.bookingId)
+		getSessionFromDb(ctx, args.bookingId)
 			// For package reschedules, check that the session is active and belongs to the package.
 			.andThen((session) => {
 				if (

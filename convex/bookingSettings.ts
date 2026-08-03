@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { updateBookingSettingsService } from "./services/bookingSettings";

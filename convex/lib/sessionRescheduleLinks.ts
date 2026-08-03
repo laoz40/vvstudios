@@ -1,6 +1,9 @@
+import { err, ok, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import type { MutationCtx } from "#convex/_generated/server";
+import { fromConvexTuple } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 const rescheduleTokenByteLength = 32;
@@ -12,6 +15,24 @@ export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
 type SessionRescheduleLink = { expiresAt: number };
 
 type ReschedulableSession = { sessionStartAt: number };
+
+export type CreatePublicFailedSessionRescheduleLinkError =
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_RESCHEDULABLE" }
+	| { reason: "BOOKING_NOT_FAILED" }
+	| { reason: "RESCHEDULE_LINK_EXPIRED" };
+
+export type CreateAdminRescheduleLinkError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_RESCHEDULABLE" }
+	| { reason: "RESCHEDULE_LINK_EXPIRED" };
+
+export type LockRescheduleLinkError =
+	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
+	| { reason: "RESCHEDULE_LINK_USED" }
+	| { reason: "RESCHEDULE_LINK_EXPIRED" };
 
 type ClientSessionRescheduleOptionalArgs = {
 	service?: string;
@@ -64,6 +85,75 @@ export function buildRescheduleUrl(baseUrl: string, token: string) {
 
 export function getRescheduleUrlForToken(token: string) {
 	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
+}
+
+export function isSessionReschedulable(session: Doc<"bookings">) {
+	if (session.status === "confirmed" || session.status === "email_failed") return true;
+	return (
+		session.status === "failed" &&
+		(session.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
+			session.bookingFailureCode === "GOOGLE_CALENDAR_CREATE_FAILED")
+	);
+}
+
+export function createRescheduleUrlForSession(
+	ctx: ActionCtx,
+	session: Doc<"bookings">
+): ResultAsync<string, { reason: "BOOKING_NOT_FOUND" }> {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionReschedule.createActiveRescheduleLink, {
+			bookingId: session._id,
+			expiresAt: session.sessionStartAt,
+			now: Date.now()
+		})
+	).map(({ token }) => getRescheduleUrlForToken(token));
+}
+
+export function validatePublicFailedSessionForReschedule(session: Doc<"bookings"> | null) {
+	if (session === null) {
+		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
+			reason: "BOOKING_NOT_FOUND"
+		});
+	}
+	if (!isSessionReschedulable(session)) {
+		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
+			reason: "BOOKING_NOT_RESCHEDULABLE"
+		});
+	}
+	if (session.status !== "failed") {
+		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
+			reason: "BOOKING_NOT_FAILED"
+		});
+	}
+	if (session.sessionStartAt <= Date.now()) {
+		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
+			reason: "RESCHEDULE_LINK_EXPIRED"
+		});
+	}
+	return ok(session);
+}
+
+export function validateAdminSessionForReschedule(session: Doc<"bookings">) {
+	if (!isSessionReschedulable(session)) {
+		return err<never, CreateAdminRescheduleLinkError>({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+	}
+	if (session.sessionStartAt <= Date.now()) {
+		return err<never, CreateAdminRescheduleLinkError>({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+	return ok(session);
+}
+
+export function validateActiveRescheduleLink(link: Doc<"bookingRescheduleLinks"> | null) {
+	if (link === null) {
+		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+	}
+	if (link.status === "used") {
+		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_USED" });
+	}
+	if (link.status === "expired") {
+		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+	return ok(link);
 }
 
 export function isRescheduleLinkExpired(

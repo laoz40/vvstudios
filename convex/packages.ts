@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err as tupleErr, ok as tupleOk, type Result } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import {
 	internalMutation,
@@ -9,12 +9,11 @@ import {
 	query,
 	type MutationCtx
 } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
-import { checkBookingSubmitRateLimitResult } from "#convex/lib/rateLimits";
+import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	archivePackageService,
 	createPendingPackageService,
+	listPackagesService,
 	markPackageInvoiceEmailAttemptService,
 	markPackagePaidAndCreateScheduleTokenService,
 	markPackageUnpaidService,
@@ -36,7 +35,7 @@ const bookingInvoiceLineItemValidator = v.object({
 export const checkPackageSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
 	handler: (ctx, args) =>
-		checkBookingSubmitRateLimitResult(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
+		checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
 
 export const createPendingPackage = internalMutation({
@@ -95,55 +94,20 @@ function markPackageInvoiceEmailAttemptHandler(
 
 export const listPackages = query({
 	args: { paginationOpts: paginationOptsValidator },
-	handler: async (ctx, args) => {
-		const [authError] = await getAdminIdentity(ctx);
-
-		if (authError !== null) {
-			throw new ConvexError(authError);
-		}
-
-		const packagesPage = await ctx.db
-			.query("multiBookingPackages")
-			.withIndex("by_createdAt")
-			.order("desc")
-			.paginate(args.paginationOpts);
-
-		const page = await Promise.all(
-			packagesPage.page.map(async (multiBookingPackage) => {
-				const [bookings, packageAdjustment] = await Promise.all([
-					getCapacityConsumingPackageSessions(
-						ctx,
-						multiBookingPackage._id,
-						multiBookingPackage.packageSize
-					),
-					ctx.db
-						.query("packageAdjustments")
-						.withIndex("by_multiBookingId", (indexQuery) =>
-							indexQuery.eq("multiBookingId", multiBookingPackage._id)
-						)
-						.unique()
-				]);
-
-				return {
-					...multiBookingPackage,
-					bookedSessions: bookings.length,
-					adjustment:
-						packageAdjustment?.outcome === "invoice_required"
-							? {
-									_id: packageAdjustment._id,
-									totalAmount: packageAdjustment.totalAmount,
-									invoiceDueAt: packageAdjustment.invoiceDueAt,
-									invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
-									paymentStatus: packageAdjustment.paymentStatus
-								}
-							: null
-				};
-			})
-		);
-
-		return { ...packagesPage, page };
-	}
+	handler: (ctx, args) => listPackagesHandler(ctx, args)
 });
+
+async function listPackagesHandler(
+	ctx: Parameters<typeof listPackagesService>[0],
+	args: { paginationOpts: Parameters<typeof listPackagesService>[1] }
+) {
+	return listPackagesService(ctx, args.paginationOpts).match(
+		(packagesPage) => packagesPage,
+		(error) => {
+			throw new ConvexError(error);
+		}
+	);
+}
 
 export const updatePackageFromAdmin = mutation({
 	args: {

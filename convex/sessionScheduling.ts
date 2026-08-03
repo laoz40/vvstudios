@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "./_generated/api";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import {
@@ -24,12 +24,13 @@ export const reserveSessionReservation = internalMutation({
 		eventBufferMinutes: v.number(),
 		now: v.number()
 	},
-	handler: (ctx, args) => reserveSessionTime(ctx, args)
+	handler: async (ctx, args) => (await reserveSessionTime(ctx, args)).match(tupleOk, tupleErr)
 });
 
 export const clearSessionReservation = internalMutation({
 	args: { bookingId: v.id("bookings"), reservation: sessionReservationValidator },
-	handler: (ctx, args) => unreserveSessionTime(ctx, args.bookingId, args.reservation)
+	handler: async (ctx, args) =>
+		(await unreserveSessionTime(ctx, args.bookingId, args.reservation)).match(tupleOk, tupleErr)
 });
 
 export const saveAdminSessionUpdate = internalMutation({

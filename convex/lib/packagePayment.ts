@@ -2,16 +2,12 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type {
-	MarkPackagePaidAndCreateScheduleTokenResult,
-	MarkPackageScheduleEmailAttemptResult
-} from "#convex/packages";
 import type { PackageLookupError, PaidPackageResult } from "#convex/services/packages";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { ParsedPackageRequest } from "./packageUpdates";
-import { okOrThrow } from "./result";
+import { fromConvexTuple, okOrThrow } from "./result";
 import { sendMultiBookingInvoiceEmail, sendPackageScheduleEmail } from "./email";
 
 type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
@@ -91,10 +87,8 @@ export function refreshPackageScheduleToken(
 	ctx: ActionCtx,
 	multiBookingId: Id<"multiBookingPackages">
 ) {
-	return okOrThrow(
+	return fromConvexTuple(
 		ctx.runMutation(internal.packages.refreshPackageScheduleToken, { multiBookingId })
-	).andThen(([tokenError, tokenResult]) =>
-		tokenError === null ? ok(tokenResult) : err(tokenError)
 	);
 }
 
@@ -103,18 +97,12 @@ export function markPackagePaid(
 	multiBookingId: Id<"multiBookingPackages">,
 	paidAt: number
 ): ResultAsync<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
-	return ResultAsync.fromSafePromise<MarkPackagePaidAndCreateScheduleTokenResult>(
+	return fromConvexTuple(
 		ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
 			multiBookingId,
 			paidAt
 		})
-	).andThen(([paymentError, paymentResult]) => {
-		if (paymentError !== null) {
-			return err(paymentError);
-		}
-
-		return ok(paymentResult);
-	});
+	);
 }
 
 export function sendAndRecordPackageScheduleEmail(
@@ -144,13 +132,7 @@ function recordPackageScheduleEmailAttempt(
 	multiBookingId: Id<"multiBookingPackages">,
 	status: "sent" | "failed"
 ): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
-	return ResultAsync.fromSafePromise<MarkPackageScheduleEmailAttemptResult>(
+	return fromConvexTuple(
 		ctx.runMutation(internal.packages.markPackageScheduleEmailAttempt, { multiBookingId, status })
-	).andThen(([statusError, statusResult]) => {
-		if (statusError !== null) {
-			return err(statusError);
-		}
-
-		return ok(statusResult);
-	});
+	);
 }

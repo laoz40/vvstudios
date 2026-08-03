@@ -1,12 +1,12 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
 } from "#convex/lib/customInvoices";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
-import { getSessionFromDbResult } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessionLookup";
 
 type CustomInvoiceDetails = {
 	dueDate?: string;
@@ -34,13 +34,13 @@ export function createBookingCustomInvoiceService(
 	args: CreateBookingCustomInvoiceArgs
 ) {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Validate the optional price override before loading or writing invoice data.
 			.andThen((identity) =>
 				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
 			)
 			// Confirm the session still exists before creating its custom invoice.
-			.andThen((identity) => getSessionFromDbResult(ctx, args.bookingId).map(() => identity))
+			.andThen((identity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
 			// Save and number the invoice in the same transaction.
 			.andThen((identity) =>
 				saveNumberedCustomInvoice(ctx, {
@@ -64,7 +64,7 @@ export function createPackageCustomInvoiceService(
 	args: CreatePackageCustomInvoiceArgs
 ) {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Validate the optional price override before loading or writing invoice data.
 			.andThen((identity) =>
 				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)

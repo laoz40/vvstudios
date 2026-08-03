@@ -78,16 +78,12 @@ vi.mock("#convex/lib/googleCalendarClient", () => {
 		}
 	});
 
-	return {
-		getGoogleCalendarClient: getClient,
-		getGoogleCalendarClientResult: () => ok(getClient())
-	};
+	return { getGoogleCalendarClient: getClient, loadGoogleCalendarClient: () => ok(getClient()) };
 });
 
 vi.mock("#convex/lib/rateLimits", () => ({
-	checkBookingSubmitRateLimitResult: vi.fn(() => ok(null)),
-	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
-	checkGoogleCalendarAvailabilityRateLimitResult: vi.fn(() => ok({ allowed: true }))
+	checkBookingSubmitRateLimit: vi.fn(() => ok(null)),
+	checkGoogleCalendarAvailabilityRateLimit: vi.fn(() => ok({ allowed: true }))
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

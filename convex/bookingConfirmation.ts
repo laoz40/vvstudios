@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import { internalMutation, type MutationCtx } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/lib/sessionReservations";

@@ -10,7 +10,7 @@ import {
 	validateSessionTimingEdit
 } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
-import { fromConvexResult } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };
 export type ValidRescheduleDetails = {
@@ -60,13 +60,13 @@ export function lockAndReserveReschedule(
 ) {
 	const lockedAt = Date.now();
 
-	return fromConvexResult(
+	return fromConvexTuple(
 		ctx.runMutation(internal.sessionReschedule.lockRescheduleLink, {
 			linkId: details.link._id,
 			now: lockedAt
 		})
 	).andThen(() =>
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 				bookingId: details.session._id,
 				duration: details.session.duration,
@@ -142,7 +142,7 @@ export function saveRescheduledSession(
 		timingUpdate: { googleCalendarId?: string; googleEventId?: string; sessionStartAt: number };
 	}
 ) {
-	return fromConvexResult(
+	return fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
 			bookingId: state.session._id,
 			date: args.date,

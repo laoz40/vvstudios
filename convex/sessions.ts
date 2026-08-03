@@ -1,6 +1,7 @@
+import { err, errAsync, ok } from "neverthrow";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { err as tupleErr, ok as tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -12,6 +13,7 @@ import {
 	type QueryCtx
 } from "./_generated/server";
 import { getAdminIdentity } from "./lib/auth";
+import { okOrThrow } from "./lib/result";
 import {
 	archiveSessionService,
 	markSessionCalendarEventDeletedService,
@@ -40,11 +42,12 @@ async function listSessionsHandler(
 	ctx: QueryCtx,
 	args: { paginationOpts: { numItems: number; cursor: string | null } }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		throw new ConvexError(authError);
-	}
+	await getAdminIdentity(ctx).match(
+		() => null,
+		(authError) => {
+			throw new ConvexError(authError);
+		}
+	);
 
 	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
 	// Auth failures throw above so the hook can keep native cursor/page handling.
@@ -108,23 +111,24 @@ export const getPublicRescheduleCompleteSession = query({
 	handler: (ctx, args) => getPublicRescheduleCompleteSessionHandler(ctx, args)
 });
 
-async function getPublicRescheduleCompleteSessionHandler(
-	ctx: QueryCtx,
-	args: { bookingId: string }
-) {
+function getPublicRescheduleCompleteSessionHandler(ctx: QueryCtx, args: { bookingId: string }) {
+	return getPublicRescheduleCompleteSessionService(ctx, args).match(tupleOk, tupleErr);
+}
+
+function getPublicRescheduleCompleteSessionService(ctx: QueryCtx, args: { bookingId: string }) {
 	const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
 
 	if (bookingId === null) {
-		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
+		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 	}
 
-	const session = await ctx.db.get(bookingId);
+	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
-	if (!session) {
-		return tupleErr({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return tupleOk(buildPublicSessionStatusResponse(session));
+		return ok(buildPublicSessionStatusResponse(session));
+	});
 }
 
 export type GetPublicRescheduleCompleteSessionResult = Awaited<

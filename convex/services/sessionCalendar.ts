@@ -4,9 +4,11 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
+import { getBusyWindows } from "#convex/lib/googleCalendarAvailability";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
 import {
 	getSessionStartAt,
 	isValidSessionRemainingBalanceAmount,
@@ -17,9 +19,9 @@ import {
 } from "#convex/lib/sessionAdminEdit";
 import { deleteSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
-import { getSessionFromQueryResult } from "#convex/lib/sessionLookup";
-import { checkBookingSubmitRateLimitResult } from "#convex/lib/rateLimits";
-import { fromConvexResult } from "#convex/lib/result";
+import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
+import { fromConvexTuple } from "#convex/lib/result";
 import { getRescheduleUrlForToken } from "#convex/lib/sessionRescheduleLinks";
 import {
 	lockAndReserveReschedule,
@@ -29,10 +31,84 @@ import {
 	type RescheduleSessionArgs,
 	type ValidRescheduleDetails
 } from "#convex/lib/sessionRescheduleWorkflow";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
-import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
+import {
+	checkSessionMeetsAvailabilitySettings,
+	getAvailableTimeOptions,
+	type SessionAvailabilitySettings
+} from "#convex/lib/sessionCalendarTime";
+import { getBookingSettingsService } from "#convex/services/bookingSettings";
+import type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
 
 export type { RescheduleSessionArgs } from "#convex/lib/sessionRescheduleWorkflow";
+type GoogleCalendarAvailabilityError = {
+	reason:
+		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+		| "GOOGLE_CALENDAR_AUTH_FAILED"
+		| "GOOGLE_CALENDAR_RATE_LIMITED";
+};
+
+export type GetAvailableRescheduleTimesError =
+	| RescheduleLinkLookupError
+	| GoogleCalendarAvailabilityError;
+
+export function getAvailableRescheduleTimesService(
+	ctx: ActionCtx,
+	args: { date: string; token: string }
+): ResultAsync<{ timeZone: string; times: string[] }, GetAvailableRescheduleTimesError> {
+	return fromConvexTuple(
+		ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+			now: Date.now(),
+			token: args.token
+		})
+	)
+		.andThen((details) => getBookingSettingsService(ctx).map((settings) => ({ details, settings })))
+		.andThen(({ details, settings }) =>
+			ResultAsync.fromPromise(
+				Promise.resolve().then(() => getGoogleCalendarClient()),
+				(error): GoogleCalendarAvailabilityError => ({
+					reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+				})
+			).andThen(({ calendar, calendarIds, timeZone }) =>
+				ResultAsync.fromPromise(
+					getBusyWindows({
+						calendar,
+						calendarIds,
+						date: args.date,
+						ignoredEvent: {
+							calendarId: details.session.googleCalendarId,
+							eventId: details.session.googleEventId
+						},
+						timeZone
+					}),
+					(error): GoogleCalendarAvailabilityError => ({
+						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+					})
+				).map((busyWindows) => {
+					const calendarAvailableTimes = getAvailableTimeOptions({
+						busyWindows,
+						date: args.date,
+						duration: details.session.duration,
+						eventBufferMinutes: settings.eventBufferMinutes,
+						timeZone
+					});
+					const now = Date.now();
+					const times = calendarAvailableTimes.filter((time) =>
+						checkSessionMeetsAvailabilitySettings({
+							date: args.date,
+							duration: details.session.duration,
+							now,
+							settings,
+							time,
+							timeZone
+						}).isOk()
+					);
+
+					return { timeZone, times };
+				})
+			)
+		);
+}
+
 export type RescheduleSessionError =
 	| RescheduleLinkLookupError
 	| AdminSessionUpdateError
@@ -97,17 +173,16 @@ export function rescheduleSessionService(
 
 	return (
 		// Check that the link is valid and apply the customer's submit rate limit.
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
 				now: Date.now(),
 				token: args.token
 			})
 		)
 			.andThen((details: ValidRescheduleDetails) =>
-				checkBookingSubmitRateLimitResult(
-					ctx,
-					getBookingSubmitRateLimitKey(details.session.email)
-				).map(() => details)
+				checkBookingSubmitRateLimit(ctx, getBookingSubmitRateLimitKey(details.session.email)).map(
+					() => details
+				)
 			)
 			// Load settings and validate the target before locking the link.
 			.andThen((details) =>
@@ -154,14 +229,14 @@ export function updateSessionFromAdminService(
 	args: AdminSessionUpdateArgs
 ): ResultAsync<AdminSessionUpdateResult, UpdateSessionFromAdminError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			.andThen(() => {
 				return isValidSessionRemainingBalanceAmount(args.remainingBalanceAmount)
 					? ok(null)
 					: err({ reason: "BOOKING_INVALID_INPUT" as const });
 			})
 			// Load the booking only after authorization and input validation succeed.
-			.andThen(() => getSessionFromQueryResult(ctx, args.bookingId))
+			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Load settings before applying Calendar and persistence changes.
 			.andThen((session) =>
 				ResultAsync.fromSafePromise(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
@@ -189,9 +264,9 @@ export function deleteSessionFromAdminService(
 	bookingId: Id<"bookings">
 ): ResultAsync<{ deleted: boolean }, DeleteSessionFromAdminError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Load the booking only after admin authorization succeeds.
-			.andThen(() => getSessionFromQueryResult(ctx, bookingId))
+			.andThen(() => getSessionFromQuery(ctx, bookingId))
 			// Delete the provider event before cancelling the booking in Convex.
 			.andThen((session) =>
 				ResultAsync.fromSafePromise(
@@ -200,7 +275,7 @@ export function deleteSessionFromAdminService(
 			)
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId })
 				).map(() => ({ deleted: true }))
 			)

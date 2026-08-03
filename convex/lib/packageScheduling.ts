@@ -1,5 +1,5 @@
-import { err as neverthrowErr, ok as neverthrowOk } from "neverthrow";
-import { err, ok, type Result } from "#/lib/result";
+import { err, ok, type ResultAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
@@ -55,18 +55,14 @@ export async function createPackageSchedulingDetails(
 
 export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBookingPackages">) {
 	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
-		return neverthrowErr({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" as const });
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" as const });
 	}
 
 	if (packageFromDb.paidAt === undefined || packageFromDb.expiresAt === undefined) {
-		return neverthrowErr({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" as const });
+		return err({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" as const });
 	}
 
-	return neverthrowOk({
-		...packageFromDb,
-		paidAt: packageFromDb.paidAt,
-		expiresAt: packageFromDb.expiresAt
-	});
+	return ok({ ...packageFromDb, paidAt: packageFromDb.paidAt, expiresAt: packageFromDb.expiresAt });
 }
 
 export function getPackageUpdateValidationError(
@@ -224,35 +220,47 @@ export function toPackageCalendarDetails(
 	};
 }
 
-export async function getEditablePackageSession(
+type EditablePackageSessionDetails = {
+	multiBooking: ValidPackage;
+	session: Doc<"bookings">;
+	settings: SessionAvailabilitySettings;
+};
+
+export function getEditablePackageSession(
 	ctx: QueryCtx,
 	args: { token: string; bookingId: Id<"bookings">; now: number }
-) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+): ResultAsync<EditablePackageSessionDetails, ValidPackageByTokenError | PackageSessionEditError> {
+	return (
+		getValidPackageByTokenResult(ctx, args.token, args.now)
+			// Load the requested session through the package to enforce ownership.
+			.andThen((multiBooking) =>
+				okOrThrow(getPackageSessionForToken(ctx, multiBooking._id, args.bookingId)).map(
+					(session) => ({ multiBooking, session })
+				)
+			)
+			// Reject missing, foreign, and inactive sessions before loading scheduling settings.
+			.andThen(({ multiBooking, session }) => {
+				if (!session || !sessionConsumesPackageCapacity(session)) {
+					return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+				}
 
-	if (error !== null) {
-		return err(error);
-	}
+				return okOrThrow<SessionAvailabilitySettings>(
+					ctx.runQuery(api.bookingSettings.get, {})
+				).map((settings) => ({ multiBooking, session, settings }));
+			})
+			// Enforce the edit cutoff after the session and settings are available.
+			.andThen((details) => {
+				if (
+					isPackageSessionLocked(
+						details.session.sessionStartAt,
+						details.settings.leadTimeMinutes,
+						args.now
+					)
+				) {
+					return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+				}
 
-	const session = await getPackageSessionForToken(ctx, multiBooking._id, args.bookingId);
-
-	if (!session || !sessionConsumesPackageCapacity(session)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-
-	if (isPackageSessionLocked(session.sessionStartAt, settings.leadTimeMinutes, args.now)) {
-		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
-	}
-
-	return ok({ session, multiBooking, settings });
-}
-
-export async function getValidPackageByToken(
-	ctx: QueryCtx | MutationCtx,
-	token: string,
-	now: number
-): Promise<Result<ValidPackage, ValidPackageByTokenError>> {
-	return getValidPackageByTokenResult(ctx, token, now).match(ok, err);
+				return ok(details);
+			})
+	);
 }

@@ -5,7 +5,7 @@ import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	checkPackageSubmitRateLimit,
 	emailDomainCanReceiveMail
@@ -91,7 +91,7 @@ export function resendPackageInvoiceEmailService(
 	ctx: ActionCtx,
 	args: PackageIdArgs
 ): ResultAsync<ResendPackageInvoiceEmailSuccess, ResendPackageInvoiceEmailError> {
-	return getAdminIdentityResult(ctx)
+	return getAdminIdentity(ctx)
 		.andThen(() => getPackageForAction(ctx, args.multiBookingId))
 		.andThen((packageFromDb) => {
 			if (
@@ -115,7 +115,7 @@ export function confirmPackagePaymentService(
 	args: PackageIdArgs
 ): ResultAsync<null, ConfirmPackagePaymentError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Mark the package paid and create the token and expiry used by its scheduling link.
 			.andThen(() => markPackagePaid(ctx, args.multiBookingId, Date.now()))
 			// Load lead time so the email explains how far ahead each session must be scheduled.
@@ -151,7 +151,7 @@ export function retryPackageSchedulingEmailService(
 	args: PackageIdArgs
 ): ResultAsync<null, RetryPackageSchedulingEmailError> {
 	return (
-		getAdminIdentityResult(ctx)
+		getAdminIdentity(ctx)
 			// Rotate the failed package's scheduling token before exposing a fresh link.
 			.andThen(() => refreshPackageScheduleToken(ctx, args.multiBookingId))
 			// Load lead time so the replacement email contains current scheduling guidance.

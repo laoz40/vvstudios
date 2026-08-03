@@ -1,15 +1,25 @@
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import type { MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
-import { validateBookingSettingsResult } from "#convex/lib/bookingSettings";
+import { ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { api } from "#convex/_generated/api";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { getAdminIdentity } from "#convex/lib/auth";
+import { validateBookingSettings } from "#convex/lib/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
+
+export function getBookingSettingsService(
+	ctx: ActionCtx
+): NeverthrowResultAsync<BookingAvailabilitySettings, never> {
+	return ResultAsync.fromSafePromise<BookingAvailabilitySettings>(
+		ctx.runQuery(api.bookingSettings.get, {})
+	);
+}
 
 export function updateBookingSettingsService(
 	ctx: MutationCtx,
 	settings: BookingAvailabilitySettings
 ) {
-	return getAdminIdentityResult(ctx)
-		.andThen((identity) => validateBookingSettingsResult(settings).map(() => identity))
+	return getAdminIdentity(ctx)
+		.andThen((identity) => validateBookingSettings(settings).map(() => identity))
 		.andThen((identity) =>
 			okOrThrow(
 				(async () => {

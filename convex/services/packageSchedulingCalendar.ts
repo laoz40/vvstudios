@@ -4,11 +4,11 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
-import { getGoogleCalendarClientResult } from "#convex/lib/googleCalendarClient";
+import { loadGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
-import { fromConvexResult } from "#convex/lib/result";
-import { checkGoogleCalendarAvailabilityRateLimitResult } from "#convex/lib/rateLimits";
+import { fromConvexTuple } from "#convex/lib/result";
+import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import {
 	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
@@ -53,7 +53,7 @@ export function getPackageBusyWindowsService(
 	PackageAvailabilityError
 > {
 	return (
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runQuery(internal.packageScheduling.getValidPackageByToken, {
 				now: Date.now(),
 				token: args.token
@@ -61,13 +61,11 @@ export function getPackageBusyWindowsService(
 		)
 			// Apply both customer and global availability limits before calling Calendar.
 			.andThen((packageFromDb) =>
-				checkGoogleCalendarAvailabilityRateLimitResult(ctx, args.rateLimitKey).map(
-					() => packageFromDb
-				)
+				checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
 			)
 			// Load Calendar configuration before calculating the package's bookable range.
 			.andThen((packageFromDb) =>
-				getGoogleCalendarClientResult("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+				loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
 					client,
 					packageFromDb
 				}))
@@ -114,7 +112,7 @@ export function savePackageSessionCalendarEventService(args: {
 	details: PackageCalendarDetails;
 }): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
 	return (
-		getGoogleCalendarClientResult("GOOGLE_CALENDAR_SYNC_FAILED")
+		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
 			// Confirm the requested slot remains free before writing a Calendar event.
 			.andThen((client) => {
 				const ignoredEvent = args.session
@@ -159,7 +157,7 @@ export function deletePackageSessionCalendarEventService(
 	session: SessionCalendarEventRecord
 ): ResultAsync<{ calendarEventDeleted: boolean }, PackageCalendarSyncError> {
 	return (
-		getGoogleCalendarClientResult("GOOGLE_CALENDAR_SYNC_FAILED")
+		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
 			// Delete the saved event, including declined invitations found by session details.
 			.andThen(({ calendar, calendarId, timeZone }) =>
 				ResultAsync.fromSafePromise(

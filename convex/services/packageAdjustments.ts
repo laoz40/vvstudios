@@ -1,10 +1,10 @@
 import { ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentityResult } from "#convex/lib/auth";
+import { getAdminIdentity } from "#convex/lib/auth";
 import {
-	getPackageAdjustmentInvoiceResult,
-	getSentPackageAdjustmentInvoiceResult,
+	getPackageAdjustmentInvoice,
+	getSentPackageAdjustmentInvoice,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
@@ -31,7 +31,7 @@ export function claimPackageAdjustmentInvoiceEmailService(
 	scheduleStalledEmailRecovery: () => Promise<unknown>
 ) {
 	return (
-		getPackageAdjustmentInvoiceResult(ctx, args.adjustmentId)
+		getPackageAdjustmentInvoice(ctx, args.adjustmentId)
 			// Confirm this attempt can claim the email without replacing an active sender.
 			.andThen((adjustment) => validatePackageAdjustmentEmailClaim(adjustment, args))
 			// Load the package snapshot needed to render and send the adjustment invoice.
@@ -62,7 +62,7 @@ export function markStalledPackageAdjustmentInvoiceEmailFailedService(
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs
 ) {
 	return (
-		getPackageAdjustmentInvoiceResult(ctx, args.adjustmentId)
+		getPackageAdjustmentInvoice(ctx, args.adjustmentId)
 			// A missing adjustment needs no cleanup, so treat not found as success. Database failures still reject.
 			.orElse(() => ok(null))
 			.andThen((adjustment) => {
@@ -92,7 +92,7 @@ export function completePackageAdjustmentInvoiceEmailService(
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs,
 	status: "sent" | "failed"
 ) {
-	return getPackageAdjustmentInvoiceResult(ctx, args.adjustmentId).andThen((adjustment) => {
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
 		// Ignore completion from a timed-out attempt after a newer retry claimed the email.
 		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
 			return ok({ updated: false });
@@ -110,8 +110,8 @@ export function markPackageAdjustmentPaymentStatusService(
 	ctx: MutationCtx,
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
-	return getAdminIdentityResult(ctx)
-		.andThen(() => getSentPackageAdjustmentInvoiceResult(ctx, args.adjustmentId))
+	return getAdminIdentity(ctx)
+		.andThen(() => getSentPackageAdjustmentInvoice(ctx, args.adjustmentId))
 		.andThen((adjustment) =>
 			okOrThrow(
 				ctx.db

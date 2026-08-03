@@ -67,7 +67,7 @@ vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("#convex/sessionReschedule", () => ({
+vi.mock("#convex/lib/sessionRescheduleLinks", () => ({
 	createRescheduleUrlForSession: vi.fn(() => okAsync("https://example.com/reschedule/test-token"))
 }));
 

@@ -4,7 +4,7 @@ import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexResult } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 import type { SessionReservation } from "./sessionReservations";
 import {
 	checkSessionMeetsAvailabilitySettings,
@@ -418,7 +418,7 @@ function promoteFailedSessionFromAdmin({
 			)
 			.andThen((createdEvent) =>
 				// Promote to confirmed and clear the previous failure code in the save mutation.
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
 						...args,
 						confirmBooking: true,
@@ -517,7 +517,7 @@ function updateConfirmedSessionGoogleEventOrCreateReplacement({
 			return ok(null);
 		}
 
-		return fromConvexResult(
+		return fromConvexTuple(
 			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
 				...args,
 				googleCalendarId: timingUpdate.googleCalendarId,
@@ -548,7 +548,7 @@ export function updateSessionFromAdminWithGoogleCalendar({
 
 	// Convert the requested date and time, then reserve it before updating Convex or Google Calendar.
 	return getSessionStartAt(args.date, args.time, client.timeZone).asyncAndThen((sessionStartAt) =>
-		fromConvexResult(
+		fromConvexTuple(
 			ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 				bookingId: session._id,
 				duration: args.duration,
@@ -623,7 +623,7 @@ function applyAdminSessionUpdate({
 			timeZone: client.timeZone
 		})
 			.andThen(() =>
-				fromConvexResult(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
 						...args,
 						...(reservation ? { reservation } : {})
@@ -646,7 +646,7 @@ function applyAdminSessionUpdate({
 			return ok(replacementOutcome);
 		}
 
-		return fromConvexResult(
+		return fromConvexTuple(
 			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
 				...args,
 				...(reservation ? { reservation } : {})
