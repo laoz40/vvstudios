@@ -1,6 +1,7 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { err, ok, type Result } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 
 import {
 	buildEventWindow,
@@ -141,6 +142,32 @@ async function findSessionCalendarEventIncludingDeclined({
 	return ok(
 		events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
 	);
+}
+
+export async function removeOrphanedSessionCalendarEvent({
+	bookingId,
+	calendar,
+	calendarId,
+	googleEventId
+}: {
+	bookingId: Id<"bookings">;
+	calendar: Pick<calendar_v3.Calendar, "events">;
+	calendarId: string;
+	googleEventId: string;
+}) {
+	try {
+		await calendar.events.delete({
+			calendarId,
+			eventId: googleEventId,
+			sendUpdates: "all"
+		});
+	} catch (error) {
+		console.error("Orphaned session Calendar event cleanup failed", {
+			bookingId,
+			googleEventId,
+			error
+		});
+	}
 }
 
 async function deleteCalendarEventIfFound(

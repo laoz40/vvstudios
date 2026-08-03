@@ -418,7 +418,7 @@ export async function sendMultiBookingInvoiceEmail(
 	options: { leadTimeMinutes: number }
 ): Promise<
 	Result<
-		{ invoiceNumber: string; sent: true },
+		{ invoiceNumber: string },
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
@@ -479,7 +479,7 @@ export async function sendMultiBookingInvoiceEmail(
 			reason: hostEmailResult.error.reason
 		});
 	}
-	return ok({ invoiceNumber: artifacts.data.invoice.number, sent: true });
+	return ok({ invoiceNumber: artifacts.data.invoice.number });
 }
 
 export async function sendPackageScheduleEmail({

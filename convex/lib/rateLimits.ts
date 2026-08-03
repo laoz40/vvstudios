@@ -17,41 +17,45 @@ type RateLimitCtx = ActionCtx | MutationCtx;
 export type BookingSubmitRateLimitError = { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
 
 export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
-	return okOrThrow(
-		Promise.all([
-			rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal"),
-			rateLimiter.limit(ctx, "googleCalendarAvailability", { key })
-		])
-	).andThen(([globalRateLimitStatus, rateLimitStatus]) => {
-		if (!globalRateLimitStatus.ok || !rateLimitStatus.ok) {
-			return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
-		}
+	return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal")).andThen(
+		(globalRateLimitStatus) => {
+			if (!globalRateLimitStatus.ok) {
+				return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
+			}
 
-		return ok(null);
-	});
+			return okOrThrow(
+				rateLimiter.limit(ctx, "googleCalendarAvailability", { key })
+			).andThen((rateLimitStatus) =>
+				rateLimitStatus.ok
+					? ok(null)
+					: err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const })
+			);
+		}
+	);
 }
 
 export function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
-	return okOrThrow(
-		Promise.all([
-			rateLimiter.limit(ctx, "bookingSubmitGlobal"),
-			rateLimiter.limit(ctx, "bookingSubmit", { key })
-		])
-	).andThen(([globalRateLimitStatus, rateLimitStatus]) => {
-		if (!globalRateLimitStatus.ok) {
-			return err({
-				reason: "BOOKING_RATE_LIMITED" as const,
-				retryAfter: globalRateLimitStatus.retryAfter
-			});
-		}
+	return okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal")).andThen(
+		(globalRateLimitStatus) => {
+			if (!globalRateLimitStatus.ok) {
+				return err({
+					reason: "BOOKING_RATE_LIMITED" as const,
+					retryAfter: globalRateLimitStatus.retryAfter
+				});
+			}
 
-		if (!rateLimitStatus.ok) {
-			return err({
-				reason: "BOOKING_RATE_LIMITED" as const,
-				retryAfter: rateLimitStatus.retryAfter
-			});
-		}
+			return okOrThrow(rateLimiter.limit(ctx, "bookingSubmit", { key })).andThen(
+				(rateLimitStatus) => {
+					if (!rateLimitStatus.ok) {
+						return err({
+							reason: "BOOKING_RATE_LIMITED" as const,
+							retryAfter: rateLimitStatus.retryAfter
+						});
+					}
 
-		return ok(null);
-	});
+					return ok(null);
+				}
+			);
+		}
+	);
 }

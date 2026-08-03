@@ -16,21 +16,28 @@ import {
 import { getBusyWindows } from "./googleCalendarAvailability";
 import {
 	buildSessionCalendarEventPayload,
+	removeOrphanedSessionCalendarEvent,
 	type SessionCalendarEventDetails,
 	type SessionCalendarTimingUpdateResult,
 	updateSessionCalendarEventTiming
 } from "./sessionCalendarEvents";
 import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
 
-type SessionEditValues = Pick<
-	Doc<"bookings">,
-	"accountName" | "addons" | "date" | "duration" | "email" | "name" | "phone" | "service" | "time"
-> & {
+type SessionEditValues = {
+	name: string;
+	phone: string;
+	accountName: string;
 	abn?: string;
+	email: string;
+	date: string;
+	time: string;
+	duration: string;
+	service: string;
+	addons: string[];
+	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
 	notes?: string;
 	remainingBalanceAmount?: number;
-	essentialEditQuantity?: string;
 };
 
 export function getSessionStartAt(
@@ -416,18 +423,36 @@ function promoteFailedSessionFromAdmin({
 					})
 				)
 			)
-			.andThen((createdEvent) =>
+			.andThen((createdEvent) => {
+				const googleEventId = createdEvent.data.id ?? undefined;
+
 				// Promote to confirmed and clear the previous failure code in the save mutation.
-				fromConvexTuple(
+				return fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
 						...args,
 						confirmBooking: true,
 						googleCalendarId: client.calendarId,
-						googleEventId: createdEvent.data.id ?? undefined,
+						googleEventId,
 						...(reservation ? { reservation } : {})
 					})
-				)
-			)
+				).orElse((saveError) => {
+					const shouldRemoveOrphanedEvent =
+						saveError.reason === "BOOKING_TIME_UNAVAILABLE" ||
+						saveError.reason === "BOOKING_NOT_FOUND";
+					if (!shouldRemoveOrphanedEvent || googleEventId === undefined) {
+						return err(saveError);
+					}
+
+					return ResultAsync.fromSafePromise(
+						removeOrphanedSessionCalendarEvent({
+							bookingId: session._id,
+							calendar: client.calendar,
+							calendarId: client.calendarId,
+							googleEventId
+						})
+					).andThen(() => err(saveError));
+				});
+			})
 			.map(() => ({ googleOutcome: "createdFromFailed" as const }));
 	});
 }

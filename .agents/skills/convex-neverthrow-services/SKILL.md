@@ -31,7 +31,7 @@ React caller -> Convex handler -> service
 - Use `{ reason: "STABLE_CODE" }` discriminated errors and literal inference.
 - Migrate the dependency chain, not just the top-level function. Replace touched tuple-returning lookups, parsers, and validators with native neverthrow and update their callers; do not add parallel `*Result` wrappers.
 - Compose propagation with `map`/`andThen`. Avoid mechanical conversions such as `if (result.isErr()) return err(result.error)` or tuple unpacking. Use explicit branching only for distinct behavior such as cleanup.
-- Convert tuples only at real boundaries: `fromConvexResult` for internal Convex calls and `.match(tupleOk, tupleErr)` in registered handlers.
+- Convert tuples only at real boundaries: `fromConvexTuple` for internal Convex calls and `.match(tupleOk, tupleErr)` in registered handlers.
 - Compose dependent expected outcomes with `andThen`; use `map` for infallible transformations.
 - Keep each `andThen` focused on one business step. For complex chains, add a brief, accurate business-flow comment immediately above every `andThen`.
 - Carry only values required by the next chain section. Return `null` after intermediate write-only steps instead of forwarding unrelated documents or confirmation objects.

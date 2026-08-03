@@ -61,10 +61,10 @@ Actions cannot use `ctx.db`. Keep atomic persistence in an internal mutation and
 ```ts
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexResult } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 export function completeBookingService(ctx: ActionCtx, bookingId: string) {
-  return fromConvexResult(
+  return fromConvexTuple(
     ctx.runMutation(internal.bookings.claimCompletion, { bookingId })
   )
     .andThen(sendConfirmationEmail)

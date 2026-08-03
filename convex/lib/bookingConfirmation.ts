@@ -7,6 +7,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendBookingInvoiceEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import {
 	buildEventWindow,
 	type SessionAvailabilitySettings
@@ -49,33 +50,12 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 					.mapErr((emailError) => {
 						console.error("Booking reminder email send failed", {
 							bookingId: session._id,
-							bookingEmail: session.email,
 							reason: emailError.reason
 						});
 						return { reason: "RESEND_SEND_FAILED" as const };
 					})
 			)
 	);
-}
-
-async function removeOrphanedSessionCalendarEvent(
-	bookingId: Id<"bookings">,
-	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
-	googleEventId: string
-) {
-	try {
-		await calendarClient.calendar.events.delete({
-			calendarId: calendarClient.calendarId,
-			eventId: googleEventId,
-			sendUpdates: "all"
-		});
-	} catch (error) {
-		console.error("Orphaned session Calendar event cleanup failed", {
-			bookingId,
-			googleEventId,
-			error
-		});
-	}
 }
 
 export async function saveConfirmedBooking(
@@ -117,7 +97,12 @@ export async function saveConfirmedBooking(
 
 	// Confirmation failed, so remove any Calendar event that was created but not recorded.
 	if (googleEventId) {
-		await removeOrphanedSessionCalendarEvent(session._id, calendarClient, googleEventId);
+		await removeOrphanedSessionCalendarEvent({
+			bookingId: session._id,
+			calendar: calendarClient.calendar,
+			calendarId: calendarClient.calendarId,
+			googleEventId
+		});
 	}
 
 	return false;
