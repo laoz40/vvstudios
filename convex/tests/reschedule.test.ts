@@ -26,6 +26,9 @@
  *    A provider failure after the token is claimed must reactivate that token so the
  *    customer can retry, while leaving the booking and reminder state unchanged.
  *
+ * 7. Missing locked link cleanup
+ *    Unlocking a deleted link must report that it is missing rather than already used.
+ *
  * Google Calendar and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -46,8 +49,8 @@ vi.mock("#convex/env", () => ({
 	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
 }));
 
-vi.mock("#convex/lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const client = {
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -59,8 +62,10 @@ vi.mock("#convex/lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	};
+
+	return { getGoogleCalendarClient: () => client, loadGoogleCalendarClient: () => ok(client) };
+});
 
 vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
@@ -237,6 +242,21 @@ describe("customer booking rescheduling", () => {
 			expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 		}
 	);
+
+	// Verifies a missing cleanup target remains distinct from a stale or competing lock.
+	test("reports a deleted locked link as not found during cleanup", async () => {
+		const t = createConvexTest();
+		const { linkId } = await seedReschedulableSession(t);
+
+		await t.run((ctx) => ctx.db.delete(linkId));
+
+		const result = await t.mutation(internal.sessionReschedule.unlockRescheduleLink, {
+			linkId,
+			lockedAt: now
+		});
+
+		expect(result).toEqual([{ reason: "RESCHEDULE_LINK_NOT_FOUND" }, null]);
+	});
 
 	test("reactivates the token when the Calendar update fails", async () => {
 		const t = createConvexTest();

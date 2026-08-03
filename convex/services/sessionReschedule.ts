@@ -182,15 +182,23 @@ export function markActiveRescheduleLinksUsedForSessionService(
 	);
 }
 
+type UnlockRescheduleLinkError =
+	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
+	| { reason: "RESCHEDULE_LINK_USED" };
+
 export function unlockRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
 ) {
 	return okOrThrow(ctx.db.get(args.linkId)).andThen((link) => {
+		if (link === null) {
+			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
+		}
+
 		// Only unlock a used link with the same lock time set by this request.
 		// This prevents an older request from unlocking a newer request's lock.
-		if (link === null || link.status !== "used" || link.usedAt !== args.lockedAt) {
-			return err({ reason: "RESCHEDULE_LINK_USED" as const });
+		if (link.status !== "used" || link.usedAt !== args.lockedAt) {
+			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_USED" });
 		}
 
 		return okOrThrow(
