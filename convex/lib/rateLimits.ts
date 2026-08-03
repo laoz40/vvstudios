@@ -23,12 +23,9 @@ export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: st
 				return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
 			}
 
-			return okOrThrow(
-				rateLimiter.limit(ctx, "googleCalendarAvailability", { key })
-			).andThen((rateLimitStatus) =>
-				rateLimitStatus.ok
-					? ok(null)
-					: err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const })
+			return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailability", { key })).andThen(
+				(rateLimitStatus) =>
+					rateLimitStatus.ok ? ok(null) : err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const })
 			);
 		}
 	);

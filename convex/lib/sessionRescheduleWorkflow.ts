@@ -189,5 +189,8 @@ export function saveRescheduledSession(
 		})
 	)
 		.map(() => state)
+		// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time
+		// while the booking keeps the old time. Mark the booking with a Calendar sync
+		// warning so an admin can compare it with Calendar and update it manually.
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }

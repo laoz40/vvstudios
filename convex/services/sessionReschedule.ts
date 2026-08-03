@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { getAdminIdentity } from "#convex/lib/auth";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	buildRescheduleUrl,
 	createActiveRescheduleLinkForSession,
@@ -52,12 +52,7 @@ export function createPublicFailedSessionRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { stripeSessionId: string }
 ): NeverthrowResultAsync<{ rescheduleUrl: string }, CreatePublicFailedSessionRescheduleLinkError> {
-	return okOrThrow(
-		ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (query) => query.eq("stripeSessionId", args.stripeSessionId))
-			.unique()
-	)
+	return getSessionByStripeSessionId(ctx, args.stripeSessionId)
 		.andThen(validatePublicFailedSessionForReschedule)
 		.andThen((session) =>
 			okOrThrow(
@@ -217,10 +212,6 @@ export function lockRescheduleLinkService(
 	return okOrThrow(ctx.db.get(args.linkId))
 		.andThen(validateActiveRescheduleLink)
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.linkId, { status: "used", usedAt: args.now })
-					.then(() => null)
-			)
+			okOrThrow(ctx.db.patch(args.linkId, { status: "used", usedAt: args.now }).then(() => null))
 		);
 }

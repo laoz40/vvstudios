@@ -37,7 +37,6 @@ function sendDeliverablesEmailForSession(
 		.mapErr((emailError) => {
 			console.error("Manual session deliverables email send failed", {
 				bookingId: session._id,
-				bookingEmail: session.email,
 				reason: emailError.reason
 			});
 			return { reason: "DELIVERABLES_SEND_FAILED" as const };

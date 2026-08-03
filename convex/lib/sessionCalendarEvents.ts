@@ -156,11 +156,7 @@ export async function removeOrphanedSessionCalendarEvent({
 	googleEventId: string;
 }) {
 	try {
-		await calendar.events.delete({
-			calendarId,
-			eventId: googleEventId,
-			sendUpdates: "all"
-		});
+		await calendar.events.delete({ calendarId, eventId: googleEventId, sendUpdates: "all" });
 	} catch (error) {
 		console.error("Orphaned session Calendar event cleanup failed", {
 			bookingId,

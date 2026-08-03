@@ -250,6 +250,9 @@ export function reschedulePackageSessionService(
 					})
 				)
 					.map(() => ({ bookingId: args.bookingId }))
+					// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time
+					// while the booking keeps the old time. Mark the booking with a Calendar sync
+					// warning so an admin can compare it with Calendar and update it manually.
 					.orElse((saveError) =>
 						fromConvexTuple(
 							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
