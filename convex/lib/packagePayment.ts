@@ -27,12 +27,12 @@ export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	return url.toString();
 }
 
-type PackageInvoiceSource = Parameters<typeof sendMultiBookingInvoiceEmail>[0];
+type PackageInvoiceInput = Parameters<typeof sendMultiBookingInvoiceEmail>[0];
 
 export function createPendingPackage(
 	ctx: ActionCtx,
 	args: ParsedPackageRequest
-): ResultAsync<PackageInvoiceSource, never> {
+): ResultAsync<PackageInvoiceInput, never> {
 	const amounts = calculatePackageAmounts(args);
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: args.addons,
@@ -57,7 +57,7 @@ export function createPendingPackage(
 	).map((createResult) => createResult.multiBooking);
 }
 
-export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoiceSource) {
+export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoiceInput) {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
 		.andThen((bookingSettings) =>
 			okOrThrow(
@@ -122,8 +122,8 @@ export function sendAndRecordPackageScheduleEmail(
 	multiBookingId: Id<"multiBookingPackages">,
 	email: PackageScheduleEmailArgs
 ): PackageScheduleEmailResult {
-	return ResultAsync.fromSafePromise(sendPackageScheduleEmail(email)).andThen(([emailError]) => {
-		if (emailError !== null) {
+	return ResultAsync.fromSafePromise(sendPackageScheduleEmail(email)).andThen((emailResult) => {
+		if (emailResult.isErr()) {
 			// Record the failed email so an admin can retry the paid package lifecycle.
 			return recordPackageScheduleEmailAttempt(ctx, multiBookingId, "failed")
 				.mapErr(() => ({

@@ -1,3 +1,5 @@
+"use node";
+
 import { err, ok, ResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";

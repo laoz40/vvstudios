@@ -120,7 +120,7 @@ export type ListCustomInvoicesForPackageResult = Awaited<
 	ReturnType<typeof listCustomInvoicesForPackageHandler>
 >;
 
-export const getBookingCustomInvoiceSource = internalQuery({
+export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
 	handler: async (ctx, args) => {
 		const customInvoice = await ctx.db.get(args.customInvoiceId);
@@ -133,7 +133,7 @@ export const getBookingCustomInvoiceSource = internalQuery({
 	}
 });
 
-export const getPackageCustomInvoiceSource = internalQuery({
+export const getPackageCustomInvoiceInput = internalQuery({
 	args: { customInvoiceId: v.id("customInvoices") },
 	handler: async (ctx, args) => {
 		const customInvoice = await ctx.db.get(args.customInvoiceId);

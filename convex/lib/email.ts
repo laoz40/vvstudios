@@ -23,21 +23,11 @@ import {
 	createMultiBookingInvoiceArtifacts,
 	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
-	type MultiBookingInvoiceSource,
-	type PackageAdjustmentInvoiceSource
+	type MultiBookingInvoiceInput,
+	type PackageAdjustmentInvoiceInput
 } from "./bookingInvoiceArtifacts";
-import {
-	err as neverthrowErr,
-	ok as neverthrowOk,
-	type Result as NeverthrowResult
-} from "neverthrow";
-import { err, ok, type Result } from "#/lib/result";
+import { err, ok, ResultAsync, type Result } from "neverthrow";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
-
-type SendEmailResult = Result<
-	{ sent: true },
-	{ reason: "EMAIL_REQUEST_FAILED" } | { reason: "EMAIL_RESPONSE_FAILED" }
->;
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -180,23 +170,21 @@ function formatAddonsLine(args: {
 		.join(", ");
 }
 
-async function sendEmail(args: {
+function sendEmail(args: {
 	to: string[];
 	subject: string;
 	html: string;
 	attachments?: EmailAttachment[];
 	idempotencyKey?: string;
-}): Promise<SendEmailResult> {
+}) {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
 		content: Buffer.from(attachment.content).toString("base64"),
 		contentType: attachment.contentType
 	}));
 
-	let response: Response;
-
-	try {
-		response = await fetch("https://api.resend.com/emails", {
+	return ResultAsync.fromPromise(
+		fetch("https://api.resend.com/emails", {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${env.RESEND_API_KEY}`,
@@ -210,30 +198,31 @@ async function sendEmail(args: {
 				html: args.html,
 				...(attachments ? { attachments } : {})
 			})
-		});
-	} catch {
-		return err({ reason: "EMAIL_REQUEST_FAILED" });
-	}
+		}),
+		() => ({ reason: "EMAIL_REQUEST_FAILED" as const })
+	).andThen((response) => {
+		if (response.ok) {
+			return ok(null);
+		}
 
-	if (!response.ok) {
-		console.error("Resend email response failed", {
-			status: response.status,
-			body: await response.text(),
-			to: args.to,
-			subject: args.subject,
-			attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
+		return ResultAsync.fromSafePromise(response.text()).andThen((body) => {
+			console.error("Resend email response failed", {
+				status: response.status,
+				body,
+				to: args.to,
+				subject: args.subject,
+				attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
+			});
+			return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
 		});
-		return err({ reason: "EMAIL_RESPONSE_FAILED" });
-	}
-
-	return ok({ sent: true });
+	});
 }
 
 export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
-		return ok({ sent: true });
+		return ok(null);
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
@@ -274,7 +263,7 @@ export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEm
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
-		return ok({ sent: true });
+		return ok(null);
 	}
 
 	const html = await render(
@@ -314,47 +303,48 @@ export async function sendBookingInvoiceEmailsForBooking(
 		rescheduleUrl?: string;
 	}
 ): Promise<
-	NeverthrowResult<
+	Result<
 		null,
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
-	const [artifactsError, artifactsResult] = await createBookingInvoiceEmailArtifactsForBooking(
+	const artifactsResult = await createBookingInvoiceEmailArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
 		options
 	);
 
-	if (artifactsError !== null) {
-		return neverthrowErr(artifactsError);
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
 	}
 
-	const { artifacts, booking: parsedBooking } = artifactsResult;
+	const { artifacts, booking: parsedBooking } = artifactsResult.value;
+	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
 
-	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfError !== null) {
+	if (pdfResult.isErr()) {
 		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
-		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [invoiceEmailError] = await sendEmail({
+	const pdfContent = pdfResult.value;
+
+	const invoiceEmailResult = await sendEmail({
 		to: [booking.email],
 		subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
 		html: artifacts.emailHtml,
 		attachments: [{ ...artifacts.pdf, content: pdfContent }]
 	});
 
-	if (invoiceEmailError !== null) {
+	if (invoiceEmailResult.isErr()) {
 		console.error("Booking invoice customer email send failed", {
 			bookingId: booking._id,
 			bookingEmail: booking.email,
-			reason: invoiceEmailError.reason
+			reason: invoiceEmailResult.error.reason
 		});
-		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [hostEmailError] = await sendSessionHostDetailsEmail({
+	const hostEmailResult = await sendSessionHostDetailsEmail({
 		invoiceNumber: artifacts.data.invoice.number,
 		name: parsedBooking.name,
 		email: parsedBooking.email,
@@ -370,85 +360,80 @@ export async function sendBookingInvoiceEmailsForBooking(
 		reschedule: options.reschedule
 	});
 
-	if (hostEmailError !== null) {
+	if (hostEmailResult.isErr()) {
 		console.error("Booking invoice host email send failed", {
 			bookingId: booking._id,
-			reason: hostEmailError.reason
+			reason: hostEmailResult.error.reason
 		});
 	}
 
-	return neverthrowOk(null);
+	return ok(null);
 }
 
 export async function sendPackageAdjustmentInvoiceEmail(
-	source: PackageAdjustmentInvoiceSource
+	invoiceInput: PackageAdjustmentInvoiceInput
 ): Promise<
 	Result<
-		{ sent: true },
+		null,
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
-	const [artifactsError, artifactsResult] = await createPackageAdjustmentInvoiceArtifacts(source);
+	const artifactsResult = await createPackageAdjustmentInvoiceArtifacts(invoiceInput);
 
-	if (artifactsError !== null) {
-		return err(artifactsError);
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
 	}
 
-	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
-		artifactsResult.artifacts.data
-	);
+	const artifacts = artifactsResult.value.artifacts;
+	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
 
-	if (pdfError !== null) {
+	if (pdfResult.isErr()) {
 		console.error("Package adjustment invoice PDF render failed", {
-			adjustmentId: source.adjustment._id
+			adjustmentId: invoiceInput.adjustment._id
 		});
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [invoiceEmailError] = await sendEmail({
-		to: [source.multiBooking.email],
-		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(source.multiBooking.createdAt)}`,
-		html: artifactsResult.artifacts.emailHtml,
-		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }],
-		idempotencyKey: `package-adjustment-${source.adjustment._id}`
+	const invoiceEmailResult = await sendEmail({
+		to: [invoiceInput.multiBooking.email],
+		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(invoiceInput.multiBooking.createdAt)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfResult.value }],
+		idempotencyKey: `package-adjustment-${invoiceInput.adjustment._id}`
 	});
 
-	if (invoiceEmailError !== null) {
+	if (invoiceEmailResult.isErr()) {
 		console.error("Package adjustment invoice email send failed", {
-			adjustmentId: source.adjustment._id,
-			reason: invoiceEmailError.reason
+			adjustmentId: invoiceInput.adjustment._id,
+			reason: invoiceEmailResult.error.reason
 		});
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	return ok({ sent: true });
+	return ok(null);
 }
 
 export async function sendMultiBookingInvoiceEmail(
-	multiBooking: MultiBookingInvoiceSource,
+	multiBooking: MultiBookingInvoiceInput,
 	options: { leadTimeMinutes: number }
 ): Promise<
-	NeverthrowResult<
+	Result<
 		{ invoiceNumber: string; sent: true },
 		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
 	>
 > {
-	const [artifactsError, artifactsResult] = await createMultiBookingInvoiceArtifacts(
-		multiBooking,
-		options
-	);
+	const artifactsResult = await createMultiBookingInvoiceArtifacts(multiBooking, options);
 
-	if (artifactsError !== null) {
-		return neverthrowErr(artifactsError);
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
 	}
 
-	const [pdfError, pdfContent] = await renderBookingInvoicePdfInNode(
-		artifactsResult.artifacts.data
-	);
+	const artifacts = artifactsResult.value.artifacts;
+	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
 
-	if (pdfError !== null) {
+	if (pdfResult.isErr()) {
 		console.error("Multi-booking invoice PDF render failed", { multiBookingId: multiBooking._id });
-		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
@@ -457,23 +442,23 @@ export async function sendMultiBookingInvoiceEmail(
 		year: "numeric"
 	}).format(new Date(multiBooking.createdAt));
 
-	const [invoiceEmailError] = await sendEmail({
+	const invoiceEmailResult = await sendEmail({
 		to: [multiBooking.email],
 		subject: `Your ${multiBooking.packageSize} Pack Studio Booking Invoice from ${invoiceCreatedDate}`,
-		html: artifactsResult.artifacts.emailHtml,
-		attachments: [{ ...artifactsResult.artifacts.pdf, content: pdfContent }]
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
 	});
 
-	if (invoiceEmailError !== null) {
+	if (invoiceEmailResult.isErr()) {
 		console.error("Multi-booking invoice customer email send failed", {
 			multiBookingId: multiBooking._id,
-			reason: invoiceEmailError.reason
+			reason: invoiceEmailResult.error.reason
 		});
-		return neverthrowErr({ reason: "INVOICE_SEND_FAILED" });
+		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const [hostEmailError] = await sendPackageHostDetailsEmail({
-		invoiceNumber: artifactsResult.artifacts.data.invoice.number,
+	const hostEmailResult = await sendPackageHostDetailsEmail({
+		invoiceNumber: artifacts.data.invoice.number,
 		name: multiBooking.name,
 		email: multiBooking.email,
 		phone: multiBooking.phone,
@@ -488,13 +473,13 @@ export async function sendMultiBookingInvoiceEmail(
 		invoiceDueAt: multiBooking.invoiceDueAt
 	});
 
-	if (hostEmailError !== null) {
+	if (hostEmailResult.isErr()) {
 		console.error("Multi-booking invoice host email send failed", {
 			multiBookingId: multiBooking._id,
-			reason: hostEmailError.reason
+			reason: hostEmailResult.error.reason
 		});
 	}
-	return neverthrowOk({ invoiceNumber: artifactsResult.artifacts.data.invoice.number, sent: true });
+	return ok({ invoiceNumber: artifacts.data.invoice.number, sent: true });
 }
 
 export async function sendPackageScheduleEmail({
@@ -510,7 +495,7 @@ export async function sendPackageScheduleEmail({
 	bookedAt,
 	scheduleUrl
 }: SendPackageScheduleEmailArgs): Promise<
-	Result<{ sent: true }, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
+	Result<null, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
 > {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
@@ -534,21 +519,21 @@ export async function sendPackageScheduleEmail({
 		return err({ reason: "SCHEDULE_EMAIL_RENDER_FAILED" });
 	}
 
-	const [scheduleEmailError] = await sendEmail({
+	const scheduleEmailResult = await sendEmail({
 		to: [email],
 		subject: `Schedule Your ${packageSize} Pack Studio Sessions — Booked ${formatTimestampDateShort(bookedAt)}`,
 		html
 	});
 
-	if (scheduleEmailError !== null) {
+	if (scheduleEmailResult.isErr()) {
 		console.error("Multi-booking schedule email send failed", {
 			email,
-			reason: scheduleEmailError.reason
+			reason: scheduleEmailResult.error.reason
 		});
 		return err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" });
 	}
 
-	return ok({ sent: true });
+	return ok(null);
 }
 
 export async function sendPackagePaymentReminderEmail({
@@ -611,7 +596,7 @@ export async function sendFeedbackEmailForMessage(message: string) {
 	});
 }
 
-export async function sendSessionDeliverablesEmail({
+export function sendSessionDeliverablesEmail({
 	date,
 	driveLink,
 	editorNotes,
@@ -621,22 +606,25 @@ export async function sendSessionDeliverablesEmail({
 }: SendSessionDeliverablesEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-	const html = await render(
-		createElement(DeliverablesEmail, {
-			bookingDate: formatSessionDateWithoutYear(date),
-			driveLink,
-			editorNotes: editorNotes?.trim() || undefined,
-			emailVariant,
-			name,
-			signoffName
+
+	return ResultAsync.fromSafePromise(
+		render(
+			createElement(DeliverablesEmail, {
+				bookingDate: formatSessionDateWithoutYear(date),
+				driveLink,
+				editorNotes: editorNotes?.trim() || undefined,
+				emailVariant,
+				name,
+				signoffName
+			})
+		)
+	).andThen((html) =>
+		sendEmail({
+			to: [email],
+			subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(date)}`,
+			html
 		})
 	);
-
-	return await sendEmail({
-		to: [email],
-		subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(date)}`,
-		html
-	});
 }
 
 export async function sendSessionReminderEmail({
@@ -671,13 +659,13 @@ export async function sendSessionReminderEmail({
 		})
 	);
 
-	const [emailError] = await sendEmail({
+	const emailResult = await sendEmail({
 		to: [email, ...getHostEmails()],
 		subject: `Reminder: Your Studio Session Tomorrow - ${formatSessionDateShort(date)}`,
 		html
 	});
 
-	return emailError === null ? neverthrowOk(null) : neverthrowErr(emailError);
+	return emailResult;
 }
 
 export function getHostEmails() {

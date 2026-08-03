@@ -1,3 +1,5 @@
+"use node";
+
 import { ResultAsync } from "neverthrow";
 import { getGoogleCalendarClient } from "./googleCalendarClient";
 import {

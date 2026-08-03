@@ -1,3 +1,5 @@
+"use node";
+
 import { v } from "convex/values";
 import { action, type ActionCtx } from "./_generated/server";
 import { err, ok } from "#/lib/result";
@@ -24,10 +26,10 @@ async function submitFeedbackHandler(ctx: ActionCtx, args: SubmitFeedbackArgs) {
 		return err({ reason: "FEEDBACK_RATE_LIMITED" });
 	}
 
-	const [emailError] = await sendFeedbackEmailForMessage(message);
+	const emailResult = await sendFeedbackEmailForMessage(message);
 
-	if (emailError !== null) {
-		console.error("Feedback email send failed", { reason: emailError.reason });
+	if (emailResult.isErr()) {
+		console.error("Feedback email send failed", { reason: emailResult.error.reason });
 		return err({ reason: "SEND_FAILED" });
 	}
 

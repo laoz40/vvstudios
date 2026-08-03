@@ -9,6 +9,7 @@
  * valid untrusted content reaches the escaping email boundary, and provider failures remain stable.
  * Email delivery is replaced with controlled fakes.
  */
+import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -44,8 +45,8 @@ type TestClient = ReturnType<typeof createConvexTest>;
 beforeEach(() => {
 	vi.clearAllMocks();
 	providerFakes.rateLimit.mockResolvedValue({ ok: true });
-	providerFakes.sendDeliverablesEmail.mockResolvedValue([null, { sent: true }]);
-	providerFakes.sendFeedbackEmail.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendDeliverablesEmail.mockReturnValue(okAsync(null));
+	providerFakes.sendFeedbackEmail.mockResolvedValue(okAsync(null));
 });
 
 describe("deliverables email", () => {
@@ -110,7 +111,7 @@ describe("deliverables email", () => {
 				emailVariant: "recurring"
 			});
 
-		expect(result).toEqual([null, { sent: true }]);
+		expect(result).toEqual([null, null]);
 		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledWith({
 			date: "2030-01-10",
@@ -125,10 +126,9 @@ describe("deliverables email", () => {
 	test("returns the stable failure when the provider cannot send", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
-		providerFakes.sendDeliverablesEmail.mockResolvedValueOnce([
-			{ reason: "EMAIL_REQUEST_FAILED" },
-			null
-		]);
+		providerFakes.sendDeliverablesEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -186,7 +186,7 @@ describe("feedback email", () => {
 			throw new Error("Expected the email request body to be JSON");
 		}
 
-		expect(result).toEqual([null, { sent: true }]);
+		expect(result.isOk()).toBe(true);
 		expect(requestBody).toContain("&lt;script&gt;alert(&#39;unsafe&#39;)&lt;/script&gt;<br />Next");
 		expect(requestBody).not.toContain("<script>");
 		vi.unstubAllGlobals();
@@ -194,10 +194,9 @@ describe("feedback email", () => {
 
 	test("returns SEND_FAILED when the provider cannot send", async () => {
 		const t = createConvexTest();
-		providerFakes.sendFeedbackEmail.mockResolvedValueOnce([
-			{ reason: "EMAIL_REQUEST_FAILED" },
-			null
-		]);
+		providerFakes.sendFeedbackEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
 
 		const result = await t.action(api.feedback.submit, { message: "Useful feedback" });
 

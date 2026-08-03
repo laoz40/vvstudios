@@ -142,17 +142,17 @@ describe("invoice financial integrity", () => {
 				customInvoice: await ctx.db.get(customInvoiceId)
 			};
 		});
-		if (!booking || !customInvoice) throw new Error("Expected invoice source records");
+		if (!booking || !customInvoice) throw new Error("Expected invoice input records");
 
-		const [error, result] = createBookingInvoiceArtifactsForBooking(booking, now, {
+		const result = createBookingInvoiceArtifactsForBooking(booking, now, {
 			customInvoice,
 			leadTimeMinutes: 60
 		});
 
-		expect(error).toBeNull();
-		expect(result?.artifacts.data.invoice.number).toBe("VV-CUSTOM-001");
-		expect(result?.artifacts.data.amounts.totalDueAmount).toBe(321);
-		expect(result?.artifacts.data.lineItems).toEqual(
+		if (result.isErr()) throw new Error(`Expected invoice artifacts: ${result.error.reason}`);
+		expect(result.value.artifacts.data.invoice.number).toBe("VV-CUSTOM-001");
+		expect(result.value.artifacts.data.amounts.totalDueAmount).toBe(321);
+		expect(result.value.artifacts.data.lineItems).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ description: "Manual price adjustment", amount: 292 })
 			])
@@ -165,16 +165,14 @@ describe("invoice financial integrity", () => {
 		const multiBooking = await t.run((ctx) => ctx.db.get(packageId));
 		if (!multiBooking) throw new Error("Expected seeded package");
 
-		const [error, result] = await createMultiBookingInvoiceArtifacts(multiBooking, {
-			leadTimeMinutes: 60
-		});
+		const result = await createMultiBookingInvoiceArtifacts(multiBooking, { leadTimeMinutes: 60 });
 
-		expect(error).toBeNull();
-		expect(result?.artifacts.data.amounts).toMatchObject({
+		if (result.isErr()) throw new Error(`Expected invoice artifacts: ${result.error.reason}`);
+		expect(result.value.artifacts.data.amounts).toMatchObject({
 			subtotalAmount: 912.34,
 			totalDueAmount: 876.54
 		});
-		expect(result?.artifacts.data.lineItems).toEqual([
+		expect(result.value.artifacts.data.lineItems).toEqual([
 			{ amount: 999.99, description: "Stored studio package", quantity: 4, rate: 249.9975 },
 			{ amount: -123.45, description: "Stored package discount", quantity: 1, rate: -123.45 }
 		]);

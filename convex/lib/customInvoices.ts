@@ -20,7 +20,7 @@ export function getSelectedBookingCustomInvoice(
 	}
 
 	return okOrThrow(
-		ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceSource, {
+		ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceInput, {
 			bookingId,
 			customInvoiceId
 		})

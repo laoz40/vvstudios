@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { err, ok, tryCatch } from "#/lib/result";
+import { err, ok } from "#/lib/result";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type ActionCtx } from "#convex/_generated/server";
@@ -215,15 +215,13 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 				continue;
 			}
 
-			const [sendError] = await tryCatch(
-				sendPackagePaymentReminderEmail({
-					email: packageRecord.email,
-					invoiceDueAt: packageRecord.invoiceDueAt,
-					name: packageRecord.name,
-					requestDate: packageRecord.createdAt
-				})
-			);
-			if (sendError === null) {
+			const sendResult = await sendPackagePaymentReminderEmail({
+				email: packageRecord.email,
+				invoiceDueAt: packageRecord.invoiceDueAt,
+				name: packageRecord.name,
+				requestDate: packageRecord.createdAt
+			});
+			if (sendResult.isOk()) {
 				await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
 					multiBookingId: packageRecord._id,
 					now,
@@ -233,7 +231,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 			}
 
 			await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-				failureCode: sendError.reason,
+				failureCode: sendResult.error.reason,
 				multiBookingId: packageRecord._id,
 				reminderType: "payment"
 			});
@@ -273,15 +271,13 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 				continue;
 			}
 
-			const [sendError] = await tryCatch(
-				sendPackageExpiryReminderEmail({
-					email: packageRecord.email,
-					expiresAt,
-					name: packageRecord.name,
-					remainingSessions
-				})
-			);
-			if (sendError === null) {
+			const sendResult = await sendPackageExpiryReminderEmail({
+				email: packageRecord.email,
+				expiresAt,
+				name: packageRecord.name,
+				remainingSessions
+			});
+			if (sendResult.isOk()) {
 				await ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
 					multiBookingId: packageRecord._id,
 					now,
@@ -291,7 +287,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 			}
 
 			await ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-				failureCode: sendError.reason,
+				failureCode: sendResult.error.reason,
 				multiBookingId: packageRecord._id,
 				reminderType: "expiry"
 			});

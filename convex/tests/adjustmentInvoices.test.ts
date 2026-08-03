@@ -26,6 +26,7 @@
  * Invoice email delivery is replaced with a fake, so no real provider request is made.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { err, ok } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import {
@@ -53,7 +54,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendAdjustmentInvoice.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendAdjustmentInvoice.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -352,19 +353,19 @@ describe("package adjustment invoice delivery", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
-		const source = providerFakes.sendAdjustmentInvoice.mock.calls[0]?.[0];
+		const invoiceInput = providerFakes.sendAdjustmentInvoice.mock.calls[0]?.[0];
 
-		expect(result).toEqual([null, { sent: true }]);
+		expect(result).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });
-		expect(source.adjustment).toMatchObject({ quantity: 2, rate: 75, totalAmount: 150 });
+		expect(invoiceInput.adjustment).toMatchObject({ quantity: 2, rate: 75, totalAmount: 150 });
 	});
 
 	test("records provider failure and allows an admin retry", async () => {
 		const t = createConvexTest();
 		const { adjustmentId } = await seedFailedAdjustment(t);
 		providerFakes.sendAdjustmentInvoice
-			.mockResolvedValueOnce([{ reason: "INVOICE_SEND_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "INVOICE_SEND_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 
 		const firstResult = await t
 			.withIdentity(adminIdentity)
@@ -380,7 +381,7 @@ describe("package adjustment invoice delivery", () => {
 			throw new Error("Expected an invoice-required adjustment");
 		}
 		expect(failedAdjustment.invoiceEmailClaimedAt).toBeUndefined();
-		expect(retryResult).toEqual([null, { sent: true }]);
+		expect(retryResult).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });
 		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(2);
 	});

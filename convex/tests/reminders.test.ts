@@ -57,8 +57,8 @@ beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
 	providerFakes.sendBookingReminder.mockResolvedValue(ok(null));
-	providerFakes.sendPackageExpiryReminder.mockResolvedValue([null, { sent: true }]);
-	providerFakes.sendPackagePaymentReminder.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendPackageExpiryReminder.mockResolvedValue(ok(null));
+	providerFakes.sendPackagePaymentReminder.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -168,8 +168,8 @@ describe("reminder claims and delivery results", () => {
 			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
 			.mockResolvedValueOnce(ok(null));
 		providerFakes.sendPackagePaymentReminder
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 
 		await t.action(internal.sessionReminders.sendDueReminders, {});
 		const failedBooking = await readBooking(t, bookingId);

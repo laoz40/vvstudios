@@ -18,7 +18,7 @@ import {
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
-export const getPackageAdjustmentInvoiceSource = internalQuery({
+export const getPackageAdjustmentInvoiceInput = internalQuery({
 	args: { adjustmentId: v.id("packageAdjustments") },
 	handler: (ctx, args) =>
 		getSentPackageAdjustmentInvoiceResult(ctx, args.adjustmentId)

@@ -1,9 +1,6 @@
-import { ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { env } from "#convex/env";
 import type { MutationCtx } from "#convex/_generated/server";
-import type { SessionAvailabilitySettings } from "./sessionCalendarTime";
-import { sendBookingInvoiceEmailsForBooking } from "./email";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 const rescheduleTokenByteLength = 32;
@@ -15,14 +12,6 @@ export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
 type SessionRescheduleLink = { expiresAt: number };
 
 type ReschedulableSession = { sessionStartAt: number };
-
-type RescheduleSessionArgs = { date: string; time: string; token: string };
-
-type RescheduledSessionTimingUpdate = {
-	googleCalendarId?: string;
-	googleEventId?: string;
-	sessionStartAt: number;
-};
 
 type ClientSessionRescheduleOptionalArgs = {
 	service?: string;
@@ -50,33 +39,6 @@ export function buildClientSessionRescheduleOptionalPatch(
 				}
 			: {})
 	};
-}
-
-export async function finishRescheduledSession(
-	session: Doc<"bookings">,
-	args: RescheduleSessionArgs,
-	timingUpdate: RescheduledSessionTimingUpdate,
-	settings: SessionAvailabilitySettings
-) {
-	const updatedBooking = {
-		...session,
-		date: args.date,
-		time: args.time,
-		sessionStartAt: timingUpdate.sessionStartAt,
-		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
-	};
-	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
-		leadTimeMinutes: settings.leadTimeMinutes,
-		reschedule: { originalDate: session.date, originalTime: session.time },
-		rescheduleUrl: getRescheduleUrlForToken(args.token)
-	});
-
-	if (emailResult.isErr()) {
-		return ok({ bookingId: session._id, warning: "INVOICE_SEND_FAILED" as const });
-	}
-
-	return ok({ bookingId: session._id });
 }
 
 function bytesToHex(bytes: Uint8Array) {

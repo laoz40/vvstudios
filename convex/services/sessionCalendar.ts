@@ -2,9 +2,10 @@
 
 import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { getAdminIdentityResult } from "#convex/lib/auth";
+import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import {
 	getSessionStartAt,
@@ -19,7 +20,7 @@ import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
 import { getSessionFromQueryResult } from "#convex/lib/sessionLookup";
 import { checkBookingSubmitRateLimitResult } from "#convex/lib/rateLimits";
 import { fromConvexResult } from "#convex/lib/result";
-import { finishRescheduledSession } from "#convex/lib/sessionRescheduleLinks";
+import { getRescheduleUrlForToken } from "#convex/lib/sessionRescheduleLinks";
 import {
 	lockAndReserveReschedule,
 	saveRescheduledSession,
@@ -28,6 +29,7 @@ import {
 	type RescheduleSessionArgs,
 	type ValidRescheduleDetails
 } from "#convex/lib/sessionRescheduleWorkflow";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
 
 export type { RescheduleSessionArgs } from "#convex/lib/sessionRescheduleWorkflow";
@@ -51,6 +53,38 @@ export type DeleteSessionFromAdminError = {
 		| "GOOGLE_CALENDAR_DELETE_FAILED"
 		| "GOOGLE_CALENDAR_RATE_LIMITED";
 };
+
+type RescheduledSessionTimingUpdate = {
+	googleCalendarId?: string;
+	googleEventId?: string;
+	sessionStartAt: number;
+};
+
+async function finishRescheduledSession(
+	session: Doc<"bookings">,
+	args: RescheduleSessionArgs,
+	timingUpdate: RescheduledSessionTimingUpdate,
+	settings: SessionAvailabilitySettings
+) {
+	const updatedBooking = {
+		...session,
+		date: args.date,
+		time: args.time,
+		sessionStartAt: timingUpdate.sessionStartAt,
+		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
+		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
+	};
+	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl: getRescheduleUrlForToken(args.token)
+	});
+
+	if (emailResult.isErr()) {
+		return ok({ bookingId: session._id, warning: "INVOICE_SEND_FAILED" as const });
+	}
+
+	return ok({ bookingId: session._id });
+}
 
 export function rescheduleSessionService(
 	ctx: ActionCtx,

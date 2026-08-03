@@ -93,7 +93,7 @@ beforeEach(() => {
 	providerFakes.sendInvoiceEmail.mockResolvedValue(
 		ok({ invoiceNumber: "VV-20300101-TEST", sent: true })
 	);
-	providerFakes.sendScheduleEmail.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendScheduleEmail.mockResolvedValue(ok(null));
 });
 
 describe("package payment confirmation", () => {
@@ -178,8 +178,8 @@ describe("package payment confirmation", () => {
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 		providerFakes.sendScheduleEmail
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 
 		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
