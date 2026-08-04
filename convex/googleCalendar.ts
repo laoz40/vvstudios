@@ -1,30 +1,17 @@
 "use node";
 
 import { v } from "convex/values";
-import { ResultAsync } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import { internal } from "./_generated/api";
 import { action, type ActionCtx, internalAction } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
-import { getGoogleCalendarClient } from "./lib/googleCalendarClient";
-import {
-	type BusyDayWindow,
-	type SessionAvailabilitySettings,
-	getAvailableTimeOptions,
-	getDateAvailabilityRange,
-	groupBusyDaysByMonth,
-	groupBusyWindowsByDay
-} from "./lib/sessionCalendarTime";
+import { type BusyDayWindow } from "./lib/sessionCalendarTime";
 import { type AdminSessionUpdateArgs } from "./lib/sessionAdminEdit";
-import { getGoogleCalendarErrorCode } from "./lib/googleCalendarErrors";
-import { getBusyWindows, getBusyWindowsInRange } from "./lib/googleCalendarAvailability";
-import { checkGoogleCalendarAvailabilityRateLimit } from "./lib/rateLimits";
-import { getBookingSettingsService } from "./services/bookingSettings";
-import { fromConvexTuple } from "./lib/result";
 import {
 	deleteSessionFromAdminService,
+	getAvailableBookingTimesService,
 	getAvailableRescheduleTimesService,
+	getBookableRangeBusyWindowsService,
+	getRescheduleBookableRangeBusyWindowsService,
 	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService,
@@ -38,67 +25,13 @@ import {
 } from "./services/bookingConfirmationActions";
 
 type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
-type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
-type GoogleCalendarAvailabilityError = {
-	reason:
-		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-		| "GOOGLE_CALENDAR_AUTH_FAILED"
-		| "GOOGLE_CALENDAR_RATE_LIMITED";
-};
-
-function mapGoogleCalendarAvailabilityError(error: unknown): GoogleCalendarAvailabilityError {
-	return { reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED") };
-}
-
-function getBookableRangeBusyWindowsFromGoogleCalendar({
-	ignoredEvent,
-	settings
-}: {
-	ignoredEvent?: IgnoredBusyEvent;
-	settings: SessionAvailabilitySettings;
-}) {
-	return ResultAsync.fromPromise(
-		Promise.resolve().then(() => getGoogleCalendarClient()),
-		mapGoogleCalendarAvailabilityError
-	).andThen(({ calendar, calendarIds, timeZone }) => {
-		const today = startOfToday();
-		const startDate = formatDateValue(today);
-		const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
-
-		return getDateAvailabilityRange(startDate, endDate, timeZone)
-			.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-			.asyncAndThen(({ timeMin, timeMax }) =>
-				ResultAsync.fromPromise(
-					getBusyWindowsInRange({
-						calendar,
-						calendarIds,
-						ignoredEvent,
-						timeMax,
-						timeMin,
-						timeZone
-					}),
-					mapGoogleCalendarAvailabilityError
-				).andThen((busyWindows) =>
-					groupBusyWindowsByDay(busyWindows, timeZone)
-						.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-						.map((busyDays) => ({ busyWindowsByMonth: groupBusyDaysByMonth(busyDays), timeZone }))
-				)
-			);
-	});
-}
-
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: (ctx, args) => getBookableRangeBusyWindowsHandler(ctx, args)
 });
 
 async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLimitKey: string }) {
-	return await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
-		.andThen(() => {
-			return getBookingSettingsService(ctx);
-		})
-		.andThen((settings) => getBookableRangeBusyWindowsFromGoogleCalendar({ settings }))
-		.match(tupleOk, tupleErr);
+	return await getBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type GetBookableRangeBusyWindowsResult = Awaited<
@@ -114,28 +47,7 @@ async function getAvailableBookingTimesHandler(
 	ctx: ActionCtx,
 	args: { date: string; duration: string }
 ) {
-	return await getBookingSettingsService(ctx)
-		.andThen((settings) =>
-			ResultAsync.fromPromise(
-				Promise.resolve().then(() => getGoogleCalendarClient()),
-				mapGoogleCalendarAvailabilityError
-			).andThen(({ calendar, calendarIds, timeZone }) =>
-				ResultAsync.fromPromise(
-					getBusyWindows({ calendar, calendarIds, date: args.date, timeZone }),
-					mapGoogleCalendarAvailabilityError
-				).map((busyWindows) => ({
-					timeZone,
-					times: getAvailableTimeOptions({
-						busyWindows,
-						date: args.date,
-						duration: args.duration,
-						eventBufferMinutes: settings.eventBufferMinutes,
-						timeZone
-					})
-				}))
-			)
-		)
-		.match(tupleOk, tupleErr);
+	return await getAvailableBookingTimesService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type GetAvailableBookingTimesResult = Awaited<
@@ -156,26 +68,7 @@ async function getRescheduleBookableRangeBusyWindowsHandler(
 		GetAvailableRescheduleTimesError
 	>
 > {
-	return await fromConvexTuple(
-		ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-			now: Date.now(),
-			token: args.token
-		})
-	)
-		.andThen((result) =>
-			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => result)
-		)
-		.andThen((result) => getBookingSettingsService(ctx).map((settings) => ({ result, settings })))
-		.andThen(({ result, settings }) =>
-			getBookableRangeBusyWindowsFromGoogleCalendar({
-				ignoredEvent: {
-					calendarId: result.session.googleCalendarId,
-					eventId: result.session.googleEventId
-				},
-				settings
-			})
-		)
-		.match(tupleOk, tupleErr);
+	return await getRescheduleBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type GetRescheduleBookableRangeBusyWindowsResult = Awaited<
