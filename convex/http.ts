@@ -3,6 +3,7 @@ import { httpAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import Stripe from "stripe";
 import { env } from "./env";
+import { completeSessionCheckoutService } from "./services/bookingConfirmation";
 
 const http = httpRouter();
 
@@ -27,52 +28,59 @@ async function handleCompletedCheckout(
 		typeof session.payment_intent === "string"
 			? session.payment_intent
 			: session.payment_intent?.id;
-	const [claimError, claim] = await ctx.runMutation(
-		internal.bookingConfirmation.claimBookingConfirmation,
-		{ bookingId, stripeSessionId: session.id, stripePaymentIntentId, stripeEventId: event.id }
+	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
+		bookingId,
+		stripeSessionId: session.id,
+		stripePaymentIntentId,
+		stripeEventId: event.id
+	});
+
+	return checkoutCompletion.match(
+		({ outcome }) => {
+			switch (outcome) {
+				case "already_confirmed":
+					return new Response("already confirmed", { status: 200 });
+				case "already_claimed":
+					return new Response("already claimed", { status: 200 });
+				case "completed":
+				case "already_completed":
+					return new Response("confirmed", { status: 200 });
+				case "booking_time_unavailable":
+				case "booking_invalid_input":
+				case "google_calendar_create_failed":
+				case "reservation_lost":
+					return new Response(outcome, { status: 200 });
+				default: {
+					const _exhaustive: never = outcome;
+					return _exhaustive;
+				}
+			}
+		},
+		(failure) => {
+			switch (failure.kind) {
+				case "claim_failed":
+					console.error("Booking completion claim failed", {
+						eventId: event.id,
+						sessionId: session.id,
+						bookingId,
+						claimError: failure.error
+					});
+					return new Response("claim failed", { status: 200 });
+				case "completion_failed":
+					console.error("Booking completion failed", {
+						eventId: event.id,
+						sessionId: session.id,
+						bookingId,
+						completionError: failure.error
+					});
+					return new Response("completion failed", { status: 200 });
+				default: {
+					const _exhaustive: never = failure;
+					return _exhaustive;
+				}
+			}
+		}
 	);
-
-	if (claimError !== null) {
-		console.error("Booking completion claim failed", {
-			eventId: event.id,
-			sessionId: session.id,
-			bookingId,
-			claimError
-		});
-		return new Response("claim failed", { status: 200 });
-	}
-
-	if (claim.outcome === "already_confirmed") {
-		return new Response("already confirmed", { status: 200 });
-	}
-
-	if (claim.outcome === "already_claimed") {
-		return new Response("already claimed", { status: 200 });
-	}
-
-	const [completionError, completionResult] = await ctx.runAction(
-		internal.googleCalendar.completeClaimedSession,
-		{ bookingId: claim.session._id }
-	);
-
-	if (completionError !== null) {
-		console.error("Booking completion failed", {
-			eventId: event.id,
-			sessionId: session.id,
-			bookingId,
-			completionError
-		});
-		return new Response("completion failed", { status: 200 });
-	}
-
-	if (
-		completionResult.outcome !== "completed" &&
-		completionResult.outcome !== "already_completed"
-	) {
-		return new Response(completionResult.outcome, { status: 200 });
-	}
-
-	return new Response("confirmed", { status: 200 });
 }
 
 async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {

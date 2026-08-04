@@ -35,6 +35,30 @@
  * 9. Invoice email failure status guard
  *    Email failures may only move confirmed bookings into the recoverable email-failed state.
  *
+ * 10. Missing booking metadata
+ *     Completed checkouts without a booking ID must return 400.
+ *
+ * 11. Expected claim failures
+ *     Invalid booking claims must be acknowledged with the stable "claim failed" response.
+ *
+ * 12. Already-claimed checkout
+ *     A completion already being processed must be acknowledged without repeating provider work.
+ *
+ * 13. Expected completion failures
+ *     Completion errors must be acknowledged with the stable "completion failed" response.
+ *
+ * 14. Non-completed completion outcomes
+ *     Safe terminal outcomes must be returned directly with status 200.
+ *
+ * 15. Expired checkout
+ *     Expiration events must update the booking and return the stable "expired" response.
+ *
+ * 16. Unsupported Stripe event
+ *     Events outside the supported checkout lifecycle must be ignored with status 200.
+ *
+ * 17. Unexpected Convex rejection
+ *     Unexpected internal failures must reject the request so Stripe can retry it.
+ *
  * Stripe, Google Calendar, and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -289,6 +313,114 @@ describe("Stripe completion webhook", () => {
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 	});
+
+	test("rejects a completed checkout without booking metadata", async () => {
+		const t = createConvexTest();
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent());
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(400);
+		expect(await response.text()).toBe("Missing bookingId metadata");
+	});
+
+	test("acknowledges an expected claim error", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await t.run((ctx) => ctx.db.patch(bookingId, { status: "expired" }));
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("claim failed");
+		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
+	});
+
+	test("acknowledges a checkout whose booking is already claimed", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedClaimedBooking(t);
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("already claimed");
+		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
+	});
+
+	test("acknowledges an expected completion error", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
+		providerFakes.listEvents.mockImplementation(async () => {
+			await t.run((ctx) => ctx.db.delete(bookingId));
+			return { data: { items: [] } };
+		});
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("completion failed");
+		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
+	});
+
+	test("returns a safe non-completed outcome", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
+		providerFakes.listEvents.mockResolvedValue({
+			data: {
+				items: [
+					{
+						id: "existing-event",
+						start: { dateTime: "2030-01-09T23:00:00.000Z" },
+						end: { dateTime: "2030-01-10T00:00:00.000Z" }
+					}
+				]
+			}
+		});
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("booking_time_unavailable");
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "failed" });
+	});
+
+	test("expires a pending booking from a checkout expiration event", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeExpirationEvent("cs-1"));
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("expired");
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "expired" });
+	});
+
+	test("acknowledges an unsupported Stripe event as ignored", async () => {
+		const t = createConvexTest();
+		providerFakes.verifyStripeWebhook.mockResolvedValue({
+			id: "evt-ignored",
+			type: "customer.created",
+			data: { object: {} }
+		});
+
+		const response = await fetchStripeWebhook(t);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("ignored");
+	});
+
+	test("lets unexpected Convex rejections escape for Stripe retry", async () => {
+		const t = createConvexTest();
+		await Promise.all([seedBooking(t, "first@example.com"), seedBooking(t, "second@example.com")]);
+		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeExpirationEvent("cs-1"));
+
+		await expect(fetchStripeWebhook(t)).rejects.toThrow();
+	});
 });
 
 async function seedBooking(t: TestClient, email = "customer@example.com") {
@@ -348,10 +480,28 @@ async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"
 	});
 }
 
-function stripeCompletionEvent(bookingId: Id<"bookings">) {
+function fetchStripeWebhook(t: TestClient) {
+	return t.fetch("/stripe/webhook", {
+		method: "POST",
+		headers: { "stripe-signature": "valid" },
+		body: "{}"
+	});
+}
+
+function stripeCompletionEvent(bookingId?: Id<"bookings">) {
 	return {
 		id: "evt-webhook",
 		type: "checkout.session.completed",
-		data: { object: { id: "cs-1", metadata: { bookingId }, payment_intent: "pi-1" } }
+		data: {
+			object: { id: "cs-1", metadata: bookingId ? { bookingId } : {}, payment_intent: "pi-1" }
+		}
+	};
+}
+
+function stripeExpirationEvent(stripeSessionId: string) {
+	return {
+		id: "evt-expired",
+		type: "checkout.session.expired",
+		data: { object: { id: stripeSessionId } }
 	};
 }

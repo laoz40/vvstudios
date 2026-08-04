@@ -19,6 +19,7 @@ import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/li
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
+import type { CompleteClaimedSessionSuccess } from "#convex/services/bookingConfirmation";
 
 export type SendBookingInvoiceForBookingArgs = {
 	bookingId: Id<"bookings">;
@@ -32,15 +33,6 @@ type SendBookingInvoiceError =
 	| { reason: "CUSTOM_INVOICE_NOT_FOUND" }
 	| { reason: "INVOICE_SEND_FAILED" };
 
-type CompleteClaimedSessionSuccess = {
-	outcome:
-		| "already_completed"
-		| "completed"
-		| "booking_time_unavailable"
-		| "booking_invalid_input"
-		| "google_calendar_create_failed"
-		| "reservation_lost";
-};
 type CompleteClaimedSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" }

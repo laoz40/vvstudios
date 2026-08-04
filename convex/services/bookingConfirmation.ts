@@ -1,7 +1,8 @@
 import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/lib/result";
+import { internal } from "#convex/_generated/api";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	clearedSessionReservationPatch,
@@ -15,6 +16,20 @@ type ClaimBookingConfirmationArgs = {
 	stripePaymentIntentId?: string;
 	stripeEventId: string;
 };
+
+export type CompleteClaimedSessionSuccess = {
+	outcome:
+		| "already_completed"
+		| "completed"
+		| "booking_time_unavailable"
+		| "booking_invalid_input"
+		| "google_calendar_create_failed"
+		| "reservation_lost";
+};
+
+type CompleteSessionCheckoutSuccess =
+	| CompleteClaimedSessionSuccess
+	| { outcome: "already_confirmed" | "already_claimed" };
 
 type MarkBookingConfirmedArgs = {
 	bookingId: Id<"bookings">;
@@ -100,6 +115,31 @@ function buildClaimedBookingSession(session: Doc<"bookings">) {
 		addons: session.addons,
 		notes: session.notes
 	};
+}
+
+export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookingConfirmationArgs) {
+	return (
+		fromConvexTuple(ctx.runMutation(internal.bookingConfirmation.claimBookingConfirmation, args))
+			.mapErr((error) => ({ kind: "claim_failed" as const, error }))
+			// Complete provider work only when this webhook acquired the booking claim.
+			.andThen((claim) => {
+				switch (claim.outcome) {
+					case "already_confirmed":
+					case "already_claimed":
+						return ok<CompleteSessionCheckoutSuccess>({ outcome: claim.outcome });
+					case "claimed":
+						return fromConvexTuple(
+							ctx.runAction(internal.googleCalendar.completeClaimedSession, {
+								bookingId: claim.session._id
+							})
+						).mapErr((error) => ({ kind: "completion_failed" as const, error }));
+					default: {
+						const _exhaustive: never = claim;
+						return _exhaustive;
+					}
+				}
+			})
+	);
 }
 
 export function claimBookingConfirmationService(
