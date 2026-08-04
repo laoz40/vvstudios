@@ -82,6 +82,7 @@ export const sendDueReminders = internalAction({
 			limit: REMINDER_BATCH_SIZE
 		});
 
+		// Reminders are non-critical, so isolate each booking to ensure one failure does not block the rest.
 		for (const booking of bookings) {
 			try {
 				await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {

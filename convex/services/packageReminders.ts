@@ -179,6 +179,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 		}
 	);
 
+	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
 	for (const packageRecord of paymentPackages) {
 		try {
 			const claimResult = await fromConvexTuple(
@@ -229,6 +230,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 		{ expiresAfter: today.dayStart, expiresBefore: expiryRange.dayEnd, limit: REMINDER_BATCH_SIZE }
 	);
 
+	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
 	for (const packageRecord of expiryPackages) {
 		try {
 			const { expiresAt, remainingSessions } = packageRecord;
