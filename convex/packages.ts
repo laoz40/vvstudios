@@ -84,13 +84,12 @@ function markPackageInvoiceEmailAttemptHandler(
 	ctx: MutationCtx,
 	args: Parameters<typeof markPackageInvoiceEmailAttemptService>[1]
 ) {
-	return markPackageInvoiceEmailAttemptService(ctx, args).match(
-		(value) => value,
-		(error) => {
-			throw new Error(`Invalid package invoice email attempt: ${error.reason}`);
-		}
-	);
+	return markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
 }
+
+export type MarkPackageInvoiceEmailAttemptResult = Awaited<
+	ReturnType<typeof markPackageInvoiceEmailAttemptHandler>
+>;
 
 export const listPackages = query({
 	args: { paginationOpts: paginationOptsValidator },

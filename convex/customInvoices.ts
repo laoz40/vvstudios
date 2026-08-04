@@ -1,21 +1,21 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import { tupleErr, tupleOk } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	internalQuery,
 	mutation,
 	query,
 	type MutationCtx,
 	type QueryCtx
-} from "./_generated/server";
-import { tupleErr, tupleOk } from "#/lib/result";
-import { getAdminIdentity } from "./lib/auth";
-import { okOrThrow } from "./lib/result";
+} from "#convex/_generated/server";
 import {
 	createBookingCustomInvoiceService,
 	createPackageCustomInvoiceService,
+	listCustomInvoicesForBookingService,
+	listCustomInvoicesForPackageService,
 	type CreateBookingCustomInvoiceArgs,
 	type CreatePackageCustomInvoiceArgs
-} from "./services/customInvoices";
+} from "#convex/services/customInvoices";
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -74,17 +74,7 @@ async function listCustomInvoicesForBookingHandler(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getAdminIdentity(ctx)
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.query("customInvoices")
-					.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
-					.order("desc")
-					.collect()
-			)
-		)
-		.match(tupleOk, tupleErr);
+	return listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForBookingResult = Awaited<
@@ -100,17 +90,7 @@ async function listCustomInvoicesForPackageHandler(
 	ctx: QueryCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
-	return getAdminIdentity(ctx)
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.query("customInvoices")
-					.withIndex("by_multiBookingId", (q) => q.eq("multiBookingId", args.multiBookingId))
-					.order("desc")
-					.collect()
-			)
-		)
-		.match(tupleOk, tupleErr);
+	return listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForPackageResult = Awaited<

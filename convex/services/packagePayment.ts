@@ -18,6 +18,7 @@ import {
 	sendAndRecordPackageScheduleEmail,
 	sendPackageInvoice
 } from "#convex/lib/packagePayment";
+import type { PackageInvoiceEmailAttemptError } from "#convex/lib/bookingInvoiceArtifacts";
 import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
@@ -38,13 +39,15 @@ export type CreatePackageRequestSuccess = {
 export type CreatePackageRequestError =
 	| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
 	| { reason: "BOOKING_INVALID_INPUT" }
-	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
+	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
+	| PackageInvoiceEmailAttemptError;
 export type ResendPackageInvoiceEmailSuccess = { sent: true };
 export type ResendPackageInvoiceEmailError =
 	| AuthError
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_NOT_UNPAID" }
-	| { reason: "PACKAGE_INVOICE_EMAIL_FAILED" };
+	| { reason: "PACKAGE_INVOICE_EMAIL_FAILED" }
+	| PackageInvoiceEmailAttemptError;
 export type ConfirmPackagePaymentError =
 	| AuthError
 	| { reason: "PACKAGE_ALREADY_PAID" }

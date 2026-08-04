@@ -1,4 +1,4 @@
-import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { err, errAsync, ok, ResultAsync, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { z } from "zod";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
@@ -28,8 +28,13 @@ export type MarkPackageInvoiceEmailAttemptArgs = {
 	invoiceNumber?: string;
 	failureCode?: string;
 };
+export type PackageInvoiceEmailAttemptError =
+	| { reason: "INVOICE_NUMBER_REQUIRED" }
+	| { reason: "INVOICE_FAILURE_CODE_REQUIRED" };
 
-export function validatePackageInvoiceEmailAttempt(args: MarkPackageInvoiceEmailAttemptArgs) {
+export function validatePackageInvoiceEmailAttempt(
+	args: MarkPackageInvoiceEmailAttemptArgs
+): Result<null, PackageInvoiceEmailAttemptError> {
 	if (args.status === "sent" && args.invoiceNumber === undefined) {
 		return err({ reason: "INVOICE_NUMBER_REQUIRED" as const });
 	}

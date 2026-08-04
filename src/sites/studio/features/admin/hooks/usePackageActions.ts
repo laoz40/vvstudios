@@ -249,6 +249,8 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 					break;
 
 				case "PACKAGE_INVOICE_EMAIL_FAILED":
+				case "INVOICE_FAILURE_CODE_REQUIRED":
+				case "INVOICE_NUMBER_REQUIRED":
 					toast.error("Package invoice email failed again.");
 					break;
 

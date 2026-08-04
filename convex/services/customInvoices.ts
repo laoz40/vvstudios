@@ -1,11 +1,12 @@
 import type { Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
 } from "#convex/lib/customInvoices";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
+import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 
 type CustomInvoiceDetails = {
@@ -28,6 +29,36 @@ export type CreatePackageCustomInvoiceArgs = CustomInvoiceDetails & {
 	packageSize: 4 | 8 | 12;
 	includePackageDiscount?: boolean;
 };
+
+export function listCustomInvoicesForBookingService(
+	ctx: QueryCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getAdminIdentity(ctx).andThen(() =>
+		okOrThrow(
+			ctx.db
+				.query("customInvoices")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+				.order("desc")
+				.collect()
+		)
+	);
+}
+
+export function listCustomInvoicesForPackageService(
+	ctx: QueryCtx,
+	args: { multiBookingId: Id<"multiBookingPackages"> }
+) {
+	return getAdminIdentity(ctx).andThen(() =>
+		okOrThrow(
+			ctx.db
+				.query("customInvoices")
+				.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
+				.order("desc")
+				.collect()
+		)
+	);
+}
 
 export function createBookingCustomInvoiceService(
 	ctx: MutationCtx,

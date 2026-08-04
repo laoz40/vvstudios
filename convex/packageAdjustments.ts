@@ -1,34 +1,37 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import type { Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
-import { internalMutation, internalQuery, mutation, type MutationCtx } from "./_generated/server";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import {
-	getSentPackageAdjustmentInvoice,
-	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS
-} from "./lib/packageAdjustments";
-import { getPackageFromDb } from "./lib/packageLookup";
+	internalMutation,
+	internalQuery,
+	mutation,
+	type MutationCtx,
+	type QueryCtx
+} from "#convex/_generated/server";
+import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/packageAdjustments";
 import {
 	claimPackageAdjustmentInvoiceEmailService,
 	completePackageAdjustmentInvoiceEmailService,
+	getPackageAdjustmentInvoiceInputService,
 	markPackageAdjustmentPaymentStatusService,
 	markStalledPackageAdjustmentInvoiceEmailFailedService,
 	type ClaimPackageAdjustmentInvoiceEmailArgs
-} from "./services/packageAdjustments";
+} from "#convex/services/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
 export const getPackageAdjustmentInvoiceInput = internalQuery({
 	args: { adjustmentId: v.id("packageAdjustments") },
-	handler: (ctx, args) =>
-		getSentPackageAdjustmentInvoice(ctx, args.adjustmentId)
-			.andThen((adjustment) =>
-				getPackageFromDb(ctx, adjustment.multiBookingId)
-					.map((multiBooking) => ({ adjustment, multiBooking }))
-					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const }))
-			)
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => getPackageAdjustmentInvoiceInputHandler(ctx, args)
 });
+
+function getPackageAdjustmentInvoiceInputHandler(
+	ctx: QueryCtx,
+	args: { adjustmentId: Id<"packageAdjustments"> }
+) {
+	return getPackageAdjustmentInvoiceInputService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const claimPackageAdjustmentInvoiceEmail = internalMutation({
 	args: {

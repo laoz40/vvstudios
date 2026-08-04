@@ -75,11 +75,9 @@ export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoice
 			})
 		)
 		.andThen((emailAttempt) =>
-			okOrThrow(
-				ctx
-					.runMutation(internal.packages.markPackageInvoiceEmailAttempt, emailAttempt)
-					.then(() => emailAttempt.status)
-			)
+			fromConvexTuple(
+				ctx.runMutation(internal.packages.markPackageInvoiceEmailAttempt, emailAttempt)
+			).map(() => emailAttempt.status)
 		);
 }
 

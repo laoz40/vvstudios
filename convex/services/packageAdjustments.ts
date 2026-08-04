@@ -1,6 +1,6 @@
 import { ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
@@ -24,6 +24,17 @@ type MarkPackageAdjustmentPaymentStatusArgs = {
 	adjustmentId: Id<"packageAdjustments">;
 	paid: boolean;
 };
+
+export function getPackageAdjustmentInvoiceInputService(
+	ctx: QueryCtx,
+	args: { adjustmentId: Id<"packageAdjustments"> }
+) {
+	return getSentPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) =>
+		getPackageFromDb(ctx, adjustment.multiBookingId)
+			.map((multiBooking) => ({ adjustment, multiBooking }))
+			.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const }))
+	);
+}
 
 export function claimPackageAdjustmentInvoiceEmailService(
 	ctx: MutationCtx,
