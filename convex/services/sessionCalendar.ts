@@ -221,7 +221,7 @@ export function rescheduleSessionService(
 			.andThen((state) => saveRescheduledSession(ctx, args, state))
 			// Unlock after persistence, then send the updated invoice email.
 			.andThen((state) =>
-				ResultAsync.fromSafePromise(
+				fromConvexTuple(
 					ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
 						linkId: state.link._id,
 						lockedAt: state.lockedAt,

@@ -230,17 +230,19 @@ interface ValidateSessionTimingEditArgs {
 	timeZone: string;
 }
 
-export async function failBookingConfirmation(
+export function failBookingConfirmation(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	failureCode: string,
 	reservation?: SessionReservation
 ) {
-	await ctx.runMutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
-		bookingId,
-		failureCode,
-		...(reservation ? { reservation } : {})
-	});
+	return fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
+			bookingId,
+			failureCode,
+			...(reservation ? { reservation } : {})
+		})
+	);
 }
 
 export async function verifySessionCanBeScheduled({

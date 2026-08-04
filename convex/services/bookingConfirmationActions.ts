@@ -43,7 +43,8 @@ type CompleteClaimedSessionSuccess = {
 };
 type CompleteClaimedSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }
-	| { reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" };
+	| { reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" }
+	| { reason: "BOOKING_RESERVATION_MISMATCH" };
 
 export function sendBookingInvoiceForBookingService(
 	ctx: ActionCtx,
@@ -183,8 +184,9 @@ async function completeClaimedSession(
 	});
 
 	if (!canBeScheduled) {
-		await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
-		return ok({ outcome: "booking_time_unavailable" as const });
+		return await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE").map(() => ({
+			outcome: "booking_time_unavailable" as const
+		}));
 	}
 
 	// Atomically reserve the window so concurrent payment completions cannot both create events.
@@ -204,8 +206,9 @@ async function completeClaimedSession(
 		);
 
 	if (reservationResult.outcome === "unavailable") {
-		await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE");
-		return ok({ outcome: "booking_time_unavailable" as const });
+		return await failBookingConfirmation(ctx, session._id, "BOOKING_TIME_UNAVAILABLE").map(() => ({
+			outcome: "booking_time_unavailable" as const
+		}));
 	}
 
 	const reservation = reservationResult.reservation;
@@ -223,8 +226,12 @@ async function completeClaimedSession(
 	});
 
 	if (payloadResult.isErr()) {
-		await failBookingConfirmation(ctx, session._id, "BOOKING_INVALID_INPUT", reservation);
-		return ok({ outcome: "booking_invalid_input" as const });
+		return await failBookingConfirmation(
+			ctx,
+			session._id,
+			"BOOKING_INVALID_INPUT",
+			reservation
+		).map(() => ({ outcome: "booking_invalid_input" as const }));
 	}
 
 	let googleEventId: string | undefined;
@@ -236,8 +243,12 @@ async function completeClaimedSession(
 		});
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
-		await failBookingConfirmation(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation);
-		return ok({ outcome: "google_calendar_create_failed" as const });
+		return await failBookingConfirmation(
+			ctx,
+			session._id,
+			"GOOGLE_CALENDAR_CREATE_FAILED",
+			reservation
+		).map(() => ({ outcome: "google_calendar_create_failed" as const }));
 	}
 
 	const completionSaved = await saveConfirmedBooking(
