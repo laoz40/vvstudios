@@ -33,6 +33,7 @@
  *
  * Google Calendar is replaced with fakes, so no real provider requests are made.
  */
+import { ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -48,8 +49,8 @@ const providerFakes = vi.hoisted(() => ({
 
 vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("#convex/lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const getClient = () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -62,8 +63,10 @@ vi.mock("#convex/lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	});
+
+	return { getGoogleCalendarClient: getClient, loadGoogleCalendarClient: () => ok(getClient()) };
+});
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
