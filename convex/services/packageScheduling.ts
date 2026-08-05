@@ -24,13 +24,18 @@ import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { env } from "#convex/env";
-import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	getPackageSessionAddons,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
+
+type RecordingSpace = Exclude<BookingFormValues["service"], "">;
 
 type PackageSessionArgs = {
 	token: string;
 	date: string;
 	time: string;
-	service: "Table Setup" | "Armchair Setup";
+	service: RecordingSpace;
 	notes?: string;
 	remotePodcast: boolean;
 };
@@ -94,7 +99,7 @@ export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 
 export function setPackageDefaultSpaceService(
 	ctx: MutationCtx,
-	args: { service: "Table Setup" | "Armchair Setup"; token: string }
+	args: { service: RecordingSpace; token: string }
 ) {
 	return getValidPackageByToken(ctx, args.token, Date.now()).andThen((multiBooking) =>
 		okOrThrow(
