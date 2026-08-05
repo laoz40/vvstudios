@@ -9,7 +9,7 @@ import {
 import {
 	ADDON_PRICES,
 	DURATION_PRICES,
-	calculateMultiBookingAmounts,
+	calculatePackageAmounts,
 	formatBookingPriceWithCents,
 	getBookingAddonQuantity,
 	getBookingTotal,
@@ -28,7 +28,7 @@ function BookingSummaryTotal({
 	total
 }: {
 	isWaitingForPackage: boolean;
-	multiBookingAmounts: ReturnType<typeof calculateMultiBookingAmounts> | null;
+	multiBookingAmounts: ReturnType<typeof calculatePackageAmounts> | null;
 	total: number;
 }) {
 	if (multiBookingAmounts) {
@@ -84,7 +84,7 @@ export function BookingSummary() {
 	const total = getBookingTotal(values);
 	const multiBookingAmounts =
 		isMultiBooking && isMultiBookingSize(values.packageSize)
-			? calculateMultiBookingAmounts({ ...values, packageSize: values.packageSize })
+			? calculatePackageAmounts({ ...values, packageSize: values.packageSize })
 			: null;
 	const isWaitingForPackage = isMultiBooking && !multiBookingAmounts;
 	const sessionQuantity = multiBookingAmounts?.packageSize ?? 1;

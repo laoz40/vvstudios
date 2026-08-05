@@ -1,4 +1,5 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type ResultAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
@@ -6,24 +7,65 @@ import type {
 import { checkSessionMeetsAvailabilitySettings } from "./sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "./googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "./rateLimits";
-import { hashRescheduleToken } from "./sessionRescheduleLinks";
 import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
-import { getSessionStartAt } from "./sessionAdminEdit";
 import {
 	getPackageSessionAddons,
 	isDurationOption,
 	type BookingFormValues
-} from "../../src/sites/studio/features/booking-form/lib/booking-form-model";
-import type { MultiBookingSize } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { isPackageSessionLocked } from "../../src/sites/studio/features/booking-form/lib/package-scheduling-rules";
-import { api } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
-import { env } from "../env";
+} from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	getMultiBookingExpiresAt,
+	type MultiBookingSize
+} from "#studio/features/booking-form/lib/booking-pricing";
+import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
+import { api } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
+import { env } from "#convex/env";
+import {
+	getValidPackageByToken as getValidPackageByTokenResult,
+	type ValidPackage,
+	type ValidPackageByTokenError
+} from "./packageLookup";
+import { generateRescheduleToken, hashRescheduleToken } from "./sessionRescheduleLinks";
+
+export type { ValidPackage, ValidPackageByTokenError } from "./packageLookup";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
 
-export function getPackageAdminUpdateValidationError(
+export async function createPackageScheduleToken() {
+	const token = generateRescheduleToken();
+	const scheduleTokenHash = await hashRescheduleToken(token);
+
+	return { scheduleTokenHash, token };
+}
+
+export async function createPackageSchedulingDetails(
+	packageFromDb: Doc<"multiBookingPackages">,
+	paidAt: number
+) {
+	const scheduleToken = await createPackageScheduleToken();
+
+	return {
+		...scheduleToken,
+		expiresAt: getMultiBookingExpiresAt(paidAt, packageFromDb.packageSize),
+		packageFromDb
+	};
+}
+
+export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBookingPackages">) {
+	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
+		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" as const });
+	}
+
+	if (packageFromDb.paidAt === undefined || packageFromDb.expiresAt === undefined) {
+		return err({ reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" as const });
+	}
+
+	return ok({ ...packageFromDb, paidAt: packageFromDb.paidAt, expiresAt: packageFromDb.expiresAt });
+}
+
+export function getPackageUpdateValidationError(
 	values: PackageAdminUpdateValues,
 	bookedSessionCount: number,
 	packageSize: MultiBookingSize
@@ -46,12 +88,6 @@ export function getPackageAdminUpdateValidationError(
 	return null;
 }
 
-export type ValidPackageByTokenError =
-	| { reason: "PACKAGE_LINK_INVALID" }
-	| { reason: "PACKAGE_LINK_EXPIRED" }
-	| { reason: "PACKAGE_LINK_INACTIVE" }
-	| { reason: "PACKAGE_NOT_PAID" };
-
 export type PackageSessionEditError =
 	| { reason: "PACKAGE_BOOKING_NOT_FOUND" }
 	| { reason: "PACKAGE_BOOKING_LOCKED" };
@@ -62,8 +98,7 @@ export type CreatePackageSessionError =
 	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
+	| GoogleCalendarWriteError;
 
 export type ReschedulePackageSessionError =
 	| ValidPackageByTokenError
@@ -71,16 +106,12 @@ export type ReschedulePackageSessionError =
 	| SessionAvailabilityValidationError
 	| { reason: "BOOKING_NOT_FOUND" }
 	| BookingSubmitRateLimitError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_SAVE_FAILED" };
+	| GoogleCalendarWriteError;
 
 export type UnschedulePackageSessionError =
 	| ValidPackageByTokenError
 	| PackageSessionEditError
-	| GoogleCalendarWriteError
-	| { reason: "PACKAGE_BOOKING_CANCEL_FAILED" };
-
-export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
+	| GoogleCalendarWriteError;
 
 const capacityConsumingSessionStatuses = ["confirmed", "email_failed"] as const;
 
@@ -189,61 +220,47 @@ export function toPackageCalendarDetails(
 	};
 }
 
-export function getPackageSessionStartAt(args: { date: string; time: string }) {
-	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE);
-}
+type EditablePackageSessionDetails = {
+	multiBooking: ValidPackage;
+	session: Doc<"bookings">;
+	settings: SessionAvailabilitySettings;
+};
 
-export async function getEditablePackageSession(
+export function getEditablePackageSession(
 	ctx: QueryCtx,
 	args: { token: string; bookingId: Id<"bookings">; now: number }
-) {
-	const [error, multiBooking] = await getValidPackageByToken(ctx, args.token, args.now);
+): ResultAsync<EditablePackageSessionDetails, ValidPackageByTokenError | PackageSessionEditError> {
+	return (
+		getValidPackageByTokenResult(ctx, args.token, args.now)
+			// Load the requested session through the package to enforce ownership.
+			.andThen((multiBooking) =>
+				okOrThrow(getPackageSessionForToken(ctx, multiBooking._id, args.bookingId)).map(
+					(session) => ({ multiBooking, session })
+				)
+			)
+			// Reject missing, foreign, and inactive sessions before loading scheduling settings.
+			.andThen(({ multiBooking, session }) => {
+				if (!session || !sessionConsumesPackageCapacity(session)) {
+					return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+				}
 
-	if (error !== null) {
-		return err(error);
-	}
+				return okOrThrow<SessionAvailabilitySettings>(
+					ctx.runQuery(api.bookingSettings.get, {})
+				).map((settings) => ({ multiBooking, session, settings }));
+			})
+			// Enforce the edit cutoff after the session and settings are available.
+			.andThen((details) => {
+				if (
+					isPackageSessionLocked(
+						details.session.sessionStartAt,
+						details.settings.leadTimeMinutes,
+						args.now
+					)
+				) {
+					return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+				}
 
-	const session = await getPackageSessionForToken(ctx, multiBooking._id, args.bookingId);
-
-	if (!session || !sessionConsumesPackageCapacity(session)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	const settings: SessionAvailabilitySettings = await ctx.runQuery(api.bookingSettings.get, {});
-
-	if (isPackageSessionLocked(session.sessionStartAt, settings.leadTimeMinutes, args.now)) {
-		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
-	}
-
-	return ok({ session, multiBooking, settings });
-}
-
-export async function getValidPackageByToken(
-	ctx: QueryCtx | MutationCtx,
-	token: string,
-	now: number
-): Promise<Result<ValidPackage, ValidPackageByTokenError>> {
-	const scheduleTokenHash = await hashRescheduleToken(token);
-	const multiBooking = await ctx.db
-		.query("multiBookingPackages")
-		.withIndex("by_scheduleTokenHash", (query) => query.eq("scheduleTokenHash", scheduleTokenHash))
-		.unique();
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_LINK_INVALID" });
-	}
-
-	if (multiBooking.status !== "paid" && multiBooking.status !== "schedule_email_failed") {
-		return err({ reason: "PACKAGE_NOT_PAID" });
-	}
-
-	if (multiBooking.scheduleLinkStatus !== "active") {
-		return err({ reason: "PACKAGE_LINK_INACTIVE" });
-	}
-
-	if (multiBooking.expiresAt === undefined || now >= multiBooking.expiresAt) {
-		return err({ reason: "PACKAGE_LINK_EXPIRED" });
-	}
-
-	return ok({ ...multiBooking, expiresAt: multiBooking.expiresAt });
+				return ok(details);
+			})
+	);
 }

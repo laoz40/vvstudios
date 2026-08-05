@@ -25,19 +25,20 @@
  * sizing, and pricing edits are covered here. Authorization is covered by authorization.test.ts.
  * DNS and email providers are replaced with controlled fakes.
  */
+import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	getMultiBookingExpiresAt,
 	getMultiBookingInvoiceDueAt
-} from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
-import { createConvexTest } from "../test.setup";
+} from "#studio/features/booking-form/lib/booking-pricing";
+import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { createConvexTest } from "#convex/test.setup";
 
-type SendInvoiceEmail = typeof import("../lib/email").sendMultiBookingInvoiceEmail;
+type SendInvoiceEmail = typeof import("#convex/lib/email").sendMultiBookingInvoiceEmail;
 type SendScheduleEmail = (
-	args: Parameters<typeof import("../lib/email").sendPackageScheduleEmail>[0]
+	args: Parameters<typeof import("#convex/lib/email").sendPackageScheduleEmail>[0]
 ) => unknown;
 
 const providerFakes = vi.hoisted(() => ({
@@ -48,11 +49,11 @@ const providerFakes = vi.hoisted(() => ({
 
 vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendMultiBookingInvoiceEmail: providerFakes.sendInvoiceEmail,
 	sendPackageScheduleEmail: providerFakes.sendScheduleEmail
 }));
@@ -89,11 +90,10 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	providerFakes.resolveMx.mockResolvedValue([{ exchange: "mail.example.com", priority: 10 }]);
-	providerFakes.sendInvoiceEmail.mockResolvedValue([
-		null,
-		{ invoiceNumber: "VV-20300101-TEST", sent: true }
-	]);
-	providerFakes.sendScheduleEmail.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendInvoiceEmail.mockResolvedValue(
+		ok({ invoiceNumber: "VV-20300101-TEST", sent: true })
+	);
+	providerFakes.sendScheduleEmail.mockResolvedValue(ok(null));
 });
 
 describe("package payment confirmation", () => {
@@ -104,12 +104,12 @@ describe("package payment confirmation", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
+			.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
 		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
-		expect(result).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(result).toEqual([null, null]);
 		expect(packageRecord).toMatchObject({
 			expiresAt,
 			paidAt: now,
@@ -139,16 +139,16 @@ describe("package payment confirmation", () => {
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const firstResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const firstState = await readLifecycleState(t, multiBookingId);
-		const secondResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const secondState = await readLifecycleState(t, multiBookingId);
 
-		expect(firstResult).toEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(firstResult).toEqual([null, null]);
 		expect(secondResult).toEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
 		expect(secondState.packageRecord).toEqual(firstState.packageRecord);
 		expect(secondState.scheduledJobs).toEqual(firstState.scheduledJobs);
@@ -161,12 +161,12 @@ describe("package payment confirmation", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		const results = await Promise.all([
-			admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId }),
-			admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId })
+			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId }),
+			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
 		]);
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
 
-		expect(results).toContainEqual([null, { paid: true, scheduleEmailStatus: "sent" }]);
+		expect(results).toContainEqual([null, null]);
 		expect(results).toContainEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
 		expect(packageRecord).toMatchObject({ paidAt: now, status: "paid" });
 		expect(scheduledJobs).toHaveLength(1);
@@ -178,17 +178,17 @@ describe("package payment confirmation", () => {
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 		providerFakes.sendScheduleEmail
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 
-		const confirmationResult = await admin.action(api.multiBookings.confirmPackagePayment, {
+		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			multiBookingId
 		});
 		const failedState = await readLifecycleState(t, multiBookingId);
 		const firstToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl
 		);
-		const retryResult = await admin.action(api.multiBookings.retryMultiBookingSchedulingEmail, {
+		const retryResult = await admin.action(api.packagePayment.retryPackageSchedulingEmail, {
 			multiBookingId
 		});
 		const recoveredState = await readLifecycleState(t, multiBookingId);
@@ -202,7 +202,7 @@ describe("package payment confirmation", () => {
 			expiresAt: getMultiBookingExpiresAt(now, 4),
 			status: "schedule_email_failed"
 		});
-		expect(retryResult).toEqual([null, { sent: true }]);
+		expect(retryResult).toEqual([null, null]);
 		expect(recoveredState.packageRecord).toMatchObject({
 			paidAt: failedState.packageRecord?.paidAt,
 			expiresAt: failedState.packageRecord?.expiresAt,
@@ -229,7 +229,7 @@ describe("package payment confirmation", () => {
 		const t = createConvexTest();
 		const multiBookingId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
-		await admin.action(api.multiBookings.confirmPackagePayment, { multiBookingId });
+		await admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const token = getScheduleToken(providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl);
 		await t.run((ctx) =>
 			ctx.db.patch(multiBookingId, {
@@ -237,14 +237,13 @@ describe("package payment confirmation", () => {
 			})
 		);
 
-		const result = await admin.mutation(api.packages.markPackagePaymentStatus, {
-			multiBookingId,
-			paid: false
+		const result = await admin.mutation(api.packages.markPackageUnpaid, {
+			packageId: multiBookingId
 		});
 		const { packageRecord } = await readLifecycleState(t, multiBookingId);
 		const tokenResult = await t.query(api.packageScheduling.getPackageByToken, { token });
 
-		expect(result).toEqual([null, { paid: false }]);
+		expect(result).toEqual([null, null]);
 		expect(packageRecord).toMatchObject({ status: "pending_payment" });
 		expect(packageRecord?.paidAt).toBeUndefined();
 		expect(packageRecord?.expiresAt).toBeUndefined();
@@ -259,7 +258,7 @@ describe("package request creation", () => {
 	test("stores the normalized commercial snapshot and successful invoice delivery", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
 		expect(result).toEqual([
@@ -306,7 +305,7 @@ describe("package request creation", () => {
 	test("rejects invalid form data before DNS or invoice delivery", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, {
+		const result = await t.action(api.packagePayment.createPackageRequest, {
 			...validRequest,
 			name: "   "
 		});
@@ -321,7 +320,7 @@ describe("package request creation", () => {
 		const t = createConvexTest();
 		providerFakes.resolveMx.mockResolvedValue([]);
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 
 		expect(result).toEqual([{ reason: "BOOKING_EMAIL_DOMAIN_INVALID" }, null]);
 		expect(await readPackages(t)).toEqual([]);
@@ -330,9 +329,9 @@ describe("package request creation", () => {
 
 	test("preserves the package and records a failed invoice delivery for retry", async () => {
 		const t = createConvexTest();
-		providerFakes.sendInvoiceEmail.mockResolvedValue([{ reason: "INVOICE_SEND_FAILED" }, null]);
+		providerFakes.sendInvoiceEmail.mockResolvedValue(err({ reason: "INVOICE_SEND_FAILED" }));
 
-		const result = await t.action(api.multiBookings.createMultiBookingRequest, validRequest);
+		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
 		expect(result).toEqual([
@@ -382,8 +381,9 @@ describe("admin package management", () => {
 			...editedPackage
 		});
 		const calculatedPackage = await readPackage(t, packageId);
+		if (!calculatedPackage?.invoiceLineItems) throw new Error("Expected package invoice snapshot");
 
-		expect(calculatedResult).toEqual([null, { saved: true }]);
+		expect(calculatedResult).toEqual([null, null]);
 		expect(calculatedPackage).toMatchObject({
 			...editedPackage,
 			singleSessionAmount: 328,
@@ -405,8 +405,20 @@ describe("admin package management", () => {
 		});
 		const customPackage = await readPackage(t, packageId);
 
-		expect(customResult).toEqual([null, { saved: true }]);
-		expect(customPackage).toEqual({ ...calculatedPackage, totalDueAmount: 2000 });
+		expect(customResult).toEqual([null, null]);
+		expect(customPackage).toEqual({
+			...calculatedPackage,
+			totalDueAmount: 2000,
+			invoiceLineItems: [
+				...calculatedPackage.invoiceLineItems,
+				{
+					amount: -361.5999999999999,
+					description: "Price adjustment",
+					quantity: 1,
+					rate: -361.5999999999999
+				}
+			]
+		});
 	});
 });
 

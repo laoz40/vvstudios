@@ -17,9 +17,10 @@
  *    Email delivery is replaced with controlled fakes, so no real messages are sent.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { err, ok } from "neverthrow";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	sendBookingReminder: vi.fn(),
@@ -27,18 +28,18 @@ const providerFakes = vi.hoisted(() => ({
 	sendPackagePaymentReminder: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: {
 		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
 		STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return"
 	}
 }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => ({
 	getGoogleCalendarClient: () => ({ timeZone: "Australia/Sydney" })
 }));
 
-vi.mock("../lib/email", () => ({
+vi.mock("#convex/lib/email", () => ({
 	sendSessionReminderEmail: providerFakes.sendBookingReminder,
 	sendPackageExpiryReminderEmail: providerFakes.sendPackageExpiryReminder,
 	sendPackagePaymentReminderEmail: providerFakes.sendPackagePaymentReminder
@@ -55,9 +56,9 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendBookingReminder.mockResolvedValue([null, { sent: true }]);
-	providerFakes.sendPackageExpiryReminder.mockResolvedValue([null, { sent: true }]);
-	providerFakes.sendPackagePaymentReminder.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendBookingReminder.mockResolvedValue(ok(null));
+	providerFakes.sendPackageExpiryReminder.mockResolvedValue(ok(null));
+	providerFakes.sendPackagePaymentReminder.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -74,7 +75,7 @@ describe("daily reminder dispatch", () => {
 		});
 		const expiryPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
@@ -125,7 +126,7 @@ describe("daily reminder dispatch", () => {
 			});
 		}
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).not.toHaveBeenCalled();
 		expect(providerFakes.sendPackagePaymentReminder).not.toHaveBeenCalled();
@@ -143,10 +144,10 @@ describe("reminder claims and delivery results", () => {
 		});
 
 		await Promise.all([
-			t.action(internal.reminders.sendDueReminderEmails, {}),
-			t.action(internal.reminders.sendDueReminderEmails, {})
+			t.action(internal.sessionReminders.sendDueReminders, {}),
+			t.action(internal.sessionReminders.sendDueReminders, {})
 		]);
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 
 		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
@@ -164,16 +165,16 @@ describe("reminder claims and delivery results", () => {
 			status: "pending_payment"
 		});
 		providerFakes.sendBookingReminder
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 		providerFakes.sendPackagePaymentReminder
-			.mockResolvedValueOnce([{ reason: "EMAIL_REQUEST_FAILED" }, null])
-			.mockResolvedValueOnce([null, { sent: true }]);
+			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(ok(null));
 
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 		const failedBooking = await readBooking(t, bookingId);
 		const failedPackage = await readPackage(t, packageId);
-		await t.action(internal.reminders.sendDueReminderEmails, {});
+		await t.action(internal.sessionReminders.sendDueReminders, {});
 		const sentBooking = await readBooking(t, bookingId);
 		const sentPackage = await readPackage(t, packageId);
 

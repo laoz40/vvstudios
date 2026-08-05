@@ -46,10 +46,11 @@
  * requests are made and these tests exercise only package scheduling behavior.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { hashRescheduleToken } from "../lib/sessionRescheduleLinks";
-import { createConvexTest } from "../test.setup";
+import { ok } from "neverthrow";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
@@ -59,10 +60,10 @@ const providerFakes = vi.hoisted(() => ({
 	patchEvent: vi.fn()
 }));
 
-vi.mock("../env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
+vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const getClient = () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -75,12 +76,14 @@ vi.mock("../lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	});
 
-vi.mock("../lib/rateLimits", () => ({
-	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
-	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
+	return { getGoogleCalendarClient: getClient, loadGoogleCalendarClient: () => ok(getClient()) };
+});
+
+vi.mock("#convex/lib/rateLimits", () => ({
+	checkBookingSubmitRateLimit: vi.fn(() => ok(null)),
+	checkGoogleCalendarAvailabilityRateLimit: vi.fn(() => ok({ allowed: true }))
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -133,6 +136,42 @@ describe("package scheduling link access", () => {
 		});
 
 		expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+	});
+});
+
+describe("package Calendar availability", () => {
+	// Verifies an invalid package token stops before any Google Calendar request.
+	test("rejects an invalid token before loading Calendar availability", async () => {
+		const t = createConvexTest();
+
+		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
+			rateLimitKey: "invalid-package",
+			token: "unknown-token"
+		});
+
+		expect(result).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
+		expect(providerFakes.listEvents).not.toHaveBeenCalled();
+	});
+
+	// Verifies package availability returns the package expiry, timezone, and grouped provider data.
+	test("loads Calendar availability through the package expiry date", async () => {
+		const t = createConvexTest();
+		const { token } = await seedPackage(t);
+
+		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
+			rateLimitKey: "valid-package",
+			token
+		});
+
+		expect(result).toEqual([
+			null,
+			{
+				busyWindowsByMonth: {},
+				packageExpiresAt: Date.parse("2030-01-20T00:00:00.000Z"),
+				timeZone: "Australia/Sydney"
+			}
+		]);
+		expect(providerFakes.listEvents).toHaveBeenCalledTimes(1);
 	});
 });
 
@@ -363,7 +402,7 @@ describe("package session rescheduling", () => {
 			jobs: await ctx.db.system.query("_scheduled_functions").collect()
 		}));
 
-		expect(result).toEqual([null, { saved: true, bookingId }]);
+		expect(result).toEqual([null, { bookingId }]);
 		expect(state.booking).toMatchObject({
 			date: target.date,
 			time: target.time,

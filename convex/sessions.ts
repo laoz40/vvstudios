@@ -1,23 +1,25 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
-import { err, ok } from "../src/lib/result";
-import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { Doc, Id } from "./_generated/dataModel";
+import { v } from "convex/values";
+import { tupleErr, tupleOk } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
 import {
+	internalMutation,
 	internalQuery,
 	mutation,
 	query,
 	type MutationCtx,
 	type QueryCtx
-} from "./_generated/server";
-import { env } from "./env";
-import { getAdminIdentity } from "./lib/auth";
-import { buildAdminSessionUpdatePatch } from "./lib/sessionAdminEdit";
-import { getSessionFromDb } from "./lib/sessionLookup";
+} from "#convex/_generated/server";
 import {
-	sessionConsumesPackageCapacity,
-	getCapacityConsumingPackageSessions
-} from "./lib/packageScheduling";
+	archiveSessionService,
+	buildPublicSessionStatusResponse,
+	getPublicRescheduleCompleteSessionService,
+	listSessionsService,
+	markSessionCalendarEventDeletedService,
+	saveSessionInstagramHandleService,
+	updateSessionEditStatusService,
+	updateSessionPaidStatusService
+} from "#convex/services/sessions";
 
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
@@ -31,71 +33,11 @@ export const listSessions = query({
 	handler: (ctx, args) => listSessionsHandler(ctx, args)
 });
 
-async function listSessionsHandler(
+function listSessionsHandler(
 	ctx: QueryCtx,
 	args: { paginationOpts: { numItems: number; cursor: string | null } }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		throw new ConvexError(authError);
-	}
-
-	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
-	// Auth failures throw above so the hook can keep native cursor/page handling.
-	const bookingsPage = await ctx.db
-		.query("bookings")
-		.withIndex("by_pendingPaymentCreatedAt")
-		.order("desc")
-		.paginate(args.paginationOpts);
-
-	const page = await Promise.all(
-		bookingsPage.page.map(async (session) => {
-			if (!session.multiBookingPackageId) {
-				return session;
-			}
-
-			const multiBookingPackage = await ctx.db.get(session.multiBookingPackageId);
-			if (!multiBookingPackage) return session;
-			const packageBookings = await getCapacityConsumingPackageSessions(
-				ctx,
-				multiBookingPackage._id,
-				multiBookingPackage.packageSize
-			);
-
-			return {
-				...session,
-				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
-					multiBookingPackage._id,
-					multiBookingPackage.createdAt
-				),
-				multiBookingPackageSize: multiBookingPackage.packageSize,
-				multiBookingPackageSessionPosition: sessionConsumesPackageCapacity(session)
-					? packageBookings.findIndex(({ _id }) => _id === session._id) + 1
-					: undefined
-			};
-		})
-	);
-
-	return { ...bookingsPage, page };
-}
-
-function buildPublicSessionStatusResponse(session: Doc<"bookings">) {
-	return {
-		_id: session._id,
-		status: session.status,
-		bookingConfirmedAt: session.bookingConfirmedAt,
-		bookingFailureCode: session.bookingFailureCode,
-		pendingPaymentCreatedAt: session.pendingPaymentCreatedAt,
-		paymentCompletedAt: session.paymentCompletedAt,
-		date: session.date,
-		time: session.time,
-		duration: session.duration,
-		service: session.service,
-		addons: session.addons,
-		essentialEditQuantity: session.essentialEditQuantity,
-		clipsPackageQuantity: session.clipsPackageQuantity
-	};
+	return listSessionsService(ctx, args);
 }
 
 export const getPublicRescheduleCompleteSession = query({
@@ -103,23 +45,8 @@ export const getPublicRescheduleCompleteSession = query({
 	handler: (ctx, args) => getPublicRescheduleCompleteSessionHandler(ctx, args)
 });
 
-async function getPublicRescheduleCompleteSessionHandler(
-	ctx: QueryCtx,
-	args: { bookingId: string }
-) {
-	const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
-
-	if (bookingId === null) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	const session = await ctx.db.get(bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return ok(buildPublicSessionStatusResponse(session));
+function getPublicRescheduleCompleteSessionHandler(ctx: QueryCtx, args: { bookingId: string }) {
+	return getPublicRescheduleCompleteSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type GetPublicRescheduleCompleteSessionResult = Awaited<
@@ -144,37 +71,14 @@ export const getSessionStatusByStripeSessionId = query({
 
 export const saveSessionInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
-	handler: saveSessionInstagramHandleHandler
+	handler: (ctx, args) => saveSessionInstagramHandleHandler(ctx, args)
 });
 
-type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
-
-async function saveSessionInstagramHandleHandler(
+function saveSessionInstagramHandleHandler(
 	ctx: MutationCtx,
-	args: SaveSessionInstagramHandleArgs
+	args: { stripeSessionId: string; instagramHandle: string }
 ) {
-	const session = await ctx.db
-		.query("bookings")
-		.withIndex("by_stripeSessionId", (indexQuery) =>
-			indexQuery.eq("stripeSessionId", args.stripeSessionId)
-		)
-		.unique();
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	if (session.status !== "confirmed" && session.status !== "email_failed") {
-		return err({ reason: "BOOKING_NOT_CONFIRMED" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { instagramHandle: args.instagramHandle });
-	} catch {
-		return err({ reason: "BOOKING_INSTAGRAM_HANDLE_SAVE_FAILED" });
-	}
-
-	return ok({ saved: true });
+	return saveSessionInstagramHandleService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type SaveSessionInstagramHandleResult = Awaited<
@@ -186,172 +90,29 @@ export const archiveSession = mutation({
 	handler: (ctx, args) => archiveSessionHandler(ctx, args)
 });
 
-async function archiveSessionHandler(
+function archiveSessionHandler(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; archived: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const [bookingError] = await getSessionFromDb(ctx, args.bookingId);
-
-	if (bookingError !== null) {
-		return err(bookingError);
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined });
-	} catch {
-		return err({ reason: "SESSION_ARCHIVE_FAILED" });
-	}
-
-	return ok({ archived: args.archived });
+	return archiveSessionService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ArchiveSessionResult = Awaited<ReturnType<typeof archiveSessionHandler>>;
 
-export const deleteSession = mutation({
-	args: { bookingId: v.id("bookings") },
-	handler: deleteSessionHandler
-});
-
-type DeleteSessionArgs = { bookingId: Id<"bookings"> };
-
-async function deleteSessionHandler(ctx: MutationCtx, args: DeleteSessionArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const [bookingError, session] = await getSessionFromDb(ctx, args.bookingId);
-
-	if (bookingError !== null) {
-		return err(bookingError);
-	}
-
-	try {
-		await ctx.db.delete(session._id);
-	} catch {
-		return err({ reason: "BOOKING_DELETE_FAILED" });
-	}
-
-	return ok({ deleted: true });
-}
-
-export type DeleteSessionResult = Awaited<ReturnType<typeof deleteSessionHandler>>;
-
-export const updateSession = mutation({
-	args: {
-		bookingId: v.id("bookings"),
-		name: v.string(),
-		phone: v.string(),
-		accountName: v.string(),
-		abn: v.optional(v.string()),
-		email: v.string(),
-		date: v.string(),
-		time: v.string(),
-		duration: v.string(),
-		service: v.string(),
-		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
-		notes: v.optional(v.string())
-	},
-	handler: updateSessionHandler
-});
-
-type UpdateSessionArgs = {
-	bookingId: Id<"bookings">;
-	name: string;
-	phone: string;
-	accountName: string;
-	abn?: string;
-	email: string;
-	date: string;
-	time: string;
-	duration: string;
-	service: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	notes?: string;
-};
-
-async function updateSessionHandler(ctx: MutationCtx, args: UpdateSessionArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	const [updatePatchError, updatePatch] = buildAdminSessionUpdatePatch({
-		session,
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-		values: args
-	});
-
-	if (updatePatchError !== null) {
-		return err({ reason: "BOOKING_INVALID_INPUT" });
-	}
-
-	try {
-		await ctx.db.patch(args.bookingId, updatePatch);
-	} catch {
-		return err({ reason: "BOOKING_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
-}
-
-export type UpdateSessionResult = Awaited<ReturnType<typeof updateSessionHandler>>;
-
-export const updateSessionPaidRemainingBalance = mutation({
+export const updateSessionPaidStatus = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
-	handler: updateSessionPaidRemainingBalanceHandler
+	handler: (ctx, args) => updateSessionPaidStatusHandler(ctx, args)
 });
 
-type UpdateSessionPaidRemainingBalanceArgs = {
-	bookingId: Id<"bookings">;
-	paidRemainingBalance: boolean;
-};
-
-async function updateSessionPaidRemainingBalanceHandler(
+function updateSessionPaidStatusHandler(
 	ctx: MutationCtx,
-	args: UpdateSessionPaidRemainingBalanceArgs
+	args: { bookingId: Id<"bookings">; paidRemainingBalance: boolean }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance });
-	} catch {
-		return err({ reason: "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+	return updateSessionPaidStatusService(ctx, args).match(tupleOk, tupleErr);
 }
 
-export type UpdateSessionPaidRemainingBalanceResult = Awaited<
-	ReturnType<typeof updateSessionPaidRemainingBalanceHandler>
+export type UpdateSessionPaidStatusResult = Awaited<
+	ReturnType<typeof updateSessionPaidStatusHandler>
 >;
 
 export const updateSessionEditStatus = mutation({
@@ -359,77 +120,32 @@ export const updateSessionEditStatus = mutation({
 		bookingId: v.id("bookings"),
 		editStatus: v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
 	},
-	handler: updateSessionEditStatusHandler
+	handler: (ctx, args) => updateSessionEditStatusHandler(ctx, args)
 });
 
-type UpdateSessionEditStatusArgs = {
-	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "completed";
-};
-
-async function updateSessionEditStatusHandler(ctx: MutationCtx, args: UpdateSessionEditStatusArgs) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, { editStatus: args.editStatus });
-	} catch {
-		return err({ reason: "BOOKING_EDIT_STATUS_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+function updateSessionEditStatusHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; editStatus: "to_edit" | "editing" | "completed" }
+) {
+	return updateSessionEditStatusService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type UpdateSessionEditStatusResult = Awaited<
 	ReturnType<typeof updateSessionEditStatusHandler>
 >;
 
-export const updateSessionRemainingBalanceAmount = mutation({
-	args: { bookingId: v.id("bookings"), remainingBalanceAmount: v.number() },
-	handler: updateSessionRemainingBalanceAmountHandler
+export const markSessionCalendarEventDeleted = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => markSessionCalendarEventDeletedHandler(ctx, args)
 });
 
-type UpdateSessionRemainingBalanceAmountArgs = {
-	bookingId: Id<"bookings">;
-	remainingBalanceAmount: number;
-};
-
-async function updateSessionRemainingBalanceAmountHandler(
+function markSessionCalendarEventDeletedHandler(
 	ctx: MutationCtx,
-	args: UpdateSessionRemainingBalanceAmountArgs
+	args: { bookingId: Id<"bookings"> }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const session = await ctx.db.get(args.bookingId);
-
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	try {
-		await ctx.db.patch(session._id, {
-			remainingBalanceAmount: Math.max(args.remainingBalanceAmount, 0)
-		});
-	} catch {
-		return err({ reason: "BOOKING_REMAINING_BALANCE_AMOUNT_UPDATE_FAILED" });
-	}
-
-	return ok({ updated: true });
+	return markSessionCalendarEventDeletedService(ctx, args).match(tupleOk, tupleErr);
 }
 
-export type UpdateSessionRemainingBalanceAmountResult = Awaited<
-	ReturnType<typeof updateSessionRemainingBalanceAmountHandler>
+export type MarkSessionCalendarEventDeletedResult = Awaited<
+	ReturnType<typeof markSessionCalendarEventDeletedHandler>
 >;

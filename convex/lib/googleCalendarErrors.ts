@@ -1,4 +1,4 @@
-type GoogleCalendarFallbackErrorCode =
+export type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
 	| "GOOGLE_CALENDAR_DELETE_FAILED"

@@ -26,12 +26,16 @@
  *    A provider failure after the token is claimed must reactivate that token so the
  *    customer can retry, while leaving the booking and reminder state unchanged.
  *
+ * 7. Missing locked link cleanup
+ *    Unlocking a deleted link must report that it is missing rather than already used.
+ *
  * Google Calendar and email are replaced with fakes, so no real requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { ok } from "neverthrow";
+import { api, internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	getEvent: vi.fn(),
@@ -41,12 +45,12 @@ const providerFakes = vi.hoisted(() => ({
 	sendInvoiceEmails: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
 }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const client = {
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -58,16 +62,18 @@ vi.mock("../lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	};
 
-vi.mock("../lib/email", () => ({
+	return { getGoogleCalendarClient: () => client, loadGoogleCalendarClient: () => ok(client) };
+});
+
+vi.mock("#convex/lib/email", () => ({
 	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
 }));
 
-vi.mock("../lib/rateLimits", () => ({
-	checkBookingSubmitRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }]),
-	checkGoogleCalendarAvailabilityRateLimit: vi.fn().mockResolvedValue([null, { allowed: true }])
+vi.mock("#convex/lib/rateLimits", () => ({
+	checkBookingSubmitRateLimit: vi.fn(() => ok(null)),
+	checkGoogleCalendarAvailabilityRateLimit: vi.fn(() => ok({ allowed: true }))
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -84,7 +90,7 @@ beforeEach(() => {
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "replacement-event" } });
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
 	providerFakes.patchEvent.mockResolvedValue({ data: {} });
-	providerFakes.sendInvoiceEmails.mockResolvedValue([null, { sent: true }]);
+	providerFakes.sendInvoiceEmails.mockResolvedValue(ok(null));
 });
 
 describe("customer booking rescheduling", () => {
@@ -236,6 +242,21 @@ describe("customer booking rescheduling", () => {
 			expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 		}
 	);
+
+	// Verifies a missing cleanup target remains distinct from a stale or competing lock.
+	test("reports a deleted locked link as not found during cleanup", async () => {
+		const t = createConvexTest();
+		const { linkId } = await seedReschedulableSession(t);
+
+		await t.run((ctx) => ctx.db.delete(linkId));
+
+		const result = await t.mutation(internal.sessionReschedule.unlockRescheduleLink, {
+			linkId,
+			lockedAt: now
+		});
+
+		expect(result).toEqual([{ reason: "RESCHEDULE_LINK_NOT_FOUND" }, null]);
+	});
 
 	test("reactivates the token when the Calendar update fails", async () => {
 		const t = createConvexTest();

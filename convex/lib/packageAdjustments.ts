@@ -1,8 +1,9 @@
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { ADDON_PRICES } from "../../src/sites/studio/features/booking-form/lib/booking-pricing";
-import { formatBookingInvoiceNumber } from "../../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { err, ok, ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { getCapacityConsumingPackageSessions } from "./packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
@@ -10,6 +11,59 @@ const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
+
+export type PackageAdjustmentEmailClaim = { attempt: "automatic" | "retry"; now: number };
+
+export function validatePackageAdjustmentEmailClaim(
+	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
+	claim: PackageAdjustmentEmailClaim
+) {
+	if (adjustment.invoiceEmailStatus === "sent") {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	const emailSendIsInProgress =
+		adjustment.invoiceEmailClaimedAt !== undefined &&
+		claim.now - adjustment.invoiceEmailClaimedAt < PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
+
+	if (emailSendIsInProgress) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	const expectedStatus = claim.attempt === "automatic" ? "pending" : "failed";
+
+	if (adjustment.invoiceEmailStatus !== expectedStatus) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	return ok(adjustment);
+}
+
+export function getPackageAdjustmentInvoice(
+	ctx: QueryCtx | MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return ResultAsync.fromSafePromise(ctx.db.get(adjustmentId)).andThen((adjustment) => {
+		if (!adjustment || adjustment.outcome !== "invoice_required") {
+			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+		}
+
+		return ok(adjustment);
+	});
+}
+
+export function getSentPackageAdjustmentInvoice(
+	ctx: QueryCtx | MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return getPackageAdjustmentInvoice(ctx, adjustmentId).andThen((adjustment) => {
+		if (adjustment.invoiceEmailStatus !== "sent") {
+			return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
+		}
+
+		return ok(adjustment);
+	});
+}
 
 type PackageAdjustmentEvaluation =
 	| { kind: "wait_for_sessions_to_end"; nextCheckAt: number }

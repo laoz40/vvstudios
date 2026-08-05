@@ -2,11 +2,11 @@ export type Result<S, E extends { reason: string }> =
 	| [error: E, data: null]
 	| [error: null, data: S];
 
-export function ok<const S>(data: S): Result<S, never> {
+export function tupleOk<const S>(data: S): Result<S, never> {
 	return [null, data];
 }
 
-export function err<const E extends { reason: string }>(error: E): Result<never, E> {
+export function tupleErr<const E extends { reason: string }>(error: E): Result<never, E> {
 	return [error, null];
 }
 
@@ -18,6 +18,6 @@ export async function tryCatch<R extends Result<unknown, { reason: string }>>(
 	try {
 		return await promise;
 	} catch {
-		return err({ reason: "UNEXPECTED_ERROR" });
+		return tupleErr({ reason: "UNEXPECTED_ERROR" });
 	}
 }

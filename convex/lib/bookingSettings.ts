@@ -1,4 +1,5 @@
-import type { BookingAvailabilitySettings } from "../../src/sites/studio/lib/bookingAvailabilitySettings";
+import { err, ok } from "neverthrow";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 function isValidTime(value: string) {
 	return /^([01]\d|2[0-3]):(00|30)$/.test(value);
@@ -30,21 +31,21 @@ function isValidScheduleWindow(startTime: string, endTime: string) {
 	return startMinutes !== null && endMinutes !== null && startMinutes < endMinutes;
 }
 
-export function isValidBookingSettings(args: BookingAvailabilitySettings) {
+export function validateBookingSettings(settings: BookingAvailabilitySettings) {
 	if (
-		args.weekSchedule.length !== 7 ||
-		args.leadTimeMinutes < 0 ||
-		args.eventBufferMinutes < 0 ||
-		args.maxDaysAhead < 1
+		settings.weekSchedule.length !== 7 ||
+		settings.leadTimeMinutes < 0 ||
+		settings.eventBufferMinutes < 0 ||
+		settings.maxDaysAhead < 1
 	) {
-		return false;
+		return err({ reason: "INVALID_BOOKING_SETTINGS" as const });
 	}
 
-	for (const schedule of Object.values(args.weekSchedule)) {
+	for (const schedule of Object.values(settings.weekSchedule)) {
 		if (!isValidScheduleWindow(schedule.startTime, schedule.endTime)) {
-			return false;
+			return err({ reason: "INVALID_BOOKING_SETTINGS" as const });
 		}
 	}
 
-	return true;
+	return ok(settings);
 }

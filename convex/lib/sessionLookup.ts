@@ -1,32 +1,47 @@
-import { err, ok, type Result } from "../../src/lib/result";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "../_generated/server";
+import { err, ok, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
-export async function getSessionFromDb(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">
-): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const session = await ctx.db.get(bookingId);
+export function getSessionFromDb(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return ok(session);
+		return ok(session);
+	});
 }
 
-export async function getSessionFromQuery(
+export function getSessionByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", stripeSessionId)
+			)
+			.unique()
+	).andThen((session) => {
+		if (!session) {
+			return err({ reason: "BOOKING_NOT_FOUND" as const });
+		}
+
+		return ok(session);
+	});
+}
+
+export function getSessionFromQuery(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
-): Promise<Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>> {
-	const session: Doc<"bookings"> | null = await ctx.runQuery(internal.sessions.getSessionById, {
-		bookingId
-	});
+): ResultAsync<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }> {
+	return okOrThrow(ctx.runQuery(internal.sessions.getSessionById, { bookingId })).andThen(
+		(session) => {
+			if (!session) {
+				return err({ reason: "BOOKING_NOT_FOUND" as const });
+			}
 
-	if (!session) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	return ok(session);
+			return ok(session);
+		}
+	);
 }

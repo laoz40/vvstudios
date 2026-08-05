@@ -33,10 +33,11 @@
  *
  * Google Calendar is replaced with fakes, so no real provider requests are made.
  */
+import { ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api, internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
@@ -46,10 +47,10 @@ const providerFakes = vi.hoisted(() => ({
 	patchEvent: vi.fn()
 }));
 
-vi.mock("../env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
+vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
 
-vi.mock("../lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({
+vi.mock("#convex/lib/googleCalendarClient", () => {
+	const getClient = () => ({
 		calendarId: "primary-calendar",
 		calendarIds: ["primary-calendar"],
 		timeZone: "Australia/Sydney",
@@ -62,8 +63,10 @@ vi.mock("../lib/googleCalendarClient", () => ({
 				patch: providerFakes.patchEvent
 			}
 		}
-	})
-}));
+	});
+
+	return { getGoogleCalendarClient: getClient, loadGoogleCalendarClient: () => ok(getClient()) };
+});
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
@@ -114,7 +117,7 @@ describe("admin booking Calendar edits", () => {
 		const result = await updateBooking(t, bookingId);
 		const booking = await readBooking(t, bookingId);
 
-		expect(result).toEqual([null, { ok: true }]);
+		expect(result).toEqual([null, {}]);
 		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.patchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ calendarId: "saved-calendar", eventId: "saved-event" })
@@ -138,7 +141,7 @@ describe("admin booking Calendar edits", () => {
 
 		const result = await updateBooking(t, bookingId);
 
-		expect(result).toEqual([null, { googleOutcome: "replacementCreated", ok: true }]);
+		expect(result).toEqual([null, { googleOutcome: "replacementCreated" }]);
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			googleCalendarId: "primary-calendar",
@@ -158,7 +161,7 @@ describe("admin failed booking recovery", () => {
 			const result = await updateBooking(t, bookingId);
 			const booking = await readBooking(t, bookingId);
 
-			expect(result).toEqual([null, { googleOutcome: "createdFromFailed", ok: true }]);
+			expect(result).toEqual([null, { googleOutcome: "createdFromFailed" }]);
 			expect(booking).toMatchObject({
 				status: "confirmed",
 				bookingConfirmedAt: now,
@@ -217,7 +220,7 @@ describe("admin booking state integrity", () => {
 		);
 		const timingBooking = await readBooking(timingTest, timingBookingId);
 
-		expect(timingResult).toEqual([null, { saved: true }]);
+		expect(timingResult).toEqual([null, null]);
 		expect(timingBooking?.reminderEmailClaimedAt).toBeUndefined();
 		expect(timingBooking?.reminderEmailSentAt).toBeUndefined();
 		expect(timingBooking?.reminderEmailFailureCode).toBeUndefined();
@@ -230,7 +233,7 @@ describe("admin booking state integrity", () => {
 		);
 		const ordinaryBooking = await readBooking(ordinaryTest, ordinaryBookingId);
 
-		expect(ordinaryResult).toEqual([null, { saved: true }]);
+		expect(ordinaryResult).toEqual([null, null]);
 		expect(ordinaryBooking).toMatchObject({
 			reminderEmailClaimedAt: now - 3,
 			reminderEmailSentAt: now - 2,
@@ -243,8 +246,8 @@ describe("admin booking state integrity", () => {
 		const bookingId = await seedConfirmedBooking(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const recalculationResult = await admin.mutation(
-			api.sessions.updateSession,
+		const recalculationResult = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
 			adminBookingValues(bookingId, {
 				duration: "2h",
 				addons: ["Essential Edit", "Clips Package"],
@@ -253,7 +256,7 @@ describe("admin booking state integrity", () => {
 			})
 		);
 
-		expect(recalculationResult).toEqual([null, { updated: true }]);
+		expect(recalculationResult).toEqual([null, {}]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			duration: "2h",
 			addons: ["Essential Edit", "Clips Package"],
@@ -267,7 +270,7 @@ describe("admin booking state integrity", () => {
 			adminBookingValues(bookingId, { remainingBalanceAmount: 111.25 })
 		);
 
-		expect(overrideResult).toEqual([null, { ok: true }]);
+		expect(overrideResult).toEqual([null, {}]);
 		expect((await readBooking(t, bookingId))?.remainingBalanceAmount).toBe(111.25);
 	});
 

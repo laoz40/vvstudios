@@ -1,4 +1,4 @@
-import { err, ok, type Result } from "#/lib/result";
+import { err, ok, type Result } from "neverthrow";
 
 const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
 

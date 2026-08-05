@@ -1,25 +1,26 @@
 import { v } from "convex/values";
-import { err, ok, type Result } from "../src/lib/result";
-import { api } from "./_generated/api";
+import { tupleErr, tupleOk } from "#/lib/result";
 import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { env } from "./env";
-import { getSessionStartAt } from "./lib/sessionAdminEdit";
-import {
-	checkSessionMeetsAvailabilitySettings,
-	type SessionAvailabilityValidationError
-} from "./lib/sessionCalendarTime";
+import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
-
-type CreatePendingSessionResult = Result<
-	{ bookingId: Doc<"bookings">["_id"] },
-	SessionAvailabilityValidationError
->;
+import {
+	createPendingSessionService,
+	deletePendingSessionService,
+	markSessionExpiredByStripeSessionIdService,
+	type CreatePendingSessionArgs
+} from "./services/sessionCheckout";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
-	handler: (ctx, args) => checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey)
+	handler: (ctx, args) => checkSessionSubmitRateLimitHandler(ctx, args)
 });
+
+function checkSessionSubmitRateLimitHandler(
+	ctx: MutationCtx,
+	args: { submitRateLimitKey: string }
+) {
+	return checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr);
+}
 
 export const createPendingSession = internalMutation({
 	args: {
@@ -37,52 +38,12 @@ export const createPendingSession = internalMutation({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args): Promise<CreatePendingSessionResult> => {
-		const settings = await ctx.runQuery(api.bookingSettings.get, {});
-		const [availabilityError] = checkSessionMeetsAvailabilitySettings({
-			date: args.date,
-			duration: args.duration,
-			settings,
-			time: args.time,
-			timeZone: env.GOOGLE_CALENDAR_TIMEZONE
-		});
-
-		if (availabilityError !== null) {
-			return err({ reason: availabilityError.reason });
-		}
-
-		const [sessionStartError, sessionStartAt] = getSessionStartAt(
-			args.date,
-			args.time,
-			env.GOOGLE_CALENDAR_TIMEZONE
-		);
-
-		if (sessionStartError !== null) {
-			return err({ reason: sessionStartError.reason });
-		}
-
-		const bookingId = await ctx.db.insert("bookings", {
-			name: args.name,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			email: args.email,
-			date: args.date,
-			time: args.time,
-			sessionStartAt,
-			duration: args.duration,
-			service: args.service,
-			addons: args.addons,
-			essentialEditQuantity: args.essentialEditQuantity,
-			clipsPackageQuantity: args.clipsPackageQuantity,
-			notes: args.notes,
-			status: "pending_payment",
-			pendingPaymentCreatedAt: Date.now()
-		});
-
-		return ok({ bookingId });
-	}
+	handler: (ctx, args) => createPendingSessionHandler(ctx, args)
 });
+
+function createPendingSessionHandler(ctx: MutationCtx, args: CreatePendingSessionArgs) {
+	return createPendingSessionService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const getSessionByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
@@ -105,51 +66,24 @@ export const setSessionStripeSessionId = internalMutation({
 
 export const markSessionExpiredByStripeSessionId = internalMutation({
 	args: { stripeSessionId: v.string() },
-	handler: async (ctx, args) => {
-		const booking = await ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", args.stripeSessionId)
-			)
-			.unique();
-
-		if (!booking) {
-			return err({ reason: "BOOKING_NOT_FOUND" });
-		}
-
-		if (booking.status === "expired") {
-			return ok({ alreadyExpired: true });
-		}
-
-		if (booking.status !== "pending_payment") {
-			return err({ reason: "BOOKING_INVALID_STATUS", status: booking.status });
-		}
-
-		await ctx.db.patch(booking._id, { status: "expired" });
-
-		return ok({ alreadyExpired: false });
-	}
+	handler: (ctx, args) => markSessionExpiredByStripeSessionIdHandler(ctx, args)
 });
+
+function markSessionExpiredByStripeSessionIdHandler(
+	ctx: MutationCtx,
+	args: { stripeSessionId: string }
+) {
+	return markSessionExpiredByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr);
+}
 
 export const deletePendingSession = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: async (ctx, args) => {
-		const booking = await ctx.db.get(args.bookingId);
-
-		if (!booking) {
-			return ok({ outcome: "not_found" });
-		}
-
-		if (booking.stripeSessionId !== args.stripeSessionId) {
-			return err({ reason: "STRIPE_SESSION_MISMATCH" });
-		}
-
-		if (booking.status !== "pending_payment") {
-			return ok({ outcome: "not_pending", status: booking.status });
-		}
-
-		await ctx.db.patch(args.bookingId, { status: "abandoned" });
-
-		return ok({ outcome: "abandoned" });
-	}
+	handler: (ctx, args) => deletePendingSessionHandler(ctx, args)
 });
+
+function deletePendingSessionHandler(
+	ctx: MutationCtx,
+	args: { bookingId: Doc<"bookings">["_id"]; stripeSessionId: string }
+) {
+	return deletePendingSessionService(ctx, args).match(tupleOk, tupleErr);
+}

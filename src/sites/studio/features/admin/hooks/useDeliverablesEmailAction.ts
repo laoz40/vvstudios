@@ -25,9 +25,6 @@ function showStatusUpdateError(statusError: UpdateSessionEditStatusError) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("Deliverables email sent, but the session could not be found in the database.");
 			break;
-		case "BOOKING_EDIT_STATUS_UPDATE_FAILED":
-			toast.error("Deliverables email sent, but the status could not be updated.");
-			break;
 		case "UNEXPECTED_ERROR":
 			toast.error("Deliverables email sent, but something went wrong updating the status.");
 			break;

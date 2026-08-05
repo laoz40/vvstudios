@@ -1,15 +1,21 @@
 import { v } from "convex/values";
-import { formatBookingInvoiceNumber } from "../src/sites/studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { Id } from "./_generated/dataModel";
+import { tupleErr, tupleOk } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
 import {
 	internalQuery,
 	mutation,
 	query,
 	type MutationCtx,
 	type QueryCtx
-} from "./_generated/server";
-import { err, ok } from "../src/lib/result";
-import { getAdminIdentity } from "./lib/auth";
+} from "#convex/_generated/server";
+import {
+	createBookingCustomInvoiceService,
+	createPackageCustomInvoiceService,
+	listCustomInvoicesForBookingService,
+	listCustomInvoicesForPackageService,
+	type CreateBookingCustomInvoiceArgs,
+	type CreatePackageCustomInvoiceArgs
+} from "#convex/services/customInvoices";
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -26,59 +32,8 @@ export const createCustomInvoice = mutation({
 	handler: (ctx, args) => createCustomInvoiceHandler(ctx, args)
 });
 
-type CreateCustomInvoiceArgs = {
-	bookingId: Id<"bookings">;
-	dueDate?: string;
-	service?: string;
-	duration?: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	includeDepositLineItem: boolean;
-	customTotalDueAmount?: number;
-};
-
-function isInvalidCustomTotalDueAmount(amount: number | undefined) {
-	return amount !== undefined && (!Number.isFinite(amount) || amount < 0);
-}
-
-async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateCustomInvoiceArgs) {
-	const [authError, identity] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	if (isInvalidCustomTotalDueAmount(args.customTotalDueAmount)) {
-		return err({ reason: "INVALID_CUSTOM_TOTAL_DUE_AMOUNT" });
-	}
-
-	const booking = await ctx.db.get(args.bookingId);
-
-	if (!booking) {
-		return err({ reason: "BOOKING_NOT_FOUND" });
-	}
-
-	const createdAt = Date.now();
-	const customInvoiceId = await ctx.db.insert("customInvoices", {
-		bookingId: args.bookingId,
-		invoiceNumber: "pending",
-		dueDate: args.dueDate,
-		service: args.service,
-		duration: args.duration,
-		addons: args.addons,
-		essentialEditQuantity: args.essentialEditQuantity,
-		clipsPackageQuantity: args.clipsPackageQuantity,
-		includeDepositLineItem: args.includeDepositLineItem,
-		customTotalDueAmount: args.customTotalDueAmount,
-		createdAt,
-		createdBy: identity.email
-	});
-	const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
-
-	await ctx.db.patch(customInvoiceId, { invoiceNumber });
-
-	return ok({ customInvoiceId, invoiceNumber, createdAt });
+async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateBookingCustomInvoiceArgs) {
+	return createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type CreateCustomInvoiceResult = Awaited<ReturnType<typeof createCustomInvoiceHandler>>;
@@ -99,60 +54,11 @@ export const createPackageCustomInvoice = mutation({
 	handler: (ctx, args) => createPackageCustomInvoiceHandler(ctx, args)
 });
 
-type CreatePackageCustomInvoiceArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
-	dueDate?: string;
-	duration?: string;
-	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	packageSize: 4 | 8 | 12;
-	includeDepositLineItem: boolean;
-	includePackageDiscount?: boolean;
-	customTotalDueAmount?: number;
-};
-
 async function createPackageCustomInvoiceHandler(
 	ctx: MutationCtx,
 	args: CreatePackageCustomInvoiceArgs
 ) {
-	const [authError, identity] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	if (isInvalidCustomTotalDueAmount(args.customTotalDueAmount)) {
-		return err({ reason: "INVALID_CUSTOM_TOTAL_DUE_AMOUNT" });
-	}
-
-	const multiBooking = await ctx.db.get(args.multiBookingId);
-
-	if (!multiBooking) {
-		return err({ reason: "PACKAGE_NOT_FOUND" });
-	}
-
-	const createdAt = Date.now();
-	const customInvoiceId = await ctx.db.insert("customInvoices", {
-		multiBookingId: args.multiBookingId,
-		invoiceNumber: "pending",
-		dueDate: args.dueDate,
-		duration: args.duration,
-		addons: args.addons,
-		essentialEditQuantity: args.essentialEditQuantity,
-		clipsPackageQuantity: args.clipsPackageQuantity,
-		packageSize: args.packageSize,
-		includeDepositLineItem: args.includeDepositLineItem,
-		includePackageDiscount: args.includePackageDiscount,
-		customTotalDueAmount: args.customTotalDueAmount,
-		createdAt,
-		createdBy: identity.email
-	});
-	const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
-
-	await ctx.db.patch(customInvoiceId, { invoiceNumber });
-
-	return ok({ customInvoiceId, invoiceNumber, createdAt });
+	return createPackageCustomInvoiceService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type CreatePackageCustomInvoiceResult = Awaited<
@@ -168,19 +74,7 @@ async function listCustomInvoicesForBookingHandler(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const customInvoices = await ctx.db
-		.query("customInvoices")
-		.withIndex("by_bookingId", (q) => q.eq("bookingId", args.bookingId))
-		.order("desc")
-		.collect();
-
-	return ok(customInvoices);
+	return listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForBookingResult = Awaited<
@@ -196,26 +90,14 @@ async function listCustomInvoicesForPackageHandler(
 	ctx: QueryCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
-	const [authError] = await getAdminIdentity(ctx);
-
-	if (authError !== null) {
-		return err(authError);
-	}
-
-	const customInvoices = await ctx.db
-		.query("customInvoices")
-		.withIndex("by_multiBookingId", (q) => q.eq("multiBookingId", args.multiBookingId))
-		.order("desc")
-		.collect();
-
-	return ok(customInvoices);
+	return listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr);
 }
 
 export type ListCustomInvoicesForPackageResult = Awaited<
 	ReturnType<typeof listCustomInvoicesForPackageHandler>
 >;
 
-export const getBookingCustomInvoiceSource = internalQuery({
+export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
 	handler: async (ctx, args) => {
 		const customInvoice = await ctx.db.get(args.customInvoiceId);
@@ -228,7 +110,7 @@ export const getBookingCustomInvoiceSource = internalQuery({
 	}
 });
 
-export const getPackageCustomInvoiceSource = internalQuery({
+export const getPackageCustomInvoiceInput = internalQuery({
 	args: { customInvoiceId: v.id("customInvoices") },
 	handler: async (ctx, args) => {
 		const customInvoice = await ctx.db.get(args.customInvoiceId);

@@ -71,7 +71,11 @@ function buildMultiBookingInvoiceLineItems(input: {
 	return [...baseLineItems, ...input.addonLineItems, ...discountLineItems];
 }
 
-export function createMultiBookingInvoiceLineItemSnapshot(input: {
+export function createPriceAdjustmentInvoiceLineItem(amount: number): BookingInvoiceLineItem {
+	return { amount, description: "Price adjustment", quantity: 1, rate: amount };
+}
+
+export function createPackageInvoiceLineItemSnapshot(input: {
 	addons: BookingInvoiceBuilderInput["addons"];
 	clipsPackageQuantity?: string;
 	discountAmount: number;

@@ -25,9 +25,9 @@
  *    unchanged. This proves unauthorized requests cannot cause hidden side effects.
  */
 import { describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 const paginationOpts = { cursor: null, numItems: 10 };
 
 const identities = [
@@ -101,7 +101,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "set a session remaining balance as paid or unpaid",
 		call: (client, { bookingId }) =>
-			client.mutation(api.sessions.updateSessionPaidRemainingBalance, {
+			client.mutation(api.sessions.updateSessionPaidStatus, {
 				bookingId,
 				paidRemainingBalance: true
 			})
@@ -109,12 +109,12 @@ const operations: AdminOperation[] = [
 	{
 		name: "mark a package as unpaid",
 		call: (client, { multiBookingId }) =>
-			client.mutation(api.packages.markPackagePaymentStatus, { multiBookingId, paid: false })
+			client.mutation(api.packages.markPackageUnpaid, { packageId: multiBookingId })
 	},
 	{
 		name: "confirm a package payment",
 		call: (client, { multiBookingId }) =>
-			client.action(api.multiBookings.confirmPackagePayment, { multiBookingId })
+			client.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
 	},
 	{
 		name: "change a package adjustment payment status",
@@ -185,7 +185,7 @@ const operations: AdminOperation[] = [
 	{
 		name: "send a package invoice email",
 		call: (client, { multiBookingId }) =>
-			client.action(api.multiBookings.resendMultiBookingInvoiceEmail, { multiBookingId })
+			client.action(api.packagePayment.resendPackageInvoiceEmail, { multiBookingId })
 	},
 	{
 		name: "generate a new reschedule link",

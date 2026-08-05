@@ -2,7 +2,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useAction } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
+import type { CreatePackageRequestResult } from "#convex/packagePayment";
 import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
@@ -26,13 +26,13 @@ import { tryCatch } from "#/lib/result";
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
 >;
-type CreateMultiBookingRequestAction = ReturnType<
-	typeof useAction<typeof api.multiBookings.createMultiBookingRequest>
+type CreatePackageRequestAction = ReturnType<
+	typeof useAction<typeof api.packagePayment.createPackageRequest>
 >;
 
 interface UseBookingSubmitOptions {
 	createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction;
-	createMultiBookingRequest: CreateMultiBookingRequestAction;
+	createPackageRequest: CreatePackageRequestAction;
 	formRef: RefObject<HTMLFormElement | null>;
 	persistBookingInfoFromForm: (values: BookingFormValues) => void;
 }
@@ -41,7 +41,7 @@ export const termsDialogPendingError = new Error("terms-dialog-pending");
 
 export function useBookingSubmit({
 	createEmbeddedCheckoutSession,
-	createMultiBookingRequest,
+	createPackageRequest,
 	formRef,
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
@@ -56,8 +56,8 @@ export function useBookingSubmit({
 
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
-		const [error, result] = await tryCatch<CreateMultiBookingRequestResult>(
-			createMultiBookingRequest({
+		const [error, result] = await tryCatch<CreatePackageRequestResult>(
+			createPackageRequest({
 				name: multiBookingValue.name,
 				phone: multiBookingValue.phone,
 				accountName: multiBookingValue.accountName,

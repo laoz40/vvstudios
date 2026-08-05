@@ -1,12 +1,9 @@
-import { err, ok, type Result } from "../../src/lib/result";
+import { err, ok, type Result } from "neverthrow";
 import {
 	BOOKING_EVENT_BUFFER_MINUTES,
 	BOOKING_TIME_OPTIONS
-} from "../../src/sites/studio/lib/bookingAvailabilitySettings";
-import {
-	getTimeZoneDateKey,
-	getUtcDateForZonedParts
-} from "../../src/sites/studio/lib/zonedDateTime";
+} from "#studio/lib/bookingAvailabilitySettings";
+import { getTimeZoneDateKey, getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 export interface BusyWindow {
 	calendarId?: string;
@@ -50,7 +47,7 @@ export type SessionAvailabilityValidationError = {
 		| "BOOKING_TIME_UNAVAILABLE";
 };
 
-type SessionTimeParseError =
+export type SessionTimeParseError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_DURATION" }
 	| { reason: "BOOKING_INVALID_TIME" };
@@ -101,37 +98,19 @@ export function getUtcDateForZonedDateTime(
 	date: string,
 	time: string,
 	timeZone: string
-): Result<
-	Date,
-	| Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
-	| { reason: "BOOKING_INVALID_TIME" }
-> {
-	const [dateError, dateParts] = parseDate(date);
-
-	if (dateError !== null) {
-		return err(dateError);
-	}
-
-	const [timeError, timeParts] = parseTime(time);
-
-	if (timeError !== null) {
-		return err(timeError);
-	}
-
-	const [zonedTimeError, utcDate] = getUtcDateForZonedParts({
-		day: dateParts.day,
-		hours: timeParts.hours,
-		minutes: timeParts.minutes,
-		month: dateParts.month,
-		timeZone,
-		year: dateParts.year
-	});
-
-	if (zonedTimeError !== null) {
-		return err({ reason: "BOOKING_INVALID_TIME" });
-	}
-
-	return ok(utcDate);
+): Result<Date, Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
+	return parseDate(date).andThen((dateParts) =>
+		parseTime(time).andThen((timeParts) =>
+			getUtcDateForZonedParts({
+				day: dateParts.day,
+				hours: timeParts.hours,
+				minutes: timeParts.minutes,
+				month: dateParts.month,
+				timeZone,
+				year: dateParts.year
+			}).mapErr(() => ({ reason: "BOOKING_INVALID_TIME" as const }))
+		)
+	);
 }
 
 export function buildEventWindow(
@@ -140,21 +119,12 @@ export function buildEventWindow(
 	duration: string,
 	timeZone: string
 ): Result<{ startDateTime: string; endDateTime: string }, SessionTimeParseError> {
-	const [durationError, durationMinutes] = parseDurationMinutes(duration);
-
-	if (durationError !== null) {
-		return err(durationError);
-	}
-
-	const [startError, startUtc] = getUtcDateForZonedDateTime(date, time, timeZone);
-
-	if (startError !== null) {
-		return err(startError);
-	}
-
-	const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000);
-
-	return ok({ startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() });
+	return parseDurationMinutes(duration).andThen((durationMinutes) =>
+		getUtcDateForZonedDateTime(date, time, timeZone).map((startUtc) => {
+			const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000);
+			return { startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() };
+		})
+	);
 }
 
 // keep only the times that do not overlap with busy calendar events
@@ -201,16 +171,16 @@ export function doSessionWindowsOverlap({
 	secondStartAt: number;
 	eventBufferMinutes: number;
 }) {
-	const [firstDurationError, firstDurationMinutes] = parseDurationMinutes(firstDuration);
-	const [secondDurationError, secondDurationMinutes] = parseDurationMinutes(secondDuration);
+	const firstDurationResult = parseDurationMinutes(firstDuration);
+	const secondDurationResult = parseDurationMinutes(secondDuration);
 
-	if (firstDurationError !== null || secondDurationError !== null) {
+	if (firstDurationResult.isErr() || secondDurationResult.isErr()) {
 		return true;
 	}
 
 	const bufferMs = eventBufferMinutes * 60 * 1000;
-	const firstEndAt = firstStartAt + firstDurationMinutes * 60 * 1000;
-	const secondEndAt = secondStartAt + secondDurationMinutes * 60 * 1000;
+	const firstEndAt = firstStartAt + firstDurationResult.value * 60 * 1000;
+	const secondEndAt = secondStartAt + secondDurationResult.value * 60 * 1000;
 
 	return firstStartAt < secondEndAt + bufferMs && firstEndAt + bufferMs > secondStartAt;
 }
@@ -223,14 +193,14 @@ export function isTimeSlotAvailable({
 	time,
 	timeZone
 }: IsTimeSlotAvailableArgs) {
-	const [windowError, eventWindow] = buildEventWindow(date, time, duration, timeZone);
+	const eventWindowResult = buildEventWindow(date, time, duration, timeZone);
 
-	if (windowError !== null) {
+	if (eventWindowResult.isErr()) {
 		return false;
 	}
 
-	const startMs = Date.parse(eventWindow.startDateTime);
-	const endMs = Date.parse(eventWindow.endDateTime);
+	const startMs = Date.parse(eventWindowResult.value.startDateTime);
+	const endMs = Date.parse(eventWindowResult.value.endDateTime);
 
 	return !busyWindows.some((window) => {
 		const busyStartMs = Date.parse(window.start) - eventBufferMinutes * 60 * 1000;
@@ -290,42 +260,21 @@ export function checkSessionMeetsAvailabilitySettings({
 	time: string;
 	timeZone: string;
 }): Result<null, SessionAvailabilityValidationError> {
-	const [dateError, bookingDate] = parseDateValue(date);
+	return parseDateValue(date)
+		.andThen((bookingDate) =>
+			validateBookingDateRange(bookingDate, latestBookableDate, now, settings)
+		)
+		.andThen((daySchedule) => validateBookingDaySchedule(duration, time, daySchedule))
+		.andThen(() => getUtcDateForZonedDateTime(date, time, timeZone))
+		.andThen((bookingStart) => {
+			const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
 
-	if (dateError !== null) {
-		return err(dateError);
-	}
+			if (bookingStart.getTime() < earliestStartAt) {
+				return err({ reason: "BOOKING_TOO_SOON" as const });
+			}
 
-	const [dateRangeError, daySchedule] = validateBookingDateRange(
-		bookingDate,
-		latestBookableDate,
-		now,
-		settings
-	);
-
-	if (dateRangeError !== null) {
-		return err(dateRangeError);
-	}
-
-	const [scheduleError] = validateBookingDaySchedule(duration, time, daySchedule);
-
-	if (scheduleError !== null) {
-		return err(scheduleError);
-	}
-
-	const [startError, bookingStart] = getUtcDateForZonedDateTime(date, time, timeZone);
-
-	if (startError !== null) {
-		return err(startError);
-	}
-
-	const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
-
-	if (bookingStart.getTime() < earliestStartAt) {
-		return err({ reason: "BOOKING_TOO_SOON" });
-	}
-
-	return ok(null);
+			return ok(null);
+		});
 }
 
 function validateBookingDateRange(
@@ -360,27 +309,23 @@ function validateBookingDaySchedule(
 	time: string,
 	daySchedule: { endTime: string; startTime: string }
 ): Result<null, SessionAvailabilityValidationError> {
-	const [durationError, durationMinutes] = parseDurationMinutes(duration);
+	return parseDurationMinutes(duration).andThen((durationMinutes) => {
+		const startMinutes = parseTimeToMinutes(time);
+		const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
+		const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
 
-	if (durationError !== null) {
-		return err(durationError);
-	}
+		if (startMinutes === null || dayStartMinutes === null || dayEndMinutes === null) {
+			return err({ reason: "BOOKING_INVALID_TIME" as const });
+		}
 
-	const startMinutes = parseTimeToMinutes(time);
-	const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
-	const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
+		const endMinutes = startMinutes + durationMinutes;
 
-	if (startMinutes === null || dayStartMinutes === null || dayEndMinutes === null) {
-		return err({ reason: "BOOKING_INVALID_TIME" });
-	}
+		if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
+			return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" as const });
+		}
 
-	const endMinutes = startMinutes + durationMinutes;
-
-	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
-		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" });
-	}
-
-	return ok(null);
+		return ok(null);
+	});
 }
 
 export function getAvailabilityRange(date: string) {
@@ -398,23 +343,13 @@ export function getDateAvailabilityRange(
 	{ timeMax: string; timeMin: string },
 	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
-	const [timeMaxError, timeMaxDate] = getUtcDateForZonedDateTime(
-		getNextDate(endDate),
-		"00:00",
-		timeZone
+	return getUtcDateForZonedDateTime(getNextDate(endDate), "00:00", timeZone).andThen(
+		(timeMaxDate) =>
+			getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map((timeMinDate) => ({
+				timeMax: timeMaxDate.toISOString(),
+				timeMin: timeMinDate.toISOString()
+			}))
 	);
-
-	if (timeMaxError !== null) {
-		return err(timeMaxError);
-	}
-
-	const [timeMinError, timeMinDate] = getUtcDateForZonedDateTime(startDate, "00:00", timeZone);
-
-	if (timeMinError !== null) {
-		return err(timeMinError);
-	}
-
-	return ok({ timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() });
 }
 
 export function groupBusyWindowsByDay(
@@ -430,17 +365,13 @@ export function groupBusyWindowsByDay(
 		while (segmentStartMs < windowEndMs) {
 			const segmentStartDate = new Date(segmentStartMs);
 			const localDateKey = getLocalDateKey(segmentStartDate, timeZone);
-			const [dayEndError, dayEndDate] = getUtcDateForZonedDateTime(
-				getNextDate(localDateKey),
-				"00:00",
-				timeZone
-			);
+			const dayEndResult = getUtcDateForZonedDateTime(getNextDate(localDateKey), "00:00", timeZone);
 
-			if (dayEndError !== null) {
-				return err(dayEndError);
+			if (dayEndResult.isErr()) {
+				return err(dayEndResult.error);
 			}
 
-			const dayEndMs = Date.parse(dayEndDate.toISOString());
+			const dayEndMs = dayEndResult.value.getTime();
 			const segmentEndMs = Math.min(windowEndMs, dayEndMs);
 			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
 
@@ -487,13 +418,9 @@ export function getEventDateTime(
 	}
 
 	if (dateTimeRange?.date) {
-		const [dateError, date] = getUtcDateForZonedDateTime(dateTimeRange.date, "00:00", timeZone);
-
-		if (dateError !== null) {
-			return null;
-		}
-
-		return date.toISOString();
+		return getUtcDateForZonedDateTime(dateTimeRange.date, "00:00", timeZone)
+			.map((date) => date.toISOString())
+			.unwrapOr(null);
 	}
 
 	return null;
@@ -546,18 +473,16 @@ function getOrCreateDayBucket(
 }
 
 function formatDayLabel(date: string, timeZone: string) {
-	const [dateError, labelDate] = getUtcDateForZonedDateTime(date, "12:00", timeZone);
-
-	if (dateError !== null) {
-		return date;
-	}
-
-	return new Intl.DateTimeFormat("en-US", {
-		day: "numeric",
-		month: "short",
-		weekday: "short",
-		timeZone
-	}).format(labelDate);
+	return getUtcDateForZonedDateTime(date, "12:00", timeZone)
+		.map((labelDate) =>
+			new Intl.DateTimeFormat("en-US", {
+				day: "numeric",
+				month: "short",
+				weekday: "short",
+				timeZone
+			}).format(labelDate)
+		)
+		.unwrapOr(date);
 }
 
 function formatTimeInTimeZone(date: Date, timeZone: string) {

@@ -1,5 +1,5 @@
 import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
-import type { CreateMultiBookingRequestResult } from "#convex/multiBookings";
+import type { CreatePackageRequestResult } from "#convex/packagePayment";
 import type {
 	CloseEmbeddedCheckoutSessionResult,
 	CreateEmbeddedCheckoutSessionResult
@@ -41,9 +41,7 @@ type StartCheckoutToastError =
 
 type CloseCheckoutToastError = NonNullable<CloseEmbeddedCheckoutSessionResult[0]> | UnexpectedError;
 type AvailabilityToastError = NonNullable<GetBookableRangeBusyWindowsResult[0]> | UnexpectedError;
-type CreateMultiBookingToastError =
-	| NonNullable<CreateMultiBookingRequestResult[0]>
-	| UnexpectedError;
+type CreateMultiBookingToastError = NonNullable<CreatePackageRequestResult[0]> | UnexpectedError;
 
 export const devBookingErrorMessages = {
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
@@ -65,7 +63,6 @@ export const startCheckoutToastMessages = {
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
 	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
 	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
-	STRIPE_SESSION_LINK_FAILED: bookingPageErrorMessages.START_CHECKOUT_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
 
@@ -73,7 +70,8 @@ export const createMultiBookingToastMessages = {
 	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
-	PACKAGE_CREATE_FAILED: "Something went wrong while creating your package request.",
+	INVOICE_FAILURE_CODE_REQUIRED: "Something went wrong while creating your package request.",
+	INVOICE_NUMBER_REQUIRED: "Something went wrong while creating your package request.",
 	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
 } satisfies Record<CreateMultiBookingToastError["reason"], string>;
 

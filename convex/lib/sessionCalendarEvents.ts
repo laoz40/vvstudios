@@ -1,6 +1,7 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { BOOKING_INVOICE_BUSINESS } from "../../src/sites/studio/features/booking-invoice/lib/constants";
-import { err, ok, type Result } from "../../src/lib/result";
+import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { err, ok, type Result } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 
 import {
 	buildEventWindow,
@@ -43,46 +44,43 @@ export function buildSessionCalendarEventPayload({
 	time,
 	timeZone
 }: BuildSessionCalendarEventPayloadArgs) {
-	const [windowError, eventWindow] = buildEventWindow(date, time, details.duration, timeZone);
+	return buildEventWindow(date, time, details.duration, timeZone).map(
+		({ startDateTime, endDateTime }) => {
+			const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
+			const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
+			const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
+			const signoffName =
+				BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	if (windowError !== null) {
-		return err(windowError);
-	}
+			const payload = {
+				summary: `Studio Hire | ${details.name} | ${details.duration}`,
+				description: [
+					`Hello, ${details.name}!`,
+					"",
+					"Your studio hire session has been confirmed!",
+					"",
+					`Recording Space: ${details.service}`,
+					`Add-ons: ${addonsLine}`,
+					`Session Duration: ${details.duration}`,
+					"",
+					`Date: ${bookingDate}`,
+					`Time: ${bookingTime}`,
+					`Timezone: ${timeZone}`,
+					"",
+					"Thanks,",
+					signoffName,
+					BOOKING_INVOICE_BUSINESS.locationLabel
+				].join("\n"),
+				location: BOOKING_INVOICE_BUSINESS.locationAddress,
+				start: { dateTime: startDateTime },
+				end: { dateTime: endDateTime },
+				transparency: "opaque",
+				attendees: [{ email: details.email }]
+			} satisfies calendar_v3.Schema$Event;
 
-	const { startDateTime, endDateTime } = eventWindow;
-	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
-	const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
-	const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	const payload = {
-		summary: `Studio Hire | ${details.name} | ${details.duration}`,
-		description: [
-			`Hello, ${details.name}!`,
-			"",
-			"Your studio hire session has been confirmed!",
-			"",
-			`Recording Space: ${details.service}`,
-			`Add-ons: ${addonsLine}`,
-			`Session Duration: ${details.duration}`,
-			"",
-			`Date: ${bookingDate}`,
-			`Time: ${bookingTime}`,
-			`Timezone: ${timeZone}`,
-			"",
-			"Thanks,",
-			signoffName,
-			BOOKING_INVOICE_BUSINESS.locationLabel
-		].join("\n"),
-		location: BOOKING_INVOICE_BUSINESS.locationAddress,
-		start: { dateTime: startDateTime },
-		end: { dateTime: endDateTime },
-		transparency: "opaque",
-		attendees: [{ email: details.email }]
-	} satisfies calendar_v3.Schema$Event;
-
-	return ok(payload);
+			return payload;
+		}
+	);
 }
 
 export type GoogleCalendarEventClient = {
@@ -120,18 +118,18 @@ async function findSessionCalendarEventIncludingDeclined({
 	calendarId: string;
 	timeZone: string;
 }) {
-	const [windowError, eventWindow] = buildEventWindow(
+	const eventWindowResult = buildEventWindow(
 		session.date,
 		session.time,
 		session.duration,
 		timeZone
 	);
 
-	if (windowError !== null) {
-		return err(windowError);
+	if (eventWindowResult.isErr()) {
+		return err(eventWindowResult.error);
 	}
 
-	const { startDateTime, endDateTime } = eventWindow;
+	const { startDateTime, endDateTime } = eventWindowResult.value;
 	const events = await calendar.events.list({
 		calendarId,
 		singleEvents: true,
@@ -144,6 +142,28 @@ async function findSessionCalendarEventIncludingDeclined({
 	return ok(
 		events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
 	);
+}
+
+export async function removeOrphanedSessionCalendarEvent({
+	bookingId,
+	calendar,
+	calendarId,
+	googleEventId
+}: {
+	bookingId: Id<"bookings">;
+	calendar: Pick<calendar_v3.Calendar, "events">;
+	calendarId: string;
+	googleEventId: string;
+}) {
+	try {
+		await calendar.events.delete({ calendarId, eventId: googleEventId, sendUpdates: "all" });
+	} catch (error) {
+		console.error("Orphaned session Calendar event cleanup failed", {
+			bookingId,
+			googleEventId,
+			error
+		});
+	}
 }
 
 async function deleteCalendarEventIfFound(
@@ -185,18 +205,18 @@ export async function deleteSessionCalendarEvent({
 		}
 
 		// Declined Calendar invites can be hidden from direct event lookup, so search the session window before giving up.
-		const [findEventError, foundEvent] = await findSessionCalendarEventIncludingDeclined({
+		const foundEventResult = await findSessionCalendarEventIncludingDeclined({
 			session,
 			calendar: client.calendar,
 			calendarId,
 			timeZone: client.timeZone
 		});
 
-		if (findEventError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" });
+		if (foundEventResult.isErr()) {
+			return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const });
 		}
 
-		const foundEventId = foundEvent?.id ?? null;
+		const foundEventId = foundEventResult.value?.id ?? null;
 
 		if (!foundEventId) {
 			return ok({ calendarEventDeleted: false });
@@ -270,21 +290,21 @@ export async function updateSessionCalendarEventTiming({
 			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
-		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
+		const payloadResult = buildSessionCalendarEventPayload({
 			date,
 			details,
 			time,
 			timeZone: client.timeZone
 		});
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" });
+		if (payloadResult.isErr()) {
+			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" as const });
 		}
 
 		await client.calendar.events.patch({
 			calendarId: googleCalendarId,
 			eventId: googleEventId,
 			sendUpdates: "all",
-			requestBody
+			requestBody: payloadResult.value
 		});
 	} catch (error) {
 		if (isGoogleCalendarEventNotFoundError(error)) {
@@ -309,20 +329,20 @@ export async function createSessionCalendarEvent({
 	time: string;
 }) {
 	try {
-		const [payloadError, requestBody] = buildSessionCalendarEventPayload({
+		const payloadResult = buildSessionCalendarEventPayload({
 			date,
 			details,
 			time,
 			timeZone: client.timeZone
 		});
-		if (payloadError !== null) {
-			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" });
+		if (payloadResult.isErr()) {
+			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const });
 		}
 
 		const replacementEvent = await client.calendar.events.insert({
 			calendarId: client.calendarId,
 			sendUpdates: "all",
-			requestBody
+			requestBody: payloadResult.value
 		});
 
 		return ok({

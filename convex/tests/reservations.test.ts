@@ -15,9 +15,9 @@
  *    reservation fields from the booking.
  */
 import { describe, expect, test } from "vitest";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const originalStartAt = Date.parse("2030-01-09T23:00:00.000Z");
@@ -106,7 +106,7 @@ describe("booking time reservations", () => {
 		});
 		const booking = await readBooking(t, bookingId);
 
-		expect(saveResult).toEqual([null, { saved: true }]);
+		expect(saveResult).toEqual([null, null]);
 		expect(booking).toMatchObject({ sessionStartAt: targetStartAt });
 		expect(booking?.reservationCreatedAt).toBeUndefined();
 		expect(booking?.reservationSessionStartAt).toBeUndefined();

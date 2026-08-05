@@ -3,7 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type { ArchivePackageResult, MarkPackagePaymentStatusResult } from "#convex/packages";
+import type { ArchivePackageResult, MarkPackageUnpaidResult } from "#convex/packages";
 import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import type {
 	GetAdminPackageAdjustmentInvoicePdfResult,
@@ -12,9 +12,9 @@ import type {
 import type { MarkPackageAdjustmentPaymentStatusResult } from "#convex/packageAdjustments";
 import type {
 	ConfirmPackagePaymentResult,
-	ResendMultiBookingInvoiceEmailResult,
-	RetryMultiBookingSchedulingEmailResult
-} from "#convex/multiBookings";
+	ResendPackageInvoiceEmailResult,
+	RetryPackageSchedulingEmailResult
+} from "#convex/packagePayment";
 import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
@@ -23,9 +23,9 @@ import { usePackageEditAction } from "#studio/features/admin/hooks/usePackageEdi
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 export function usePackageActions(packageRow: AdminPackageRow) {
-	const resendInvoice = useAction(api.multiBookings.resendMultiBookingInvoiceEmail);
-	const confirmPackagePayment = useAction(api.multiBookings.confirmPackagePayment);
-	const retrySchedulingEmail = useAction(api.multiBookings.retryMultiBookingSchedulingEmail);
+	const resendInvoice = useAction(api.packagePayment.resendPackageInvoiceEmail);
+	const confirmPackagePayment = useAction(api.packagePayment.confirmPackagePayment);
+	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
 	const getAdjustmentInvoicePdf = useAction(
 		api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf
@@ -34,7 +34,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
 	const archivePackage = useMutation(api.packages.archivePackage);
-	const markPaymentStatus = useMutation(api.packages.markPackagePaymentStatus);
+	const markPackageUnpaid = useMutation(api.packages.markPackageUnpaid);
 	const markAdjustmentPaymentStatus = useMutation(
 		api.packageAdjustments.markPackageAdjustmentPaymentStatus
 	);
@@ -205,9 +205,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
 					toast.error("The adjustment invoice must be sent first.");
 					break;
-				case "PACKAGE_ADJUSTMENT_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to update the adjustment payment.");
-					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the adjustment payment.");
 					break;
@@ -229,7 +226,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
-		const [error] = await tryCatch<ResendMultiBookingInvoiceEmailResult>(
+		const [error] = await tryCatch<ResendPackageInvoiceEmailResult>(
 			resendInvoice({ multiBookingId: packageRow.id })
 		);
 
@@ -252,6 +249,8 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 					break;
 
 				case "PACKAGE_INVOICE_EMAIL_FAILED":
+				case "INVOICE_FAILURE_CODE_REQUIRED":
+				case "INVOICE_NUMBER_REQUIRED":
 					toast.error("Package invoice email failed again.");
 					break;
 
@@ -296,10 +295,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 					toast.error("This package no longer exists.");
 					break;
 
-				case "PACKAGE_ARCHIVE_FAILED":
-					toast.error("Unable to update the package archive state.");
-					break;
-
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while archiving the package.");
 					break;
@@ -319,11 +314,11 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		setPendingAction(null);
 	}
 
-	async function handlePaymentChange(paid: boolean) {
+	async function handleMarkPackageUnpaid() {
 		setPendingAction("payment");
 
-		const [error] = await tryCatch<MarkPackagePaymentStatusResult>(
-			markPaymentStatus({ multiBookingId: packageRow.id, paid })
+		const [error] = await tryCatch<MarkPackageUnpaidResult>(
+			markPackageUnpaid({ packageId: packageRow.id })
 		);
 
 		if (error !== null) {
@@ -338,14 +333,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 
 				case "PACKAGE_NOT_FOUND":
 					toast.error("This package no longer exists.");
-					break;
-
-				case "PACKAGE_PAYMENT_CONFIRMATION_REQUIRED":
-					toast.error("Confirm package payments from the payment dialog.");
-					break;
-
-				case "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to update package payment.");
 					break;
 
 				case "UNEXPECTED_ERROR":
@@ -363,7 +350,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 			return;
 		}
 
-		toast.success(paid ? "Package marked paid." : "Package marked unpaid.");
+		toast.success("Package marked unpaid.");
 		setPendingAction(null);
 	}
 
@@ -390,14 +377,6 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 
 				case "PACKAGE_ALREADY_PAID":
 					toast.error("This package is already marked paid.");
-					break;
-
-				case "PACKAGE_NOT_UNPAID":
-					toast.error("Only unpaid packages can be confirmed as paid.");
-					break;
-
-				case "PACKAGE_PAYMENT_STATUS_UPDATE_FAILED":
-					toast.error("Unable to mark this package paid.");
 					break;
 
 				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
@@ -440,7 +419,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleRetrySchedulingEmail() {
 		setPendingAction("scheduleEmail");
 
-		const [error] = await tryCatch<RetryMultiBookingSchedulingEmailResult>(
+		const [error] = await tryCatch<RetryPackageSchedulingEmailResult>(
 			retrySchedulingEmail({ multiBookingId: packageRow.id })
 		);
 
@@ -510,7 +489,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		handleConfirmPayment,
 		handleDownloadAdjustmentInvoice,
 		handleDownloadInvoice,
-		handlePaymentChange,
+		handleMarkPackageUnpaid,
 		handleResendInvoice,
 		handleRetryAdjustmentInvoice,
 		handleRetrySchedulingEmail,

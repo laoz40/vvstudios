@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { err, ok } from "../../src/lib/result";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
 import { doSessionWindowsOverlap } from "./sessionCalendarTime";
 
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
@@ -56,7 +56,12 @@ export async function reserveSessionTime(
 		now: number;
 		sessionStartAt: number;
 	}
-) {
+): Promise<
+	Result<
+		{ outcome: "unavailable" } | { outcome: "reserved"; reservation: SessionReservation },
+		{ reason: "BOOKING_NOT_FOUND" }
+	>
+> {
 	// Load the session being moved.
 	const session = await ctx.db.get(args.bookingId);
 
@@ -148,7 +153,7 @@ export async function unreserveSessionTime(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
 	expected: SessionReservation
-) {
+): Promise<Result<{ cleared: boolean }, never>> {
 	// Remove the reservation only if it still belongs to this request.
 	const session = await ctx.db.get(bookingId);
 

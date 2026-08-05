@@ -15,23 +15,32 @@
  *    A valid request must create one pending booking, open one Stripe checkout, and
  *    save the Stripe session ID on the same booking.
  *
- * 4. Open checkout closure
+ * 4. Concurrent checkout creation
+ *    Two requests for the same time must create only one payable pending booking.
+ *
+ * 5. Unexpected Stripe creation failure
+ *    Provider rejection must escape the expected business-error channel.
+ *
+ * 6. Open checkout closure
  *    Closing an open checkout must expire its Stripe session and mark only its linked
  *    pending booking as abandoned.
  *
- * 5. Completed checkout closure
+ * 7. Completed checkout closure
  *    A completed Stripe session must leave its pending booking untouched so payment
  *    completion can continue through the webhook flow.
  *
- * 6. Mismatched checkout closure
+ * 8. Mismatched checkout closure
  *    A session that does not belong to the supplied booking must not abandon it.
+ *
+ * 9. Stripe closure failure
+ *    Provider rejection while closing must return its stable expected failure.
  *
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { createConvexTest } from "../test.setup";
+import { api } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
 	createCheckoutSession: vi.fn(),
@@ -40,7 +49,7 @@ const providerFakes = vi.hoisted(() => ({
 	retrieveCheckoutSession: vi.fn()
 }));
 
-vi.mock("../env", () => ({
+vi.mock("#convex/env", () => ({
 	env: {
 		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
 		STRIPE_BOOKING_DEPOSIT_PRICE_ID: "price_deposit",
@@ -184,6 +193,31 @@ describe("single-session checkout creation", () => {
 			})
 		);
 	});
+
+	test("allows only one concurrent checkout for the same session time", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+
+		const results = await Promise.all([
+			t.action(api.stripe.createEmbeddedCheckoutSession, validBooking),
+			t.action(api.stripe.createEmbeddedCheckoutSession, validBooking)
+		]);
+
+		expect(results).toContainEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
+		expect(results.filter(([error]) => error === null)).toHaveLength(1);
+		expect(await listBookings(t)).toHaveLength(1);
+		expect(providerFakes.createCheckoutSession).toHaveBeenCalledTimes(1);
+	});
+
+	test("allows an unexpected Stripe creation failure to reject", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+		providerFakes.createCheckoutSession.mockRejectedValue(new Error("Stripe unavailable"));
+
+		await expect(t.action(api.stripe.createEmbeddedCheckoutSession, validBooking)).rejects.toThrow(
+			"Stripe unavailable"
+		);
+	});
 });
 
 describe("single-session checkout closure", () => {
@@ -228,6 +262,20 @@ describe("single-session checkout closure", () => {
 		});
 
 		expect(result).toEqual([{ reason: "STRIPE_SESSION_MISMATCH" }, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "pending_payment" });
+	});
+
+	test("returns the expected close failure when Stripe rejects", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedPendingBooking(t, "cs_unavailable");
+		providerFakes.retrieveCheckoutSession.mockRejectedValue(new Error("Stripe unavailable"));
+
+		const result = await t.action(api.stripe.closeEmbeddedCheckoutSession, {
+			bookingId,
+			stripeSessionId: "cs_unavailable"
+		});
+
+		expect(result).toEqual([{ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" }, null]);
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "pending_payment" });
 	});
 });

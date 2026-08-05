@@ -3,13 +3,11 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { UpdateSessionPaidRemainingBalanceResult } from "#convex/sessions";
+import type { UpdateSessionPaidStatusResult } from "#convex/sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function usePaymentActions(session: SessionRecord) {
-	const updateSessionPaidRemainingBalance = useMutation(
-		api.sessions.updateSessionPaidRemainingBalance
-	);
+	const updateSessionPaidStatus = useMutation(api.sessions.updateSessionPaidStatus);
 	const [isUpdatingPaidRemainingBalance, setIsUpdatingPaidRemainingBalance] = useState(false);
 
 	const isPaidRemainingBalance = session.paidRemainingBalance === true;
@@ -17,8 +15,8 @@ export function usePaymentActions(session: SessionRecord) {
 	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
-		const [error] = await tryCatch<UpdateSessionPaidRemainingBalanceResult>(
-			updateSessionPaidRemainingBalance({ bookingId: session._id, paidRemainingBalance })
+		const [error] = await tryCatch<UpdateSessionPaidStatusResult>(
+			updateSessionPaidStatus({ bookingId: session._id, paidRemainingBalance })
 		);
 
 		if (error !== null) {
@@ -31,9 +29,6 @@ export function usePaymentActions(session: SessionRecord) {
 					break;
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
-					break;
-				case "BOOKING_PAID_REMAINING_BALANCE_UPDATE_FAILED":
-					toast.error("Could not update the payment status. Please try again.");
 					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the payment status.");

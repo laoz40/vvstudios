@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_public/book")({
 function BookingPage() {
 	// Convex actions
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
-	const createMultiBookingRequest = useAction(api.multiBookings.createMultiBookingRequest);
+	const createPackageRequest = useAction(api.packagePayment.createPackageRequest);
 	const { handlePaymentModalClose } = useBookingCheckoutClose();
 
 	// Form and scroll targets
@@ -86,7 +86,7 @@ function BookingPage() {
 
 	const bookingSubmit = useBookingSubmit({
 		createEmbeddedCheckoutSession,
-		createMultiBookingRequest,
+		createPackageRequest,
 		formRef,
 		persistBookingInfoFromForm: savedBookingInfo.persistBookingInfoFromForm
 	});

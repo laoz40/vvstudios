@@ -85,9 +85,7 @@ export function getBookingTotal(
 	return durationTotal + addonsTotal;
 }
 
-export function calculateMultiBookingAmounts(
-	values: MultiBookingPricingValues
-): MultiBookingAmounts {
+export function calculatePackageAmounts(values: MultiBookingPricingValues): MultiBookingAmounts {
 	const plan = MULTI_BOOKING_PLANS[values.packageSize];
 	const singleSessionAmount = getBookingTotal(values);
 	const packageSubtotalAmount = singleSessionAmount * values.packageSize;

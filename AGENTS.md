@@ -13,7 +13,9 @@ Booking website for podcast studio.
 - Do not make tiny helper files/functions for one-off logic
 - Preserve existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
+- At the top of every test file, add a comment for each individual test that briefly explains what that test verifies.
 
+Do these practices:
 - Mysterious Name — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
 - Data Clumps — the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
 - Primitive Obsession — a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type.
@@ -43,7 +45,7 @@ Booking website for podcast studio.
 
 ### Imports
 
-- Prefer absolute imports
+- Prefer absolute import aliases over relative imports
 - Remove unused imports
 - Don't export functions/types if not used in other files
 
@@ -58,8 +60,6 @@ Booking website for podcast studio.
 - Do not use nested ternaries and if statements
 - Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
 - Handle every union variant. Use `never` in the default case to force exhaustive switches.
-- Model expected failures as typed variants with a stable discriminator. Use `reason` for tuple `Result` errors.
-- Treat boundary data as `unknown`: APIs, forms, storage, env vars, SDKs, URLs, and user input.
 - Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
 - If a value unexpectedly becomes `any`, stop and trace the source type. Do not patch around it with casts, duplicate aliases, or local unions.
 
@@ -67,16 +67,15 @@ Booking website for podcast studio.
 
 - Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
-- Do not add classes that already exist in the component
-- Use tailwind cn skill to organise classes
+- Do not add classes that already exist in the parent component
+- Use tailwind cn skill to organise long classes
 - For loading, show animated Lucide spinner alongside concise state label (eg. `Saving`), not just trailing-ellipsis label eg. `Saving...`.
 
 ### Convex
 
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
-- For Convex client-facing errors, expected failures, or React handling of Convex responses, read the `convex-result-type-error-handling` skill first.
-- Keep main Convex files focused on Convex API/database logic; put reusable business functions in `convex/lib/*` when they are shared or likely to be reused.
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal`; the `internal.*` namespace already communicates visibility.
+- Refer to the `multiBookingPackages` domain concept as a package in code names, such as `packageId`, `packageFromDb`, and `packageSessions`. Keep existing schema table and field names that contain `multiBooking`; do not rename them or add a migration solely for this naming preference.
 
 - Do not blindly assume a migration needs to occur. Most of the time, the feature being worked on is not yet implemented so there is no live data. Always ask the user whether a migration is necessary.

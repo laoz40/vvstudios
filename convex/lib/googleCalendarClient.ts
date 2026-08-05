@@ -1,14 +1,28 @@
 "use node";
 
 import { google } from "googleapis";
+import { ResultAsync } from "neverthrow";
 
-import { env } from "../env";
+import { env } from "#convex/env";
+import {
+	getGoogleCalendarErrorCode,
+	type GoogleCalendarFallbackErrorCode
+} from "./googleCalendarErrors";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
 		.split(",")
 		.map((id) => id.trim())
 		.filter(Boolean);
+}
+
+export function loadGoogleCalendarClient<T extends GoogleCalendarFallbackErrorCode>(
+	fallbackReason: T
+) {
+	return ResultAsync.fromPromise(
+		Promise.resolve().then(() => getGoogleCalendarClient()),
+		(error) => ({ reason: getGoogleCalendarErrorCode(error, fallbackReason) })
+	);
 }
 
 export function getGoogleCalendarClient() {

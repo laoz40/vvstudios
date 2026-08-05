@@ -1,37 +1,54 @@
+"use node";
+
+import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import { v } from "convex/values";
 import { action, type ActionCtx } from "./_generated/server";
-import { err, ok } from "../src/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { sendFeedbackEmailForMessage } from "./lib/email";
 import { rateLimiter } from "./lib/rateLimits";
+import { okOrThrow } from "./lib/result";
 
 type SubmitFeedbackArgs = { message: string };
+type SubmitFeedbackError =
+	| { reason: "INVALID_MESSAGE" }
+	| { reason: "FEEDBACK_RATE_LIMITED" }
+	| { reason: "SEND_FAILED" };
 
 export const submit = action({
 	args: { message: v.string() },
 	handler: (ctx, args) => submitFeedbackHandler(ctx, args)
 });
 
-async function submitFeedbackHandler(ctx: ActionCtx, args: SubmitFeedbackArgs) {
+function submitFeedbackHandler(ctx: ActionCtx, args: SubmitFeedbackArgs) {
+	return submitFeedbackService(ctx, args).match(tupleOk, tupleErr);
+}
+
+function submitFeedbackService(
+	ctx: ActionCtx,
+	args: SubmitFeedbackArgs
+): ResultAsync<{ submitted: true }, SubmitFeedbackError> {
 	const message = args.message.trim();
 
 	if (!message) {
-		return err({ reason: "INVALID_MESSAGE" });
+		return errAsync({ reason: "INVALID_MESSAGE" as const });
 	}
 
-	const rateLimitStatus = await rateLimiter.limit(ctx, "feedbackSubmitGlobal");
+	return okOrThrow(rateLimiter.limit(ctx, "feedbackSubmitGlobal"))
+		.andThen((rateLimitStatus) =>
+			rateLimitStatus.ok ? ok(null) : err({ reason: "FEEDBACK_RATE_LIMITED" as const })
+		)
+		.andThen(() =>
+			okOrThrow(sendFeedbackEmailForMessage(message)).andThen((emailResult) => emailResult)
+		)
+		.map(() => ({ submitted: true as const }))
+		.mapErr((emailError) => {
+			if (emailError.reason !== "FEEDBACK_RATE_LIMITED") {
+				console.error("Feedback email send failed", { reason: emailError.reason });
+				return { reason: "SEND_FAILED" as const };
+			}
 
-	if (!rateLimitStatus.ok) {
-		return err({ reason: "FEEDBACK_RATE_LIMITED" });
-	}
-
-	const [emailError] = await sendFeedbackEmailForMessage(message);
-
-	if (emailError !== null) {
-		console.error("Feedback email send failed", { reason: emailError.reason });
-		return err({ reason: "SEND_FAILED" });
-	}
-
-	return ok({ submitted: true });
+			return emailError;
+		});
 }
 
 export type SubmitFeedbackResult = Awaited<ReturnType<typeof submitFeedbackHandler>>;
