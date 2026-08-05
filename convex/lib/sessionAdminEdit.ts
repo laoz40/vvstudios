@@ -411,7 +411,7 @@ function promoteFailedSessionFromAdmin({
 			(error) => ({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") })
 		)
 			.andThen((payloadResult) =>
-				payloadResult.mapErr(() => ({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const }))
+				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
 			)
 			.andThen((requestBody) =>
 				ResultAsync.fromPromise(

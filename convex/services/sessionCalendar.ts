@@ -140,14 +140,14 @@ export function getRescheduleBookableRangeBusyWindowsService(
 	{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 	GetAvailableRescheduleTimesError
 > {
-	return fromConvexTuple(
-		ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-			now: Date.now(),
-			token: args.token
-		})
-	)
-		.andThen((details) =>
-			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => details)
+	return checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+		.andThen(() =>
+			fromConvexTuple(
+				ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+					now: Date.now(),
+					token: args.token
+				})
+			)
 		)
 		.andThen((details) => getBookingSettingsService(ctx).map((settings) => ({ details, settings })))
 		.andThen(({ details, settings }) =>

@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -101,9 +101,10 @@ function releaseRescheduleLink(
 ) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, { linkId, lockedAt })
-	).mapErr((error) => {
+	).orElse((error) => {
+		// Cleanup failures must not replace the workflow's original error.
 		console.error("Reschedule link unlock failed", { linkId, error });
-		return error;
+		return okAsync(null);
 	});
 }
 
@@ -113,7 +114,16 @@ function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
 			bookingId: state.session._id,
 			reservation: state.reservation
 		})
-	).andThen(() => releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
+	)
+		.orElse((error) => {
+			// Still unlock the link when clearing the reservation fails.
+			console.error("Reschedule reservation cleanup failed", {
+				bookingId: state.session._id,
+				error
+			});
+			return okAsync(null);
+		})
+		.andThen(() => releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
 }
 
 export function updateRescheduleCalendar(
