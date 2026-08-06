@@ -8,7 +8,8 @@
  *
  * 2. Successful reschedule
  *    A valid move must update Google Calendar and Convex, clear old reminder state,
- *    keep the submitted link active for future moves, and send one update email.
+ *    keep the submitted link active for future moves, and send the host a rescheduled booking
+ *    email containing the original session timing.
  *
  * 3. Concurrent token use
  *    Two requests using the same token at the same time must have one winner and create
@@ -182,7 +183,7 @@ describe("customer booking rescheduling", () => {
 		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
 	});
 
-	test("moves the Calendar event and all related booking state once", async () => {
+	test("moves the session and sends the host rescheduled booking details", async () => {
 		const t = createConvexTest();
 		const { bookingId, linkId, token } = await seedReschedulableSession(t);
 
@@ -207,6 +208,10 @@ describe("customer booking rescheduling", () => {
 		expect(links.filter((link) => link.status === "active")).toHaveLength(1);
 		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
+		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
+			expect.objectContaining({ _id: bookingId, date: target.date, time: target.time }),
+			expect.objectContaining({ reschedule: { originalDate: "2030-01-10", originalTime: "10:00" } })
+		);
 	});
 
 	test.each(["BOOKING_TIME_UNAVAILABLE", "GOOGLE_CALENDAR_CREATE_FAILED"] as const)(

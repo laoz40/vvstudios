@@ -262,6 +262,7 @@ async function finishRescheduledSession(
 	};
 	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
+		reschedule: { originalDate: session.date, originalTime: session.time },
 		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 
