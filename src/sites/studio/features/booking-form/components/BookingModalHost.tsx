@@ -4,6 +4,7 @@ import {
 	PackageUnscheduleConfirmation,
 	RescheduleConfirmation
 } from "#studio/features/booking-form/components/BookingConfirmationDialogs";
+import { ClipsPackageRequirementDialog } from "#studio/features/booking-form/components/ClipsPackageRequirementDialog";
 import { TermsDialog } from "#studio/features/booking-form/components/TermsDialog";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 import {
@@ -35,6 +36,9 @@ export function BookingModalHost({
 	const bookingModalState = useBookingModalStore((state) => state);
 
 	switch (bookingModalState.modal) {
+		case "clipsPackageRequirement":
+			return <ClipsPackageRequirementDialog reason={bookingModalState.reason} />;
+
 		case "payment":
 			return (
 				<Suspense fallback={null}>

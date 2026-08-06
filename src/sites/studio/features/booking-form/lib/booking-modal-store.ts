@@ -5,6 +5,7 @@ import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/
 
 export type BookingModalState =
 	| { modal: "none" }
+	| { modal: "clipsPackageRequirement"; reason: "clipsDeselected" | "selectionBlocked" }
 	| { modal: "payment"; checkoutSession: EmbeddedCheckoutSession }
 	| {
 			bookingId: Id<"bookings">;
@@ -27,6 +28,20 @@ export const useBookingModalStore = create<BookingModalState>(() => initialState
 
 // Zustand merges setState by default. Use replacement mode to discard stale fields
 // from previous modal variants and keep BookingModalState's union invariant valid.
+
+export function openClipsPackageRequirementModal() {
+	useBookingModalStore.setState(
+		{ modal: "clipsPackageRequirement", reason: "selectionBlocked" },
+		true
+	);
+}
+
+export function openClipsPackageDeselectedModal() {
+	useBookingModalStore.setState(
+		{ modal: "clipsPackageRequirement", reason: "clipsDeselected" },
+		true
+	);
+}
 
 export function openPaymentModal(checkoutSession: EmbeddedCheckoutSession) {
 	useBookingModalStore.setState({ modal: "payment", checkoutSession }, true);
