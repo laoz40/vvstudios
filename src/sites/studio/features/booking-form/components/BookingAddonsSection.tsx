@@ -15,6 +15,10 @@ import { cn } from "#/lib/utils";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
+	openClipsPackageDeselectedModal,
+	openClipsPackageRequirementModal
+} from "#studio/features/booking-form/lib/booking-modal-store";
+import {
 	getRevealMotionProps,
 	sectionHeadingClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -139,14 +143,34 @@ export function BookingAddonsSection() {
 		<FormField name="addons">
 			{(field) => {
 				function handleAddonChange(addon: BookingAddon, checked: boolean) {
+					if (
+						checked &&
+						addon === "Clips Package" &&
+						!field.state.value.includes("Essential Edit")
+					) {
+						openClipsPackageRequirementModal();
+						return;
+					}
+
 					let nextAddons = field.state.value.filter((value) => value !== addon);
 
 					if (checked) {
 						nextAddons = [...field.state.value, addon];
 					}
 
+					const shouldNotifyClipsPackageDeselected =
+						addon === "Essential Edit" && !checked && field.state.value.includes("Clips Package");
+
+					if (shouldNotifyClipsPackageDeselected) {
+						nextAddons = nextAddons.filter((value) => value !== "Clips Package");
+					}
+
 					field.handleChange(nextAddons);
 					field.handleBlur();
+
+					if (shouldNotifyClipsPackageDeselected) {
+						openClipsPackageDeselectedModal();
+					}
 
 					// Clear each hidden editing add-on quantity when its add-on is removed,
 					// so the form does not submit stale per-add-on quantities.

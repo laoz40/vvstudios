@@ -160,6 +160,14 @@ function validateEditingAddonQuantities(
 	},
 	ctx: z.RefinementCtx
 ) {
+	if (values.addons.includes("Clips Package") && !values.addons.includes("Essential Edit")) {
+		ctx.addIssue({
+			code: "custom",
+			message: "Essential Edit is required with the Clips Package.",
+			path: ["addons"]
+		});
+	}
+
 	// Editing add-ons are charged independently, so each selected editing add-on
 	// must have its own quantity instead of sharing one deliverable count.
 	if (values.addons.includes("Essential Edit") && !values.essentialEditQuantity) {
