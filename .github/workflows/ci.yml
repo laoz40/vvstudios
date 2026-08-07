@@ -63,6 +63,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Pull production environment variables
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: bunx vercel env pull .env.production.local --environment=production --yes --token="$VERCEL_TOKEN"
+
       - name: Deploy Convex and build
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
