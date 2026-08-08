@@ -1,26 +1,8 @@
 import { v } from "convex/values";
-import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import type { Id } from "./_generated/dataModel";
-import {
-	action,
-	internalMutation,
-	mutation,
-	internalQuery,
-	query,
-	type ActionCtx,
-	type MutationCtx,
-	type QueryCtx
-} from "./_generated/server";
+import { tupleErr, tupleOk } from "#/lib/result";
+import { action, internalMutation, mutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import {
-	SERVICES,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	type CreatePackageSessionError,
-	type ReschedulePackageSessionError,
-	type UnschedulePackageSessionError
-} from "./lib/packageScheduling";
+import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { getValidPackageByToken as findValidPackageByToken } from "./lib/packageLookup";
 import {
 	cancelPackageSessionService,
@@ -34,41 +16,20 @@ import {
 	unschedulePackageSessionService,
 	validatePackageRescheduleRequestService,
 	validatePackageSessionRequestService,
-	validatePackageUnscheduleRequestService,
-	type CancelPackageSessionArgs,
-	type PackageRescheduleRequestDetails,
-	type PackageSessionRequestDetails,
-	type PackageUnscheduleRequestDetails,
-	type SaveCreatedPackageSessionArgs
+	validatePackageUnscheduleRequestService
 } from "./services/packageScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
-	handler: (ctx, args) => getPackageByTokenHandler(ctx, args)
+	handler: (ctx, args) => getPackageByTokenService(ctx, args.token).match(tupleOk, tupleErr)
 });
 
-async function getPackageByTokenHandler(ctx: QueryCtx, args: { token: string }) {
-	return await getPackageByTokenService(ctx, args.token).match(tupleOk, tupleErr);
-}
-
-export type GetPackageByTokenResult = Awaited<ReturnType<typeof getPackageByTokenHandler>>;
-
 const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(service)));
-type RecordingSpace = Exclude<BookingFormValues["service"], "">;
 
 export const setDefaultSpace = mutation({
 	args: { service: recordingSpaceValidator, token: v.string() },
-	handler: (ctx, args) => setDefaultSpaceHandler(ctx, args)
+	handler: (ctx, args) => setPackageDefaultSpaceService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function setDefaultSpaceHandler(
-	ctx: MutationCtx,
-	args: { service: RecordingSpace; token: string }
-) {
-	return await setPackageDefaultSpaceService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type SetDefaultSpaceResult = Awaited<ReturnType<typeof setDefaultSpaceHandler>>;
 
 const packageSessionInput = {
 	token: v.string(),
@@ -79,64 +40,20 @@ const packageSessionInput = {
 	remotePodcast: v.boolean()
 };
 
-type PackageSessionArgs = {
-	token: string;
-	date: string;
-	time: string;
-	service: RecordingSpace;
-	notes?: string;
-	remotePodcast: boolean;
-};
-
 export const createPackageSession = action({
 	args: packageSessionInput,
-	handler: (ctx, args) => createPackageSessionHandler(ctx, args)
+	handler: (ctx, args) => createPackageSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function createPackageSessionHandler(
-	ctx: ActionCtx,
-	args: PackageSessionArgs
-): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> {
-	return createPackageSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CreatePackageSessionResult = Awaited<ReturnType<typeof createPackageSessionHandler>>;
-
-type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<"bookings"> };
 
 export const reschedulePackageSession = action({
 	args: { bookingId: v.id("bookings"), ...packageSessionInput },
-	handler: (ctx, args) => reschedulePackageSessionHandler(ctx, args)
+	handler: (ctx, args) => reschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function reschedulePackageSessionHandler(
-	ctx: ActionCtx,
-	args: ReschedulePackageSessionArgs
-): Promise<Result<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> {
-	return reschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ReschedulePackageSessionResult = Awaited<
-	ReturnType<typeof reschedulePackageSessionHandler>
->;
-
-type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
 
 export const unschedulePackageSession = action({
 	args: { bookingId: v.id("bookings"), token: v.string() },
-	handler: (ctx, args) => unschedulePackageSessionHandler(ctx, args)
+	handler: (ctx, args) => unschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function unschedulePackageSessionHandler(
-	ctx: ActionCtx,
-	args: UnschedulePackageSessionArgs
-): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>> {
-	return unschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type UnschedulePackageSessionResult = Awaited<
-	ReturnType<typeof unschedulePackageSessionHandler>
->;
 
 export const getValidPackageByToken = internalQuery({
 	args: { now: v.number(), token: v.string() },
@@ -156,47 +73,22 @@ export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };
 
-type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
-
 export const validatePackageSessionRequest = internalQuery({
 	args: requestArgs,
-	handler: (ctx, args) => validatePackageSessionRequestHandler(ctx, args)
+	handler: (ctx, args) => validatePackageSessionRequestService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function validatePackageSessionRequestHandler(
-	ctx: QueryCtx,
-	args: PackageSessionRequestArgs
-): Promise<Result<PackageSessionRequestDetails, CreatePackageSessionError>> {
-	return validatePackageSessionRequestService(ctx, args).match(tupleOk, tupleErr);
-}
-
-type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<"bookings"> };
 
 export const validatePackageRescheduleRequest = internalQuery({
 	args: { ...requestArgs, bookingId: v.id("bookings") },
-	handler: (ctx, args) => validatePackageRescheduleRequestHandler(ctx, args)
+	handler: (ctx, args) =>
+		validatePackageRescheduleRequestService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function validatePackageRescheduleRequestHandler(
-	ctx: QueryCtx,
-	args: PackageRescheduleRequestArgs
-): Promise<Result<PackageRescheduleRequestDetails, ReschedulePackageSessionError>> {
-	return validatePackageRescheduleRequestService(ctx, args).match(tupleOk, tupleErr);
-}
-
-type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
 
 export const validatePackageUnscheduleRequest = internalQuery({
 	args: { token: v.string(), bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => validatePackageUnscheduleRequestHandler(ctx, args)
+	handler: (ctx, args) =>
+		validatePackageUnscheduleRequestService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function validatePackageUnscheduleRequestHandler(
-	ctx: QueryCtx,
-	args: PackageUnscheduleRequestArgs
-): Promise<Result<PackageUnscheduleRequestDetails, UnschedulePackageSessionError>> {
-	return validatePackageUnscheduleRequestService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const saveCreatedPackageSession = internalMutation({
 	args: {
@@ -205,33 +97,20 @@ export const saveCreatedPackageSession = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string())
 	},
-	handler: (ctx, args) => saveCreatedPackageSessionHandler(ctx, args)
+	handler: (ctx, args) =>
+		saveCreatedPackageSessionService(
+			ctx,
+			args,
+			(packageId): Promise<unknown> =>
+				ctx.scheduler.runAfter(
+					0,
+					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
+					{ multiBookingId: packageId }
+				)
+		).match(tupleOk, tupleErr)
 });
-
-async function saveCreatedPackageSessionHandler(
-	ctx: MutationCtx,
-	args: SaveCreatedPackageSessionArgs
-): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> {
-	return saveCreatedPackageSessionService(
-		ctx,
-		args,
-		(packageId): Promise<unknown> =>
-			ctx.scheduler.runAfter(
-				0,
-				internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-				{ multiBookingId: packageId }
-			)
-	).match(tupleOk, tupleErr);
-}
 
 export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
-	handler: (ctx, args) => cancelPackageSessionHandler(ctx, args)
+	handler: (ctx, args) => cancelPackageSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function cancelPackageSessionHandler(
-	ctx: MutationCtx,
-	args: CancelPackageSessionArgs
-): Promise<Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>> {
-	return cancelPackageSessionService(ctx, args).match(tupleOk, tupleErr);
-}

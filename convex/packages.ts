@@ -2,13 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
-import {
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
-	type MutationCtx
-} from "#convex/_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	archivePackageService,
@@ -58,17 +52,8 @@ export const createPendingPackage = internalMutation({
 		totalDueAmount: v.number(),
 		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
 	},
-	handler: (ctx, args) => createPendingPackageHandler(ctx, args)
+	handler: (ctx, args) => createPendingPackageService(ctx, args)
 });
-
-function createPendingPackageHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof createPendingPackageService>[1]
-) {
-	return createPendingPackageService(ctx, args);
-}
-
-export type CreatePendingPackageResult = Awaited<ReturnType<typeof createPendingPackageHandler>>;
 
 export const markPackageInvoiceEmailAttempt = internalMutation({
 	args: {
@@ -77,36 +62,19 @@ export const markPackageInvoiceEmailAttempt = internalMutation({
 		invoiceNumber: v.optional(v.string()),
 		failureCode: v.optional(v.string())
 	},
-	handler: (ctx, args) => markPackageInvoiceEmailAttemptHandler(ctx, args)
+	handler: (ctx, args) => markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markPackageInvoiceEmailAttemptHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markPackageInvoiceEmailAttemptService>[1]
-) {
-	return markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type MarkPackageInvoiceEmailAttemptResult = Awaited<
-	ReturnType<typeof markPackageInvoiceEmailAttemptHandler>
->;
 
 export const listPackages = query({
 	args: { paginationOpts: paginationOptsValidator },
-	handler: (ctx, args) => listPackagesHandler(ctx, args)
+	handler: (ctx, args) =>
+		listPackagesService(ctx, args.paginationOpts).match(
+			(packagesPage) => packagesPage,
+			(error) => {
+				throw new ConvexError(error);
+			}
+		)
 });
-
-async function listPackagesHandler(
-	ctx: Parameters<typeof listPackagesService>[0],
-	args: { paginationOpts: Parameters<typeof listPackagesService>[1] }
-) {
-	return listPackagesService(ctx, args.paginationOpts).match(
-		(packagesPage) => packagesPage,
-		(error) => {
-			throw new ConvexError(error);
-		}
-	);
-}
 
 export const updatePackageFromAdmin = mutation({
 	args: {
@@ -125,119 +93,50 @@ export const updatePackageFromAdmin = mutation({
 		expiresAt: v.optional(v.number()),
 		totalDueAmount: v.optional(v.number())
 	},
-	handler: (ctx, args) => updatePackageFromAdminHandler(ctx, args)
+	handler: (ctx, args) => updatePackageService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function updatePackageFromAdminHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof updatePackageService>[1]
-) {
-	return updatePackageService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type UpdatePackageFromAdminResult = Awaited<
-	ReturnType<typeof updatePackageFromAdminHandler>
->;
 
 export const archivePackage = mutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), archived: v.boolean() },
-	handler: (ctx, args) => archivePackageHandler(ctx, args)
+	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function archivePackageHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof archivePackageService>[1]
-) {
-	return archivePackageService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ArchivePackageResult = Awaited<ReturnType<typeof archivePackageHandler>>;
 
 export const markPackageUnpaid = mutation({
 	args: { packageId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => markPackageUnpaidHandler(ctx, args)
+	handler: (ctx, args) => markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markPackageUnpaidHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markPackageUnpaidService>[1]
-) {
-	return markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type MarkPackageUnpaidResult = Awaited<ReturnType<typeof markPackageUnpaidHandler>>;
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), paidAt: v.number() },
-	handler: (ctx, args) => markPackagePaidAndCreateScheduleTokenHandler(ctx, args)
+	handler: (
+		ctx,
+		args
+	): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> =>
+		markPackagePaidAndCreateScheduleTokenService(ctx, args, (expiresAt) =>
+			ctx.scheduler.runAt(expiresAt, internal.packageScheduling.processPackageAdjustmentAtExpiry, {
+				multiBookingId: args.multiBookingId,
+				expectedExpiresAt: expiresAt
+			})
+		).match(tupleOk, tupleErr)
 });
-
-function markPackagePaidAndCreateScheduleTokenHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markPackagePaidAndCreateScheduleTokenService>[1]
-): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> {
-	return markPackagePaidAndCreateScheduleTokenService(ctx, args, (expiresAt) =>
-		ctx.scheduler.runAt(expiresAt, internal.packageScheduling.processPackageAdjustmentAtExpiry, {
-			multiBookingId: args.multiBookingId,
-			expectedExpiresAt: expiresAt
-		})
-	).match(tupleOk, tupleErr);
-}
-
-export type MarkPackagePaidAndCreateScheduleTokenResult = Awaited<
-	ReturnType<typeof markPackagePaidAndCreateScheduleTokenHandler>
->;
 
 export const refreshPackageScheduleToken = internalMutation({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => refreshPackageScheduleTokenHandler(ctx, args)
+	handler: (ctx, args) => refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function refreshPackageScheduleTokenHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof refreshPackageScheduleTokenService>[1]
-) {
-	return refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type RefreshPackageScheduleTokenResult = Awaited<
-	ReturnType<typeof refreshPackageScheduleTokenHandler>
->;
 
 export const markPackageScheduleEmailAttempt = internalMutation({
 	args: {
 		multiBookingId: v.id("multiBookingPackages"),
 		status: v.union(v.literal("sent"), v.literal("failed"))
 	},
-	handler: (ctx, args) => markPackageScheduleEmailAttemptHandler(ctx, args)
+	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markPackageScheduleEmailAttemptHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markPackageScheduleEmailAttemptService>[1]
-) {
-	return markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type MarkPackageScheduleEmailAttemptResult = Awaited<
-	ReturnType<typeof markPackageScheduleEmailAttemptHandler>
->;
 
 export const savePackageInstagramHandle = mutation({
 	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
-	handler: (ctx, args) => savePackageInstagramHandleHandler(ctx, args)
+	handler: (ctx, args) => savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function savePackageInstagramHandleHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof savePackageInstagramHandleService>[1]
-) {
-	return savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type SavePackageInstagramHandleResult = Awaited<
-	ReturnType<typeof savePackageInstagramHandleHandler>
->;
 
 export const getPackageById = internalQuery({
 	args: { multiBookingId: v.id("multiBookingPackages") },

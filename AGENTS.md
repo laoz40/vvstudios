@@ -26,7 +26,7 @@ Do these practices:
 - Middle Man — a class or function that mostly just delegates onward. → cut it, call the real target direct.
 
 - run format and lint and typecheck once changes are complete
-- do not run build or convex codegen
+- do not run build or convex codegen unless asked to
 
 ## Behavior
 

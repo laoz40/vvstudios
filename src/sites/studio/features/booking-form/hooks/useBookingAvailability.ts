@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
-import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { availabilityErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
@@ -119,9 +118,7 @@ export function useBookingAvailability({
 		setIsLoadingMonthAvailability(true);
 
 		async function loadAvailability() {
-			const [error, result] = await tryCatch<GetBookableRangeBusyWindowsResult>(
-				getBookableRangeBusyWindows({ rateLimitKey })
-			);
+			const [error, result] = await tryCatch(getBookableRangeBusyWindows({ rateLimitKey }));
 
 			if (isCancelled) {
 				return;

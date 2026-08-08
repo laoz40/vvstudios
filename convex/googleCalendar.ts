@@ -2,10 +2,8 @@
 
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import { action, type ActionCtx, internalAction } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import { action, internalAction } from "./_generated/server";
 import { type BusyDayWindow } from "./lib/sessionCalendarTime";
-import { type AdminSessionUpdateArgs } from "./lib/sessionAdminEdit";
 import {
 	deleteSessionFromAdminService,
 	getAvailableBookingTimesService,
@@ -14,93 +12,52 @@ import {
 	getRescheduleBookableRangeBusyWindowsService,
 	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
-	updateSessionFromAdminService,
-	type RescheduleSessionArgs
+	updateSessionFromAdminService
 } from "./services/sessionCalendar";
 import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
-	sendSessionReminderEmailService,
-	type SendBookingInvoiceForBookingArgs
+	sendSessionReminderEmailService
 } from "./services/bookingConfirmationActions";
 
-type DeleteBookingFromAdminArgs = { bookingId: Id<"bookings"> };
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
-	handler: (ctx, args) => getBookableRangeBusyWindowsHandler(ctx, args)
+	handler: async (ctx, args) =>
+		await getBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function getBookableRangeBusyWindowsHandler(ctx: ActionCtx, args: { rateLimitKey: string }) {
-	return await getBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetBookableRangeBusyWindowsResult = Awaited<
-	ReturnType<typeof getBookableRangeBusyWindowsHandler>
->;
 
 export const getAvailableBookingTimes = action({
 	args: { date: v.string(), duration: v.string() },
-	handler: (ctx, args) => getAvailableBookingTimesHandler(ctx, args)
+	handler: async (ctx, args) =>
+		await getAvailableBookingTimesService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function getAvailableBookingTimesHandler(
-	ctx: ActionCtx,
-	args: { date: string; duration: string }
-) {
-	return await getAvailableBookingTimesService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetAvailableBookingTimesResult = Awaited<
-	ReturnType<typeof getAvailableBookingTimesHandler>
->;
 
 export const getRescheduleBookableRangeBusyWindows = action({
 	args: { token: v.string(), rateLimitKey: v.string() },
-	handler: (ctx, args) => getRescheduleBookableRangeBusyWindowsHandler(ctx, args)
+	handler: async (
+		ctx,
+		args
+	): Promise<
+		Result<
+			{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
+			GetAvailableRescheduleTimesError
+		>
+	> => await getRescheduleBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function getRescheduleBookableRangeBusyWindowsHandler(
-	ctx: ActionCtx,
-	args: { rateLimitKey: string; token: string }
-): Promise<
-	Result<
-		{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
-		GetAvailableRescheduleTimesError
-	>
-> {
-	return await getRescheduleBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetRescheduleBookableRangeBusyWindowsResult = Awaited<
-	ReturnType<typeof getRescheduleBookableRangeBusyWindowsHandler>
->;
 
 export const getAvailableRescheduleTimes = action({
 	args: { token: v.string(), date: v.string() },
-	handler: (ctx, args) => getAvailableRescheduleTimesHandler(ctx, args)
+	handler: async (
+		ctx,
+		args
+	): Promise<Result<{ timeZone: string; times: string[] }, GetAvailableRescheduleTimesError>> =>
+		await getAvailableRescheduleTimesService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function getAvailableRescheduleTimesHandler(
-	ctx: ActionCtx,
-	args: { date: string; token: string }
-): Promise<Result<{ timeZone: string; times: string[] }, GetAvailableRescheduleTimesError>> {
-	return await getAvailableRescheduleTimesService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetAvailableRescheduleTimesResult = Awaited<
-	ReturnType<typeof getAvailableRescheduleTimesHandler>
->;
 
 export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: (ctx, args) => rescheduleSessionHandler(ctx, args)
+	handler: async (ctx, args) => await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function rescheduleSessionHandler(ctx: ActionCtx, args: RescheduleSessionArgs) {
-	return await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type RescheduleSessionResult = Awaited<ReturnType<typeof rescheduleSessionHandler>>;
 
 export const updateSessionFromAdmin = action({
 	args: {
@@ -120,45 +77,21 @@ export const updateSessionFromAdmin = action({
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number())
 	},
-	handler: updateSessionFromAdminHandler
+	handler: async (ctx, args) =>
+		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function updateSessionFromAdminHandler(ctx: ActionCtx, args: AdminSessionUpdateArgs) {
-	return await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type UpdateSessionFromAdminResult = Awaited<
-	ReturnType<typeof updateSessionFromAdminHandler>
->;
 
 export const sendBookingInvoiceForBooking = action({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.optional(v.id("customInvoices")) },
-	handler: (ctx, args) => sendBookingInvoiceForBookingHandler(ctx, args)
+	handler: async (ctx, args) =>
+		(await sendBookingInvoiceForBookingService(ctx, args)).match(tupleOk, tupleErr)
 });
-
-async function sendBookingInvoiceForBookingHandler(
-	ctx: ActionCtx,
-	args: SendBookingInvoiceForBookingArgs
-) {
-	return (await sendBookingInvoiceForBookingService(ctx, args)).match(tupleOk, tupleErr);
-}
-
-export type SendBookingInvoiceForBookingResult = Awaited<
-	ReturnType<typeof sendBookingInvoiceForBookingHandler>
->;
 
 export const deleteSessionFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
-	handler: deleteSessionFromAdminHandler
+	handler: async (ctx, args) =>
+		await deleteSessionFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
-
-async function deleteSessionFromAdminHandler(ctx: ActionCtx, args: DeleteBookingFromAdminArgs) {
-	return await deleteSessionFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr);
-}
-
-export type DeleteSessionFromAdminResult = Awaited<
-	ReturnType<typeof deleteSessionFromAdminHandler>
->;
 
 export const sendSessionReminderEmail = internalAction({
 	args: { bookingId: v.id("bookings") },
@@ -168,13 +101,6 @@ export const sendSessionReminderEmail = internalAction({
 
 export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => completeClaimedSessionHandler(ctx, args)
+	handler: async (ctx, args) =>
+		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
 });
-
-async function completeClaimedSessionHandler(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return (await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr);
-}
-
-export type CompleteClaimedSessionResult = Awaited<
-	ReturnType<typeof completeClaimedSessionHandler>
->;

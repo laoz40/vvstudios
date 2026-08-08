@@ -1,19 +1,22 @@
 import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
-import type {
-	GetRescheduleBookableRangeBusyWindowsResult,
-	RescheduleSessionResult
-} from "#convex/googleCalendar";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import type { UnexpectedError } from "#/lib/result";
 import type { DevRescheduleUpdateError } from "#studio/components/booking/RescheduleDevScenarioPanel";
 
 export type RescheduleLinkInvalidContent = { title: string; description: string };
 
 type RescheduleAvailabilityError =
-	| Exclude<NonNullable<GetRescheduleBookableRangeBusyWindowsResult[0]>, RescheduleLinkLookupError>
+	| Exclude<
+			NonNullable<
+				FunctionReturnType<typeof api.googleCalendar.getRescheduleBookableRangeBusyWindows>[0]
+			>,
+			RescheduleLinkLookupError
+	  >
 	| UnexpectedError;
 
 type RescheduleUpdateToastError =
-	| NonNullable<RescheduleSessionResult[0]>
+	| NonNullable<FunctionReturnType<typeof api.googleCalendar.rescheduleSession>[0]>
 	| DevRescheduleUpdateError;
 
 export function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {

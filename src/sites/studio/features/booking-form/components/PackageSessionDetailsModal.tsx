@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import type { GetPackageByTokenResult } from "#convex/packageScheduling";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import { Modal } from "#studio/components/Modal";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 
 interface PackageSessionDetailsModalProps {
-	packageData: NonNullable<GetPackageByTokenResult[1]>;
+	packageData: NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
 }
 
 export function PackageSessionDetailsModal({ packageData }: PackageSessionDetailsModalProps) {

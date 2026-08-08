@@ -10,7 +10,8 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import type { Id } from "#convex/_generated/dataModel";
-import type { GetPackageByTokenResult } from "#convex/packageScheduling";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import {
 	BookingDateTimePicker,
 	type BookingDateTimePickerProps
@@ -35,7 +36,9 @@ const SESSION_STATUS_DETAILS = {
 	completed: { label: "Completed", textClassName: "text-foreground" }
 } as const;
 
-type PackageData = NonNullable<GetPackageByTokenResult[1]>;
+type PackageData = NonNullable<
+	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+>;
 type PackageBooking = PackageData["sessions"][number];
 type PackageSession =
 	| { booking: PackageBooking; key: string; status: "completed" | "upcoming" }

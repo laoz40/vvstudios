@@ -1,14 +1,14 @@
 "use node";
 
 import { v } from "convex/values";
-import { action, type ActionCtx } from "./_generated/server";
+import { action } from "./_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	closeEmbeddedCheckoutSessionService,
-	createEmbeddedCheckoutSessionService,
-	type CreateEmbeddedCheckoutSessionArgs
+	createEmbeddedCheckoutSessionService
 } from "./services/stripe";
 
+// Creates a pending booking, opens a Stripe checkout session, then links both records.
 export const createEmbeddedCheckoutSession = action({
 	args: {
 		name: v.string(),
@@ -25,33 +25,12 @@ export const createEmbeddedCheckoutSession = action({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string())
 	},
-	handler: (ctx, args) => createEmbeddedCheckoutSessionHandler(ctx, args)
+	handler: async (ctx, args) =>
+		await createEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-// Creates a pending booking, opens a Stripe checkout session, then links both records.
-async function createEmbeddedCheckoutSessionHandler(
-	ctx: ActionCtx,
-	args: CreateEmbeddedCheckoutSessionArgs
-) {
-	return await createEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CreateEmbeddedCheckoutSessionResult = Awaited<
-	ReturnType<typeof createEmbeddedCheckoutSessionHandler>
->;
 
 export const closeEmbeddedCheckoutSession = action({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: (ctx, args) => closeEmbeddedCheckoutSessionHandler(ctx, args)
+	handler: async (ctx, args) =>
+		await closeEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function closeEmbeddedCheckoutSessionHandler(
-	ctx: ActionCtx,
-	args: Parameters<typeof closeEmbeddedCheckoutSessionService>[1]
-) {
-	return await closeEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CloseEmbeddedCheckoutSessionResult = Awaited<
-	ReturnType<typeof closeEmbeddedCheckoutSessionHandler>
->;

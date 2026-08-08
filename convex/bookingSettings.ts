@@ -1,8 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { updateBookingSettingsService } from "./services/bookingSettings";
 
 export const get = query({
@@ -23,11 +22,5 @@ export const update = mutation({
 		maxDaysAhead: v.number(),
 		weekSchedule: v.array(v.object({ endTime: v.string(), startTime: v.string() }))
 	},
-	handler: (ctx, args) => updateBookingSettingsHandler(ctx, args)
+	handler: (ctx, args) => updateBookingSettingsService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function updateBookingSettingsHandler(ctx: MutationCtx, args: BookingAvailabilitySettings) {
-	return updateBookingSettingsService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type UpdateBookingSettingsResult = Awaited<ReturnType<typeof updateBookingSettingsHandler>>;

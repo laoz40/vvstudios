@@ -2,11 +2,8 @@
 
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { action, type ActionCtx } from "./_generated/server";
-import {
-	sendSessionDeliverablesEmailService,
-	type SendSessionDeliverablesEmailArgs
-} from "./services/deliverablesEmail";
+import { action } from "./_generated/server";
+import { sendSessionDeliverablesEmailService } from "./services/deliverablesEmail";
 
 export const sendSessionDeliverablesEmail = action({
 	args: {
@@ -15,16 +12,5 @@ export const sendSessionDeliverablesEmail = action({
 		editorNotes: v.optional(v.string()),
 		emailVariant: v.union(v.literal("first-time"), v.literal("recurring"))
 	},
-	handler: (ctx, args) => sendSessionDeliverablesEmailHandler(ctx, args)
+	handler: (ctx, args) => sendSessionDeliverablesEmailService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function sendSessionDeliverablesEmailHandler(
-	ctx: ActionCtx,
-	args: SendSessionDeliverablesEmailArgs
-) {
-	return sendSessionDeliverablesEmailService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type SendSessionDeliverablesEmailResult = Awaited<
-	ReturnType<typeof sendSessionDeliverablesEmailHandler>
->;

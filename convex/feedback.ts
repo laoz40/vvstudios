@@ -16,12 +16,8 @@ type SubmitFeedbackError =
 
 export const submit = action({
 	args: { message: v.string() },
-	handler: (ctx, args) => submitFeedbackHandler(ctx, args)
+	handler: (ctx, args) => submitFeedbackService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function submitFeedbackHandler(ctx: ActionCtx, args: SubmitFeedbackArgs) {
-	return submitFeedbackService(ctx, args).match(tupleOk, tupleErr);
-}
 
 function submitFeedbackService(
 	ctx: ActionCtx,
@@ -50,5 +46,3 @@ function submitFeedbackService(
 			return emailError;
 		});
 }
-
-export type SubmitFeedbackResult = Awaited<ReturnType<typeof submitFeedbackHandler>>;

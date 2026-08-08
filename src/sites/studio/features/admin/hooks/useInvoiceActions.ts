@@ -4,8 +4,6 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch } from "#/lib/result";
-import type { SendBookingInvoiceForBookingResult } from "#convex/googleCalendar";
-import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
@@ -40,7 +38,7 @@ export function useInvoiceActions(session: SessionRecord) {
 		setIsDownloadingInvoice(true);
 
 		if (session.multiBookingPackageId) {
-			const [packageError, invoice] = await tryCatch<GetAdminMultiBookingInvoicePdfByIdResult>(
+			const [packageError, invoice] = await tryCatch(
 				getAdminPackageInvoicePdf({ multiBookingId: session.multiBookingPackageId })
 			);
 
@@ -94,7 +92,7 @@ export function useInvoiceActions(session: SessionRecord) {
 	async function handleEmailInvoice() {
 		setIsEmailingInvoice(true);
 
-		const [error] = await tryCatch<SendBookingInvoiceForBookingResult>(
+		const [error] = await tryCatch(
 			sendBookingInvoiceForBooking({
 				bookingId: session._id,
 				...(selectedEmailCustomInvoiceId ? { customInvoiceId: selectedEmailCustomInvoiceId } : {})

@@ -1,13 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import {
-	internalAction,
-	internalMutation,
-	internalQuery,
-	type MutationCtx
-} from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import {
 	getTomorrowTimeZoneDayRange,
 	REMINDER_BATCH_SIZE,
@@ -38,36 +32,18 @@ export const listSessionsDueForReminderEmail = internalQuery({
 
 export const claimReminder = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => claimReminderHandler(ctx, args)
+	handler: (ctx, args) => claimReminderService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function claimReminderHandler(ctx: MutationCtx, args: { bookingId: Id<"bookings">; now: number }) {
-	return claimReminderService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markReminderSent = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => markReminderSentHandler(ctx, args)
+	handler: (ctx, args) => markReminderSentService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markReminderSentHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; now: number }
-) {
-	return markReminderSentService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markReminderFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
-	handler: (ctx, args) => markReminderFailedHandler(ctx, args)
+	handler: (ctx, args) => markReminderFailedService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markReminderFailedHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; failureCode: string }
-) {
-	return markReminderFailedService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const sendDueReminders = internalAction({
 	args: {},

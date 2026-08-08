@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
-import type { GetRescheduleBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
 import { tryCatch } from "#/lib/result";
 import {
 	getDevRescheduleAvailabilityStatus,
@@ -138,7 +137,7 @@ export function useRescheduleAvailability({
 		setIsLoadingMonthAvailability(true);
 
 		async function loadMonthAvailability() {
-			const [error, result] = await tryCatch<GetRescheduleBookableRangeBusyWindowsResult>(
+			const [error, result] = await tryCatch(
 				getRescheduleBookableRangeBusyWindows({ rateLimitKey, token })
 			);
 

@@ -3,18 +3,6 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type { ArchivePackageResult, MarkPackageUnpaidResult } from "#convex/packages";
-import type { GetAdminMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
-import type {
-	GetAdminPackageAdjustmentInvoicePdfResult,
-	RetryPackageAdjustmentInvoiceEmailResult
-} from "#convex/packageAdjustmentInvoices";
-import type { MarkPackageAdjustmentPaymentStatusResult } from "#convex/packageAdjustments";
-import type {
-	ConfirmPackagePaymentResult,
-	ResendPackageInvoiceEmailResult,
-	RetryPackageSchedulingEmailResult
-} from "#convex/packagePayment";
 import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
@@ -52,7 +40,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleDownloadInvoice() {
 		setPendingAction("download");
 
-		const [error, invoice] = await tryCatch<GetAdminMultiBookingInvoicePdfByIdResult>(
+		const [error, invoice] = await tryCatch(
 			getAdminPackageInvoicePdf({ multiBookingId: packageRow.id })
 		);
 
@@ -96,7 +84,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentDownload");
-		const [error, invoice] = await tryCatch<GetAdminPackageAdjustmentInvoicePdfResult>(
+		const [error, invoice] = await tryCatch(
 			getAdjustmentInvoicePdf({ adjustmentId: packageRow.adjustment.id })
 		);
 
@@ -142,7 +130,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentEmail");
-		const [error] = await tryCatch<RetryPackageAdjustmentInvoiceEmailResult>(
+		const [error] = await tryCatch(
 			retryAdjustmentInvoiceEmail({ adjustmentId: packageRow.adjustment.id })
 		);
 
@@ -187,7 +175,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentPayment");
-		const [error] = await tryCatch<MarkPackageAdjustmentPaymentStatusResult>(
+		const [error] = await tryCatch(
 			markAdjustmentPaymentStatus({ adjustmentId: packageRow.adjustment.id, paid })
 		);
 
@@ -226,9 +214,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
-		const [error] = await tryCatch<ResendPackageInvoiceEmailResult>(
-			resendInvoice({ multiBookingId: packageRow.id })
-		);
+		const [error] = await tryCatch(resendInvoice({ multiBookingId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -277,9 +263,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleArchiveChange(archived: boolean) {
 		setPendingAction("archive");
 
-		const [error] = await tryCatch<ArchivePackageResult>(
-			archivePackage({ multiBookingId: packageRow.id, archived })
-		);
+		const [error] = await tryCatch(archivePackage({ multiBookingId: packageRow.id, archived }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -317,9 +301,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleMarkPackageUnpaid() {
 		setPendingAction("payment");
 
-		const [error] = await tryCatch<MarkPackageUnpaidResult>(
-			markPackageUnpaid({ packageId: packageRow.id })
-		);
+		const [error] = await tryCatch(markPackageUnpaid({ packageId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -357,9 +339,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleConfirmPayment() {
 		setPendingAction("payment");
 
-		const [error] = await tryCatch<ConfirmPackagePaymentResult>(
-			confirmPackagePayment({ multiBookingId: packageRow.id })
-		);
+		const [error] = await tryCatch(confirmPackagePayment({ multiBookingId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -419,9 +399,7 @@ export function usePackageActions(packageRow: AdminPackageRow) {
 	async function handleRetrySchedulingEmail() {
 		setPendingAction("scheduleEmail");
 
-		const [error] = await tryCatch<RetryPackageSchedulingEmailResult>(
-			retrySchedulingEmail({ multiBookingId: packageRow.id })
-		);
+		const [error] = await tryCatch(retrySchedulingEmail({ multiBookingId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {

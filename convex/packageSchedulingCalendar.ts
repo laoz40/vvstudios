@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
-import { action, internalAction, type ActionCtx } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import type { SessionCalendarEventRecord } from "./lib/sessionCalendarEvents";
 import {
 	deletePackageSessionCalendarEventService,
@@ -33,18 +33,10 @@ const packageCalendarDetailsValidator = v.object({
 	time: v.string()
 });
 
-type GetPackageBusyWindowsArgs = { rateLimitKey: string; token: string };
-
 export const getPackageBusyWindows = action({
 	args: { token: v.string(), rateLimitKey: v.string() },
-	handler: (ctx, args) => getPackageBusyWindowsHandler(ctx, args)
+	handler: (ctx, args) => getPackageBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function getPackageBusyWindowsHandler(ctx: ActionCtx, args: GetPackageBusyWindowsArgs) {
-	return await getPackageBusyWindowsService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetPackageBusyWindowsResult = Awaited<ReturnType<typeof getPackageBusyWindowsHandler>>;
 
 export const createPackageSessionCalendarEvent = internalAction({
 	args: {
@@ -68,16 +60,8 @@ export const updatePackageSessionCalendarEvent = internalAction({
 	handler: (_ctx, args) => savePackageSessionCalendarEventHandler(args)
 });
 
-type DeletePackageSessionCalendarEventArgs = { session: SessionCalendarEventRecord };
-
 export const deletePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator },
-	handler: (ctx, args) => deletePackageSessionCalendarEventHandler(ctx, args)
+	handler: (_ctx, args) =>
+		deletePackageSessionCalendarEventService(args.session).match(tupleOk, tupleErr)
 });
-
-async function deletePackageSessionCalendarEventHandler(
-	_ctx: ActionCtx,
-	args: DeletePackageSessionCalendarEventArgs
-) {
-	return await deletePackageSessionCalendarEventService(args.session).match(tupleOk, tupleErr);
-}

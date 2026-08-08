@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { CreatePackageCustomInvoiceResult } from "#convex/customInvoices";
-import type { GetAdminCustomMultiBookingInvoicePdfByIdResult } from "#convex/invoices";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -42,6 +41,9 @@ import {
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
+type CreatePackageCustomInvoiceResult = FunctionReturnType<
+	typeof api.customInvoices.createPackageCustomInvoice
+>;
 type CreatePackageCustomInvoiceError =
 	| Exclude<CreatePackageCustomInvoiceResult[0], null>
 	| UnexpectedError;
@@ -171,9 +173,7 @@ export function PackageCustomInvoiceDialog({
 
 	async function downloadCustomPackageInvoice(customInvoiceId: Doc<"customInvoices">["_id"]) {
 		setDownloadingInvoiceId(customInvoiceId);
-		const [error, invoice] = await tryCatch<GetAdminCustomMultiBookingInvoicePdfByIdResult>(
-			getCustomPackageInvoicePdf({ customInvoiceId })
-		);
+		const [error, invoice] = await tryCatch(getCustomPackageInvoicePdf({ customInvoiceId }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -224,7 +224,7 @@ export function PackageCustomInvoiceDialog({
 			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
 		setIsGenerating(true);
 
-		const [error, customInvoice] = await tryCatch<CreatePackageCustomInvoiceResult>(
+		const [error, customInvoice] = await tryCatch(
 			createPackageCustomInvoice({
 				multiBookingId: packageRow.id,
 				dueDate: draft.dueDate,

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "./_generated/api";
-import { internalMutation, type MutationCtx } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import {
 	sessionReservationValidator,
 	reserveSessionTime,
@@ -9,9 +9,7 @@ import {
 } from "./lib/sessionReservations";
 import {
 	saveAdminSessionUpdateService,
-	saveClientSessionRescheduleService,
-	type SaveAdminSessionUpdateArgs,
-	type SaveClientSessionRescheduleArgs
+	saveClientSessionRescheduleService
 } from "./services/sessionScheduling";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
@@ -55,12 +53,8 @@ export const saveAdminSessionUpdate = internalMutation({
 		confirmBooking: v.optional(v.boolean()),
 		reservation: v.optional(sessionReservationValidator)
 	},
-	handler: (ctx, args) => saveAdminSessionUpdateHandler(ctx, args)
+	handler: (ctx, args) => saveAdminSessionUpdateService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function saveAdminSessionUpdateHandler(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
-	return saveAdminSessionUpdateService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const saveClientSessionReschedule = internalMutation({
 	args: {
@@ -77,21 +71,15 @@ export const saveClientSessionReschedule = internalMutation({
 		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
 		reservation: sessionReservationValidator
 	},
-	handler: (ctx, args) => saveClientSessionRescheduleHandler(ctx, args)
+	handler: (ctx, args) =>
+		saveClientSessionRescheduleService(
+			ctx,
+			args,
+			(multiBookingId): Promise<unknown> =>
+				ctx.scheduler.runAfter(
+					0,
+					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
+					{ multiBookingId }
+				)
+		).match(tupleOk, tupleErr)
 });
-
-function saveClientSessionRescheduleHandler(
-	ctx: MutationCtx,
-	args: SaveClientSessionRescheduleArgs
-) {
-	return saveClientSessionRescheduleService(
-		ctx,
-		args,
-		(multiBookingId): Promise<unknown> =>
-			ctx.scheduler.runAfter(
-				0,
-				internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-				{ multiBookingId }
-			)
-	).match(tupleOk, tupleErr);
-}

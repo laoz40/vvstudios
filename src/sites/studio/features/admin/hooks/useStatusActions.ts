@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { UpdateSessionEditStatusResult } from "#convex/sessions";
 import {
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
@@ -19,7 +18,7 @@ export function useStatusActions(session: SessionRecord) {
 	async function handleUpdateEditStatus(nextEditStatus: DeliverableStatus) {
 		setIsUpdatingEditStatus(true);
 
-		const [error] = await tryCatch<UpdateSessionEditStatusResult>(
+		const [error] = await tryCatch(
 			updateSessionEditStatus({ bookingId: session._id, editStatus: nextEditStatus })
 		);
 

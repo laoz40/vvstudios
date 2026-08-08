@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
-import type { UpdateSessionFromAdminResult } from "#convex/googleCalendar";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
+type UpdateSessionFromAdminResult = FunctionReturnType<
+	typeof api.googleCalendar.updateSessionFromAdmin
+>;
 type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
 type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
@@ -131,9 +134,7 @@ export function useEditAction(session: SessionRecord) {
 			parsedValues.data,
 			remainingBalanceAmountResult
 		);
-		const [error, result] = await tryCatch<UpdateSessionFromAdminResult>(
-			updateSession(updateInput)
-		);
+		const [error, result] = await tryCatch(updateSession(updateInput));
 
 		if (error !== null) {
 			showSessionUpdateError(error);

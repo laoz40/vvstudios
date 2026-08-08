@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { api } from "#convex/_generated/api";
-import type { SubmitFeedbackResult } from "#convex/feedback";
 import { tryCatch } from "#/lib/result";
 import { Modal } from "#studio/components/Modal";
 import { closeModal, openFeedbackModal, useModalStore } from "#studio/lib/modal-store";
@@ -41,7 +40,7 @@ export function GiveFeedbackModal() {
 
 		setIsSubmitting(true);
 
-		const [error] = await tryCatch<SubmitFeedbackResult>(submitFeedback({ message: feedback }));
+		const [error] = await tryCatch(submitFeedback({ message: feedback }));
 
 		if (error !== null) {
 			switch (error.reason) {

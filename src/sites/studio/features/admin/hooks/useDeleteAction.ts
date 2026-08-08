@@ -3,8 +3,6 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { ArchiveSessionResult } from "#convex/sessions";
-import type { DeleteSessionFromAdminResult } from "#convex/googleCalendar";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useDeleteAction(session: SessionRecord) {
@@ -17,9 +15,7 @@ export function useDeleteAction(session: SessionRecord) {
 	async function handleDeleteBooking() {
 		setIsDeleting(true);
 
-		const [error] = await tryCatch<DeleteSessionFromAdminResult>(
-			deleteSessionEvent({ bookingId: session._id })
-		);
+		const [error] = await tryCatch(deleteSessionEvent({ bookingId: session._id }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -63,9 +59,7 @@ export function useDeleteAction(session: SessionRecord) {
 	async function handleArchiveChange(archived: boolean) {
 		setIsUpdatingArchive(true);
 
-		const [error] = await tryCatch<ArchiveSessionResult>(
-			archiveSession({ bookingId: session._id, archived })
-		);
+		const [error] = await tryCatch(archiveSession({ bookingId: session._id, archived }));
 
 		if (error !== null) {
 			switch (error.reason) {
