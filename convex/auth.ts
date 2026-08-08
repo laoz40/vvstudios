@@ -1,15 +1,14 @@
-import { query } from "./_generated/server";
-import { isAdminIdentity } from "./lib/auth";
+import { v } from "convex/values";
+import { tupleErr, tupleOk } from "#/lib/result";
+import { internalQuery, query } from "#convex/_generated/server";
+import { getCurrentUserAccessService, getEditorByTokenService } from "#convex/services/auth";
+
+export const getEditorByToken = internalQuery({
+	args: { token: v.string() },
+	handler: (ctx, args) => getEditorByTokenService(ctx, args.token).match(tupleOk, tupleErr)
+});
 
 export const getCurrentUserAccess = query({
 	args: {},
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			return { isAuthenticated: false, isAdmin: false };
-		}
-
-		return { isAuthenticated: true, isAdmin: isAdminIdentity(identity) };
-	}
+	handler: (ctx) => getCurrentUserAccessService(ctx).match(tupleOk, tupleErr)
 });

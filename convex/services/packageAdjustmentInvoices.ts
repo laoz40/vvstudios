@@ -5,7 +5,7 @@ import type { Result as ConvexResult } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
@@ -104,7 +104,7 @@ export function retryPackageAdjustmentInvoiceEmailService(
 	null,
 	SendPackageAdjustmentInvoiceError | { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" }
 > {
-	return requirePermission(ctx, "send:invoice-emails").andThen(() =>
+	return requirePermissionActions(ctx, "send:invoice-emails").andThen(() =>
 		sendPackageAdjustmentInvoiceService(ctx, { ...args, attempt: "retry" })
 	);
 }
@@ -114,7 +114,7 @@ export function getAdminPackageAdjustmentInvoicePdfService(
 	args: { adjustmentId: Id<"packageAdjustments"> }
 ): NeverthrowResultAsync<InvoicePdfPayload, PackageAdjustmentInvoicePdfError> {
 	return (
-		requirePermission(ctx, "view:sensitive-booking-data")
+		requirePermissionActions(ctx, "view:sensitive-booking-data")
 			// Load the sent adjustment invoice input only after admin authorization succeeds.
 			.andThen(() =>
 				fromConvexTuple<PackageAdjustmentInvoiceInputQueryResult>(

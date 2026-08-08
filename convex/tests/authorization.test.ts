@@ -20,7 +20,8 @@
  *    - generate a new session reschedule link;
  *    - create a custom invoice for a session or package.
  *
- *    Every operation is attempted as both a signed-out user and a customer. Each attempt
+ *    Every operation is attempted as both a signed-out user and a customer. Every operation
+ *    guarded by an admin-only permission is also attempted by an active editor. Each attempt
  *    must return the correct authorization error and leave all relevant database records
  *    unchanged. This proves unauthorized requests cannot cause hidden side effects.
  *
@@ -29,8 +30,19 @@
  *    - maps admins and editors to their exact permissions;
  *    - checks granted and denied permissions with the shared frontend helper;
  *    - rejects signed-out callers from the backend permission guard;
- *    - rejects non-admin callers while editor profile resolution is not yet implemented;
+ *    - rejects editors without an active profile;
+ *    - allows active editors to satisfy an editor permission but denies an admin-only permission;
  *    - allows admins to satisfy every defined permission.
+ *
+ * 4. Editor profile access resolution
+ *    - returns a NOT_AUTHENTICATED result for signed-out access;
+ *    - returns an admin's real role and complete permissions without requiring a profile;
+ *    - returns an active editor's real role and restricted permissions;
+ *    - returns NOT_AUTHORIZED for an inactive editor profile;
+ *    - returns NOT_AUTHORIZED for an authenticated identity with no editor profile;
+ *    - resolves an active editor when Clerk role metadata is missing;
+ *    - resolves an active editor when Clerk role metadata is unknown;
+ *    - keys profile access by tokenIdentifier rather than Clerk subject.
  */
 import type { UserIdentity } from "convex/server";
 import { describe, expect, test } from "vitest";
@@ -39,6 +51,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import { requirePermission } from "#convex/lib/auth";
 import { createConvexTest } from "#convex/test.setup";
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
+import { tupleErr, tupleOk } from "#/lib/result";
 const paginationOpts = { cursor: null, numItems: 10 };
 
 const identities = [
@@ -93,6 +106,7 @@ type TestIds = {
 
 type AdminOperation = {
 	name: string;
+	permissionLevel: "admin-only" | "editor-granted";
 	call: (client: FunctionClient, ids: TestIds) => Promise<unknown>;
 };
 
@@ -111,6 +125,7 @@ const bookingEditArgs = {
 const operations: AdminOperation[] = [
 	{
 		name: "set a session remaining balance as paid or unpaid",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.mutation(api.sessions.updateSessionPaidStatus, {
 				bookingId,
@@ -119,16 +134,19 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "mark a package as unpaid",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.mutation(api.packages.markPackageUnpaid, { packageId: multiBookingId })
 	},
 	{
 		name: "confirm a package payment",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
 	},
 	{
 		name: "change a package adjustment payment status",
+		permissionLevel: "admin-only",
 		call: (client, { adjustmentId }) =>
 			client.mutation(api.packageAdjustments.markPackageAdjustmentPaymentStatus, {
 				adjustmentId,
@@ -137,6 +155,7 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "change the booking availability windows",
+		permissionLevel: "admin-only",
 		call: (client) =>
 			client.mutation(api.bookingSettings.update, {
 				eventBufferMinutes: 15,
@@ -147,11 +166,13 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "edit a session",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.action(api.googleCalendar.updateSessionFromAdmin, { bookingId, ...bookingEditArgs })
 	},
 	{
 		name: "edit a package",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.mutation(api.packages.updatePackageFromAdmin, {
 				multiBookingId,
@@ -166,21 +187,25 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "delete a session Calendar event",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.action(api.googleCalendar.deleteSessionFromAdmin, { bookingId })
 	},
 	{
 		name: "archive a session",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.mutation(api.sessions.archiveSession, { bookingId, archived: true })
 	},
 	{
 		name: "archive a package",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.mutation(api.packages.archivePackage, { multiBookingId, archived: true })
 	},
 	{
 		name: "send a deliverables email",
+		permissionLevel: "editor-granted",
 		call: (client, { bookingId }) =>
 			client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
 				bookingId,
@@ -190,21 +215,25 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "send a session invoice email",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId })
 	},
 	{
 		name: "send a package invoice email",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.action(api.packagePayment.resendPackageInvoiceEmail, { multiBookingId })
 	},
 	{
 		name: "generate a new reschedule link",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.mutation(api.sessionReschedule.createAdminRescheduleLink, { bookingId })
 	},
 	{
 		name: "create a session custom invoice",
+		permissionLevel: "admin-only",
 		call: (client, { bookingId }) =>
 			client.mutation(api.customInvoices.createCustomInvoice, {
 				bookingId,
@@ -214,6 +243,7 @@ const operations: AdminOperation[] = [
 	},
 	{
 		name: "create a package custom invoice",
+		permissionLevel: "admin-only",
 		call: (client, { multiBookingId }) =>
 			client.mutation(api.customInvoices.createPackageCustomInvoice, {
 				multiBookingId,
@@ -236,6 +266,23 @@ describe.each(identities)("admin operations reject $label", ({ identity, reason 
 		expect(result).toEqual([{ reason }, null]);
 		expect(await readTestRecords(t, ids)).toEqual(before);
 	});
+});
+
+describe("admin-only operations reject active editors", () => {
+	test.each(operations.filter(({ permissionLevel }) => permissionLevel === "admin-only"))(
+		"$name without side effects",
+		async (operation) => {
+			const t = createConvexTest();
+			await seedEditorProfile(t, editorMetadataIdentity, true);
+			const ids = await createTestRecords(t);
+			const before = await readTestRecords(t, ids);
+
+			const result = await operation.call(t.withIdentity(editorMetadataIdentity), ids);
+
+			expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+			expect(await readTestRecords(t, ids)).toEqual(before);
+		}
+	);
 });
 
 async function createTestRecords(t: TestClient): Promise<TestIds> {
@@ -319,8 +366,19 @@ const editorMetadataIdentity: UserIdentity = {
 	publicMetadata: { role: "editor" }
 };
 
-function createAuthContext(identity: UserIdentity | null) {
-	return { auth: { getUserIdentity: async () => identity } };
+async function seedEditorProfile(
+	t: TestClient,
+	identity: UserIdentity,
+	isActive: boolean
+): Promise<void> {
+	await t.run(async (ctx) => {
+		await ctx.db.insert("editorProfiles", {
+			tokenIdentifier: identity.tokenIdentifier,
+			displayName: "Test Editor",
+			email: "editor@example.com",
+			isActive
+		});
+	});
 }
 
 describe("permission definitions", () => {
@@ -360,45 +418,123 @@ describe("permission definitions", () => {
 	});
 });
 
-describe("requirePermission", () => {
-	test("rejects signed-out callers", async () => {
-		const result = await requirePermission(createAuthContext(null), "view:sessions");
+describe("editor profile access resolution", () => {
+	test("reports signed-out access without a role or permissions", async () => {
+		const result = await createConvexTest().query(api.auth.getCurrentUserAccess, {});
 
-		expect(result.isErr()).toBe(true);
-		expect(
-			result.match(
-				() => null,
-				(error) => error
-			)
-		).toEqual({ reason: "NOT_AUTHENTICATED" });
+		expect(result).toEqual([{ reason: "NOT_AUTHENTICATED" }, null]);
 	});
 
-	test("rejects non-admin callers", async () => {
-		const result = await requirePermission(
-			createAuthContext(editorMetadataIdentity),
-			"view:sessions"
+	test("reports an admin's real role and complete permissions without a profile", async () => {
+		const result = await createConvexTest()
+			.withIdentity(adminIdentity)
+			.query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([null, { role: "admin", permissions: PERMISSIONS }]);
+	});
+
+	test("reports an active editor's real role and restricted permissions", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+
+		const result = await t
+			.withIdentity(editorMetadataIdentity)
+			.query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([null, { role: "editor", permissions: ROLE_PERMISSIONS.editor }]);
+	});
+
+	test("denies an inactive editor profile", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, false);
+
+		const result = await t
+			.withIdentity(editorMetadataIdentity)
+			.query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+
+	test("denies an authenticated identity with no editor profile", async () => {
+		const result = await createConvexTest()
+			.withIdentity(editorMetadataIdentity)
+			.query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+
+	test("resolves an active editor when Clerk role metadata is missing", async () => {
+		const identity = { ...editorMetadataIdentity, publicMetadata: undefined };
+		const t = createConvexTest();
+		await seedEditorProfile(t, identity, true);
+
+		const result = await t.withIdentity(identity).query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toMatchObject([null, { role: "editor" }]);
+	});
+
+	test("resolves an active editor when Clerk role metadata is unknown", async () => {
+		const identity = { ...editorMetadataIdentity, publicMetadata: { role: "unexpected-role" } };
+		const t = createConvexTest();
+		await seedEditorProfile(t, identity, true);
+
+		const result = await t.withIdentity(identity).query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toMatchObject([null, { role: "editor" }]);
+	});
+
+	test("keys profile access by tokenIdentifier rather than Clerk subject", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+		const identityWithReusedSubject = {
+			...editorMetadataIdentity,
+			tokenIdentifier: "https://clerk.example|different-editor"
+		};
+
+		const result = await t
+			.withIdentity(identityWithReusedSubject)
+			.query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+});
+
+describe("requirePermission", () => {
+	test("rejects signed-out callers", async () => {
+		const result = await createConvexTest().run((ctx) =>
+			requirePermission(ctx, "view:sessions").match(tupleOk, tupleErr)
 		);
 
-		expect(result.isErr()).toBe(true);
-		expect(
-			result.match(
-				() => null,
-				(error) => error
-			)
-		).toEqual({ reason: "NOT_AUTHORIZED" });
+		expect(result).toEqual([{ reason: "NOT_AUTHENTICATED" }, null]);
+	});
+
+	test("rejects editors without an active profile", async () => {
+		const t = createConvexTest();
+
+		await expect(
+			t.withIdentity(editorMetadataIdentity).query(api.sessions.listSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
+	});
+
+	test("allows an active editor permission but denies an admin-only permission", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+		const editor = t.withIdentity(editorMetadataIdentity);
+
+		const sessions = await editor.query(api.sessions.listSessions, { paginationOpts });
+		expect(sessions.page).toEqual([]);
+		await expect(editor.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
+			{ data: { reason: "NOT_AUTHORIZED" } }
+		);
 	});
 
 	test("allows admins every permission", async () => {
 		for (const permission of PERMISSIONS) {
-			const result = await requirePermission(createAuthContext(adminIdentity), permission);
+			const result = await createConvexTest()
+				.withIdentity(adminIdentity)
+				.run((ctx) => requirePermission(ctx, permission).match(tupleOk, tupleErr));
 
-			expect(result.isOk()).toBe(true);
-			expect(
-				result.match(
-					(identity) => identity,
-					() => null
-				)
-			).toBe(adminIdentity);
+			expect(result).toMatchObject([null, adminIdentity]);
 		}
 	});
 });

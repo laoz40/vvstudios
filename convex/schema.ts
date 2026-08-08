@@ -21,6 +21,14 @@ const packageReminderStateValidator = v.union(
 	})
 );
 export default defineSchema({
+	editorProfiles: defineTable({
+		// Convex's canonical auth key combines the token issuer and subject, avoiding cross-issuer collisions.
+		tokenIdentifier: v.string(),
+		displayName: v.string(),
+		email: v.string(),
+		isActive: v.boolean()
+	}).index("by_tokenIdentifier", ["tokenIdentifier"]),
+
 	bookingSettings: defineTable({
 		key: v.string(),
 		leadTimeMinutes: v.number(),

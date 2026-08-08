@@ -65,9 +65,9 @@ export function AdminPage() {
 }
 
 function AdminAccessGate() {
-	const access = useQuery(api.auth.getCurrentUserAccess, {});
+	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
 
-	if (!access) {
+	if (!accessResult) {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
 				<StudioLoadingState label="Confirming Level 9 Clearance" />
@@ -75,7 +75,8 @@ function AdminAccessGate() {
 		);
 	}
 
-	if (!access.isAdmin) {
+	const [accessError, access] = accessResult;
+	if (accessError !== null || access.role !== "admin") {
 		return <AdminForbiddenPage />;
 	}
 
