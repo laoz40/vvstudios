@@ -2,7 +2,7 @@ import { ConvexError } from "convex/values";
 import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
@@ -23,7 +23,7 @@ type UpdateSessionEditStatusArgs = {
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
 
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
-	await getAdminIdentity(ctx).match(
+	await requirePermission(ctx, "view:sessions").match(
 		() => null,
 		(authError) => {
 			throw new ConvexError(authError);
@@ -127,7 +127,7 @@ export function saveSessionInstagramHandleService(
 }
 
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
 			okOrThrow(
@@ -142,7 +142,7 @@ export function updateSessionPaidStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionPaidStatusArgs
 ) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:payment-status")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen((session) =>
 			okOrThrow(
@@ -157,7 +157,7 @@ export function updateSessionEditStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionEditStatusArgs
 ) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:deliverables")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen((session) =>
 			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))

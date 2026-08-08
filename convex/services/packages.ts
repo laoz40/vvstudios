@@ -2,7 +2,7 @@ import type { PaginationOptions } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import {
 	validatePackageInvoiceEmailAttempt,
 	type MarkPackageInvoiceEmailAttemptArgs
@@ -50,7 +50,7 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 }
 
 export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOptions) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "view:packages")
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
@@ -99,7 +99,7 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 }
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "edit:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
 		.andThen((existingPackage) =>
 			parsePackageUpdate(args).map((updatedPackage) => ({ existingPackage, updatedPackage }))
@@ -140,7 +140,7 @@ export function savePackageInstagramHandleService(
 }
 
 export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
 		.andThen(() =>
 			okOrThrow(
@@ -152,7 +152,7 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 }
 
 export function markPackageUnpaidService(ctx: MutationCtx, args: MarkPackageUnpaidArgs) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:payment-status")
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen((packageFromDb) =>
 			okOrThrow(

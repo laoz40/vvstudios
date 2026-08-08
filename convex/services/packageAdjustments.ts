@@ -1,7 +1,7 @@
 import { ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
 	getSentPackageAdjustmentInvoice,
@@ -121,7 +121,7 @@ export function markPackageAdjustmentPaymentStatusService(
 	ctx: MutationCtx,
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:payment-status")
 		.andThen(() => getSentPackageAdjustmentInvoice(ctx, args.adjustmentId))
 		.andThen((adjustment) =>
 			okOrThrow(

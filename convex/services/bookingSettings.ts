@@ -2,7 +2,7 @@ import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilit
 import { ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import { validateBookingSettings } from "#convex/lib/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -18,7 +18,7 @@ export function updateBookingSettingsService(
 	ctx: MutationCtx,
 	settings: BookingAvailabilitySettings
 ) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:availability")
 		.andThen((identity) => validateBookingSettings(settings).map(() => identity))
 		.andThen((identity) =>
 			okOrThrow(

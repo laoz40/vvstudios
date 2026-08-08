@@ -23,11 +23,22 @@
  *    Every operation is attempted as both a signed-out user and a customer. Each attempt
  *    must return the correct authorization error and leave all relevant database records
  *    unchanged. This proves unauthorized requests cannot cause hidden side effects.
+ *
+ * 3. Permission foundation
+ *    - defines the complete permission set exactly once;
+ *    - maps admins and editors to their exact permissions;
+ *    - checks granted and denied permissions with the shared frontend helper;
+ *    - rejects signed-out callers from the backend permission guard;
+ *    - rejects non-admin callers while editor profile resolution is not yet implemented;
+ *    - allows admins to satisfy every defined permission.
  */
+import type { UserIdentity } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import { requirePermission } from "#convex/lib/auth";
 import { createConvexTest } from "#convex/test.setup";
+import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 const paginationOpts = { cursor: null, numItems: 10 };
 
 const identities = [
@@ -293,3 +304,101 @@ async function readTestRecords(t: TestClient, ids: TestIds) {
 		rescheduleLinks: await ctx.db.query("bookingRescheduleLinks").collect()
 	}));
 }
+
+const adminIdentity: UserIdentity = {
+	tokenIdentifier: "https://clerk.example|admin",
+	subject: "admin",
+	issuer: "https://clerk.example",
+	publicMetadata: { role: "admin" }
+};
+
+const editorMetadataIdentity: UserIdentity = {
+	tokenIdentifier: "https://clerk.example|editor",
+	subject: "editor",
+	issuer: "https://clerk.example",
+	publicMetadata: { role: "editor" }
+};
+
+function createAuthContext(identity: UserIdentity | null) {
+	return { auth: { getUserIdentity: async () => identity } };
+}
+
+describe("permission definitions", () => {
+	test("defines the complete permission set", () => {
+		expect(PERMISSIONS).toEqual([
+			"view:sessions",
+			"view:packages",
+			"view:sensitive-booking-data",
+			"update:deliverables",
+			"send:deliverables-email",
+			"assign:session-editor",
+			"update:editor-access",
+			"edit:sessions",
+			"archive:sessions",
+			"delete:sessions",
+			"create:reschedule-links",
+			"update:payment-status",
+			"create:invoices",
+			"send:invoice-emails",
+			"update:availability"
+		]);
+		expect(new Set(PERMISSIONS).size).toBe(PERMISSIONS.length);
+	});
+
+	test("maps roles to their exact permissions", () => {
+		expect(ROLE_PERMISSIONS.admin).toBe(PERMISSIONS);
+		expect(ROLE_PERMISSIONS.editor).toEqual([
+			"view:sessions",
+			"update:deliverables",
+			"send:deliverables-email"
+		]);
+	});
+
+	test("checks permissions from a supplied permission list", () => {
+		expect(hasPermission(ROLE_PERMISSIONS.editor, "view:sessions")).toBe(true);
+		expect(hasPermission(ROLE_PERMISSIONS.editor, "view:packages")).toBe(false);
+	});
+});
+
+describe("requirePermission", () => {
+	test("rejects signed-out callers", async () => {
+		const result = await requirePermission(createAuthContext(null), "view:sessions");
+
+		expect(result.isErr()).toBe(true);
+		expect(
+			result.match(
+				() => null,
+				(error) => error
+			)
+		).toEqual({ reason: "NOT_AUTHENTICATED" });
+	});
+
+	test("rejects non-admin callers", async () => {
+		const result = await requirePermission(
+			createAuthContext(editorMetadataIdentity),
+			"view:sessions"
+		);
+
+		expect(result.isErr()).toBe(true);
+		expect(
+			result.match(
+				() => null,
+				(error) => error
+			)
+		).toEqual({ reason: "NOT_AUTHORIZED" });
+	});
+
+	test("allows admins every permission", async () => {
+		for (const permission of PERMISSIONS) {
+			const result = await requirePermission(createAuthContext(adminIdentity), permission);
+
+			expect(result.isOk()).toBe(true);
+			expect(
+				result.match(
+					(identity) => identity,
+					() => null
+				)
+			).toBe(adminIdentity);
+		}
+	});
+});

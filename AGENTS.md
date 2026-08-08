@@ -13,7 +13,7 @@ Booking website for podcast studio.
 - Do not make tiny helper files/functions for one-off logic
 - Preserve existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
-- At the top of every test file, add a comment for each individual test that briefly explains what that test verifies.
+- At the top of every test file, maintain one file-level comment that lists each individual test and briefly explains what it verifies. Do not place these required test-description comments immediately above individual tests.
 
 Do these practices:
 - Mysterious Name — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
