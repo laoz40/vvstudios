@@ -1,12 +1,11 @@
 import { useState, type ReactNode, type SubmitEvent } from "react";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type { SavePackageInstagramHandleResult } from "#convex/packages";
-import type { SaveSessionInstagramHandleResult } from "#convex/sessions";
 import { tryCatch } from "#/lib/result";
 
 type InstagramRepostTarget =
@@ -14,10 +13,10 @@ type InstagramRepostTarget =
 	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
 
 type BookingInstagramSaveErrorReason =
-	| NonNullable<SaveSessionInstagramHandleResult[0]>["reason"]
+	| NonNullable<FunctionReturnType<typeof api.sessions.saveSessionInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 type MultiBookingInstagramSaveErrorReason =
-	| NonNullable<SavePackageInstagramHandleResult[0]>["reason"]
+	| NonNullable<FunctionReturnType<typeof api.packages.savePackageInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface InstagramRepostPromptProps {
@@ -56,7 +55,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 
 	async function saveInstagramHandle(trimmedInstagramHandle: string): Promise<boolean> {
 		if (target.kind === "multiBooking") {
-			const [error] = await tryCatch<SavePackageInstagramHandleResult>(
+			const [error] = await tryCatch(
 				savePackageInstagramHandle({
 					instagramHandle: trimmedInstagramHandle,
 					multiBookingId: target.multiBookingId
@@ -71,7 +70,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 			return true;
 		}
 
-		const [error] = await tryCatch<SaveSessionInstagramHandleResult>(
+		const [error] = await tryCatch(
 			saveSessionInstagramHandle({
 				stripeSessionId: target.stripeSessionId,
 				instagramHandle: trimmedInstagramHandle

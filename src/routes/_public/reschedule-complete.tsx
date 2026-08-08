@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
-import type { GetPublicRescheduleCompleteSessionResult } from "#convex/sessions";
 import type { Result } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
@@ -12,6 +12,10 @@ import {
 	RescheduleCompleteDevScenarioPanel,
 	type DevRescheduleCompleteScenario
 } from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
+
+type GetPublicRescheduleCompleteSessionResult = FunctionReturnType<
+	typeof api.sessions.getPublicRescheduleCompleteSession
+>;
 
 // Dev scenarios use a readable fake string ID, while live Convex results retain their branded booking ID.
 type RescheduleCompleteBooking = Omit<

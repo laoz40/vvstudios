@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { UpdateSessionPaidStatusResult } from "#convex/sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function usePaymentActions(session: SessionRecord) {
@@ -15,7 +14,7 @@ export function usePaymentActions(session: SessionRecord) {
 	async function handleSetPaidRemainingBalance(paidRemainingBalance: boolean) {
 		setIsUpdatingPaidRemainingBalance(true);
 
-		const [error] = await tryCatch<UpdateSessionPaidStatusResult>(
+		const [error] = await tryCatch(
 			updateSessionPaidStatus({ bookingId: session._id, paidRemainingBalance })
 		);
 

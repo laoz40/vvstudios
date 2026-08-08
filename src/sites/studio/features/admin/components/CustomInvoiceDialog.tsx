@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { CreateCustomInvoiceResult } from "#convex/customInvoices";
 import { Button } from "#/components/ui/button";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
@@ -41,6 +41,7 @@ import type { BookingService } from "#studio/features/booking-invoice/lib/types"
 
 type SessionRecord = Doc<"bookings">;
 type CustomInvoiceRecord = Doc<"customInvoices">;
+type CreateCustomInvoiceResult = FunctionReturnType<typeof api.customInvoices.createCustomInvoice>;
 
 export type CustomInvoiceDialogProps = {
 	open: boolean;
@@ -190,9 +191,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 
 		setIsGenerating(true);
 
-		const [error, customInvoice] = await tryCatch<CreateCustomInvoiceResult>(
-			createCustomInvoice(generationData.createInput)
-		);
+		const [error, customInvoice] = await tryCatch(createCustomInvoice(generationData.createInput));
 
 		if (error !== null) {
 			showCreateCustomInvoiceError(error);

@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import type { Id } from "#convex/_generated/dataModel";
-import { internalMutation, type MutationCtx } from "#convex/_generated/server";
+import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/lib/sessionReservations";
 import {
 	claimBookingConfirmationService,
@@ -18,15 +17,8 @@ export const claimBookingConfirmation = internalMutation({
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeEventId: v.string()
 	},
-	handler: (ctx, args) => claimBookingConfirmationHandler(ctx, args)
+	handler: (ctx, args) => claimBookingConfirmationService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function claimBookingConfirmationHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof claimBookingConfirmationService>[1]
-) {
-	return claimBookingConfirmationService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markBookingConfirmed = internalMutation({
 	args: {
@@ -35,39 +27,19 @@ export const markBookingConfirmed = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		reservation: sessionReservationValidator
 	},
-	handler: (ctx, args) => markBookingConfirmedHandler(ctx, args)
+	handler: (ctx, args) => markBookingConfirmedService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markBookingConfirmedHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markBookingConfirmedService>[1]
-) {
-	return markBookingConfirmedService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markSessionInvoiceEmailFailed = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => markSessionInvoiceEmailFailedHandler(ctx, args)
+	handler: (ctx, args) => markSessionInvoiceEmailFailedService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markSessionInvoiceEmailFailedHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
-	return markSessionInvoiceEmailFailedService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markSessionInvoiceEmailRetrySent = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => markSessionInvoiceEmailRetrySentHandler(ctx, args)
+	handler: (ctx, args) =>
+		markSessionInvoiceEmailRetrySentService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markSessionInvoiceEmailRetrySentHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
-	return markSessionInvoiceEmailRetrySentService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const markBookingConfirmationFailed = internalMutation({
 	args: {
@@ -75,12 +47,5 @@ export const markBookingConfirmationFailed = internalMutation({
 		failureCode: v.string(),
 		reservation: v.optional(sessionReservationValidator)
 	},
-	handler: (ctx, args) => markBookingConfirmationFailedHandler(ctx, args)
+	handler: (ctx, args) => markBookingConfirmationFailedService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markBookingConfirmationFailedHandler(
-	ctx: MutationCtx,
-	args: Parameters<typeof markBookingConfirmationFailedService>[1]
-) {
-	return markBookingConfirmationFailedService(ctx, args).match(tupleOk, tupleErr);
-}

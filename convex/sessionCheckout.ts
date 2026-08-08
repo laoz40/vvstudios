@@ -1,26 +1,18 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
 import {
 	createPendingSessionService,
 	deletePendingSessionService,
-	markSessionExpiredByStripeSessionIdService,
-	type CreatePendingSessionArgs
+	markSessionExpiredByStripeSessionIdService
 } from "./services/sessionCheckout";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
-	handler: (ctx, args) => checkSessionSubmitRateLimitHandler(ctx, args)
+	handler: (ctx, args) =>
+		checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
-
-function checkSessionSubmitRateLimitHandler(
-	ctx: MutationCtx,
-	args: { submitRateLimitKey: string }
-) {
-	return checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr);
-}
 
 export const createPendingSession = internalMutation({
 	args: {
@@ -38,12 +30,8 @@ export const createPendingSession = internalMutation({
 		clipsPackageQuantity: v.optional(v.string()),
 		notes: v.optional(v.string())
 	},
-	handler: (ctx, args) => createPendingSessionHandler(ctx, args)
+	handler: (ctx, args) => createPendingSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function createPendingSessionHandler(ctx: MutationCtx, args: CreatePendingSessionArgs) {
-	return createPendingSessionService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const getSessionByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
@@ -66,24 +54,11 @@ export const setSessionStripeSessionId = internalMutation({
 
 export const markSessionExpiredByStripeSessionId = internalMutation({
 	args: { stripeSessionId: v.string() },
-	handler: (ctx, args) => markSessionExpiredByStripeSessionIdHandler(ctx, args)
+	handler: (ctx, args) =>
+		markSessionExpiredByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function markSessionExpiredByStripeSessionIdHandler(
-	ctx: MutationCtx,
-	args: { stripeSessionId: string }
-) {
-	return markSessionExpiredByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr);
-}
 
 export const deletePendingSession = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: (ctx, args) => deletePendingSessionHandler(ctx, args)
+	handler: (ctx, args) => deletePendingSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function deletePendingSessionHandler(
-	ctx: MutationCtx,
-	args: { bookingId: Doc<"bookings">["_id"]; stripeSessionId: string }
-) {
-	return deletePendingSessionService(ctx, args).match(tupleOk, tupleErr);
-}

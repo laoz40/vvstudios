@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type {
-	CreatePackageSessionResult,
-	GetPackageByTokenResult,
-	SetDefaultSpaceResult,
-	ReschedulePackageSessionResult,
-	UnschedulePackageSessionResult
-} from "#convex/packageScheduling";
-import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
@@ -66,7 +59,7 @@ export const Route = createFileRoute("/_public/package-schedule/$token")({
 	component: MultiBookingSchedulePage
 });
 
-type SavePackageBookingResult = CreatePackageSessionResult | ReschedulePackageSessionResult;
+type GetPackageByTokenResult = FunctionReturnType<typeof api.packageScheduling.getPackageByToken>;
 
 function handleRequestUnschedule(bookingId: Id<"bookings">, date: string) {
 	openPackageUnscheduleConfirmationModal({
@@ -205,7 +198,7 @@ function PackageScheduleContent({
 		setIsLoadingMonthAvailability(true);
 
 		async function loadPackageAvailability() {
-			const [busyWindowsError, result] = await tryCatch<GetPackageBusyWindowsResult>(
+			const [busyWindowsError, result] = await tryCatch(
 				getPackageBusyWindows({ rateLimitKey, token })
 			);
 
@@ -287,7 +280,7 @@ function PackageScheduleContent({
 		}
 
 		setIsSavingDefaultSpace(true);
-		const [saveError] = await tryCatch<SetDefaultSpaceResult>(setDefaultSpace({ service, token }));
+		const [saveError] = await tryCatch(setDefaultSpace({ service, token }));
 		setIsSavingDefaultSpace(false);
 
 		if (saveError !== null) {
@@ -333,25 +326,20 @@ function PackageScheduleContent({
 		}
 
 		setSavingSessionKey(activeSessionKey);
-		const saveAction = activeBooking
-			? reschedulePackageSession({
-					bookingId: activeBooking._id,
-					date: selectedDateValue,
-					time: selectedTime,
-					service,
-					notes: selectedNotes,
-					remotePodcast: selectedRemotePodcast,
-					token
-				})
-			: createPackageSession({
-					date: selectedDateValue,
-					time: selectedTime,
-					service,
-					notes: selectedNotes,
-					remotePodcast: selectedRemotePodcast,
-					token
-				});
-		const [saveError, saveResult] = await tryCatch<SavePackageBookingResult>(saveAction);
+
+		const sessionInput = {
+			date: selectedDateValue,
+			time: selectedTime,
+			service,
+			notes: selectedNotes,
+			remotePodcast: selectedRemotePodcast,
+			token
+		};
+		const saveOutcome = activeBooking
+			? await tryCatch(reschedulePackageSession({ bookingId: activeBooking._id, ...sessionInput }))
+			: await tryCatch(createPackageSession(sessionInput));
+		const [saveError, saveResult] = saveOutcome;
+
 		setSavingSessionKey(null);
 
 		if (saveError !== null) {
@@ -372,9 +360,7 @@ function PackageScheduleContent({
 
 	async function handleUnschedule(bookingId: Id<"bookings">) {
 		setUnschedulingBookingId(bookingId);
-		const [unscheduleError] = await tryCatch<UnschedulePackageSessionResult>(
-			unschedulePackageSession({ bookingId, token })
-		);
+		const [unscheduleError] = await tryCatch(unschedulePackageSession({ bookingId, token }));
 		setUnschedulingBookingId(null);
 
 		if (unscheduleError !== null) {

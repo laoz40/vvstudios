@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
-import type { UpdateSessionEditStatusResult } from "#convex/sessions";
-import type { SendSessionDeliverablesEmailResult } from "#convex/deliverablesEmail";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
-
-type UpdateSessionEditStatusError = NonNullable<
-	Awaited<ReturnType<typeof tryCatch<UpdateSessionEditStatusResult>>>[0]
+type UpdateSessionEditStatusResult = FunctionReturnType<
+	typeof api.sessions.updateSessionEditStatus
 >;
+type UpdateSessionEditStatusError = NonNullable<UpdateSessionEditStatusResult[0]> | UnexpectedError;
 
 function showStatusUpdateError(statusError: UpdateSessionEditStatusError) {
 	switch (statusError.reason) {
@@ -60,7 +59,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 			return;
 		}
 
-		const [emailError] = await tryCatch<SendSessionDeliverablesEmailResult>(
+		const [emailError] = await tryCatch(
 			sendSessionDeliverablesEmail({
 				bookingId: session._id,
 				driveLink: deliverablesDriveLinkDraft,
@@ -111,7 +110,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}
 
 	async function repairDeliverablesStatusAfterEmailSent(successMessage: string) {
-		const [statusError] = await tryCatch<UpdateSessionEditStatusResult>(
+		const [statusError] = await tryCatch(
 			updateSessionEditStatus({ bookingId: session._id, editStatus: "completed" })
 		);
 

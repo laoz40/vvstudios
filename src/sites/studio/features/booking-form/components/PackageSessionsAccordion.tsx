@@ -1,6 +1,7 @@
 import { Accordion } from "#/components/ui/accordion";
 import type { Id } from "#convex/_generated/dataModel";
-import type { GetPackageByTokenResult } from "#convex/packageScheduling";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import type { BookingDateTimePickerProps } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { PackageSessionAccordionItem } from "#studio/features/booking-form/components/PackageSessionAccordionItem";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
@@ -10,7 +11,7 @@ interface PackageSessionsAccordionProps {
 	availability: BookingDateTimePickerProps["availability"];
 	highlightedBookingId: Id<"bookings"> | null;
 	isDefaultSpace: boolean;
-	packageData: NonNullable<GetPackageByTokenResult[1]>;
+	packageData: NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
 	savingSessionKey: string | null;
 	isSavingDefaultSpace: boolean;
 	selectedDateValue: string;

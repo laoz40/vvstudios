@@ -2,8 +2,6 @@ import { useRef, useState, type RefObject } from "react";
 import { useAction } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import type { CreatePackageRequestResult } from "#convex/packagePayment";
-import type { CreateEmbeddedCheckoutSessionResult } from "#convex/stripe";
 import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
@@ -56,7 +54,7 @@ export function useBookingSubmit({
 
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
-		const [error, result] = await tryCatch<CreatePackageRequestResult>(
+		const [error, result] = await tryCatch(
 			createPackageRequest({
 				name: multiBookingValue.name,
 				phone: multiBookingValue.phone,
@@ -94,7 +92,7 @@ export function useBookingSubmit({
 	const submitSingleBooking = async (parsedValue: BookingFormValues) => {
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
-		const [error, session] = await tryCatch<CreateEmbeddedCheckoutSessionResult>(
+		const [error, session] = await tryCatch(
 			createEmbeddedCheckoutSession({
 				name: parsedValue.name,
 				phone: parsedValue.phone,

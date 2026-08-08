@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { CreateAdminRescheduleLinkResult } from "#convex/sessionReschedule";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useRescheduleAction(session: SessionRecord) {
@@ -15,9 +14,7 @@ export function useRescheduleAction(session: SessionRecord) {
 	async function handleGenerateRescheduleLink() {
 		setIsGeneratingRescheduleLink(true);
 
-		const [error, result] = await tryCatch<CreateAdminRescheduleLinkResult>(
-			createAdminRescheduleLink({ bookingId: session._id })
-		);
+		const [error, result] = await tryCatch(createAdminRescheduleLink({ bookingId: session._id }));
 
 		if (error !== null) {
 			switch (error.reason) {

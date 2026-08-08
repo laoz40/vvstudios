@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
-import type { UpdatePackageFromAdminResult } from "#convex/packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
 import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
+type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
 type ParsedPackageValues = ReturnType<typeof multiBookingFormSchema.parse>;
 type PackageTotalResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
@@ -140,7 +141,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			parsedValues.data,
 			totalDueAmountResult
 		);
-		const [error] = await tryCatch<UpdatePackageFromAdminResult>(updatePackage(updateInput));
+		const [error] = await tryCatch(updatePackage(updateInput));
 
 		if (error !== null) {
 			showPackageUpdateError(error);

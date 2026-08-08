@@ -5,7 +5,6 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import { api } from "#convex/_generated/api";
-import type { UpdateBookingSettingsResult } from "#convex/bookingSettings";
 import { tryCatch } from "#/lib/result";
 import {
 	Dialog,
@@ -74,9 +73,7 @@ export function AdminAvailabilitySettings() {
 
 	async function handleSaveSettings() {
 		setIsSaving(true);
-		const [error] = await tryCatch<UpdateBookingSettingsResult>(
-			updateBookingSettings(toBookingSettingsDraft(draft))
-		);
+		const [error] = await tryCatch(updateBookingSettings(toBookingSettingsDraft(draft)));
 
 		if (error !== null) {
 			switch (error.reason) {

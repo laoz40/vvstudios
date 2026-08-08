@@ -1,22 +1,22 @@
-import type {
-	CreatePackageSessionResult,
-	GetPackageByTokenResult,
-	SetDefaultSpaceResult,
-	ReschedulePackageSessionResult,
-	UnschedulePackageSessionResult
-} from "#convex/packageScheduling";
-import type { GetPackageBusyWindowsResult } from "#convex/packageSchedulingCalendar";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import type { UnexpectedError } from "#/lib/result";
 
-type PackageLookupError = NonNullable<GetPackageByTokenResult[0]>;
-type PackageBusyWindowsError = NonNullable<GetPackageBusyWindowsResult[0]> | UnexpectedError;
-type SaveDefaultSpaceError = NonNullable<SetDefaultSpaceResult[0]> | UnexpectedError;
+type PackageLookupError = NonNullable<
+	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[0]
+>;
+type PackageBusyWindowsError =
+	| NonNullable<FunctionReturnType<typeof api.packageSchedulingCalendar.getPackageBusyWindows>[0]>
+	| UnexpectedError;
+type SaveDefaultSpaceError =
+	| NonNullable<FunctionReturnType<typeof api.packageScheduling.setDefaultSpace>[0]>
+	| UnexpectedError;
 type SavePackageBookingError =
-	| NonNullable<CreatePackageSessionResult[0]>
-	| NonNullable<ReschedulePackageSessionResult[0]>
+	| NonNullable<FunctionReturnType<typeof api.packageScheduling.createPackageSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.packageScheduling.reschedulePackageSession>[0]>
 	| UnexpectedError;
 type UnschedulePackageSessionError =
-	| NonNullable<UnschedulePackageSessionResult[0]>
+	| NonNullable<FunctionReturnType<typeof api.packageScheduling.unschedulePackageSession>[0]>
 	| UnexpectedError;
 
 export function getPackageLinkInvalidMessage(error: PackageLookupError) {

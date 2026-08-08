@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { CircleX } from "lucide-react";
 import { toast } from "sonner";
 import CheckedIcon from "#/components/ui/checked-icon";
@@ -7,10 +8,6 @@ import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type {
-	GetBookingInvoicePdfByStripeSessionIdResult,
-	GetMultiBookingInvoicePdfByIdResult
-} from "#convex/invoices";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingDetails } from "#studio/features/booking-complete/components/BookingDetails";
 import type { BookingResultContent } from "#studio/features/booking-complete/lib/booking-result-content";
@@ -21,10 +18,12 @@ type InvoiceDownloadTarget =
 	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
 
 type BookingInvoiceErrorReason =
-	| NonNullable<GetBookingInvoicePdfByStripeSessionIdResult[0]>["reason"]
+	| NonNullable<
+			FunctionReturnType<typeof api.invoices.getBookingInvoicePdfByStripeSessionId>[0]
+	  >["reason"]
 	| "UNEXPECTED_ERROR";
 type MultiBookingInvoiceErrorReason =
-	| NonNullable<GetMultiBookingInvoicePdfByIdResult[0]>["reason"]
+	| NonNullable<FunctionReturnType<typeof api.invoices.getMultiBookingInvoicePdfById>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface BookingResultProps {
@@ -66,9 +65,7 @@ export function BookingResult({
 	}
 
 	async function downloadBookingInvoice(stripeSessionId: string): Promise<void> {
-		const [error, invoice] = await tryCatch<GetBookingInvoicePdfByStripeSessionIdResult>(
-			getBookingInvoicePdf({ stripeSessionId })
-		);
+		const [error, invoice] = await tryCatch(getBookingInvoicePdf({ stripeSessionId }));
 
 		if (error !== null) {
 			handleBookingInvoiceError(error.reason);
@@ -81,9 +78,7 @@ export function BookingResult({
 	async function downloadMultiBookingInvoice(
 		multiBookingId: Id<"multiBookingPackages">
 	): Promise<void> {
-		const [error, invoice] = await tryCatch<GetMultiBookingInvoicePdfByIdResult>(
-			getMultiBookingInvoicePdf({ multiBookingId })
-		);
+		const [error, invoice] = await tryCatch(getMultiBookingInvoicePdf({ multiBookingId }));
 
 		if (error !== null) {
 			handleMultiBookingInvoiceError(error.reason);

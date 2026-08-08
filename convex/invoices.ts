@@ -2,8 +2,7 @@
 
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import type { Id } from "#convex/_generated/dataModel";
-import { action, type ActionCtx } from "#convex/_generated/server";
+import { action } from "#convex/_generated/server";
 import {
 	getAdminCustomMultiBookingInvoicePdfByIdService,
 	getAdminMultiBookingInvoicePdfByIdService,
@@ -13,64 +12,23 @@ import {
 
 export const getBookingInvoicePdfByStripeSessionId = action({
 	args: { stripeSessionId: v.string() },
-	handler: (ctx, args) => getBookingInvoicePdfByStripeSessionIdHandler(ctx, args)
+	handler: (ctx, args) =>
+		getBookingInvoicePdfByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function getBookingInvoicePdfByStripeSessionIdHandler(
-	ctx: ActionCtx,
-	args: { stripeSessionId: string }
-) {
-	return getBookingInvoicePdfByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetBookingInvoicePdfByStripeSessionIdResult = Awaited<
-	ReturnType<typeof getBookingInvoicePdfByStripeSessionIdHandler>
->;
 
 export const getMultiBookingInvoicePdfById = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => getMultiBookingInvoicePdfByIdHandler(ctx, args)
+	handler: (ctx, args) => getMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function getMultiBookingInvoicePdfByIdHandler(
-	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-) {
-	return getMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetMultiBookingInvoicePdfByIdResult = Awaited<
-	ReturnType<typeof getMultiBookingInvoicePdfByIdHandler>
->;
 
 export const getAdminMultiBookingInvoicePdfById = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => getAdminMultiBookingInvoicePdfByIdHandler(ctx, args)
+	handler: (ctx, args) =>
+		getAdminMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function getAdminMultiBookingInvoicePdfByIdHandler(
-	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-) {
-	return getAdminMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetAdminMultiBookingInvoicePdfByIdResult = Awaited<
-	ReturnType<typeof getAdminMultiBookingInvoicePdfByIdHandler>
->;
 
 export const getAdminCustomMultiBookingInvoicePdfById = action({
 	args: { customInvoiceId: v.id("customInvoices") },
-	handler: (ctx, args) => getAdminCustomMultiBookingInvoicePdfByIdHandler(ctx, args)
+	handler: (ctx, args) =>
+		getAdminCustomMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function getAdminCustomMultiBookingInvoicePdfByIdHandler(
-	ctx: ActionCtx,
-	args: { customInvoiceId: Id<"customInvoices"> }
-) {
-	return getAdminCustomMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type GetAdminCustomMultiBookingInvoicePdfByIdResult = Awaited<
-	ReturnType<typeof getAdminCustomMultiBookingInvoicePdfByIdHandler>
->;

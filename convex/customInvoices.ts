@@ -1,20 +1,11 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import type { Id } from "#convex/_generated/dataModel";
-import {
-	internalQuery,
-	mutation,
-	query,
-	type MutationCtx,
-	type QueryCtx
-} from "#convex/_generated/server";
+import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	createBookingCustomInvoiceService,
 	createPackageCustomInvoiceService,
 	listCustomInvoicesForBookingService,
-	listCustomInvoicesForPackageService,
-	type CreateBookingCustomInvoiceArgs,
-	type CreatePackageCustomInvoiceArgs
+	listCustomInvoicesForPackageService
 } from "#convex/services/customInvoices";
 
 export const createCustomInvoice = mutation({
@@ -29,14 +20,9 @@ export const createCustomInvoice = mutation({
 		includeDepositLineItem: v.boolean(),
 		customTotalDueAmount: v.optional(v.number())
 	},
-	handler: (ctx, args) => createCustomInvoiceHandler(ctx, args)
+	handler: async (ctx, args) =>
+		createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function createCustomInvoiceHandler(ctx: MutationCtx, args: CreateBookingCustomInvoiceArgs) {
-	return createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CreateCustomInvoiceResult = Awaited<ReturnType<typeof createCustomInvoiceHandler>>;
 
 export const createPackageCustomInvoice = mutation({
 	args: {
@@ -51,51 +37,21 @@ export const createPackageCustomInvoice = mutation({
 		includePackageDiscount: v.optional(v.boolean()),
 		customTotalDueAmount: v.optional(v.number())
 	},
-	handler: (ctx, args) => createPackageCustomInvoiceHandler(ctx, args)
+	handler: async (ctx, args) =>
+		createPackageCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function createPackageCustomInvoiceHandler(
-	ctx: MutationCtx,
-	args: CreatePackageCustomInvoiceArgs
-) {
-	return createPackageCustomInvoiceService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CreatePackageCustomInvoiceResult = Awaited<
-	ReturnType<typeof createPackageCustomInvoiceHandler>
->;
 
 export const listCustomInvoicesForBooking = query({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => listCustomInvoicesForBookingHandler(ctx, args)
+	handler: async (ctx, args) =>
+		listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function listCustomInvoicesForBookingHandler(
-	ctx: QueryCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
-	return listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ListCustomInvoicesForBookingResult = Awaited<
-	ReturnType<typeof listCustomInvoicesForBookingHandler>
->;
 
 export const listCustomInvoicesForPackage = query({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => listCustomInvoicesForPackageHandler(ctx, args)
+	handler: async (ctx, args) =>
+		listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr)
 });
-
-async function listCustomInvoicesForPackageHandler(
-	ctx: QueryCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-) {
-	return listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ListCustomInvoicesForPackageResult = Awaited<
-	ReturnType<typeof listCustomInvoicesForPackageHandler>
->;
 
 export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },

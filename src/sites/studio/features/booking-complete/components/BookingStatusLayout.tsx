@@ -15,7 +15,6 @@ import { studioSite } from "#/config/sites";
 import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
-import type { CreatePublicFailedSessionRescheduleLinkResult } from "#convex/sessionReschedule";
 import type { Id } from "#convex/_generated/dataModel";
 
 type InstagramPromptTarget =
@@ -62,7 +61,7 @@ export function BookingStatusLayout({
 		setIsCreatingRescheduleLink(true);
 
 		try {
-			const [error, result] = await tryCatch<CreatePublicFailedSessionRescheduleLinkResult>(
+			const [error, result] = await tryCatch(
 				createFailedSessionRescheduleLink({ stripeSessionId })
 			);
 

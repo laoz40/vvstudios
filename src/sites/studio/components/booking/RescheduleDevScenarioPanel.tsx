@@ -2,10 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import type {
-	GetRescheduleSessionByTokenResult,
-	RescheduleLinkLookupError
-} from "#convex/sessionReschedule";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
+import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
 
 const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Ready", value: "ready" },
@@ -31,7 +30,9 @@ export interface RescheduleSearch {
 	dev_scenario?: DevRescheduleScenario;
 }
 
-export type RescheduleBookingLookup = NonNullable<GetRescheduleSessionByTokenResult>;
+export type RescheduleBookingLookup = NonNullable<
+	FunctionReturnType<typeof api.sessionReschedule.getRescheduleSessionByToken>
+>;
 
 type DevRescheduleAvailabilityError =
 	| RescheduleLinkLookupError

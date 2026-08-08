@@ -4,7 +4,6 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { api } from "#convex/_generated/api";
-import type { RescheduleSessionResult } from "#convex/googleCalendar";
 import { studioSite } from "#/config/sites";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
@@ -159,7 +158,7 @@ function ReschedulePage() {
 				return;
 			}
 
-			const [rescheduleError, result] = await tryCatch<RescheduleSessionResult>(
+			const [rescheduleError, result] = await tryCatch(
 				rescheduleSession({ date: confirmation.date, time: confirmation.time, token })
 			);
 

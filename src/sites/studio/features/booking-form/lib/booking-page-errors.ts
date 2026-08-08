@@ -1,9 +1,5 @@
-import type { GetBookableRangeBusyWindowsResult } from "#convex/googleCalendar";
-import type { CreatePackageRequestResult } from "#convex/packagePayment";
-import type {
-	CloseEmbeddedCheckoutSessionResult,
-	CreateEmbeddedCheckoutSessionResult
-} from "#convex/stripe";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "#convex/_generated/api";
 import type { UnexpectedError } from "#/lib/result";
 import type { BookDevErrorCode } from "#studio/components/booking/BookDevErrorPanel";
 
@@ -36,12 +32,18 @@ const bookingPageErrorMessages = {
 } as const;
 
 type StartCheckoutToastError =
-	| NonNullable<CreateEmbeddedCheckoutSessionResult[0]>
+	| NonNullable<FunctionReturnType<typeof api.stripe.createEmbeddedCheckoutSession>[0]>
 	| UnexpectedError;
 
-type CloseCheckoutToastError = NonNullable<CloseEmbeddedCheckoutSessionResult[0]> | UnexpectedError;
-type AvailabilityToastError = NonNullable<GetBookableRangeBusyWindowsResult[0]> | UnexpectedError;
-type CreateMultiBookingToastError = NonNullable<CreatePackageRequestResult[0]> | UnexpectedError;
+type CloseCheckoutToastError =
+	| NonNullable<FunctionReturnType<typeof api.stripe.closeEmbeddedCheckoutSession>[0]>
+	| UnexpectedError;
+type AvailabilityToastError =
+	| NonNullable<FunctionReturnType<typeof api.googleCalendar.getBookableRangeBusyWindows>[0]>
+	| UnexpectedError;
+type CreateMultiBookingToastError =
+	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageRequest>[0]>
+	| UnexpectedError;
 
 export const devBookingErrorMessages = {
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,

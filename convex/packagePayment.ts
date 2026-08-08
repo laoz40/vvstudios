@@ -1,21 +1,13 @@
 "use node";
 
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
-import { action, type ActionCtx } from "./_generated/server";
-import { tupleErr, tupleOk, type Result } from "#/lib/result";
+import { action } from "./_generated/server";
+import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	confirmPackagePaymentService,
 	createPackageRequestService,
 	resendPackageInvoiceEmailService,
-	retryPackageSchedulingEmailService,
-	type ConfirmPackagePaymentError,
-	type CreatePackageRequestArgs,
-	type CreatePackageRequestError,
-	type CreatePackageRequestSuccess,
-	type ResendPackageInvoiceEmailError,
-	type ResendPackageInvoiceEmailSuccess,
-	type RetryPackageSchedulingEmailError
+	retryPackageSchedulingEmailService
 } from "./services/packagePayment";
 
 export const createPackageRequest = action({
@@ -32,60 +24,20 @@ export const createPackageRequest = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createPackageRequestHandler(ctx, args)
+	handler: (ctx, args) => createPackageRequestService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function createPackageRequestHandler(
-	ctx: ActionCtx,
-	args: CreatePackageRequestArgs
-): Promise<Result<CreatePackageRequestSuccess, CreatePackageRequestError>> {
-	return createPackageRequestService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type CreatePackageRequestResult = Awaited<ReturnType<typeof createPackageRequestHandler>>;
 
 export const resendPackageInvoiceEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => resendPackageInvoiceEmailHandler(ctx, args)
+	handler: (ctx, args) => resendPackageInvoiceEmailService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function resendPackageInvoiceEmailHandler(
-	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<ResendPackageInvoiceEmailSuccess, ResendPackageInvoiceEmailError>> {
-	return resendPackageInvoiceEmailService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ResendPackageInvoiceEmailResult = Awaited<
-	ReturnType<typeof resendPackageInvoiceEmailHandler>
->;
 
 export const confirmPackagePayment = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => confirmPackagePaymentHandler(ctx, args)
+	handler: (ctx, args) => confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function confirmPackagePaymentHandler(
-	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<null, ConfirmPackagePaymentError>> {
-	return confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type ConfirmPackagePaymentResult = Awaited<ReturnType<typeof confirmPackagePaymentHandler>>;
 
 export const retryPackageSchedulingEmail = action({
 	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => retryPackageSchedulingEmailHandler(ctx, args)
+	handler: (ctx, args) => retryPackageSchedulingEmailService(ctx, args).match(tupleOk, tupleErr)
 });
-
-function retryPackageSchedulingEmailHandler(
-	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
-): Promise<Result<null, RetryPackageSchedulingEmailError>> {
-	return retryPackageSchedulingEmailService(ctx, args).match(tupleOk, tupleErr);
-}
-
-export type RetryPackageSchedulingEmailResult = Awaited<
-	ReturnType<typeof retryPackageSchedulingEmailHandler>
->;
