@@ -1,7 +1,7 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
-import { Activity, useState } from "react";
-import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
+import { Activity, useEffect, useState } from "react";
+import { useConvexAuth, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import HomeIcon from "#/components/ui/home-icon";
 import LogoutIcon from "#/components/ui/logout-icon";
@@ -19,6 +19,14 @@ const ADMIN_PAGE_SIZE = 500;
 export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
 	const { isLoading: isConvexLoading, isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+	const createEditorUser = useMutation(api.auth.createEditorUser);
+
+	// Create the editor user or update their details after Convex accepts the Clerk identity.
+	useEffect(() => {
+		if (isConvexAuthenticated) {
+			void createEditorUser({});
+		}
+	}, [isConvexAuthenticated, createEditorUser]);
 
 	if (!isClerkLoaded || isConvexLoading) {
 		return (

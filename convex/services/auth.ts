@@ -1,21 +1,27 @@
-import type { UserIdentity } from "convex/server";
-import type { QueryCtx } from "#convex/_generated/server";
-import { requireAuthenticatedIdentity, resolveUserAccess } from "#convex/lib/auth";
-import { okOrThrow } from "#convex/lib/result";
+import { ok } from "neverthrow";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import {
+	getEditorByToken,
+	getUserRoleAndPermissions,
+	isAdminIdentity,
+	requireUser,
+	saveEditorDetails
+} from "#convex/lib/auth";
 
-export function getEditorByTokenService(ctx: QueryCtx, token: UserIdentity["tokenIdentifier"]) {
-	return okOrThrow(
-		ctx.db
-			.query("editorProfiles")
-			.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", token))
-			.unique()
+export function getCurrentUserAccessService(ctx: QueryCtx) {
+	return requireUser(ctx).andThen((identity) =>
+		getUserRoleAndPermissions(identity, (token) => getEditorByToken(ctx, token))
 	);
 }
 
-export function getCurrentUserAccessService(ctx: QueryCtx) {
-	return okOrThrow(ctx.auth.getUserIdentity())
-		.andThen(requireAuthenticatedIdentity)
-		.andThen((identity) =>
-			resolveUserAccess(identity, (token) => getEditorByTokenService(ctx, token))
+export function createEditorUserService(ctx: MutationCtx) {
+	return requireUser(ctx).andThen((identity) => {
+		if (isAdminIdentity(identity)) {
+			return ok(null);
+		}
+
+		return getEditorByToken(ctx, identity.tokenIdentifier).andThen((editor) =>
+			saveEditorDetails(ctx, identity, editor)
 		);
+	});
 }

@@ -25,7 +25,7 @@ export function isAdminIdentity(identity: UserIdentity): boolean {
 	return getPublicMetadata(identity)?.role === ADMIN_ROLE;
 }
 
-export function requireAuthenticatedIdentity(identity: UserIdentity | null) {
+function requireAuthenticatedIdentity(identity: UserIdentity | null) {
 	if (identity === null) {
 		return err({ reason: "NOT_AUTHENTICATED" as const });
 	}
@@ -33,7 +33,11 @@ export function requireAuthenticatedIdentity(identity: UserIdentity | null) {
 	return ok(identity);
 }
 
-export function resolveUserAccess(
+export function requireUser(ctx: Pick<QueryCtx, "auth">) {
+	return okOrThrow(ctx.auth.getUserIdentity()).andThen(requireAuthenticatedIdentity);
+}
+
+export function getUserRoleAndPermissions(
 	identity: UserIdentity,
 	loadEditor: (
 		token: UserIdentity["tokenIdentifier"]
@@ -59,31 +63,52 @@ function requireUserPermission(
 	) => ResultAsync<Doc<"editorProfiles"> | null, never>,
 	permission: Permission
 ) {
-	return okOrThrow(auth.getUserIdentity())
-		.andThen(requireAuthenticatedIdentity)
-		.andThen((identity) =>
-			resolveUserAccess(identity, loadEditor).andThen((access) => {
-				if (!hasPermission(access.permissions, permission)) {
-					return err({ reason: "NOT_AUTHORIZED" as const });
-				}
+	return requireUser({ auth }).andThen((identity) =>
+		getUserRoleAndPermissions(identity, loadEditor).andThen((access) => {
+			if (!hasPermission(access.permissions, permission)) {
+				return err({ reason: "NOT_AUTHORIZED" as const });
+			}
 
-				return ok(identity);
+			return ok(identity);
+		})
+	);
+}
+
+export function getEditorByToken(
+	ctx: QueryCtx | MutationCtx,
+	token: UserIdentity["tokenIdentifier"]
+) {
+	return okOrThrow(
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", token))
+			.unique()
+	);
+}
+
+export function saveEditorDetails(
+	ctx: MutationCtx,
+	identity: UserIdentity,
+	editor: Doc<"editorProfiles"> | null
+) {
+	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
+	if (editor !== null) {
+		return okOrThrow(ctx.db.patch(editor._id, details).then(() => null));
+	}
+
+	return okOrThrow(
+		ctx.db
+			.insert("editorProfiles", {
+				...details,
+				tokenIdentifier: identity.tokenIdentifier,
+				isActive: true
 			})
-		);
+			.then(() => null)
+	);
 }
 
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
-	return requireUserPermission(
-		ctx.auth,
-		(token) =>
-			okOrThrow(
-				ctx.db
-					.query("editorProfiles")
-					.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", token))
-					.unique()
-			),
-		permission
-	);
+	return requireUserPermission(ctx.auth, (token) => getEditorByToken(ctx, token), permission);
 }
 
 export function requirePermissionActions(ctx: ActionCtx, permission: Permission) {

@@ -43,6 +43,14 @@
  *    - resolves an active editor when Clerk role metadata is missing;
  *    - resolves an active editor when Clerk role metadata is unknown;
  *    - keys profile access by tokenIdentifier rather than Clerk subject.
+ *
+ * 5. Editor user creation and detail updates
+ *    - creates an active profile from a non-admin identity on first sign-in;
+ *    - updates an existing active editor's name and email;
+ *    - updates an inactive editor's details without reactivating them;
+ *    - leaves editor profiles unchanged for admin identities;
+ *    - rejects signed-out creation without writing a profile;
+ *    - stores empty profile fields when a new identity has no name or email claims.
  */
 import type { UserIdentity } from "convex/server";
 import { describe, expect, test } from "vitest";
@@ -498,6 +506,107 @@ describe("editor profile access resolution", () => {
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 	});
 });
+
+describe("editor user creation and detail updates", () => {
+	test("creates an active editor profile on first sign-in", async () => {
+		const t = createConvexTest();
+		const identity = {
+			...editorMetadataIdentity,
+			name: "First Editor",
+			email: "first@example.com"
+		};
+
+		const result = await t.withIdentity(identity).mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, identity.tokenIdentifier)).toMatchObject({
+			tokenIdentifier: identity.tokenIdentifier,
+			displayName: "First Editor",
+			email: "first@example.com",
+			isActive: true
+		});
+	});
+
+	test("updates an existing active editor details", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+		const identity = {
+			...editorMetadataIdentity,
+			name: "Updated Editor",
+			email: "updated@example.com"
+		};
+
+		const result = await t.withIdentity(identity).mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, identity.tokenIdentifier)).toMatchObject({
+			displayName: "Updated Editor",
+			email: "updated@example.com",
+			isActive: true
+		});
+	});
+
+	test("updates inactive editor details without reactivating the editor", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, false);
+		const identity = {
+			...editorMetadataIdentity,
+			name: "Inactive Editor",
+			email: "inactive@example.com"
+		};
+
+		const result = await t.withIdentity(identity).mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, identity.tokenIdentifier)).toMatchObject({
+			displayName: "Inactive Editor",
+			email: "inactive@example.com",
+			isActive: false
+		});
+	});
+
+	test("does not create an editor profile for an admin identity", async () => {
+		const t = createConvexTest();
+
+		const result = await t.withIdentity(adminIdentity).mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, adminIdentity.tokenIdentifier)).toBeNull();
+	});
+
+	test("rejects signed-out creation without writing a profile", async () => {
+		const t = createConvexTest();
+
+		const result = await t.mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHENTICATED" }, null]);
+		expect(await t.run((ctx) => ctx.db.query("editorProfiles").collect())).toEqual([]);
+	});
+
+	test("creates empty profile fields when identity claims are absent", async () => {
+		const t = createConvexTest();
+
+		const result = await t
+			.withIdentity(editorMetadataIdentity)
+			.mutation(api.auth.createEditorUser, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, editorMetadataIdentity.tokenIdentifier)).toMatchObject({
+			displayName: "",
+			email: "",
+			isActive: true
+		});
+	});
+});
+
+async function findEditorProfile(t: TestClient, tokenIdentifier: string) {
+	return await t.run((ctx) =>
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", tokenIdentifier))
+			.unique()
+	);
+}
 
 describe("requirePermission", () => {
 	test("rejects signed-out callers", async () => {
