@@ -1,18 +1,18 @@
-import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
-import { Link, Navigate } from "@tanstack/react-router";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { Navigate } from "@tanstack/react-router";
 import { Activity, useEffect, useState } from "react";
 import { useConvexAuth, useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import HomeIcon from "#/components/ui/home-icon";
-import LogoutIcon from "#/components/ui/logout-icon";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
+import { hasPermission } from "#/lib/permissions";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
-import { StudioErrorPage } from "#studio/components/StudioErrorPage";
 import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
+import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
+import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
+import { EditorDashboardShell } from "#studio/features/editor/components/EditorDashboardShell";
 
 const ADMIN_PAGE_SIZE = 500;
 
@@ -41,38 +41,13 @@ export function AdminPage() {
 	}
 
 	if (!isConvexAuthenticated) {
-		return (
-			<main>
-				<h1>Past sessions</h1>
-				<p>
-					You are signed in with Clerk, but the backend is not receiving a valid Convex auth token
-					yet.
-				</p>
-				<p>
-					In Clerk, enable the Convex integration or create the <code>convex</code> JWT template,
-					then run <code>proxy npx convex dev</code>.
-				</p>
-				<SignOutButton redirectUrl={studioSite.routes.login}>
-					<AnimatedIconButton
-						type="button"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<LogoutIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<button type="button">Sign out</button>
-					</AnimatedIconButton>
-				</SignOutButton>
-			</main>
-		);
+		return <BackendAuthErrorPage />;
 	}
 
-	return <AdminAccessGate />;
+	return <DashboardAccessGate />;
 }
 
-function AdminAccessGate() {
+function DashboardAccessGate() {
 	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
 
 	if (!accessResult) {
@@ -84,52 +59,18 @@ function AdminAccessGate() {
 	}
 
 	const [accessError, access] = accessResult;
-	if (accessError !== null || access.role !== "admin") {
-		return <AdminForbiddenPage />;
+	if (accessError !== null || !hasPermission(access.permissions, "view:sessions")) {
+		return <DashboardForbiddenPage />;
 	}
 
-	return <AdminPageContent />;
+	if (hasPermission(access.permissions, "view:packages")) {
+		return <AdminDashboard />;
+	}
+
+	return <EditorDashboardShell />;
 }
 
-function AdminForbiddenPage() {
-	return (
-		<StudioErrorPage
-			title="Admin access required."
-			description="This account does not have permission to view the admin dashboard."
-			actions={
-				<>
-					<AnimatedIconButton
-						size="lg"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<HomeIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<Link to={studioSite.routes.home}>Home</Link>
-					</AnimatedIconButton>
-					<SignOutButton redirectUrl={studioSite.routes.login}>
-						<AnimatedIconButton
-							variant="outline"
-							size="lg"
-							iconPosition="before"
-							renderIcon={(iconRef) => (
-								<LogoutIcon
-									ref={iconRef}
-									aria-hidden
-								/>
-							)}>
-							<button type="button">Sign out</button>
-						</AnimatedIconButton>
-					</SignOutButton>
-				</>
-			}
-		/>
-	);
-}
-
-function AdminPageContent() {
+function AdminDashboard() {
 	const sessions = usePaginatedQuery(
 		api.sessions.listSessions,
 		{},
@@ -163,6 +104,7 @@ function AdminPageContent() {
 			activeView={activeView}
 			email={email ?? null}
 			onActiveViewChange={setActiveView}>
+			{/* Keep both tables mounted when switching tabs so pagination and search stay where the user left them. */}
 			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
 				<SessionsTable
 					sessions={sessions.results}

@@ -57,6 +57,7 @@ import type * as packageReminders from "../packageReminders.js";
 import type * as packageScheduling from "../packageScheduling.js";
 import type * as packageSchedulingCalendar from "../packageSchedulingCalendar.js";
 import type * as packages from "../packages.js";
+import type * as services_auth from "../services/auth.js";
 import type * as services_bookingConfirmation from "../services/bookingConfirmation.js";
 import type * as services_bookingConfirmationActions from "../services/bookingConfirmationActions.js";
 import type * as services_bookingSettings from "../services/bookingSettings.js";
@@ -140,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   packageScheduling: typeof packageScheduling;
   packageSchedulingCalendar: typeof packageSchedulingCalendar;
   packages: typeof packages;
+  "services/auth": typeof services_auth;
   "services/bookingConfirmation": typeof services_bookingConfirmation;
   "services/bookingConfirmationActions": typeof services_bookingConfirmationActions;
   "services/bookingSettings": typeof services_bookingSettings;

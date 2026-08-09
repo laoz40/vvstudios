@@ -1,9 +1,6 @@
-import { SignOutButton } from "@clerk/clerk-react";
 import type { ReactNode } from "react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import LogoutIcon from "#/components/ui/logout-icon";
-import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
+import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import { AdminDashboardMenu } from "#studio/features/admin/components/AdminDashboardMenu";
 import {
@@ -44,23 +41,7 @@ export function AdminDashboardShell({
 					<div className="hidden md:block">
 						<div className="flex flex-wrap items-center gap-2">
 							<AdminAvailabilitySettings />
-							<span title={`Signed in as ${email ?? "Unknown user"}`}>
-								<SignOutButton redirectUrl={studioSite.routes.login}>
-									<AnimatedIconButton
-										type="button"
-										variant="ghost"
-										size="sm"
-										iconPosition="before"
-										renderIcon={(iconRef) => (
-											<LogoutIcon
-												ref={iconRef}
-												aria-hidden
-											/>
-										)}>
-										<button type="button">Sign out</button>
-									</AnimatedIconButton>
-								</SignOutButton>
-							</span>
+							<DashboardSignOutButton email={email} />
 						</div>
 					</div>
 				</div>
