@@ -1,11 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	archiveSessionService,
+	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
 	getPublicRescheduleCompleteSessionService,
+	listEditorSessionsService,
 	listSessionsService,
 	markSessionCalendarEventDeletedService,
 	saveSessionInstagramHandleService,
@@ -23,6 +25,18 @@ export const getSessionById = internalQuery({
 export const listSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: (ctx, args) => listSessionsService(ctx, args)
+});
+
+export const listEditorSessions = query({
+	args: { paginationOpts: paginationOptsValidator },
+	// Paginated queries must return Convex's native page shape, so authorization errors throw.
+	handler: (ctx, args) =>
+		listEditorSessionsService(ctx, args).match(
+			(sessionsPage) => sessionsPage,
+			(error) => {
+				throw new ConvexError(error);
+			}
+		)
 });
 
 export const getPublicRescheduleCompleteSession = query({
@@ -50,6 +64,11 @@ export const getSessionStatusByStripeSessionId = query({
 export const saveSessionInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
 	handler: (ctx, args) => saveSessionInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const assignSessionEditor = mutation({
+	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
+	handler: (ctx, args) => assignSessionEditorService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const archiveSession = mutation({

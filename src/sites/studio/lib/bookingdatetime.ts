@@ -319,15 +319,23 @@ export function formatBookingDateMedium(dateValue: string) {
 	return formatShortMonthFullDate(date);
 }
 
-export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
+export function getBookingDayDifference(dateValue: string, now = new Date()) {
 	const bookingTimestamp = getDateUtcTimestamp(dateValue);
 	const todayTimestamp = getDateUtcTimestamp(getSydneyDateValue(now));
 
 	if (bookingTimestamp === null || todayTimestamp === null) {
-		return dateValue;
+		return null;
 	}
 
-	const dayDifference = Math.round((bookingTimestamp - todayTimestamp) / (24 * 60 * 60 * 1000));
+	return Math.round((bookingTimestamp - todayTimestamp) / (24 * 60 * 60 * 1000));
+}
+
+export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
+	const dayDifference = getBookingDayDifference(dateValue, now);
+
+	if (dayDifference === null) {
+		return dateValue;
+	}
 
 	if (dayDifference === 0) {
 		return "Today";

@@ -3,6 +3,7 @@ import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
+import { buildEditorSessionProjection, isEditorVisibleSession } from "#convex/lib/editorSessions";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
@@ -11,7 +12,9 @@ import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
-type ListSessionsArgs = { paginationOpts: { numItems: number; cursor: string | null } };
+type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
+type ListSessionsArgs = PaginationArgs;
+type ListEditorSessionsArgs = PaginationArgs;
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
@@ -21,6 +24,26 @@ type UpdateSessionEditStatusArgs = {
 	editStatus: "to_edit" | "editing" | "completed";
 };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
+type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string };
+
+export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSessionsArgs) {
+	return requirePermission(ctx, "view:sessions")
+		.andThen((identity) =>
+			okOrThrow(
+				ctx.db
+					.query("bookings")
+					.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+						query.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
+					)
+					.order("desc")
+					.paginate(args.paginationOpts)
+			)
+		)
+		.map((bookingsPage) => ({
+			...bookingsPage,
+			page: bookingsPage.page.filter(isEditorVisibleSession).map(buildEditorSessionProjection)
+		}));
+}
 
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
 	await requirePermission(ctx, "view:sessions").match(
@@ -124,6 +147,32 @@ export function saveSessionInstagramHandleService(
 				ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }).then(() => null)
 			)
 		);
+}
+
+export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen(() =>
+			okOrThrow(
+				ctx.db
+					.query("editorProfiles")
+					.withIndex("by_tokenIdentifier", (query) =>
+						query.eq("tokenIdentifier", args.editorTokenIdentifier)
+					)
+					.unique()
+			)
+		)
+		.andThen((editor) => {
+			if (editor === null || !editor.isActive) {
+				return err({ reason: "EDITOR_NOT_ACTIVE" as const });
+			}
+
+			return okOrThrow(
+				ctx.db
+					.patch(args.bookingId, { assignedEditorTokenIdentifier: editor.tokenIdentifier })
+					.then(() => null)
+			);
+		});
 }
 
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {

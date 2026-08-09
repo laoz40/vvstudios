@@ -155,6 +155,9 @@ export default defineSchema({
 		reminderEmailSentAt: v.optional(v.number()),
 		reminderEmailFailureCode: v.optional(v.string()),
 
+		// Editor assignment
+		assignedEditorTokenIdentifier: v.optional(v.string()),
+
 		// Remaining balance/admin edit state
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
@@ -183,6 +186,7 @@ export default defineSchema({
 		])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
+		.index("by_assignedEditorTokenIdentifier", ["assignedEditorTokenIdentifier"])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
 		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
 			"multiBookingPackageId",

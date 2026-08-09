@@ -18,7 +18,8 @@
  *    - send session deliverables and invoice emails;
  *    - send a package invoice email;
  *    - generate a new session reschedule link;
- *    - create a custom invoice for a session or package.
+ *    - create a custom invoice for a session or package;
+ *    - assign an editor to a session.
  *
  *    Every operation is attempted as both a signed-out user and a customer. Every operation
  *    guarded by an admin-only permission is also attempted by an active editor. Each attempt
@@ -32,7 +33,8 @@
  *    - rejects signed-out callers from the backend permission guard;
  *    - rejects editors without an active profile;
  *    - allows active editors to satisfy an editor permission but denies an admin-only permission;
- *    - allows admins to satisfy every defined permission.
+ *    - allows admins to satisfy every defined permission;
+ *    - rejects signed-out and inactive-profile callers from the restricted editor sessions query.
  *
  * 4. Editor profile access resolution
  *    - returns a NOT_AUTHENTICATED result for signed-out access;
@@ -53,6 +55,7 @@
  *    - stores empty profile fields when a new identity has no name or email claims.
  */
 import type { UserIdentity } from "convex/server";
+import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -61,6 +64,16 @@ import { createConvexTest } from "#convex/test.setup";
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 import { tupleErr, tupleOk } from "#/lib/result";
 const paginationOpts = { cursor: null, numItems: 10 };
+const assignSessionEditor = makeFunctionReference<
+	"mutation",
+	{ bookingId: Id<"bookings">; editorTokenIdentifier: string },
+	unknown
+>("sessions:assignSessionEditor");
+const listEditorSessions = makeFunctionReference<
+	"query",
+	{ paginationOpts: { cursor: string | null; numItems: number } },
+	unknown
+>("sessions:listEditorSessions");
 
 const identities = [
 	{ label: "anonymous users", identity: null, reason: "NOT_AUTHENTICATED" },
@@ -258,6 +271,15 @@ const operations: AdminOperation[] = [
 				addons: [],
 				packageSize: 4,
 				includeDepositLineItem: false
+			})
+	},
+	{
+		name: "assign an editor to a session",
+		permissionLevel: "admin-only",
+		call: (client, { bookingId }) =>
+			client.mutation(assignSessionEditor, {
+				bookingId,
+				editorTokenIdentifier: editorMetadataIdentity.tokenIdentifier
 			})
 	}
 ];
@@ -607,6 +629,23 @@ async function findEditorProfile(t: TestClient, tokenIdentifier: string) {
 			.unique()
 	);
 }
+
+describe("restricted editor sessions authorization", () => {
+	test("rejects signed-out callers", async () => {
+		await expect(
+			createConvexTest().query(listEditorSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHENTICATED" } });
+	});
+
+	test("rejects callers without an active editor profile", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, false);
+
+		await expect(
+			t.withIdentity(editorMetadataIdentity).query(listEditorSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
+	});
+});
 
 describe("requirePermission", () => {
 	test("rejects signed-out callers", async () => {
