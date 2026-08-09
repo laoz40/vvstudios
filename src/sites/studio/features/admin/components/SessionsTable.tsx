@@ -131,23 +131,32 @@ export function SessionsTable({
 
 			<div className="overflow-x-auto border-y">
 				<Table className="w-full min-w-7xl table-fixed">
+					<colgroup>
+						<col className="w-12 md:w-8" />
+						<col className="w-56 md:w-36" />
+						<col className="w-24 md:w-16" />
+						<col className="w-56 md:w-32" />
+						<col className="w-56 md:w-40" />
+						<col className="w-16" />
+						<col className="w-86 md:w-56" />
+						<col className="w-16 md:w-8" />
+						<col className="w-24 md:w-16" />
+						<col className="w-24 md:w-16" />
+						<col className="w-6" />
+					</colgroup>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-16 md:w-8 text-center">Status</TableHead>
-							<TableHead className="w-36">{renderSortButton("Customer", "name")}</TableHead>
-							<TableHead className="w-28 md:w-16">
-								{renderSortButton("Session", "session")}
-							</TableHead>
-							<TableHead className="w-44">Service</TableHead>
-							<TableHead className="w-56 md:w-36">Contact</TableHead>
-							<TableHead className="w-16 text-center">Package</TableHead>
-							<TableHead className="w-48">Notes</TableHead>
-							<TableHead className="w-16 md:w-12 text-center">Amount</TableHead>
-							<TableHead className="w-24 md:w-16 text-center">Deliverables</TableHead>
-							<TableHead className="w-28 md:w-16">
-								{renderSortButton("Created", "createdAt")}
-							</TableHead>
-							<TableHead className="w-12 md:w-6" />
+							<TableHead className="text-center">Status</TableHead>
+							<TableHead>{renderSortButton("Customer", "name")}</TableHead>
+							<TableHead>{renderSortButton("Session", "session")}</TableHead>
+							<TableHead>Service</TableHead>
+							<TableHead>Contact</TableHead>
+							<TableHead className="text-center">Package</TableHead>
+							<TableHead>Notes</TableHead>
+							<TableHead className="text-center">Amount</TableHead>
+							<TableHead className="text-center">Deliverables</TableHead>
+							<TableHead>{renderSortButton("Created", "createdAt")}</TableHead>
+							<TableHead />
 						</TableRow>
 					</TableHeader>
 					<TableBody>

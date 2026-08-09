@@ -99,10 +99,21 @@ export function PackagesTable({
 
 			<div className="overflow-x-auto border-y">
 				<Table className="w-full min-w-7xl table-fixed">
+					<colgroup>
+						<col className="w-8 md:w-6" />
+						<col className="w-42 md:w-36" />
+						<col className="w-20 md:w-16" />
+						<col className="w-36 md:w-28" />
+						<col className="w-48" />
+						<col className="w-16 md:w-12" />
+						<col className="w-20 md:w-8" />
+						<col className="w-20 md:w-12" />
+						<col className="w-6" />
+					</colgroup>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-16 md:w-5 text-center">Status</TableHead>
-							<TableHead className="w-36">
+							<TableHead className="text-center">Status</TableHead>
+							<TableHead>
 								<SortHeaderButton
 									label="Customer"
 									isActive={sort.column === "customer"}
@@ -110,12 +121,12 @@ export function PackagesTable({
 									onClick={() => updateSort("customer")}
 								/>
 							</TableHead>
-							<TableHead className="w-28 md:w-12">Package</TableHead>
-							<TableHead className="w-32">Add-ons (Fixed)</TableHead>
-							<TableHead className="w-56 md:w-36">Contact</TableHead>
-							<TableHead className="w-12">Due / Expiry</TableHead>
-							<TableHead className="w-8 text-right">Amount</TableHead>
-							<TableHead className="w-28 md:w-12">
+							<TableHead>Package</TableHead>
+							<TableHead>Add-ons (Fixed)</TableHead>
+							<TableHead>Contact</TableHead>
+							<TableHead>Due / Expiry</TableHead>
+							<TableHead className="text-right">Amount</TableHead>
+							<TableHead>
 								<SortHeaderButton
 									label="Created"
 									isActive={sort.column === "created"}
@@ -123,7 +134,7 @@ export function PackagesTable({
 									onClick={() => updateSort("created")}
 								/>
 							</TableHead>
-							<TableHead className="w-12 md:w-4" />
+							<TableHead />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
