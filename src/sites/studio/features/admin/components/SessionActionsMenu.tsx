@@ -12,6 +12,7 @@ import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { cn } from "#/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -24,15 +25,17 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
 import {
 	SessionEditorAssignment,
 	type ActiveEditor
 } from "#studio/features/admin/components/SessionEditorAssignment";
-import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
 import {
 	EDIT_STATUS_OPTIONS,
-	deliverableStatusDotClassNameMap,
-	deliverableStatusLabelMap
+	deliverableStatusIconMap,
+	deliverableStatusLabelMap,
+	deliverableStatusTabClassNameMap,
+	deliverableStatusTabLabelMap
 } from "#studio/features/admin/lib/session-edit-status";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
@@ -103,7 +106,7 @@ export function SessionActionsMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
-				className="w-72 touch-manipulation">
+				className="w-80 touch-manipulation">
 				<DropdownMenuGroup>
 					<div className="flex items-center gap-2 px-2 py-1">
 						<a
@@ -155,33 +158,15 @@ export function SessionActionsMenu({
 				{details.canManageConfirmedSession ? (
 					<>
 						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="text-muted-foreground text-sm">
+						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
 							Payment status
 						</DropdownMenuLabel>
-						<div className="flex items-center gap-2 px-2 pb-2">
-							<StatusCircleButton
-								ariaLabel="Mark balance unpaid"
-								className="bg-destructive"
-								disabled={
-									paymentActions.isUpdatingPaidRemainingBalance ||
-									!paymentActions.isPaidRemainingBalance
-								}
-								isSelected={!paymentActions.isPaidRemainingBalance}
-								onClick={() => {
-									void paymentActions.handleSetPaidRemainingBalance(false);
-								}}
-							/>
-							<StatusCircleButton
-								ariaLabel="Mark balance paid"
-								className="bg-green"
-								disabled={
-									paymentActions.isUpdatingPaidRemainingBalance ||
-									paymentActions.isPaidRemainingBalance
-								}
-								isSelected={paymentActions.isPaidRemainingBalance}
-								onClick={() => {
-									void paymentActions.handleSetPaidRemainingBalance(true);
-								}}
+						<div className="px-2 pb-2">
+							<PaymentStatusTabs
+								disabled={paymentActions.isUpdatingPaidRemainingBalance}
+								isPaid={paymentActions.isPaidRemainingBalance}
+								onMarkPaid={() => void paymentActions.handleSetPaidRemainingBalance(true)}
+								onMarkUnpaid={() => void paymentActions.handleSetPaidRemainingBalance(false)}
 							/>
 						</div>
 					</>
@@ -189,24 +174,36 @@ export function SessionActionsMenu({
 				<DropdownMenuSeparator />
 				{details.canManageConfirmedSession && details.isPastSession ? (
 					<>
-						<DropdownMenuLabel className="text-muted-foreground text-sm">
+						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
 							Deliverables
 						</DropdownMenuLabel>
-						<div className="flex items-center gap-2 px-2 pb-2">
-							{EDIT_STATUS_OPTIONS.map((option) => (
-								<StatusCircleButton
-									key={option}
-									ariaLabel={deliverableStatusLabelMap[option]}
-									className={deliverableStatusDotClassNameMap[option]}
-									disabled={
-										statusActions.isUpdatingEditStatus || statusActions.deliverableStatus === option
-									}
-									isSelected={statusActions.deliverableStatus === option}
-									onClick={() => {
-										void statusActions.handleUpdateEditStatus(option);
-									}}
-								/>
-							))}
+						<div className="px-2 pb-2">
+							<Tabs value={statusActions.deliverableStatus}>
+								<TabsList className="w-full bg-background/60">
+									{EDIT_STATUS_OPTIONS.map((option) => {
+										const Icon = deliverableStatusIconMap[option];
+										const tabLabel =
+											option === statusActions.deliverableStatus
+												? deliverableStatusLabelMap[option]
+												: deliverableStatusTabLabelMap[option];
+
+										return (
+											<TabsTrigger
+												key={option}
+												value={option}
+												className={deliverableStatusTabClassNameMap[option]}
+												disabled={
+													statusActions.isUpdatingEditStatus ||
+													statusActions.deliverableStatus === option
+												}
+												onClick={() => void statusActions.handleUpdateEditStatus(option)}>
+												<Icon aria-hidden />
+												{tabLabel}
+											</TabsTrigger>
+										);
+									})}
+								</TabsList>
+							</Tabs>
 						</div>
 						<div className="px-2 pb-2">
 							<SessionEditorAssignment
@@ -244,7 +241,7 @@ export function SessionActionsMenu({
 						/>
 						Other
 					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="w-72 touch-manipulation">
+					<DropdownMenuSubContent className="w-80 touch-manipulation">
 						{details.canManageConfirmedSession ? (
 							<>
 								<AnimatedDropdownMenuItem

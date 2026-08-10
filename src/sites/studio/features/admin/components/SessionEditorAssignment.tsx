@@ -68,7 +68,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 			onValueChange={(selectedValue) => void updateAssignment(selectedValue)}>
 			<SelectTrigger
 				size="sm"
-				className="w-full"
+				className="w-full bg-background/60 dark:bg-background/60 dark:hover:bg-background/60"
 				aria-label={`Editor assigned to ${session.name}`}>
 				{isSaving ? (
 					<>
@@ -79,7 +79,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 					<SelectValue placeholder="No editor assigned" />
 				)}
 			</SelectTrigger>
-			<SelectContent>
+			<SelectContent className="bg-background">
 				<SelectGroup>
 					<SelectItem value={UNASSIGNED_VALUE}>No editor assigned</SelectItem>
 					{activeEditors.map((editor) => (

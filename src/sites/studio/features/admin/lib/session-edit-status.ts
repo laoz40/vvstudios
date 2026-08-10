@@ -3,9 +3,12 @@ import {
 	Ban,
 	Check,
 	CalendarX2,
+	CircleX,
 	Clock,
 	ClockFading,
 	MailWarning,
+	Pencil,
+	Send,
 	type LucideIcon
 } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
@@ -55,6 +58,11 @@ export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
 	completed: "Sent"
 };
 
+export const deliverableStatusTabLabelMap: Record<DeliverableStatus, string> = {
+	...deliverableStatusLabelMap,
+	completed: "Deliver"
+};
+
 export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
@@ -65,6 +73,21 @@ export const deliverableStatusDotClassNameMap: Record<DeliverableStatus, string>
 	to_edit: "bg-destructive",
 	editing: "bg-primary",
 	completed: "bg-green"
+};
+
+export const deliverableStatusIconMap: Record<DeliverableStatus, LucideIcon> = {
+	to_edit: CircleX,
+	editing: Pencil,
+	completed: Send
+};
+
+export const deliverableStatusTabClassNameMap: Record<DeliverableStatus, string> = {
+	to_edit:
+		"hover:border-input hover:bg-input/30 hover:text-destructive hover:shadow-sm focus-visible:text-destructive disabled:opacity-100 data-[state=active]:text-destructive dark:hover:text-destructive dark:focus-visible:text-destructive dark:data-[state=active]:text-destructive",
+	editing:
+		"hover:border-input hover:bg-input/30 hover:text-primary hover:shadow-sm focus-visible:text-primary disabled:opacity-100 data-[state=active]:text-primary dark:hover:text-primary dark:focus-visible:text-primary dark:data-[state=active]:text-primary",
+	completed:
+		"hover:border-input hover:bg-input/30 hover:text-green hover:shadow-sm focus-visible:text-green disabled:opacity-100 data-[state=active]:text-green dark:hover:text-green dark:focus-visible:text-green dark:data-[state=active]:text-green"
 };
 
 export const deliverableStatusBadgeVariantMap: Record<
