@@ -59,10 +59,24 @@ function DashboardAccessGate() {
 	}
 
 	const [accessError, access] = accessResult;
-	if (accessError !== null || !hasPermission(access.permissions, "view:sessions")) {
+	if (accessError !== null) {
+		switch (accessError.reason) {
+			case "NOT_AUTHENTICATED":
+				return <BackendAuthErrorPage />;
+			case "NOT_AUTHORIZED":
+				return <DashboardForbiddenPage />;
+			default: {
+				const _exhaustive: never = accessError;
+				return _exhaustive;
+			}
+		}
+	}
+
+	if (!hasPermission(access.permissions, "view:sessions")) {
 		return <DashboardForbiddenPage />;
 	}
 
+	// If user has permission to view packages, they are an admin.
 	if (hasPermission(access.permissions, "view:packages")) {
 		return <AdminDashboard />;
 	}
