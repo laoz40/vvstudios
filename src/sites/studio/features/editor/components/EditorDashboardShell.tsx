@@ -43,7 +43,7 @@ export function EditorDashboardShell() {
 				<DashboardSignOutButton email={email ?? null} />
 			</header>
 
-			<EditorSessionsTable session={sessions.results.at(0)} />
+			<EditorSessionsTable sessions={sessions.results} />
 		</main>
 	);
 }

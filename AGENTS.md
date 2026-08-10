@@ -74,6 +74,9 @@ Do these practices:
 ### Convex
 
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
+- Keep Convex handlers as boundary adapters: each handler should call one service function and use `.match(tupleOk, tupleErr)` to convert the service `Result` into the tuple returned to the client.
+- Put service functions in `convex/services`. A service function should contain only a readable `andThen` chain of domain operations. Each successful operation passes its `ok` value to the next operation; the chain stops at the first `err` and returns that error.
+- Put the domain operations used by service chains in the nearest appropriate file under `convex/lib`. Do not define helper operations in service files; `convex/services` should contain only the service chain functions.
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal`; the `internal.*` namespace already communicates visibility.
 - Refer to the `multiBookingPackages` domain concept as a package in code names, such as `packageId`, `packageFromDb`, and `packageSessions`. Keep existing schema table and field names that contain `multiBooking`; do not rename them or add a migration solely for this naming preference.

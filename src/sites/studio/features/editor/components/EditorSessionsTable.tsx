@@ -6,8 +6,8 @@ import { EditorSessionTableRow } from "#studio/features/editor/components/Editor
 
 type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
 
-export function EditorSessionsTable({ session }: { session: EditorSession | undefined }) {
-	if (!session) {
+export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] }) {
+	if (sessions.length === 0) {
 		return (
 			<section className="flex min-h-64 items-center justify-center px-6 py-12 text-center">
 				<div className="flex max-w-sm flex-col items-center gap-3">
@@ -44,7 +44,12 @@ export function EditorSessionsTable({ session }: { session: EditorSession | unde
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					<EditorSessionTableRow session={session} />
+					{sessions.map((session) => (
+						<EditorSessionTableRow
+							key={session._id}
+							session={session}
+						/>
+					))}
 				</TableBody>
 			</Table>
 		</section>
