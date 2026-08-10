@@ -6,6 +6,19 @@ import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
+const deliverablesEmailErrorMessage = {
+	NOT_AUTHENTICATED: "You are not signed in.",
+	NOT_AUTHORIZED: "You do not have access to send deliverables emails.",
+	BOOKING_NOT_FOUND: "That session no longer exists.",
+	SESSION_NOT_ASSIGNED_TO_EDITOR: "This session is not eligible for a deliverables email.",
+	SESSION_NOT_CONFIRMED: "This session is not eligible for a deliverables email.",
+	SESSION_ARCHIVED: "This session is not eligible for a deliverables email.",
+	SESSION_NOT_IN_PAST: "This session is not eligible for a deliverables email.",
+	INVALID_DRIVE_LINK: "Enter a valid Google Drive link.",
+	DELIVERABLES_SEND_FAILED: "Unable to send deliverables email.",
+	UNEXPECTED_ERROR: "Something went wrong while sending the deliverables email."
+} as const;
+
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
 
 export function useDeliverablesEmailAction(session: SessionRecord) {
@@ -42,32 +55,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		);
 
 		if (emailError !== null) {
-			switch (emailError.reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to send deliverables emails.");
-					break;
-				case "BOOKING_NOT_FOUND":
-					toast.error("That session no longer exists.");
-					break;
-				case "INVALID_DRIVE_LINK":
-					toast.error("Enter a valid Google Drive link.");
-					break;
-				case "DELIVERABLES_SEND_FAILED":
-					toast.error("Unable to send deliverables email.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while sending the deliverables email.");
-					break;
-				default: {
-					const _exhaustive: never = emailError;
-					void _exhaustive;
-					break;
-				}
-			}
-
+			toast.error(deliverablesEmailErrorMessage[emailError.reason]);
 			setIsEmailingDeliverables(false);
 			return;
 		}

@@ -113,7 +113,7 @@ export function SessionActionsDialogs({
 
 			<DeliverablesEmailDialog
 				open={deliverablesEmailAction.isDeliverablesEmailDialogOpen}
-				bookingEmail={session.email}
+				recipient={{ visibility: "shown", email: session.email }}
 				bookingId={session._id}
 				bookingName={session.name}
 				driveLink={deliverablesEmailAction.deliverablesDriveLinkDraft}

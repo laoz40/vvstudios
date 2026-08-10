@@ -37,7 +37,7 @@ function AdminRouteError() {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12 text-center">
 			<div className="max-w-md space-y-4">
-				<h1 className="text-3xl font-semibold tracking-tight">Could not load admin dashboard.</h1>
+				<h1 className="text-3xl font-semibold tracking-tight">Could not load dashboard.</h1>
 				<p className="text-muted-foreground">
 					Your session may have expired, or this account may not have permission to view bookings.
 				</p>

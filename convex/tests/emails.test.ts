@@ -1,14 +1,18 @@
 /**
- * These tests cover the manual deliverables email sent by an administrator.
- *
- * Unauthorized users, missing bookings, and invalid Google Drive links must not call the email
- * provider. A valid request sends the booking's customer details and normalized Drive link, while
- * provider failures return the stable recoverable error.
- *
- * These tests also cover public feedback submissions. Blank and rate-limited messages must not send;
- * valid untrusted content reaches the escaping email boundary, and provider failures remain stable.
- * Email delivery is replaced with controlled fakes.
+ * Email tests:
+ * 1. Deliverables emails reject anonymous and unauthorized callers without sending.
+ * 2. Missing bookings and invalid Drive links are rejected without sending.
+ * 3. Admin sends include normalized booking details and optional editor notes.
+ * 4. Assigned editors can send deliverables emails for eligible sessions.
+ * 5. Editors cannot send for unassigned sessions or sessions assigned to another editor.
+ * 6. Editors cannot send for future, archived, or unconfirmed sessions.
+ * 7. Deliverables provider failures return a stable error.
+ * 8. Blank and rate-limited feedback is rejected without sending.
+ * 9. Valid feedback is trimmed before sending.
+ * 10. Untrusted feedback is escaped in the provider HTML payload.
+ * 11. Feedback provider failures return a stable error.
  */
+import type { UserIdentity } from "convex/server";
 import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -38,6 +42,18 @@ vi.mock("#convex/lib/rateLimits", () => ({ rateLimiter: { limit: providerFakes.r
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const adminIdentity = { publicMetadata: { role: "admin" } };
+const editorIdentity: UserIdentity = {
+	tokenIdentifier: "https://clerk.example|editor-one",
+	subject: "editor-one",
+	issuer: "https://clerk.example",
+	publicMetadata: { role: "editor" }
+};
+const otherEditorIdentity: UserIdentity = {
+	tokenIdentifier: "https://clerk.example|editor-two",
+	subject: "editor-two",
+	issuer: "https://clerk.example",
+	publicMetadata: { role: "editor" }
+};
 const validDriveLink = "https://drive.google.com/drive/folders/folder-id";
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -114,13 +130,83 @@ describe("deliverables email", () => {
 		expect(result).toEqual([null, null]);
 		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledTimes(1);
 		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledWith({
-			date: "2030-01-10",
+			date: "2020-01-10",
 			driveLink: `${validDriveLink}/?usp=sharing`,
 			editorNotes: "Final mix included",
 			email: "customer@example.com",
 			emailVariant: "recurring",
 			name: "Deliverables customer"
 		});
+	});
+
+	test("allows an assigned editor to send for an eligible session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		const result = await t
+			.withIdentity(editorIdentity)
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
+				bookingId,
+				driveLink: validDriveLink,
+				emailVariant: "first-time"
+			});
+
+		expect(result).toEqual([null, null]);
+		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledTimes(1);
+		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledWith(
+			expect.objectContaining({ email: "customer@example.com", name: "Deliverables customer" })
+		);
+	});
+
+	test.each([
+		{ label: "an unassigned session", options: {}, reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" },
+		{
+			label: "another editor's session",
+			options: { assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier },
+			reason: "SESSION_NOT_ASSIGNED_TO_EDITOR"
+		},
+		{
+			label: "a future session",
+			options: {
+				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+				sessionStartAt: Date.parse("2100-01-01T00:00:00.000Z")
+			},
+			reason: "SESSION_NOT_IN_PAST"
+		},
+		{
+			label: "an archived session",
+			options: {
+				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+				hiddenAt: Date.parse("2020-01-10T00:00:00.000Z")
+			},
+			reason: "SESSION_ARCHIVED"
+		},
+		{
+			label: "an unconfirmed session",
+			options: {
+				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+				status: "pending_payment" as const
+			},
+			reason: "SESSION_NOT_CONFIRMED"
+		}
+	])("rejects an editor send for $label without sending", async ({ options, reason }) => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, options);
+
+		const result = await t
+			.withIdentity(editorIdentity)
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
+				bookingId,
+				driveLink: validDriveLink,
+				emailVariant: "first-time"
+			});
+
+		expect(result).toEqual([{ reason }, null]);
+		expect(providerFakes.sendDeliverablesEmail).not.toHaveBeenCalled();
 	});
 
 	test("returns the stable failure when the provider cannot send", async () => {
@@ -205,21 +291,41 @@ describe("feedback email", () => {
 	});
 });
 
-async function seedBooking(t: TestClient) {
+type BookingOptions = {
+	assignedEditorTokenIdentifier?: string;
+	hiddenAt?: number;
+	sessionStartAt?: number;
+	status?: "confirmed" | "pending_payment";
+};
+
+async function seedEditorProfile(t: TestClient, identity: UserIdentity): Promise<void> {
+	await t.run((ctx) =>
+		ctx.db.insert("editorProfiles", {
+			tokenIdentifier: identity.tokenIdentifier,
+			displayName: identity.subject,
+			email: `${identity.subject}@example.com`,
+			isActive: true
+		})
+	);
+}
+
+async function seedBooking(t: TestClient, options: BookingOptions = {}) {
 	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Deliverables customer",
 			phone: "0400000000",
 			accountName: "Deliverables account",
 			email: "customer@example.com",
-			date: "2030-01-10",
+			date: "2020-01-10",
 			time: "10:00",
-			sessionStartAt: Date.parse("2030-01-09T23:00:00.000Z"),
+			sessionStartAt: options.sessionStartAt ?? Date.parse("2020-01-09T23:00:00.000Z"),
 			duration: "1 hour",
 			service: "Remote Podcast",
 			addons: [],
-			status: "confirmed",
-			pendingPaymentCreatedAt: now
+			status: options.status ?? "confirmed",
+			pendingPaymentCreatedAt: now,
+			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
+			hiddenAt: options.hiddenAt
 		})
 	);
 }

@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
@@ -17,8 +17,9 @@ import { SessionCustomerSummary } from "#studio/features/admin/components/Sessio
 import type { Doc } from "#convex/_generated/dataModel";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
+type DeliverablesRecipient = { visibility: "shown"; email: string } | { visibility: "hidden" };
+
 export type DeliverablesEmailDialogProps = {
-	bookingEmail: string;
 	bookingId: Doc<"bookings">["_id"];
 	bookingName: string;
 	driveLink: string;
@@ -33,6 +34,7 @@ export type DeliverablesEmailDialogProps = {
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
+	recipient: DeliverablesRecipient;
 };
 
 function isDeliverablesEmailVariant(value: string): value is DeliverablesEmailVariant {
@@ -40,7 +42,6 @@ function isDeliverablesEmailVariant(value: string): value is DeliverablesEmailVa
 }
 
 export function DeliverablesEmailDialog({
-	bookingEmail,
 	bookingId,
 	bookingName,
 	driveLink,
@@ -54,7 +55,8 @@ export function DeliverablesEmailDialog({
 	onMarkAsSentAfterSendingChange,
 	onOpenChange,
 	onSend,
-	open
+	open,
+	recipient
 }: DeliverablesEmailDialogProps) {
 	return (
 		<Dialog
@@ -94,10 +96,12 @@ export function DeliverablesEmailDialog({
 					<DialogTitle>Send Deliverables Email</DialogTitle>
 				</DialogHeader>
 
-				<SessionCustomerSummary
-					bookingName={bookingName}
-					bookingEmail={bookingEmail}
-				/>
+				{recipient.visibility === "shown" ? (
+					<SessionCustomerSummary
+						bookingName={bookingName}
+						bookingEmail={recipient.email}
+					/>
+				) : null}
 
 				<FieldGroup>
 					<Field>
@@ -138,7 +142,7 @@ export function DeliverablesEmailDialog({
 
 					<Field>
 						<FieldLabel htmlFor={`deliverables-editor-notes-${bookingId}`}>
-							Editor notes (optional)
+							Editor notes to client (optional)
 						</FieldLabel>
 						<Textarea
 							id={`deliverables-editor-notes-${bookingId}`}
@@ -152,15 +156,20 @@ export function DeliverablesEmailDialog({
 					<Field orientation="horizontal">
 						<Checkbox
 							id={`deliverables-mark-sent-${bookingId}`}
-							checked={markAsSentAfterSending}
+							checked={!markAsSentAfterSending}
 							onCheckedChange={(checked) => {
-								onMarkAsSentAfterSendingChange(checked === true);
+								onMarkAsSentAfterSendingChange(checked !== true);
 							}}
 							disabled={isSending}
 						/>
-						<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
-							Mark deliverables as sent after sending
-						</FieldLabel>
+						<div className="flex flex-col gap-1">
+							<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
+								Don&apos;t set status to sent
+							</FieldLabel>
+							<FieldDescription>
+								Check this if there are more deliverables to send later.
+							</FieldDescription>
+						</div>
 					</Field>
 				</FieldGroup>
 

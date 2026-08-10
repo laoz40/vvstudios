@@ -15,12 +15,15 @@ import PenIcon from "#/components/ui/pen-icon";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
+import { useEditorDeliverablesEmailAction } from "#studio/features/editor/hooks/useEditorDeliverablesEmailAction";
 
 type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
 
 export function EditorDeliverablesActions({ session }: { session: EditorSession }) {
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
+	const emailAction = useEditorDeliverablesEmailAction(session);
 	const [isUpdating, setIsUpdating] = useState(false);
 
 	async function handleStatusChange(editStatus: "editing" | "completed") {
@@ -39,60 +42,79 @@ export function EditorDeliverablesActions({ session }: { session: EditorSession 
 	}
 
 	return (
-		<DropdownMenu modal={false}>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant="ghost"
-					size={isUpdating ? "sm" : "icon-sm"}
-					disabled={isUpdating}>
-					{isUpdating ? (
-						<>
-							<LoaderCircle
-								data-icon="inline-start"
-								className="animate-spin"
-							/>
-							Updating
-						</>
-					) : (
-						<>
-							<Ellipsis aria-hidden />
-							<span className="sr-only">Open deliverables actions for {session.name}</span>
-						</>
-					)}
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end">
-				<DropdownMenuGroup>
-					<AnimatedDropdownMenuItem
-						className="hover:text-primary focus:text-primary"
-						disabled={session.editStatus === "editing"}
-						onSelect={() => void handleStatusChange("editing")}
-						renderIcon={(iconRef) => (
-							<PenIcon
-								ref={iconRef}
-								size={16}
-								aria-hidden
-								className="shrink-0 text-current"
-							/>
-						)}>
-						Set editing
-					</AnimatedDropdownMenuItem>
-					<AnimatedDropdownMenuItem
-						className="hover:text-green focus:text-green"
-						disabled={session.editStatus === "completed"}
-						onSelect={() => void handleStatusChange("completed")}
-						renderIcon={(iconRef) => (
-							<MailFilledIcon
-								ref={iconRef}
-								size={16}
-								aria-hidden
-								className="shrink-0 text-current"
-							/>
-						)}>
-						Email deliverables
-					</AnimatedDropdownMenuItem>
-				</DropdownMenuGroup>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<>
+			<DropdownMenu modal={false}>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size={isUpdating ? "sm" : "icon-sm"}
+						disabled={isUpdating}>
+						{isUpdating ? (
+							<>
+								<LoaderCircle
+									data-icon="inline-start"
+									className="animate-spin"
+								/>
+								Updating
+							</>
+						) : (
+							<>
+								<Ellipsis aria-hidden />
+								<span className="sr-only">Open deliverables actions for {session.name}</span>
+							</>
+						)}
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuGroup>
+						<AnimatedDropdownMenuItem
+							className="hover:text-primary focus:text-primary"
+							disabled={session.editStatus === "editing"}
+							onSelect={() => void handleStatusChange("editing")}
+							renderIcon={(iconRef) => (
+								<PenIcon
+									ref={iconRef}
+									size={16}
+									aria-hidden
+									className="shrink-0 text-current"
+								/>
+							)}>
+							Set editing
+						</AnimatedDropdownMenuItem>
+						<AnimatedDropdownMenuItem
+							className="hover:text-green focus:text-green"
+							disabled={emailAction.isSending}
+							onSelect={() => emailAction.setIsOpen(true)}
+							renderIcon={(iconRef) => (
+								<MailFilledIcon
+									ref={iconRef}
+									size={16}
+									aria-hidden
+									className="shrink-0 text-current"
+								/>
+							)}>
+							Email deliverables
+						</AnimatedDropdownMenuItem>
+					</DropdownMenuGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<DeliverablesEmailDialog
+				open={emailAction.isOpen}
+				bookingId={session._id}
+				bookingName={session.name}
+				recipient={{ visibility: "hidden" }}
+				driveLink={emailAction.driveLink}
+				editorNotes={emailAction.editorNotes}
+				emailVariant={emailAction.emailVariant}
+				isSending={emailAction.isSending}
+				markAsSentAfterSending={emailAction.markAsSent}
+				onDriveLinkChange={emailAction.setDriveLink}
+				onEditorNotesChange={emailAction.setEditorNotes}
+				onEmailVariantChange={emailAction.setEmailVariant}
+				onMarkAsSentAfterSendingChange={emailAction.setMarkAsSent}
+				onOpenChange={emailAction.setIsOpen}
+				onSend={() => void emailAction.sendDeliverablesEmail()}
+			/>
+		</>
 	);
 }
