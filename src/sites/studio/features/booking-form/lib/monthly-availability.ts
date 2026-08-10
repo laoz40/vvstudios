@@ -154,10 +154,29 @@ export function getBookableAvailableTimes({
 }
 
 export function isBookingDateDisabled({
+	date,
+	isAvailabilityRateLimited,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	today
+}: {
+	date: Date;
+	isAvailabilityRateLimited: boolean;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
+	today: Date;
+}) {
+	if (date < today || date > lastBookableDate) {
+		return true;
+	}
+
+	return !monthlyBusyWindowsByMonth[formatMonthKey(date)] && isAvailabilityRateLimited;
+}
+
+export function isBookingDateUnavailable({
 	currentTimestamp,
 	date,
 	duration,
-	isAvailabilityRateLimited,
 	lastBookableDate,
 	monthlyBusyWindowsByMonth,
 	settings,
@@ -166,31 +185,79 @@ export function isBookingDateDisabled({
 	currentTimestamp: number;
 	date: Date;
 	duration: string;
-	isAvailabilityRateLimited: boolean;
 	lastBookableDate: Date;
 	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
 	settings: BookingAvailabilitySettings;
 	today: Date;
 }) {
 	if (date < today || date > lastBookableDate) {
-		return true;
+		return false;
 	}
 
-	const monthKey = formatMonthKey(date);
-	const busyDays = monthlyBusyWindowsByMonth[monthKey];
+	const busyDays = monthlyBusyWindowsByMonth[formatMonthKey(date)];
+	if (!busyDays) {
+		return false;
+	}
+
 	const dateValue = formatDateValue(date);
-	const busyDay = busyDays?.find((day) => day.date === dateValue);
-	const availableTimesForDate = getAvailableTimesForDate({
-		busyPeriods: busyDay?.busyPeriods ?? [],
-		currentTimestamp,
-		dateValue,
-		duration,
-		settings
-	});
+	const busyDay = busyDays.find((day) => day.date === dateValue);
+	return (
+		getAvailableTimesForDate({
+			busyPeriods: busyDay?.busyPeriods ?? [],
+			currentTimestamp,
+			dateValue,
+			duration,
+			settings
+		}).length === 0
+	);
+}
 
-	if (!busyDays && isAvailabilityRateLimited) {
-		return true;
+export function getNextAvailableBookingDate({
+	currentTimestamp,
+	duration,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	selectedDate,
+	settings
+}: {
+	currentTimestamp: number;
+	duration: string;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
+	selectedDate: Date | undefined;
+	settings: BookingAvailabilitySettings;
+}) {
+	if (!selectedDate) {
+		return undefined;
 	}
 
-	return availableTimesForDate.length === 0;
+	for (
+		let date = new Date(
+			selectedDate.getFullYear(),
+			selectedDate.getMonth(),
+			selectedDate.getDate() + 1
+		);
+		date <= lastBookableDate;
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+	) {
+		const busyDays = monthlyBusyWindowsByMonth[formatMonthKey(date)];
+		if (!busyDays) {
+			continue;
+		}
+
+		const dateValue = formatDateValue(date);
+		const busyDay = busyDays.find((day) => day.date === dateValue);
+		const availableTimes = getAvailableTimesForDate({
+			busyPeriods: busyDay?.busyPeriods ?? [],
+			currentTimestamp,
+			dateValue,
+			duration,
+			settings
+		});
+		if (availableTimes.length > 0) {
+			return date;
+		}
+	}
+
+	return undefined;
 }

@@ -45,8 +45,10 @@ import {
 	excludeBusyEvent,
 	getBookableAvailableTimes,
 	getBookableMonthKeys,
+	getNextAvailableBookingDate,
 	getSelectedBusyDay,
 	isBookingDateDisabled,
+	isBookingDateUnavailable,
 	mergeBookableRangeBusyWindows,
 	type BusyDayWindow
 } from "#studio/features/booking-form/lib/monthly-availability";
@@ -406,15 +408,30 @@ function PackageScheduleContent({
 	});
 	const disabledDates = (date: Date) =>
 		isBookingDateDisabled({
+			date,
+			isAvailabilityRateLimited: false,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
+			today
+		});
+	const unavailableDates = (date: Date) =>
+		isBookingDateUnavailable({
 			currentTimestamp,
 			date,
 			duration: packageData.duration,
-			isAvailabilityRateLimited: false,
 			lastBookableDate,
 			monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
 			settings: availabilitySettings,
 			today
 		});
+	const nextAvailableDate = getNextAvailableBookingDate({
+		currentTimestamp,
+		duration: packageData.duration,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth: visibleMonthlyBusyWindowsByMonth,
+		selectedDate,
+		settings: availabilitySettings
+	});
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
 		hasDate: Boolean(selectedDateValue),
 		hasDuration: true,
@@ -426,6 +443,9 @@ function PackageScheduleContent({
 		calendarMonth,
 		disabledDates,
 		isLoadingMonthAvailability,
+		nextAvailableDate,
+		selectedBusyPeriods: selectedBusyDay?.busyPeriods ?? [],
+		unavailableDates,
 		isSelectedDateInPast: false,
 		isViewingSelectedMonth,
 		selectedDate,

@@ -8,12 +8,15 @@ import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/s
 import {
 	getBookableAvailableTimes,
 	getBookableMonthKeys,
+	getNextAvailableBookingDate,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
 	isBookingDateDisabled,
+	isBookingDateUnavailable,
 	mergeBookableRangeBusyWindows,
 	type BusyWindowsByMonth
 } from "#studio/features/booking-form/lib/monthly-availability";
+import type { BusyPeriod } from "#studio/lib/bookingdatetime";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
 	formatDateValue,
@@ -32,6 +35,9 @@ export interface BookingAvailabilityPickerState {
 	calendarMonth: Date;
 	disabledDates: (date: Date) => boolean;
 	isLoadingMonthAvailability: boolean;
+	nextAvailableDate: Date | undefined;
+	selectedBusyPeriods: BusyPeriod[];
+	unavailableDates: (date: Date) => boolean;
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
 	selectedDate: Date | undefined;
@@ -162,24 +168,54 @@ export function useBookingAvailability({
 	const disabledDates = useMemo(() => {
 		return (disabledDate: Date) =>
 			isBookingDateDisabled({
-				currentTimestamp,
 				date: disabledDate,
-				duration,
 				isAvailabilityRateLimited,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				today
+			});
+	}, [isAvailabilityRateLimited, lastBookableDate, monthlyBusyWindowsByMonth, today]);
+
+	const unavailableDates = useMemo(
+		() => (calendarDate: Date) =>
+			isBookingDateUnavailable({
+				currentTimestamp,
+				date: calendarDate,
+				duration,
 				lastBookableDate,
 				monthlyBusyWindowsByMonth,
 				settings: availabilitySettings,
 				today
-			});
-	}, [
-		currentTimestamp,
-		duration,
-		isAvailabilityRateLimited,
-		lastBookableDate,
-		monthlyBusyWindowsByMonth,
-		availabilitySettings,
-		today
-	]);
+			}),
+		[
+			availabilitySettings,
+			currentTimestamp,
+			duration,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			today
+		]
+	);
+
+	const nextAvailableDate = useMemo(
+		() =>
+			getNextAvailableBookingDate({
+				currentTimestamp,
+				duration,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				selectedDate,
+				settings: availabilitySettings
+			}),
+		[
+			availabilitySettings,
+			currentTimestamp,
+			duration,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedDate
+		]
+	);
 
 	// Available times for the selected date
 	const availableTimes = useMemo<string[]>(() => {
@@ -267,6 +303,9 @@ export function useBookingAvailability({
 		calendarMonth,
 		disabledDates,
 		isLoadingMonthAvailability,
+		nextAvailableDate,
+		selectedBusyPeriods: selectedBusyDay?.busyPeriods ?? [],
+		unavailableDates,
 		isSelectedDateInPast,
 		isViewingSelectedMonth,
 		selectedDate,
