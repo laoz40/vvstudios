@@ -22,6 +22,7 @@ import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStat
 import { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import {
 	getPackageArchiveActionLabel,
+	isAdminPackageAdjustmentPaymentEligible,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 
@@ -129,7 +130,10 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 							</DropdownMenuLabel>
 							<div className="px-2 pb-2">
 								<PaymentStatusTabs
-									disabled={isActionPending || packageRow.adjustment.invoiceEmailStatus !== "sent"}
+									disabled={
+										isActionPending ||
+										!isAdminPackageAdjustmentPaymentEligible(packageRow.adjustment)
+									}
 									isPaid={packageRow.adjustment.paymentStatus === "paid"}
 									onMarkPaid={() => void handleAdjustmentPaymentChange(true)}
 									onMarkUnpaid={() => void handleAdjustmentPaymentChange(false)}

@@ -5,6 +5,7 @@ import { requirePermission } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
 	getSentPackageAdjustmentInvoice,
+	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
@@ -122,7 +123,8 @@ export function markPackageAdjustmentPaymentStatusService(
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
 	return requirePermission(ctx, "update:payment-status")
-		.andThen(() => getSentPackageAdjustmentInvoice(ctx, args.adjustmentId))
+		.andThen(() => getPackageAdjustmentInvoice(ctx, args.adjustmentId))
+		.andThen((adjustment) => requirePackageAdjustmentPaymentEligibility(adjustment, Date.now()))
 		.andThen((adjustment) =>
 			okOrThrow(
 				ctx.db

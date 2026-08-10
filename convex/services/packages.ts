@@ -81,6 +81,8 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 						return {
 							...packageFromDb,
 							bookedSessions: packageSessions.length,
+							// An adjustment record (including no-charge) is created only after all sessions end.
+							areSessionsComplete: packageAdjustment !== null,
 							adjustment:
 								packageAdjustment?.outcome === "invoice_required"
 									? {

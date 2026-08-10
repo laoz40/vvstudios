@@ -20,8 +20,8 @@
  *
  * 5. Which sessions are charged and when an invoice can be used
  *    Only completed Remote Podcast sessions from this package are charged. The final adjustment
- *    waits until every package slot is booked and every session has ended. An admin can change
- *    payment status or download the invoice only after the invoice email was sent.
+ *    waits until every package slot is booked and every session has ended. Payment status can
+ *    change after sending or once overdue, while downloads always require a sent invoice.
  *
  * Invoice email delivery is replaced with a fake, so no real provider request is made.
  */
@@ -196,7 +196,7 @@ describe("package adjustment closeout", () => {
 
 describe("package adjustment payment and download", () => {
 	test.each(["pending", "failed"] as const)(
-		"rejects payment changes and downloads while invoice email is %s",
+		"rejects non-overdue payment changes and downloads while invoice email is %s",
 		async (invoiceEmailStatus) => {
 			const t = createConvexTest();
 			const { adjustmentId } = await seedInvoiceAdjustment(t, invoiceEmailStatus);
@@ -214,6 +214,28 @@ describe("package adjustment payment and download", () => {
 			expect(paymentResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
 			expect(downloadResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
 			expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
+		}
+	);
+
+	test.each(["pending", "failed"] as const)(
+		"allows overdue payment changes but rejects downloads while invoice email is %s",
+		async (invoiceEmailStatus) => {
+			const t = createConvexTest();
+			const { adjustmentId } = await seedInvoiceAdjustment(t, invoiceEmailStatus, now - 1);
+			const admin = t.withIdentity(adminIdentity);
+
+			expect(
+				await admin.mutation(api.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+					adjustmentId,
+					paid: true
+				})
+			).toEqual([null, null]);
+			expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid" });
+			expect(
+				await admin.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, {
+					adjustmentId
+				})
+			).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
 		}
 	);
 
@@ -452,7 +474,8 @@ async function processCompletedPackage(t: TestClient, packageId: Id<"multiBookin
 
 async function seedInvoiceAdjustment(
 	t: TestClient,
-	invoiceEmailStatus: "pending" | "sent" | "failed"
+	invoiceEmailStatus: "pending" | "sent" | "failed",
+	invoiceDueAt = now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS
 ) {
 	const packageId = await seedPaidPackage(t);
 	const adjustmentId = await t.run((ctx) =>
@@ -466,7 +489,7 @@ async function seedInvoiceAdjustment(
 			totalAmount: 150,
 			invoiceNumber: "TEST-ADJ-1",
 			createdAt: now,
-			invoiceDueAt: now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
+			invoiceDueAt,
 			invoiceEmailStatus,
 			paymentStatus: "unpaid"
 		})
