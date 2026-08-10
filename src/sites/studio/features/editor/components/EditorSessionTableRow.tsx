@@ -10,10 +10,12 @@ import {
 	deliverableStatusLabelMap,
 	type DeliverableStatus
 } from "#studio/features/admin/lib/session-edit-status";
+import { EditorDeliverablesActions } from "#studio/features/editor/components/EditorDeliverablesActions";
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
-	getBookingDayDifference
+	getBookingDayDifference,
+	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
 type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
@@ -41,6 +43,7 @@ function getSessionDateSubtitle(date: string, time: string) {
 export function EditorSessionTableRow({ session }: { session: EditorSession }) {
 	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
 	const dateSubtitle = getSessionDateSubtitle(session.date, session.time);
+	const isPastSession = !isUpcomingBooking(session.date, session.time);
 
 	return (
 		<TableRow>
@@ -85,6 +88,9 @@ export function EditorSessionTableRow({ session }: { session: EditorSession }) {
 				<p className="whitespace-normal text-sm text-muted-foreground">
 					{session.notes?.trim() || "No notes"}
 				</p>
+			</TableCell>
+			<TableCell className="text-right">
+				{isPastSession ? <EditorDeliverablesActions session={session} /> : null}
 			</TableCell>
 		</TableRow>
 	);

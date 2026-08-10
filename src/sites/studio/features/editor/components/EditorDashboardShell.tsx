@@ -34,9 +34,9 @@ export function EditorDashboardShell() {
 				"p-3 pb-8 md:p-4 lg:px-6"
 			)}>
 			<header className="flex items-start justify-between gap-4">
-				<Tabs defaultValue="sessions">
+				<Tabs defaultValue="edits">
 					<TabsList variant="line">
-						<TabsTrigger value="sessions">Sessions</TabsTrigger>
+						<TabsTrigger value="edits">Edits</TabsTrigger>
 					</TabsList>
 				</Tabs>
 

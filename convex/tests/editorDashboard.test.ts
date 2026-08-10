@@ -6,6 +6,14 @@
  * 4. An editor receives only confirmed and email-failed bookings that are not archived.
  * 5. The editor query returns useful session fields and add-ons without restricted data.
  * 6. The existing admin query continues to return every booking with its sensitive fields.
+ * 7. An editor can update deliverables status for an assigned, confirmed past session.
+ * 8. An editor cannot update deliverables status for a future session.
+ * 9. An editor cannot update deliverables status for an archived session.
+ * 10. An editor cannot update deliverables status for an unconfirmed session.
+ * 11. An editor cannot update deliverables status for an unassigned session.
+ * 12. An editor cannot update another editor's session deliverables status.
+ * 13. An admin can update an eligible session without an editor assignment.
+ * 14. An admin cannot bypass deliverables eligibility requirements.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -27,6 +35,11 @@ type BookingStatus =
 type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string };
 type AssignmentError = { reason: "EDITOR_NOT_ACTIVE" };
 type AssignmentResult = [AssignmentError | null, null];
+type UpdateSessionEditStatusArgs = {
+	bookingId: Id<"bookings">;
+	editStatus: "to_edit" | "editing" | "completed";
+};
+type UpdateSessionEditStatusResult = [{ reason: string } | null, null];
 type EditorSessionProjection = {
 	_id: Id<"bookings">;
 	name: string;
@@ -57,6 +70,11 @@ const listEditorSessions = makeFunctionReference<
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	EditorSessionsResult
 >("sessions:listEditorSessions");
+const updateSessionEditStatus = makeFunctionReference<
+	"mutation",
+	UpdateSessionEditStatusArgs,
+	UpdateSessionEditStatusResult
+>("sessions:updateSessionEditStatus");
 const paginationOpts = { cursor: null, numItems: 20 };
 
 const adminIdentity: UserIdentity = {
@@ -96,7 +114,12 @@ async function seedEditorProfile(
 async function seedBooking(
 	t: TestClient,
 	name: string,
-	options: { hidden?: boolean; status?: BookingStatus } = {}
+	options: {
+		hidden?: boolean;
+		status?: BookingStatus;
+		sessionStartAt?: number;
+		assignedEditorTokenIdentifier?: string;
+	} = {}
 ): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
 		ctx.db.insert("bookings", {
@@ -108,7 +131,7 @@ async function seedBooking(
 			instagramHandle: `@${name.toLowerCase().replaceAll(" ", "")}`,
 			date: "2030-02-03",
 			time: "10:30",
-			sessionStartAt: Date.parse("2030-02-02T23:30:00.000Z"),
+			sessionStartAt: options.sessionStartAt ?? Date.parse("2030-02-02T23:30:00.000Z"),
 			duration: "1 hour",
 			service: "Remote Podcast",
 			addons: [
@@ -124,6 +147,7 @@ async function seedBooking(
 			notes: `${name} production notes`,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: Date.parse("2030-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			paidRemainingBalance: false,
 			remainingBalanceAmount: 150,
 			editStatus: "editing",
@@ -148,6 +172,29 @@ async function assignBooking(
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
 	return await t.run((ctx) => ctx.db.get(bookingId));
+}
+
+async function updateDeliverablesStatus(
+	t: TestClient,
+	identity: UserIdentity,
+	bookingId: Id<"bookings">
+): Promise<UpdateSessionEditStatusResult> {
+	return await t
+		.withIdentity(identity)
+		.mutation(updateSessionEditStatus, { bookingId, editStatus: "completed" });
+}
+
+async function expectDeliverablesUpdateRejected(
+	t: TestClient,
+	identity: UserIdentity,
+	bookingId: Id<"bookings">
+): Promise<void> {
+	const [error, value] = await updateDeliverablesStatus(t, identity, bookingId);
+	if (error === null) throw new Error("Expected the deliverables update to be rejected");
+
+	expect(typeof error.reason).toBe("string");
+	expect(value).toBeNull();
+	expect(await readBooking(t, bookingId)).toMatchObject({ editStatus: "editing" });
 }
 
 describe("editor assignment", () => {
@@ -292,5 +339,95 @@ describe("restricted editor session query", () => {
 				expect.objectContaining({ name: "Admin Archived Customer" })
 			])
 		);
+	});
+});
+
+describe("deliverables status authorization", () => {
+	test("allows an editor to update an assigned, confirmed past session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Eligible Editor Session", {
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(await updateDeliverablesStatus(t, editorIdentity, bookingId)).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({ editStatus: "completed" });
+	});
+
+	test("rejects an editor update for a future session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Future Editor Session", {
+			sessionStartAt: Date.parse("2100-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+	});
+
+	test("rejects an editor update for an archived session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Archived Editor Session", {
+			hidden: true,
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+	});
+
+	test("rejects an editor update for an unconfirmed session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Pending Editor Session", {
+			status: "pending_payment",
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+	});
+
+	test("rejects an editor update for an unassigned session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Unassigned Editor Session", {
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z")
+		});
+
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+	});
+
+	test("rejects an editor update for another editor's session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+		const bookingId = await seedBooking(t, "Other Editor Session", {
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z"),
+			assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+		});
+
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+	});
+
+	test("allows an admin to update an eligible unassigned session", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, "Eligible Admin Session", {
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z")
+		});
+
+		expect(await updateDeliverablesStatus(t, adminIdentity, bookingId)).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({ editStatus: "completed" });
+	});
+
+	test("does not let an admin bypass session eligibility", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, "Future Admin Session", {
+			sessionStartAt: Date.parse("2100-01-01T00:00:00.000Z")
+		});
+
+		await expectDeliverablesUpdateRejected(t, adminIdentity, bookingId);
 	});
 });

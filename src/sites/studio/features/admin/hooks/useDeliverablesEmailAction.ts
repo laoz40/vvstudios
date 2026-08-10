@@ -1,39 +1,12 @@
 import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
-type UpdateSessionEditStatusResult = FunctionReturnType<
-	typeof api.sessions.updateSessionEditStatus
->;
-type UpdateSessionEditStatusError = NonNullable<UpdateSessionEditStatusResult[0]> | UnexpectedError;
-
-function showStatusUpdateError(statusError: UpdateSessionEditStatusError) {
-	switch (statusError.reason) {
-		case "NOT_AUTHENTICATED":
-			toast.error("Deliverables email sent, but you need to sign in again to update the status.");
-			break;
-		case "NOT_AUTHORIZED":
-			toast.error("Deliverables email sent, but you do not have access to update the status.");
-			break;
-		case "BOOKING_NOT_FOUND":
-			toast.error("Deliverables email sent, but the session could not be found in the database.");
-			break;
-		case "UNEXPECTED_ERROR":
-			toast.error("Deliverables email sent, but something went wrong updating the status.");
-			break;
-		default: {
-			const _exhaustive: never = statusError;
-			void _exhaustive;
-			break;
-		}
-	}
-}
 
 export function useDeliverablesEmailAction(session: SessionRecord) {
 	const sendSessionDeliverablesEmail = useAction(
@@ -115,7 +88,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		);
 
 		if (statusError !== null) {
-			showStatusUpdateError(statusError);
+			toast.error("Deliverables email sent, but status couldn't be updated. Please let us know.");
 			setDeliverablesEmailSendState({ status: "status-repair" });
 			setIsEmailingDeliverables(false);
 			return;

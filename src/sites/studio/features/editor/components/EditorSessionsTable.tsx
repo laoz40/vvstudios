@@ -33,6 +33,7 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 					<col className="w-36" />
 					<col className="w-80" />
 					<col />
+					<col className="w-24" />
 				</colgroup>
 				<TableHeader>
 					<TableRow>
@@ -41,6 +42,7 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 						<TableHead>Session</TableHead>
 						<TableHead>Service</TableHead>
 						<TableHead>Client Notes</TableHead>
+						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>

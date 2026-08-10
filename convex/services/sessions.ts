@@ -3,7 +3,12 @@ import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
-import { buildEditorSessionProjection, isEditorVisibleSession } from "#convex/lib/editorSessions";
+import {
+	buildEditorSessionProjection,
+	isEditorVisibleSession,
+	requireDeliverablesEligibility,
+	requireDeliverablesOwnership
+} from "#convex/lib/editorSessions";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
@@ -207,7 +212,11 @@ export function updateSessionEditStatusService(
 	args: UpdateSessionEditStatusArgs
 ) {
 	return requirePermission(ctx, "update:deliverables")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(requireDeliverablesEligibility)
 		.andThen((session) =>
 			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))
 		);
