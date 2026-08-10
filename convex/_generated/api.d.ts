@@ -26,6 +26,7 @@ import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifact
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
+import type * as lib_editorAssignments from "../lib/editorAssignments.js";
 import type * as lib_editorSessions from "../lib/editorSessions.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvailability.js";
@@ -111,6 +112,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/customInvoices": typeof lib_customInvoices;
+  "lib/editorAssignments": typeof lib_editorAssignments;
   "lib/editorSessions": typeof lib_editorSessions;
   "lib/email": typeof lib_email;
   "lib/googleCalendarAvailability": typeof lib_googleCalendarAvailability;

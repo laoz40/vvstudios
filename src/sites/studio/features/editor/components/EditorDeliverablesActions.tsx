@@ -79,7 +79,7 @@ export function EditorDeliverablesActions({ session }: { session: EditorSession 
 									className="shrink-0 text-current"
 								/>
 							)}>
-							Set editing
+							Set as editing
 						</AnimatedDropdownMenuItem>
 						<AnimatedDropdownMenuItem
 							className="hover:text-green focus:text-green"

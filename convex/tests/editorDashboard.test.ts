@@ -14,6 +14,12 @@
  * 12. An editor cannot update another editor's session deliverables status.
  * 13. An admin can update an eligible session without an editor assignment.
  * 14. An admin cannot bypass deliverables eligibility requirements.
+ * 15. An admin can reassign a booking from one active editor to another.
+ * 16. An admin can unassign a booking without deleting its editor profiles.
+ * 17. An editor cannot assign, reassign, or unassign bookings.
+ * 18. The active-editor list returns only active profiles to admins.
+ * 19. Editors cannot list editor identities.
+ * 20. Admin session access remains unchanged after assign, reassign, and unassign operations.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -32,9 +38,10 @@ type BookingStatus =
 	| "expired"
 	| "abandoned";
 
-type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string };
-type AssignmentError = { reason: "EDITOR_NOT_ACTIVE" };
+type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
+type AssignmentError = { reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" };
 type AssignmentResult = [AssignmentError | null, null];
+type ActiveEditor = { tokenIdentifier: string; displayName: string; email: string };
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "completed";
@@ -70,6 +77,9 @@ const listEditorSessions = makeFunctionReference<
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	EditorSessionsResult
 >("sessions:listEditorSessions");
+const listActiveEditors = makeFunctionReference<"query", Record<string, never>, ActiveEditor[]>(
+	"sessions:listActiveEditors"
+);
 const updateSessionEditStatus = makeFunctionReference<
 	"mutation",
 	UpdateSessionEditStatusArgs,
@@ -170,6 +180,15 @@ async function assignBooking(
 		.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier: identity.tokenIdentifier });
 }
 
+async function unassignBooking(
+	t: TestClient,
+	bookingId: Id<"bookings">
+): Promise<AssignmentResult> {
+	return await t
+		.withIdentity(adminIdentity)
+		.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier: null });
+}
+
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
 	return await t.run((ctx) => ctx.db.get(bookingId));
 }
@@ -219,6 +238,111 @@ describe("editor assignment", () => {
 
 		expect(result).toEqual([{ reason: "EDITOR_NOT_ACTIVE" }, null]);
 		expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+	});
+
+	test("allows an admin to reassign a booking to another active editor", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+		const bookingId = await seedBooking(t, "Reassigned Customer", {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(await assignBooking(t, bookingId, otherEditorIdentity)).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+		});
+	});
+
+	test("allows an admin to unassign a booking without deleting editor profiles", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Unassigned Customer", {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(await unassignBooking(t, bookingId)).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+		expect(await t.run((ctx) => ctx.db.query("editorProfiles").collect())).toHaveLength(1);
+	});
+
+	test.each([
+		{ label: "assign", editorTokenIdentifier: otherEditorIdentity.tokenIdentifier },
+		{ label: "reassign", editorTokenIdentifier: otherEditorIdentity.tokenIdentifier },
+		{ label: "unassign", editorTokenIdentifier: null }
+	])("rejects an editor attempt to $label a booking", async ({ label, editorTokenIdentifier }) => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+		const initiallyAssigned = label === "reassign" || label === "unassign";
+		const bookingId = await seedBooking(t, `Editor ${label} attempt`, {
+			assignedEditorTokenIdentifier: initiallyAssigned ? editorIdentity.tokenIdentifier : undefined
+		});
+
+		const result = await t
+			.withIdentity(editorIdentity)
+			.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier });
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject(
+			initiallyAssigned
+				? { assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier }
+				: { name: `Editor ${label} attempt` }
+		);
+		if (!initiallyAssigned) {
+			expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+		}
+	});
+});
+
+describe("active editor assignment options", () => {
+	test("returns only active editor profiles to an admin", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity, false);
+
+		const result = await t.withIdentity(adminIdentity).query(listActiveEditors, {});
+
+		expect(result).toEqual([
+			{
+				tokenIdentifier: editorIdentity.tokenIdentifier,
+				displayName: editorIdentity.subject,
+				email: `${editorIdentity.subject}@example.com`
+			}
+		]);
+	});
+
+	test("does not expose editor identities to an editor", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+
+		await expect(t.withIdentity(editorIdentity).query(listActiveEditors, {})).rejects.toMatchObject(
+			{ data: { reason: "NOT_AUTHORIZED" } }
+		);
+	});
+
+	test("keeps admin session access unchanged across assignment changes", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+		const bookingId = await seedBooking(t, "Assignment History Customer");
+
+		async function expectAdminCanReadSession() {
+			const result = await t
+				.withIdentity(adminIdentity)
+				.query(api.sessions.listSessions, { paginationOpts });
+			expect(result.page).toEqual(
+				expect.arrayContaining([expect.objectContaining({ _id: bookingId })])
+			);
+		}
+
+		await expectAdminCanReadSession();
+		expect(await assignBooking(t, bookingId)).toEqual([null, null]);
+		await expectAdminCanReadSession();
+		expect(await assignBooking(t, bookingId, otherEditorIdentity)).toEqual([null, null]);
+		await expectAdminCanReadSession();
+		expect(await unassignBooking(t, bookingId)).toEqual([null, null]);
+		await expectAdminCanReadSession();
 	});
 });
 

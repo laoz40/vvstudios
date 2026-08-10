@@ -7,6 +7,7 @@ import {
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
 	getPublicRescheduleCompleteSessionService,
+	listActiveEditorsService,
 	listEditorSessionsService,
 	listSessionsService,
 	markSessionCalendarEventDeletedService,
@@ -25,6 +26,18 @@ export const getSessionById = internalQuery({
 export const listSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: (ctx, args) => listSessionsService(ctx, args)
+});
+
+export const listActiveEditors = query({
+	args: {},
+	// Admin access is checked before this query runs, so the route error boundary handles any permission error.
+	handler: (ctx) =>
+		listActiveEditorsService(ctx).match(
+			(editors) => editors,
+			(error) => {
+				throw new ConvexError(error);
+			}
+		)
 });
 
 export const listEditorSessions = query({
@@ -67,7 +80,7 @@ export const saveSessionInstagramHandle = mutation({
 });
 
 export const assignSessionEditor = mutation({
-	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
+	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.union(v.string(), v.null()) },
 	handler: (ctx, args) => assignSessionEditorService(ctx, args).match(tupleOk, tupleErr)
 });
 

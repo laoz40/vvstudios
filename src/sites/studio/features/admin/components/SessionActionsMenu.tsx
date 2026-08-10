@@ -24,6 +24,10 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import {
+	SessionEditorAssignment,
+	type ActiveEditor
+} from "#studio/features/admin/components/SessionEditorAssignment";
 import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
 import {
 	EDIT_STATUS_OPTIONS,
@@ -41,6 +45,7 @@ import type { useRescheduleAction } from "#studio/features/admin/hooks/useResche
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
 type SessionActionsMenuProps = {
+	activeEditors: ActiveEditor[];
 	session: SessionRecord;
 	details: SessionActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
@@ -53,6 +58,7 @@ type SessionActionsMenuProps = {
 };
 
 export function SessionActionsMenu({
+	activeEditors,
 	session,
 	details,
 	deleteAction,
@@ -184,7 +190,7 @@ export function SessionActionsMenu({
 				{details.canManageConfirmedSession && details.isPastSession ? (
 					<>
 						<DropdownMenuLabel className="text-muted-foreground text-sm">
-							Deliverables status
+							Deliverables
 						</DropdownMenuLabel>
 						<div className="flex items-center gap-2 px-2 pb-2">
 							{EDIT_STATUS_OPTIONS.map((option) => (
@@ -201,6 +207,12 @@ export function SessionActionsMenu({
 									}}
 								/>
 							))}
+						</div>
+						<div className="px-2 pb-2">
+							<SessionEditorAssignment
+								activeEditors={activeEditors}
+								session={session}
+							/>
 						</div>
 						<DropdownMenuSeparator />
 						<AnimatedDropdownMenuItem

@@ -81,6 +81,7 @@ function AdminDashboard() {
 		{},
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
+	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
@@ -91,7 +92,8 @@ function AdminDashboard() {
 		setActiveView("bookings");
 	}
 
-	if (sessions.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
+	const isDashboardDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
+	if (isDashboardDataLoading || activeEditors === undefined) {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
 				<StudioLoadingState label="Decrypting classified files" />
@@ -107,6 +109,7 @@ function AdminDashboard() {
 			{/* Keep both tables mounted when switching tabs so pagination and search stay where the user left them. */}
 			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
 				<SessionsTable
+					activeEditors={activeEditors}
 					sessions={sessions.results}
 					canLoadMoreSessions={sessions.status === "CanLoadMore"}
 					isLoadingMoreSessions={sessions.status === "LoadingMore"}

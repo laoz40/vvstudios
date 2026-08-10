@@ -3,6 +3,7 @@ import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
+import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
@@ -37,6 +38,8 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type SessionTableRowProps = {
+	activeEditors: ActiveEditor[];
+	assignedEditorDisplayName: string | null;
 	session: SessionRecord;
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
@@ -174,7 +177,12 @@ function PackageSessionProgress({
 	);
 }
 
-export function SessionTableRow({ session, onPackageFilterClick }: SessionTableRowProps) {
+export function SessionTableRow({
+	activeEditors,
+	assignedEditorDisplayName,
+	session,
+	onPackageFilterClick
+}: SessionTableRowProps) {
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
@@ -231,13 +239,18 @@ export function SessionTableRow({ session, onPackageFilterClick }: SessionTableR
 				<RemainingBalanceCell session={session} />
 			</TableCell>
 			<TableCell className="text-center">
-				{deliverableStatus ? (
-					<Badge
-						variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-						className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-						{deliverableStatusLabelMap[deliverableStatus]}
-					</Badge>
-				) : null}
+				<div className="flex flex-col items-center gap-1">
+					{deliverableStatus ? (
+						<Badge
+							variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+							className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+							{deliverableStatusLabelMap[deliverableStatus]}
+						</Badge>
+					) : null}
+					{assignedEditorDisplayName ? (
+						<p className="text-xs text-muted-foreground">{assignedEditorDisplayName}</p>
+					) : null}
+				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
@@ -248,7 +261,10 @@ export function SessionTableRow({ session, onPackageFilterClick }: SessionTableR
 				</div>
 			</TableCell>
 			<TableCell>
-				<SessionActions session={session} />
+				<SessionActions
+					activeEditors={activeEditors}
+					session={session}
+				/>
 			</TableCell>
 		</TableRow>
 	);

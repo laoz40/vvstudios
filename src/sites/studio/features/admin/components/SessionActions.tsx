@@ -1,5 +1,6 @@
 import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
 import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
+import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -15,9 +16,9 @@ import {
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
-export type SessionActionsProps = { session: SessionRecord };
+export type SessionActionsProps = { activeEditors: ActiveEditor[]; session: SessionRecord };
 
-export function SessionActions({ session }: SessionActionsProps) {
+export function SessionActions({ activeEditors, session }: SessionActionsProps) {
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const details: SessionActionDetails = {
@@ -40,6 +41,7 @@ export function SessionActions({ session }: SessionActionsProps) {
 	return (
 		<>
 			<SessionActionsMenu
+				activeEditors={activeEditors}
 				session={session}
 				details={details}
 				deleteAction={deleteAction}

@@ -8,6 +8,7 @@ import {
 	TableRow
 } from "#/components/ui/table";
 import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
@@ -23,6 +24,7 @@ import {
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 
 type SessionsTableProps = {
+	activeEditors: ActiveEditor[];
 	sessions: SessionRecord[];
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
@@ -34,6 +36,7 @@ type SessionsTableProps = {
 const pageSize = 10;
 
 export function SessionsTable({
+	activeEditors,
 	sessions,
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
@@ -76,6 +79,14 @@ export function SessionsTable({
 	const sortedSessions = useMemo(() => {
 		return sortAdminSessions(filteredSessions, sorting);
 	}, [filteredSessions, sorting]);
+
+	const editorDisplayNameByToken = useMemo(
+		() =>
+			new Map(
+				activeEditors.map((editor) => [editor.tokenIdentifier, editor.displayName || editor.email])
+			),
+		[activeEditors]
+	);
 
 	const pageCount = Math.max(1, Math.ceil(sortedSessions.length / pageSize));
 
@@ -164,6 +175,13 @@ export function SessionsTable({
 							paginatedSessions.map((session) => (
 								<SessionTableRow
 									key={session._id}
+									activeEditors={activeEditors}
+									assignedEditorDisplayName={
+										session.assignedEditorTokenIdentifier
+											? (editorDisplayNameByToken.get(session.assignedEditorTokenIdentifier) ??
+												null)
+											: null
+									}
 									session={session}
 									onPackageFilterClick={onSearchQueryChange}
 								/>

@@ -4,6 +4,12 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
+	buildActiveEditorProjection,
+	getActiveEditor,
+	listActiveEditorProfiles,
+	saveSessionEditorAssignment
+} from "#convex/lib/editorAssignments";
+import {
 	buildEditorSessionProjection,
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
@@ -29,7 +35,13 @@ type UpdateSessionEditStatusArgs = {
 	editStatus: "to_edit" | "editing" | "completed";
 };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
-type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string };
+type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
+
+export function listActiveEditorsService(ctx: QueryCtx) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => listActiveEditorProfiles(ctx))
+		.map((editors) => editors.map(buildActiveEditorProjection));
+}
 
 export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSessionsArgs) {
 	return requirePermission(ctx, "view:sessions")
@@ -157,25 +169,13 @@ export function saveSessionInstagramHandleService(
 export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.query("editorProfiles")
-					.withIndex("by_tokenIdentifier", (query) =>
-						query.eq("tokenIdentifier", args.editorTokenIdentifier)
-					)
-					.unique()
-			)
-		)
-		.andThen((editor) => {
-			if (editor === null || !editor.isActive) {
-				return err({ reason: "EDITOR_NOT_ACTIVE" as const });
+		.andThen(() => {
+			if (args.editorTokenIdentifier === null) {
+				return saveSessionEditorAssignment(ctx, args.bookingId, undefined);
 			}
 
-			return okOrThrow(
-				ctx.db
-					.patch(args.bookingId, { assignedEditorTokenIdentifier: editor.tokenIdentifier })
-					.then(() => null)
+			return getActiveEditor(ctx, args.editorTokenIdentifier).andThen((editor) =>
+				saveSessionEditorAssignment(ctx, args.bookingId, editor.tokenIdentifier)
 			);
 		});
 }

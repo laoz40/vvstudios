@@ -27,7 +27,9 @@ export default defineSchema({
 		displayName: v.string(),
 		email: v.string(),
 		isActive: v.boolean()
-	}).index("by_tokenIdentifier", ["tokenIdentifier"]),
+	})
+		.index("by_tokenIdentifier", ["tokenIdentifier"])
+		.index("by_isActive", ["isActive"]),
 
 	bookingSettings: defineTable({
 		key: v.string(),
