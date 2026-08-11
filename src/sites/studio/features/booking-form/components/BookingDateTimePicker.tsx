@@ -33,7 +33,9 @@ const copy = {
 	timeLabel: "Session Time *",
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingAvailability: "Loading availability...",
-	noTimesAvailable: "No times available for this date."
+	noTimesAvailable: "No times available for this date.",
+	bookingBufferNote:
+		"Sessions require a 30-minute buffer between bookings to allow time for studio setup."
 } as const;
 
 export interface BookingDateTimePickerProps {
@@ -229,7 +231,7 @@ function TimeSelectionField({
 					<div
 						data-lenis-prevent
 						className={cn(
-							"-m-1 -mr-2 max-h-76 overflow-y-auto overscroll-contain p-1 pr-2",
+							"-m-1 -mr-2 flex max-h-76 flex-col overflow-y-auto overscroll-contain p-1 pr-2",
 							"outline-none focus-visible:ring-2 focus-visible:ring-primary",
 							"focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 							"xl:h-128 xl:max-h-none xl:-mr-3 xl:pr-3"
@@ -238,7 +240,7 @@ function TimeSelectionField({
 							value={selectedTime}
 							onValueChange={onTimeChange}
 							disabled={isTimePickerDisabled}
-							className="flex flex-col gap-6">
+							className="flex shrink-0 flex-col gap-6">
 							<div className="grid grid-cols-1 gap-3">
 								{timeSelectionItems.map((item) => (
 									<TimeSelectionListItem
@@ -253,6 +255,11 @@ function TimeSelectionField({
 								))}
 							</div>
 						</RadioGroup>
+						{selectedBusyPeriods.length > 0 ? (
+							<FieldDescription className="mt-auto! pt-4 text-xs">
+								{copy.bookingBufferNote}
+							</FieldDescription>
+						) : null}
 					</div>
 				) : null}
 				{availabilityError ? (
