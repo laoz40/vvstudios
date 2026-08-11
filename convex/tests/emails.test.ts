@@ -304,7 +304,8 @@ async function seedEditorProfile(t: TestClient, identity: UserIdentity): Promise
 			tokenIdentifier: identity.tokenIdentifier,
 			displayName: identity.subject,
 			email: `${identity.subject}@example.com`,
-			isActive: true
+			isActive: true,
+			lastAssignedAt: null
 		})
 	);
 }

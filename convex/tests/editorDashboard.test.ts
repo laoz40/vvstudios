@@ -20,6 +20,14 @@
  * 18. The active-editor list returns only active profiles to admins.
  * 19. Editors cannot list editor identities.
  * 20. Admin session access remains unchanged after assign, reassign, and unassign operations.
+ * 21. Admin editor management lists active and deactivated editors with workload details.
+ * 22. Deactivation immediately blocks editor queries while retaining assignments.
+ * 23. Signing in again does not reactivate a deactivated editor.
+ * 24. An admin can reactivate an editor and restore access.
+ * 25. Editors cannot manage another editor's access.
+ * 26. Reassignment records the receiving editor's latest assignment timestamp.
+ * 27. An admin can save and clear private notes for an editor.
+ * 28. Editors cannot update another editor's private notes.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -42,6 +50,14 @@ type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifie
 type AssignmentError = { reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" };
 type AssignmentResult = [AssignmentError | null, null];
 type ActiveEditor = { tokenIdentifier: string; displayName: string; email: string };
+type ManagedEditor = ActiveEditor & {
+	isActive: boolean;
+	lastAssignedAt: number | null;
+	notes?: string;
+	workStatus: "assigned" | "editing" | "unassigned";
+};
+type ListEditorsResult = [{ reason: string } | null, ManagedEditor[] | null];
+type UpdateEditorAccessResult = [{ reason: string } | null, null];
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "completed";
@@ -80,6 +96,19 @@ const listEditorSessions = makeFunctionReference<
 const listActiveEditors = makeFunctionReference<"query", Record<string, never>, ActiveEditor[]>(
 	"sessions:listActiveEditors"
 );
+const listEditors = makeFunctionReference<"query", Record<string, never>, ListEditorsResult>(
+	"editors:listEditors"
+);
+const updateEditorNotes = makeFunctionReference<
+	"mutation",
+	{ tokenIdentifier: string; notes: string },
+	UpdateEditorAccessResult
+>("editors:updateEditorNotes");
+const updateEditorAccess = makeFunctionReference<
+	"mutation",
+	{ tokenIdentifier: string; isActive: boolean },
+	UpdateEditorAccessResult
+>("editors:updateEditorAccess");
 const updateSessionEditStatus = makeFunctionReference<
 	"mutation",
 	UpdateSessionEditStatusArgs,
@@ -116,7 +145,8 @@ async function seedEditorProfile(
 			tokenIdentifier: identity.tokenIdentifier,
 			displayName: identity.name ?? identity.subject,
 			email: identity.email ?? `${identity.subject}@example.com`,
-			isActive
+			isActive,
+			lastAssignedAt: null
 		});
 	});
 }
@@ -343,6 +373,179 @@ describe("active editor assignment options", () => {
 		await expectAdminCanReadSession();
 		expect(await unassignBooking(t, bookingId)).toEqual([null, null]);
 		await expectAdminCanReadSession();
+	});
+});
+
+describe("editor access management", () => {
+	test("lists all editors with access, assignment time, and workload status", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity, false);
+		const bookingId = await seedBooking(t, "Editing Work");
+		await assignBooking(t, bookingId);
+
+		const [error, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+
+		expect(error).toBeNull();
+		if (editors === null) throw new Error("Expected managed editors");
+		const activeEditor = editors.find(
+			(editor) => editor.tokenIdentifier === editorIdentity.tokenIdentifier
+		);
+		const inactiveEditor = editors.find(
+			(editor) => editor.tokenIdentifier === otherEditorIdentity.tokenIdentifier
+		);
+		expect(activeEditor).toMatchObject({ isActive: true, workStatus: "editing" });
+		expect(typeof activeEditor?.lastAssignedAt).toBe("number");
+		expect(inactiveEditor).toMatchObject({ isActive: false, workStatus: "unassigned" });
+	});
+
+	test("immediately blocks a deactivated editor while retaining assignments", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Retained Assignment", {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(
+			await t
+				.withIdentity(adminIdentity)
+				.mutation(updateEditorAccess, {
+					tokenIdentifier: editorIdentity.tokenIdentifier,
+					isActive: false
+				})
+		).toEqual([null, null]);
+		await expect(
+			t.withIdentity(editorIdentity).query(listEditorSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+	});
+
+	test("does not reactivate a deactivated editor when their sign-in details refresh", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity, false);
+
+		expect(await t.withIdentity(editorIdentity).mutation(api.auth.createEditorUser, {})).toEqual([
+			null,
+			null
+		]);
+		const editor = await t.run((ctx) =>
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
+				)
+				.unique()
+		);
+		expect(editor?.isActive).toBe(false);
+	});
+
+	test("allows an admin to reactivate an editor and restore access", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity, false);
+		await seedBooking(t, "Restored Assignment", {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(
+			await t
+				.withIdentity(adminIdentity)
+				.mutation(updateEditorAccess, {
+					tokenIdentifier: editorIdentity.tokenIdentifier,
+					isActive: true
+				})
+		).toEqual([null, null]);
+		const result = await t
+			.withIdentity(editorIdentity)
+			.query(listEditorSessions, { paginationOpts });
+		expect(result.page).toHaveLength(1);
+	});
+
+	test("rejects editor attempts to manage access", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+
+		expect(
+			await t
+				.withIdentity(editorIdentity)
+				.mutation(updateEditorAccess, {
+					tokenIdentifier: otherEditorIdentity.tokenIdentifier,
+					isActive: false
+				})
+		).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+
+	test("allows an admin to save and clear private editor notes", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+
+		expect(
+			await t
+				.withIdentity(adminIdentity)
+				.mutation(updateEditorNotes, {
+					tokenIdentifier: editorIdentity.tokenIdentifier,
+					notes: "Prefers short-form editing work"
+				})
+		).toEqual([null, null]);
+		let editor = await t.run((ctx) =>
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
+				)
+				.unique()
+		);
+		expect(editor?.notes).toBe("Prefers short-form editing work");
+
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(updateEditorNotes, {
+				tokenIdentifier: editorIdentity.tokenIdentifier,
+				notes: "  "
+			});
+		editor = await t.run((ctx) =>
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
+				)
+				.unique()
+		);
+		expect(editor).not.toHaveProperty("notes");
+	});
+
+	test("rejects editor attempts to update private editor notes", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		await seedEditorProfile(t, otherEditorIdentity);
+
+		expect(
+			await t
+				.withIdentity(editorIdentity)
+				.mutation(updateEditorNotes, {
+					tokenIdentifier: otherEditorIdentity.tokenIdentifier,
+					notes: "Unauthorized note"
+				})
+		).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+
+	test("records the latest assignment time for the receiving editor", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Timestamped Assignment");
+
+		await assignBooking(t, bookingId);
+		const editor = await t.run((ctx) =>
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
+				)
+				.unique()
+		);
+		expect(editor?.lastAssignedAt).toEqual(expect.any(Number));
 	});
 });
 

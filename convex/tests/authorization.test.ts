@@ -406,7 +406,8 @@ async function seedEditorProfile(
 			tokenIdentifier: identity.tokenIdentifier,
 			displayName: "Test Editor",
 			email: "editor@example.com",
-			isActive
+			isActive,
+			lastAssignedAt: null
 		});
 	});
 }

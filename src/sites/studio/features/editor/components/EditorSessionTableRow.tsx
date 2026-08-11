@@ -86,7 +86,7 @@ export function EditorSessionTableRow({ session }: { session: EditorSession }) {
 			</TableCell>
 			<TableCell>
 				<p className="whitespace-normal text-sm text-muted-foreground">
-					{session.notes?.trim() || "No notes"}
+					{session.notes?.trim() || "-"}
 				</p>
 			</TableCell>
 			<TableCell className="text-right">

@@ -2,12 +2,14 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { Navigate } from "@tanstack/react-router";
 import { Activity, useEffect, useState } from "react";
 import { useConvexAuth, useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import { hasPermission } from "#/lib/permissions";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
+import { EditorsTable } from "#studio/features/admin/components/EditorsTable";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
@@ -15,6 +17,21 @@ import { DashboardForbiddenPage } from "#studio/features/auth/components/Dashboa
 import { EditorDashboardShell } from "#studio/features/editor/components/EditorDashboardShell";
 
 const ADMIN_PAGE_SIZE = 500;
+
+type EditorListError = NonNullable<FunctionReturnType<typeof api.editors.listEditors>[0]>;
+
+function renderEditorListError(error: EditorListError) {
+	switch (error.reason) {
+		case "NOT_AUTHENTICATED":
+			return <BackendAuthErrorPage />;
+		case "NOT_AUTHORIZED":
+			return <DashboardForbiddenPage />;
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
 
 export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
@@ -96,6 +113,7 @@ function AdminDashboard() {
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
+	const editorsResult = useQuery(api.editors.listEditors, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
@@ -107,12 +125,17 @@ function AdminDashboard() {
 	}
 
 	const isDashboardDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
-	if (isDashboardDataLoading || activeEditors === undefined) {
+	if (isDashboardDataLoading || activeEditors === undefined || editorsResult === undefined) {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
 				<StudioLoadingState label="Decrypting classified files" />
 			</main>
 		);
+	}
+
+	const [editorsError, editors] = editorsResult;
+	if (editorsError !== null) {
+		return renderEditorListError(editorsError);
 	}
 
 	return (
@@ -140,6 +163,9 @@ function AdminDashboard() {
 					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
 					onViewPackageSessions={viewPackageSessions}
 				/>
+			</Activity>
+			<Activity mode={activeView === "editors" ? "visible" : "hidden"}>
+				<EditorsTable editors={editors} />
 			</Activity>
 		</AdminDashboardShell>
 	);

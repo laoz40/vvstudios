@@ -175,7 +175,7 @@ export function assignSessionEditorService(ctx: MutationCtx, args: AssignSession
 			}
 
 			return getActiveEditor(ctx, args.editorTokenIdentifier).andThen((editor) =>
-				saveSessionEditorAssignment(ctx, args.bookingId, editor.tokenIdentifier)
+				saveSessionEditorAssignment(ctx, args.bookingId, editor)
 			);
 		});
 }

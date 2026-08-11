@@ -14,6 +14,7 @@ import type * as bookingSettings from "../bookingSettings.js";
 import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
+import type * as editors from "../editors.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
@@ -26,6 +27,7 @@ import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifact
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
+import type * as lib_editorAccess from "../lib/editorAccess.js";
 import type * as lib_editorAssignments from "../lib/editorAssignments.js";
 import type * as lib_editorSessions from "../lib/editorSessions.js";
 import type * as lib_email from "../lib/email.js";
@@ -65,6 +67,7 @@ import type * as services_bookingConfirmationActions from "../services/bookingCo
 import type * as services_bookingSettings from "../services/bookingSettings.js";
 import type * as services_customInvoices from "../services/customInvoices.js";
 import type * as services_deliverablesEmail from "../services/deliverablesEmail.js";
+import type * as services_editors from "../services/editors.js";
 import type * as services_invoices from "../services/invoices.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
 import type * as services_packageAdjustments from "../services/packageAdjustments.js";
@@ -100,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
+  editors: typeof editors;
   env: typeof env;
   feedback: typeof feedback;
   googleCalendar: typeof googleCalendar;
@@ -112,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/customInvoices": typeof lib_customInvoices;
+  "lib/editorAccess": typeof lib_editorAccess;
   "lib/editorAssignments": typeof lib_editorAssignments;
   "lib/editorSessions": typeof lib_editorSessions;
   "lib/email": typeof lib_email;
@@ -151,6 +156,7 @@ declare const fullApi: ApiFromModules<{
   "services/bookingSettings": typeof services_bookingSettings;
   "services/customInvoices": typeof services_customInvoices;
   "services/deliverablesEmail": typeof services_deliverablesEmail;
+  "services/editors": typeof services_editors;
   "services/invoices": typeof services_invoices;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;
   "services/packageAdjustments": typeof services_packageAdjustments;

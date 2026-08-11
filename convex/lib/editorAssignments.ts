@@ -42,11 +42,18 @@ export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string)
 export function saveSessionEditorAssignment(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
-	editorTokenIdentifier: string | undefined
+	editor: Doc<"editorProfiles"> | undefined
 ) {
 	return okOrThrow(
-		ctx.db
-			.patch(bookingId, { assignedEditorTokenIdentifier: editorTokenIdentifier })
-			.then(() => null)
+		(async () => {
+			await ctx.db.patch(bookingId, { assignedEditorTokenIdentifier: editor?.tokenIdentifier });
+
+			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
+			if (editor) {
+				await ctx.db.patch(editor._id, { lastAssignedAt: Date.now() });
+			}
+
+			return null;
+		})()
 	);
 }

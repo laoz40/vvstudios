@@ -26,7 +26,9 @@ export default defineSchema({
 		tokenIdentifier: v.string(),
 		displayName: v.string(),
 		email: v.string(),
-		isActive: v.boolean()
+		isActive: v.boolean(),
+		lastAssignedAt: v.union(v.number(), v.null()),
+		notes: v.optional(v.string())
 	})
 		.index("by_tokenIdentifier", ["tokenIdentifier"])
 		.index("by_isActive", ["isActive"]),

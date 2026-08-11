@@ -232,7 +232,7 @@ export function SessionTableRow({
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<p className="whitespace-normal text-sm text-muted-foreground">
-					{session.notes?.trim() || "No notes"}
+					{session.notes?.trim() || "-"}
 				</p>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>

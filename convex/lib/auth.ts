@@ -101,7 +101,8 @@ export function saveEditorDetails(
 			.insert("editorProfiles", {
 				...details,
 				tokenIdentifier: identity.tokenIdentifier,
-				isActive: true
+				isActive: true,
+				lastAssignedAt: null
 			})
 			.then(() => null)
 	);
