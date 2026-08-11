@@ -9,20 +9,22 @@ import {
 	FieldTitle
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { Separator } from "#/components/ui/separator";
 import {
 	getCardStateClassName,
 	getTextStateClassName,
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import { BookedTimesModal } from "#studio/features/booking-form/components/BookedTimesModal";
 import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import {
 	formatDateValue,
 	formatTimeValue,
+	getTimeValueMinutes,
 	startOfMonth,
-	toOptionId
+	toOptionId,
+	type BusyPeriod
 } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -158,7 +160,6 @@ export function BookingDateTimePicker({
 				disabled={disabled}
 				isLoadingMonthAvailability={isLoadingMonthAvailability}
 				selectedBusyPeriods={selectedBusyPeriods}
-				selectedDate={selectedDate}
 				isSelectedDateInPast={isSelectedDateInPast}
 				isViewingSelectedMonth={isViewingSelectedMonth}
 				onTimeChange={onTimeChange}
@@ -176,7 +177,6 @@ interface TimeSelectionFieldProps {
 	disabled: boolean;
 	isLoadingMonthAvailability: boolean;
 	selectedBusyPeriods: BookingAvailabilityPickerState["selectedBusyPeriods"];
-	selectedDate: Date | undefined;
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
 	onTimeChange: (time: string) => void;
@@ -191,7 +191,6 @@ function TimeSelectionField({
 	disabled,
 	isLoadingMonthAvailability,
 	selectedBusyPeriods,
-	selectedDate,
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
 	onTimeChange,
@@ -200,6 +199,14 @@ function TimeSelectionField({
 	timeSelectionMessage
 }: TimeSelectionFieldProps) {
 	const hasAvailableTimes = availableTimes.length > 0;
+	const timeSelectionItems: TimeSelectionItem[] = [
+		...availableTimes.map((time) => ({ kind: "available" as const, time })),
+		...selectedBusyPeriods.map((period) => ({ kind: "unavailable" as const, period }))
+	].toSorted((left, right) => {
+		const leftStart = left.kind === "available" ? left.time : left.period.start;
+		const rightStart = right.kind === "available" ? right.time : right.period.start;
+		return getTimeValueMinutes(leftStart) - getTimeValueMinutes(rightStart);
+	});
 	const isTimeSelectionReady = !timeSelectionMessage;
 	const isTimePickerDisabled =
 		disabled || !isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability;
@@ -209,19 +216,7 @@ function TimeSelectionField({
 			<FieldSet
 				data-field-name="time"
 				className="min-w-0 gap-3">
-				<FieldLegend
-					className={cn(
-						sectionHeadingClassName,
-						"flex min-h-6 w-full items-center justify-between gap-2"
-					)}>
-					<span>{copy.timeLabel}</span>
-					{hasAvailableTimes ? (
-						<BookedTimesModal
-							busyPeriods={selectedBusyPeriods}
-							selectedDate={selectedDate}
-						/>
-					) : null}
-				</FieldLegend>
+				<FieldLegend className={sectionHeadingClassName}>{copy.timeLabel}</FieldLegend>
 				<TimeSelectionStatus
 					availabilityError={availabilityError}
 					hasAvailableTimes={hasAvailableTimes}
@@ -245,11 +240,15 @@ function TimeSelectionField({
 							disabled={isTimePickerDisabled}
 							className="flex flex-col gap-6">
 							<div className="grid grid-cols-1 gap-3">
-								{availableTimes.map((time) => (
-									<TimeOption
-										key={time}
-										isSelected={selectedTime === time}
-										time={time}
+								{timeSelectionItems.map((item) => (
+									<TimeSelectionListItem
+										key={
+											item.kind === "available"
+												? item.time
+												: `${item.period.start}-${item.period.end}`
+										}
+										item={item}
+										selectedTime={selectedTime}
 									/>
 								))}
 							</div>
@@ -339,6 +338,44 @@ function NoAvailableTimesMessage({
 	}
 
 	return <FieldDescription>{copy.noTimesAvailable}</FieldDescription>;
+}
+
+type TimeSelectionItem =
+	| { kind: "available"; time: string }
+	| { kind: "unavailable"; period: BusyPeriod };
+
+function TimeSelectionListItem({
+	item,
+	selectedTime
+}: {
+	item: TimeSelectionItem;
+	selectedTime: string;
+}) {
+	switch (item.kind) {
+		case "available":
+			return (
+				<TimeOption
+					isSelected={selectedTime === item.time}
+					time={item.time}
+				/>
+			);
+		case "unavailable":
+			return (
+				<div
+					aria-disabled="true"
+					className="flex items-center gap-2 py-1 text-xs font-normal text-muted-foreground">
+					<Separator className="flex-1" />
+					<span className="whitespace-nowrap">
+						{formatTimeValue(item.period.start)} – {formatTimeValue(item.period.end)} · Booked
+					</span>
+					<Separator className="flex-1" />
+				</div>
+			);
+		default: {
+			const _exhaustive: never = item;
+			return _exhaustive;
+		}
+	}
 }
 
 function TimeOption({ isSelected, time }: { isSelected: boolean; time: string }) {
