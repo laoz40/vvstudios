@@ -85,6 +85,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 							<col className="w-40 md:w-32" />
 							<col className="w-54 md:w-42" />
 							<col className="w-24" />
+							<col className="w-20" />
 							<col className="w-64" />
 							<col className="w-6" />
 						</colgroup>
@@ -94,6 +95,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 								<TableHead>Name</TableHead>
 								<TableHead>Email</TableHead>
 								<TableHead>Last assigned</TableHead>
+								<TableHead>Total edits</TableHead>
 								<TableHead>Notes</TableHead>
 								<TableHead />
 							</TableRow>
@@ -102,7 +104,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 							{visibleEditors.length === 0 ? (
 								<TableRow>
 									<TableCell
-										colSpan={6}
+										colSpan={7}
 										className="h-24 text-center text-muted-foreground">
 										No editors to show.
 									</TableCell>
@@ -121,6 +123,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 											</TableCell>
 											<TableCell>{editor.email}</TableCell>
 											<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
+											<TableCell>{editor.totalEdits}</TableCell>
 											<TableCell
 												className="truncate text-muted-foreground"
 												title={editor.notes}>

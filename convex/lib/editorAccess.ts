@@ -19,10 +19,10 @@ function isCurrentAssignedSession(booking: Doc<"bookings">) {
 	);
 }
 
-export async function getEditorWorkStatus(
+export async function getEditorWorkSummary(
 	ctx: QueryCtx,
 	tokenIdentifier: string
-): Promise<EditorWorkStatus> {
+): Promise<{ totalEdits: number; workStatus: EditorWorkStatus }> {
 	const assignedBookings = await ctx.db
 		.query("bookings")
 		.withIndex("by_assignedEditorTokenIdentifier", (query) =>
@@ -34,16 +34,23 @@ export async function getEditorWorkStatus(
 	for (const booking of assignedBookings) {
 		if (!isCurrentAssignedSession(booking)) continue;
 		hasAssignedSession = true;
-		if (booking.editStatus === "editing") return "editing";
+		if (booking.editStatus === "editing") {
+			return { totalEdits: assignedBookings.length, workStatus: "editing" };
+		}
 	}
 
-	return hasAssignedSession ? "assigned" : "unassigned";
+	return {
+		totalEdits: assignedBookings.length,
+		workStatus: hasAssignedSession ? "assigned" : "unassigned"
+	};
 }
 
 export async function buildEditorManagementProjection(
 	ctx: QueryCtx,
 	editor: Doc<"editorProfiles">
 ) {
+	const workSummary = await getEditorWorkSummary(ctx, editor.tokenIdentifier);
+
 	return {
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
@@ -51,7 +58,7 @@ export async function buildEditorManagementProjection(
 		isActive: editor.isActive,
 		lastAssignedAt: editor.lastAssignedAt,
 		notes: editor.notes,
-		workStatus: await getEditorWorkStatus(ctx, editor.tokenIdentifier)
+		...workSummary
 	};
 }
 

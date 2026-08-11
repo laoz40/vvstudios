@@ -12,6 +12,7 @@ export type ManagedEditor = {
 	isActive: boolean;
 	lastAssignedAt: number | null;
 	notes?: string;
+	totalEdits: number;
 	workStatus: EditorWorkStatus;
 };
 

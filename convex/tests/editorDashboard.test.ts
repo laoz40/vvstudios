@@ -54,6 +54,7 @@ type ManagedEditor = ActiveEditor & {
 	isActive: boolean;
 	lastAssignedAt: number | null;
 	notes?: string;
+	totalEdits: number;
 	workStatus: "assigned" | "editing" | "unassigned";
 };
 type ListEditorsResult = [{ reason: string } | null, ManagedEditor[] | null];
@@ -394,9 +395,13 @@ describe("editor access management", () => {
 		const inactiveEditor = editors.find(
 			(editor) => editor.tokenIdentifier === otherEditorIdentity.tokenIdentifier
 		);
-		expect(activeEditor).toMatchObject({ isActive: true, workStatus: "editing" });
+		expect(activeEditor).toMatchObject({ isActive: true, totalEdits: 1, workStatus: "editing" });
 		expect(typeof activeEditor?.lastAssignedAt).toBe("number");
-		expect(inactiveEditor).toMatchObject({ isActive: false, workStatus: "unassigned" });
+		expect(inactiveEditor).toMatchObject({
+			isActive: false,
+			totalEdits: 0,
+			workStatus: "unassigned"
+		});
 	});
 
 	test("immediately blocks a deactivated editor while retaining assignments", async () => {
