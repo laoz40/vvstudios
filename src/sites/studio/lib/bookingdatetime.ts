@@ -266,6 +266,14 @@ export function getAvailableTimesForDate({
 	});
 }
 
+export function getTimeValueMinutes(time: string) {
+	if (/\s[AP]M$/i.test(time.trim())) {
+		return parseReadableTimeToMinutes(time);
+	}
+
+	return parseTimeToMinutes(time);
+}
+
 export function formatTimeValue(time: string) {
 	const [hours, minutes] = time.split(":").map(Number);
 

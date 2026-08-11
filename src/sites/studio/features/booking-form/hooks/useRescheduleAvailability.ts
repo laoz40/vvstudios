@@ -14,9 +14,11 @@ import {
 import {
 	getBookableAvailableTimes,
 	getBookableMonthKeys,
+	getNextAvailableBookingDate,
 	getSelectedBusyDay,
 	getUncachedMonthKeys,
 	isBookingDateDisabled,
+	isBookingDateUnavailable,
 	mergeBookableRangeBusyWindows,
 	type BusyWindowsByMonth
 } from "#studio/features/booking-form/lib/monthly-availability";
@@ -245,15 +247,30 @@ export function useRescheduleAvailability({
 	});
 	const disabledDates = (date: Date) =>
 		isBookingDateDisabled({
+			date,
+			isAvailabilityRateLimited: false,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			today
+		});
+	const unavailableDates = (date: Date) =>
+		isBookingDateUnavailable({
 			currentTimestamp,
 			date,
 			duration,
-			isAvailabilityRateLimited: false,
 			lastBookableDate,
 			monthlyBusyWindowsByMonth,
 			settings: availabilitySettings,
 			today
 		});
+	const nextAvailableDate = getNextAvailableBookingDate({
+		currentTimestamp,
+		duration,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
+		selectedDate,
+		settings: availabilitySettings
+	});
 
 	return {
 		availability: {
@@ -262,6 +279,9 @@ export function useRescheduleAvailability({
 			calendarMonth,
 			disabledDates,
 			isLoadingMonthAvailability,
+			nextAvailableDate,
+			selectedBusyPeriods: selectedBusyDay?.busyPeriods ?? [],
+			unavailableDates,
 			isSelectedDateInPast: false,
 			isViewingSelectedMonth,
 			selectedDate,
