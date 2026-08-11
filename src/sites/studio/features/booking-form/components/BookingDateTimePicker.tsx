@@ -1,5 +1,4 @@
 import { LoaderCircle } from "lucide-react";
-import { Button } from "#/components/ui/button";
 import { Calendar } from "#/components/ui/calendar";
 import {
 	Field,
@@ -22,7 +21,6 @@ import type { BookingAvailabilityPickerState } from "#studio/features/booking-fo
 import {
 	formatDateValue,
 	formatTimeValue,
-	parseDateValue,
 	startOfMonth,
 	toOptionId
 } from "#studio/lib/bookingdatetime";
@@ -33,7 +31,7 @@ const copy = {
 	timeLabel: "Session Time *",
 	pastDatesUnavailable: "Past dates are unavailable.",
 	loadingAvailability: "Loading availability...",
-	fullyBookedTitle: "This date is fully booked"
+	noTimesAvailable: "No times available for this date."
 } as const;
 
 export interface BookingDateTimePickerProps {
@@ -63,7 +61,6 @@ export function BookingDateTimePicker({
 		calendarMonth,
 		disabledDates,
 		isLoadingMonthAvailability,
-		nextAvailableDate,
 		selectedBusyPeriods,
 		unavailableDates,
 		isSelectedDateInPast,
@@ -132,9 +129,15 @@ export function BookingDateTimePicker({
 							required
 							modifiers={{ unavailable: unavailableDates }}
 							modifiersClassNames={{
-								unavailable: "[&_button]:bg-muted/30 [&_button]:text-muted-foreground"
+								unavailable: cn(
+									"!opacity-100",
+									"[&_button]:!bg-surface-subtle [&_button]:!text-muted-foreground",
+									"[&_button]:!shadow-none"
+								)
 							}}
-							disabled={disabled ? () => true : disabledDates}
+							disabled={
+								disabled ? () => true : (date) => disabledDates(date) || unavailableDates(date)
+							}
 							disableNavigation={disabled}
 							month={calendarMonth}
 							onMonthChange={disabled ? undefined : setCalendarMonth}
@@ -154,18 +157,10 @@ export function BookingDateTimePicker({
 				availableTimes={availableTimes}
 				disabled={disabled}
 				isLoadingMonthAvailability={isLoadingMonthAvailability}
-				nextAvailableDate={nextAvailableDate}
 				selectedBusyPeriods={selectedBusyPeriods}
 				selectedDate={selectedDate}
 				isSelectedDateInPast={isSelectedDateInPast}
 				isViewingSelectedMonth={isViewingSelectedMonth}
-				onDateChange={(dateValue) => {
-					const nextDate = parseDateValue(dateValue);
-					if (nextDate) {
-						setCalendarMonth(startOfMonth(nextDate));
-					}
-					onDateChange(dateValue);
-				}}
 				onTimeChange={onTimeChange}
 				selectedTime={selectedTime}
 				timeError={timeError}
@@ -180,12 +175,10 @@ interface TimeSelectionFieldProps {
 	availableTimes: string[];
 	disabled: boolean;
 	isLoadingMonthAvailability: boolean;
-	nextAvailableDate: Date | undefined;
 	selectedBusyPeriods: BookingAvailabilityPickerState["selectedBusyPeriods"];
 	selectedDate: Date | undefined;
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
-	onDateChange: (dateValue: string) => void;
 	onTimeChange: (time: string) => void;
 	selectedTime: string;
 	timeError?: React.ReactNode;
@@ -197,12 +190,10 @@ function TimeSelectionField({
 	availableTimes,
 	disabled,
 	isLoadingMonthAvailability,
-	nextAvailableDate,
 	selectedBusyPeriods,
 	selectedDate,
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
-	onDateChange,
 	onTimeChange,
 	selectedTime,
 	timeError,
@@ -235,11 +226,8 @@ function TimeSelectionField({
 					availabilityError={availabilityError}
 					hasAvailableTimes={hasAvailableTimes}
 					isLoadingMonthAvailability={isLoadingMonthAvailability}
-					nextAvailableDate={nextAvailableDate}
-					selectedDate={selectedDate}
 					isSelectedDateInPast={isSelectedDateInPast}
 					isViewingSelectedMonth={isViewingSelectedMonth}
-					onDateChange={onDateChange}
 					timeSelectionMessage={timeSelectionMessage}
 				/>
 				{hasAvailableTimes ? (
@@ -281,21 +269,15 @@ function TimeSelectionStatus({
 	availabilityError,
 	hasAvailableTimes,
 	isLoadingMonthAvailability,
-	nextAvailableDate,
-	selectedDate,
 	isSelectedDateInPast,
 	isViewingSelectedMonth,
-	onDateChange,
 	timeSelectionMessage
 }: Pick<
 	TimeSelectionFieldProps,
 	| "availabilityError"
 	| "isLoadingMonthAvailability"
-	| "nextAvailableDate"
-	| "selectedDate"
 	| "isSelectedDateInPast"
 	| "isViewingSelectedMonth"
-	| "onDateChange"
 	| "timeSelectionMessage"
 > & { hasAvailableTimes: boolean }) {
 	if (timeSelectionMessage) {
@@ -322,11 +304,8 @@ function TimeSelectionStatus({
 				availabilityError={availabilityError}
 				hasAvailableTimes={hasAvailableTimes}
 				isLoadingMonthAvailability={isLoadingMonthAvailability}
-				nextAvailableDate={nextAvailableDate}
-				selectedDate={selectedDate}
 				isSelectedDateInPast={isSelectedDateInPast}
 				isViewingSelectedMonth={isViewingSelectedMonth}
-				onDateChange={onDateChange}
 			/>
 		</>
 	);
@@ -336,15 +315,13 @@ function NoAvailableTimesMessage({
 	availabilityError,
 	hasAvailableTimes,
 	isLoadingMonthAvailability,
-	nextAvailableDate,
-	selectedDate,
 	isSelectedDateInPast,
-	isViewingSelectedMonth,
-	onDateChange
+	isViewingSelectedMonth
 }: Omit<
 	TimeSelectionFieldProps,
 	| "disabled"
 	| "selectedBusyPeriods"
+	| "selectedDate"
 	| "onTimeChange"
 	| "selectedTime"
 	| "timeError"
@@ -361,36 +338,7 @@ function NoAvailableTimesMessage({
 		return null;
 	}
 
-	const selectedDateLabel = selectedDate?.toLocaleDateString("en-AU", {
-		weekday: "long",
-		day: "numeric",
-		month: "long"
-	});
-	const nextAvailableDateLabel = nextAvailableDate?.toLocaleDateString("en-AU", {
-		weekday: "long",
-		day: "numeric",
-		month: "long"
-	});
-
-	return (
-		<div className="flex flex-col items-start gap-3">
-			<div className="flex flex-col gap-1">
-				<p className="font-semibold text-foreground">{copy.fullyBookedTitle}</p>
-				<FieldDescription>
-					All session times for {selectedDateLabel} have been reserved. Please choose another date.
-				</FieldDescription>
-			</div>
-			{nextAvailableDate && nextAvailableDateLabel ? (
-				<Button
-					type="button"
-					variant="link"
-					className="h-auto p-0"
-					onClick={() => onDateChange(formatDateValue(nextAvailableDate))}>
-					Next available: {nextAvailableDateLabel}
-				</Button>
-			) : null}
-		</div>
-	);
+	return <FieldDescription>{copy.noTimesAvailable}</FieldDescription>;
 }
 
 function TimeOption({ isSelected, time }: { isSelected: boolean; time: string }) {
