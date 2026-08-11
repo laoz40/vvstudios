@@ -1,7 +1,9 @@
 import type { UserIdentity } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
+import { okOrThrow } from "#convex/lib/result";
 
 export type DeliverablesSessionAccess = { identity: UserIdentity; session: Doc<"bookings"> };
 
@@ -36,6 +38,42 @@ export function requireDeliverablesEligibility(access: DeliverablesSessionAccess
 	}
 
 	return ok(session);
+}
+
+function getAssignedEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
+	return ctx.db
+		.query("editorProfiles")
+		.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", editorTokenIdentifier))
+		.unique();
+}
+
+export function saveSessionEditStatus(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editStatus: "to_edit" | "editing" | "completed"
+) {
+	return okOrThrow(
+		(async () => {
+			const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
+			// Only the transition into Completed credits the editor currently assigned to the session.
+			const shouldIncrementTotal =
+				editStatus === "completed" &&
+				session.editStatus !== "completed" &&
+				editorTokenIdentifier !== undefined;
+
+			if (!shouldIncrementTotal) {
+				await ctx.db.patch(session._id, { editStatus });
+				return null;
+			}
+
+			const editor = await getAssignedEditor(ctx, editorTokenIdentifier);
+			await ctx.db.patch(session._id, { editStatus });
+			if (editor !== null) {
+				await ctx.db.patch(editor._id, { totalEdits: editor.totalEdits + 1 });
+			}
+			return null;
+		})()
+	);
 }
 
 export function buildEditorSessionProjection(session: Doc<"bookings">) {

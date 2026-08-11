@@ -5,15 +5,15 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	buildActiveEditorProjection,
-	getActiveEditor,
 	listActiveEditorProfiles,
-	saveSessionEditorAssignment
+	updateSessionEditorAssignment
 } from "#convex/lib/editorAssignments";
 import {
 	buildEditorSessionProjection,
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
-	requireDeliverablesOwnership
+	requireDeliverablesOwnership,
+	saveSessionEditStatus
 } from "#convex/lib/editorSessions";
 import {
 	getCapacityConsumingPackageSessions,
@@ -169,15 +169,7 @@ export function saveSessionInstagramHandleService(
 export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() => {
-			if (args.editorTokenIdentifier === null) {
-				return saveSessionEditorAssignment(ctx, args.bookingId, undefined);
-			}
-
-			return getActiveEditor(ctx, args.editorTokenIdentifier).andThen((editor) =>
-				saveSessionEditorAssignment(ctx, args.bookingId, editor)
-			);
-		});
+		.andThen((session) => updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier));
 }
 
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
@@ -217,9 +209,7 @@ export function updateSessionEditStatusService(
 		)
 		.andThen(requireDeliverablesOwnership)
 		.andThen(requireDeliverablesEligibility)
-		.andThen((session) =>
-			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))
-		);
+		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus));
 }
 
 export function markSessionCalendarEventDeletedService(

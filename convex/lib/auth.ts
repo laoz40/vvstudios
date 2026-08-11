@@ -102,7 +102,8 @@ export function saveEditorDetails(
 				...details,
 				tokenIdentifier: identity.tokenIdentifier,
 				isActive: true,
-				lastAssignedAt: null
+				lastAssignedAt: null,
+				totalEdits: 0
 			})
 			.then(() => null)
 	);

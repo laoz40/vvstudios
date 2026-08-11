@@ -1,6 +1,7 @@
-import { err, ok } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { isEditorVisibleSession } from "#convex/lib/editorSessions";
 import { okOrThrow } from "#convex/lib/result";
 
 const ACTIVE_EDITOR_LIMIT = 200;
@@ -39,21 +40,45 @@ export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string)
 	});
 }
 
-export function saveSessionEditorAssignment(
+function requireEditorAssignableSession(
+	session: Doc<"bookings">
+): Result<Doc<"bookings">, { reason: "SESSION_NOT_ASSIGNABLE" }> {
+	if (!isEditorVisibleSession(session)) {
+		return err({ reason: "SESSION_NOT_ASSIGNABLE" as const });
+	}
+
+	return ok(session);
+}
+
+function saveSessionEditorAssignment(
 	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
+	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined
 ) {
 	return okOrThrow(
 		(async () => {
-			await ctx.db.patch(bookingId, { assignedEditorTokenIdentifier: editor?.tokenIdentifier });
+			await ctx.db.patch(session._id, { assignedEditorTokenIdentifier: editor?.tokenIdentifier });
 
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
-			if (editor) {
+			if (editor !== undefined) {
 				await ctx.db.patch(editor._id, { lastAssignedAt: Date.now() });
 			}
 
 			return null;
 		})()
 	);
+}
+
+export function updateSessionEditorAssignment(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editorTokenIdentifier: string | null
+) {
+	if (editorTokenIdentifier === null) {
+		return saveSessionEditorAssignment(ctx, session, undefined);
+	}
+
+	return requireEditorAssignableSession(session)
+		.asyncAndThen(() => getActiveEditor(ctx, editorTokenIdentifier))
+		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor));
 }

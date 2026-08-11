@@ -44,6 +44,9 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 			case "EDITOR_NOT_ACTIVE":
 				toast.error("That editor is no longer active.");
 				return;
+			case "SESSION_NOT_ASSIGNABLE":
+				toast.error("Editors can only be assigned to confirmed, non-archived sessions.");
+				return;
 			case "NOT_AUTHENTICATED":
 				toast.error("Please sign in again.");
 				return;

@@ -407,7 +407,8 @@ async function seedEditorProfile(
 			displayName: "Test Editor",
 			email: "editor@example.com",
 			isActive,
-			lastAssignedAt: null
+			lastAssignedAt: null,
+			totalEdits: 0
 		});
 	});
 }
@@ -546,7 +547,8 @@ describe("editor user creation and detail updates", () => {
 			tokenIdentifier: identity.tokenIdentifier,
 			displayName: "First Editor",
 			email: "first@example.com",
-			isActive: true
+			isActive: true,
+			totalEdits: 0
 		});
 	});
 

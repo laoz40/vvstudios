@@ -15,8 +15,8 @@ export function listEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "update:editor-access")
 		.andThen(() => listEditorProfiles(ctx))
 		.andThen((editors) =>
-			// Deriving workload from sessions creates one query per editor. This is simpler than
-			// synchronizing stored status and is acceptable for the studio's small editor count.
+			// Deriving workload from sessions creates one bounded query per editor and is
+			// acceptable for the studio's small editor count.
 			okOrThrow(Promise.all(editors.map((editor) => buildEditorManagementProjection(ctx, editor))))
 		);
 }

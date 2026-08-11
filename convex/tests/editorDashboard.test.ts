@@ -16,18 +16,23 @@
  * 14. An admin cannot bypass deliverables eligibility requirements.
  * 15. An admin can reassign a booking from one active editor to another.
  * 16. An admin can unassign a booking without deleting its editor profiles.
- * 17. An editor cannot assign, reassign, or unassign bookings.
- * 18. The active-editor list returns only active profiles to admins.
- * 19. Editors cannot list editor identities.
- * 20. Admin session access remains unchanged after assign, reassign, and unassign operations.
- * 21. Admin editor management lists active and deactivated editors with workload details.
- * 22. Deactivation immediately blocks editor queries while retaining assignments.
- * 23. Signing in again does not reactivate a deactivated editor.
- * 24. An admin can reactivate an editor and restore access.
- * 25. Editors cannot manage another editor's access.
- * 26. Reassignment records the receiving editor's latest assignment timestamp.
- * 27. An admin can save and clear private notes for an editor.
- * 28. Editors cannot update another editor's private notes.
+ * 17. An editor cannot assign a booking.
+ * 18. An editor cannot reassign a booking.
+ * 19. An editor cannot unassign a booking.
+ * 20. The active-editor list returns only active profiles to admins.
+ * 21. Editors cannot list editor identities.
+ * 22. Admin session access remains unchanged after assign, reassign, and unassign operations.
+ * 23. Admin editor management lists active and deactivated editors with workload details.
+ * 24. Deactivation immediately blocks editor queries while retaining assignments.
+ * 25. Signing in again does not reactivate a deactivated editor.
+ * 26. An admin can reactivate an editor and restore access.
+ * 27. Editors cannot manage another editor's access.
+ * 28. Reassignment records the receiving editor's latest assignment timestamp.
+ * 29. An admin can save and clear private notes for an editor.
+ * 30. Editors cannot update another editor's private notes.
+ * 31. Assignment rejects cancelled, unconfirmed, and archived sessions.
+ * 32. Existing assignments can be removed after a session becomes ineligible.
+ * 33. Total edits starts at zero and increments when an assigned session becomes completed.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -47,7 +52,9 @@ type BookingStatus =
 	| "abandoned";
 
 type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
-type AssignmentError = { reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" };
+type AssignmentError = {
+	reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" | "SESSION_NOT_ASSIGNABLE";
+};
 type AssignmentResult = [AssignmentError | null, null];
 type ActiveEditor = { tokenIdentifier: string; displayName: string; email: string };
 type ManagedEditor = ActiveEditor & {
@@ -147,7 +154,8 @@ async function seedEditorProfile(
 			displayName: identity.name ?? identity.subject,
 			email: identity.email ?? `${identity.subject}@example.com`,
 			isActive,
-			lastAssignedAt: null
+			lastAssignedAt: null,
+			totalEdits: 0
 		});
 	});
 }
@@ -268,6 +276,36 @@ describe("editor assignment", () => {
 		const result = await assignBooking(t, bookingId);
 
 		expect(result).toEqual([{ reason: "EDITOR_NOT_ACTIVE" }, null]);
+		expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+	});
+
+	test("rejects assignments for cancelled, unconfirmed, or archived sessions", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const ineligibleBookingIds = await Promise.all([
+			seedBooking(t, "Cancelled Assignment", { status: "cancelled" }),
+			seedBooking(t, "Pending Assignment", { status: "pending_payment" }),
+			seedBooking(t, "Archived Assignment", { hidden: true })
+		]);
+
+		for (const bookingId of ineligibleBookingIds) {
+			expect(await assignBooking(t, bookingId)).toEqual([
+				{ reason: "SESSION_NOT_ASSIGNABLE" },
+				null
+			]);
+			expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+		}
+	});
+
+	test("allows an ineligible session's existing assignment to be removed", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Archived Existing Assignment", {
+			hidden: true,
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(await unassignBooking(t, bookingId)).toEqual([null, null]);
 		expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
 	});
 
@@ -395,13 +433,31 @@ describe("editor access management", () => {
 		const inactiveEditor = editors.find(
 			(editor) => editor.tokenIdentifier === otherEditorIdentity.tokenIdentifier
 		);
-		expect(activeEditor).toMatchObject({ isActive: true, totalEdits: 1, workStatus: "editing" });
+		expect(activeEditor).toMatchObject({ isActive: true, totalEdits: 0, workStatus: "editing" });
 		expect(typeof activeEditor?.lastAssignedAt).toBe("number");
 		expect(inactiveEditor).toMatchObject({
 			isActive: false,
 			totalEdits: 0,
 			workStatus: "unassigned"
 		});
+	});
+
+	test("increments total edits when an assigned session becomes completed", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Completed Edit", {
+			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z")
+		});
+		await assignBooking(t, bookingId);
+
+		let [, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+		expect(editors?.[0]?.totalEdits).toBe(0);
+
+		await updateDeliverablesStatus(t, editorIdentity, bookingId);
+		await updateDeliverablesStatus(t, editorIdentity, bookingId);
+
+		[, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+		expect(editors?.[0]?.totalEdits).toBe(1);
 	});
 
 	test("immediately blocks a deactivated editor while retaining assignments", async () => {
