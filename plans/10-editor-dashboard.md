@@ -30,7 +30,7 @@ Treat every authenticated non-admin user with an active editor profile as an edi
 
 ## Implementation
 
-Implement each step as a thin vertical slice. Start each slice with its focused failing tests, then add only the backend and UI needed to make that behavior usable before moving to the next slice. Keep all editor authorization scenarios in `convex/tests/editorAuthorization.test.ts`, with a short comment for every individual test.
+The steps below group the implemented behavior by feature. They no longer imply the exact commit order: the permission hardening now documented in Step 8 landed before the expanded editor-management work in Step 7. Editor dashboard scenarios are covered primarily in `convex/tests/editorDashboard.test.ts`, while the cross-feature authorization matrix is maintained in `convex/tests/authorization.test.ts`. Keep the file-level test inventory comment in each test file current when scenarios change.
 
 1. **Recognize an editor and open the dashboard shell**
    - Add the `editorProfiles` table keyed by stable Clerk `identity.tokenIdentifier`, including display name, email, and active status.
@@ -75,17 +75,24 @@ Implement each step as a thin vertical slice. Start each slice with its focused 
    - Protect the workflow with `assign:session-editor`; never expose editor identities or controls in the editor projection or UI.
    - Test assign, reassign, and unassign, rejection of inactive profiles, editor attempts to assign, and unchanged admin access regardless of assignment.
 
-7. **Deactivate an editor without rewriting history**
-   - Add the admin-only editor access action protected by `update:editor-access`.
+7. **Add editor management and deactivation** _(implemented and expanded beyond the original deactivation slice)_
+   - Add an admin-only Editors tab backed by functions protected with `update:editor-access`.
+   - Let admins activate or deactivate editors and save private editor notes.
+   - Show each editor's active state, current workload status (`assigned`, `editing`, or `unassigned`), latest assignment time, and persistent completed-edit total.
    - On deactivation, retain all booking assignment identifiers for audit history and immediately deny the editor's dashboard query and actions.
-   - Keep sign-in profile refresh from reactivating the editor; admins reassign affected sessions manually.
-   - Test immediate access loss, retained assignments, failed sign-in reactivation, and successful admin reassignment.
+   - Keep sign-in profile refresh from reactivating an inactive editor. Admins may reactivate the editor or manually reassign affected sessions.
+   - Record an editor's latest assignment time when they receive a session.
+   - Increment the assigned editor's completed-edit total only when an assigned session transitions into `completed`; repeated saves of `completed` must not increment it again.
+   - Restrict new assignments and reassignments to confirmed, visible sessions. Allow an existing assignment to be removed even after the session becomes ineligible.
+   - Test editor listing and projections, notes, activation and deactivation, immediate access loss, retained assignments, failed sign-in reactivation, reactivation, assignment timestamps, completed-edit totals, and assignment eligibility.
 
-8. **Close every remaining backend authorization path**
-   - Assign a specific permission to each existing sensitive query, mutation, and action rather than introducing a broad `manage:sessions` permission.
-   - Grant admin-only permissions for session editing, archive, delete, rescheduling, invoices, invoice emails, payment status, packages, and availability.
-   - Replace scattered role checks with `requirePermission` while preserving existing admin behavior.
-   - Add a denial matrix proving editors cannot call any admin-only function directly.
+8. **Close every remaining backend authorization path** _(implemented earlier alongside the permission foundation)_
+   - Assign a specific permission to each sensitive query, mutation, and action rather than introducing a broad `manage:sessions` permission.
+   - Apply admin-only permissions to session editing, archive, delete, rescheduling, invoices, invoice emails, payment status, packages, availability, and sensitive booking data.
+   - Protect Convex queries and mutations with `requirePermission` and actions with `requirePermissionActions`, while preserving existing admin behavior.
+   - Keep the ownership and eligibility checks for editor deliverables operations in addition to their permission guards.
+   - Maintain the denial matrix in `convex/tests/authorization.test.ts`, proving active editors cannot directly call admin-only functions.
+   - This authorization work landed before the expanded editor-management work in Step 7; the numbered steps describe feature grouping, not the final commit order.
 
 9. **Regression and quality pass**
    - Run the focused tests after every slice, then the full relevant test suite once all slices pass.
@@ -102,7 +109,7 @@ Implement each step as a thin vertical slice. Start each slice with its focused 
 - **Client notes:** keep booking notes visible because editors need the client's production instructions. If customers may enter sensitive contact or billing data there, add a separate editor-facing production-notes field before rollout.
 - **Role source:** keep Clerk public metadata only for identifying admins (`role: "admin"`). Every other authenticated user requires an active Convex editor profile. Clerk sign-up remains invite-only.
 - **Assignment cardinality:** assign one editor per session initially. This keeps the schema, query, policy, and admin UI simple.
-- **Deactivated editors:** retain assignments for audit history, block access immediately, and require admins to reassign sessions manually.
+- **Deactivated editors:** retain assignments for audit history and block access immediately. Admins can reactivate the editor or manually reassign affected sessions.
 - **Existing data:** the new booking assignment field is optional, so existing sessions remain unassigned. No backfill is recommended unless existing live sessions must appear in an editor dashboard; confirm that need before implementation.
 - **Security model:** use granular `action:resource` permissions derived from the role rather than scattered `isAdmin` checks. Backend authorization and response shaping remain authoritative; `hasPermission` only controls the UI.
 
@@ -116,3 +123,7 @@ Implement each step as a thin vertical slice. Start each slice with its focused 
 - An editor cannot invoke any other sensitive or destructive operation, even by calling the Convex API directly.
 - Existing admin behaviour remains unchanged.
 - Deactivating an editor blocks access without deleting or rewriting historical assignments.
+- Admins can manage editor access and private notes from the Editors tab and see workload, latest assignment, and completed-edit totals.
+- Completed-edit totals increment once when an assigned session transitions to `completed`.
+- New editor assignments are limited to confirmed, visible sessions, while existing assignments can always be removed.
+- Every sensitive backend operation is protected by its specific permission, and editor denials are covered by the authorization matrix.
