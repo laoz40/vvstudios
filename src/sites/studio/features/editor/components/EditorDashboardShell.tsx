@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-react";
 import { usePaginatedQuery } from "convex/react";
-import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { api } from "#convex/_generated/api";
 import { cn } from "#/lib/utils";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
@@ -17,6 +17,10 @@ export function EditorDashboardShell() {
 		{ initialNumItems: EDITOR_PAGE_SIZE }
 	);
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
+	const activeSessions = sessions.results.filter((session) => session.editStatus !== "completed");
+	const completedSessions = sessions.results.filter(
+		(session) => session.editStatus === "completed"
+	);
 
 	if (sessions.status === "LoadingFirstPage") {
 		return (
@@ -33,17 +37,31 @@ export function EditorDashboardShell() {
 				"bg-background",
 				"p-3 pb-8 md:p-4 lg:px-6"
 			)}>
-			<header className="flex items-start justify-between gap-4">
-				<Tabs defaultValue="edits">
+			<Tabs
+				defaultValue="edits"
+				className="contents">
+				<header className="flex items-start justify-between gap-4">
 					<TabsList variant="line">
 						<TabsTrigger value="edits">Edits</TabsTrigger>
+						<TabsTrigger value="history">History</TabsTrigger>
 					</TabsList>
-				</Tabs>
 
-				<DashboardSignOutButton email={email ?? null} />
-			</header>
+					<DashboardSignOutButton email={email ?? null} />
+				</header>
 
-			<EditorSessionsTable sessions={sessions.results} />
+				<TabsContent value="edits">
+					<EditorSessionsTable
+						sessions={activeSessions}
+						emptyState="edits"
+					/>
+				</TabsContent>
+				<TabsContent value="history">
+					<EditorSessionsTable
+						sessions={completedSessions}
+						emptyState="history"
+					/>
+				</TabsContent>
+			</Tabs>
 		</main>
 	);
 }

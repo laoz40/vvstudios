@@ -5,9 +5,26 @@ import { api } from "#convex/_generated/api";
 import { EditorSessionTableRow } from "#studio/features/editor/components/EditorSessionTableRow";
 
 type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
+type EditorSessionsEmptyState = "edits" | "history";
 
-export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] }) {
+const emptyStateCopy: Record<EditorSessionsEmptyState, { title: string; description: string }> = {
+	edits: { title: "Nothing in your queue", description: "Assigned edits will appear here." },
+	history: {
+		title: "No completed edits",
+		description: "Your edits will appear here after deliverables are sent."
+	}
+};
+
+export function EditorSessionsTable({
+	sessions,
+	emptyState
+}: {
+	sessions: EditorSession[];
+	emptyState: EditorSessionsEmptyState;
+}) {
 	if (sessions.length === 0) {
+		const copy = emptyStateCopy[emptyState];
+
 		return (
 			<section className="flex min-h-64 items-center justify-center px-6 py-12 text-center">
 				<div className="flex max-w-sm flex-col items-center gap-3">
@@ -16,8 +33,8 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 						aria-hidden
 					/>
 					<div className="flex flex-col gap-1">
-						<h1 className="text-lg font-semibold">Nothing in your queue</h1>
-						<p className="text-sm text-muted-foreground">Assigned sessions will appear here.</p>
+						<h1 className="text-lg font-semibold">{copy.title}</h1>
+						<p className="text-sm text-muted-foreground">{copy.description}</p>
 					</div>
 				</div>
 			</section>
@@ -52,6 +69,7 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 						<EditorSessionTableRow
 							key={session._id}
 							session={session}
+							view={emptyState}
 						/>
 					))}
 				</TableBody>

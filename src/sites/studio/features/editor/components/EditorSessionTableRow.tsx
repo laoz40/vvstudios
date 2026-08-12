@@ -19,8 +19,9 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
+type EditorSessionsView = "edits" | "history";
 
-function getSessionDateSubtitle(date: string, time: string) {
+function getSessionDateSubtitle(date: string, time: string, view: EditorSessionsView) {
 	const dayDifference = getBookingDayDifference(date);
 
 	if (dayDifference === null || dayDifference >= 0) {
@@ -29,6 +30,10 @@ function getSessionDateSubtitle(date: string, time: string) {
 
 	const daysAgo = Math.abs(dayDifference);
 	const label = `${daysAgo} ${daysAgo === 1 ? "day" : "days"} ago`;
+
+	if (view === "history") {
+		return { label, className: "text-muted-foreground" };
+	}
 
 	switch (daysAgo) {
 		case 1:
@@ -40,9 +45,15 @@ function getSessionDateSubtitle(date: string, time: string) {
 	}
 }
 
-export function EditorSessionTableRow({ session }: { session: EditorSession }) {
+export function EditorSessionTableRow({
+	session,
+	view
+}: {
+	session: EditorSession;
+	view: EditorSessionsView;
+}) {
 	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
-	const dateSubtitle = getSessionDateSubtitle(session.date, session.time);
+	const dateSubtitle = getSessionDateSubtitle(session.date, session.time, view);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 
 	return (

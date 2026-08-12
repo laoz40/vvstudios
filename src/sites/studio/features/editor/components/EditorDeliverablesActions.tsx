@@ -91,7 +91,7 @@ export function EditorDeliverablesActions({
 											className="shrink-0 text-current"
 										/>
 									)}>
-									Start editing
+									{session.editStatus === "completed" ? "Set status to editing" : "Start editing"}
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
 									className="hover:text-green focus:text-green"
