@@ -55,7 +55,9 @@ export function getDeliverablesCustomerTypeService(
 export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => listActiveEditorProfiles(ctx))
-		.map((editors) => editors.map(buildActiveEditorProjection));
+		.andThen((editors) =>
+			okOrThrow(Promise.all(editors.map((editor) => buildActiveEditorProjection(ctx, editor))))
+		);
 }
 
 export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSessionsArgs) {

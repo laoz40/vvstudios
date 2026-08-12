@@ -56,7 +56,13 @@ type AssignmentError = {
 	reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" | "SESSION_NOT_ASSIGNABLE";
 };
 type AssignmentResult = [AssignmentError | null, null];
-type ActiveEditor = { tokenIdentifier: string; displayName: string; email: string };
+type ActiveEditor = {
+	tokenIdentifier: string;
+	displayName: string;
+	email: string;
+	totalEdits: number;
+	workStatus: "assigned" | "editing" | "unassigned";
+};
 type ManagedEditor = ActiveEditor & {
 	isActive: boolean;
 	lastAssignedAt: number | null;
@@ -376,7 +382,9 @@ describe("active editor assignment options", () => {
 			{
 				tokenIdentifier: editorIdentity.tokenIdentifier,
 				displayName: editorIdentity.subject,
-				email: `${editorIdentity.subject}@example.com`
+				email: `${editorIdentity.subject}@example.com`,
+				totalEdits: 0,
+				workStatus: "unassigned"
 			}
 		]);
 	});

@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { getEditorWorkStatus } from "#convex/lib/editorAccess";
 import { isEditorVisibleSession } from "#convex/lib/editorSessions";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -15,11 +16,13 @@ export function listActiveEditorProfiles(ctx: QueryCtx) {
 	);
 }
 
-export function buildActiveEditorProjection(editor: Doc<"editorProfiles">) {
+export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
 	return {
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
-		email: editor.email
+		email: editor.email,
+		totalEdits: editor.totalEdits,
+		workStatus: await getEditorWorkStatus(ctx, editor.tokenIdentifier)
 	};
 }
 
