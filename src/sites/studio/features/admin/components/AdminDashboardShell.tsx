@@ -25,7 +25,7 @@ export function AdminDashboardShell({
 		<main
 			className={cn(
 				"relative flex min-h-screen flex-col gap-5 md:gap-6",
-				"bg-card",
+				"bg-background",
 				"p-3 pb-8 md:p-4 lg:px-6"
 			)}>
 			<div className="absolute top-3 right-3 md:hidden">
