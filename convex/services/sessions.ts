@@ -14,6 +14,7 @@ import {
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
+	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editorSessions";
 import {
@@ -36,6 +37,7 @@ type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "completed";
 };
+type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
 type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
 
@@ -214,6 +216,15 @@ export function updateSessionPaidStatusService(
 					.then(() => null)
 			)
 		);
+}
+
+export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionNotesArgs) {
+	return requirePermission(ctx, "update:deliverables")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes));
 }
 
 export function updateSessionEditStatusService(

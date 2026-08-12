@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
 import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
 import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
@@ -19,6 +20,7 @@ import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 export type SessionActionsProps = { activeEditors: ActiveEditor[]; session: SessionRecord };
 
 export function SessionActions({ activeEditors, session }: SessionActionsProps) {
+	const [isEditorNotesDialogOpen, setIsEditorNotesDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const details: SessionActionDetails = {
@@ -51,6 +53,7 @@ export function SessionActions({ activeEditors, session }: SessionActionsProps) 
 				paymentActions={paymentActions}
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
+				onEditEditorNotes={() => setIsEditorNotesDialogOpen(true)}
 			/>
 			<SessionActionsDialogs
 				session={session}
@@ -60,6 +63,8 @@ export function SessionActions({ activeEditors, session }: SessionActionsProps) 
 				editAction={editAction}
 				invoiceActions={invoiceActions}
 				rescheduleAction={rescheduleAction}
+				isEditorNotesDialogOpen={isEditorNotesDialogOpen}
+				onEditorNotesDialogOpenChange={setIsEditorNotesDialogOpen}
 			/>
 		</>
 	);

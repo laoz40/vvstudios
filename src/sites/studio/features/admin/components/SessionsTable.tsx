@@ -163,7 +163,7 @@ export function SessionsTable({
 							<TableHead>Service</TableHead>
 							<TableHead>Contact</TableHead>
 							<TableHead className="text-center">Package</TableHead>
-							<TableHead>Notes</TableHead>
+							<TableHead>Client Notes</TableHead>
 							<TableHead className="text-center">Amount</TableHead>
 							<TableHead className="text-center">Deliverables</TableHead>
 							<TableHead>{renderSortButton("Created", "createdAt")}</TableHead>

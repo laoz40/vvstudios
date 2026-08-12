@@ -64,6 +64,16 @@ function getAssignedEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
 		.unique();
 }
 
+export function saveSessionEditorNotes(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editorNotes: string
+) {
+	return okOrThrow(
+		ctx.db.patch(session._id, { editorNotes: editorNotes.trim() || undefined }).then(() => null)
+	);
+}
+
 export function saveSessionEditStatus(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
@@ -99,6 +109,7 @@ export function buildEditorSessionProjection(session: Doc<"bookings">) {
 		name: session.name,
 		accountName: session.accountName,
 		notes: session.notes,
+		editorNotes: session.editorNotes,
 		date: session.date,
 		time: session.time,
 		duration: session.duration,

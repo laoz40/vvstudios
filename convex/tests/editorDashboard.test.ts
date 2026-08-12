@@ -33,6 +33,8 @@
  * 31. Assignment rejects cancelled, unconfirmed, and archived sessions.
  * 32. Existing assignments can be removed after a session becomes ineligible.
  * 33. Total edits starts at zero and increments when an assigned session becomes completed.
+ * 34. Assigned editors can save and clear editor session notes.
+ * 35. Editors cannot update notes on another editor's session.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -82,6 +84,7 @@ type EditorSessionProjection = {
 	name: string;
 	accountName: string;
 	notes?: string;
+	editorNotes?: string;
 	date: string;
 	time: string;
 	duration: string;
@@ -123,6 +126,11 @@ const updateEditorAccess = makeFunctionReference<
 	{ tokenIdentifier: string; isActive: boolean },
 	UpdateEditorAccessResult
 >("editors:updateEditorAccess");
+const updateSessionNotes = makeFunctionReference<
+	"mutation",
+	{ bookingId: Id<"bookings">; editorNotes: string },
+	UpdateSessionEditStatusResult
+>("sessions:updateSessionNotes");
 const updateSessionEditStatus = makeFunctionReference<
 	"mutation",
 	UpdateSessionEditStatusArgs,
@@ -825,5 +833,44 @@ describe("deliverables status authorization", () => {
 		});
 
 		await expectDeliverablesUpdateRejected(t, adminIdentity, bookingId);
+	});
+});
+
+describe("session notes", () => {
+	test("allows an assigned editor to save and clear editor notes", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Notes Session", {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(
+			await t
+				.withIdentity(editorIdentity)
+				.mutation(updateSessionNotes, { bookingId, editorNotes: "Use the wide camera angle" })
+		).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			editorNotes: "Use the wide camera angle"
+		});
+
+		await t
+			.withIdentity(editorIdentity)
+			.mutation(updateSessionNotes, { bookingId, editorNotes: "  " });
+		expect(await readBooking(t, bookingId)).not.toHaveProperty("editorNotes");
+	});
+
+	test("rejects updates to another editor's session notes", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Other Editor Notes", {
+			assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+		});
+
+		expect(
+			await t
+				.withIdentity(editorIdentity)
+				.mutation(updateSessionNotes, { bookingId, editorNotes: "Unauthorized note" })
+		).toEqual([{ reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" }, null]);
+		expect(await readBooking(t, bookingId)).not.toHaveProperty("editorNotes");
 	});
 });

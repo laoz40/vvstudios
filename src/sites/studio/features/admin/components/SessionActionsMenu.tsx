@@ -57,6 +57,7 @@ type SessionActionsMenuProps = {
 	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
+	onEditEditorNotes: () => void;
 };
 
 export function SessionActionsMenu({
@@ -69,13 +70,15 @@ export function SessionActionsMenu({
 	invoiceActions,
 	paymentActions,
 	rescheduleAction,
-	statusActions
+	statusActions,
+	onEditEditorNotes
 }: SessionActionsMenuProps) {
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
+	const editorNotesIconRef = useRef<AnimatedIconHandle | null>(null);
 	const isArchived = session.hiddenAt !== undefined;
 	let archiveActionLabel = "Unarchive session";
 
@@ -214,11 +217,27 @@ export function SessionActionsMenu({
 								</TabsList>
 							</Tabs>
 						</div>
-						<div className="px-2 pb-2">
+						<div className="flex flex-col gap-2 px-2 pb-2">
 							<SessionEditorAssignment
 								activeEditors={activeEditors}
 								session={session}
 							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="w-full bg-background/60"
+								onPointerEnter={() => editorNotesIconRef.current?.startAnimation()}
+								onPointerLeave={() => editorNotesIconRef.current?.stopAnimation()}
+								onFocus={() => editorNotesIconRef.current?.startAnimation()}
+								onBlur={() => editorNotesIconRef.current?.stopAnimation()}
+								onClick={onEditEditorNotes}>
+								<PenIcon
+									ref={editorNotesIconRef}
+									aria-hidden
+								/>
+								Write editor notes
+							</Button>
 						</div>
 						<DropdownMenuSeparator />
 					</>

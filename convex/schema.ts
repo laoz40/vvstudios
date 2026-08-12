@@ -160,8 +160,9 @@ export default defineSchema({
 		reminderEmailSentAt: v.optional(v.number()),
 		reminderEmailFailureCode: v.optional(v.string()),
 
-		// Editor assignment
+		// Editor assignment and internal editing instructions
 		assignedEditorTokenIdentifier: v.optional(v.string()),
+		editorNotes: v.optional(v.string()),
 
 		// Remaining balance/admin edit state
 		paidRemainingBalance: v.optional(v.boolean()),

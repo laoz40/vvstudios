@@ -26,14 +26,15 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 
 	return (
 		<section className="overflow-x-auto border-y">
-			<Table className="w-full min-w-4xl table-fixed">
+			<Table className="w-full min-w-5xl table-fixed">
 				<colgroup>
-					<col className="w-28" />
-					<col className="w-80" />
-					<col className="w-36" />
-					<col className="w-80" />
-					<col />
-					<col className="w-24" />
+					<col className="w-24 md:w-16" />
+					<col className="w-64" />
+					<col className="w-32 md:w-24" />
+					<col className="w-60 md:w-48" />
+					<col className="w-84" />
+					<col className="w-84" />
+					<col className="md:w-12" />
 				</colgroup>
 				<TableHeader>
 					<TableRow>
@@ -42,6 +43,7 @@ export function EditorSessionsTable({ sessions }: { sessions: EditorSession[] })
 						<TableHead>Session</TableHead>
 						<TableHead>Service</TableHead>
 						<TableHead>Client Notes</TableHead>
+						<TableHead>Editor Notes</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
 				</TableHeader>

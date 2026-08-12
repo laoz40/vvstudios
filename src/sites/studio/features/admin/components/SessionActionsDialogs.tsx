@@ -12,6 +12,7 @@ import {
 import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
+import { SessionNotesDialog } from "#studio/features/admin/components/SessionNotesDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
@@ -31,6 +32,8 @@ type SessionActionsDialogsProps = {
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
+	isEditorNotesDialogOpen: boolean;
+	onEditorNotesDialogOpenChange: (open: boolean) => void;
 };
 
 export function SessionActionsDialogs({
@@ -40,10 +43,20 @@ export function SessionActionsDialogs({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	rescheduleAction
+	rescheduleAction,
+	isEditorNotesDialogOpen,
+	onEditorNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
 	return (
 		<>
+			<SessionNotesDialog
+				bookingId={session._id}
+				bookingName={session.name}
+				savedNotes={session.editorNotes}
+				open={isEditorNotesDialogOpen}
+				onOpenChange={onEditorNotesDialogOpenChange}
+			/>
+
 			<Dialog
 				open={rescheduleAction.isRescheduleLinkDialogOpen}
 				onOpenChange={rescheduleAction.setIsRescheduleLinkDialogOpen}>

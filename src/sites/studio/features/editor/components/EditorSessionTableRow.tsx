@@ -89,8 +89,16 @@ export function EditorSessionTableRow({ session }: { session: EditorSession }) {
 					{session.notes?.trim() || "-"}
 				</p>
 			</TableCell>
+			<TableCell>
+				<p className="whitespace-normal text-sm text-muted-foreground">
+					{session.editorNotes?.trim() || "-"}
+				</p>
+			</TableCell>
 			<TableCell className="text-right">
-				{isPastSession ? <EditorDeliverablesActions session={session} /> : null}
+				<EditorDeliverablesActions
+					session={session}
+					canManageDeliverables={isPastSession}
+				/>
 			</TableCell>
 		</TableRow>
 	);

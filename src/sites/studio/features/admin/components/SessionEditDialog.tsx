@@ -417,7 +417,7 @@ export function SessionEditDialog({
 					</section>
 
 					<div className="grid gap-2">
-						<Label htmlFor="edit-session-notes">Notes</Label>
+						<Label htmlFor="edit-session-notes">Client notes</Label>
 						<Textarea
 							id="edit-session-notes"
 							name="notes"
