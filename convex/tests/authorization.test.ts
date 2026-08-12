@@ -3,8 +3,8 @@
  * They cover signed-out users, signed-in customers, and admins.
  *
  * 1. Reading admin data
- *    Signed-out users and customers must not read the booking or package lists because they
- *    contain private customer and payment data. Admins must be able to read both lists.
+ *    Signed-out users, customers, and editors must not read the booking or package lists because
+ *    they contain private customer and payment data. Admins must be able to read both lists.
  *
  * 2. Running admin-only operations
  *    The following operations are tested:
@@ -92,6 +92,15 @@ describe("admin list authorization", () => {
 		await expect(client.query(api.sessions.listSessions, { paginationOpts })).rejects.toMatchObject(
 			{ data: { reason } }
 		);
+	});
+
+	test("rejects active editors from the sensitive booking list", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+
+		await expect(
+			t.withIdentity(editorMetadataIdentity).query(api.sessions.listSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
 	test.each(identities)("rejects $label from listPackages", async ({ identity, reason }) => {
@@ -672,8 +681,10 @@ describe("requirePermission", () => {
 		await seedEditorProfile(t, editorMetadataIdentity, true);
 		const editor = t.withIdentity(editorMetadataIdentity);
 
-		const sessions = await editor.query(api.sessions.listSessions, { paginationOpts });
-		expect(sessions.page).toEqual([]);
+		const editorPermission = await editor.run((ctx) =>
+			requirePermission(ctx, "view:sessions").match(tupleOk, tupleErr)
+		);
+		expect(editorPermission).toMatchObject([null, editorMetadataIdentity]);
 		await expect(editor.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
 			{ data: { reason: "NOT_AUTHORIZED" } }
 		);

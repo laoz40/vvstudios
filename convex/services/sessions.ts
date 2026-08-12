@@ -82,7 +82,7 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 }
 
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
-	await requirePermission(ctx, "view:sessions").match(
+	await requirePermission(ctx, "view:sensitive-booking-data").match(
 		() => null,
 		(authError) => {
 			throw new ConvexError(authError);
