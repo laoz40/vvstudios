@@ -18,7 +18,29 @@ import { EditorDashboardShell } from "#studio/features/editor/components/EditorD
 
 const ADMIN_PAGE_SIZE = 500;
 
-type EditorListError = NonNullable<FunctionReturnType<typeof api.editors.listEditors>[0]>;
+type EditorListResult = FunctionReturnType<typeof api.editors.listEditors>;
+type EditorListError = NonNullable<EditorListResult[0]>;
+type Editors = NonNullable<EditorListResult[1]>;
+type ActiveEditors = FunctionReturnType<typeof api.sessions.listActiveEditors>;
+type Sessions = FunctionReturnType<typeof api.sessions.listSessions>["page"];
+type Packages = FunctionReturnType<typeof api.packages.listPackages>["page"];
+
+type AdminDashboardTablesProps = {
+	activeView: AdminDashboardView;
+	activeEditors: ActiveEditors;
+	editors: Editors;
+	sessions: Sessions;
+	packages: Packages;
+	canLoadMoreSessions: boolean;
+	isLoadingMoreSessions: boolean;
+	canLoadMorePackages: boolean;
+	isLoadingMorePackages: boolean;
+	sessionSearchQuery: string;
+	onLoadMoreSessions: () => void;
+	onLoadMorePackages: () => void;
+	onSearchQueryChange: (query: string) => void;
+	onViewPackageSessions: (invoiceNumber: string) => void;
+};
 
 function renderEditorListError(error: EditorListError) {
 	switch (error.reason) {
@@ -101,6 +123,52 @@ function DashboardAccessGate() {
 	return <EditorDashboardShell />;
 }
 
+function AdminDashboardTables({
+	activeView,
+	activeEditors,
+	editors,
+	sessions,
+	packages,
+	canLoadMoreSessions,
+	isLoadingMoreSessions,
+	canLoadMorePackages,
+	isLoadingMorePackages,
+	sessionSearchQuery,
+	onLoadMoreSessions,
+	onLoadMorePackages,
+	onSearchQueryChange,
+	onViewPackageSessions
+}: AdminDashboardTablesProps) {
+	return (
+		<>
+			{/* Keep all tables mounted when switching tabs so pagination and search stay where the user left them. */}
+			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
+				<SessionsTable
+					activeEditors={activeEditors}
+					sessions={sessions}
+					canLoadMoreSessions={canLoadMoreSessions}
+					isLoadingMoreSessions={isLoadingMoreSessions}
+					loadMoreSessions={onLoadMoreSessions}
+					searchQuery={sessionSearchQuery}
+					onSearchQueryChange={onSearchQueryChange}
+				/>
+			</Activity>
+			<Activity mode={activeView === "packages" ? "visible" : "hidden"}>
+				<PackagesTable
+					packages={packages}
+					canLoadMorePackages={canLoadMorePackages}
+					isLoadingMorePackages={isLoadingMorePackages}
+					loadMorePackages={onLoadMorePackages}
+					onViewPackageSessions={onViewPackageSessions}
+				/>
+			</Activity>
+			<Activity mode={activeView === "editors" ? "visible" : "hidden"}>
+				<EditorsTable editors={editors} />
+			</Activity>
+		</>
+	);
+}
+
 function AdminDashboard() {
 	const sessions = usePaginatedQuery(
 		api.sessions.listSessions,
@@ -124,8 +192,8 @@ function AdminDashboard() {
 		setActiveView("bookings");
 	}
 
-	const isDashboardDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
-	if (isDashboardDataLoading || activeEditors === undefined || editorsResult === undefined) {
+	const isPaginatedDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
+	if (isPaginatedDataLoading || activeEditors === undefined || editorsResult === undefined) {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
 				<StudioLoadingState label="Decrypting classified files" />
@@ -143,30 +211,22 @@ function AdminDashboard() {
 			activeView={activeView}
 			email={email ?? null}
 			onActiveViewChange={setActiveView}>
-			{/* Keep both tables mounted when switching tabs so pagination and search stay where the user left them. */}
-			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
-				<SessionsTable
-					activeEditors={activeEditors}
-					sessions={sessions.results}
-					canLoadMoreSessions={sessions.status === "CanLoadMore"}
-					isLoadingMoreSessions={sessions.status === "LoadingMore"}
-					loadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
-					searchQuery={sessionSearchQuery}
-					onSearchQueryChange={setSessionSearchQuery}
-				/>
-			</Activity>
-			<Activity mode={activeView === "packages" ? "visible" : "hidden"}>
-				<PackagesTable
-					packages={packages.results}
-					canLoadMorePackages={packages.status === "CanLoadMore"}
-					isLoadingMorePackages={packages.status === "LoadingMore"}
-					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
-					onViewPackageSessions={viewPackageSessions}
-				/>
-			</Activity>
-			<Activity mode={activeView === "editors" ? "visible" : "hidden"}>
-				<EditorsTable editors={editors} />
-			</Activity>
+			<AdminDashboardTables
+				activeView={activeView}
+				activeEditors={activeEditors}
+				editors={editors}
+				sessions={sessions.results}
+				packages={packages.results}
+				canLoadMoreSessions={sessions.status === "CanLoadMore"}
+				isLoadingMoreSessions={sessions.status === "LoadingMore"}
+				canLoadMorePackages={packages.status === "CanLoadMore"}
+				isLoadingMorePackages={packages.status === "LoadingMore"}
+				sessionSearchQuery={sessionSearchQuery}
+				onLoadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
+				onLoadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+				onSearchQueryChange={setSessionSearchQuery}
+				onViewPackageSessions={viewPackageSessions}
+			/>
 		</AdminDashboardShell>
 	);
 }
