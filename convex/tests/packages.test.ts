@@ -316,7 +316,7 @@ describe("package request creation", () => {
 			phone: "0400 000 000",
 			accountName: "Test account",
 			abn: "12345678901",
-			email: "Customer@Example.com",
+			email: "customer@example.com",
 			duration: "1h",
 			addons: ["Teleprompter"],
 			notes: "Please call on arrival",
