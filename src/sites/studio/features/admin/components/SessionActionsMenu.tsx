@@ -60,6 +60,10 @@ type SessionActionsMenuProps = {
 	onEditEditorNotes: () => void;
 };
 
+function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
+	return details.canManageConfirmedSession && details.isPastSession;
+}
+
 export function SessionActionsMenu({
 	activeEditors,
 	session,
@@ -338,6 +342,25 @@ export function SessionActionsMenu({
 							</AnimatedDropdownMenuItem>
 						)}
 						<DropdownMenuSeparator />
+						{canSetDeliverablesStatusToSent(details) ? (
+							<AnimatedDropdownMenuItem
+								className="hover:text-green focus:text-green"
+								disabled={
+									statusActions.isUpdatingEditStatus ||
+									statusActions.deliverableStatus === "completed"
+								}
+								onSelect={() => void statusActions.handleUpdateEditStatus("completed")}
+								renderIcon={(iconRef) => (
+									<MailFilledIcon
+										ref={iconRef}
+										size={16}
+										aria-hidden
+										className="shrink-0 text-current"
+									/>
+								)}>
+								Set deliverables status to sent
+							</AnimatedDropdownMenuItem>
+						) : null}
 						<AnimatedDropdownMenuItem
 							disabled={
 								!details.canGenerateRescheduleLink || rescheduleAction.isGeneratingRescheduleLink
