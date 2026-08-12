@@ -7,7 +7,6 @@ import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
 import PhoneVolume from "#/components/ui/phone-volume";
-import SendIcon from "#/components/ui/send-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
@@ -186,17 +185,27 @@ export function SessionActionsMenu({
 											option === statusActions.deliverableStatus
 												? deliverableStatusLabelMap[option]
 												: deliverableStatusTabLabelMap[option];
+										const isDeliverAction = option === "completed";
+										const isDisabled =
+											statusActions.isUpdatingEditStatus ||
+											(isDeliverAction
+												? deliverablesEmailAction.isEmailingDeliverables
+												: statusActions.deliverableStatus === option);
 
 										return (
 											<TabsTrigger
 												key={option}
 												value={option}
 												className={deliverableStatusTabClassNameMap[option]}
-												disabled={
-													statusActions.isUpdatingEditStatus ||
-													statusActions.deliverableStatus === option
-												}
-												onClick={() => void statusActions.handleUpdateEditStatus(option)}>
+												disabled={isDisabled}
+												onClick={() => {
+													if (isDeliverAction) {
+														deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
+														return;
+													}
+
+													void statusActions.handleUpdateEditStatus(option);
+												}}>
 												<Icon aria-hidden />
 												{tabLabel}
 											</TabsTrigger>
@@ -211,21 +220,6 @@ export function SessionActionsMenu({
 								session={session}
 							/>
 						</div>
-						<DropdownMenuSeparator />
-						<AnimatedDropdownMenuItem
-							className="focus:text-green hover:text-green"
-							disabled={deliverablesEmailAction.isEmailingDeliverables}
-							onSelect={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}
-							renderIcon={(iconRef) => (
-								<SendIcon
-									ref={iconRef}
-									size={16}
-									aria-hidden
-									className="shrink-0 text-current"
-								/>
-							)}>
-							Deliver deliverables email
-						</AnimatedDropdownMenuItem>
 						<DropdownMenuSeparator />
 					</>
 				) : null}
