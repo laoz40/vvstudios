@@ -1,11 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
+import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	archiveSessionService,
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
+	getDeliverablesCustomerTypeService,
 	getPublicRescheduleCompleteSessionService,
 	listActiveEditorsService,
 	listEditorSessionsService,
@@ -16,11 +18,28 @@ import {
 	updateSessionPaidStatusService
 } from "#convex/services/sessions";
 
+export const detectDeliverablesCustomerType = internalQuery({
+	args: { bookingId: v.id("bookings") },
+	handler: async (ctx, args) => {
+		const session = await ctx.db.get(args.bookingId);
+		if (session === null) {
+			return tupleErr({ reason: "BOOKING_NOT_FOUND" as const });
+		}
+
+		return detectCustomerType(ctx, session).match(tupleOk, tupleErr);
+	}
+});
+
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.bookingId);
 	}
+});
+
+export const getDeliverablesCustomerType = query({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => getDeliverablesCustomerTypeService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const listSessions = query({

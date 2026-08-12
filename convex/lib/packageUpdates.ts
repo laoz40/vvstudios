@@ -65,7 +65,7 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		phone: args.phone,
 		accountName: args.accountName,
 		...(args.abn !== undefined ? { abn: args.abn } : {}),
-		email: args.email,
+		email: args.email.trim().toLowerCase(),
 		duration: args.duration,
 		addons: args.addons,
 		...(args.essentialEditQuantity !== undefined
@@ -161,7 +161,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		phone: updatedPackage.phone,
 		accountName: updatedPackage.accountName,
 		abn: updatedPackage.abn,
-		email: updatedPackage.email,
+		email: updatedPackage.email.trim().toLowerCase(),
 		duration: updatedPackage.duration,
 		addons: updatedPackage.addons,
 		essentialEditQuantity: updatedPackage.essentialEditQuantity,

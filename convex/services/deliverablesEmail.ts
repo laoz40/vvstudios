@@ -1,15 +1,17 @@
 "use node";
 
 import { errAsync, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { isAdminIdentity, requirePermissionActions, requireUser } from "#convex/lib/auth";
 import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
 } from "#convex/lib/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email";
 import { parseGoogleDriveLink } from "#convex/lib/googleDriveLinks";
+import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
 export type SendSessionDeliverablesEmailArgs = {
@@ -68,5 +70,16 @@ export function sendSessionDeliverablesEmailService(
 		)
 		.andThen(requireDeliverablesOwnership)
 		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => sendDeliverablesEmailForSession(session, args));
+		.andThen((session) =>
+			requireUser(ctx).andThen((identity) =>
+				fromConvexTuple(
+					ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
+				).andThen((detectedEmailVariant) =>
+					sendDeliverablesEmailForSession(session, {
+						...args,
+						emailVariant: isAdminIdentity(identity) ? args.emailVariant : detectedEmailVariant
+					})
+				)
+			)
+		);
 }

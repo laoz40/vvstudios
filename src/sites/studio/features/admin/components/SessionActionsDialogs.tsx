@@ -119,8 +119,10 @@ export function SessionActionsDialogs({
 				driveLink={deliverablesEmailAction.deliverablesDriveLinkDraft}
 				editorNotes={deliverablesEmailAction.deliverablesEditorNotesDraft}
 				emailVariant={deliverablesEmailAction.deliverablesEmailVariantDraft}
+				isCustomerTypeLoading={deliverablesEmailAction.isCustomerTypeLoading}
 				isSending={deliverablesEmailAction.isEmailingDeliverables}
 				markAsSentAfterSending={deliverablesEmailAction.markDeliverablesAsSentAfterSending}
+				showCustomerType
 				onDriveLinkChange={deliverablesEmailAction.setDeliverablesDriveLinkDraft}
 				onEditorNotesChange={deliverablesEmailAction.setDeliverablesEditorNotesDraft}
 				onEmailVariantChange={deliverablesEmailAction.setDeliverablesEmailVariantDraft}

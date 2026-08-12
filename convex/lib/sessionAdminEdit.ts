@@ -183,7 +183,7 @@ export function buildAdminSessionUpdatePatch({
 		phone: values.phone,
 		accountName: values.accountName,
 		abn: values.abn,
-		email: values.email,
+		email: values.email.trim().toLowerCase(),
 		date: values.date,
 		time: values.time,
 		duration: values.duration,

@@ -1,11 +1,28 @@
 import type { UserIdentity } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
 
 export type DeliverablesSessionAccess = { identity: UserIdentity; session: Doc<"bookings"> };
+export type DeliverablesCustomerType = "first-time" | "recurring";
+
+export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"bookings">) {
+	return okOrThrow(
+		(async (): Promise<DeliverablesCustomerType> => {
+			for await (const priorSession of ctx.db
+				.query("bookings")
+				.withIndex("by_email", (query) => query.eq("email", session.email))) {
+				if (priorSession._id !== session._id && priorSession.editStatus === "completed") {
+					return "recurring";
+				}
+			}
+
+			return "first-time";
+		})()
+	);
+}
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
 	const hasEligibleStatus = session.status === "confirmed" || session.status === "email_failed";

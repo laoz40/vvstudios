@@ -1,10 +1,10 @@
 import { err, ok, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
-export function getSessionFromDb(ctx: MutationCtx, bookingId: Id<"bookings">) {
+export function getSessionFromDb(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });

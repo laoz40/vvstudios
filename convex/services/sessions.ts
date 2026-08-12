@@ -10,6 +10,7 @@ import {
 } from "#convex/lib/editorAssignments";
 import {
 	buildEditorSessionProjection,
+	detectDeliverablesCustomerType,
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
@@ -27,6 +28,7 @@ type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | nul
 type ListSessionsArgs = PaginationArgs;
 type ListEditorSessionsArgs = PaginationArgs;
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
+type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
 type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
@@ -36,6 +38,19 @@ type UpdateSessionEditStatusArgs = {
 };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
 type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
+
+export function getDeliverablesCustomerTypeService(
+	ctx: QueryCtx,
+	args: GetDeliverablesCustomerTypeArgs
+) {
+	return requirePermission(ctx, "send:deliverables-email")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(requireDeliverablesEligibility)
+		.andThen((session) => detectDeliverablesCustomerType(ctx, session));
+}
 
 export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")

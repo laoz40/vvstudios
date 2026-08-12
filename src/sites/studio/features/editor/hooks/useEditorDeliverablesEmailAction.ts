@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FunctionReturnType } from "convex/server";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -19,6 +19,21 @@ export function useEditorDeliverablesEmailAction(session: EditorSession) {
 	const [emailVariant, setEmailVariant] = useState<DeliverablesEmailVariant>("first-time");
 	const [markAsSent, setMarkAsSent] = useState(true);
 	const [sendState, setSendState] = useState<SendState>({ status: "ready-to-send" });
+	const customerTypeResult = useQuery(
+		api.sessions.getDeliverablesCustomerType,
+		isOpen ? { bookingId: session._id } : "skip"
+	);
+	// Keep the editor-only flow fully automatic after delivery history has been checked.
+	useEffect(() => {
+		if (customerTypeResult === undefined) {
+			return;
+		}
+
+		const [customerTypeError, detectedEmailVariant] = customerTypeResult;
+		if (customerTypeError === null) {
+			setEmailVariant(detectedEmailVariant);
+		}
+	}, [customerTypeResult]);
 
 	function reset() {
 		setDriveLink("");
@@ -78,6 +93,7 @@ export function useEditorDeliverablesEmailAction(session: EditorSession) {
 		driveLink,
 		editorNotes,
 		emailVariant,
+		isCustomerTypeLoading: customerTypeResult === undefined,
 		isOpen,
 		isSending,
 		markAsSent,

@@ -181,6 +181,7 @@ export default defineSchema({
 		// Multi-booking package link, when this booking is one scheduled package session
 		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
 	})
+		.index("by_email", ["email"])
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])

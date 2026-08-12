@@ -25,8 +25,10 @@ export type DeliverablesEmailDialogProps = {
 	driveLink: string;
 	editorNotes: string;
 	emailVariant: DeliverablesEmailVariant;
+	isCustomerTypeLoading: boolean;
 	isSending: boolean;
 	markAsSentAfterSending: boolean;
+	showCustomerType: boolean;
 	onDriveLinkChange: (driveLink: string) => void;
 	onEditorNotesChange: (editorNotes: string) => void;
 	onEmailVariantChange: (emailVariant: DeliverablesEmailVariant) => void;
@@ -47,6 +49,7 @@ export function DeliverablesEmailDialog({
 	driveLink,
 	editorNotes,
 	emailVariant,
+	isCustomerTypeLoading,
 	isSending,
 	markAsSentAfterSending,
 	onDriveLinkChange,
@@ -56,7 +59,8 @@ export function DeliverablesEmailDialog({
 	onOpenChange,
 	onSend,
 	open,
-	recipient
+	recipient,
+	showCustomerType
 }: DeliverablesEmailDialogProps) {
 	return (
 		<Dialog
@@ -104,27 +108,29 @@ export function DeliverablesEmailDialog({
 				) : null}
 
 				<FieldGroup>
-					<Field>
-						<FieldLabel>Customer type</FieldLabel>
-						<RadioGroup
-							value={emailVariant}
-							onValueChange={(value) => {
-								if (isDeliverablesEmailVariant(value)) {
-									onEmailVariantChange(value);
-								}
-							}}
-							className="gap-2"
-							disabled={isSending}>
-							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="first-time" />
-								<span className="text-sm font-medium leading-5">First time customer</span>
-							</FieldLabel>
-							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="recurring" />
-								<span className="text-sm font-medium leading-5">Recurring customer</span>
-							</FieldLabel>
-						</RadioGroup>
-					</Field>
+					{showCustomerType ? (
+						<Field>
+							<FieldLabel>Customer type</FieldLabel>
+							<RadioGroup
+								value={emailVariant}
+								onValueChange={(value) => {
+									if (isDeliverablesEmailVariant(value)) {
+										onEmailVariantChange(value);
+									}
+								}}
+								className="gap-2"
+								disabled={isSending}>
+								<FieldLabel className="w-full rounded-md border p-3">
+									<RadioGroupItem value="first-time" />
+									<span className="text-sm font-medium leading-5">First time customer</span>
+								</FieldLabel>
+								<FieldLabel className="w-full rounded-md border p-3">
+									<RadioGroupItem value="recurring" />
+									<span className="text-sm font-medium leading-5">Recurring customer</span>
+								</FieldLabel>
+							</RadioGroup>
+						</Field>
+					) : null}
 
 					<Field>
 						<FieldLabel htmlFor={`deliverables-drive-link-${bookingId}`}>
@@ -184,7 +190,7 @@ export function DeliverablesEmailDialog({
 					<Button
 						type="button"
 						onClick={onSend}
-						disabled={isSending || !driveLink.trim()}>
+						disabled={isCustomerTypeLoading || isSending || !driveLink.trim()}>
 						{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
 						{isSending ? "Sending..." : "Send email"}
 					</Button>

@@ -42,7 +42,10 @@ export type PaidPackageResult = {
 };
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
 	const createdAt = Date.now();
-	const packageRecord = buildPendingPackageRecord(args, createdAt);
+	const packageRecord = buildPendingPackageRecord(
+		{ ...args, email: args.email.trim().toLowerCase() },
+		createdAt
+	);
 
 	return ctx.db
 		.insert("multiBookingPackages", packageRecord)

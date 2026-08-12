@@ -106,8 +106,10 @@ export function EditorDeliverablesActions({ session }: { session: EditorSession 
 				driveLink={emailAction.driveLink}
 				editorNotes={emailAction.editorNotes}
 				emailVariant={emailAction.emailVariant}
+				isCustomerTypeLoading={emailAction.isCustomerTypeLoading}
 				isSending={emailAction.isSending}
 				markAsSentAfterSending={emailAction.markAsSent}
+				showCustomerType={false}
 				onDriveLinkChange={emailAction.setDriveLink}
 				onEditorNotesChange={emailAction.setEditorNotes}
 				onEmailVariantChange={emailAction.setEmailVariant}

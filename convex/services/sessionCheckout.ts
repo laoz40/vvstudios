@@ -71,6 +71,7 @@ export function createPendingSessionService(
 					return okOrThrow(
 						ctx.db.insert("bookings", {
 							...args,
+							email: args.email.trim().toLowerCase(),
 							sessionStartAt,
 							status: "pending_payment",
 							pendingPaymentCreatedAt: Date.now()

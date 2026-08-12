@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -36,6 +36,21 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		useState(true);
 	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
 		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
+	const customerTypeResult = useQuery(
+		api.sessions.getDeliverablesCustomerType,
+		isDeliverablesEmailDialogOpen ? { bookingId: session._id } : "skip"
+	);
+	// Preselect the customer type when delivery history has been checked; admins may override it.
+	useEffect(() => {
+		if (customerTypeResult === undefined) {
+			return;
+		}
+
+		const [customerTypeError, detectedEmailVariant] = customerTypeResult;
+		if (customerTypeError === null) {
+			setDeliverablesEmailVariantDraft(detectedEmailVariant);
+		}
+	}, [customerTypeResult]);
 
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
@@ -100,6 +115,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		deliverablesEditorNotesDraft,
 		deliverablesEmailVariantDraft,
 		handleEmailDeliverables,
+		isCustomerTypeLoading: customerTypeResult === undefined,
 		isDeliverablesEmailDialogOpen,
 		isEmailingDeliverables,
 		markDeliverablesAsSentAfterSending,
