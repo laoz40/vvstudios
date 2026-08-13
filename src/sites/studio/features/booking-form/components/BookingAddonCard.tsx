@@ -18,7 +18,15 @@ import {
 	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
-import { Globe, Scissors, ScrollText, Smartphone, Sparkles, Video, WandSparkles } from "lucide-react";
+import {
+	Globe,
+	Scissors,
+	ScrollText,
+	Smartphone,
+	Sparkles,
+	Video,
+	WandSparkles
+} from "lucide-react";
 
 const addonCardCopy = {
 	"4K UHD Recording": {
@@ -34,7 +42,8 @@ const addonCardCopy = {
 		icon: Scissors
 	},
 	"Complete Edit": {
-		description: "Dynamic episode teaser, lower thirds & B-roll, filler words and silences removed with clean cuts.",
+		description:
+			"Dynamic episode teaser, lower thirds & B-roll, filler words and silences removed with clean cuts.",
 		icon: WandSparkles
 	},
 	"Clip Volume Pack": {

@@ -24,6 +24,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	ADDON_OPTIONS,
+	ADDON_SECTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
 	isAddonAvailableForService,
 	isDeliverableCountOption,
@@ -186,63 +187,80 @@ export function BookingAddonsSection() {
 				}
 
 				return (
-					<FieldSet data-field-name="addons">
-						<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
-						<FieldDescription>Choose add-ons to enhance your session.</FieldDescription>
-						<div className="flex flex-col gap-4">
-							{availableAddonOptions.map((addon) => (
-								<div
-									key={addon}
-									className="space-y-3">
-									<BookingAddonCard
-										addon={addon}
-										checked={field.state.value.includes(addon)}
-										disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
-										onCheckedChange={handleAddonChange}
-									/>
-									<AnimatePresence initial={false}>
-										{addon === "Essential Edit" && field.state.value.includes("Essential Edit") ? (
-											<BookingAddonQuantityField
-												key="essentialEditQuantity"
-												formApi={formApi}
-												fieldName="essentialEditQuantity"
-												label={
-													isMultiBooking
-														? "Number of Essential Edits Per Session"
-														: "Number of Essential Edits"
-												}
-												description={
-													isMultiBooking
-														? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
-														: "Charged per episode or project you want edited from this session."
-												}
-												shouldShowFieldError={shouldShowFieldError}
-											/>
-										) : null}
-										{addon === "Clip Volume Pack" &&
-										field.state.value.includes("Clip Volume Pack") ? (
-											<BookingAddonQuantityField
-												key="clipsPackageQuantity"
-												formApi={formApi}
-												fieldName="clipsPackageQuantity"
-												label={
-													isMultiBooking
-														? "Number of Clip Volume Packs Per Session"
-														: "Number of Clip Volume Packs"
-												}
-												description={
-													isMultiBooking
-														? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
-														: "One package includes 10 edited social media clips. Charged per package."
-												}
-												shouldShowFieldError={shouldShowFieldError}
-											/>
-										) : null}
-									</AnimatePresence>
-								</div>
-							))}
-						</div>
-					</FieldSet>
+					<div
+						data-field-name="addons"
+						className="flex flex-col gap-8">
+						{ADDON_SECTIONS.map((section) => {
+							const sectionAddons = section.addons.filter((addon) =>
+								availableAddonOptions.includes(addon)
+							);
+
+							if (sectionAddons.length === 0) {
+								return null;
+							}
+
+							return (
+								<FieldSet key={section.title}>
+									<FieldLegend className={sectionHeadingClassName}>{section.title}</FieldLegend>
+									<FieldDescription>{section.description}</FieldDescription>
+									<div className="flex flex-col gap-4">
+										{sectionAddons.map((addon) => (
+											<div
+												key={addon}
+												className="space-y-3">
+												<BookingAddonCard
+													addon={addon}
+													checked={field.state.value.includes(addon)}
+													disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
+													onCheckedChange={handleAddonChange}
+												/>
+												<AnimatePresence initial={false}>
+													{addon === "Essential Edit" &&
+													field.state.value.includes("Essential Edit") ? (
+														<BookingAddonQuantityField
+															key="essentialEditQuantity"
+															formApi={formApi}
+															fieldName="essentialEditQuantity"
+															label={
+																isMultiBooking
+																	? "Number of Essential Edits Per Session"
+																	: "Number of Essential Edits"
+															}
+															description={
+																isMultiBooking
+																	? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
+																	: "Charged per episode or project you want edited from this session."
+															}
+															shouldShowFieldError={shouldShowFieldError}
+														/>
+													) : null}
+													{addon === "Clip Volume Pack" &&
+													field.state.value.includes("Clip Volume Pack") ? (
+														<BookingAddonQuantityField
+															key="clipsPackageQuantity"
+															formApi={formApi}
+															fieldName="clipsPackageQuantity"
+															label={
+																isMultiBooking
+																	? "Number of Clip Volume Packs Per Session"
+																	: "Number of Clip Volume Packs"
+															}
+															description={
+																isMultiBooking
+																	? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
+																	: "One package includes 10 edited social media clips. Charged per package."
+															}
+															shouldShowFieldError={shouldShowFieldError}
+														/>
+													) : null}
+												</AnimatePresence>
+											</div>
+										))}
+									</div>
+								</FieldSet>
+							);
+						})}
+					</div>
 				);
 			}}
 		</FormField>

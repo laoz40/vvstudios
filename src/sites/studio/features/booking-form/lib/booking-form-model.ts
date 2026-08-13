@@ -13,6 +13,27 @@ export const ADDON_OPTIONS = [
 	"Handcrafted Clips"
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
+export const ADDON_SECTIONS = [
+	{
+		title: "Production Add-ons",
+		description: "Enhance your recording session.",
+		addons: ["Remote Podcast", "4K UHD Recording", "Teleprompter"]
+	},
+	{
+		title: "Editing Services",
+		description: "Choose post-production services for your content.",
+		addons: ["Essential Edit", "Complete Edit"]
+	},
+	{
+		title: "Clip Services",
+		description: "Choose short-form clips services for your social media content.",
+		addons: ["Clip Volume Pack", "Handcrafted Clips"]
+	}
+] as const satisfies ReadonlyArray<{
+	title: string;
+	description: string;
+	addons: readonly (typeof ADDON_OPTIONS)[number][];
+}>;
 const EDITING_ADDONS = ["Essential Edit", "Clip Volume Pack"] as const;
 const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
