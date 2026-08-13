@@ -767,12 +767,7 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(
-			t,
-			editorIdentity,
-			bookingId,
-			"SESSION_NOT_IN_PAST"
-		);
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId, "SESSION_NOT_IN_PAST");
 	});
 
 	test("rejects an editor update for an archived session", async () => {
@@ -796,12 +791,7 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(
-			t,
-			editorIdentity,
-			bookingId,
-			"SESSION_NOT_CONFIRMED"
-		);
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId, "SESSION_NOT_CONFIRMED");
 	});
 
 	test("rejects an editor update for an unassigned session", async () => {

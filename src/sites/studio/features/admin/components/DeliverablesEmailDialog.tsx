@@ -62,6 +62,11 @@ export function DeliverablesEmailDialog({
 	recipient,
 	showCustomerType
 }: DeliverablesEmailDialogProps) {
+	let sendButtonLabel = "Send email";
+	if (isCustomerTypeLoading) sendButtonLabel = "Loading";
+	if (isSending) sendButtonLabel = "Sending";
+	const isSendButtonLoading = isCustomerTypeLoading || isSending;
+
 	return (
 		<Dialog
 			open={open}
@@ -162,6 +167,7 @@ export function DeliverablesEmailDialog({
 					<Field orientation="horizontal">
 						<Checkbox
 							id={`deliverables-mark-sent-${bookingId}`}
+							aria-describedby={`deliverables-mark-sent-description-${bookingId}`}
 							checked={!markAsSentAfterSending}
 							onCheckedChange={(checked) => {
 								onMarkAsSentAfterSendingChange(checked !== true);
@@ -172,7 +178,7 @@ export function DeliverablesEmailDialog({
 							<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
 								Don&apos;t set status to sent
 							</FieldLabel>
-							<FieldDescription>
+							<FieldDescription id={`deliverables-mark-sent-description-${bookingId}`}>
 								Check this if there are more deliverables to send later.
 							</FieldDescription>
 						</div>
@@ -191,8 +197,8 @@ export function DeliverablesEmailDialog({
 						type="button"
 						onClick={onSend}
 						disabled={isCustomerTypeLoading || isSending || !driveLink.trim()}>
-						{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isSending ? "Sending..." : "Send email"}
+						{isSendButtonLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+						{sendButtonLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
