@@ -17,7 +17,7 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	abn: "ABN",
 	accountName: "Account name",
 	addons: "Add-ons",
-	clipsPackageQuantity: "Clips Package quantity",
+	clipsPackageQuantity: "Clip Volume Pack quantity",
 	customerEmail: "Customer email",
 	customerName: "Customer name",
 	customerPhone: "Phone number",

@@ -85,7 +85,7 @@ const pricingAddOns: readonly PricingAddOn[] = [
 		icon: Scissors
 	},
 	{
-		label: "Clips Package",
+		label: "Clip Volume Pack",
 		price: "$79",
 		description:
 			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",

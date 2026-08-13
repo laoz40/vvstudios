@@ -116,7 +116,7 @@ function buildDevRescheduleCompleteBookingResult(
 			time: "10:00",
 			duration: "2h",
 			service: "Table Setup",
-			addons: ["Essential Edit", "Clips Package"],
+			addons: ["Essential Edit", "Clip Volume Pack"],
 			essentialEditQuantity: "1",
 			clipsPackageQuantity: "2"
 		}

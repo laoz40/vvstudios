@@ -8,15 +8,26 @@ export const ADDON_OPTIONS = [
 	"4K UHD Recording",
 	"Teleprompter",
 	"Essential Edit",
-	"Clips Package"
+	"Complete Edit",
+	"Clip Volume Pack",
+	"Handcrafted Clips"
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
-const EDITING_ADDONS = ["Essential Edit", "Clips Package"] as const;
+const EDITING_ADDONS = ["Essential Edit", "Clip Volume Pack"] as const;
+const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
 
 export function isAddonOption(value: string): value is BookingAddon {
 	return ADDON_OPTIONS.some((option) => option === value);
+}
+
+export function normalizeBookingAddon(value: string): BookingAddon | undefined {
+	if (value === LEGACY_CLIPS_PACKAGE_ADDON) {
+		return "Clip Volume Pack";
+	}
+
+	return ADDON_OPTIONS.find((option) => option === value);
 }
 
 export function isPackageUnavailableAddon(addon: BookingAddon) {
@@ -160,10 +171,10 @@ function validateEditingAddonQuantities(
 	},
 	ctx: z.RefinementCtx
 ) {
-	if (values.addons.includes("Clips Package") && !values.addons.includes("Essential Edit")) {
+	if (values.addons.includes("Clip Volume Pack") && !values.addons.includes("Essential Edit")) {
 		ctx.addIssue({
 			code: "custom",
-			message: "Essential Edit is required with the Clips Package.",
+			message: "Essential Edit is required with the Clip Volume Pack.",
 			path: ["addons"]
 		});
 	}
@@ -178,7 +189,7 @@ function validateEditingAddonQuantities(
 		});
 	}
 
-	if (values.addons.includes("Clips Package") && !values.clipsPackageQuantity) {
+	if (values.addons.includes("Clip Volume Pack") && !values.clipsPackageQuantity) {
 		ctx.addIssue({
 			code: "custom",
 			message: "Number of clips packages is required.",

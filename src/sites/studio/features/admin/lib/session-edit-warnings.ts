@@ -29,7 +29,7 @@ const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
 	abn: "ABN",
 	accountName: "Account name",
 	addons: "Add-ons",
-	clipsPackageQuantity: "Clips Package quantity",
+	clipsPackageQuantity: "Clip Volume Pack quantity",
 	date: "Session date",
 	duration: "Session duration",
 	email: "Customer email",

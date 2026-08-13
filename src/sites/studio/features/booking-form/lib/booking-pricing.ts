@@ -18,7 +18,9 @@ export const ADDON_PRICES = {
 	"4K UHD Recording": 49,
 	Teleprompter: 29,
 	"Essential Edit": 99,
-	"Clips Package": 79,
+	"Clip Volume Pack": 79,
+	"Complete Edit": 249,
+	"Handcrafted Clips": 199,
 	"Remote Podcast": 59
 } as const satisfies Record<BookingAddon, number>;
 

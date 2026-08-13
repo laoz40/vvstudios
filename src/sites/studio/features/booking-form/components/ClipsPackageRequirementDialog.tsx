@@ -15,11 +15,11 @@ export function ClipsPackageRequirementDialog({ reason }: ClipsPackageRequiremen
 					closeBookingModal();
 				}
 			}}
-			title={isClipsPackageDeselected ? "Clips Package removed" : "Essential Edit required"}
+			title={isClipsPackageDeselected ? "Clip Volume Pack removed" : "Essential Edit required"}
 			description={
 				isClipsPackageDeselected
-					? "The Clips Package requires the Essential Edit add-on."
-					: "The Clips Package is available only with the Essential Edit add-on."
+					? "The Clip Volume Pack requires the Essential Edit add-on."
+					: "The Clip Volume Pack is available only with the Essential Edit add-on."
 			}
 			closeLabel="Close dialog"
 			footer={

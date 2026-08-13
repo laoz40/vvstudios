@@ -13,7 +13,7 @@ function getEditingAddonQuantityField(addon: string) {
 		return "essentialEditQuantity" as const;
 	}
 
-	if (addon === "Clips Package") {
+	if (addon === "Clip Volume Pack") {
 		return "clipsPackageQuantity" as const;
 	}
 

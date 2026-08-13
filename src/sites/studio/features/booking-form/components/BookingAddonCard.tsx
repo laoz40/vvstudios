@@ -18,7 +18,7 @@ import {
 	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
-import { Globe, Scissors, ScrollText, Smartphone, Video } from "lucide-react";
+import { Globe, Scissors, ScrollText, Smartphone, Sparkles, Video, WandSparkles } from "lucide-react";
 
 const addonCardCopy = {
 	"4K UHD Recording": {
@@ -30,12 +30,20 @@ const addonCardCopy = {
 		icon: ScrollText
 	},
 	"Essential Edit": {
-		description: "Professionally synchronised audio; clean cuts between camera angles.",
+		description: "Camera switching with synchronised audio and basic colour correction.",
 		icon: Scissors
 	},
-	"Clips Package": {
-		description: "10 edited clips with subtitles and vertical cropping for social media.",
+	"Complete Edit": {
+		description: "Dynamic episode teaser, lower thirds & B-roll, filler words and silences removed with clean cuts.",
+		icon: WandSparkles
+	},
+	"Clip Volume Pack": {
+		description: "10 basic clips with subtitles and vertical cropping for social media.",
 		icon: Smartphone
+	},
+	"Handcrafted Clips": {
+		description: "5 premium clips with animated subtitles, B-roll, and custom graphics.",
+		icon: Sparkles
 	},
 	"Remote Podcast": {
 		description: "Record with guests globally using professional equipment.",

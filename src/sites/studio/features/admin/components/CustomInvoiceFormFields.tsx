@@ -124,10 +124,10 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 				/>
 			) : null}
 
-			{draft.addons.includes("Clips Package") ? (
+			{draft.addons.includes("Clip Volume Pack") ? (
 				<CustomInvoiceQuantityOptions
 					idPrefix={`${idPrefix}-clips-package-quantity`}
-					label="Clips Package quantity"
+					label="Clip Volume Pack quantity"
 					value={draft.clipsPackageQuantity ?? ""}
 					disabled={disabled}
 					onChange={(clipsPackageQuantity) => {

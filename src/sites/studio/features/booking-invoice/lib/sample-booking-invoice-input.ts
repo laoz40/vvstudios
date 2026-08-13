@@ -21,7 +21,7 @@ export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
 	time: "14:00",
 	duration: "2h",
 	service: "Table Setup",
-	addons: ["4K UHD Recording", "Clips Package", "Remote Podcast"],
+	addons: ["4K UHD Recording", "Clip Volume Pack", "Remote Podcast"],
 	leadTimeMinutes: 12 * 60,
 	createdAt: Date.UTC(2026, 3, 19, 2, 0, 0),
 	rescheduleUrl: "https://vvstudios.example/reschedule/preview-token"
@@ -30,7 +30,7 @@ export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
 const SAMPLE_MULTI_BOOKING_CREATED_AT = Date.UTC(2026, 3, 19, 2, 0, 0);
 const SAMPLE_MULTI_BOOKING_ADDONS: BookingInvoiceBuilderInput["addons"] = [
 	"4K UHD Recording",
-	"Clips Package"
+	"Clip Volume Pack"
 ];
 const SAMPLE_MULTI_BOOKING_PRICING = {
 	duration: "2h" as const,

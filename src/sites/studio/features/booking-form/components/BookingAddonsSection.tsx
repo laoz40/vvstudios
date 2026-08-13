@@ -134,7 +134,7 @@ export function BookingAddonsSection() {
 			formApi.setFieldValue("essentialEditQuantity", "");
 		}
 
-		if (!availableAddons.includes("Clips Package")) {
+		if (!availableAddons.includes("Clip Volume Pack")) {
 			formApi.setFieldValue("clipsPackageQuantity", "");
 		}
 	}, [formApi, formValues.addons, formValues.service]);
@@ -145,7 +145,7 @@ export function BookingAddonsSection() {
 				function handleAddonChange(addon: BookingAddon, checked: boolean) {
 					if (
 						checked &&
-						addon === "Clips Package" &&
+						addon === "Clip Volume Pack" &&
 						!field.state.value.includes("Essential Edit")
 					) {
 						openClipsPackageRequirementModal();
@@ -159,10 +159,12 @@ export function BookingAddonsSection() {
 					}
 
 					const shouldNotifyClipsPackageDeselected =
-						addon === "Essential Edit" && !checked && field.state.value.includes("Clips Package");
+						addon === "Essential Edit" &&
+						!checked &&
+						field.state.value.includes("Clip Volume Pack");
 
 					if (shouldNotifyClipsPackageDeselected) {
-						nextAddons = nextAddons.filter((value) => value !== "Clips Package");
+						nextAddons = nextAddons.filter((value) => value !== "Clip Volume Pack");
 					}
 
 					field.handleChange(nextAddons);
@@ -178,7 +180,7 @@ export function BookingAddonsSection() {
 						formApi.setFieldValue("essentialEditQuantity", "");
 					}
 
-					if (!nextAddons.includes("Clips Package")) {
+					if (!nextAddons.includes("Clip Volume Pack")) {
 						formApi.setFieldValue("clipsPackageQuantity", "");
 					}
 				}
@@ -217,15 +219,16 @@ export function BookingAddonsSection() {
 												shouldShowFieldError={shouldShowFieldError}
 											/>
 										) : null}
-										{addon === "Clips Package" && field.state.value.includes("Clips Package") ? (
+										{addon === "Clip Volume Pack" &&
+										field.state.value.includes("Clip Volume Pack") ? (
 											<BookingAddonQuantityField
 												key="clipsPackageQuantity"
 												formApi={formApi}
 												fieldName="clipsPackageQuantity"
 												label={
 													isMultiBooking
-														? "Number of Clips Packages Per Session"
-														: "Number of Clips Packages"
+														? "Number of Clip Volume Packs Per Session"
+														: "Number of Clip Volume Packs"
 												}
 												description={
 													isMultiBooking

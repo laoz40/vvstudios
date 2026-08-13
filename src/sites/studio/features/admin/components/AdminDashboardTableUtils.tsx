@@ -11,17 +11,19 @@ import {
 	getEditingAddonQuantity,
 	type EditingAddonQuantities
 } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { normalizeBookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 
 const dashboardAddonLabelMap: Record<string, string> = {
 	"Essential Edit": "Editing",
 	"4K UHD Recording": "4K",
 	"Remote Podcast": "Remote",
-	"Clips Package": "Clips"
+	"Clip Volume Pack": "Clips"
 };
 
 export function formatDashboardAddonLabel(addon: string, quantities: EditingAddonQuantities) {
-	const label = dashboardAddonLabelMap[addon] ?? addon;
-	const quantity = getEditingAddonQuantity(addon, quantities, 1);
+	const normalizedAddon = normalizeBookingAddon(addon) ?? addon;
+	const label = dashboardAddonLabelMap[normalizedAddon] ?? normalizedAddon;
+	const quantity = getEditingAddonQuantity(normalizedAddon, quantities, 1);
 
 	return quantity > 1 ? `${quantity} x ${label}` : label;
 }

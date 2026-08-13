@@ -59,7 +59,7 @@ export function AdminAddonOptions({
 										essentialEditQuantity: nextAddons.includes("Essential Edit")
 											? essentialEditQuantity
 											: "",
-										clipsPackageQuantity: nextAddons.includes("Clips Package")
+										clipsPackageQuantity: nextAddons.includes("Clip Volume Pack")
 											? clipsPackageQuantity
 											: ""
 									});

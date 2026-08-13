@@ -356,10 +356,10 @@ export function SessionEditDialog({
 							}}
 						/>
 					) : null}
-					{draft.addons.includes("Clips Package") ? (
+					{draft.addons.includes("Clip Volume Pack") ? (
 						<AdminEditingQuantityOptions
 							idPrefix="edit-clips-package-quantity"
-							label="Clips Package quantity"
+							label="Clip Volume Pack quantity"
 							value={draft.clipsPackageQuantity ?? ""}
 							disabled={isSaving}
 							onChange={(value) => {
