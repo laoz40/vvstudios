@@ -259,13 +259,13 @@ async function updateDeliverablesStatus(
 async function expectDeliverablesUpdateRejected(
 	t: TestClient,
 	identity: UserIdentity,
-	bookingId: Id<"bookings">
+	bookingId: Id<"bookings">,
+	expectedReason: string
 ): Promise<void> {
-	const [error, value] = await updateDeliverablesStatus(t, identity, bookingId);
-	if (error === null) throw new Error("Expected the deliverables update to be rejected");
-
-	expect(typeof error.reason).toBe("string");
-	expect(value).toBeNull();
+	expect(await updateDeliverablesStatus(t, identity, bookingId)).toEqual([
+		{ reason: expectedReason },
+		null
+	]);
 	expect(await readBooking(t, bookingId)).toMatchObject({ editStatus: "editing" });
 }
 
@@ -767,7 +767,12 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(
+			t,
+			editorIdentity,
+			bookingId,
+			"SESSION_NOT_IN_PAST"
+		);
 	});
 
 	test("rejects an editor update for an archived session", async () => {
@@ -779,7 +784,7 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId, "SESSION_ARCHIVED");
 	});
 
 	test("rejects an editor update for an unconfirmed session", async () => {
@@ -791,7 +796,12 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(
+			t,
+			editorIdentity,
+			bookingId,
+			"SESSION_NOT_CONFIRMED"
+		);
 	});
 
 	test("rejects an editor update for an unassigned session", async () => {
@@ -801,7 +811,12 @@ describe("deliverables status authorization", () => {
 			sessionStartAt: Date.parse("2020-01-01T00:00:00.000Z")
 		});
 
-		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(
+			t,
+			editorIdentity,
+			bookingId,
+			"SESSION_NOT_ASSIGNED_TO_EDITOR"
+		);
 	});
 
 	test("rejects an editor update for another editor's session", async () => {
@@ -813,7 +828,12 @@ describe("deliverables status authorization", () => {
 			assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier
 		});
 
-		await expectDeliverablesUpdateRejected(t, editorIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(
+			t,
+			editorIdentity,
+			bookingId,
+			"SESSION_NOT_ASSIGNED_TO_EDITOR"
+		);
 	});
 
 	test("allows an admin to update an eligible unassigned session", async () => {
@@ -832,7 +852,7 @@ describe("deliverables status authorization", () => {
 			sessionStartAt: Date.parse("2100-01-01T00:00:00.000Z")
 		});
 
-		await expectDeliverablesUpdateRejected(t, adminIdentity, bookingId);
+		await expectDeliverablesUpdateRejected(t, adminIdentity, bookingId, "SESSION_NOT_IN_PAST");
 	});
 });
 
