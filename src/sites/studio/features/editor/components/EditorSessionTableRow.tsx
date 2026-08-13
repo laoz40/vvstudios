@@ -37,8 +37,10 @@ function getSessionDateSubtitle(date: string, time: string, view: EditorSessions
 
 	switch (daysAgo) {
 		case 1:
-			return { label, className: "text-primary" };
 		case 2:
+			return { label, className: "text-primary" };
+		case 3:
+		case 4:
 			return { label, className: "text-orange" };
 		default:
 			return { label, className: "text-destructive" };
