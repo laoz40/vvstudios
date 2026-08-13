@@ -82,7 +82,8 @@ export function saveSessionEditStatus(
 	return okOrThrow(
 		(async () => {
 			const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
-			// Only the transition into Completed credits the editor currently assigned to the session.
+			// Credit each transition into Completed. A duplicate credit requires an unlikely manual
+			// Completed → Editing → Completed cycle, so we avoid adding persistent tracking for it.
 			const shouldIncrementTotal =
 				editStatus === "completed" &&
 				session.editStatus !== "completed" &&

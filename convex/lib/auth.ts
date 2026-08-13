@@ -101,6 +101,7 @@ export function saveEditorDetails(
 			.insert("editorProfiles", {
 				...details,
 				tokenIdentifier: identity.tokenIdentifier,
+				// Authentication is invite-only, so a newly authenticated user is an approved editor.
 				isActive: true,
 				lastAssignedAt: null,
 				totalEdits: 0

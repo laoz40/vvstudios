@@ -387,7 +387,7 @@ export function deleteSessionFromAdminService(
 ): ResultAsync<{ deleted: boolean }, DeleteSessionFromAdminError> {
 	return (
 		requirePermissionActions(ctx, "delete:sessions")
-			// Load the booking only after admin authorization succeeds.
+			// Load the booking only after delete:sessions authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, bookingId))
 			.andThen((session) =>
 				loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map((client) => ({
