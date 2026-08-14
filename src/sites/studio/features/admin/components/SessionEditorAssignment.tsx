@@ -38,7 +38,7 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 	return (
 		<div className="flex flex-col gap-2 rounded-lg border p-3">
 			<p className="text-sm font-medium">{label}</p>
-			<div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+			<div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
 				<span className="text-muted-foreground">Name</span>
 				<span>{editor.displayName || "Unnamed editor"}</span>
 				<span className="text-muted-foreground">Email</span>
