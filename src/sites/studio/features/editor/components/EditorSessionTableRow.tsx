@@ -3,7 +3,7 @@ import { Badge } from "#/components/ui/badge";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { api } from "#convex/_generated/api";
 import { cn } from "#/lib/utils";
-import { formatDashboardAddonLabel } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	deliverableStatusBadgeClassNameMap,
 	deliverableStatusBadgeVariantMap,

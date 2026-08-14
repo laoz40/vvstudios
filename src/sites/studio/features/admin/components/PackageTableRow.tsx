@@ -4,9 +4,9 @@ import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import {
 	CopyableText,
-	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {

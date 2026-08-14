@@ -7,6 +7,13 @@ import {
 
 export type EditingAddonQuantities = BookingAddonQuantities;
 
+const dashboardAddonLabelMap: Record<string, string> = {
+	"Essential Edit": "Editing",
+	"4K UHD Recording": "4K",
+	"Remote Podcast": "Remote",
+	"Clips Package": "Clips"
+};
+
 function getEditingAddonQuantityField(addon: string) {
 	if (addon === "Essential Edit") {
 		return BOOKING_ADDON_QUANTITY_FIELD_CONFIG["Essential Edit"].fieldName;
@@ -48,6 +55,13 @@ export function getBookingAddonQuantityForForm(
 	}
 
 	return getEditingAddonQuantity(addon, quantities, 0);
+}
+
+export function formatDashboardAddonLabel(addon: string, quantities: EditingAddonQuantities) {
+	const label = dashboardAddonLabelMap[addon] ?? addon;
+	const quantity = getEditingAddonQuantity(addon, quantities, 1);
+
+	return quantity > 1 ? `${quantity} x ${label}` : label;
 }
 
 export function formatEditingAddonLabel(addon: string, quantities: EditingAddonQuantities) {

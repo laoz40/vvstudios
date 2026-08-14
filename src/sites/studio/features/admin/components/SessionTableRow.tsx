@@ -7,9 +7,9 @@ import type { ActiveEditor } from "#studio/features/admin/components/SessionEdit
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
-	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	sessionStatusIconClassNameMap,
 	sessionStatusIconMap,
