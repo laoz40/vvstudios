@@ -50,7 +50,6 @@ export const listSessions = query({
 
 export const listActiveEditors = query({
 	args: {},
-	// Admin access is checked before this query runs, so the route error boundary handles any permission error.
 	handler: (ctx) =>
 		listActiveEditorsService(ctx).match(
 			(editors) => editors,
