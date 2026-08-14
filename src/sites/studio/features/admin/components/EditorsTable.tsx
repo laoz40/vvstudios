@@ -43,16 +43,18 @@ type NotesDialogState = { status: "closed" } | { status: "open"; editor: Managed
 export function EditorsTable({ editors }: EditorsTableProps) {
 	const updateEditorAccess = useMutation(api.editors.updateEditorAccess);
 	const [showRetired, setShowRetired] = useState(false);
-	const [isUpdatingAccess, setIsUpdatingAccess] = useState(false);
+	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
+	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
 	const visibleEditors = editors.filter((editor) => editor.isActive !== showRetired);
 
 	async function handleAccessChange(editor: ManagedEditor) {
-		setIsUpdatingAccess(true);
+		setUpdatingEditorToken(editor.tokenIdentifier);
 		const [error] = await tryCatch(
 			updateEditorAccess({ tokenIdentifier: editor.tokenIdentifier, isActive: !editor.isActive })
 		);
-		setIsUpdatingAccess(false);
+		setUpdatingEditorToken(null);
+		setOpenActionsEditorToken(null);
 
 		if (error !== null) {
 			toast.error(getEditorAccessErrorMessage(error.reason));
@@ -111,6 +113,15 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 								</TableRow>
 							) : (
 								visibleEditors.map((editor) => {
+									const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
+									let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
+									let accessActionLabel = editor.isActive ? "Retire editor" : "Reactivate editor";
+
+									if (isUpdatingThisEditor) {
+										accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
+										accessActionLabel = editor.isActive ? "Retiring" : "Reactivating";
+									}
+
 									return (
 										<TableRow key={editor.tokenIdentifier}>
 											<TableCell>
@@ -130,27 +141,27 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 												{editor.notes || "-"}
 											</TableCell>
 											<TableCell>
-												<DropdownMenu modal={false}>
+												<DropdownMenu
+													modal={false}
+													open={openActionsEditorToken === editor.tokenIdentifier}
+													onOpenChange={(open) => {
+														if (isUpdatingThisEditor) return;
+														setOpenActionsEditorToken(open ? editor.tokenIdentifier : null);
+													}}>
 													<DropdownMenuTrigger asChild>
 														<Button
 															variant="ghost"
 															size="icon-sm"
-															disabled={isUpdatingAccess}>
+															disabled={updatingEditorToken !== null}>
 															<span className="sr-only">Open editor actions</span>
-															{isUpdatingAccess ? (
-																<LoaderCircleIcon
-																	className="animate-spin"
-																	aria-hidden
-																/>
-															) : (
-																<MoreHorizontalIcon aria-hidden />
-															)}
+															<MoreHorizontalIcon aria-hidden />
 														</Button>
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
 														<DropdownMenuGroup>
 															<DropdownMenuItem
 																className="cursor-pointer"
+																disabled={isUpdatingThisEditor}
 																onSelect={() => setNotesDialog({ status: "open", editor })}>
 																<NotebookPenIcon />
 																Edit notes
@@ -158,9 +169,13 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 															<DropdownMenuItem
 																variant={editor.isActive ? "destructive" : "default"}
 																className="cursor-pointer"
-																onSelect={() => void handleAccessChange(editor)}>
-																{editor.isActive ? <UserRoundXIcon /> : <CheckIcon />}
-																{editor.isActive ? "Retire editor" : "Reactivate editor"}
+																disabled={isUpdatingThisEditor}
+																onSelect={(event) => {
+																	event.preventDefault();
+																	void handleAccessChange(editor);
+																}}>
+																{accessActionIcon}
+																{accessActionLabel}
 															</DropdownMenuItem>
 														</DropdownMenuGroup>
 													</DropdownMenuContent>
