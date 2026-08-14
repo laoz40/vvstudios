@@ -16,6 +16,7 @@ export function listActiveEditorProfiles(ctx: QueryCtx) {
 	);
 }
 
+// TODO(scale): This indexed lookup runs once per active editor; persist workload counters if that becomes inefficient at scale.
 export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
 	return {
 		tokenIdentifier: editor.tokenIdentifier,
