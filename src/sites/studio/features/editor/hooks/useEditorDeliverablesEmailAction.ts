@@ -50,17 +50,14 @@ export function useEditorDeliverablesEmailAction(session: EditorSession) {
 		if (statusError !== null) {
 			toast.error("Email sent, but the deliverables status couldn't be updated.");
 			setSendState({ status: "status-repair" });
-			setIsSending(false);
 			return;
 		}
 
 		reset();
 		toast.success(successMessage);
-		setIsSending(false);
 	}
 
-	async function sendDeliverablesEmail() {
-		setIsSending(true);
+	async function runDeliverablesEmailFlow() {
 		if (sendState.status === "status-repair") {
 			await markStatusAsSent("Deliverables status updated.");
 			return;
@@ -75,7 +72,6 @@ export function useEditorDeliverablesEmailAction(session: EditorSession) {
 					? "Enter a valid Google Drive link."
 					: "Unable to send the deliverables email."
 			);
-			setIsSending(false);
 			return;
 		}
 
@@ -86,7 +82,11 @@ export function useEditorDeliverablesEmailAction(session: EditorSession) {
 
 		reset();
 		toast.success("Deliverables email sent. The status was left unchanged.");
-		setIsSending(false);
+	}
+
+	async function sendDeliverablesEmail() {
+		setIsSending(true);
+		await runDeliverablesEmailFlow().finally(() => setIsSending(false));
 	}
 
 	return {
