@@ -4,7 +4,7 @@ import { errAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { isAdminIdentity, requirePermissionActions, requireUser } from "#convex/lib/auth";
+import { isAdminIdentity, requirePermissionActions } from "#convex/lib/auth";
 import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
@@ -69,17 +69,20 @@ export function sendSessionDeliverablesEmailService(
 			getSessionFromQuery(ctx, args.bookingId).map((session) => ({ identity, session }))
 		)
 		.andThen(requireDeliverablesOwnership)
-		.andThen(requireDeliverablesEligibility)
-		.andThen((session) =>
-			requireUser(ctx).andThen((identity) =>
-				fromConvexTuple(
-					ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
-				).andThen((detectedEmailVariant) =>
-					sendDeliverablesEmailForSession(session, {
-						...args,
-						emailVariant: isAdminIdentity(identity) ? args.emailVariant : detectedEmailVariant
-					})
-				)
+		.andThen((access) =>
+			requireDeliverablesEligibility(access).map((session) => ({
+				identity: access.identity,
+				session
+			}))
+		)
+		.andThen(({ identity, session }) =>
+			fromConvexTuple(
+				ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
+			).andThen((detectedEmailVariant) =>
+				sendDeliverablesEmailForSession(session, {
+					...args,
+					emailVariant: isAdminIdentity(identity) ? args.emailVariant : detectedEmailVariant
+				})
 			)
 		);
 }
