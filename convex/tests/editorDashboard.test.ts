@@ -174,6 +174,15 @@ async function seedEditorProfile(
 	});
 }
 
+async function findEditorProfile(t: TestClient, tokenIdentifier: string) {
+	return await t.run((ctx) =>
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", tokenIdentifier))
+			.unique()
+	);
+}
+
 async function seedBooking(
 	t: TestClient,
 	name: string,
@@ -507,14 +516,7 @@ describe("editor access management", () => {
 			null,
 			null
 		]);
-		const editor = await t.run((ctx) =>
-			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
-				)
-				.unique()
-		);
+		const editor = await findEditorProfile(t, editorIdentity.tokenIdentifier);
 		expect(editor?.isActive).toBe(false);
 	});
 
@@ -566,14 +568,7 @@ describe("editor access management", () => {
 					notes: "Prefers short-form editing work"
 				})
 		).toEqual([null, null]);
-		let editor = await t.run((ctx) =>
-			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
-				)
-				.unique()
-		);
+		let editor = await findEditorProfile(t, editorIdentity.tokenIdentifier);
 		expect(editor?.notes).toBe("Prefers short-form editing work");
 
 		await t
@@ -582,14 +577,7 @@ describe("editor access management", () => {
 				tokenIdentifier: editorIdentity.tokenIdentifier,
 				notes: "  "
 			});
-		editor = await t.run((ctx) =>
-			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
-				)
-				.unique()
-		);
+		editor = await findEditorProfile(t, editorIdentity.tokenIdentifier);
 		expect(editor).not.toHaveProperty("notes");
 	});
 
@@ -614,14 +602,7 @@ describe("editor access management", () => {
 		const bookingId = await seedBooking(t, "Timestamped Assignment");
 
 		await assignBooking(t, bookingId);
-		const editor = await t.run((ctx) =>
-			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", editorIdentity.tokenIdentifier)
-				)
-				.unique()
-		);
+		const editor = await findEditorProfile(t, editorIdentity.tokenIdentifier);
 		expect(editor?.lastAssignedAt).toEqual(expect.any(Number));
 	});
 });
