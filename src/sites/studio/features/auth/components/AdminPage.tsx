@@ -148,8 +148,7 @@ function DashboardAccessGate() {
 		return <DashboardForbiddenPage />;
 	}
 
-	// If user has permission to view packages, they are an admin.
-	if (hasPermission(access.permissions, "view:packages")) {
+	if (access.role === "admin") {
 		return <AdminDashboard />;
 	}
 
