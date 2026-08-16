@@ -76,7 +76,7 @@ type ListEditorsResult = [{ reason: string } | null, ManagedEditor[] | null];
 type UpdateEditorAccessResult = [{ reason: string } | null, null];
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "completed";
+	editStatus: "to_edit" | "editing" | "review" | "completed";
 };
 type UpdateSessionEditStatusResult = [{ reason: string } | null, null];
 type EditorSessionProjection = {
@@ -92,7 +92,7 @@ type EditorSessionProjection = {
 	addons: string[];
 	essentialEditQuantity?: string;
 	clipsPackageQuantity?: string;
-	editStatus?: "to_edit" | "editing" | "completed";
+	editStatus?: "to_edit" | "editing" | "review" | "completed";
 };
 type EditorSessionsResult = {
 	page: EditorSessionProjection[];

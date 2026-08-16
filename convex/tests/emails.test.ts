@@ -3,14 +3,12 @@
  * 1. Deliverables emails reject anonymous and unauthorized callers without sending.
  * 2. Missing bookings and invalid Drive links are rejected without sending.
  * 3. Admin sends include normalized booking details and optional editor notes.
- * 4. Assigned editors can send deliverables emails for eligible sessions.
- * 5. Editors cannot send for unassigned sessions or sessions assigned to another editor.
- * 6. Editors cannot send for future, archived, or unconfirmed sessions.
- * 7. Deliverables provider failures return a stable error.
- * 8. Blank and rate-limited feedback is rejected without sending.
- * 9. Valid feedback is trimmed before sending.
- * 10. Untrusted feedback is escaped in the provider HTML payload.
- * 11. Feedback provider failures return a stable error.
+ * 4. Editors cannot send deliverables emails, including for their assigned sessions.
+ * 5. Deliverables provider failures return a stable error.
+ * 6. Blank and rate-limited feedback is rejected without sending.
+ * 7. Valid feedback is trimmed before sending.
+ * 8. Untrusted feedback is escaped in the provider HTML payload.
+ * 9. Feedback provider failures return a stable error.
  */
 import type { UserIdentity } from "convex/server";
 import { errAsync, okAsync } from "neverthrow";
@@ -45,12 +43,6 @@ const adminIdentity = { publicMetadata: { role: "admin" } };
 const editorIdentity: UserIdentity = {
 	tokenIdentifier: "https://clerk.example|editor-one",
 	subject: "editor-one",
-	issuer: "https://clerk.example",
-	publicMetadata: { role: "editor" }
-};
-const otherEditorIdentity: UserIdentity = {
-	tokenIdentifier: "https://clerk.example|editor-two",
-	subject: "editor-two",
 	issuer: "https://clerk.example",
 	publicMetadata: { role: "editor" }
 };
@@ -139,7 +131,7 @@ describe("deliverables email", () => {
 		});
 	});
 
-	test("allows an assigned editor to send for an eligible session", async () => {
+	test("rejects an assigned editor without sending", async () => {
 		const t = createConvexTest();
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, {
@@ -154,58 +146,7 @@ describe("deliverables email", () => {
 				emailVariant: "first-time"
 			});
 
-		expect(result).toEqual([null, null]);
-		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendDeliverablesEmail).toHaveBeenCalledWith(
-			expect.objectContaining({ email: "customer@example.com", name: "Deliverables customer" })
-		);
-	});
-
-	test.each([
-		{ label: "an unassigned session", options: {}, reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" },
-		{
-			label: "another editor's session",
-			options: { assignedEditorTokenIdentifier: otherEditorIdentity.tokenIdentifier },
-			reason: "SESSION_NOT_ASSIGNED_TO_EDITOR"
-		},
-		{
-			label: "a future session",
-			options: {
-				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
-				sessionStartAt: Date.parse("2100-01-01T00:00:00.000Z")
-			},
-			reason: "SESSION_NOT_IN_PAST"
-		},
-		{
-			label: "an archived session",
-			options: {
-				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
-				hiddenAt: Date.parse("2020-01-10T00:00:00.000Z")
-			},
-			reason: "SESSION_ARCHIVED"
-		},
-		{
-			label: "an unconfirmed session",
-			options: {
-				assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
-				status: "pending_payment" as const
-			},
-			reason: "SESSION_NOT_CONFIRMED"
-		}
-	])("rejects an editor send for $label without sending", async ({ options, reason }) => {
-		const t = createConvexTest();
-		await seedEditorProfile(t, editorIdentity);
-		const bookingId = await seedBooking(t, options);
-
-		const result = await t
-			.withIdentity(editorIdentity)
-			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
-				bookingId,
-				driveLink: validDriveLink,
-				emailVariant: "first-time"
-			});
-
-		expect(result).toEqual([{ reason }, null]);
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(providerFakes.sendDeliverablesEmail).not.toHaveBeenCalled();
 	});
 

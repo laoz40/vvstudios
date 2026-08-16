@@ -20,6 +20,7 @@ import {
 	getDeliverableStatus,
 	isDeliverableSession
 } from "#studio/features/admin/lib/session-edit-status";
+import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
@@ -187,6 +188,7 @@ export function SessionTableRow({
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const packageInvoiceNumber = session.multiBookingInvoiceNumber;
+	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
 
@@ -240,7 +242,17 @@ export function SessionTableRow({
 			</TableCell>
 			<TableCell className="text-center">
 				<div className="flex flex-col items-center gap-1">
-					{deliverableStatus ? (
+					{deliverableStatus === "review" ? (
+						<button
+							type="button"
+							onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
+							<Badge
+								variant={deliverableStatusBadgeVariantMap.review}
+								className={deliverableStatusBadgeClassNameMap.review}>
+								{deliverableStatusLabelMap.review}
+							</Badge>
+						</button>
+					) : deliverableStatus ? (
 						<Badge
 							variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
 							className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
@@ -263,6 +275,7 @@ export function SessionTableRow({
 			<TableCell>
 				<SessionActions
 					activeEditors={activeEditors}
+					deliverablesEmailAction={deliverablesEmailAction}
 					session={session}
 				/>
 			</TableCell>

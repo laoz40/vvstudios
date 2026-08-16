@@ -15,7 +15,8 @@ import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
 	saveSessionEditorNotes,
-	saveSessionEditStatus
+	saveSessionEditStatus,
+	saveSessionReview
 } from "#convex/lib/editorSessions";
 import {
 	getCapacityConsumingPackageSessions,
@@ -35,7 +36,12 @@ type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
 type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "completed";
+	editStatus: "to_edit" | "editing" | "review" | "completed";
+};
+type SubmitSessionForReviewArgs = {
+	bookingId: Id<"bookings">;
+	driveLink: string;
+	clientNotes: string;
 };
 type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
@@ -225,6 +231,16 @@ export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionN
 		)
 		.andThen(requireDeliverablesOwnership)
 		.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes));
+}
+
+export function submitSessionForReviewService(ctx: MutationCtx, args: SubmitSessionForReviewArgs) {
+	return requirePermission(ctx, "update:deliverables")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(requireDeliverablesEligibility)
+		.andThen((session) => saveSessionReview(ctx, session, args.driveLink, args.clientNotes));
 }
 
 export function updateSessionEditStatusService(

@@ -163,12 +163,19 @@ export default defineSchema({
 		// Editor assignment and internal editing instructions
 		assignedEditorTokenIdentifier: v.optional(v.string()),
 		editorNotes: v.optional(v.string()),
+		deliverablesClientNotes: v.optional(v.string()),
+		deliverablesDriveLink: v.optional(v.string()),
 
 		// Remaining balance/admin edit state
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
 		editStatus: v.optional(
-			v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
+			v.union(
+				v.literal("to_edit"),
+				v.literal("editing"),
+				v.literal("review"),
+				v.literal("completed")
+			)
 		),
 
 		// Stripe data

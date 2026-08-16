@@ -17,7 +17,8 @@ import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export const EDIT_STATUS_OPTIONS = ["to_edit", "editing", "completed"] as const;
 
-export type DeliverableStatus = (typeof EDIT_STATUS_OPTIONS)[number];
+type DeliverableStatusAction = (typeof EDIT_STATUS_OPTIONS)[number];
+export type DeliverableStatus = NonNullable<Doc<"bookings">["editStatus"]>;
 
 type SessionRecord = Doc<"bookings">;
 type SessionStatus = SessionRecord["status"];
@@ -55,10 +56,11 @@ export const sessionStatusIconClassNameMap: Record<SessionStatus, string> = {
 export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
 	to_edit: "Not Sent",
 	editing: "Editing",
+	review: "Review",
 	completed: "Sent"
 };
 
-export const deliverableStatusTabLabelMap: Record<DeliverableStatus, string> = {
+export const deliverableStatusTabLabelMap: Record<DeliverableStatusAction, string> = {
 	...deliverableStatusLabelMap,
 	completed: "Deliver"
 };
@@ -66,22 +68,24 @@ export const deliverableStatusTabLabelMap: Record<DeliverableStatus, string> = {
 export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
+	review: "bg-blue-400 text-primary-foreground",
 	completed: "bg-green text-primary-foreground"
 };
 
 export const deliverableStatusDotClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive",
 	editing: "bg-primary",
+	review: "bg-blue-400",
 	completed: "bg-green"
 };
 
-export const deliverableStatusIconMap: Record<DeliverableStatus, LucideIcon> = {
+export const deliverableStatusIconMap: Record<DeliverableStatusAction, LucideIcon> = {
 	to_edit: CircleX,
 	editing: Pencil,
 	completed: Send
 };
 
-export const deliverableStatusTabClassNameMap: Record<DeliverableStatus, string> = {
+export const deliverableStatusTabClassNameMap: Record<DeliverableStatusAction, string> = {
 	to_edit:
 		"hover:border-input hover:bg-input/30 hover:text-destructive hover:shadow-sm focus-visible:text-destructive disabled:opacity-100 data-[state=active]:text-destructive dark:hover:text-destructive dark:focus-visible:text-destructive dark:data-[state=active]:text-destructive",
 	editing:
@@ -93,7 +97,7 @@ export const deliverableStatusTabClassNameMap: Record<DeliverableStatus, string>
 export const deliverableStatusBadgeVariantMap: Record<
 	DeliverableStatus,
 	ComponentProps<typeof Badge>["variant"]
-> = { to_edit: "destructive", editing: "default", completed: "default" };
+> = { to_edit: "destructive", editing: "default", review: "default", completed: "default" };
 
 export function getDeliverableStatus(session: SessionRecord): DeliverableStatus {
 	return session.editStatus ?? "to_edit";

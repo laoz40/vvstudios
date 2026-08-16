@@ -15,6 +15,7 @@ import {
 	markSessionCalendarEventDeletedService,
 	saveSessionInstagramHandleService,
 	updateSessionNotesService,
+	submitSessionForReviewService,
 	updateSessionEditStatusService,
 	updateSessionPaidStatusService
 } from "#convex/services/sessions";
@@ -121,9 +122,19 @@ export const updateSessionNotes = mutation({
 export const updateSessionEditStatus = mutation({
 	args: {
 		bookingId: v.id("bookings"),
-		editStatus: v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
+		editStatus: v.union(
+			v.literal("to_edit"),
+			v.literal("editing"),
+			v.literal("review"),
+			v.literal("completed")
+		)
 	},
 	handler: (ctx, args) => updateSessionEditStatusService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const submitSessionForReview = mutation({
+	args: { bookingId: v.id("bookings"), driveLink: v.string(), clientNotes: v.string() },
+	handler: (ctx, args) => submitSessionForReviewService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markSessionCalendarEventDeleted = internalMutation({

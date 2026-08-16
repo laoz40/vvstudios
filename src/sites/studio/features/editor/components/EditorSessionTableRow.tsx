@@ -62,7 +62,9 @@ export function EditorSessionTableRow({
 				<Badge
 					variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
 					className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-					{deliverableStatusLabelMap[deliverableStatus]}
+					{deliverableStatus === "review"
+						? "Reviewing"
+						: deliverableStatusLabelMap[deliverableStatus]}
 				</Badge>
 			</TableCell>
 			<TableCell>

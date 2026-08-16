@@ -153,7 +153,7 @@ export function DeliverablesEmailDialog({
 
 					<Field>
 						<FieldLabel htmlFor={`deliverables-editor-notes-${bookingId}`}>
-							Editor notes to client (optional)
+							Notes to the client (optional)
 						</FieldLabel>
 						<Textarea
 							id={`deliverables-editor-notes-${bookingId}`}

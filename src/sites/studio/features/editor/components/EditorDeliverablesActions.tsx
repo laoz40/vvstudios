@@ -15,10 +15,9 @@ import PenIcon from "#/components/ui/pen-icon";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
-import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { SessionNotesDialog } from "#studio/features/admin/components/SessionNotesDialog";
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
-import { useEditorDeliverablesEmailAction } from "#studio/features/editor/hooks/useEditorDeliverablesEmailAction";
+import { DeliverablesReviewDialog } from "#studio/features/editor/components/DeliverablesReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 type NotesDialogState = { status: "closed" } | { status: "open" };
 
@@ -30,11 +29,14 @@ export function EditorDeliverablesActions({
 	canManageDeliverables: boolean;
 }) {
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
-	const emailAction = useEditorDeliverablesEmailAction(session);
+	const submitSessionForReview = useMutation(api.sessions.submitSessionForReview);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
+	const [isReviewOpen, setIsReviewOpen] = useState(false);
+	const [driveLink, setDriveLink] = useState(session.deliverablesDriveLink ?? "");
+	const [clientNotes, setClientNotes] = useState(session.deliverablesClientNotes ?? "");
 
-	async function handleStatusChange(editStatus: "editing" | "completed") {
+	async function handleStatusChange(editStatus: "editing") {
 		setIsUpdating(true);
 		const [error] = await tryCatch(updateSessionEditStatus({ bookingId: session._id, editStatus }));
 		setIsUpdating(false);
@@ -47,6 +49,26 @@ export function EditorDeliverablesActions({
 		toast.success(
 			`Deliverables changed to ${deliverableStatusLabelMap[editStatus].toLowerCase()}.`
 		);
+	}
+
+	async function handleSubmitForReview() {
+		setIsUpdating(true);
+		const [error] = await tryCatch(
+			submitSessionForReview({ bookingId: session._id, driveLink, clientNotes })
+		);
+		setIsUpdating(false);
+
+		if (error !== null) {
+			toast.error(
+				error.reason === "INVALID_DRIVE_LINK"
+					? "Enter a valid Google Drive link."
+					: "Unable to submit deliverables for review."
+			);
+			return;
+		}
+
+		setIsReviewOpen(false);
+		toast.success("Deliverables submitted for admin review.");
 	}
 
 	return (
@@ -93,8 +115,8 @@ export function EditorDeliverablesActions({
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
 									className="hover:text-green focus:text-green"
-									disabled={emailAction.isSending}
-									onSelect={() => emailAction.setIsOpen(true)}
+									disabled={session.editStatus === "review"}
+									onSelect={() => setIsReviewOpen(true)}
 									renderIcon={(iconRef) => (
 										<MailFilledIcon
 											ref={iconRef}
@@ -103,7 +125,7 @@ export function EditorDeliverablesActions({
 											className="shrink-0 text-current"
 										/>
 									)}>
-									Email deliverables
+									Submit for review
 								</AnimatedDropdownMenuItem>
 							</>
 						) : null}
@@ -134,24 +156,16 @@ export function EditorDeliverablesActions({
 					}}
 				/>
 			) : null}
-			<DeliverablesEmailDialog
-				open={emailAction.isOpen}
+			<DeliverablesReviewDialog
+				open={isReviewOpen}
 				bookingId={session._id}
-				bookingName={session.name}
-				recipient={{ visibility: "hidden" }}
-				driveLink={emailAction.driveLink}
-				editorNotes={emailAction.editorNotes}
-				emailVariant={emailAction.emailVariant}
-				isCustomerTypeLoading={emailAction.isCustomerTypeLoading}
-				isSending={emailAction.isSending}
-				markAsSentAfterSending={emailAction.markAsSent}
-				showCustomerType={false}
-				onDriveLinkChange={emailAction.setDriveLink}
-				onEditorNotesChange={emailAction.setEditorNotes}
-				onEmailVariantChange={emailAction.setEmailVariant}
-				onMarkAsSentAfterSendingChange={emailAction.setMarkAsSent}
-				onOpenChange={emailAction.setIsOpen}
-				onSend={() => void emailAction.sendDeliverablesEmail()}
+				driveLink={driveLink}
+				clientNotes={clientNotes}
+				isSubmitting={isUpdating}
+				onDriveLinkChange={setDriveLink}
+				onClientNotesChange={setClientNotes}
+				onOpenChange={setIsReviewOpen}
+				onSubmit={() => void handleSubmitForReview()}
 			/>
 		</>
 	);

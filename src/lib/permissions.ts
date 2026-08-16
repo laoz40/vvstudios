@@ -21,7 +21,7 @@ export type Role = "admin" | "editor";
 
 export const ROLE_PERMISSIONS = {
 	admin: PERMISSIONS,
-	editor: ["view:sessions", "update:deliverables", "send:deliverables-email"]
+	editor: ["view:sessions", "update:deliverables"]
 } as const satisfies Record<Role, readonly Permission[]>;
 
 export function hasPermission(permissions: readonly Permission[], permission: Permission): boolean {

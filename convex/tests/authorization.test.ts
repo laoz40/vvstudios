@@ -446,11 +446,7 @@ describe("permission definitions", () => {
 
 	test("maps roles to their exact permissions", () => {
 		expect(ROLE_PERMISSIONS.admin).toBe(PERMISSIONS);
-		expect(ROLE_PERMISSIONS.editor).toEqual([
-			"view:sessions",
-			"update:deliverables",
-			"send:deliverables-email"
-		]);
+		expect(ROLE_PERMISSIONS.editor).toEqual(["view:sessions", "update:deliverables"]);
 	});
 
 	test("checks permissions from a supplied permission list", () => {

@@ -28,8 +28,12 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
-	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState("");
-	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState("");
+	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState(
+		session.deliverablesDriveLink ?? ""
+	);
+	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState(
+		session.deliverablesClientNotes ?? ""
+	);
 	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
 		useState<DeliverablesEmailVariant>("first-time");
 	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
@@ -40,6 +44,19 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		api.sessions.getDeliverablesCustomerType,
 		isDeliverablesEmailDialogOpen ? { bookingId: session._id } : "skip"
 	);
+
+	// Load the editor's submitted review details whenever the send dialog opens.
+	useEffect(() => {
+		if (!isDeliverablesEmailDialogOpen) return;
+
+		setDeliverablesDriveLinkDraft(session.deliverablesDriveLink ?? "");
+		setDeliverablesEditorNotesDraft(session.deliverablesClientNotes ?? "");
+	}, [
+		isDeliverablesEmailDialogOpen,
+		session.deliverablesClientNotes,
+		session.deliverablesDriveLink
+	]);
+
 	// Preselect the customer type when delivery history has been checked; admins may override it.
 	useEffect(() => {
 		if (customerTypeResult === undefined) {
