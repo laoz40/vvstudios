@@ -178,6 +178,7 @@ export function SessionActionsMenu({
 					</>
 				) : null}
 				<DropdownMenuSeparator />
+				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
 				{details.canManageConfirmedSession && details.isPastSession ? (
 					<>
 						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
