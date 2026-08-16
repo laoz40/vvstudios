@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import type { FunctionReturnType } from "convex/server";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
-
-type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
+import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 type SendState = { status: "ready-to-send" } | { status: "status-repair" };
 
 export function useEditorDeliverablesEmailAction(session: EditorSession) {

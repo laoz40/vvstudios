@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { FunctionReturnType } from "convex/server";
 import { useMutation } from "convex/react";
 import { Ellipsis, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -20,8 +19,7 @@ import { DeliverablesEmailDialog } from "#studio/features/admin/components/Deliv
 import { SessionNotesDialog } from "#studio/features/admin/components/SessionNotesDialog";
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
 import { useEditorDeliverablesEmailAction } from "#studio/features/editor/hooks/useEditorDeliverablesEmailAction";
-
-type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
+import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 type NotesDialogState = { status: "closed" } | { status: "open" };
 
 export function EditorDeliverablesActions({

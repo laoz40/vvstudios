@@ -1,10 +1,7 @@
-import type { FunctionReturnType } from "convex/server";
 import { CalendarClock } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "#/components/ui/table";
-import { api } from "#convex/_generated/api";
 import { EditorSessionTableRow } from "#studio/features/editor/components/EditorSessionTableRow";
-
-type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
+import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 type EditorSessionsEmptyState = "edits" | "history";
 
 const emptyStateCopy: Record<EditorSessionsEmptyState, { title: string; description: string }> = {

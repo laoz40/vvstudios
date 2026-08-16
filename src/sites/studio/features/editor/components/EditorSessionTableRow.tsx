@@ -1,7 +1,5 @@
-import type { FunctionReturnType } from "convex/server";
 import { Badge } from "#/components/ui/badge";
 import { TableCell, TableRow } from "#/components/ui/table";
-import { api } from "#convex/_generated/api";
 import { cn } from "#/lib/utils";
 import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
@@ -11,6 +9,7 @@ import {
 	type DeliverableStatus
 } from "#studio/features/admin/lib/session-edit-status";
 import { EditorDeliverablesActions } from "#studio/features/editor/components/EditorDeliverablesActions";
+import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
@@ -18,7 +17,6 @@ import {
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
-type EditorSession = FunctionReturnType<typeof api.sessions.listEditorSessions>["page"][number];
 type EditorSessionsView = "edits" | "history";
 
 function getSessionDateSubtitle(date: string, time: string, view: EditorSessionsView) {
