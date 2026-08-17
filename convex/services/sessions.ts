@@ -14,6 +14,7 @@ import {
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
+	saveSessionAdminNotes,
 	saveSessionEditorNotes,
 	saveSessionEditStatus,
 	saveSessionReview
@@ -237,13 +238,7 @@ export function updateSessionAdminNotesService(
 ) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			okOrThrow(
-				ctx.db
-					.patch(session._id, { adminNotes: args.adminNotes.trim() || undefined })
-					.then(() => null)
-			)
-		);
+		.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes));
 }
 
 export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionNotesArgs) {

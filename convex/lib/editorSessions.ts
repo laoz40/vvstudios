@@ -75,6 +75,16 @@ export function saveSessionEditorNotes(
 	);
 }
 
+export function saveSessionAdminNotes(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	adminNotes: string
+) {
+	return okOrThrow(
+		ctx.db.patch(session._id, { adminNotes: adminNotes.trim() || undefined }).then(() => null)
+	);
+}
+
 export function saveSessionReview(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
