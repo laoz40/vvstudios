@@ -14,6 +14,7 @@ import {
 	listSessionsService,
 	markSessionCalendarEventDeletedService,
 	saveSessionInstagramHandleService,
+	updateSessionAdminNotesService,
 	updateSessionNotesService,
 	submitSessionForReviewService,
 	updateSessionEditStatusService,
@@ -100,7 +101,11 @@ export const saveSessionInstagramHandle = mutation({
 });
 
 export const assignSessionEditor = mutation({
-	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.union(v.string(), v.null()) },
+	args: {
+		bookingId: v.id("bookings"),
+		editorTokenIdentifier: v.union(v.string(), v.null()),
+		adminNotes: v.string()
+	},
 	handler: (ctx, args) => assignSessionEditorService(ctx, args).match(tupleOk, tupleErr)
 });
 
@@ -112,6 +117,11 @@ export const archiveSession = mutation({
 export const updateSessionPaidStatus = mutation({
 	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
 	handler: (ctx, args) => updateSessionPaidStatusService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const updateSessionAdminNotes = mutation({
+	args: { bookingId: v.id("bookings"), adminNotes: v.string() },
+	handler: (ctx, args) => updateSessionAdminNotesService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateSessionNotes = mutation({

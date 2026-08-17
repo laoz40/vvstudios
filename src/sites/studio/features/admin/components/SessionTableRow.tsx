@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
+import { toast } from "sonner";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
@@ -136,6 +138,52 @@ function SessionDetailsCell({ session }: { session: SessionRecord }) {
 	);
 }
 
+type SessionNotesView = "client" | "editor";
+
+function SessionNotesCell({
+	session,
+	isPastSession
+}: {
+	session: SessionRecord;
+	isPastSession: boolean;
+}) {
+	const [notesView, setNotesView] = useState<SessionNotesView>(isPastSession ? "editor" : "client");
+
+	// Move completed sessions to editor notes; upcoming sessions only expose client notes.
+	useEffect(() => {
+		setNotesView(isPastSession ? "editor" : "client");
+	}, [isPastSession]);
+
+	const visibleNotes = notesView === "client" ? session.notes?.trim() : session.editorNotes?.trim();
+	const notesLabel = notesView === "client" ? "Client" : "Editor";
+	const notesText = visibleNotes || "-";
+
+	if (!isPastSession) {
+		return (
+			<p className="whitespace-normal text-sm text-muted-foreground">
+				{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
+				{notesText}
+			</p>
+		);
+	}
+
+	function toggleNotesView() {
+		const nextNotesView = notesView === "client" ? "editor" : "client";
+		setNotesView(nextNotesView);
+		toast.info(`${nextNotesView === "client" ? "Client" : "Editor"} notes displayed.`);
+	}
+
+	return (
+		<button
+			type="button"
+			className="w-full whitespace-normal text-left text-sm text-muted-foreground"
+			onClick={toggleNotesView}>
+			{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
+			{notesText}
+		</button>
+	);
+}
+
 function RemainingBalanceCell({ session }: { session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const showRemainingBalance =
@@ -233,9 +281,10 @@ export function SessionTableRow({
 				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<p className="whitespace-normal text-sm text-muted-foreground">
-					{session.notes?.trim() || "-"}
-				</p>
+				<SessionNotesCell
+					session={session}
+					isPastSession={isPastSession}
+				/>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
 				<RemainingBalanceCell session={session} />

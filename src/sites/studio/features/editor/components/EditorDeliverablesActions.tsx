@@ -15,7 +15,7 @@ import PenIcon from "#/components/ui/pen-icon";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
-import { SessionNotesDialog } from "#studio/features/admin/components/SessionNotesDialog";
+import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
 import { DeliverablesReviewDialog } from "#studio/features/editor/components/DeliverablesReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
@@ -146,7 +146,7 @@ export function EditorDeliverablesActions({
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{notesDialog.status === "open" ? (
-				<SessionNotesDialog
+				<SessionEditorNotesDialog
 					bookingId={session._id}
 					bookingName={session.name}
 					savedNotes={session.editorNotes}

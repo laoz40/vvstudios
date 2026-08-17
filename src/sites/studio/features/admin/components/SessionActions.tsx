@@ -28,7 +28,7 @@ export function SessionActions({
 	deliverablesEmailAction,
 	session
 }: SessionActionsProps) {
-	const [isEditorNotesDialogOpen, setIsEditorNotesDialogOpen] = useState(false);
+	const [isAdminNotesDialogOpen, setIsAdminNotesDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const details: SessionActionDetails = {
@@ -60,7 +60,7 @@ export function SessionActions({
 				paymentActions={paymentActions}
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
-				onEditEditorNotes={() => setIsEditorNotesDialogOpen(true)}
+				onEditAdminNotes={() => setIsAdminNotesDialogOpen(true)}
 			/>
 			<SessionActionsDialogs
 				session={session}
@@ -70,8 +70,8 @@ export function SessionActions({
 				editAction={editAction}
 				invoiceActions={invoiceActions}
 				rescheduleAction={rescheduleAction}
-				isEditorNotesDialogOpen={isEditorNotesDialogOpen}
-				onEditorNotesDialogOpenChange={setIsEditorNotesDialogOpen}
+				isAdminNotesDialogOpen={isAdminNotesDialogOpen}
+				onAdminNotesDialogOpenChange={setIsAdminNotesDialogOpen}
 			/>
 		</>
 	);

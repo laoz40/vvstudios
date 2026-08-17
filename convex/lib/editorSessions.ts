@@ -133,6 +133,7 @@ export function buildEditorSessionProjection(session: Doc<"bookings">) {
 		name: session.name,
 		accountName: session.accountName,
 		notes: session.notes,
+		adminNotes: session.adminNotes,
 		editorNotes: session.editorNotes,
 		deliverablesClientNotes: session.deliverablesClientNotes,
 		deliverablesDriveLink: session.deliverablesDriveLink,

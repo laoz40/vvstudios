@@ -17,7 +17,7 @@ import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch } from "#/lib/result";
 
-type SessionNotesDialogProps = {
+type SessionEditorNotesDialogProps = {
 	bookingId: Id<"bookings">;
 	bookingName: string;
 	savedNotes: string | undefined;
@@ -25,13 +25,13 @@ type SessionNotesDialogProps = {
 	open: boolean;
 };
 
-export function SessionNotesDialog({
+export function SessionEditorNotesDialog({
 	bookingId,
 	bookingName,
 	savedNotes,
 	onOpenChange,
 	open
-}: SessionNotesDialogProps) {
+}: SessionEditorNotesDialogProps) {
 	const updateSessionNotes = useMutation(api.sessions.updateSessionNotes);
 	const [notes, setNotes] = useState(savedNotes ?? "");
 	const [isSaving, setIsSaving] = useState(false);
@@ -65,7 +65,7 @@ export function SessionNotesDialog({
 				<DialogHeader>
 					<DialogTitle>Write editor notes</DialogTitle>
 					<DialogDescription>
-						Write any notes about editing {bookingName}&lsquo;s session. These notes will NOT be
+						Write any notes about editing {bookingName}&lsquo;s session. These notes will not be
 						sent to the client.
 					</DialogDescription>
 				</DialogHeader>

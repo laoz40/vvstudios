@@ -1,6 +1,6 @@
 /**
  * Editor dashboard tests:
- * 1. An admin can assign an active editor to a previously unassigned booking.
+ * 1. An admin can assign an active editor with admin notes to a previously unassigned booking.
  * 2. Assignment rejects an inactive editor and leaves the booking unassigned.
  * 3. An editor receives only their own assigned bookings, not unassigned or another editor's.
  * 4. An editor receives only confirmed and email-failed bookings that are not archived.
@@ -53,7 +53,11 @@ type BookingStatus =
 	| "expired"
 	| "abandoned";
 
-type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
+type AssignSessionEditorArgs = {
+	bookingId: Id<"bookings">;
+	editorTokenIdentifier: string | null;
+	adminNotes: string;
+};
 type AssignmentError = {
 	reason: "EDITOR_NOT_ACTIVE" | "NOT_AUTHORIZED" | "SESSION_NOT_ASSIGNABLE";
 };
@@ -239,7 +243,11 @@ async function assignBooking(
 ): Promise<AssignmentResult> {
 	return await t
 		.withIdentity(adminIdentity)
-		.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier: identity.tokenIdentifier });
+		.mutation(assignSessionEditor, {
+			bookingId,
+			editorTokenIdentifier: identity.tokenIdentifier,
+			adminNotes: "Use the wide camera angle"
+		});
 }
 
 async function unassignBooking(
@@ -248,7 +256,7 @@ async function unassignBooking(
 ): Promise<AssignmentResult> {
 	return await t
 		.withIdentity(adminIdentity)
-		.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier: null });
+		.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier: null, adminNotes: "" });
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
@@ -287,6 +295,7 @@ describe("editor assignment", () => {
 		expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
 		expect(await assignBooking(t, bookingId)).toEqual([null, null]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
+			adminNotes: "Use the wide camera angle",
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 	});
@@ -373,7 +382,7 @@ describe("editor assignment", () => {
 
 		const result = await t
 			.withIdentity(editorIdentity)
-			.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier });
+			.mutation(assignSessionEditor, { bookingId, editorTokenIdentifier, adminNotes: "" });
 
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(await readBooking(t, bookingId)).toMatchObject(

@@ -34,7 +34,7 @@ Do these practices:
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
 - Annotate complex functions and conditions with simple comments to make the flow easier to understand.
-- When responding, instead of generic summary, show what functions got add or edit for each file, give brief explanations what they do
+- When responding, explain functions that were added or edited for each file of the last turn, and why
 
 ## Code Style Guidelines
 

@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ import {
 	SelectValue
 } from "#/components/ui/select";
 import { api } from "#convex/_generated/api";
+import { Field, FieldLabel } from "#/components/ui/field";
+import { Textarea } from "#/components/ui/textarea";
 import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
@@ -55,10 +57,16 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 export function SessionEditorAssignment({ activeEditors, session }: SessionEditorAssignmentProps) {
 	const assignSessionEditor = useMutation(api.sessions.assignSessionEditor);
 	const [isSaving, setIsSaving] = useState(false);
+	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
 	const currentEditor = activeEditors.find(
 		(editor) => editor.tokenIdentifier === session.assignedEditorTokenIdentifier
 	);
+
+	// Keep the draft current when notes are changed from the separate admin-notes action.
+	useEffect(() => {
+		setAdminNotes(session.adminNotes ?? "");
+	}, [session.adminNotes]);
 
 	function requestAssignment(selectedValue: string) {
 		const nextEditor =
@@ -80,7 +88,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 		setIsSaving(true);
 		const editorTokenIdentifier = confirmation.nextEditor?.tokenIdentifier ?? null;
 		const [error] = await tryCatch(
-			assignSessionEditor({ bookingId: session._id, editorTokenIdentifier })
+			assignSessionEditor({ bookingId: session._id, editorTokenIdentifier, adminNotes })
 		);
 		setIsSaving(false);
 
@@ -186,6 +194,16 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 								This session will have no editor assigned.
 							</p>
 						)}
+						<Field>
+							<FieldLabel htmlFor={`assignment-admin-notes-${session._id}`}>Admin notes</FieldLabel>
+							<Textarea
+								id={`assignment-admin-notes-${session._id}`}
+								value={adminNotes}
+								disabled={isSaving}
+								placeholder="Add instructions for the editor..."
+								onChange={(event) => setAdminNotes(event.target.value)}
+							/>
+						</Field>
 					</div>
 
 					<DialogFooter>

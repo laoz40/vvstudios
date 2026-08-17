@@ -99,7 +99,7 @@ export function EditorSessionTableRow({
 			</TableCell>
 			<TableCell>
 				<p className="whitespace-normal text-sm text-muted-foreground">
-					{session.notes?.trim() || "-"}
+					{session.adminNotes?.trim() || "-"}
 				</p>
 			</TableCell>
 			<TableCell>

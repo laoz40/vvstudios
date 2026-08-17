@@ -12,7 +12,7 @@ import {
 import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
-import { SessionNotesDialog } from "#studio/features/admin/components/SessionNotesDialog";
+import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
@@ -32,8 +32,8 @@ type SessionActionsDialogsProps = {
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
-	isEditorNotesDialogOpen: boolean;
-	onEditorNotesDialogOpenChange: (open: boolean) => void;
+	isAdminNotesDialogOpen: boolean;
+	onAdminNotesDialogOpenChange: (open: boolean) => void;
 };
 
 export function SessionActionsDialogs({
@@ -44,17 +44,17 @@ export function SessionActionsDialogs({
 	editAction,
 	invoiceActions,
 	rescheduleAction,
-	isEditorNotesDialogOpen,
-	onEditorNotesDialogOpenChange
+	isAdminNotesDialogOpen,
+	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
 	return (
 		<>
-			<SessionNotesDialog
+			<SessionAdminNotesDialog
 				bookingId={session._id}
 				bookingName={session.name}
-				savedNotes={session.editorNotes}
-				open={isEditorNotesDialogOpen}
-				onOpenChange={onEditorNotesDialogOpenChange}
+				savedNotes={session.adminNotes}
+				open={isAdminNotesDialogOpen}
+				onOpenChange={onAdminNotesDialogOpenChange}
 			/>
 
 			<Dialog

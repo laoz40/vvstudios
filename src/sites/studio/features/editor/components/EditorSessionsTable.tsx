@@ -56,7 +56,7 @@ export function EditorSessionsTable({
 						<TableHead>Customer</TableHead>
 						<TableHead>Session</TableHead>
 						<TableHead>Service</TableHead>
-						<TableHead>Client Notes</TableHead>
+						<TableHead>Admin Notes</TableHead>
 						<TableHead>Editor Notes</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>

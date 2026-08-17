@@ -66,7 +66,7 @@ import { tupleErr, tupleOk } from "#/lib/result";
 const paginationOpts = { cursor: null, numItems: 10 };
 const assignSessionEditor = makeFunctionReference<
 	"mutation",
-	{ bookingId: Id<"bookings">; editorTokenIdentifier: string },
+	{ bookingId: Id<"bookings">; editorTokenIdentifier: string; adminNotes: string },
 	unknown
 >("sessions:assignSessionEditor");
 const listEditorSessions = makeFunctionReference<
@@ -288,7 +288,8 @@ const operations: AdminOperation[] = [
 		call: (client, { bookingId }) =>
 			client.mutation(assignSessionEditor, {
 				bookingId,
-				editorTokenIdentifier: editorMetadataIdentity.tokenIdentifier
+				editorTokenIdentifier: editorMetadataIdentity.tokenIdentifier,
+				adminNotes: ""
 			})
 	}
 ];

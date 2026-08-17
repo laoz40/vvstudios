@@ -57,11 +57,15 @@ function requireEditorAssignableSession(
 function saveSessionEditorAssignment(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	editor: Doc<"editorProfiles"> | undefined
+	editor: Doc<"editorProfiles"> | undefined,
+	adminNotes: string
 ) {
 	return okOrThrow(
 		(async () => {
-			await ctx.db.patch(session._id, { assignedEditorTokenIdentifier: editor?.tokenIdentifier });
+			await ctx.db.patch(session._id, {
+				adminNotes: adminNotes.trim() || undefined,
+				assignedEditorTokenIdentifier: editor?.tokenIdentifier
+			});
 
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
 			if (editor !== undefined) {
@@ -76,13 +80,14 @@ function saveSessionEditorAssignment(
 export function updateSessionEditorAssignment(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	editorTokenIdentifier: string | null
+	editorTokenIdentifier: string | null,
+	adminNotes: string
 ) {
 	if (editorTokenIdentifier === null) {
-		return saveSessionEditorAssignment(ctx, session, undefined);
+		return saveSessionEditorAssignment(ctx, session, undefined, adminNotes);
 	}
 
 	return requireEditorAssignableSession(session)
 		.asyncAndThen(() => getActiveEditor(ctx, editorTokenIdentifier))
-		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor));
+		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor, adminNotes));
 }

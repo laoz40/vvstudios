@@ -44,8 +44,13 @@ type SubmitSessionForReviewArgs = {
 	clientNotes: string;
 };
 type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
+type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: string };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
-type AssignSessionEditorArgs = { bookingId: Id<"bookings">; editorTokenIdentifier: string | null };
+type AssignSessionEditorArgs = {
+	bookingId: Id<"bookings">;
+	editorTokenIdentifier: string | null;
+	adminNotes: string;
+};
 
 export function getDeliverablesCustomerTypeService(
 	ctx: QueryCtx,
@@ -194,7 +199,9 @@ export function saveSessionInstagramHandleService(
 export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) => updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier));
+		.andThen((session) =>
+			updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
+		);
 }
 
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
@@ -219,6 +226,21 @@ export function updateSessionPaidStatusService(
 			okOrThrow(
 				ctx.db
 					.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance })
+					.then(() => null)
+			)
+		);
+}
+
+export function updateSessionAdminNotesService(
+	ctx: MutationCtx,
+	args: UpdateSessionAdminNotesArgs
+) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen((session) =>
+			okOrThrow(
+				ctx.db
+					.patch(session._id, { adminNotes: args.adminNotes.trim() || undefined })
 					.then(() => null)
 			)
 		);

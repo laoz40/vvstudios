@@ -57,7 +57,7 @@ type SessionActionsMenuProps = {
 	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
-	onEditEditorNotes: () => void;
+	onEditAdminNotes: () => void;
 };
 
 function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
@@ -75,14 +75,14 @@ export function SessionActionsMenu({
 	paymentActions,
 	rescheduleAction,
 	statusActions,
-	onEditEditorNotes
+	onEditAdminNotes
 }: SessionActionsMenuProps) {
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
-	const editorNotesIconRef = useRef<AnimatedIconHandle | null>(null);
+	const adminNotesIconRef = useRef<AnimatedIconHandle | null>(null);
 	const isArchived = session.hiddenAt !== undefined;
 	let archiveActionLabel = "Unarchive session";
 
@@ -232,16 +232,16 @@ export function SessionActionsMenu({
 								variant="outline"
 								size="sm"
 								className="w-full bg-background/60"
-								onPointerEnter={() => editorNotesIconRef.current?.startAnimation()}
-								onPointerLeave={() => editorNotesIconRef.current?.stopAnimation()}
-								onFocus={() => editorNotesIconRef.current?.startAnimation()}
-								onBlur={() => editorNotesIconRef.current?.stopAnimation()}
-								onClick={onEditEditorNotes}>
+								onPointerEnter={() => adminNotesIconRef.current?.startAnimation()}
+								onPointerLeave={() => adminNotesIconRef.current?.stopAnimation()}
+								onFocus={() => adminNotesIconRef.current?.startAnimation()}
+								onBlur={() => adminNotesIconRef.current?.stopAnimation()}
+								onClick={onEditAdminNotes}>
 								<PenIcon
-									ref={editorNotesIconRef}
+									ref={adminNotesIconRef}
 									aria-hidden
 								/>
-								Write editor notes
+								Write admin notes
 							</Button>
 						</div>
 						<DropdownMenuSeparator />
