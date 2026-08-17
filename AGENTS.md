@@ -28,7 +28,7 @@ Do these practices:
 - run format and lint and typecheck once changes are complete
 - do not run build or convex codegen unless asked to
 
-## Behavior
+## Behaviour
 
 - Ask user before making assumptions that change behavior, UX, architecture
 - Always strive for concise, simple solutions
