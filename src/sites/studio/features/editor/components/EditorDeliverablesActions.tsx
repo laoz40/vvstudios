@@ -19,7 +19,7 @@ import { SessionEditorNotesDialog } from "#studio/features/editor/components/Ses
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
 import { DeliverablesReviewDialog } from "#studio/features/editor/components/DeliverablesReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
-type NotesDialogState = { status: "closed" } | { status: "open" };
+type DeliverablesDialogState = { status: "closed" } | { status: "notes" } | { status: "review" };
 
 export function EditorDeliverablesActions({
 	session,
@@ -31,8 +31,7 @@ export function EditorDeliverablesActions({
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
 	const submitSessionForReview = useMutation(api.sessions.submitSessionForReview);
 	const [isUpdating, setIsUpdating] = useState(false);
-	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
-	const [isReviewOpen, setIsReviewOpen] = useState(false);
+	const [dialog, setDialog] = useState<DeliverablesDialogState>({ status: "closed" });
 	const [driveLink, setDriveLink] = useState(session.deliverablesDriveLink ?? "");
 	const [clientNotes, setClientNotes] = useState(session.deliverablesClientNotes ?? "");
 
@@ -67,7 +66,7 @@ export function EditorDeliverablesActions({
 			return;
 		}
 
-		setIsReviewOpen(false);
+		setDialog({ status: "closed" });
 		toast.success("Deliverables submitted for admin review.");
 	}
 
@@ -116,7 +115,7 @@ export function EditorDeliverablesActions({
 								<AnimatedDropdownMenuItem
 									className="hover:text-green focus:text-green"
 									disabled={session.editStatus === "review"}
-									onSelect={() => setIsReviewOpen(true)}
+									onSelect={() => setDialog({ status: "review" })}
 									renderIcon={(iconRef) => (
 										<CheckedIcon
 											ref={iconRef}
@@ -131,7 +130,7 @@ export function EditorDeliverablesActions({
 						) : null}
 						<AnimatedDropdownMenuItem
 							className="hover:[&_svg]:text-accent-foreground focus:[&_svg]:text-accent-foreground"
-							onSelect={() => setNotesDialog({ status: "open" })}
+							onSelect={() => setDialog({ status: "notes" })}
 							renderIcon={(iconRef) => (
 								<PenIcon
 									ref={iconRef}
@@ -145,26 +144,26 @@ export function EditorDeliverablesActions({
 					</DropdownMenuGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{notesDialog.status === "open" ? (
+			{dialog.status === "notes" ? (
 				<SessionEditorNotesDialog
 					bookingId={session._id}
 					bookingName={session.name}
 					savedNotes={session.editorNotes}
 					open
 					onOpenChange={(open) => {
-						if (!open) setNotesDialog({ status: "closed" });
+						if (!open) setDialog({ status: "closed" });
 					}}
 				/>
 			) : null}
 			<DeliverablesReviewDialog
-				open={isReviewOpen}
+				open={dialog.status === "review"}
 				bookingId={session._id}
 				driveLink={driveLink}
 				clientNotes={clientNotes}
 				isSubmitting={isUpdating}
 				onDriveLinkChange={setDriveLink}
 				onClientNotesChange={setClientNotes}
-				onOpenChange={setIsReviewOpen}
+				onOpenChange={(open) => setDialog({ status: open ? "review" : "closed" })}
 				onSubmit={() => void handleSubmitForReview()}
 			/>
 		</>
