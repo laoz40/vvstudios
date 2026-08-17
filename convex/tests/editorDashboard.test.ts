@@ -88,7 +88,10 @@ type EditorSessionProjection = {
 	name: string;
 	accountName: string;
 	notes?: string;
+	adminNotes?: string;
 	editorNotes?: string;
+	deliverablesClientNotes?: string;
+	deliverablesDriveLink?: string;
 	date: string;
 	time: string;
 	duration: string;
@@ -662,6 +665,13 @@ describe("restricted editor session query", () => {
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, "Safe Projection Customer");
 		await assignBooking(t, bookingId);
+		await t.run((ctx) =>
+			ctx.db.patch(bookingId, {
+				editorNotes: "Editor-only context",
+				deliverablesClientNotes: "Client delivery context",
+				deliverablesDriveLink: "https://drive.google.com/drive/folders/test"
+			})
+		);
 
 		const result = await t
 			.withIdentity(editorIdentity)
@@ -673,6 +683,10 @@ describe("restricted editor session query", () => {
 					name: "Safe Projection Customer",
 					accountName: "Safe Projection Customer Pty Ltd",
 					notes: "Safe Projection Customer production notes",
+					adminNotes: "Use the wide camera angle",
+					editorNotes: "Editor-only context",
+					deliverablesClientNotes: "Client delivery context",
+					deliverablesDriveLink: "https://drive.google.com/drive/folders/test",
 					date: "2030-02-03",
 					time: "10:30",
 					duration: "1 hour",
@@ -691,6 +705,29 @@ describe("restricted editor session query", () => {
 				}
 			]
 		});
+		expect(result.page).toHaveLength(1);
+		const session = result.page.at(0);
+		if (session === undefined) throw new Error("Expected one editor session");
+		expect(Object.keys(session).toSorted()).toEqual(
+			[
+				"_id",
+				"accountName",
+				"addons",
+				"adminNotes",
+				"clipsPackageQuantity",
+				"date",
+				"deliverablesClientNotes",
+				"deliverablesDriveLink",
+				"duration",
+				"editStatus",
+				"editorNotes",
+				"essentialEditQuantity",
+				"name",
+				"notes",
+				"service",
+				"time"
+			].toSorted()
+		);
 
 		const serializedResult = JSON.stringify(result);
 		for (const restrictedValue of [
