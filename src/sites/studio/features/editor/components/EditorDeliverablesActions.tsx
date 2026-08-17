@@ -9,8 +9,8 @@ import {
 	DropdownMenuGroup,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
+import CheckedIcon from "#/components/ui/checked-icon";
 import KeyframesIcon from "#/components/ui/keyframes-icon";
-import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -118,7 +118,7 @@ export function EditorDeliverablesActions({
 									disabled={session.editStatus === "review"}
 									onSelect={() => setIsReviewOpen(true)}
 									renderIcon={(iconRef) => (
-										<MailFilledIcon
+										<CheckedIcon
 											ref={iconRef}
 											size={16}
 											aria-hidden
