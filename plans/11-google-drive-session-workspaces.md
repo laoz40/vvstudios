@@ -1,331 +1,158 @@
-# Google Drive Session Workspaces Plan
+# Google Drive session workspaces plan
 
 ## Goal
 
-Create one Google Shared Drive hierarchy for VV Studios. Editors can browse all client and session work as read-only reference material, while receiving write access only to assigned sessions. Clients can browse their own client folder, upload assets, and comment on deliverables. Raw media remains limited to admins and the editor assigned to that session.
+Build the workflow in `plans/google-drive-session-workspaces-goal.md` as thin vertical slices. Each slice should add one usable behavior across storage, Google Drive, backend functions, UI, and tests.
 
-## Required folder structure
+## Non-negotiable rules and resolved decisions
 
-```text
-VV Studios/
-└── Client X (VV Studios)/
-    ├── Session 01 — 13 Aug 2026/
-    │   ├── Raw Media/
-    │   ├── Assets/
-    │   └── Deliverables/
-    ├── Session 02 — 27 Aug 2026/
-    │   ├── Raw Media/
-    │   ├── Assets/
-    │   └── Deliverables/
-    └── Session 03 — 10 Sep 2026/
-        ├── Raw Media/
-        ├── Assets/
-        └── Deliverables/
-```
+- Use the owner's My Drive and the owner-created `VV Studios` root folder.
+- Reuse the existing Google OAuth client after adding full Drive access to its refresh token.
+- Use the normalized original booking email as the permanent client workspace key.
+- Store Drive IDs. Never find managed resources by display name.
+- Create session folders after the scheduled session end.
+- Do not create historical workspaces or add a backfill.
+- Keep database assignment authoritative when Drive synchronization fails.
+- Track folders, client access, editor access, and each email separately.
+- Never delete Drive content or recreate missing folders without admin confirmation.
+- Accept the My Drive ownership limits in the goal document.
+- Read `convex/_generated/ai/guidelines.md` before changing Convex code.
 
-Session folder format:
+## Implementation steps
 
-```text
-Session [Number] — [DD MMM YYYY]
-```
+### Step 1: Verify Google Drive behavior
 
-Example:
+Reauthorize the existing Google OAuth application with Calendar and full Drive access. Add the owner-created root folder ID to server-only configuration.
 
-```text
-Session 04 — 13 Aug 2026
-```
+Use a disposable folder, a test editor, a client Google Account, and an email without a Google Account. Verify:
 
-Use a two-digit session number in the displayed name. Store the underlying number separately so folder names do not become the source of truth.
+- folder creation under the configured root;
+- limited access on `Raw Media`;
+- viewer, commenter, and writer permissions;
+- `writersCanShare=false` where My Drive supports it;
+- suppressed invitation emails on child permissions;
+- uploads, ownership, sharing, and permission removal; and
+- the provider response fields needed to save and verify resources.
 
-## Permission model
+Check after step: update the goal document if Google behaves differently from the accepted design. Do not build around unverified permission behavior.
 
-| Folder | Admin | Assigned editor | Other editors | Client |
-| --- | --- | --- | --- | --- |
-| `VV Studios` shared drive | Manager | Viewer plus direct grants below | Viewer | No access |
-| `Client X (VV Studios)` | Manager | Inherited viewer | Inherited viewer | Direct viewer |
-| Session folder | Manager | Direct writer | Inherited viewer | Inherited viewer |
-| `Raw Media` limited-access folder | Manager | Direct writer | Metadata/name only | Metadata/name only |
-| `Assets` | Manager | Inherited writer | Inherited viewer | Direct writer |
-| `Deliverables` | Manager | Inherited writer | Inherited viewer | Direct commenter |
+### Step 2: Create one ordinary session workspace manually
 
-### Admin
+Add the smallest data model and Drive operations needed to create one ordinary session workspace from an authorized admin action.
 
-- Manages the shared drive and its complete hierarchy.
-- Can create, organize, share, restrict, and remove all workspace content.
-- Is the only role with permission-management access.
+The action should:
 
-### Assigned editor
+1. Reuse or create the client folder from the normalized original booking email.
+2. Create the dated session folder under it.
+3. Create `Raw Media`, `Assets`, and `Deliverables`.
+4. Limit access to `Raw Media`.
+5. Save every Drive ID as soon as Google returns it.
+6. Show the saved folders and folder status to an authorized admin.
 
-- Is a `Viewer` member of the `VV Studios` shared drive and can browse other client and session work as reference material.
-- Receives a direct `writer` permission on each assigned session folder.
-- Inherits writer access to `Assets` and `Deliverables`.
-- Receives a separate direct `writer` permission on the assigned session's limited-access `Raw Media` folder because that folder does not inherit the session permission.
-- Has read-only access to unassigned sessions, except their `Raw Media` folders.
-- Must not receive Drive Manager, Content Manager, or permission-management access.
+Use `Australia/Sydney` and the exact names in the goal document. Parse Google responses with runtime schemas and map failures to safe domain errors. Do not expose raw provider errors, credentials, Drive IDs, or links to unauthorized users.
 
-### Client
+Check after step: create an ordinary workspace, open each saved folder, and confirm another editor cannot browse it.
 
-- Receives direct `viewer` access to `Client X (VV Studios)` and can browse that client's sessions.
-- Inherits viewer access to session folders, `Assets`, and `Deliverables`.
-- Receives a direct `writer` permission on each `Assets` folder.
-- Receives a direct `commenter` permission on each `Deliverables` folder.
-- Can see each `Raw Media` folder's name because it exists beneath an accessible parent, but cannot open or list its contents.
-- Cannot modify or delete deliverable files through the commenter role.
-- Receives no permission on the `VV Studios` shared-drive root or other client folders.
+### Step 3: Make ordinary folder setup scheduled and replay-safe
 
-### Permission inheritance rule
+When a booking becomes confirmed, schedule setup for `sessionStartAt + duration`. At run time, confirm the booking is still eligible and its timing still matches the scheduled job.
 
-Google Drive permissions flow down the folder tree and inherited permissions can be increased on a child. This allows an editor to inherit `Viewer` from the shared-drive root and receive direct `writer` access on an assigned session.
+Make setup safe after duplicate jobs, partial failures, and timeouts. Verify saved resources by ID. For an uncertain create result, reconcile with an application-owned opaque marker such as the booking ID. Do not search by folder name.
 
-Every `Raw Media` folder must enable limited access by setting `inheritedPermissionsDisabled=true`. Only Shared Drive Managers can enable or disable this setting. Once enabled, shared-drive Managers and users added directly to that `Raw Media` folder can open it. Other editors and the client can see the folder's name/metadata but cannot open it.
+Add bounded retry metadata and an admin retry action. A missing saved folder must produce `Google Drive folders not created`; it must not trigger silent recreation.
 
-This behavior is currently documented and supported by Google Drive and the Drive API. It requires a Google Workspace edition that supports Shared Drives, organization settings that allow the intended internal or external sharing, and an API identity with Manager (`organizer`) access.
+Check after step: cover cancellation, stale jobs, duplicate jobs, partial setup, replay, and a timeout after Google created a folder.
 
-## Lifecycle decision required before implementation
+### Step 4: Give the client access and send the assets email
 
-The requested triggers currently conflict:
+After folder setup succeeds:
 
-- The workspace is proposed to be created when a session is completed.
-- The editor needs `Raw Media` and `Assets` when they are assigned, which normally happens before editing can be completed.
+- grant the booking contact viewer access to the client folder;
+- grant writer access to `Assets`;
+- grant commenter access to `Deliverables`;
+- keep `Raw Media` inaccessible;
+- send one useful Google invitation; and
+- send one branded Resend email containing the `Assets` link.
 
-Choose one provisioning trigger before implementation:
+Save client access and both notification results separately. Support a session-specific Drive email override without changing client identity. A rejected email must not change folder readiness or block later editor setup.
 
-1. **Recommended:** provision the workspace when the booking becomes confirmed. Assignment and completion then only update permissions and send links.
-2. Provision it on the first editor assignment. This works for editors but delays client asset access until an editor exists.
-3. Provision it on session completion. This cannot support editor access before completion without a separate earlier provisioning path.
+Add admin status, retry, and override controls for this slice.
 
-Also confirm whether “session completed” means the session date has passed or `editStatus` changes to `completed`. These are different events in the current application.
+Check after step: verify inherited client browsing, `Raw Media` isolation, rejected addresses, override behavior, and replay-safe emails.
 
-## Proposed automation flow
+### Step 5: Synchronize one editor assignment
 
-The following flow assumes the recommended option: provision after booking confirmation.
+Extend the existing assignment flow after its database transaction succeeds. If the folders exist, grant the assigned editor:
 
-### 1. Provision the workspace
+- viewer access to the session;
+- direct viewer access to limited `Raw Media`;
+- inherited viewer access to `Assets`; and
+- direct writer access to `Deliverables`.
 
-After a booking is safely confirmed:
+If assignment happens first, keep Drive synchronization pending and finish it after folder setup. Keep the database assignment when Google fails.
 
-1. Claim a provisioning job for the booking so retries and duplicate events cannot create duplicate folders.
-2. Find or create `Client X (VV Studios)` under `VV Studios` and add direct client `viewer` access.
-3. Allocate the next session number for that client transactionally.
-4. Format the session date in the studio's agreed timezone.
-5. Create the session folder and its three child folders.
-6. Enable limited access on `Raw Media`.
-7. Add direct client `writer` access to `Assets` and direct `commenter` access to `Deliverables`.
-8. Save every Drive resource ID and provisioning state against the booking or a dedicated workspace record.
-9. Mark provisioning as complete.
+After every required permission succeeds, send one Google invitation and one branded email with the three folder links. Add separate admin status and retry controls for editor access and email delivery.
 
-Do not locate folders by display name after creation. Names can change and are not guaranteed to be unique; saved Google Drive IDs are authoritative.
+Check after step: cover assignment before and after setup, rejected editor email, provider failure, retry, authorization, and duplicate email prevention.
 
-### 2. Notify the client
+### Step 6: Handle reassignment and unassignment
 
-At the agreed client notification trigger:
+On reassignment, remove the old editor's saved direct permissions before granting the new editor access. On unassignment, remove all saved direct permissions. Notification failure must not block permission removal.
 
-1. Load the completed workspace record.
-2. Send the client an email containing the `Assets` folder link and, if desired, the `Deliverables` link.
-3. Record the notification attempt, success time, and provider message ID.
-4. Retry transient failures without recreating permissions or folders.
+Show the accepted My Drive limitation where useful: removing folder permissions does not remove access to files the editor owns.
 
-The checklist says to send the assets link upon session completion. Confirm whether the client instead needs this before the recording so they can upload brand assets in advance.
+Check after step: verify the old editor loses managed folder access, other editors cannot browse the session, the new editor gets the correct access, and uploader-owned files keep Google's documented behavior.
 
-### 3. Assign an editor
+### Step 7: Add package workspaces
 
-When an admin assigns an editor:
+For a package booking, create one package folder beneath the client folder. Name it from package size and purchase date.
 
-1. Ensure the workspace has been provisioned; if not, queue provisioning and leave the notification pending.
-2. Confirm that the editor is a `Viewer` member of the `VV Studios` shared drive.
-3. Add a direct `writer` permission for the editor's email on the session folder.
-4. Add a direct `writer` permission on the limited-access `Raw Media` folder.
-5. Save both Drive permission IDs so they can be removed later.
-6. Email the editor links to the session folder, `Raw Media`, and `Assets`.
-7. Record the notification result.
+Before calling Drive, allocate the session number from scheduled dates of all non-cancelled package sessions, including future sessions. Save the number and never change it after folder creation. Create no placeholder session folders.
 
-### 4. Reassign or unassign an editor
+Reuse the ordinary session setup, client access, and editor access behavior inside the package folder.
 
-When the assignment changes:
+Check after step: cover sessions booked out of order, future sessions, cancellation gaps, concurrent setup, and retries that preserve allocated numbers.
 
-1. Remove the previous editor's direct session and `Raw Media` permissions using their saved permission IDs.
-2. The previous editor falls back to inherited viewer access on the session, `Assets`, and `Deliverables`, but cannot open `Raw Media`.
-3. Add both session and `Raw Media` permissions for the new editor when applicable.
-4. Send links only after the new permissions succeed.
-5. Keep an audit record of the assignment and permission outcomes.
+### Step 8: Handle reschedules and client identity changes
 
-### 5. Complete editing
+After a reschedule, schedule a replacement setup job. A stale job must exit. Rename an existing session folder to its new date and time without changing a saved package session number.
 
-When `editStatus` first transitions to `completed`:
-
-1. Do not recreate the workspace.
-2. Verify that `Deliverables` exists and the client commenter permission remains present.
-3. Send whichever completion notification is approved.
-4. Make the transition idempotent so repeated saves of `completed` do not resend the email.
-
-## Backend design
-
-### Google ownership and authentication
-
-- Prefer a Google Workspace Shared Drive owned by VV Studios rather than an employee's My Drive.
-- Use a dedicated Google Cloud project and Drive API credentials.
-- Authenticate as an identity that can manage the VV Studios shared drive. Confirm whether this will use a service account with Workspace domain-wide delegation or stored OAuth credentials for a VV Studios admin account.
-- Keep credentials in server-only environment variables and never return credentials or raw provider errors to clients.
-- Restrict OAuth scopes to the smallest set that supports folder and permission management.
-
-### Convex boundaries
-
-- Run Google Drive and email provider calls in internal Convex actions.
-- Keep public mutations as authenticated boundary adapters that call one service function and map its `Result` with `.match(tupleOk, tupleErr)`.
-- Keep service functions in `convex/services` as readable `andThen` chains.
-- Put Drive API operations, naming, permission mapping, and provider-error mapping in the nearest modules under `convex/lib`.
-- Use internal mutations before and after provider calls to claim work and persist results. Actions must not access `ctx.db` directly.
-- Schedule provider work only after the booking or assignment transaction succeeds.
-
-### Suggested persisted state
-
-Use a dedicated workspace record if provisioning, permissions, and notifications need independent retries. Proposed fields:
-
-- Booking ID, with a unique lookup path.
-- Stable client key used for client-folder reuse.
-- Allocated session number.
-- Provisioning state as a discriminated union: `pending`, `provisioning`, `ready`, or `failed`.
-- Root/shared drive ID.
-- Client folder ID.
-- Session folder ID.
-- `Raw Media`, `Assets`, and `Deliverables` folder IDs.
-- Direct client permission IDs for the client folder, `Assets`, and `Deliverables`.
-- Current editor session permission ID, `Raw Media` permission ID, and assigned editor identity.
-- Client and editor notification state and timestamps.
-- Last safe error code and retry metadata.
-
-Do not store several optional flags that permit impossible combinations such as `ready` without folder IDs. Parse Google API responses once at the provider boundary with a runtime schema.
-
-## Session numbering
-
-Session numbering must be deterministic and safe under concurrent bookings.
-
-- Scope numbers to one stable client identity, not a mutable client display name.
-- Allocate the number in a Convex mutation before creating Drive folders.
-- Never calculate it by listing Drive folders or parsing their names.
-- Do not reuse numbers after cancellation or deletion.
-- Preserve the allocated number if provisioning retries.
-
-Confirm which existing application identity defines a client: customer email, account/business ID, or another stable customer record. Email alone may merge or split clients incorrectly when addresses change or multiple contacts share a company.
-
-## Naming and dates
-
-- Sanitize control characters and path-like separators from client names while preserving normal punctuation.
-- Keep the required em dash separator (`—`).
-- Format dates as `DD MMM YYYY`, for example `13 Aug 2026`.
-- Use one configured studio timezone so dates do not change based on the server or viewer timezone.
-- Decide whether rescheduling renames an existing session folder. Recommended behavior is to rename it while retaining the same folder ID and session number.
-- Decide whether client-name changes rename existing client and session folders. Recommended behavior is to rename future and active workspaces only, not historical folders automatically.
-
-## Reliability and idempotency
-
-- Treat Google Drive calls and email calls as retryable external effects.
-- Claim each effect before execution and persist its completion separately.
-- Reuse saved folder and permission IDs on retries.
-- Where an API call succeeds but the response is lost, reconcile using an application-owned Drive property or another stable booking marker rather than folder name alone.
-- Use bounded retries with backoff for rate limits and temporary provider failures.
-- Surface permanent failures to admins with a manual retry action.
-- Never send a link before its intended recipient's permission has succeeded.
-- Removing an editor must not be blocked by an email failure.
-
-## Security and privacy
-
-- Authorize assignment and workspace retry operations on the backend; hidden UI is not a security boundary.
-- Editors are intentionally allowed to browse the `VV Studios` shared drive as viewers; clients receive only their client-folder link and permission.
-- Return only links the current user is authorized to receive.
-- Use direct user or managed-group permissions, not `anyoneWithLink` permissions.
-- Prevent editors from managing sharing settings.
-- Review Shared Drive settings for external users, non-member sharing, downloading/copying, and contributor sharing.
-- Confirm the editor upload workflow before rollout: Google documents that Shared Drive `Contributor` access can be read-only through Google Drive for desktop and ChromeOS Files. If editors require Drive for desktop rather than the web UI or API, test this with real editor accounts before choosing the final editing role.
-- Log folder and permission IDs, booking IDs, operation names, and safe provider error codes. Do not log OAuth tokens or unnecessary client data.
-- Document that Drive items manually re-shared outside the application can bypass the application's intended permission lifecycle; periodic reconciliation can detect drift.
-
-## Implementation slices
-
-1. **Confirm product and Google Workspace decisions**
-   - Choose the provisioning and notification triggers.
-   - Define the stable client identity and studio timezone.
-   - Confirm Shared Drive availability and authentication method.
-   - Confirm whether rescheduling and client-name changes rename folders.
-
-2. **Add workspace domain state**
-   - Add the minimal schema for allocated session numbers, folder IDs, permission IDs, and discriminated provisioning/notification states.
-   - Add indexes for booking lookup and stable client lookup.
-   - Do not add a data migration unless existing live bookings need workspaces; confirm this before implementation.
-
-3. **Build and test the Drive provider boundary**
-   - Add folder creation, folder rename, permission creation, permission removal, and reconciliation operations.
-   - Map Google errors into safe domain errors.
-   - Test naming, date formatting, response parsing, and error mapping without calling Google in unit tests.
-
-4. **Provision one session workspace**
-   - Implement the claim, Drive action, and persistence workflow.
-   - Create the exact hierarchy, limited-access `Raw Media` folder, and direct client permissions.
-   - Prove replaying the workflow does not create duplicates.
-
-5. **Connect editor assignments**
-   - Extend the existing assignment service to schedule permission synchronization after a successful assignment transaction.
-   - Handle assignment, reassignment, and unassignment.
-   - Keep database assignment authoritative if Drive or email is temporarily unavailable, and display synchronization failure to admins.
-
-6. **Send client and editor emails**
-   - Add concise email templates with only authorized links.
-   - Send only after permissions succeed.
-   - Persist delivery state and make retries idempotent.
-
-7. **Add admin recovery controls**
-   - Show workspace provisioning and permission-sync status.
-   - Allow authorized admins to retry failed operations.
-   - Provide links to the session workspace for admins without exposing private parent links to editors.
-
-8. **Regression and quality pass**
-   - Test authorization, parent-folder isolation, inheritance, duplicate triggers, partial provider failures, retries, reassignment, unassignment, and email failures.
-   - Keep the required file-level test inventory comment current in every changed test file.
-   - Run formatting, linting, type checking, and relevant tests. Do not run a production build or Convex code generation.
-
-## Test plan
-
-- A confirmed booking creates exactly one client/session hierarchy and three child folders.
-- Concurrent sessions for one client receive unique sequential session numbers.
-- Replayed confirmation or provisioning jobs do not duplicate folders or permissions.
-- Every editor inherits viewer access from the `VV Studios` shared drive.
-- The assigned editor receives direct writer access to the session and limited-access `Raw Media` folder.
-- Unassigned editors can browse session, asset, and deliverable content read-only but cannot open `Raw Media`.
-- The client can browse their client and session folders, receives direct writer access to `Assets`, and receives commenter access to `Deliverables`.
-- The client can see the `Raw Media` folder name but cannot open or list its contents, and cannot access `VV Studios` or other clients.
-- A link email is not sent before the matching Drive permission succeeds.
-- Reassignment removes the old editor's permission before or as part of granting the new editor access.
-- Unassignment removes editor access even when notification delivery fails.
-- Retrying after a timeout reconciles an already-created folder instead of duplicating it.
-- A reschedule follows the approved rename policy without changing folder IDs or session numbers.
-- Unauthorized users cannot provision, retry, inspect, or change workspace permissions through direct Convex calls.
-- Provider tokens and sensitive provider errors never appear in logs or client responses.
-
-Provider mocks should cover Google success, conflict/replay, permission denial, rate limiting, timeout after remote success, and permanent invalid-recipient failures. Live Google integration checks should use a dedicated test Shared Drive and test accounts, not production client folders.
-
-## Acceptance criteria
-
-- Every eligible session has one workspace matching the required naming and child-folder structure.
-- Session numbers are stable, sequential per client, and safe under concurrent provisioning.
-- Admins can access the complete hierarchy.
-- Editors can browse `VV Studios` and unassigned work as viewers, while assigned editors can write to their assigned session, `Raw Media`, `Assets`, and `Deliverables`.
-- Clients can browse their own client/session hierarchy, edit `Assets`, comment on `Deliverables`, and cannot open `Raw Media`, `VV Studios`, or another client's folder.
-- Editor reassignment and unassignment update Drive access reliably.
-- Client and editor emails contain only links each recipient is authorized to open.
-- Folder creation, permission changes, and emails are idempotent and recoverable after partial failure.
-- The application stores Drive IDs as authoritative references and never depends on folder-name lookup.
-- All backend operations enforce existing application authorization.
-
-## Decisions to confirm
-
-- [ ] Provision on booking confirmation, first editor assignment, or session completion.
-- [ ] Define whether completion means the recording date has passed or `editStatus === "completed"`.
-- [ ] Decide when the client should receive the `Assets` link; uploading assets likely requires access before session completion.
-- [ ] Define the stable client identity used for folder reuse and numbering.
-- [ ] Confirm the VV Studios timezone used in folder names.
-- [ ] Confirm Google Workspace Shared Drive availability and that organization sharing settings permit all editor/client accounts.
-- [ ] Confirm whether editors use the Drive web UI/API or Google Drive for desktop; test the required write workflow because Shared Drive Contributor behavior differs in Drive for desktop.
-- [ ] Choose service-account/domain-wide delegation or admin OAuth authentication.
-- [ ] Decide whether rescheduling renames the session folder.
-- [ ] Decide whether client-name changes rename existing folders.
-- [ ] Confirm whether existing live sessions need backfilled workspaces; no migration should be added otherwise.
+Keep using the original normalized booking email and saved client folder ID after booking email or `accountName` changes. Warn admins that an email change does not update Drive permissions. Warn when a later `accountName` differs from the saved client workspace name.
+
+Check after step: verify pre-setup and post-setup reschedules, stale jobs, package numbering, changed booking emails, and changed account names.
+
+### Step 9: Deliver completed edits through the managed folder
+
+Remove the editor workflow that accepts an arbitrary Drive link. Use the saved `Deliverables` folder.
+
+Before a real transition to `completed`, list the folder's children. Block completion with clear copy when it is empty or Drive cannot verify it. After completion succeeds, send one branded client email containing only the `Deliverables` link.
+
+A repeated save in `completed` must not resend. A later `completed → editing → completed` transition must send again. Completion must not remove editor permissions.
+
+Add separate delivery-email status and retry controls.
+
+Check after step: cover empty folders, listing failure, first completion, repeated saves, completion after reopening, authorization, and email retry.
+
+### Step 10: Add explicit recovery controls
+
+Finish the admin view with separate states for folders, client access, editor access, client assets email, editor links email, and deliverables email.
+
+Provide authorized actions to:
+
+- retry one failed operation;
+- enter a client Drive email override;
+- open saved folders;
+- reconnect a folder by ID; and
+- explicitly run `Set up Google Drive folders` after a deletion.
+
+Use `Reconnect existing Google Drive folder`. Do not use "provision" in user-facing copy. Renames and moves should continue through saved IDs. Deletions must never cause silent recreation.
+
+Check after step: manually rename, move, disconnect, and delete test folders. Verify each recovery path and its authorization.
+
+### Step 11: Run acceptance and regression checks
+
+Repeat the required live scenarios from the goal document in a dedicated test hierarchy. Do not use production client folders. Record any behavior that differs from mocks, then update tests and the goal document.
+
+Verify backend authorization for every setup, retry, reconnect, assignment, and inspection function. Confirm unauthorized query results contain no Drive IDs or links.
+
+Keep the file-level test inventory comment current in every changed test file. Run focused tests during each slice. At the end, run formatting, linting, type checking, and relevant tests. Do not run a production build or Convex code generation.
