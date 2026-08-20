@@ -377,6 +377,26 @@ export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
 	return utcDate.getTime();
 }
 
+export function formatDriveSessionFolderName(sessionStartAt: number) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "2-digit",
+		month: "short",
+		year: "numeric"
+	}).formatToParts(sessionStartAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+	const time = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true
+	})
+		.format(sessionStartAt)
+		.toUpperCase();
+
+	return `${valueByType.day} ${valueByType.month} ${valueByType.year} — ${time}`;
+}
+
 export function isUpcomingBooking(dateValue: string, timeValue: string, now = Date.now()) {
 	return getBookingStartTimestamp(dateValue, timeValue) >= now;
 }

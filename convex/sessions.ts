@@ -4,10 +4,17 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
+	getDriveSetup as loadDriveSetup,
+	saveDriveChildFolder as saveDriveChildFolderRecord,
+	saveDriveClientFolder as saveDriveClientFolderRecord,
+	saveDriveSessionFolder as saveDriveSessionFolderRecord
+} from "#convex/lib/driveRecords";
+import {
 	archiveSessionService,
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
 	getDeliverablesCustomerTypeService,
+	getDriveStatusService,
 	getPublicRescheduleCompleteSessionService,
 	listActiveEditorsService,
 	listEditorSessionsService,
@@ -20,6 +27,40 @@ import {
 	updateSessionEditStatusService,
 	updateSessionPaidStatusService
 } from "#convex/services/sessions";
+
+const savedDriveFolderValidator = v.object({
+	id: v.string(),
+	name: v.string(),
+	webViewLink: v.string()
+});
+
+export const getDriveSetup = internalQuery({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => loadDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+});
+
+export const saveDriveClientFolder = internalMutation({
+	args: { normalizedEmail: v.string(), displayName: v.string(), folder: savedDriveFolderValidator },
+	handler: (ctx, args) => saveDriveClientFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveDriveSessionFolder = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		driveClientId: v.id("driveClients"),
+		folder: savedDriveFolderValidator
+	},
+	handler: (ctx, args) => saveDriveSessionFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveDriveChildFolder = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.union(v.literal("Raw Media"), v.literal("Assets"), v.literal("Deliverables")),
+		folder: savedDriveFolderValidator
+	},
+	handler: (ctx, args) => saveDriveChildFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
 
 export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },
@@ -38,6 +79,11 @@ export const getSessionById = internalQuery({
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.bookingId);
 	}
+});
+
+export const getDriveStatus = query({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => getDriveStatusService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getDeliverablesCustomerType = query({

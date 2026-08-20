@@ -15,11 +15,18 @@ import {
 	updateSessionFromAdminService
 } from "./services/sessionCalendar";
 import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
+import { setupDriveService, type SetupError } from "./services/drive";
 import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
 	sendSessionReminderEmailService
 } from "./services/bookingConfirmationActions";
+
+export const setupDrive = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, SetupError>> =>
+		setupDriveService(ctx, args).match(tupleOk, tupleErr)
+});
 
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },

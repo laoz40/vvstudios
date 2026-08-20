@@ -56,7 +56,9 @@ Name a new client folder from `accountName`, falling back to the contact name. R
 
 The owner may rename or move folders in Drive. Saved Drive IDs remain valid. Never find a managed folder by display name.
 
-If an admin changes a booking email after Drive setup, warn that Drive permissions will not change. The owner updates those permissions manually. The original normalized email remains the workspace identity. A session may have a separate Drive-access email when Google rejects the booking email.
+If an admin changes a booking email after Drive setup, warn that Drive permissions will not change. The owner updates those permissions manually. The original normalized email remains the workspace identity.
+
+For the first release, assume every booking and editor email is a valid Gmail address. Do not verify this in the application or support a separate Drive-access email.
 
 ## Permission model
 
@@ -103,6 +105,8 @@ When a booking becomes confirmed, schedule folder creation for `sessionStartAt +
 
 At the scheduled end, create folders only if the booking is still eligible. Staff must cancel no-shows and cancelled sessions before then. Do not create historical workspaces when the feature launches.
 
+The implementation may expose a manual setup action while this workflow is being built. That action is not the launch trigger. Before launch, automatic scheduling must be the normal path, and admins should use explicit setup only for initial recovery after a deletion or disconnection.
+
 If an editor was assigned before folder creation, save the assignment and apply permissions when the folders exist.
 
 ### Notifications
@@ -123,7 +127,7 @@ On reassignment, remove the old editor's managed permissions before granting the
 
 ## Failure and recovery behavior
 
-Track folder setup, client access, editor access, and each notification separately. One failure must not block unrelated work. For example, a rejected client email must not block editor access.
+Track folder setup, client access, editor access, and each notification separately. One failure must not block unrelated work. For example, a client permission failure must not block editor access.
 
 Retry temporary provider failures with bounded backoff. After retries fail, show a clear admin status and targeted retry action.
 
@@ -145,11 +149,9 @@ The owner creates the `VV Studios` My Drive folder manually. Store its folder ID
 
 Reuse the existing Google Calendar OAuth client and `googleapis` dependency. Reauthorize once to replace `GOOGLE_REFRESH_TOKEN` with a token that has Calendar and full Drive access. Keep all credentials server-only.
 
-A non-Gmail address may already have a Google Account. Try the booking email first. If Google rejects it, keep the folders and editor workflow working. Let the admin enter another Drive email or ask the client to create a Google Account with the existing address.
-
 ## Required live check
 
-Before launch, test with the owner's My Drive, a test editor, a client Google Account, and an address without a Google Account. Cover:
+Before launch, test with the owner's My Drive, a test editor, and a client Gmail account. Cover:
 
 - ordinary and package folders;
 - assignment before and after folder creation;

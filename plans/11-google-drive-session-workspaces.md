@@ -16,50 +16,52 @@ Build the workflow in `plans/google-drive-session-workspaces-goal.md` as thin ve
 - Track folders, client access, editor access, and each email separately.
 - Never delete Drive content or recreate missing folders without admin confirmation.
 - Accept the My Drive ownership limits in the goal document.
+- Assume booking and editor emails are valid Gmail addresses. Do not verify them in the first release.
 - Read `convex/_generated/ai/guidelines.md` before changing Convex code.
 
 ## Implementation steps
 
-### Step 1: Verify Google Drive behavior
+### Step 1: Add the Google Drive foundation ✅
 
-Reauthorize the existing Google OAuth application with Calendar and full Drive access. Add the owner-created root folder ID to server-only configuration.
+Extract the existing Google OAuth client so Calendar and Drive share the same credentials. Add the owner-created root folder ID as the server-only `GOOGLE_DRIVE_ROOT_FOLDER_ID` configuration.
 
-Use a disposable folder, a test editor, a client Google Account, and an email without a Google Account. Verify:
+Add Drive operations that:
 
-- folder creation under the configured root;
-- limited access on `Raw Media`;
-- viewer, commenter, and writer permissions;
-- `writersCanShare=false` where My Drive supports it;
-- suppressed invitation emails on child permissions;
-- uploads, ownership, sharing, and permission removal; and
-- the provider response fields needed to save and verify resources.
+- create a folder below a specified parent;
+- request and parse the folder ID, name, and web URL;
+- disable inherited permissions on `Raw Media`; and
+- map authentication, creation, response, and limited-access failures to safe domain errors.
 
-Check after step: update the goal document if Google behaves differently from the accepted design. Do not build around unverified permission behavior.
+Add `driveClients` and `driveSessions` tables. Store the normalized client email and every returned folder ID and URL. Add ordinary-session naming in `Australia/Sydney` and unit tests for email normalization and folder names.
 
-### Step 2: Create one ordinary session workspace manually
+Reuse the existing Google Calendar OAuth application and refresh token. Grant the token Calendar and full Drive scopes in the deployed environment.
 
-Add the smallest data model and Drive operations needed to create one ordinary session workspace from an authorized admin action.
+### Step 2: Create an ordinary session workspace manually ✅
+
+Add an authorized admin action for confirmed, non-package bookings. Expose it as `Google Drive folders` in the session actions menu.
 
 The action should:
 
-1. Reuse or create the client folder from the normalized original booking email.
-2. Create the dated session folder under it.
-3. Create `Raw Media`, `Assets`, and `Deliverables`.
-4. Limit access to `Raw Media`.
-5. Save every Drive ID as soon as Google returns it.
-6. Show the saved folders and folder status to an authorized admin.
+1. Normalize the booking email and reuse its saved client folder, or create one below the configured root.
+2. Create the dated session folder below the client folder.
+3. Create `Raw Media`, `Assets`, and `Deliverables` in order.
+4. Save each folder ID and URL immediately after Google returns it.
+5. Disable inherited permissions on `Raw Media` after saving that folder.
+6. Reject package bookings and bookings that are not eligible.
 
-Use `Australia/Sydney` and the exact names in the goal document. Parse Google responses with runtime schemas and map failures to safe domain errors. Do not expose raw provider errors, credentials, Drive IDs, or links to unauthorized users.
+Add an authorized status query and admin dialog. Report `not_created`, `incomplete`, or `ready`, and provide links for every saved folder whose URL is available. Do not expose raw provider errors, credentials, folder IDs, or links to unauthorized users.
 
-Check after step: create an ordinary workspace, open each saved folder, and confirm another editor cannot browse it.
+Keep this slice one-shot and manual. An existing `driveSessions` record should block another setup attempt. Step 3 replaces that guard with resumable, replay-safe behavior before automatic scheduling is enabled.
 
-### Step 3: Make ordinary folder setup scheduled and replay-safe
+### Step 3: Replace one-shot setup with scheduled, replay-safe setup
 
-When a booking becomes confirmed, schedule setup for `sessionStartAt + duration`. At run time, confirm the booking is still eligible and its timing still matches the scheduled job.
+When a booking becomes confirmed, schedule setup for `sessionStartAt + duration`. At run time, confirm the booking is still eligible and its timing still matches the scheduled job. The launch workflow must not rely on the current manual action.
+
+The current implementation rejects any booking that already has a `driveSessions` record. Replace that one-shot guard with resumable setup before enabling automatic jobs. On retry, continue from saved folder IDs instead of creating a second session workspace.
 
 Make setup safe after duplicate jobs, partial failures, and timeouts. Verify saved resources by ID. For an uncertain create result, reconcile with an application-owned opaque marker such as the booking ID. Do not search by folder name.
 
-Add bounded retry metadata and an admin retry action. A missing saved folder must produce `Google Drive folders not created`; it must not trigger silent recreation.
+Add bounded retry metadata and a targeted admin retry action. Keep the explicit setup action only for initial setup and the deletion recovery described in step 10. A missing saved folder must produce `Google Drive folders not created`; it must not trigger silent recreation.
 
 Check after step: cover cancellation, stale jobs, duplicate jobs, partial setup, replay, and a timeout after Google created a folder.
 
@@ -74,11 +76,11 @@ After folder setup succeeds:
 - send one useful Google invitation; and
 - send one branded Resend email containing the `Assets` link.
 
-Save client access and both notification results separately. Support a session-specific Drive email override without changing client identity. A rejected email must not change folder readiness or block later editor setup.
+Save client access and both notification results separately. A permission failure must not change folder readiness or block later editor setup.
 
-Add admin status, retry, and override controls for this slice.
+Add admin status and retry controls for this slice.
 
-Check after step: verify inherited client browsing, `Raw Media` isolation, rejected addresses, override behavior, and replay-safe emails.
+Check after step: verify inherited client browsing, `Raw Media` isolation, permission failure, and replay-safe emails.
 
 ### Step 5: Synchronize one editor assignment
 
@@ -93,7 +95,7 @@ If assignment happens first, keep Drive synchronization pending and finish it af
 
 After every required permission succeeds, send one Google invitation and one branded email with the three folder links. Add separate admin status and retry controls for editor access and email delivery.
 
-Check after step: cover assignment before and after setup, rejected editor email, provider failure, retry, authorization, and duplicate email prevention.
+Check after step: cover assignment before and after setup, provider failure, retry, authorization, and duplicate email prevention.
 
 ### Step 6: Handle reassignment and unassignment
 
@@ -140,7 +142,6 @@ Finish the admin view with separate states for folders, client access, editor ac
 Provide authorized actions to:
 
 - retry one failed operation;
-- enter a client Drive email override;
 - open saved folders;
 - reconnect a folder by ID; and
 - explicitly run `Set up Google Drive folders` after a deletion.

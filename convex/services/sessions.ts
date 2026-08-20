@@ -23,6 +23,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
+import { buildDriveStatus } from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -47,11 +48,23 @@ type SubmitSessionForReviewArgs = {
 type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
 type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: string };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
+type GetDriveStatusArgs = { bookingId: Id<"bookings"> };
 type AssignSessionEditorArgs = {
 	bookingId: Id<"bookings">;
 	editorTokenIdentifier: string | null;
 	adminNotes: string;
 };
+
+export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
+		okOrThrow(
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+				.unique()
+		).map(buildDriveStatus)
+	);
+}
 
 export function getDeliverablesCustomerTypeService(
 	ctx: QueryCtx,

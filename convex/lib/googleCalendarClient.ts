@@ -4,6 +4,7 @@ import { google } from "googleapis";
 import { ResultAsync } from "neverthrow";
 
 import { env } from "#convex/env";
+import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
 import {
 	getGoogleCalendarErrorCode,
 	type GoogleCalendarFallbackErrorCode
@@ -27,12 +28,7 @@ export function loadGoogleCalendarClient<T extends GoogleCalendarFallbackErrorCo
 
 export function getGoogleCalendarClient() {
 	const calendarId = env.GOOGLE_CALENDAR_ID;
-	const oauth2Client = new google.auth.OAuth2({
-		clientId: env.GOOGLE_CLIENT_ID,
-		clientSecret: env.GOOGLE_CLIENT_SECRET
-	});
-
-	oauth2Client.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
+	const oauth2Client = getGoogleOAuthClient();
 
 	return {
 		calendarId,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
+import { DriveFoldersDialog } from "#studio/features/admin/components/DriveFoldersDialog";
 import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
 import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
@@ -29,6 +30,7 @@ export function SessionActions({
 	session
 }: SessionActionsProps) {
 	const [isAdminNotesDialogOpen, setIsAdminNotesDialogOpen] = useState(false);
+	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const details: SessionActionDetails = {
@@ -60,7 +62,17 @@ export function SessionActions({
 				paymentActions={paymentActions}
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
+				onOpenDrive={() => setIsDriveDialogOpen(true)}
 				onEditAdminNotes={() => setIsAdminNotesDialogOpen(true)}
+			/>
+			<DriveFoldersDialog
+				bookingId={session._id}
+				clientName={session.name}
+				accountName={session.accountName}
+				sessionDate={session.date}
+				sessionTime={session.time}
+				open={isDriveDialogOpen}
+				onOpenChange={setIsDriveDialogOpen}
 			/>
 			<SessionActionsDialogs
 				session={session}

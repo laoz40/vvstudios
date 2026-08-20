@@ -3,6 +3,7 @@ import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
+import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
@@ -57,6 +58,7 @@ type SessionActionsMenuProps = {
 	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
+	onOpenDrive: () => void;
 	onEditAdminNotes: () => void;
 };
 
@@ -75,6 +77,7 @@ export function SessionActionsMenu({
 	paymentActions,
 	rescheduleAction,
 	statusActions,
+	onOpenDrive,
 	onEditAdminNotes
 }: SessionActionsMenuProps) {
 	// Menu icon animation refs
@@ -380,6 +383,20 @@ export function SessionActionsMenu({
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
+				{details.canManageConfirmedSession && !session.multiBookingPackageId ? (
+					<AnimatedDropdownMenuItem
+						onSelect={onOpenDrive}
+						renderIcon={(iconRef) => (
+							<BrandGoogleIcon
+								ref={iconRef}
+								size={16}
+								aria-hidden
+								className="shrink-0 text-current"
+							/>
+						)}>
+						Google Drive folders
+					</AnimatedDropdownMenuItem>
+				) : null}
 				<AnimatedDropdownMenuItem
 					className="focus:text-destructive hover:text-destructive"
 					onSelect={() => editAction.setIsEditDialogOpen(true)}

@@ -15,16 +15,6 @@ Booking website for podcast studio.
 - Update comments when behavior changes so they stay accurate.
 - At the top of every test file, maintain one file-level comment that lists each individual test and briefly explains what it verifies. Do not place these required test-description comments immediately above individual tests.
 
-Do these practices:
-- Mysterious Name — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
-- Data Clumps — the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
-- Primitive Obsession — a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type.
-- Repeated Switches — the same switch/if-cascade on the same type recurs → replace with polymorphism, or one map both sites share.
-- Shotgun Surgery — one logical change forces scattered edits across many files → gather what changes together into one module.
-- Divergent Change — one file or module is edited for several unrelated reasons. → split so each module changes for one reason.
-- Speculative Generality — abstraction, parameters, or hooks added for needs the spec doesn't have. → delete it; inline back until a real need shows.
-- Middle Man — a class or function that mostly just delegates onward. → cut it, call the real target direct.
-
 - run format and lint and typecheck once changes are complete
 - do not run build or convex codegen unless asked to
 
@@ -76,7 +66,7 @@ Do these practices:
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
 - Keep Convex handlers as boundary adapters: each handler should call one service function and use `.match(tupleOk, tupleErr)` to convert the service `Result` into the tuple returned to the client.
 - Put service functions in `convex/services`. A service function should contain only a readable `andThen` chain of domain operations. Each successful operation passes its `ok` value to the next operation; the chain stops at the first `err` and returns that error.
-- Put the domain operations used by service chains in the nearest appropriate file under `convex/lib`. Do not define helper operations in service files; `convex/services` should contain only the service chain functions.
+- Put the domain operations used by service chains in the nearest appropriate file under `convex/lib`. Do not define helper operations in service files; `convex/services` should contain only the service chain functions. Make sure to verify this.
 - Do not duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal`; the `internal.*` namespace already communicates visibility.
 - Refer to the `multiBookingPackages` domain concept as a package in code names, such as `packageId`, `packageFromDb`, and `packageSessions`. Keep existing schema table and field names that contain `multiBooking`; do not rename them or add a migration solely for this naming preference.

@@ -34,6 +34,29 @@ export default defineSchema({
 		.index("by_tokenIdentifier", ["tokenIdentifier"])
 		.index("by_isActive", ["isActive"]),
 
+	driveClients: defineTable({
+		normalizedEmail: v.string(),
+		displayName: v.string(),
+		folderId: v.string(),
+		folderUrl: v.string(),
+		createdAt: v.number()
+	}).index("by_normalizedEmail", ["normalizedEmail"]),
+
+	driveSessions: defineTable({
+		bookingId: v.id("bookings"),
+		driveClientId: v.id("driveClients"),
+		sessionFolderId: v.optional(v.string()),
+		sessionFolderUrl: v.optional(v.string()),
+		rawMediaFolderId: v.optional(v.string()),
+		rawMediaFolderUrl: v.optional(v.string()),
+		assetsFolderId: v.optional(v.string()),
+		assetsFolderUrl: v.optional(v.string()),
+		deliverablesFolderId: v.optional(v.string()),
+		deliverablesFolderUrl: v.optional(v.string()),
+		createdAt: v.number(),
+		updatedAt: v.number()
+	}).index("by_bookingId", ["bookingId"]),
+
 	bookingSettings: defineTable({
 		key: v.string(),
 		leadTimeMinutes: v.number(),
