@@ -90,8 +90,18 @@ function SavedFolderLinks({
 
 			{childFolders.length > 0 ? (
 				<div className="ml-3 flex flex-col gap-2 border-l pl-3">
-					{childFolders.map((folder) =>
-						folder.url ? (
+					{childFolders.map((folder) => {
+						if (!folder.url) {
+							return (
+								<p
+									key={folder.name}
+									className="text-sm text-muted-foreground">
+									{folder.name}: not created
+								</p>
+							);
+						}
+
+						return (
 							<Button
 								key={folder.name}
 								variant="outline"
@@ -112,14 +122,8 @@ function SavedFolderLinks({
 									/>
 								</a>
 							</Button>
-						) : (
-							<p
-								key={folder.name}
-								className="text-sm text-muted-foreground">
-								{folder.name}: not created
-							</p>
-						)
-					)}
+						);
+					})}
 				</div>
 			) : null}
 		</div>
