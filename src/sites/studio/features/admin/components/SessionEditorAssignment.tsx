@@ -23,7 +23,7 @@ import {
 import { api } from "#convex/_generated/api";
 import { Field, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
@@ -31,8 +31,38 @@ type SessionEditorAssignmentProps = { activeEditors: ActiveEditor[]; session: Se
 type AssignmentConfirmation =
 	| { status: "closed" }
 	| { status: "open"; nextEditor: ActiveEditor | null };
+type AssignmentError =
+	| NonNullable<FunctionReturnType<typeof api.sessions.assignSessionEditor>[0]>
+	| UnexpectedError;
 
 const UNASSIGNED_VALUE = "__unassigned__";
+
+function showAssignmentError(error: AssignmentError) {
+	switch (error.reason) {
+		case "BOOKING_NOT_FOUND":
+			toast.error("This session no longer exists.");
+			return;
+		case "EDITOR_NOT_ACTIVE":
+			toast.error("That editor is no longer active.");
+			return;
+		case "SESSION_NOT_ASSIGNABLE":
+			toast.error("Editors can only be assigned to confirmed, non-archived sessions.");
+			return;
+		case "NOT_AUTHENTICATED":
+			toast.error("Please sign in again.");
+			return;
+		case "NOT_AUTHORIZED":
+			toast.error("You do not have permission to assign editors.");
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Unable to update the editor assignment.");
+			return;
+		default: {
+			const _exhaustive: never = error;
+			void _exhaustive;
+		}
+	}
+}
 
 function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string }) {
 	const hasOtherEditJobs = editor.workStatus === "assigned" || editor.workStatus === "editing";
@@ -51,6 +81,46 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 				<span>{hasOtherEditJobs ? "Yes" : "No"}</span>
 			</div>
 		</div>
+	);
+}
+
+function EditorSelect({
+	activeEditors,
+	session,
+	isSaving,
+	onSelect
+}: SessionEditorAssignmentProps & { isSaving: boolean; onSelect: (value: string) => void }) {
+	return (
+		<Select
+			value={session.assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}
+			disabled={isSaving}
+			onValueChange={onSelect}>
+			<SelectTrigger
+				size="sm"
+				className="w-full bg-background/60 dark:bg-background/60 dark:hover:bg-background/60"
+				aria-label={`Editor assigned to ${session.name}`}>
+				{isSaving ? (
+					<>
+						<LoaderCircle className="animate-spin" />
+						Assigning
+					</>
+				) : (
+					<SelectValue placeholder="No editor assigned" />
+				)}
+			</SelectTrigger>
+			<SelectContent className="bg-background">
+				<SelectGroup>
+					<SelectItem value={UNASSIGNED_VALUE}>No editor assigned</SelectItem>
+					{activeEditors.map((editor) => (
+						<SelectItem
+							key={editor.tokenIdentifier}
+							value={editor.tokenIdentifier}>
+							{editor.displayName || editor.email}
+						</SelectItem>
+					))}
+				</SelectGroup>
+			</SelectContent>
+		</Select>
 	);
 }
 
@@ -98,31 +168,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 			return;
 		}
 
-		switch (error.reason) {
-			case "BOOKING_NOT_FOUND":
-				toast.error("This session no longer exists.");
-				return;
-			case "EDITOR_NOT_ACTIVE":
-				toast.error("That editor is no longer active.");
-				return;
-			case "SESSION_NOT_ASSIGNABLE":
-				toast.error("Editors can only be assigned to confirmed, non-archived sessions.");
-				return;
-			case "NOT_AUTHENTICATED":
-				toast.error("Please sign in again.");
-				return;
-			case "NOT_AUTHORIZED":
-				toast.error("You do not have permission to assign editors.");
-				return;
-			case "UNEXPECTED_ERROR":
-				toast.error("Unable to update the editor assignment.");
-				return;
-			default: {
-				const _exhaustive: never = error;
-				void _exhaustive;
-				return;
-			}
-		}
+		showAssignmentError(error);
 	}
 
 	const nextEditor = confirmation.status === "open" ? confirmation.nextEditor : null;
@@ -133,36 +179,12 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 
 	return (
 		<>
-			<Select
-				value={session.assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}
-				disabled={isSaving}
-				onValueChange={requestAssignment}>
-				<SelectTrigger
-					size="sm"
-					className="w-full bg-background/60 dark:bg-background/60 dark:hover:bg-background/60"
-					aria-label={`Editor assigned to ${session.name}`}>
-					{isSaving ? (
-						<>
-							<LoaderCircle className="animate-spin" />
-							Assigning
-						</>
-					) : (
-						<SelectValue placeholder="No editor assigned" />
-					)}
-				</SelectTrigger>
-				<SelectContent className="bg-background">
-					<SelectGroup>
-						<SelectItem value={UNASSIGNED_VALUE}>No editor assigned</SelectItem>
-						{activeEditors.map((editor) => (
-							<SelectItem
-								key={editor.tokenIdentifier}
-								value={editor.tokenIdentifier}>
-								{editor.displayName || editor.email}
-							</SelectItem>
-						))}
-					</SelectGroup>
-				</SelectContent>
-			</Select>
+			<EditorSelect
+				activeEditors={activeEditors}
+				session={session}
+				isSaving={isSaving}
+				onSelect={requestAssignment}
+			/>
 
 			<Dialog
 				open={confirmation.status === "open"}
