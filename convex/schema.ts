@@ -6,6 +6,7 @@ const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
 );
 
+const driveFolderValidator = v.object({ id: v.string(), url: v.string() });
 const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
 const packageReminderStateValidator = v.union(
 	v.object({
@@ -45,14 +46,10 @@ export default defineSchema({
 	driveSessions: defineTable({
 		bookingId: v.id("bookings"),
 		driveClientId: v.id("driveClients"),
-		sessionFolderId: v.optional(v.string()),
-		sessionFolderUrl: v.optional(v.string()),
-		rawMediaFolderId: v.optional(v.string()),
-		rawMediaFolderUrl: v.optional(v.string()),
-		assetsFolderId: v.optional(v.string()),
-		assetsFolderUrl: v.optional(v.string()),
-		deliverablesFolderId: v.optional(v.string()),
-		deliverablesFolderUrl: v.optional(v.string()),
+		sessionFolder: v.optional(driveFolderValidator),
+		rawMediaFolder: v.optional(driveFolderValidator),
+		assetsFolder: v.optional(driveFolderValidator),
+		deliverablesFolder: v.optional(driveFolderValidator),
 		createdAt: v.number(),
 		updatedAt: v.number()
 	}).index("by_bookingId", ["bookingId"]),

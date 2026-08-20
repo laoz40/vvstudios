@@ -8,10 +8,10 @@ export function buildDriveStatus(driveSession: Doc<"driveSessions"> | null) {
 	if (driveSession === null) return { status: "not_created" as const };
 
 	const folders = [
-		{ name: "Session", url: driveSession.sessionFolderUrl },
-		{ name: "Raw Media", url: driveSession.rawMediaFolderUrl },
-		{ name: "Assets", url: driveSession.assetsFolderUrl },
-		{ name: "Deliverables", url: driveSession.deliverablesFolderUrl }
+		{ name: "Session", url: driveSession.sessionFolder?.url },
+		{ name: "Raw Media", url: driveSession.rawMediaFolder?.url },
+		{ name: "Assets", url: driveSession.assetsFolder?.url },
+		{ name: "Deliverables", url: driveSession.deliverablesFolder?.url }
 	] satisfies Array<{ name: "Session" | DriveChildFolderName; url: string | undefined }>;
 
 	// Child folders are created in order. Deliverables can only exist after Raw Media access is limited.
@@ -65,8 +65,7 @@ export function saveDriveSessionFolder(
 		ctx.db.insert("driveSessions", {
 			bookingId: sessionFolder.bookingId,
 			driveClientId: sessionFolder.driveClientId,
-			sessionFolderId: sessionFolder.folder.id,
-			sessionFolderUrl: sessionFolder.folder.webViewLink,
+			sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
 			createdAt: Date.now(),
 			updatedAt: Date.now()
 		})
@@ -88,20 +87,17 @@ export function saveDriveChildFolder(
 		switch (childFolder.name) {
 			case "Raw Media":
 				folderFields = {
-					rawMediaFolderId: childFolder.folder.id,
-					rawMediaFolderUrl: childFolder.folder.webViewLink
+					rawMediaFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
 				};
 				break;
 			case "Assets":
 				folderFields = {
-					assetsFolderId: childFolder.folder.id,
-					assetsFolderUrl: childFolder.folder.webViewLink
+					assetsFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
 				};
 				break;
 			case "Deliverables":
 				folderFields = {
-					deliverablesFolderId: childFolder.folder.id,
-					deliverablesFolderUrl: childFolder.folder.webViewLink
+					deliverablesFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
 				};
 				break;
 			default: {
