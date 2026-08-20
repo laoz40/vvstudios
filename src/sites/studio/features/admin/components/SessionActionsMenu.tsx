@@ -66,6 +66,96 @@ function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
 	return details.canManageConfirmedSession && details.isPastSession;
 }
 
+function DeliverablesControls({
+	activeEditors,
+	session,
+	details,
+	deliverablesEmailAction,
+	statusActions,
+	onEditAdminNotes
+}: Pick<
+	SessionActionsMenuProps,
+	| "activeEditors"
+	| "session"
+	| "details"
+	| "deliverablesEmailAction"
+	| "statusActions"
+	| "onEditAdminNotes"
+>) {
+	const adminNotesIconRef = useRef<AnimatedIconHandle | null>(null);
+
+	if (!details.canManageConfirmedSession || !details.isPastSession) return null;
+
+	return (
+		<>
+			<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
+				Deliverables
+			</DropdownMenuLabel>
+			<div className="px-2 pb-2">
+				<Tabs value={statusActions.deliverableStatus}>
+					<TabsList className="w-full bg-background/60">
+						{EDIT_STATUS_OPTIONS.map((option) => {
+							const Icon = deliverableStatusIconMap[option];
+							const tabLabel =
+								option === statusActions.deliverableStatus
+									? deliverableStatusLabelMap[option]
+									: deliverableStatusTabLabelMap[option];
+							const isDeliverAction = option === "completed";
+							const isDisabled =
+								statusActions.isUpdatingEditStatus ||
+								(isDeliverAction
+									? deliverablesEmailAction.isEmailingDeliverables
+									: statusActions.deliverableStatus === option);
+
+							return (
+								<TabsTrigger
+									key={option}
+									value={option}
+									className={deliverableStatusTabClassNameMap[option]}
+									disabled={isDisabled}
+									onClick={() => {
+										if (isDeliverAction) {
+											deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
+											return;
+										}
+
+										void statusActions.handleUpdateEditStatus(option);
+									}}>
+									<Icon aria-hidden />
+									{tabLabel}
+								</TabsTrigger>
+							);
+						})}
+					</TabsList>
+				</Tabs>
+			</div>
+			<div className="flex flex-col gap-2 px-2 pb-2">
+				<SessionEditorAssignment
+					activeEditors={activeEditors}
+					session={session}
+				/>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className="w-full bg-background/60"
+					onPointerEnter={() => adminNotesIconRef.current?.startAnimation()}
+					onPointerLeave={() => adminNotesIconRef.current?.stopAnimation()}
+					onFocus={() => adminNotesIconRef.current?.startAnimation()}
+					onBlur={() => adminNotesIconRef.current?.stopAnimation()}
+					onClick={onEditAdminNotes}>
+					<PenIcon
+						ref={adminNotesIconRef}
+						aria-hidden
+					/>
+					Write admin notes
+				</Button>
+			</div>
+			<DropdownMenuSeparator />
+		</>
+	);
+}
+
 export function SessionActionsMenu({
 	activeEditors,
 	session,
@@ -85,7 +175,6 @@ export function SessionActionsMenu({
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
-	const adminNotesIconRef = useRef<AnimatedIconHandle | null>(null);
 	const isArchived = session.hiddenAt !== undefined;
 	let archiveActionLabel = "Unarchive session";
 
@@ -182,74 +271,14 @@ export function SessionActionsMenu({
 				) : null}
 				<DropdownMenuSeparator />
 				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
-				{details.canManageConfirmedSession && details.isPastSession ? (
-					<>
-						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
-							Deliverables
-						</DropdownMenuLabel>
-						<div className="px-2 pb-2">
-							<Tabs value={statusActions.deliverableStatus}>
-								<TabsList className="w-full bg-background/60">
-									{EDIT_STATUS_OPTIONS.map((option) => {
-										const Icon = deliverableStatusIconMap[option];
-										const tabLabel =
-											option === statusActions.deliverableStatus
-												? deliverableStatusLabelMap[option]
-												: deliverableStatusTabLabelMap[option];
-										const isDeliverAction = option === "completed";
-										const isDisabled =
-											statusActions.isUpdatingEditStatus ||
-											(isDeliverAction
-												? deliverablesEmailAction.isEmailingDeliverables
-												: statusActions.deliverableStatus === option);
-
-										return (
-											<TabsTrigger
-												key={option}
-												value={option}
-												className={deliverableStatusTabClassNameMap[option]}
-												disabled={isDisabled}
-												onClick={() => {
-													if (isDeliverAction) {
-														deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
-														return;
-													}
-
-													void statusActions.handleUpdateEditStatus(option);
-												}}>
-												<Icon aria-hidden />
-												{tabLabel}
-											</TabsTrigger>
-										);
-									})}
-								</TabsList>
-							</Tabs>
-						</div>
-						<div className="flex flex-col gap-2 px-2 pb-2">
-							<SessionEditorAssignment
-								activeEditors={activeEditors}
-								session={session}
-							/>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="w-full bg-background/60"
-								onPointerEnter={() => adminNotesIconRef.current?.startAnimation()}
-								onPointerLeave={() => adminNotesIconRef.current?.stopAnimation()}
-								onFocus={() => adminNotesIconRef.current?.startAnimation()}
-								onBlur={() => adminNotesIconRef.current?.stopAnimation()}
-								onClick={onEditAdminNotes}>
-								<PenIcon
-									ref={adminNotesIconRef}
-									aria-hidden
-								/>
-								Write admin notes
-							</Button>
-						</div>
-						<DropdownMenuSeparator />
-					</>
-				) : null}
+				<DeliverablesControls
+					activeEditors={activeEditors}
+					session={session}
+					details={details}
+					deliverablesEmailAction={deliverablesEmailAction}
+					statusActions={statusActions}
+					onEditAdminNotes={onEditAdminNotes}
+				/>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger
 						onPointerEnter={() => otherMenuIconRef.current?.startAnimation()}
