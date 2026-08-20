@@ -2,7 +2,7 @@
 
 import { ResultAsync, err, ok } from "neverthrow";
 import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { fromConvexTuple } from "#convex/lib/result";
@@ -25,7 +25,7 @@ export type DriveSetupInfo = {
 		accountName: string;
 		email: string;
 		sessionStartAt: number;
-		status: string;
+		status: Doc<"bookings">["status"];
 		multiBookingPackageId?: Id<"multiBookingPackages">;
 	};
 	driveClient: { _id: Id<"driveClients">; folderId: string } | null;
