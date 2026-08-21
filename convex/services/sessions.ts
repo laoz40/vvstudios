@@ -58,11 +58,16 @@ type AssignSessionEditorArgs = {
 export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		okOrThrow(
-			ctx.db
-				.query("driveSessions")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-				.unique()
-		).map(buildDriveStatus)
+			Promise.all([
+				ctx.db.get(args.bookingId),
+				ctx.db
+					.query("driveSessions")
+					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+					.unique()
+			])
+		).map(([booking, driveSession]) =>
+			buildDriveStatus(driveSession, booking?.driveSetupFailureCode !== undefined)
+		)
 	);
 }
 

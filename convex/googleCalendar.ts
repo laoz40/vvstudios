@@ -15,7 +15,12 @@ import {
 	updateSessionFromAdminService
 } from "./services/sessionCalendar";
 import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
-import { setupDriveService, type SetupError } from "./services/drive";
+import {
+	retryDriveSetupService,
+	runScheduledDriveSetupService,
+	setupDriveService,
+	type SetupError
+} from "./services/drive";
 import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
@@ -26,6 +31,18 @@ export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
 		setupDriveService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryDriveSetup = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, SetupError>> =>
+		retryDriveSetupService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const runScheduledDriveSetup = internalAction({
+	args: { bookingId: v.id("bookings"), sessionStartAt: v.number(), duration: v.string() },
+	handler: async (ctx, args) =>
+		(await runScheduledDriveSetupService(ctx, args)).match(tupleOk, tupleErr)
 });
 
 export const getBookableRangeBusyWindows = action({

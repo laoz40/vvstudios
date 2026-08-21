@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type GoogleCalendarFallbackErrorCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
@@ -14,27 +16,24 @@ type GoogleCalendarErrorCode<
 	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode
 > = "GOOGLE_CALENDAR_AUTH_FAILED" | "GOOGLE_CALENDAR_RATE_LIMITED" | T;
 
-// narrow unknown thrown values before reading nested properties
-function isObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
+const googleCalendarErrorSchema = z.object({
+	message: z.string().optional(),
+	response: z.object({ status: z.number().optional() }).optional()
+});
 
 // map raw Google API errors to the app error codes we expose upstream
 export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
 	error: unknown,
 	fallbackCode: T
 ): GoogleCalendarErrorCode<T> {
-	if (!isObject(error)) {
-		return fallbackCode;
-	}
+	const parsedError = googleCalendarErrorSchema.safeParse(error);
+	if (!parsedError.success) return fallbackCode;
 
-	const message = typeof error.message === "string" ? error.message : "";
-	if (message.includes("invalid_grant")) {
+	if (parsedError.data.message?.includes("invalid_grant")) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
 	}
 
-	const response = isObject(error.response) ? error.response : null;
-	const status = typeof response?.status === "number" ? response.status : null;
+	const status = parsedError.data.response?.status;
 
 	if (status === 401 || status === 403) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
@@ -48,12 +47,9 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 }
 
 export function isGoogleCalendarEventNotFoundError(error: unknown) {
-	if (!isObject(error)) {
-		return false;
-	}
+	const parsedError = googleCalendarErrorSchema.safeParse(error);
+	if (!parsedError.success) return false;
 
-	const response = isObject(error.response) ? error.response : null;
-	const status = typeof response?.status === "number" ? response.status : null;
-
+	const status = parsedError.data.response?.status;
 	return status === 404 || status === 410;
 }

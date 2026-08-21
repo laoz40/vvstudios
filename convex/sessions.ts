@@ -7,7 +7,8 @@ import {
 	getDriveSetup as loadDriveSetup,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
 	saveDriveClientFolder as saveDriveClientFolderRecord,
-	saveDriveSessionFolder as saveDriveSessionFolderRecord
+	saveDriveSessionFolder as saveDriveSessionFolderRecord,
+	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveRecords";
 import {
 	archiveSessionService,
@@ -51,6 +52,11 @@ export const saveDriveSessionFolder = internalMutation({
 		folder: savedDriveFolderValidator
 	},
 	handler: (ctx, args) => saveDriveSessionFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveDriveSetupResult = internalMutation({
+	args: { bookingId: v.id("bookings"), failureCode: v.optional(v.string()) },
+	handler: (ctx, args) => saveDriveSetupResultRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveDriveChildFolder = internalMutation({

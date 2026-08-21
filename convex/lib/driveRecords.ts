@@ -4,8 +4,13 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
 
-export function buildDriveStatus(driveSession: Doc<"driveSessions"> | null) {
-	if (driveSession === null) return { status: "not_created" as const };
+export function buildDriveStatus(
+	driveSession: Doc<"driveSessions"> | null,
+	driveSetupFailed: boolean
+) {
+	if (driveSession === null) {
+		return { status: driveSetupFailed ? ("failed" as const) : ("not_created" as const) };
+	}
 
 	const folders = [
 		{ name: "Session", url: driveSession.sessionFolder?.url },
@@ -43,14 +48,28 @@ export function saveDriveClientFolder(
 	clientFolder: { normalizedEmail: string; displayName: string; folder: SavedDriveFolder }
 ) {
 	return okOrThrow(
-		ctx.db.insert("driveClients", {
-			normalizedEmail: clientFolder.normalizedEmail,
-			displayName: clientFolder.displayName,
-			folderId: clientFolder.folder.id,
-			folderUrl: clientFolder.folder.webViewLink,
-			createdAt: Date.now()
-		})
-	);
+		ctx.db
+			.query("driveClients")
+			.withIndex("by_normalizedEmail", (query) =>
+				query.eq("normalizedEmail", clientFolder.normalizedEmail)
+			)
+			.unique()
+	).andThen((existingClient) => {
+		if (existingClient !== null) {
+			return ok({ driveClientId: existingClient._id, folderId: existingClient.folderId });
+		}
+		return okOrThrow(
+			ctx.db
+				.insert("driveClients", {
+					normalizedEmail: clientFolder.normalizedEmail,
+					displayName: clientFolder.displayName,
+					folderId: clientFolder.folder.id,
+					folderUrl: clientFolder.folder.webViewLink,
+					createdAt: Date.now()
+				})
+				.then((driveClientId) => ({ driveClientId, folderId: clientFolder.folder.id }))
+		);
+	});
 }
 
 export function saveDriveSessionFolder(
@@ -62,13 +81,49 @@ export function saveDriveSessionFolder(
 	}
 ) {
 	return okOrThrow(
-		ctx.db.insert("driveSessions", {
-			bookingId: sessionFolder.bookingId,
-			driveClientId: sessionFolder.driveClientId,
-			sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
-			createdAt: Date.now(),
-			updatedAt: Date.now()
-		})
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", sessionFolder.bookingId))
+			.unique()
+	).andThen((existingSession) => {
+		// A repeated save must keep using the folder that won the first database write.
+		if (existingSession?.sessionFolder !== undefined) return ok(existingSession.sessionFolder.id);
+		// A previous attempt may have created the record before it saved the session folder.
+		if (existingSession !== null) {
+			return okOrThrow(
+				ctx.db
+					.patch(existingSession._id, {
+						sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
+						updatedAt: Date.now()
+					})
+					.then(() => sessionFolder.folder.id)
+			);
+		}
+		return okOrThrow(
+			ctx.db
+				.insert("driveSessions", {
+					bookingId: sessionFolder.bookingId,
+					driveClientId: sessionFolder.driveClientId,
+					sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
+					createdAt: Date.now(),
+					updatedAt: Date.now()
+				})
+				.then(() => sessionFolder.folder.id)
+		);
+	});
+}
+
+export function saveDriveSetupResult(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; failureCode?: string }
+) {
+	return okOrThrow(
+		ctx.db
+			.patch(args.bookingId, {
+				driveSetupFailedAt: args.failureCode === undefined ? undefined : Date.now(),
+				driveSetupFailureCode: args.failureCode
+			})
+			.then(() => null)
 	);
 }
 

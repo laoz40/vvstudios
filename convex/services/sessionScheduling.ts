@@ -2,6 +2,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import {
 	buildAdminSessionUpdatePatch,
 	type AdminSessionUpdateArgs
@@ -57,10 +58,10 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 					return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 				}
 
-				return ok(updatePatch);
+				return ok({ session, updatePatch });
 			})
 			// Save the edit, Calendar linkage, confirmation state, and reservation cleanup together.
-			.andThen((updatePatch) =>
+			.andThen(({ session, updatePatch }) =>
 				okOrThrow(
 					ctx.db
 						.patch(args.bookingId, {
@@ -76,6 +77,15 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 									}
 								: {}),
 							...(args.reservation ? clearedSessionReservationPatch : {})
+						})
+						.then(async () => {
+							if (!args.confirmBooking) return;
+							await scheduleDriveSetup(ctx, {
+								bookingId: session._id,
+								sessionStartAt: updatePatch.sessionStartAt,
+								duration: args.duration,
+								multiBookingPackageId: session.multiBookingPackageId
+							});
 						})
 						.then(() => null)
 				)

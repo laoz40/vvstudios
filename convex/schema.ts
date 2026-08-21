@@ -208,7 +208,11 @@ export default defineSchema({
 		googleCalendarId: v.optional(v.string()),
 
 		// Multi-booking package link, when this booking is one scheduled package session
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+
+		// Admin-visible Drive setup failure state. A manual retry clears it after setup succeeds.
+		driveSetupFailedAt: v.optional(v.number()),
+		driveSetupFailureCode: v.optional(v.string())
 	})
 		.index("by_email", ["email"])
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])

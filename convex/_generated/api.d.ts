@@ -28,6 +28,7 @@ import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
 import type * as lib_driveRecords from "../lib/driveRecords.js";
+import type * as lib_driveScheduling from "../lib/driveScheduling.js";
 import type * as lib_driveSetup from "../lib/driveSetup.js";
 import type * as lib_editorAccess from "../lib/editorAccess.js";
 import type * as lib_editorAssignments from "../lib/editorAssignments.js";
@@ -122,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/customInvoices": typeof lib_customInvoices;
   "lib/driveRecords": typeof lib_driveRecords;
+  "lib/driveScheduling": typeof lib_driveScheduling;
   "lib/driveSetup": typeof lib_driveSetup;
   "lib/editorAccess": typeof lib_editorAccess;
   "lib/editorAssignments": typeof lib_editorAssignments;

@@ -2,6 +2,7 @@ import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
@@ -183,7 +184,7 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 				return ok(session);
 			})
 			// Save the confirmed status and Calendar IDs while clearing the temporary time-slot reservation.
-			.andThen(() =>
+			.andThen((session) =>
 				okOrThrow(
 					ctx.db
 						.patch(args.bookingId, {
@@ -194,6 +195,14 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 							bookingFailureCode: undefined,
 							...clearedSessionReservationPatch
 						})
+						.then(() =>
+							scheduleDriveSetup(ctx, {
+								bookingId: session._id,
+								sessionStartAt: session.sessionStartAt,
+								duration: session.duration,
+								multiBookingPackageId: session.multiBookingPackageId
+							})
+						)
 						.then(() => null)
 				)
 			)

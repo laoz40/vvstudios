@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
+import { tryCatch } from "#/lib/result";
 import {
 	Dialog,
 	DialogContent,
@@ -18,7 +19,7 @@ import {
 	getBookingStartTimestamp
 } from "#studio/lib/bookingdatetime";
 
-type DriveStatus = "not_created" | "incomplete" | "ready";
+type DriveStatus = "failed" | "not_created" | "incomplete" | "ready";
 
 type SavedFolder = { name: string; url?: string };
 
@@ -36,11 +37,13 @@ function getDriveDescription({
 			return accountName.trim() && accountName.trim() !== clientName.trim()
 				? `${clientName} · ${accountName}`
 				: clientName;
+		case "failed":
+			return "Google Drive folders could not be created. Retry the setup manually.";
 		case "incomplete":
 			return "Google Drive folders not created completely.";
 		case "not_created":
 		case undefined:
-			return "Google Drive folders not created.";
+			return "Google Drive folders have not been created. Setup may not have run yet, or it may have been skipped because the session changed or was cancelled.";
 		default: {
 			const _exhaustive: never = status;
 			return _exhaustive;
@@ -130,6 +133,54 @@ function SavedFolderLinks({
 	);
 }
 
+function DriveSetupButton({
+	bookingId,
+	status
+}: {
+	bookingId: Id<"bookings">;
+	status: DriveStatus | undefined;
+}) {
+	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
+	const retryDriveSetup = useAction(api.googleCalendar.retryDriveSetup);
+	const [isSettingUp, setIsSettingUp] = useState(false);
+	const shouldRetry = status === "incomplete" || status === "failed";
+	const canSetUp = status === "not_created" || shouldRetry;
+
+	if (!canSetUp) return null;
+
+	async function handleSetup() {
+		setIsSettingUp(true);
+		const setupAction = shouldRetry ? retryDriveSetup : setupDriveFolders;
+		const [error] = await tryCatch(setupAction({ bookingId }));
+		setIsSettingUp(false);
+
+		if (error) {
+			toast.error("Google Drive folders could not be created.");
+			return;
+		}
+		toast.success("Google Drive folders created.");
+	}
+
+	let label = "Set up Google Drive folders";
+	if (shouldRetry) label = "Retry Google Drive folders";
+	if (isSettingUp) label = "Setting up";
+
+	return (
+		<Button
+			type="button"
+			disabled={isSettingUp}
+			onClick={() => void handleSetup()}>
+			{isSettingUp ? (
+				<LoaderCircle
+					className="animate-spin"
+					aria-hidden
+				/>
+			) : null}
+			{label}
+		</Button>
+	);
+}
+
 export function DriveFoldersDialog({
 	bookingId,
 	clientName,
@@ -148,30 +199,11 @@ export function DriveFoldersDialog({
 	onOpenChange: (open: boolean) => void;
 }) {
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
-	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
-	const [isSettingUp, setIsSettingUp] = useState(false);
 	const driveStatus = driveResult?.[1] ?? null;
 	const savedFolders = driveStatus && "folders" in driveStatus ? (driveStatus.folders ?? []) : [];
 	const sessionFolderName = formatDriveSessionFolderName(
 		getBookingStartTimestamp(sessionDate, sessionTime)
 	);
-
-	async function handleSetup() {
-		setIsSettingUp(true);
-		try {
-			const [error] = await setupDriveFolders({ bookingId });
-			if (error) {
-				toast.error("Google Drive folders could not be created.");
-				return;
-			}
-			toast.success("Google Drive folders created.");
-		} catch {
-			toast.error("Google Drive folders could not be created.");
-		} finally {
-			setIsSettingUp(false);
-		}
-	}
-
 	return (
 		<Dialog
 			open={open}
@@ -194,20 +226,10 @@ export function DriveFoldersDialog({
 						onClick={() => onOpenChange(false)}>
 						Close
 					</Button>
-					{driveStatus?.status === "not_created" ? (
-						<Button
-							type="button"
-							disabled={isSettingUp}
-							onClick={() => void handleSetup()}>
-							{isSettingUp ? (
-								<LoaderCircle
-									className="animate-spin"
-									aria-hidden
-								/>
-							) : null}
-							{isSettingUp ? "Setting up" : "Set up Google Drive folders"}
-						</Button>
-					) : null}
+					<DriveSetupButton
+						bookingId={bookingId}
+						status={driveStatus?.status}
+					/>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
