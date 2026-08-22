@@ -1,14 +1,32 @@
 /**
  * Email tests:
- * 1. Deliverables emails reject anonymous and unauthorized callers without sending.
- * 2. Missing bookings and invalid Drive links are rejected without sending.
- * 3. Admin sends include normalized booking details and optional editor notes.
- * 4. Editors cannot send deliverables emails, including for their assigned sessions.
- * 5. Deliverables provider failures return a stable error.
- * 6. Blank and rate-limited feedback is rejected without sending.
- * 7. Valid feedback is trimmed before sending.
- * 8. Untrusted feedback is escaped in the provider HTML payload.
- * 9. Feedback provider failures return a stable error.
+ *
+ * 1. Deliverables authorization
+ *    Anonymous and unauthorized callers are rejected without sending.
+ *
+ * 2. Missing booking and invalid Drive link
+ *    Missing bookings and invalid Drive links are rejected without sending.
+ *
+ * 3. Admin deliverables email
+ *    Admin sends include normalized booking details and optional editor notes.
+ *
+ * 4. Editor deliverables email
+ *    Editors cannot send deliverables emails, including for their assigned sessions.
+ *
+ * 5. Deliverables provider failure
+ *    Provider failures return a stable error.
+ *
+ * 6. Feedback validation
+ *    Blank and rate-limited feedback is rejected without sending.
+ *
+ * 7. Feedback trimming
+ *    Valid feedback is trimmed before sending.
+ *
+ * 8. Feedback HTML escaping
+ *    Untrusted feedback is escaped in the provider HTML payload.
+ *
+ * 9. Feedback provider failure
+ *    Provider failures return a stable error.
  */
 import type { UserIdentity } from "convex/server";
 import { errAsync, okAsync } from "neverthrow";

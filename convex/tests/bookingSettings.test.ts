@@ -1,9 +1,14 @@
 /**
  * These tests verify the booking settings update service boundaries.
  *
- * 1. Valid settings are saved without returning an unused success payload.
- * 2. Invalid settings return an expected tuple error without writing anything.
- * 3. Unexpected database failures reject instead of becoming expected business errors.
+ * 1. Valid settings
+ *    Valid settings are saved without returning an unused success payload.
+ *
+ * 2. Invalid settings
+ *    Invalid settings return an expected tuple error without writing anything.
+ *
+ * 3. Unexpected database failures
+ *    Unexpected database failures reject instead of becoming expected business errors.
  */
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";

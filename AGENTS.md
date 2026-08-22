@@ -13,7 +13,7 @@ Booking website for podcast studio.
 - Do not make tiny helper files/functions for one-off logic
 - Preserve existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
-- At the top of every test file, maintain one file-level comment that lists each individual test and briefly explains what it verifies. Do not place these required test-description comments immediately above individual tests.
+- At the top of every test file, maintain one file-level comment that lists each individual test. Format each item as a short subheading with its description on the next line. Do not place these required test-description comments immediately above individual tests.
 
 - run format and lint and typecheck once changes are complete
 - do not run build or convex codegen unless asked to

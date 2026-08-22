@@ -1,40 +1,110 @@
 /**
  * Editor dashboard tests:
- * 1. An admin can assign an active editor with admin notes to a previously unassigned booking.
- * 2. Assignment rejects an inactive editor and leaves the booking unassigned.
- * 3. An editor receives only their own assigned bookings, not unassigned or another editor's.
- * 4. An editor receives only confirmed and email-failed bookings that are not archived.
- * 5. The editor query returns useful session fields and add-ons without restricted data.
- * 6. The existing admin query continues to return every booking with its sensitive fields.
- * 7. An editor can update deliverables status for an assigned, confirmed past session.
- * 8. An editor cannot update deliverables status for a future session.
- * 9. An editor cannot update deliverables status for an archived session.
- * 10. An editor cannot update deliverables status for an unconfirmed session.
- * 11. An editor cannot update deliverables status for an unassigned session.
- * 12. An editor cannot update another editor's session deliverables status.
- * 13. An admin can update an eligible session without an editor assignment.
- * 14. An admin cannot bypass deliverables eligibility requirements.
- * 15. An admin can reassign a booking from one active editor to another.
- * 16. An admin can unassign a booking without deleting its editor profiles.
- * 17. An editor cannot assign a booking.
- * 18. An editor cannot reassign a booking.
- * 19. An editor cannot unassign a booking.
- * 20. The active-editor list returns only active profiles to admins.
- * 21. Editors cannot list editor identities.
- * 22. Admin session access remains unchanged after assign, reassign, and unassign operations.
- * 23. Admin editor management lists active and deactivated editors with workload details.
- * 24. Deactivation immediately blocks editor queries while retaining assignments.
- * 25. Signing in again does not reactivate a deactivated editor.
- * 26. An admin can reactivate an editor and restore access.
- * 27. Editors cannot manage another editor's access.
- * 28. Reassignment records the receiving editor's latest assignment timestamp.
- * 29. An admin can save and clear private notes for an editor.
- * 30. Editors cannot update another editor's private notes.
- * 31. Assignment rejects cancelled, unconfirmed, and archived sessions.
- * 32. Existing assignments can be removed after a session becomes ineligible.
- * 33. Total edits starts at zero and increments when an assigned session becomes completed.
- * 34. Assigned editors can save and clear editor session notes.
- * 35. Editors cannot update notes on another editor's session.
+ *
+ * 1. Assigning an active editor
+ *    An admin can assign an active editor with admin notes to a previously unassigned booking.
+ *
+ * 2. Inactive editor assignment
+ *    Assignment rejects an inactive editor and leaves the booking unassigned.
+ *
+ * 3. Editor booking scope
+ *    An editor receives only their own assigned bookings, not unassigned or another editor's.
+ *
+ * 4. Eligible editor bookings
+ *    An editor receives only confirmed and email-failed bookings that are not archived.
+ *
+ * 5. Editor session fields
+ *    The editor query returns useful session fields and add-ons without restricted data.
+ *
+ * 6. Admin booking scope
+ *    The existing admin query continues to return every booking with its sensitive fields.
+ *
+ * 7. Eligible deliverables update
+ *    An editor can update deliverables status for an assigned, confirmed past session.
+ *
+ * 8. Future deliverables update
+ *    An editor cannot update deliverables status for a future session.
+ *
+ * 9. Archived deliverables update
+ *    An editor cannot update deliverables status for an archived session.
+ *
+ * 10. Unconfirmed deliverables update
+ *     An editor cannot update deliverables status for an unconfirmed session.
+ *
+ * 11. Unassigned deliverables update
+ *     An editor cannot update deliverables status for an unassigned session.
+ *
+ * 12. Another editor's deliverables
+ *     An editor cannot update another editor's session deliverables status.
+ *
+ * 13. Admin deliverables update
+ *     An admin can update an eligible session without an editor assignment.
+ *
+ * 14. Admin eligibility checks
+ *     An admin cannot bypass deliverables eligibility requirements.
+ *
+ * 15. Reassigning an editor
+ *     An admin can reassign a booking from one active editor to another.
+ *
+ * 16. Unassigning an editor
+ *     An admin can unassign a booking without deleting its editor profiles.
+ *
+ * 17. Editor assignment permissions
+ *     An editor cannot assign a booking.
+ *
+ * 18. Editor reassignment permissions
+ *     An editor cannot reassign a booking.
+ *
+ * 19. Editor unassignment permissions
+ *     An editor cannot unassign a booking.
+ *
+ * 20. Active editor list
+ *     The active-editor list returns only active profiles to admins.
+ *
+ * 21. Editor identity privacy
+ *     Editors cannot list editor identities.
+ *
+ * 22. Admin access after assignment changes
+ *     Admin session access remains unchanged after assign, reassign, and unassign operations.
+ *
+ * 23. Editor management details
+ *     Admin editor management lists active and deactivated editors with workload details.
+ *
+ * 24. Deactivated editor access
+ *     Deactivation immediately blocks editor queries while retaining assignments.
+ *
+ * 25. Deactivated editor sign-in
+ *     Signing in again does not reactivate a deactivated editor.
+ *
+ * 26. Reactivating an editor
+ *     An admin can reactivate an editor and restore access.
+ *
+ * 27. Editor access management
+ *     Editors cannot manage another editor's access.
+ *
+ * 28. Assignment timestamp
+ *     Reassignment records the receiving editor's latest assignment timestamp.
+ *
+ * 29. Editor private notes
+ *     An admin can save and clear private notes for an editor.
+ *
+ * 30. Another editor's private notes
+ *     Editors cannot update another editor's private notes.
+ *
+ * 31. Ineligible assignment
+ *     Assignment rejects cancelled, unconfirmed, and archived sessions.
+ *
+ * 32. Removing an ineligible assignment
+ *     Existing assignments can be removed after a session becomes ineligible.
+ *
+ * 33. Completed edit totals
+ *     Total edits starts at zero and increments when an assigned session becomes completed.
+ *
+ * 34. Editor session notes
+ *     Assigned editors can save and clear editor session notes.
+ *
+ * 35. Another editor's session notes
+ *     Editors cannot update notes on another editor's session.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
