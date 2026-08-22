@@ -2,45 +2,43 @@
  * These tests cover ordinary-session Google Drive workspace setup.
  *
  * 1. Client identity and folder names
- *    Emails normalize to a permanent client key, client names use the expected fallback,
- *    and session folder names use Australia/Sydney.
+ *    Normalizes client identity and formats Drive folder names.
  *
  * 2. Confirmation scheduling
- *    Confirming an ordinary booking schedules workspace setup for the session end.
+ *    Schedules workspace setup for the session end.
  *
- * 3. Scheduled setup
- *    An eligible booking creates and saves the client, session, Raw Media, Assets, and
- *    Deliverables folders in order.
+ * 3. Folder creation
+ *    Creates and saves every workspace folder.
  *
- * 4. Cancelled booking
- *    A cancelled booking skips scheduled setup without creating folders or recording failure.
+ * 4. Client access
+ *    Adds the required permissions and sends one assets email.
  *
- * 5. Stale scheduled job
- *    A job with old timing skips setup without creating folders or recording failure.
+ * 5. Permission retry
+ *    Retries failed permissions without recreating folders or resending email.
  *
- * 6. Duplicate job and replay
- *    Repeating setup verifies saved folder IDs and does not create duplicate folders.
+ * 6. Assets email retry
+ *    Tracks a failed email separately and sends it once on retry.
  *
- * 7. Partial setup retry
- *    A provider failure leaves saved progress, and the next run resumes at the missing folder.
+ * 7. Cancelled booking
+ *    Skips setup without recording a failure.
  *
- * 8. Lost create response
- *    If Google creates a folder but loses the response, its private marker finds that folder
- *    and prevents a second folder from being created.
+ * 8. Stale scheduled job
+ *    Skips setup when the booking timing has changed.
  *
- * 9. Failure status and retry
- *    An actionable provider failure is saved for the admin, and a successful retry clears it.
+ * 9. Setup replay
+ *    Verifies saved folders without creating duplicates.
  *
- * 10. Failure classification
- *     Provider and persistence errors are actionable, while stale, cancelled, and package
- *     outcomes are expected skips.
+ * 10. Partial setup retry
+ *     Resumes from the first missing folder.
  *
- * 11. Client folder permissions and assets email
- *     The client gets the required folder permissions without a Google invitation, one branded
- *     assets email, and targeted recovery after a permission failure.
+ * 11. Lost create response
+ *     Recovers the created folder through its private marker.
  *
- * 12. Assets email retry
- *     A failed email is tracked separately from folder permissions and retry sends it once.
+ * 12. Setup failure retry
+ *     Records a provider failure and clears it after retry.
+ *
+ * 13. Failure classification
+ *     Records only actionable setup failures.
  *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
@@ -81,7 +79,6 @@ const driveFake = vi.hoisted(() => {
 		sendNotificationEmail?: boolean;
 	};
 	type PermissionListRequest = { fileId: string };
-
 	return {
 		folders: new Map<string, Folder>(),
 		permissions: new Map<string, Permission>(),
@@ -89,7 +86,6 @@ const driveFake = vi.hoisted(() => {
 			vi.fn<(request: CreateRequest) => Promise<{ data: Omit<Folder, "marker" | "parentId"> }>>(),
 		list: vi.fn<(request: ListRequest) => Promise<{ data: { files: Folder[] } }>>(),
 		get: vi.fn<(request: GetRequest) => Promise<{ data: Folder }>>(),
-		update: vi.fn<() => Promise<{ data: { id: string } }>>(),
 		permissionsCreate: vi.fn<(request: PermissionCreateRequest) => Promise<{ data: Permission }>>(),
 		permissionsList:
 			vi.fn<(request: PermissionListRequest) => Promise<{ data: { permissions: Permission[] } }>>(),
@@ -115,12 +111,7 @@ vi.mock("#convex/lib/email", () => ({ sendClientAssetsEmail: emailFake.sendClien
 vi.mock("googleapis", () => ({
 	google: {
 		drive: () => ({
-			files: {
-				create: driveFake.create,
-				list: driveFake.list,
-				get: driveFake.get,
-				update: driveFake.update
-			},
+			files: { create: driveFake.create, list: driveFake.list, get: driveFake.get },
 			permissions: { create: driveFake.permissionsCreate, list: driveFake.permissionsList }
 		})
 	}
@@ -209,7 +200,6 @@ beforeEach(() => {
 			]
 		}
 	}));
-	driveFake.update.mockResolvedValue({ data: { id: "raw-media" } });
 });
 
 describe("Google Drive folder naming", () => {
@@ -246,7 +236,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 	});
 
-	test("creates and saves every folder in order", async () => {
+	test("creates and saves every folder", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -266,11 +256,10 @@ describe("Google Drive scheduled workspace setup", () => {
 			assetsFolder: { id: "folder-4" },
 			deliverablesFolder: { id: "folder-5" }
 		});
-		expect(driveFake.update).toHaveBeenCalledTimes(1);
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
 	});
 
-	test("grants client folder permissions, isolates Raw Media, and sends one assets email", async () => {
+	test("grants client access to Raw Media and sends one assets email", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 

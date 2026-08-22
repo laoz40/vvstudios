@@ -70,15 +70,13 @@ The hierarchy lives in the owner's My Drive.
 | Client folder | Owner | No access | No access | Direct viewer |
 | Package folder | Owner | No access | No access | Inherited viewer |
 | Session folder | Owner | Direct viewer | No access | Inherited viewer |
-| `Raw Media` | Owner | Direct viewer | No access | Metadata only |
+| `Raw Media` | Owner | Inherited viewer | No access | Inherited viewer |
 | `Assets` | Owner | Inherited viewer | No access | Direct writer |
 | `Deliverables` | Owner | Direct writer | No access | Direct commenter |
 
-Enable limited access on every `Raw Media` folder with `inheritedPermissionsDisabled=true`.
-
 Editors can download `Raw Media` and `Assets`, but cannot edit them. They can manage files in `Deliverables`. Editors see only assigned sessions. Unassignment removes all application-managed folder permissions.
 
-Clients can browse every session under their email-matched client folder. Their `Assets` writer access and `Deliverables` commenter access remain until the owner changes them manually. They can see the `Raw Media` folder name but cannot open it.
+Clients can browse every session under their email-matched client folder and view or download `Raw Media`. Their `Assets` writer access and `Deliverables` commenter access remain until the owner changes them manually.
 
 Disable folder sharing by writers where My Drive supports `writersCanShare=false`. Never use `anyoneWithLink`. Keep downloading enabled for viewers and commenters.
 
@@ -157,6 +155,7 @@ Before launch, test with the owner's My Drive, a test editor, and a client Gmail
 - assignment before and after folder creation;
 - reassignment and unassignment;
 - source downloads and uploads;
+- client viewing and downloading of raw media;
 - uploader ownership and sharing;
 - client permission failure;
 - manual folder rename;

@@ -29,8 +29,8 @@ Add Drive operations that:
 
 - create a folder below a specified parent;
 - request and parse the folder ID, name, and web URL;
-- disable inherited permissions on `Raw Media`; and
-- map authentication, creation, response, and limited-access failures to safe domain errors.
+- grant and remove folder permissions; and
+- map authentication, creation, response, and permission failures to safe domain errors.
 
 Add `driveClients` and `driveSessions` tables. Store the normalized client email and every returned folder ID and URL. Add ordinary-session naming in `Australia/Sydney` and unit tests for email normalization and folder names.
 
@@ -44,10 +44,9 @@ The action should:
 
 1. Normalize the booking email and reuse its saved client folder, or create one below the configured root.
 2. Create the dated session folder below the client folder.
-3. Create `Raw Media`, `Assets`, and `Deliverables` in order.
+3. Create `Raw Media`, `Assets`, and `Deliverables`.
 4. Save each folder ID and URL immediately after Google returns it.
-5. Disable inherited permissions on `Raw Media` after saving that folder.
-6. Reject package bookings and bookings that are not eligible.
+5. Reject package bookings and bookings that are not eligible.
 
 Add an authorized status query and admin dialog. Report `not_created`, `incomplete`, or `ready`, and provide links for every saved folder whose URL is available. Do not expose raw provider errors, credentials, folder IDs, or links to unauthorized users.
 
@@ -79,21 +78,21 @@ After folder setup succeeds:
 - grant the booking contact viewer access to the client folder;
 - grant writer access to `Assets`;
 - grant commenter access to `Deliverables`;
-- keep `Raw Media` inaccessible;
+- let `Raw Media` inherit viewer access from the client folder;
 - send one branded Resend email containing the `Assets` link.
 
 Save client folder permission and assets-email results separately. A permission failure must not change folder readiness or block later editor setup.
 
 Add admin status and retry controls for this slice.
 
-Check after step: verify inherited client browsing, `Raw Media` isolation, permission failure, and replay-safe emails.
+Check after step: verify inherited client browsing, client viewer access to `Raw Media`, permission failure, and replay-safe emails.
 
 ### Step 5: Synchronize one editor assignment
 
 Extend the existing assignment flow after its database transaction succeeds. If the folders exist, grant the assigned editor:
 
 - viewer access to the session;
-- direct viewer access to limited `Raw Media`;
+- inherited viewer access to `Raw Media`;
 - inherited viewer access to `Assets`; and
 - direct writer access to `Deliverables`.
 

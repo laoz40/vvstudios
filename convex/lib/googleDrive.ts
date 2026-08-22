@@ -37,7 +37,6 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID"
 		| "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_FOLDER_MISSING"
-		| "GOOGLE_DRIVE_LIMITED_ACCESS_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID";
@@ -178,17 +177,6 @@ export function createDrivePermission(
 			? ok(permission.data)
 			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
 	});
-}
-
-export function limitRawMediaFolderAccess(drive: DriveClient, folderId: string) {
-	return ResultAsync.fromPromise(
-		drive.files.update({
-			fileId: folderId,
-			fields: "id",
-			requestBody: { inheritedPermissionsDisabled: true, writersCanShare: false }
-		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_LIMITED_ACCESS_FAILED")
-	).map(() => null);
 }
 
 export function normalizeDriveEmail(email: string) {

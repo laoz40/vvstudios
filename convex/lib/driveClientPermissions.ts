@@ -117,19 +117,24 @@ export function requireClientDrivePermissions(
 	setup: ReadyBookingDriveFolders
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	return loadDriveClient()
-		.andThen((drive) => {
-			const permissions = [
-				{ fileId: setup.driveClient.folderId, role: "reader" as const },
-				{ fileId: setup.driveSession.assetsFolder.id, role: "writer" as const },
-				{ fileId: setup.driveSession.deliverablesFolder.id, role: "commenter" as const }
-			] satisfies ClientDrivePermissionRequirement[];
-
-			let result: ResultAsync<null, DriveClientPermissionsError> = okAsync(null);
-			for (const permission of permissions) {
-				result = result.andThen(() => requireClientDrivePermission(drive, setup, permission));
-			}
-			return result;
-		})
+		.andThen((drive) =>
+			requireClientDrivePermission(drive, setup, {
+				fileId: setup.driveClient.folderId,
+				role: "reader"
+			})
+				.andThen(() =>
+					requireClientDrivePermission(drive, setup, {
+						fileId: setup.driveSession.assetsFolder.id,
+						role: "writer"
+					})
+				)
+				.andThen(() =>
+					requireClientDrivePermission(drive, setup, {
+						fileId: setup.driveSession.deliverablesFolder.id,
+						role: "commenter"
+					})
+				)
+		)
 		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
 		.map(() => setup);
 }

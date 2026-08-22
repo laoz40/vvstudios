@@ -1,6 +1,6 @@
 "use node";
 
-import { ResultAsync, err, ok } from "neverthrow";
+import { ResultAsync, err, ok, okAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -11,7 +11,6 @@ import {
 	findDriveFolderByMarker,
 	getClientFolderName,
 	getSessionFolderName,
-	limitRawMediaFolderAccess,
 	loadDriveClient,
 	normalizeDriveEmail,
 	verifyDriveFolder,
@@ -66,7 +65,6 @@ const recordDriveSetupFailureByReason = {
 	GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID: true,
 	GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED: true,
 	GOOGLE_DRIVE_FOLDER_MISSING: true,
-	GOOGLE_DRIVE_LIMITED_ACCESS_FAILED: true,
 	GOOGLE_DRIVE_PERMISSION_CREATE_FAILED: false,
 	GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED: false,
 	GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID: false,
@@ -152,9 +150,7 @@ function getOrCreateClientFolder(ctx: ActionCtx, setupInfo: DriveSetupInfo, driv
 					displayName,
 					folder
 				})
-			)
-				.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-				.map((savedClient) => savedClient)
+			).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
 		)
 		.map(({ driveClientId, folderId }) => ({ drive, clientFolderId: folderId, driveClientId }));
 }
@@ -231,19 +227,17 @@ function getOrCreateChildFolder(
 	);
 }
 
-function getOrCreateChildFoldersInOrder(
+function getOrCreateChildFolders(
 	ctx: ActionCtx,
 	drive: DriveClient,
 	setupInfo: DriveSetupInfo,
 	sessionFolderId: string
 ) {
-	let sequence: ResultAsync<null, SetupError> = ResultAsync.fromSafePromise(Promise.resolve(null));
+	// Save each folder before creating the next so retries resume from the first unsaved folder.
+	let sequence: ResultAsync<null, SetupError> = okAsync(null);
 	for (const name of GOOGLE_DRIVE_CHILD_FOLDER_NAMES) {
 		sequence = sequence.andThen(() =>
-			getOrCreateChildFolder(ctx, drive, setupInfo, sessionFolderId, name).andThen((folder) => {
-				if (name !== "Raw Media") return ok(null);
-				return limitRawMediaFolderAccess(drive, folder.id);
-			})
+			getOrCreateChildFolder(ctx, drive, setupInfo, sessionFolderId, name).map(() => null)
 		);
 	}
 	return sequence;
@@ -254,7 +248,7 @@ export function createDriveFolders(ctx: ActionCtx, setupInfo: DriveSetupInfo) {
 		.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive))
 		.andThen((client) => getOrCreateSessionFolder(ctx, setupInfo, client))
 		.andThen(({ drive, sessionFolderId }) =>
-			getOrCreateChildFoldersInOrder(ctx, drive, setupInfo, sessionFolderId)
+			getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId)
 		)
 		.map(() => null);
 }

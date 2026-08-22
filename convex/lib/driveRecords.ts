@@ -25,7 +25,6 @@ export function buildDriveStatus(
 		{ name: "Deliverables", url: driveSession.deliverablesFolder?.url }
 	] satisfies Array<{ name: "Session" | DriveChildFolderName; url: string | undefined }>;
 
-	// Child folders are created in order. Deliverables can only exist after Raw Media access is limited.
 	const isReady = folders.every((folder) => folder.url !== undefined);
 	return { status: isReady ? ("ready" as const) : ("incomplete" as const), folders };
 }
