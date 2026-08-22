@@ -13,7 +13,7 @@ Build the workflow in `plans/google-drive-session-workspaces-goal.md` as thin ve
 - Create session folders after the scheduled session end.
 - Do not create historical workspaces or add a backfill.
 - Keep database assignment authoritative when Drive synchronization fails.
-- Track folders, client access, editor access, and each email separately.
+- Track folders, client folder permissions, editor access, and each email separately.
 - Never delete Drive content or recreate missing folders without admin confirmation.
 - Accept the My Drive ownership limits in the goal document.
 - Assume booking and editor emails are valid Gmail addresses. Do not verify them in the first release.
@@ -53,19 +53,26 @@ Add an authorized status query and admin dialog. Report `not_created`, `incomple
 
 Keep this slice one-shot and manual. An existing `driveSessions` record should block another setup attempt. Step 3 replaces that guard with resumable, replay-safe behavior before automatic scheduling is enabled.
 
-### Step 3: Replace one-shot setup with scheduled, replay-safe setup
+### Step 3: Replace one-shot setup with scheduled, replay-safe setup ✅
 
-When a booking becomes confirmed, schedule setup for `sessionStartAt + duration`. At run time, confirm the booking is still eligible and its timing still matches the scheduled job. The launch workflow must not rely on the current manual action.
+Schedule ordinary-session folder setup when a booking becomes confirmed. Run it at `sessionStartAt + duration`, or immediately when that time has already passed. Skip package sessions until step 7.
 
-The current implementation rejects any booking that already has a `driveSessions` record. Replace that one-shot guard with resumable setup before enabling automatic jobs. On retry, continue from saved folder IDs instead of creating a second session workspace.
+At run time, require the booking to remain eligible and its start time and duration to match the scheduled job. Treat cancelled bookings and stale jobs as expected skips without recording a setup failure.
 
-Make setup safe after duplicate jobs, partial failures, and timeouts. Verify saved resources by ID. For an uncertain create result, reconcile with an application-owned opaque marker such as the booking ID. Do not search by folder name.
+Make folder setup resumable and replay-safe. The setup should:
 
-Add bounded retry metadata and a targeted admin retry action. Keep the explicit setup action only for initial setup and the deletion recovery described in step 10. A missing saved folder must produce `Google Drive folders not created`; it must not trigger silent recreation.
+1. Verify every saved client, session, and child folder by its Drive ID.
+2. Continue from the first unsaved folder after a partial failure.
+3. Give each created folder an application-owned opaque marker based on the client email or booking ID.
+4. Look for that marker before creation and after an uncertain create response so a timeout does not create a duplicate folder.
+5. Keep the folder that won the first database write when duplicate jobs overlap.
+6. Report a missing saved folder as a setup failure instead of silently recreating it.
 
-Check after step: cover cancellation, stale jobs, duplicate jobs, partial setup, replay, and a timeout after Google created a folder.
+Save actionable provider and persistence failures on the booking, and expose `failed` separately from `not_created`, `incomplete`, and `ready`. Add an authorized `Retry Google Drive folders` action for failed or incomplete setup, then clear the saved failure after a successful retry. Keep `Set up Google Drive folders` for initial manual setup.
 
-### Step 4: Give the client access and send the assets email
+Cover confirmation scheduling, cancellation, stale jobs, duplicate jobs, replay from saved IDs, partial setup, uncertain create responses, failure classification, and successful retry.
+
+### Step 4: Give the client access and send the assets email ✅
 
 After folder setup succeeds:
 
@@ -73,10 +80,9 @@ After folder setup succeeds:
 - grant writer access to `Assets`;
 - grant commenter access to `Deliverables`;
 - keep `Raw Media` inaccessible;
-- send one useful Google invitation; and
 - send one branded Resend email containing the `Assets` link.
 
-Save client access and both notification results separately. A permission failure must not change folder readiness or block later editor setup.
+Save client folder permission and assets-email results separately. A permission failure must not change folder readiness or block later editor setup.
 
 Add admin status and retry controls for this slice.
 

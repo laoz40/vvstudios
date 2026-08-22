@@ -4,7 +4,10 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
+	claimClientAssetsEmail as claimClientAssetsEmailRecord,
 	getDriveSetup as loadDriveSetup,
+	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
+	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
 	saveDriveClientFolder as saveDriveClientFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
@@ -66,6 +69,29 @@ export const saveDriveChildFolder = internalMutation({
 		folder: savedDriveFolderValidator
 	},
 	handler: (ctx, args) => saveDriveChildFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveClientDrivePermissionsStatus = internalMutation({
+	args: { bookingId: v.id("bookings"), status: v.union(v.literal("failed"), v.literal("ready")) },
+	handler: (ctx, args) => saveClientDrivePermissionsStatusRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const claimClientAssetsEmail = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		attempt: v.union(v.literal("automatic"), v.literal("retry")),
+		now: v.number()
+	},
+	handler: (ctx, args) => claimClientAssetsEmailRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveClientAssetsEmailResult = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		claimedAt: v.number(),
+		status: v.union(v.literal("sent"), v.literal("failed"))
+	},
+	handler: (ctx, args) => saveClientAssetsEmailResultRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const detectDeliverablesCustomerType = internalQuery({

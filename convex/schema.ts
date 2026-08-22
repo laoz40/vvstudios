@@ -7,6 +7,8 @@ const bookingInvoiceLineItemsValidator = v.array(
 );
 
 const driveFolderValidator = v.object({ id: v.string(), url: v.string() });
+const clientDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
 const packageReminderStateValidator = v.union(
 	v.object({
@@ -50,6 +52,9 @@ export default defineSchema({
 		rawMediaFolder: v.optional(driveFolderValidator),
 		assetsFolder: v.optional(driveFolderValidator),
 		deliverablesFolder: v.optional(driveFolderValidator),
+		clientDrivePermissionsStatus: v.optional(clientDrivePermissionsStatusValidator),
+		assetsEmailStatus: v.optional(assetsEmailStatusValidator),
+		assetsEmailClaimedAt: v.optional(v.number()),
 		createdAt: v.number(),
 		updatedAt: v.number()
 	}).index("by_bookingId", ["bookingId"]),

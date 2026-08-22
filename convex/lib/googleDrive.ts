@@ -15,10 +15,21 @@ const driveFolderSchema = z.object({
 	name: z.string().min(1),
 	webViewLink: z.url()
 });
+const drivePermissionSchema = z.object({
+	id: z.string().min(1),
+	emailAddress: z.string().email(),
+	role: z.union([z.literal("reader"), z.literal("writer"), z.literal("commenter")])
+});
+const listedDrivePermissionSchema = z.object({
+	id: z.string().min(1),
+	emailAddress: z.string().email().optional(),
+	role: z.string().min(1)
+});
 const googleProviderErrorSchema = z.object({ code: z.number() });
 
 export type DriveClient = drive_v3.Drive;
 export type SavedDriveFolder = z.infer<typeof driveFolderSchema>;
+export type SavedDrivePermission = z.infer<typeof drivePermissionSchema>;
 export type DriveError = {
 	reason:
 		| "GOOGLE_DRIVE_AUTH_FAILED"
@@ -26,7 +37,10 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID"
 		| "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_FOLDER_MISSING"
-		| "GOOGLE_DRIVE_LIMITED_ACCESS_FAILED";
+		| "GOOGLE_DRIVE_LIMITED_ACCESS_FAILED"
+		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
+		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
+		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID";
 };
 
 function getGoogleProviderErrorCode(error: unknown) {
@@ -106,6 +120,63 @@ export function verifyDriveFolder(drive: DriveClient, folderId: string) {
 		return folder.success
 			? ok(folder.data)
 			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
+	});
+}
+
+export function findDrivePermission(
+	drive: DriveClient,
+	input: { email: string; fileId: string; role: SavedDrivePermission["role"] }
+) {
+	return ResultAsync.fromPromise(
+		drive.permissions.list({
+			fileId: input.fileId,
+			fields: "permissions(id,emailAddress,role)",
+			pageSize: 100,
+			supportsAllDrives: false
+		}),
+		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED")
+	).andThen((response) => {
+		// The list also contains owner, domain, and public permissions. Only the matching
+		// client permission needs the narrower role and email shape used by this workflow.
+		const permissions = z
+			.array(listedDrivePermissionSchema)
+			.safeParse(response.data.permissions ?? []);
+		if (!permissions.success) {
+			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
+		}
+		const permission = permissions.data.find(
+			(candidate) =>
+				candidate.emailAddress?.toLowerCase() === input.email.toLowerCase() &&
+				candidate.role === input.role
+		);
+		if (permission === undefined || permission.emailAddress === undefined) return ok(null);
+		return ok({ id: permission.id, emailAddress: permission.emailAddress, role: input.role });
+	});
+}
+
+export function createDrivePermission(
+	drive: DriveClient,
+	input: {
+		email: string;
+		fileId: string;
+		role: SavedDrivePermission["role"];
+		sendNotificationEmail: boolean;
+	}
+) {
+	return ResultAsync.fromPromise(
+		drive.permissions.create({
+			fileId: input.fileId,
+			fields: "id,emailAddress,role",
+			sendNotificationEmail: input.sendNotificationEmail,
+			requestBody: { emailAddress: input.email, role: input.role, type: "user" },
+			supportsAllDrives: false
+		}),
+		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED")
+	).andThen((response) => {
+		const permission = drivePermissionSchema.safeParse(response.data);
+		return permission.success
+			? ok(permission.data)
+			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
 	});
 }
 

@@ -4,6 +4,12 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
 
+export const CLIENT_ASSETS_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+
+type ClientDrivePermissionsStatus = "failed" | "ready";
+type ClientDrivePermissionsDisplayStatus = "failed" | "incomplete" | "not_created" | "ready";
+type AssetsEmailDisplayStatus = "failed" | "not_sent" | "pending" | "sent";
+
 export function buildDriveStatus(
 	driveSession: Doc<"driveSessions"> | null,
 	driveSetupFailed: boolean
@@ -22,6 +28,57 @@ export function buildDriveStatus(
 	// Child folders are created in order. Deliverables can only exist after Raw Media access is limited.
 	const isReady = folders.every((folder) => folder.url !== undefined);
 	return { status: isReady ? ("ready" as const) : ("incomplete" as const), folders };
+}
+
+export function buildClientDrivePermissionsStatus(driveSession: Doc<"driveSessions"> | null) {
+	return {
+		assetsEmailStatus: buildAssetsEmailStatus(driveSession),
+		status: buildClientDrivePermissionsDisplayStatus(driveSession)
+	};
+}
+
+function buildClientDrivePermissionsDisplayStatus(
+	driveSession: Doc<"driveSessions"> | null
+): ClientDrivePermissionsDisplayStatus {
+	if (driveSession === null) {
+		return "not_created";
+	}
+
+	const foldersAreReady =
+		driveSession.sessionFolder !== undefined &&
+		driveSession.rawMediaFolder !== undefined &&
+		driveSession.assetsFolder !== undefined &&
+		driveSession.deliverablesFolder !== undefined;
+	switch (driveSession.clientDrivePermissionsStatus) {
+		case "failed":
+			return "failed";
+		case "ready":
+			return foldersAreReady ? "ready" : "incomplete";
+		case undefined:
+			return foldersAreReady ? "incomplete" : "not_created";
+		default: {
+			const _exhaustive: never = driveSession.clientDrivePermissionsStatus;
+			return _exhaustive;
+		}
+	}
+}
+
+function buildAssetsEmailStatus(
+	driveSession: Doc<"driveSessions"> | null
+): AssetsEmailDisplayStatus {
+	if (driveSession === null) return "not_sent";
+
+	switch (driveSession.assetsEmailStatus) {
+		case "failed":
+		case "sent":
+			return driveSession.assetsEmailStatus;
+		case undefined:
+			return driveSession.assetsEmailClaimedAt === undefined ? "not_sent" : "pending";
+		default: {
+			const _exhaustive: never = driveSession.assetsEmailStatus;
+			return _exhaustive;
+		}
+	}
 }
 
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
@@ -164,6 +221,110 @@ export function saveDriveChildFolder(
 			ctx.db
 				.patch(driveSession._id, { ...folderFields, updatedAt: Date.now() })
 				.then(() => driveSession._id)
+		);
+	});
+}
+
+export function saveClientDrivePermissionsStatus(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; status: ClientDrivePermissionsStatus }
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		return okOrThrow(
+			ctx.db
+				.patch(driveSession._id, {
+					clientDrivePermissionsStatus: args.status,
+					updatedAt: Date.now()
+				})
+				.then(() => null)
+		);
+	});
+}
+
+function canClaimClientAssetsEmail(
+	attempt: "automatic" | "retry",
+	status: Doc<"driveSessions">["assetsEmailStatus"]
+) {
+	switch (attempt) {
+		case "automatic":
+			return status === undefined;
+		case "retry":
+			return status === undefined || status === "failed";
+		default: {
+			const _exhaustive: never = attempt;
+			return _exhaustive;
+		}
+	}
+}
+
+export function claimClientAssetsEmail(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
+) {
+	return okOrThrow(
+		Promise.all([
+			ctx.db.get(args.bookingId),
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+				.unique()
+		])
+	).andThen(([booking, driveSession]) => {
+		const assetsFolder = driveSession?.assetsFolder;
+		if (
+			booking === null ||
+			driveSession === null ||
+			driveSession.clientDrivePermissionsStatus !== "ready" ||
+			assetsFolder === undefined ||
+			driveSession.assetsEmailStatus === "sent" ||
+			(driveSession.assetsEmailClaimedAt !== undefined &&
+				args.now - driveSession.assetsEmailClaimedAt < CLIENT_ASSETS_EMAIL_CLAIM_TIMEOUT_MS) ||
+			!canClaimClientAssetsEmail(args.attempt, driveSession.assetsEmailStatus)
+		) {
+			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+		}
+
+		return okOrThrow(
+			ctx.db
+				.patch(driveSession._id, { assetsEmailClaimedAt: args.now, updatedAt: Date.now() })
+				.then(() => ({
+					assetsUrl: assetsFolder.url,
+					bookingId: booking._id,
+					claimedAt: args.now,
+					email: booking.email,
+					name: booking.name
+				}))
+		);
+	});
+}
+
+export function saveClientAssetsEmailResult(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; claimedAt: number; status: "sent" | "failed" }
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (driveSession === null || driveSession.assetsEmailClaimedAt !== args.claimedAt) {
+			return ok(null);
+		}
+		return okOrThrow(
+			ctx.db
+				.patch(driveSession._id, {
+					assetsEmailClaimedAt: undefined,
+					assetsEmailStatus: args.status,
+					updatedAt: Date.now()
+				})
+				.then(() => null)
 		);
 	});
 }

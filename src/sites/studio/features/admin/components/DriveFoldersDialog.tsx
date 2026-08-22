@@ -1,5 +1,5 @@
 import { useAction, useQuery } from "convex/react";
-import { ExternalLink, Folder, FolderOpen, LoaderCircle } from "lucide-react";
+import { Check, ExternalLink, Folder, FolderOpen, LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -20,6 +20,10 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type DriveStatus = "failed" | "not_created" | "incomplete" | "ready";
+type ClientDrivePermissionsStatus = {
+	status: DriveStatus;
+	assetsEmailStatus: "failed" | "not_sent" | "pending" | "sent";
+};
 
 type SavedFolder = { name: string; url?: string };
 
@@ -68,7 +72,7 @@ function SavedFolderLinks({
 			<div>
 				{sessionFolder?.url ? (
 					<Button
-						variant="secondary"
+						variant="outline"
 						className="w-full justify-start"
 						asChild>
 						<a
@@ -107,7 +111,7 @@ function SavedFolderLinks({
 						return (
 							<Button
 								key={folder.name}
-								variant="outline"
+								variant="secondary"
 								className="justify-start"
 								asChild>
 								<a
@@ -130,6 +134,96 @@ function SavedFolderLinks({
 				</div>
 			) : null}
 		</div>
+	);
+}
+
+function ClientDrivePermissionsDetails({
+	clientDrivePermissions
+}: {
+	clientDrivePermissions: ClientDrivePermissionsStatus | undefined;
+}) {
+	if (clientDrivePermissions === undefined || clientDrivePermissions.status === "not_created") {
+		return null;
+	}
+
+	const hasFolderAccess = clientDrivePermissions.status === "ready";
+	const hasSentAssetsEmail = clientDrivePermissions.assetsEmailStatus === "sent";
+
+	return (
+		<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
+			<div className="flex items-center gap-2">
+				{hasFolderAccess ? (
+					<Check
+						className="size-4 text-primary"
+						aria-hidden
+					/>
+				) : (
+					<X
+						className="size-4 text-destructive"
+						aria-hidden
+					/>
+				)}
+				<span>{hasFolderAccess ? "Google Drive permissions set up" : "Google Drive permissions needs attention"}</span>
+			</div>
+			<div className="flex items-center gap-2">
+				{hasSentAssetsEmail ? (
+					<Check
+						className="size-4 text-primary"
+						aria-hidden
+					/>
+				) : (
+					<X
+						className="size-4 text-destructive"
+						aria-hidden
+					/>
+				)}
+				<span>{hasSentAssetsEmail ? "Assets email sent to client" : "Assets email not sent to client"}</span>
+			</div>
+		</div>
+	);
+}
+
+function ClientDrivePermissionsRetryButton({
+	bookingId,
+	clientDrivePermissions
+}: {
+	bookingId: Id<"bookings">;
+	clientDrivePermissions: ClientDrivePermissionsStatus | undefined;
+}) {
+	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
+	const [isRetrying, setIsRetrying] = useState(false);
+	const canRetry =
+		clientDrivePermissions?.status === "failed" ||
+		clientDrivePermissions?.status === "incomplete" ||
+		clientDrivePermissions?.assetsEmailStatus === "failed";
+
+	if (!canRetry) return null;
+
+	async function handleRetry() {
+		setIsRetrying(true);
+		const [error] = await tryCatch(retryClientDrivePermissions({ bookingId }));
+		setIsRetrying(false);
+
+		if (error) {
+			toast.error("Client folder permissions could not be completed.");
+			return;
+		}
+		toast.success("Client folder permissions updated.");
+	}
+
+	return (
+		<Button
+			type="button"
+			disabled={isRetrying}
+			onClick={() => void handleRetry()}>
+			{isRetrying ? (
+				<LoaderCircle
+					className="animate-spin"
+					aria-hidden
+				/>
+			) : null}
+			{isRetrying ? "Retrying" : "Retry client permissions"}
+		</Button>
 	);
 }
 
@@ -201,6 +295,7 @@ export function DriveFoldersDialog({
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
 	const savedFolders = driveStatus && "folders" in driveStatus ? (driveStatus.folders ?? []) : [];
+	const clientDrivePermissions = driveStatus?.clientDrivePermissions;
 	const sessionFolderName = formatDriveSessionFolderName(
 		getBookingStartTimestamp(sessionDate, sessionTime)
 	);
@@ -219,6 +314,7 @@ export function DriveFoldersDialog({
 					folders={savedFolders}
 					sessionFolderName={sessionFolderName}
 				/>
+				<ClientDrivePermissionsDetails clientDrivePermissions={clientDrivePermissions} />
 				<DialogFooter>
 					<Button
 						type="button"
@@ -229,6 +325,10 @@ export function DriveFoldersDialog({
 					<DriveSetupButton
 						bookingId={bookingId}
 						status={driveStatus?.status}
+					/>
+					<ClientDrivePermissionsRetryButton
+						bookingId={bookingId}
+						clientDrivePermissions={clientDrivePermissions}
 					/>
 				</DialogFooter>
 			</DialogContent>

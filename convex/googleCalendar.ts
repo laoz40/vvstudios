@@ -22,6 +22,10 @@ import {
 	type SetupError
 } from "./services/drive";
 import {
+	retryClientDrivePermissionsService,
+	type DriveClientPermissionsError
+} from "./services/driveClientPermissions";
+import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
 	sendSessionReminderEmailService
@@ -37,6 +41,12 @@ export const retryDriveSetup = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
 		retryDriveSetupService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryClientDrivePermissions = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
+		retryClientDrivePermissionsService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const runScheduledDriveSetup = internalAction({

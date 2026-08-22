@@ -35,8 +35,16 @@
  *     Provider and persistence errors are actionable, while stale, cancelled, and package
  *     outcomes are expected skips.
  *
+ * 11. Client folder permissions and assets email
+ *     The client gets the required folder permissions without a Google invitation, one branded
+ *     assets email, and targeted recovery after a permission failure.
+ *
+ * 12. Assets email retry
+ *     A failed email is tracked separately from folder permissions and retry sends it once.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
+import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -47,6 +55,8 @@ import {
 	normalizeDriveEmail
 } from "#convex/lib/googleDrive";
 import { createConvexTest } from "#convex/test.setup";
+
+const emailFake = vi.hoisted(() => ({ sendClientAssetsEmail: vi.fn() }));
 
 const driveFake = vi.hoisted(() => {
 	type Folder = { id: string; name: string; webViewLink: string; marker: string; parentId: string };
@@ -59,15 +69,32 @@ const driveFake = vi.hoisted(() => {
 	};
 	type ListRequest = { q?: string };
 	type GetRequest = { fileId: string };
+	type Permission = {
+		emailAddress?: string;
+		fileId: string;
+		id: string;
+		role: "reader" | "writer" | "commenter" | "owner";
+	};
+	type PermissionCreateRequest = {
+		fileId: string;
+		requestBody?: { emailAddress?: string; role?: Permission["role"] };
+		sendNotificationEmail?: boolean;
+	};
+	type PermissionListRequest = { fileId: string };
 
 	return {
 		folders: new Map<string, Folder>(),
+		permissions: new Map<string, Permission>(),
 		create:
 			vi.fn<(request: CreateRequest) => Promise<{ data: Omit<Folder, "marker" | "parentId"> }>>(),
 		list: vi.fn<(request: ListRequest) => Promise<{ data: { files: Folder[] } }>>(),
 		get: vi.fn<(request: GetRequest) => Promise<{ data: Folder }>>(),
 		update: vi.fn<() => Promise<{ data: { id: string } }>>(),
+		permissionsCreate: vi.fn<(request: PermissionCreateRequest) => Promise<{ data: Permission }>>(),
+		permissionsList:
+			vi.fn<(request: PermissionListRequest) => Promise<{ data: { permissions: Permission[] } }>>(),
 		failCreateNameOnce: String(),
+		failPermissionRoleOnce: String(),
 		loseCreateResponseNameOnce: String()
 	};
 });
@@ -83,6 +110,8 @@ vi.mock("#convex/env", () => ({
 
 vi.mock("#convex/lib/googleAuth", () => ({ getGoogleOAuthClient: () => ({}) }));
 
+vi.mock("#convex/lib/email", () => ({ sendClientAssetsEmail: emailFake.sendClientAssetsEmail }));
+
 vi.mock("googleapis", () => ({
 	google: {
 		drive: () => ({
@@ -91,7 +120,8 @@ vi.mock("googleapis", () => ({
 				list: driveFake.list,
 				get: driveFake.get,
 				update: driveFake.update
-			}
+			},
+			permissions: { create: driveFake.permissionsCreate, list: driveFake.permissionsList }
 		})
 	}
 }));
@@ -111,8 +141,11 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	driveFake.folders.clear();
+	driveFake.permissions.clear();
 	driveFake.failCreateNameOnce = "";
+	driveFake.failPermissionRoleOnce = "";
 	driveFake.loseCreateResponseNameOnce = "";
+	emailFake.sendClientAssetsEmail.mockReturnValue(okAsync(null));
 
 	driveFake.create.mockImplementation(async (request) => {
 		const name = request.requestBody?.name ?? "";
@@ -151,6 +184,31 @@ beforeEach(() => {
 		if (folder === undefined) throw { code: 404 };
 		return { data: folder };
 	});
+	driveFake.permissionsCreate.mockImplementation(async (request) => {
+		const role = request.requestBody?.role ?? "reader";
+		if (driveFake.failPermissionRoleOnce === role) {
+			driveFake.failPermissionRoleOnce = "";
+			throw new Error("Drive permission create failed");
+		}
+		const permission = {
+			emailAddress: request.requestBody?.emailAddress ?? "",
+			fileId: request.fileId,
+			id: `permission-${driveFake.permissions.size + 1}`,
+			role
+		};
+		driveFake.permissions.set(permission.id, permission);
+		return { data: permission };
+	});
+	driveFake.permissionsList.mockImplementation(async ({ fileId }) => ({
+		data: {
+			permissions: [
+				{ fileId, id: "owner-permission", role: "owner" as const },
+				...Array.from(driveFake.permissions.values()).filter(
+					(permission) => permission.fileId === fileId
+				)
+			]
+		}
+	}));
 	driveFake.update.mockResolvedValue({ data: { id: "raw-media" } });
 });
 
@@ -210,6 +268,85 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 		expect(driveFake.update).toHaveBeenCalledTimes(1);
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
+	});
+
+	test("grants client folder permissions, isolates Raw Media, and sends one assets email", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(
+			driveFake.permissionsCreate.mock.calls.map(([request]) => ({
+				fileId: request.fileId,
+				role: request.requestBody?.role,
+				sendNotificationEmail: request.sendNotificationEmail
+			}))
+		).toEqual([
+			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false },
+			{ fileId: "folder-4", role: "writer", sendNotificationEmail: false },
+			{ fileId: "folder-5", role: "commenter", sendNotificationEmail: false }
+		]);
+		expect(
+			driveFake.permissionsCreate.mock.calls.some(([request]) => request.fileId === "folder-3")
+		).toBe(false);
+		expect(state.driveSession).toMatchObject({
+			clientDrivePermissionsStatus: "ready",
+			assetsEmailStatus: "sent"
+		});
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledWith({
+			assetsUrl: "https://drive.google.com/drive/folders/folder-4",
+			email: "customer@example.com",
+			name: "Test customer"
+		});
+	});
+
+	test("retries failed client permissions without recreating folders or resending the email", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		driveFake.failPermissionRoleOnce = "writer";
+
+		await runSetup(t, bookingId);
+		const failedState = await readDriveState(t, bookingId);
+		expect(failedState.driveSession?.deliverablesFolder).toBeDefined();
+		expect(failedState.driveSession).toMatchObject({ clientDrivePermissionsStatus: "failed" });
+		expect(emailFake.sendClientAssetsEmail).not.toHaveBeenCalled();
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryClientDrivePermissions, { bookingId });
+		const recoveredState = await readDriveState(t, bookingId);
+		expect(retryResult).toEqual([null, null]);
+		expect(recoveredState.driveSession).toMatchObject({
+			assetsEmailStatus: "sent",
+			clientDrivePermissionsStatus: "ready"
+		});
+		expect(driveFake.create).toHaveBeenCalledTimes(5);
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
+
+		await runSetup(t, bookingId);
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
+	});
+
+	test("tracks a failed assets email separately and retries it once", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		emailFake.sendClientAssetsEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
+
+		await runSetup(t, bookingId);
+		const failedState = await readDriveState(t, bookingId);
+		expect(failedState.driveSession).toMatchObject({ assetsEmailStatus: "failed" });
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryClientDrivePermissions, { bookingId });
+		const recoveredState = await readDriveState(t, bookingId);
+		expect(retryResult).toEqual([null, null]);
+		expect(recoveredState.driveSession).toMatchObject({ assetsEmailStatus: "sent" });
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(2);
 	});
 
 	test("skips a cancelled booking without recording a setup failure", async () => {

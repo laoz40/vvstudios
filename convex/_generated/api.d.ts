@@ -27,6 +27,7 @@ import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifact
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
+import type * as lib_driveClientPermissions from "../lib/driveClientPermissions.js";
 import type * as lib_driveRecords from "../lib/driveRecords.js";
 import type * as lib_driveScheduling from "../lib/driveScheduling.js";
 import type * as lib_driveSetup from "../lib/driveSetup.js";
@@ -73,6 +74,7 @@ import type * as services_bookingSettings from "../services/bookingSettings.js";
 import type * as services_customInvoices from "../services/customInvoices.js";
 import type * as services_deliverablesEmail from "../services/deliverablesEmail.js";
 import type * as services_drive from "../services/drive.js";
+import type * as services_driveClientPermissions from "../services/driveClientPermissions.js";
 import type * as services_editors from "../services/editors.js";
 import type * as services_invoices from "../services/invoices.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
@@ -122,6 +124,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/customInvoices": typeof lib_customInvoices;
+  "lib/driveClientPermissions": typeof lib_driveClientPermissions;
   "lib/driveRecords": typeof lib_driveRecords;
   "lib/driveScheduling": typeof lib_driveScheduling;
   "lib/driveSetup": typeof lib_driveSetup;
@@ -168,6 +171,7 @@ declare const fullApi: ApiFromModules<{
   "services/customInvoices": typeof services_customInvoices;
   "services/deliverablesEmail": typeof services_deliverablesEmail;
   "services/drive": typeof services_drive;
+  "services/driveClientPermissions": typeof services_driveClientPermissions;
   "services/editors": typeof services_editors;
   "services/invoices": typeof services_invoices;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;

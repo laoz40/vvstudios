@@ -23,7 +23,8 @@ Booking website for podcast studio.
 - Ask user before making assumptions that change behavior, UX, architecture
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
-- Annotate complex functions and conditions with simple comments to make the flow easier to understand.
+- Always apply YAGNI principle
+- Annotate complex/long functions and conditionals with simple comments to make the flow easier to understand.
 - When responding, explain functions that were added or edited for each file of the last turn, and why
 
 ## Code Style Guidelines

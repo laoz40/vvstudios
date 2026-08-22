@@ -23,7 +23,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
-import { buildDriveStatus } from "#convex/lib/driveRecords";
+import { buildClientDrivePermissionsStatus, buildDriveStatus } from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -65,9 +65,10 @@ export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
 					.unique()
 			])
-		).map(([booking, driveSession]) =>
-			buildDriveStatus(driveSession, booking?.driveSetupFailureCode !== undefined)
-		)
+		).map(([booking, driveSession]) => ({
+			...buildDriveStatus(driveSession, booking?.driveSetupFailureCode !== undefined),
+			clientDrivePermissions: buildClientDrivePermissionsStatus(driveSession)
+		}))
 	);
 }
 

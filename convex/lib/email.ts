@@ -3,6 +3,7 @@ import { render } from "@react-email/render";
 import type { Doc } from "#convex/_generated/dataModel";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
 import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
@@ -92,6 +93,12 @@ interface SendPackageExpiryReminderEmailArgs {
 	expiresAt: number;
 	name: string;
 	remainingSessions: number;
+}
+
+interface SendClientAssetsEmailArgs {
+	assetsUrl: string;
+	email: string;
+	name: string;
 }
 
 interface SendSessionDeliverablesEmailArgs {
@@ -593,6 +600,22 @@ export async function sendFeedbackEmailForMessage(message: string) {
 			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`
 		].join("")
 	});
+}
+
+export function sendClientAssetsEmail({ assetsUrl, email, name }: SendClientAssetsEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
+	return ResultAsync.fromSafePromise(
+		render(createElement(ClientAssetsEmail, { assetsUrl, name, signoffName }))
+	).andThen((html) =>
+		sendEmail({
+			to: [email],
+			subject: "Anything you'd like us to use in your video edit?",
+			html,
+			idempotencyKey: `client-assets:${assetsUrl}`
+		})
+	);
 }
 
 export function sendSessionDeliverablesEmail({

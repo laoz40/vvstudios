@@ -13,6 +13,7 @@ import {
 	type SetupError
 } from "#convex/lib/driveSetup";
 import { fromConvexTuple } from "#convex/lib/result";
+import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/driveClientPermissions";
 
 export type { SetupError } from "#convex/lib/driveSetup";
 
@@ -42,19 +43,28 @@ function setupFoldersAndRecordResult(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
 ): ResultAsync<null, SetupError> {
-	return loadValidatedSetup(ctx, args)
-		.andThen((setupInfo) => createDriveFolders(ctx, setupInfo))
-		.andThen(() =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId: args.bookingId })
+	return (
+		loadValidatedSetup(ctx, args)
+			.andThen((setupInfo) => createDriveFolders(ctx, setupInfo))
+			.andThen(() =>
+				fromConvexTuple(
+					ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId: args.bookingId })
+				)
 			)
-		)
-		.orElse((setupError) => {
-			if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
-			return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
-				errAsync(setupError)
-			);
-		});
+			// Folder setup remains ready when permissions or email delivery fails.
+			.andThen(() =>
+				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
+					bookingId: args.bookingId,
+					attempt: "automatic"
+				}).orElse(() => okAsync(null))
+			)
+			.orElse((setupError) => {
+				if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
+				return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
+					errAsync(setupError)
+				);
+			})
+	);
 }
 
 export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
@@ -64,7 +74,12 @@ export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"booking
 			if (setupInfo.driveSession !== null) {
 				return errAsync({ reason: "DRIVE_FOLDERS_ALREADY_CREATED" as const });
 			}
-			return createDriveFolders(ctx, setupInfo);
+			return createDriveFolders(ctx, setupInfo).andThen(() =>
+				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
+					bookingId: args.bookingId,
+					attempt: "automatic"
+				}).orElse(() => okAsync(null))
+			);
 		});
 }
 
