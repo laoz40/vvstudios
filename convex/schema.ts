@@ -7,6 +7,11 @@ const bookingInvoiceLineItemsValidator = v.array(
 );
 
 const driveFolderValidator = v.object({ id: v.string(), url: v.string() });
+const drivePermissionValidator = v.object({
+	id: v.string(),
+	emailAddress: v.string(),
+	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
+});
 const clientDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
 const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
@@ -42,6 +47,9 @@ export default defineSchema({
 		displayName: v.string(),
 		folderId: v.string(),
 		folderUrl: v.string(),
+		assetsFolder: v.optional(driveFolderValidator),
+		clientFolderPermission: v.optional(drivePermissionValidator),
+		assetsClientPermission: v.optional(drivePermissionValidator),
 		createdAt: v.number()
 	}).index("by_normalizedEmail", ["normalizedEmail"]),
 
@@ -50,10 +58,10 @@ export default defineSchema({
 		driveClientId: v.id("driveClients"),
 		sessionFolder: v.optional(driveFolderValidator),
 		rawMediaFolder: v.optional(driveFolderValidator),
-		assetsFolder: v.optional(driveFolderValidator),
 		deliverablesFolder: v.optional(driveFolderValidator),
 		clientDrivePermissionsStatus: v.optional(clientDrivePermissionsStatusValidator),
 		assetsEmailStatus: v.optional(assetsEmailStatusValidator),
+		assetsEmailFolderId: v.optional(v.string()),
 		assetsEmailClaimedAt: v.optional(v.number()),
 		createdAt: v.number(),
 		updatedAt: v.number()

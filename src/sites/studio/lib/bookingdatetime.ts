@@ -394,7 +394,22 @@ export function formatDriveSessionFolderName(sessionStartAt: number) {
 		.format(sessionStartAt)
 		.toUpperCase();
 
-	return `${valueByType.day} ${valueByType.month} ${valueByType.year} — ${time}`;
+	return `${valueByType.day} ${valueByType.month} ${valueByType.year} - ${time}`;
+}
+
+export function formatDriveSessionMediaFolderName(
+	folderType: "Raw Media" | "Deliverables",
+	sessionStartAt: number
+) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "numeric",
+		month: "numeric",
+		year: "2-digit"
+	}).formatToParts(sessionStartAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+
+	return `${folderType} (${valueByType.day}.${valueByType.month}.${valueByType.year})`;
 }
 
 export function isUpcomingBooking(dateValue: string, timeValue: string, now = Date.now()) {

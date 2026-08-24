@@ -5,9 +5,12 @@ import { ResultAsync, err, ok } from "neverthrow";
 import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
 
-export { formatDriveSessionFolderName as getSessionFolderName } from "#studio/lib/bookingdatetime";
+export {
+	formatDriveSessionFolderName as getSessionFolderName,
+	formatDriveSessionMediaFolderName as getSessionMediaFolderName
+} from "#studio/lib/bookingdatetime";
 
-export const GOOGLE_DRIVE_CHILD_FOLDER_NAMES = ["Raw Media", "Assets", "Deliverables"] as const;
+export const GOOGLE_DRIVE_CHILD_FOLDER_NAMES = ["Raw Media", "Deliverables"] as const;
 export type DriveChildFolderName = (typeof GOOGLE_DRIVE_CHILD_FOLDER_NAMES)[number];
 
 const driveFolderSchema = z.object({

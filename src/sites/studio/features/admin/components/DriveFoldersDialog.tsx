@@ -15,6 +15,7 @@ import {
 } from "#/components/ui/dialog";
 import { useState } from "react";
 import {
+	formatDriveSessionMediaFolderName,
 	formatDriveSessionFolderName,
 	getBookingStartTimestamp
 } from "#studio/lib/bookingdatetime";
@@ -27,12 +28,33 @@ type ClientDrivePermissionsStatus = {
 
 type SavedFolder = { name: string; url?: string };
 
+function getSessionChildFolderName({
+	folderName,
+	rawMediaFolderName,
+	deliverablesFolderName
+}: {
+	folderName: string;
+	rawMediaFolderName: string;
+	deliverablesFolderName: string;
+}) {
+	switch (folderName) {
+		case "Raw Media":
+			return rawMediaFolderName;
+		case "Deliverables":
+			return deliverablesFolderName;
+		default:
+			return folderName;
+	}
+}
+
 function getDriveDescription({
 	status,
+	hasClientAssetsLibrary,
 	clientName,
 	accountName
 }: {
 	status: DriveStatus | undefined;
+	hasClientAssetsLibrary: boolean;
 	clientName: string;
 	accountName: string;
 }) {
@@ -44,6 +66,7 @@ function getDriveDescription({
 		case "failed":
 			return "Google Drive folders could not be created. Retry the setup manually.";
 		case "incomplete":
+			if (hasClientAssetsLibrary) return "Folder not created for this session.";
 			return "Google Drive folders not created completely.";
 		case "not_created":
 		case undefined:
@@ -57,33 +80,41 @@ function getDriveDescription({
 
 function SavedFolderLinks({
 	folders,
-	sessionFolderName
+	sessionFolderName,
+	rawMediaFolderName,
+	deliverablesFolderName
 }: {
 	folders: SavedFolder[];
 	sessionFolderName: string;
+	rawMediaFolderName: string;
+	deliverablesFolderName: string;
 }) {
-	if (folders.length === 0) return null;
-
 	const sessionFolder = folders.find((folder) => folder.name === "Session");
-	const childFolders = folders.filter((folder) => folder.name !== "Session");
+	const assetsFolder = folders.find((folder) => folder.name === "Assets");
+	const sessionChildFolders = folders.filter(
+		(folder) => folder.name !== "Session" && folder.name !== "Assets"
+	);
+
+	if (folders.length === 0) return null;
 
 	return (
 		<div className="flex flex-col gap-3">
-			<div>
-				{sessionFolder?.url ? (
+			<div className="flex flex-col gap-2">
+				<p className="text-sm font-medium">Client assets library</p>
+				{assetsFolder?.url ? (
 					<Button
 						variant="outline"
 						className="w-full justify-start"
 						asChild>
 						<a
-							href={sessionFolder.url}
+							href={assetsFolder.url}
 							target="_blank"
 							rel="noreferrer">
 							<FolderOpen
 								data-icon="inline-start"
 								aria-hidden
 							/>
-							{sessionFolderName}
+							_Assets
 							<ExternalLink
 								data-icon="inline-end"
 								aria-hidden
@@ -91,48 +122,88 @@ function SavedFolderLinks({
 						</a>
 					</Button>
 				) : (
-					<p className="text-sm text-muted-foreground">Session: not created</p>
+					<p className="text-sm text-muted-foreground">_Assets: not created</p>
 				)}
 			</div>
 
-			{childFolders.length > 0 ? (
-				<div className="ml-3 flex flex-col gap-2 border-l pl-3">
-					{childFolders.map((folder) => {
-						if (!folder.url) {
-							return (
-								<p
-									key={folder.name}
-									className="text-sm text-muted-foreground">
-									{folder.name}: not created
-								</p>
-							);
-						}
-
-						return (
-							<Button
-								key={folder.name}
-								variant="secondary"
-								className="justify-start"
-								asChild>
-								<a
-									href={folder.url}
-									target="_blank"
-									rel="noreferrer">
-									<Folder
-										data-icon="inline-start"
-										aria-hidden
-									/>
-									{folder.name}
-									<ExternalLink
-										data-icon="inline-end"
-										aria-hidden
-									/>
-								</a>
-							</Button>
-						);
-					})}
+			<div className="flex flex-col gap-2">
+				<p className="text-sm font-medium">Session folders</p>
+				<div>
+					{sessionFolder?.url ? (
+						<Button
+							variant="outline"
+							className="w-full justify-start"
+							asChild>
+							<a
+								href={sessionFolder.url}
+								target="_blank"
+								rel="noreferrer">
+								<FolderOpen
+									data-icon="inline-start"
+									aria-hidden
+								/>
+								{sessionFolderName}
+								<ExternalLink
+									data-icon="inline-end"
+									aria-hidden
+								/>
+							</a>
+						</Button>
+					) : (
+						<div className="flex h-9 items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
+							<Folder
+								className="size-4"
+								aria-hidden
+							/>
+							Not created
+						</div>
+					)}
 				</div>
-			) : null}
+
+				{sessionChildFolders.length > 0 ? (
+					<div className="ml-3 flex flex-col gap-2 border-l pl-3">
+						{sessionChildFolders.map((folder) => {
+							const folderName = getSessionChildFolderName({
+								folderName: folder.name,
+								rawMediaFolderName,
+								deliverablesFolderName
+							});
+							if (!folder.url) {
+								return (
+									<p
+										key={folder.name}
+										className="text-sm text-muted-foreground">
+										{folderName}: not created
+									</p>
+								);
+							}
+
+							return (
+								<Button
+									key={folder.name}
+									variant="secondary"
+									className="justify-start"
+									asChild>
+									<a
+										href={folder.url}
+										target="_blank"
+										rel="noreferrer">
+										<Folder
+											data-icon="inline-start"
+											aria-hidden
+										/>
+										{folderName}
+										<ExternalLink
+											data-icon="inline-end"
+											aria-hidden
+										/>
+									</a>
+								</Button>
+							);
+						})}
+					</div>
+				) : null}
+			</div>
 		</div>
 	);
 }
@@ -163,7 +234,11 @@ function ClientDrivePermissionsDetails({
 						aria-hidden
 					/>
 				)}
-				<span>{hasFolderAccess ? "Google Drive permissions set up" : "Google Drive permissions needs attention"}</span>
+				<span>
+					{hasFolderAccess
+						? "Google Drive permissions set up"
+						: "Google Drive permissions needs attention"}
+				</span>
 			</div>
 			<div className="flex items-center gap-2">
 				{hasSentAssetsEmail ? (
@@ -177,7 +252,9 @@ function ClientDrivePermissionsDetails({
 						aria-hidden
 					/>
 				)}
-				<span>{hasSentAssetsEmail ? "Assets email sent to client" : "Assets email not sent to client"}</span>
+				<span>
+					{hasSentAssetsEmail ? "Assets email sent to client" : "Assets email not sent to client"}
+				</span>
 			</div>
 		</div>
 	);
@@ -229,10 +306,12 @@ function ClientDrivePermissionsRetryButton({
 
 function DriveSetupButton({
 	bookingId,
-	status
+	status,
+	hasClientAssetsLibrary
 }: {
 	bookingId: Id<"bookings">;
 	status: DriveStatus | undefined;
+	hasClientAssetsLibrary: boolean;
 }) {
 	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
 	const retryDriveSetup = useAction(api.googleCalendar.retryDriveSetup);
@@ -257,7 +336,8 @@ function DriveSetupButton({
 
 	let label = "Set up Google Drive folders";
 	if (shouldRetry) label = "Retry Google Drive folders";
-	if (isSettingUp) label = "Setting up";
+	if (shouldRetry && hasClientAssetsLibrary) label = "Create Google Drive folders";
+	if (isSettingUp) label = hasClientAssetsLibrary ? "Creating" : "Setting up";
 
 	return (
 		<Button
@@ -295,24 +375,33 @@ export function DriveFoldersDialog({
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
 	const savedFolders = driveStatus && "folders" in driveStatus ? (driveStatus.folders ?? []) : [];
-	const clientDrivePermissions = driveStatus?.clientDrivePermissions;
-	const sessionFolderName = formatDriveSessionFolderName(
-		getBookingStartTimestamp(sessionDate, sessionTime)
+	const hasClientAssetsLibrary = savedFolders.some(
+		(folder) => folder.name === "Assets" && folder.url !== undefined
 	);
+	const clientDrivePermissions = driveStatus?.clientDrivePermissions;
+	const sessionStartAt = getBookingStartTimestamp(sessionDate, sessionTime);
+	const sessionFolderName = formatDriveSessionFolderName(sessionStartAt);
 	return (
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Google Drive folders</DialogTitle>
 					<DialogDescription>
-						{getDriveDescription({ status: driveStatus?.status, clientName, accountName })}
+						{getDriveDescription({
+							status: driveStatus?.status,
+							hasClientAssetsLibrary,
+							clientName,
+							accountName
+						})}
 					</DialogDescription>
 				</DialogHeader>
 				<SavedFolderLinks
 					folders={savedFolders}
 					sessionFolderName={sessionFolderName}
+					rawMediaFolderName={formatDriveSessionMediaFolderName("Raw Media", sessionStartAt)}
+					deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 				/>
 				<ClientDrivePermissionsDetails clientDrivePermissions={clientDrivePermissions} />
 				<DialogFooter>
@@ -325,6 +414,7 @@ export function DriveFoldersDialog({
 					<DriveSetupButton
 						bookingId={bookingId}
 						status={driveStatus?.status}
+						hasClientAssetsLibrary={hasClientAssetsLibrary}
 					/>
 					<ClientDrivePermissionsRetryButton
 						bookingId={bookingId}

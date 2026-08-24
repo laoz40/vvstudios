@@ -7,7 +7,9 @@ import {
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,
 	getDriveSetup as loadDriveSetup,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
+	saveClientDrivePermission as saveClientDrivePermissionRecord,
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord,
+	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
 	saveDriveClientFolder as saveDriveClientFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
@@ -37,6 +39,11 @@ const savedDriveFolderValidator = v.object({
 	name: v.string(),
 	webViewLink: v.string()
 });
+const savedDrivePermissionValidator = v.object({
+	id: v.string(),
+	emailAddress: v.string(),
+	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
+});
 
 export const getDriveSetup = internalQuery({
 	args: { bookingId: v.id("bookings") },
@@ -57,6 +64,11 @@ export const saveDriveSessionFolder = internalMutation({
 	handler: (ctx, args) => saveDriveSessionFolderRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
+export const saveDriveClientAssetsFolder = internalMutation({
+	args: { driveClientId: v.id("driveClients"), folder: savedDriveFolderValidator },
+	handler: (ctx, args) => saveDriveClientAssetsFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
 export const saveDriveSetupResult = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.optional(v.string()) },
 	handler: (ctx, args) => saveDriveSetupResultRecord(ctx, args).match(tupleOk, tupleErr)
@@ -65,10 +77,19 @@ export const saveDriveSetupResult = internalMutation({
 export const saveDriveChildFolder = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
-		name: v.union(v.literal("Raw Media"), v.literal("Assets"), v.literal("Deliverables")),
+		name: v.union(v.literal("Raw Media"), v.literal("Deliverables")),
 		folder: savedDriveFolderValidator
 	},
 	handler: (ctx, args) => saveDriveChildFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveClientDrivePermission = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.union(v.literal("Client folder"), v.literal("Assets")),
+		permission: savedDrivePermissionValidator
+	},
+	handler: (ctx, args) => saveClientDrivePermissionRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveClientDrivePermissionsStatus = internalMutation({
@@ -87,6 +108,7 @@ export const claimClientAssetsEmail = internalMutation({
 
 export const saveClientAssetsEmailResult = internalMutation({
 	args: {
+		assetsFolderId: v.string(),
 		bookingId: v.id("bookings"),
 		claimedAt: v.number(),
 		status: v.union(v.literal("sent"), v.literal("failed"))

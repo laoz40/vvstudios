@@ -23,7 +23,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
-import { buildClientDrivePermissionsStatus, buildDriveStatus } from "#convex/lib/driveRecords";
+import { getDriveStatus } from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -57,18 +57,7 @@ type AssignSessionEditorArgs = {
 
 export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		okOrThrow(
-			Promise.all([
-				ctx.db.get(args.bookingId),
-				ctx.db
-					.query("driveSessions")
-					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-					.unique()
-			])
-		).map(([booking, driveSession]) => ({
-			...buildDriveStatus(driveSession, booking?.driveSetupFailureCode !== undefined),
-			clientDrivePermissions: buildClientDrivePermissionsStatus(driveSession)
-		}))
+		getDriveStatus(ctx, args.bookingId)
 	);
 }
 

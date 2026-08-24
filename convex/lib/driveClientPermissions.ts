@@ -11,7 +11,8 @@ import {
 	loadDriveClient,
 	normalizeDriveEmail,
 	type DriveClient,
-	type DriveError
+	type DriveError,
+	type SavedDrivePermission
 } from "#convex/lib/googleDrive";
 import { sendClientAssetsEmail } from "#convex/lib/email";
 import { fromConvexTuple } from "#convex/lib/result";
@@ -31,17 +32,24 @@ export type DriveClientPermissionsError =
 	| { reason: "CLIENT_ASSETS_EMAIL_SEND_FAILED" };
 
 type ReadyBookingDriveFolders = DriveSetupInfo & {
-	driveClient: { _id: Id<"driveClients">; folderId: string };
+	driveClient: {
+		_id: Id<"driveClients">;
+		folderId: string;
+		assetsFolder: { id: string; url: string };
+	};
 	driveSession: {
 		_id: Id<"driveSessions">;
 		sessionFolder: { id: string; url: string };
 		rawMediaFolder: { id: string; url: string };
-		assetsFolder: { id: string; url: string };
 		deliverablesFolder: { id: string; url: string };
 	};
 };
 
-type ClientDrivePermissionRequirement = { fileId: string; role: "commenter" | "reader" | "writer" };
+type ClientDrivePermissionRequirement = {
+	fileId: string;
+	name: "Assets" | "Client folder";
+	role: "reader" | "writer";
+};
 
 export function loadReadyBookingDriveFolders(
 	ctx: ActionCtx,
@@ -53,7 +61,7 @@ export function loadReadyBookingDriveFolders(
 			const { driveClient, driveSession } = setupInfo;
 			const sessionFolder = driveSession?.sessionFolder;
 			const rawMediaFolder = driveSession?.rawMediaFolder;
-			const assetsFolder = driveSession?.assetsFolder;
+			const assetsFolder = driveClient?.assetsFolder;
 			const deliverablesFolder = driveSession?.deliverablesFolder;
 			if (
 				driveClient === null ||
@@ -67,14 +75,8 @@ export function loadReadyBookingDriveFolders(
 			}
 			return ok({
 				...setupInfo,
-				driveClient,
-				driveSession: {
-					_id: driveSession._id,
-					assetsFolder,
-					deliverablesFolder,
-					rawMediaFolder,
-					sessionFolder
-				}
+				driveClient: { _id: driveClient._id, assetsFolder, folderId: driveClient.folderId },
+				driveSession: { _id: driveSession._id, deliverablesFolder, rawMediaFolder, sessionFolder }
 			});
 		});
 }
@@ -83,23 +85,32 @@ function requireClientDrivePermission(
 	drive: DriveClient,
 	setup: ReadyBookingDriveFolders,
 	requirement: ClientDrivePermissionRequirement
-): ResultAsync<null, DriveClientPermissionsError> {
+): ResultAsync<SavedDrivePermission, DriveClientPermissionsError> {
 	const clientEmail = normalizeDriveEmail(setup.booking.email);
 	return findDrivePermission(drive, {
 		email: clientEmail,
 		fileId: requirement.fileId,
 		role: requirement.role
-	})
-		.andThen((existingPermission) => {
-			if (existingPermission !== null) return ok(existingPermission);
-			return createDrivePermission(drive, {
-				email: clientEmail,
-				fileId: requirement.fileId,
-				role: requirement.role,
-				sendNotificationEmail: false
-			});
-		})
-		.map(() => null);
+	}).andThen((existingPermission) => {
+		if (existingPermission !== null) return ok(existingPermission);
+		return createDrivePermission(drive, {
+			email: clientEmail,
+			fileId: requirement.fileId,
+			role: requirement.role,
+			sendNotificationEmail: false
+		});
+	});
+}
+
+function saveClientDrivePermission(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	name: ClientDrivePermissionRequirement["name"],
+	permission: SavedDrivePermission
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.saveClientDrivePermission, { bookingId, name, permission })
+	).mapErr(() => ({ reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const }));
 }
 
 export function saveClientDrivePermissionsStatus(
@@ -120,19 +131,21 @@ export function requireClientDrivePermissions(
 		.andThen((drive) =>
 			requireClientDrivePermission(drive, setup, {
 				fileId: setup.driveClient.folderId,
+				name: "Client folder",
 				role: "reader"
 			})
-				.andThen(() =>
-					requireClientDrivePermission(drive, setup, {
-						fileId: setup.driveSession.assetsFolder.id,
-						role: "writer"
-					})
+				.andThen((permission) =>
+					saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission)
 				)
 				.andThen(() =>
 					requireClientDrivePermission(drive, setup, {
-						fileId: setup.driveSession.deliverablesFolder.id,
-						role: "commenter"
+						fileId: setup.driveClient.assetsFolder.id,
+						name: "Assets",
+						role: "writer"
 					})
+				)
+				.andThen((permission) =>
+					saveClientDrivePermission(ctx, setup.booking._id, "Assets", permission)
 				)
 		)
 		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
@@ -158,6 +171,7 @@ export function sendClientAssetsFolderEmail(
 					.andThen(() =>
 						fromConvexTuple(
 							ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
+								assetsFolderId: claim.assetsFolderId,
 								bookingId: claim.bookingId,
 								claimedAt: claim.claimedAt,
 								status: "sent"
@@ -167,6 +181,7 @@ export function sendClientAssetsFolderEmail(
 					.orElse((emailError) =>
 						fromConvexTuple(
 							ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
+								assetsFolderId: claim.assetsFolderId,
 								bookingId: claim.bookingId,
 								claimedAt: claim.claimedAt,
 								status: "failed"

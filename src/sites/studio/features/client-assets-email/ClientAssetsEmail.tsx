@@ -37,13 +37,8 @@ export function ClientAssetsEmail({ assetsUrl, name, signoffName }: ClientAssets
 					/>
 					<Heading style={heading}>Thanks for recording with us, {name}!</Heading>
 					<Text style={paragraph}>
-						If you have any assets you&apos;d like us to use in your video, please upload them as
-						soon as you can.
-					</Text>
-					<Text style={paragraph}>This could be your logo, brand guidelines, intro, or music.</Text>
-					<Text style={paragraph}>
-						Uploading assets is optional. If you don&apos;t have anything to add, there&apos;s
-						nothing you need to do.
+						If you have a logo, brand guidelines, intro, music, or any other assets you&apos;d like
+						included in your video, send them through as soon as you can.
 					</Text>
 					<Section style={buttonWrapper}>
 						<Button
@@ -56,6 +51,20 @@ export function ClientAssetsEmail({ assetsUrl, name, signoffName }: ClientAssets
 						<Text style={accountNoticeText}>
 							When opening the folder, sign in to Google with the same email address that received
 							this email.
+						</Text>
+					</Section>
+					<Section style={sessionNotice}>
+						<Text style={sectionTitle}>Uploading files for a particular session?</Text>
+						<Text style={sessionNoticeText}>
+							Include the session name in the file or folder name so our editors know where it
+							belongs.
+						</Text>
+					</Section>
+					<Section style={contactSection}>
+						<Text style={sectionTitle}>Contact</Text>
+						<Text style={contactParagraph}>
+							If you have any questions or need revisions, you can always reach me at{" "}
+							{BOOKING_INVOICE_BUSINESS.contactEmail} or {BOOKING_INVOICE_BUSINESS.contactPhone}.
 						</Text>
 					</Section>
 					<Text style={signoff}>Cheers,</Text>
@@ -89,7 +98,9 @@ const heading = {
 	margin: "0 0 16px"
 };
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
-const buttonWrapper = { margin: "28px 0", textAlign: "center" as const };
+const sessionNotice = { margin: "20px 0" };
+const sessionNoticeText = { color: "#d4d4d4", fontSize: "14px", lineHeight: "22px", margin: "0" };
+const buttonWrapper = { margin: "24px 0", textAlign: "center" as const };
 const button = {
 	backgroundColor: "#f5c400",
 	borderRadius: "12px",
@@ -112,7 +123,16 @@ const accountNoticeText = {
 	lineHeight: "24px",
 	margin: "0"
 };
-const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
+const contactSection = { margin: "0 0 20px" };
+const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
+const sectionTitle = {
+	color: "#f5c400",
+	fontSize: "13px",
+	fontWeight: "600",
+	margin: "0 0 8px",
+	textTransform: "uppercase" as const
+};
+const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 4px" };
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",

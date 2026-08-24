@@ -8,7 +8,7 @@
  *    Schedules workspace setup for the session end.
  *
  * 3. Folder creation
- *    Creates and saves every workspace folder.
+ *    Creates one global assets library and dated session media folders.
  *
  * 4. Client access
  *    Adds the required permissions and sends one assets email.
@@ -25,19 +25,22 @@
  * 8. Stale scheduled job
  *    Skips setup when the booking timing has changed.
  *
- * 9. Setup replay
- *    Verifies saved folders without creating duplicates.
+ * 9. Client assets reuse
+ *    Reuses one global assets library across sessions for the same client.
  *
- * 10. Partial setup retry
+ * 10. Setup replay
+ *     Verifies saved folders without creating duplicates.
+ *
+ * 11. Partial setup retry
  *     Resumes from the first missing folder.
  *
- * 11. Lost create response
+ * 12. Lost create response
  *     Recovers the created folder through its private marker.
  *
- * 12. Setup failure retry
+ * 13. Setup failure retry
  *     Records a provider failure and clears it after retry.
  *
- * 13. Failure classification
+ * 14. Failure classification
  *     Records only actionable setup failures.
  *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
@@ -50,6 +53,7 @@ import { shouldRecordDriveSetupFailure } from "#convex/lib/driveSetup";
 import {
 	getClientFolderName,
 	getSessionFolderName,
+	getSessionMediaFolderName,
 	normalizeDriveEmail
 } from "#convex/lib/googleDrive";
 import { createConvexTest } from "#convex/test.setup";
@@ -57,7 +61,15 @@ import { createConvexTest } from "#convex/test.setup";
 const emailFake = vi.hoisted(() => ({ sendClientAssetsEmail: vi.fn() }));
 
 const driveFake = vi.hoisted(() => {
-	type Folder = { id: string; name: string; webViewLink: string; marker: string; parentId: string };
+	type Folder = {
+		id: string;
+		name: string;
+		webViewLink: string;
+		marker: string;
+		parentId: string;
+		appProperties: { vvWorkspaceMarker: string };
+		parents: string[];
+	};
 	type CreateRequest = {
 		requestBody?: {
 			appProperties?: { vvWorkspaceMarker?: string };
@@ -83,7 +95,9 @@ const driveFake = vi.hoisted(() => {
 		folders: new Map<string, Folder>(),
 		permissions: new Map<string, Permission>(),
 		create:
-			vi.fn<(request: CreateRequest) => Promise<{ data: Omit<Folder, "marker" | "parentId"> }>>(),
+			vi.fn<
+				(request: CreateRequest) => Promise<{ data: Pick<Folder, "id" | "name" | "webViewLink"> }>
+			>(),
 		list: vi.fn<(request: ListRequest) => Promise<{ data: { files: Folder[] } }>>(),
 		get: vi.fn<(request: GetRequest) => Promise<{ data: Folder }>>(),
 		permissionsCreate: vi.fn<(request: PermissionCreateRequest) => Promise<{ data: Permission }>>(),
@@ -146,14 +160,15 @@ beforeEach(() => {
 			driveFake.failCreateNameOnce = "";
 			throw new Error("Drive create failed");
 		}
-
 		const id = `folder-${driveFake.folders.size + 1}`;
 		const folder = {
+			appProperties: { vvWorkspaceMarker: marker },
 			id,
 			name,
 			webViewLink: `https://drive.google.com/drive/folders/${id}`,
 			marker,
-			parentId
+			parentId,
+			parents: [parentId]
 		};
 		driveFake.folders.set(id, folder);
 		if (driveFake.loseCreateResponseNameOnce === name) {
@@ -203,7 +218,7 @@ beforeEach(() => {
 });
 
 describe("Google Drive folder naming", () => {
-	test("normalizes the permanent client key and formats folder names", () => {
+	test("normalizes the permanent client key and formats session and media folder names", () => {
 		expect(normalizeDriveEmail("  Client@Example.COM ")).toBe("client@example.com");
 		expect(getClientFolderName({ accountName: "Acme", contactName: "Alex" })).toBe(
 			"Acme (VV Studios)"
@@ -212,7 +227,10 @@ describe("Google Drive folder naming", () => {
 			"Alex (VV Studios)"
 		);
 		expect(getSessionFolderName(Date.parse("2026-08-13T00:00:00.000Z"))).toBe(
-			"13 Aug 2026 — 10:00 AM"
+			"13 Aug 2026 - 10:00 AM"
+		);
+		expect(getSessionMediaFolderName("Raw Media", Date.parse("2026-08-13T00:00:00.000Z"))).toBe(
+			"Raw Media (13.8.26)"
 		);
 	});
 });
@@ -236,7 +254,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 	});
 
-	test("creates and saves every folder", async () => {
+	test("creates the client library and dated ordinary session folders", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -245,21 +263,21 @@ describe("Google Drive scheduled workspace setup", () => {
 
 		expect(driveFake.create.mock.calls.map(([request]) => request.requestBody?.name)).toEqual([
 			"Test account (VV Studios)",
-			"10 Jan 2030 — 11:00 AM",
-			"Raw Media",
-			"Assets",
-			"Deliverables"
+			"_Assets",
+			"10 Jan 2030 - 11:00 AM",
+			"Raw Media (10.1.30)",
+			"Deliverables (10.1.30)"
 		]);
+		expect(state.driveClient).toMatchObject({ assetsFolder: { id: "folder-2" } });
 		expect(state.driveSession).toMatchObject({
-			sessionFolder: { id: "folder-2" },
-			rawMediaFolder: { id: "folder-3" },
-			assetsFolder: { id: "folder-4" },
+			sessionFolder: { id: "folder-3" },
+			rawMediaFolder: { id: "folder-4" },
 			deliverablesFolder: { id: "folder-5" }
 		});
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
 	});
 
-	test("grants client access to Raw Media and sends one assets email", async () => {
+	test("grants client writer access to global assets and emails its reusable link", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -274,21 +292,47 @@ describe("Google Drive scheduled workspace setup", () => {
 			}))
 		).toEqual([
 			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false },
-			{ fileId: "folder-4", role: "writer", sendNotificationEmail: false },
-			{ fileId: "folder-5", role: "commenter", sendNotificationEmail: false }
+			{ fileId: "folder-2", role: "writer", sendNotificationEmail: false }
 		]);
 		expect(
-			driveFake.permissionsCreate.mock.calls.some(([request]) => request.fileId === "folder-3")
+			driveFake.permissionsCreate.mock.calls.some(
+				([request]) => request.fileId === "folder-3" || request.fileId === "folder-5"
+			)
 		).toBe(false);
 		expect(state.driveSession).toMatchObject({
 			clientDrivePermissionsStatus: "ready",
 			assetsEmailStatus: "sent"
 		});
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledWith({
-			assetsUrl: "https://drive.google.com/drive/folders/folder-4",
+			assetsUrl: "https://drive.google.com/drive/folders/folder-2",
 			email: "customer@example.com",
 			name: "Test customer"
 		});
+	});
+
+	test("reuses one global assets library across sessions for the same client", async () => {
+		const t = createConvexTest();
+		const firstBookingId = await seedBooking(t);
+		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
+		const secondBookingId = await seedBooking(t, { sessionStartAt: secondStartAt });
+
+		await runSetup(t, firstBookingId);
+		await runSetup(t, secondBookingId, secondStartAt);
+
+		const assetsFolders = [...driveFake.folders.values()].filter(
+			(folder) => folder.name === "_Assets"
+		);
+		expect(assetsFolders).toHaveLength(1);
+		expect(driveFake.create).toHaveBeenCalledTimes(8);
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(2);
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({ assetsUrl: assetsFolders[0]?.webViewLink })
+		);
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({ assetsUrl: assetsFolders[0]?.webViewLink })
+		);
 	});
 
 	test("retries failed client permissions without recreating folders or resending the email", async () => {
@@ -377,12 +421,12 @@ describe("Google Drive scheduled workspace setup", () => {
 	test("resumes after a partial provider failure", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
-		driveFake.failCreateNameOnce = "Assets";
+		driveFake.failCreateNameOnce = "_Assets";
 
 		await runSetup(t, bookingId);
 		const failedState = await readDriveState(t, bookingId);
-		expect(failedState.driveSession).toMatchObject({ rawMediaFolder: { id: "folder-3" } });
-		expect(failedState.driveSession?.assetsFolder).toBeUndefined();
+		expect(failedState.driveSession).toBeNull();
+		expect(failedState.driveClient?.assetsFolder).toBeUndefined();
 		expect(failedState.booking?.driveSetupFailureCode).toBe("GOOGLE_DRIVE_FOLDER_CREATE_FAILED");
 
 		const retryResult = await t
@@ -390,7 +434,7 @@ describe("Google Drive scheduled workspace setup", () => {
 			.action(api.googleCalendar.retryDriveSetup, { bookingId });
 		const recoveredState = await readDriveState(t, bookingId);
 		expect(retryResult).toEqual([null, null]);
-		expect(recoveredState.driveSession?.assetsFolder).toBeDefined();
+		expect(recoveredState.driveClient?.assetsFolder).toBeDefined();
 		expect(recoveredState.driveSession?.deliverablesFolder).toBeDefined();
 		expect(recoveredState.booking?.driveSetupFailureCode).toBeUndefined();
 		expect(driveFake.create).toHaveBeenCalledTimes(6);
@@ -399,14 +443,14 @@ describe("Google Drive scheduled workspace setup", () => {
 	test("finds a created folder after its create response is lost", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
-		driveFake.loseCreateResponseNameOnce = "Assets";
+		driveFake.loseCreateResponseNameOnce = "_Assets";
 
 		await runSetup(t, bookingId);
 		const state = await readDriveState(t, bookingId);
 
-		expect(state.driveSession?.assetsFolder).toMatchObject({ id: "folder-4" });
+		expect(state.driveClient?.assetsFolder).toMatchObject({ id: "folder-2" });
 		expect(
-			driveFake.create.mock.calls.filter(([request]) => request.requestBody?.name === "Assets")
+			driveFake.create.mock.calls.filter(([request]) => request.requestBody?.name === "_Assets")
 		).toHaveLength(1);
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
 	});
@@ -456,8 +500,13 @@ async function runSetup(
 
 async function seedBooking(
 	t: TestClient,
-	options: { status?: Doc<"bookings">["status"]; withReservation?: boolean } = {}
+	options: {
+		status?: Doc<"bookings">["status"];
+		withReservation?: boolean;
+		sessionStartAt?: number;
+	} = {}
 ) {
+	const bookingStartAt = options.sessionStartAt ?? sessionStartAt;
 	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Test customer",
@@ -466,7 +515,7 @@ async function seedBooking(
 			email: "customer@example.com",
 			date: "2030-01-10",
 			time: "11:00",
-			sessionStartAt,
+			sessionStartAt: bookingStartAt,
 			duration: "1h",
 			service: "Remote Podcast",
 			addons: [],
@@ -475,7 +524,7 @@ async function seedBooking(
 			...(options.withReservation
 				? {
 						reservationCreatedAt: now,
-						reservationSessionStartAt: sessionStartAt,
+						reservationSessionStartAt: bookingStartAt,
 						reservationDuration: "1h"
 					}
 				: {})
@@ -484,11 +533,22 @@ async function seedBooking(
 }
 
 async function readDriveState(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run(async (ctx) => ({
-		booking: await ctx.db.get(bookingId),
-		driveSession: await ctx.db
+	return await t.run(async (ctx) => {
+		const booking = await ctx.db.get(bookingId);
+		const driveClient =
+			booking === null
+				? null
+				: await ctx.db
+						.query("driveClients")
+						.withIndex("by_normalizedEmail", (query) =>
+							query.eq("normalizedEmail", normalizeDriveEmail(booking.email))
+						)
+						.unique();
+		const driveSession = await ctx.db
 			.query("driveSessions")
 			.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
-			.unique()
-	}));
+			.unique();
+
+		return { booking, driveClient, driveSession };
+	});
 }
