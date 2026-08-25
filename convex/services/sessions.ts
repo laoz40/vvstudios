@@ -23,7 +23,7 @@ import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
-import { getDriveStatus } from "#convex/lib/driveRecords";
+import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -95,10 +95,16 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 					.paginate(args.paginationOpts)
 			)
 		)
-		.map((bookingsPage) => ({
-			...bookingsPage,
-			page: bookingsPage.page.filter(isEditorVisibleSession).map(buildEditorSessionProjection)
-		}));
+		.andThen((bookingsPage) => {
+			const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
+			return okOrThrow(
+				Promise.all(
+					visibleSessions.map(async (session) =>
+						buildEditorSessionProjection(session, await getEditorSessionDriveFolders(ctx, session))
+					)
+				)
+			).map((page) => ({ ...bookingsPage, page }));
+		});
 }
 
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {

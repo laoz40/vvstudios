@@ -43,6 +43,21 @@
  * 14. Failure classification
  *     Records only actionable setup failures.
  *
+ * 15. Editor assignment before setup
+ *     Finishes pending editor permissions after folders exist and sends one branded email.
+ *
+ * 16. Editor assignment after setup
+ *     Sets up a later assignment without Google notification emails.
+ *
+ * 17. Shared editor assets access
+ *     Reuses one client assets permission across the editor's sessions.
+ *
+ * 18. Failed editor email replay
+ *     Retries a failed assignment email when editor access setup runs again.
+ *
+ * 19. Editor access recovery
+ *     Tracks provider and email failures separately and protects their retry actions.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -58,7 +73,10 @@ import {
 } from "#convex/lib/googleDrive";
 import { createConvexTest } from "#convex/test.setup";
 
-const emailFake = vi.hoisted(() => ({ sendClientAssetsEmail: vi.fn() }));
+const emailFake = vi.hoisted(() => ({
+	sendClientAssetsEmail: vi.fn(),
+	sendEditorAssignmentEmail: vi.fn()
+}));
 
 const driveFake = vi.hoisted(() => {
 	type Folder = {
@@ -120,7 +138,10 @@ vi.mock("#convex/env", () => ({
 
 vi.mock("#convex/lib/googleAuth", () => ({ getGoogleOAuthClient: () => ({}) }));
 
-vi.mock("#convex/lib/email", () => ({ sendClientAssetsEmail: emailFake.sendClientAssetsEmail }));
+vi.mock("#convex/lib/email", () => ({
+	sendClientAssetsEmail: emailFake.sendClientAssetsEmail,
+	sendEditorAssignmentEmail: emailFake.sendEditorAssignmentEmail
+}));
 
 vi.mock("googleapis", () => ({
 	google: {
@@ -139,6 +160,12 @@ const adminIdentity = {
 	tokenIdentifier: "https://clerk.test|admin",
 	publicMetadata: { role: "admin" }
 };
+const editorIdentity = {
+	subject: "editor",
+	issuer: "https://clerk.test",
+	tokenIdentifier: "https://clerk.test|editor",
+	publicMetadata: { role: "editor" }
+};
 
 type TestClient = ReturnType<typeof createConvexTest>;
 
@@ -151,6 +178,7 @@ beforeEach(() => {
 	driveFake.failPermissionRoleOnce = "";
 	driveFake.loseCreateResponseNameOnce = "";
 	emailFake.sendClientAssetsEmail.mockReturnValue(okAsync(null));
+	emailFake.sendEditorAssignmentEmail.mockReturnValue(okAsync(null));
 
 	driveFake.create.mockImplementation(async (request) => {
 		const name = request.requestBody?.name ?? "";
@@ -474,6 +502,152 @@ describe("Google Drive scheduled workspace setup", () => {
 	});
 });
 
+describe("Google Drive editor access setup", () => {
+	test("finishes an assignment made before folder setup and sends one branded email", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		await runSetup(t, bookingId);
+		await runEditorAccessSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(state.driveSession).toMatchObject({
+			editorDrivePermissionsStatus: "ready",
+			editorDrivePermissionsTokenIdentifier: editorIdentity.tokenIdentifier,
+			assignmentEmailStatus: "sent",
+			assignmentEmailTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		expect(
+			driveFake.permissionsCreate.mock.calls
+				.filter(([request]) => request.requestBody?.emailAddress === "editor@example.com")
+				.map(([request]) => ({
+					fileId: request.fileId,
+					role: request.requestBody?.role,
+					sendNotificationEmail: request.sendNotificationEmail
+				}))
+		).toEqual([
+			{ fileId: "folder-3", role: "reader", sendNotificationEmail: false },
+			{ fileId: "folder-2", role: "reader", sendNotificationEmail: false },
+			{ fileId: "folder-5", role: "writer", sendNotificationEmail: false }
+		]);
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledWith({
+			editorEmail: "editor@example.com",
+			editorName: "Test editor",
+			sessionName: "Test account",
+			sessionStartAt
+		});
+
+		await runEditorAccessSetup(t, bookingId);
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(1);
+	});
+
+	test("sets up access for an assignment made after folders exist", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const bookingId = await seedBooking(t);
+		await runSetup(t, bookingId);
+
+		const assignmentResult = await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId,
+				editorTokenIdentifier: editorIdentity.tokenIdentifier
+			});
+		const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		await runEditorAccessSetup(t, bookingId);
+
+		expect(assignmentResult).toEqual([null, null]);
+		expect(jobs).toHaveLength(1);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			editorDrivePermissionsStatus: "ready",
+			assignmentEmailStatus: "sent"
+		});
+	});
+
+	test("reuses one assets permission for the same client and editor", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const firstBookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
+		const secondBookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+			sessionStartAt: secondStartAt
+		});
+
+		await runSetup(t, firstBookingId);
+		await runSetup(t, secondBookingId, secondStartAt);
+
+		const assetsPermissionCreates = driveFake.permissionsCreate.mock.calls.filter(
+			([request]) =>
+				request.fileId === "folder-2" && request.requestBody?.emailAddress === "editor@example.com"
+		);
+		const savedPermissions = await t.run((ctx) =>
+			ctx.db.query("driveClientEditorPermissions").take(2)
+		);
+		expect(assetsPermissionCreates).toHaveLength(1);
+		expect(savedPermissions).toHaveLength(1);
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(2);
+	});
+
+	test("retries a failed assignment email when editor access setup runs again", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		emailFake.sendEditorAssignmentEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
+
+		await runSetup(t, bookingId);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			assignmentEmailStatus: "failed"
+		});
+
+		expect(await runEditorAccessSetup(t, bookingId)).toEqual([null, null]);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			assignmentEmailStatus: "sent"
+		});
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(2);
+	});
+
+	test("tracks an assignment email failure separately and protects its retry", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		emailFake.sendEditorAssignmentEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
+
+		await runSetup(t, bookingId);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			editorDrivePermissionsStatus: "ready",
+			assignmentEmailStatus: "failed"
+		});
+		expect(await t.action(api.drive.retryEditorAssignmentEmail, { bookingId })).toEqual([
+			{ reason: "NOT_AUTHENTICATED" },
+			null
+		]);
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.drive.retryEditorAssignmentEmail, { bookingId });
+		expect(retryResult).toEqual([null, null]);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			assignmentEmailStatus: "sent"
+		});
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(2);
+	});
+});
+
 describe("Google Drive setup failure classification", () => {
 	test("records only actionable Drive setup failures", () => {
 		expect(shouldRecordDriveSetupFailure({ reason: "GOOGLE_DRIVE_FOLDER_CREATE_FAILED" })).toBe(
@@ -501,6 +675,7 @@ async function runSetup(
 async function seedBooking(
 	t: TestClient,
 	options: {
+		assignedEditorTokenIdentifier?: string;
 		status?: Doc<"bookings">["status"];
 		withReservation?: boolean;
 		sessionStartAt?: number;
@@ -519,6 +694,7 @@ async function seedBooking(
 			duration: "1h",
 			service: "Remote Podcast",
 			addons: [],
+			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
 			...(options.withReservation
@@ -530,6 +706,23 @@ async function seedBooking(
 				: {})
 		})
 	);
+}
+
+async function seedEditor(t: TestClient) {
+	return await t.run((ctx) =>
+		ctx.db.insert("editorProfiles", {
+			tokenIdentifier: editorIdentity.tokenIdentifier,
+			displayName: "Test editor",
+			email: "editor@example.com",
+			isActive: true,
+			lastAssignedAt: null,
+			totalEdits: 0
+		})
+	);
+}
+
+async function runEditorAccessSetup(t: TestClient, bookingId: Id<"bookings">) {
+	return await t.action(internal.drive.setupEditorAccess, { bookingId });
 }
 
 async function readDriveState(t: TestClient, bookingId: Id<"bookings">) {

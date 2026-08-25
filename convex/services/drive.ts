@@ -14,6 +14,7 @@ import {
 } from "#convex/lib/driveSetup";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/driveClientPermissions";
+import { setupEditorAccess } from "#convex/lib/driveEditorPermissions";
 
 export type { SetupError } from "#convex/lib/driveSetup";
 
@@ -44,6 +45,7 @@ function setupFoldersAndRecordResult(
 	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
 ): ResultAsync<null, SetupError> {
 	return (
+		// Create or recover every folder, then mark the folder setup as complete.
 		loadValidatedSetup(ctx, args)
 			.andThen((setupInfo) => createDriveFolders(ctx, setupInfo))
 			.andThen(() =>
@@ -51,13 +53,18 @@ function setupFoldersAndRecordResult(
 					ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId: args.bookingId })
 				)
 			)
-			// Folder setup remains ready when permissions or email delivery fails.
+			// Client access and its email fail independently from folder setup.
 			.andThen(() =>
 				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
 					bookingId: args.bookingId,
 					attempt: "automatic"
 				}).orElse(() => okAsync(null))
 			)
+			// Editor access also fails independently and has its own admin retry.
+			.andThen(() =>
+				setupEditorAccess(ctx, { bookingId: args.bookingId }).orElse(() => okAsync(null))
+			)
+			// Only folder setup errors are saved on the booking here.
 			.orElse((setupError) => {
 				if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
 				return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
@@ -78,7 +85,11 @@ export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"booking
 				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
 					bookingId: args.bookingId,
 					attempt: "automatic"
-				}).orElse(() => okAsync(null))
+				})
+					.orElse(() => okAsync(null))
+					.andThen(() =>
+						setupEditorAccess(ctx, { bookingId: args.bookingId }).orElse(() => okAsync(null))
+					)
 			);
 		});
 }

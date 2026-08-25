@@ -25,7 +25,6 @@ Booking website for podcast studio.
 - If a problem can be solved in a simpler way, propose it
 - Always apply YAGNI principle
 - Annotate complex/long functions and conditionals with simple comments to make the flow easier to understand.
-- When responding, explain functions that were added or edited for each file of the last turn, and why
 
 ## Code Style Guidelines
 

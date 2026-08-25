@@ -5,13 +5,17 @@ import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
 import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
+import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { MultiBookingSchedulingEmail } from "#studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
-import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
+import {
+	formatBookingTimeRange,
+	formatDriveSessionMediaFolderName
+} from "#studio/lib/bookingdatetime";
 import { env } from "#convex/env";
 import {
 	formatSessionDateLong,
@@ -99,6 +103,13 @@ interface SendClientAssetsEmailArgs {
 	assetsUrl: string;
 	email: string;
 	name: string;
+}
+
+interface SendEditorAssignmentEmailArgs {
+	editorEmail: string;
+	editorName: string;
+	sessionName: string;
+	sessionStartAt: number;
 }
 
 interface SendSessionDeliverablesEmailArgs {
@@ -614,6 +625,36 @@ export function sendClientAssetsEmail({ assetsUrl, email, name }: SendClientAsse
 			subject: "Anything you'd like us to use in your video edit?",
 			html,
 			idempotencyKey: `client-assets:${assetsUrl}`
+		})
+	);
+}
+
+export function sendEditorAssignmentEmail({
+	editorEmail,
+	editorName,
+	sessionName,
+	sessionStartAt
+}: SendEditorAssignmentEmailArgs) {
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+	const sessionDate = formatTimestampDateLong(sessionStartAt);
+
+	return ResultAsync.fromSafePromise(
+		render(
+			createElement(EditorAssignmentEmail, {
+				deliverablesFolderName: formatDriveSessionMediaFolderName("Deliverables", sessionStartAt),
+				editorName,
+				rawMediaFolderName: formatDriveSessionMediaFolderName("Raw Media", sessionStartAt),
+				sessionLabel: `${sessionName}, ${sessionDate}`,
+				signoffName
+			})
+		)
+	).andThen((html) =>
+		sendEmail({
+			to: [editorEmail],
+			subject: `New edit assigned: ${sessionName}, ${sessionDate}`,
+			html,
+			idempotencyKey: `editor-assignment:${editorEmail}:${sessionStartAt}`
 		})
 	);
 }

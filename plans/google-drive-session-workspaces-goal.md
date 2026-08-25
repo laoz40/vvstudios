@@ -131,7 +131,7 @@ Completion does not remove editor access. Only unassignment does.
 
 ### Assignment changes
 
-Save the database assignment even when Google is unavailable. Track Drive synchronization separately.
+Save the database assignment even when Google is unavailable. Track Drive access setup separately.
 
 On reassignment, remove the old editor's managed session and deliverables permissions before granting the new editor access. Remove the old editor's `_Assets` permission only when they have no other active assignment for the same client. Apply the same rule on unassignment. Accept that former editors retain files they own.
 

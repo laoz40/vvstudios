@@ -137,7 +137,15 @@ export function saveSessionEditStatus(
 	);
 }
 
-export function buildEditorSessionProjection(session: Doc<"bookings">) {
+export function buildEditorSessionProjection(
+	session: Doc<"bookings">,
+	driveFolders: {
+		assets: { id: string; url: string };
+		deliverables: { id: string; url: string };
+		rawMedia: { id: string; url: string };
+		session: { id: string; url: string };
+	} | null
+) {
 	return {
 		_id: session._id,
 		name: session.name,
@@ -154,6 +162,7 @@ export function buildEditorSessionProjection(session: Doc<"bookings">) {
 		addons: session.addons,
 		essentialEditQuantity: session.essentialEditQuantity,
 		clipsPackageQuantity: session.clipsPackageQuantity,
-		editStatus: session.editStatus
+		editStatus: session.editStatus,
+		driveFolders
 	};
 }

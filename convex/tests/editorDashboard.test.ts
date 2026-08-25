@@ -771,6 +771,7 @@ describe("restricted editor session query", () => {
 					],
 					essentialEditQuantity: "2",
 					clipsPackageQuantity: "3",
+					driveFolders: null,
 					editStatus: "editing"
 				}
 			]
@@ -788,6 +789,7 @@ describe("restricted editor session query", () => {
 				"date",
 				"deliverablesClientNotes",
 				"deliverablesDriveLink",
+				"driveFolders",
 				"duration",
 				"editStatus",
 				"editorNotes",

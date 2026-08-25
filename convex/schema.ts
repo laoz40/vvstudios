@@ -14,6 +14,8 @@ const drivePermissionValidator = v.object({
 });
 const clientDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
 const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
+const editorDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const assignmentEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
 const packageReminderStateValidator = v.union(
 	v.object({
@@ -53,6 +55,17 @@ export default defineSchema({
 		createdAt: v.number()
 	}).index("by_normalizedEmail", ["normalizedEmail"]),
 
+	driveClientEditorPermissions: defineTable({
+		driveClientId: v.id("driveClients"),
+		editorTokenIdentifier: v.string(),
+		assetsPermission: drivePermissionValidator,
+		createdAt: v.number(),
+		updatedAt: v.number()
+	}).index("by_driveClientId_and_editorTokenIdentifier", [
+		"driveClientId",
+		"editorTokenIdentifier"
+	]),
+
 	driveSessions: defineTable({
 		bookingId: v.id("bookings"),
 		driveClientId: v.id("driveClients"),
@@ -63,6 +76,13 @@ export default defineSchema({
 		assetsEmailStatus: v.optional(assetsEmailStatusValidator),
 		assetsEmailFolderId: v.optional(v.string()),
 		assetsEmailClaimedAt: v.optional(v.number()),
+		editorDrivePermissionsStatus: v.optional(editorDrivePermissionsStatusValidator),
+		editorDrivePermissionsTokenIdentifier: v.optional(v.string()),
+		editorSessionPermission: v.optional(drivePermissionValidator),
+		editorDeliverablesPermission: v.optional(drivePermissionValidator),
+		assignmentEmailStatus: v.optional(assignmentEmailStatusValidator),
+		assignmentEmailTokenIdentifier: v.optional(v.string()),
+		assignmentEmailClaimedAt: v.optional(v.number()),
 		createdAt: v.number(),
 		updatedAt: v.number()
 	}).index("by_bookingId", ["bookingId"]),

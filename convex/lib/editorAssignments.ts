@@ -1,4 +1,5 @@
 import { err, ok, type Result } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editorAccess";
@@ -70,6 +71,9 @@ function saveSessionEditorAssignment(
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
 			if (editor !== undefined) {
 				await ctx.db.patch(editor._id, { lastAssignedAt: Date.now() });
+				await ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, {
+					bookingId: session._id
+				});
 			}
 
 			return null;

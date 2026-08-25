@@ -13,7 +13,7 @@ Build the workflow in `plans/google-drive-session-workspaces-goal.md` as thin ve
 - Create session folders after the scheduled session end.
 - Do not create historical workspaces or add a backfill.
 - There is no live Drive workspace data. Replace per-session assets directly without a migration or backfill.
-- Keep database assignment authoritative when Drive synchronization fails.
+- Keep database assignment authoritative when Drive access setup fails.
 - Track folders, client folder permissions, editor access, and each email separately.
 - Never delete Drive content or recreate missing folders without admin confirmation.
 - Accept the My Drive ownership limits in the goal document.
@@ -104,7 +104,7 @@ Update folder status and recovery controls to show the global `_Assets` folder s
 
 Check after step: cover first-client-folder creation, reuse across ordinary and package sessions, partial setup and retry, no per-session assets folder, client writer access, the reusable assets email link, dated deliverables names, and authorization.
 
-### Step 5: Synchronize one editor assignment
+### Step 5: Set up access for one editor assignment
 
 Extend the existing assignment flow after its database transaction succeeds. If the folders exist, grant the assigned editor:
 
@@ -115,16 +115,17 @@ Extend the existing assignment flow after its database transaction succeeds. If 
 
 Add `driveClientEditorPermissions` when implementing this step. Store one `_Assets` permission per client and editor pair so shared access can be reused across that editor's sessions for the client.
 
-If assignment happens first, keep Drive synchronization pending and finish it after folder setup. Keep the database assignment when Google fails.
+If assignment happens first, keep Drive access setup pending and finish it after folder setup. Keep the database assignment when Google fails.
 
 After every required permission succeeds, suppress Google's permission email and send one branded assignment email. Write it for an editor completing this workflow for the first time. Tell them which session they have been assigned and include one prominent `Open editor dashboard` link to `/admin`. Do not include separate Drive folder links. The dashboard session page must provide access to the session folder, dated `Raw Media`, client `_Assets`, and dated `Deliverables`. Use clear action labels and explain what each folder is for. Present this workflow as a numbered list:
 
 1. **Start the edit.** Open the editor dashboard, find the assigned session, and click `Start editing` before working on the files. Explain that this lets the team know editing has begun.
-2. **Get the files.** Open the session folder and download the recorded footage from `Raw Media (D.M.YY)`. Open the client's separate `_Assets` folder for reusable files supplied by the client. Use the client's grouping or file descriptions to find assets for this episode.
-3. **Upload the finished edit.** Put every file the client needs to review in `Deliverables (D.M.YY)`.
+2. **Get the files.** Open the session folder and download the recorded footage from `Raw Media (D.M.YY)`. Open the client's separate `_Assets` folder to see if any relevant files supplied by the client e.g. brand guidelines, logo, etc.
+3. **Upload the finished edit.** Put edited files for client in `Deliverables (D.M.YY)`.
 4. **Send it for review.** Return to the session in the dashboard and click `Ready to review` only after the finished files are in `Deliverables (D.M.YY)`.
 
 Make the dashboard link prominent. Do not assume the editor already understands the folder structure or status workflow.
+also make it clear they would need to press the ... 3 dots button on the right of the dashboard to open the options for each session to start editing, access drive folders etc.
 
 Add separate admin status and retry controls for editor access and assignment-email delivery. Keep `/admin` as the dashboard URL for now; it can be renamed separately in the future.
 

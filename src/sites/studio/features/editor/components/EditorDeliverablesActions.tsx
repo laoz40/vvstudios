@@ -12,6 +12,7 @@ import {
 import CheckedIcon from "#/components/ui/checked-icon";
 import KeyframesIcon from "#/components/ui/keyframes-icon";
 import PenIcon from "#/components/ui/pen-icon";
+import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
@@ -19,7 +20,13 @@ import { SessionEditorNotesDialog } from "#studio/features/editor/components/Ses
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
 import { DeliverablesReviewDialog } from "#studio/features/editor/components/DeliverablesReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
-type DeliverablesDialogState = { status: "closed" } | { status: "notes" } | { status: "review" };
+import { EditorDriveFoldersDialog } from "#studio/features/editor/components/EditorDriveFoldersDialog";
+
+type DeliverablesDialogState =
+	| { status: "closed" }
+	| { status: "drive" }
+	| { status: "notes" }
+	| { status: "review" };
 
 export function EditorDeliverablesActions({
 	session,
@@ -96,6 +103,18 @@ export function EditorDeliverablesActions({
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
 					<DropdownMenuGroup>
+						<AnimatedDropdownMenuItem
+							onSelect={() => setDialog({ status: "drive" })}
+							renderIcon={(iconRef) => (
+								<BrandGoogleIcon
+									ref={iconRef}
+									size={16}
+									aria-hidden
+									className="shrink-0 text-current"
+								/>
+							)}>
+							Google Drive folders
+						</AnimatedDropdownMenuItem>
 						{canManageDeliverables ? (
 							<>
 								<AnimatedDropdownMenuItem
@@ -124,7 +143,7 @@ export function EditorDeliverablesActions({
 											className="shrink-0 text-current"
 										/>
 									)}>
-									Submit for review
+									Ready to review
 								</AnimatedDropdownMenuItem>
 							</>
 						) : null}
@@ -144,6 +163,11 @@ export function EditorDeliverablesActions({
 					</DropdownMenuGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			<EditorDriveFoldersDialog
+				session={session}
+				open={dialog.status === "drive"}
+				onOpenChange={(open) => setDialog({ status: open ? "drive" : "closed" })}
+			/>
 			{dialog.status === "notes" ? (
 				<SessionEditorNotesDialog
 					bookingId={session._id}

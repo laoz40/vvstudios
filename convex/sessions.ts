@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { tupleErr, tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
@@ -14,6 +14,14 @@ import {
 	saveDriveClientFolder as saveDriveClientFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
+} from "#convex/lib/driveRecords";
+import type { EditorDriveSetupRecord, EditorDriveSetupRecordError } from "#convex/lib/driveRecords";
+import {
+	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
+	getEditorDriveSetup as loadEditorDriveSetup,
+	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
+	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
+	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
 } from "#convex/lib/driveRecords";
 import {
 	archiveSessionService,
@@ -114,6 +122,46 @@ export const saveClientAssetsEmailResult = internalMutation({
 		status: v.union(v.literal("sent"), v.literal("failed"))
 	},
 	handler: (ctx, args) => saveClientAssetsEmailResultRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const getEditorDriveSetup = internalQuery({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<EditorDriveSetupRecord, EditorDriveSetupRecordError>> =>
+		loadEditorDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+});
+
+export const saveEditorDrivePermission = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		editorTokenIdentifier: v.string(),
+		name: v.union(v.literal("Assets"), v.literal("Deliverables"), v.literal("Session")),
+		permission: savedDrivePermissionValidator
+	},
+	handler: (ctx, args) => saveEditorDrivePermissionRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveEditorDrivePermissionsStatus = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		editorTokenIdentifier: v.string(),
+		status: v.union(v.literal("failed"), v.literal("ready"))
+	},
+	handler: (ctx, args) => saveEditorDrivePermissionsStatusRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const claimEditorAssignmentEmail = internalMutation({
+	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string(), now: v.number() },
+	handler: (ctx, args) => claimEditorAssignmentEmailRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveEditorAssignmentEmailResult = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		claimedAt: v.number(),
+		editorTokenIdentifier: v.string(),
+		status: v.union(v.literal("failed"), v.literal("sent"))
+	},
+	handler: (ctx, args) => saveEditorAssignmentEmailResultRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const detectDeliverablesCustomerType = internalQuery({

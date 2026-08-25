@@ -1,4 +1,4 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -8,7 +8,7 @@ import type {
 	SavedDrivePermission
 } from "#convex/lib/googleDrive";
 
-export const CLIENT_ASSETS_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 type ClientDrivePermissionsStatus = "failed" | "ready";
 type ClientDrivePermissionsDisplayStatus = "failed" | "incomplete" | "not_created" | "ready";
@@ -141,8 +141,364 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 		const driveSession = setupInfo?.driveSession ?? null;
 		return {
 			...buildDriveStatus(driveClient, driveSession, booking?.driveSetupFailureCode !== undefined),
-			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession)
+			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession),
+			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession)
 		};
+	});
+}
+
+export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
+	const editorTokenIdentifier = booking.assignedEditorTokenIdentifier;
+	if (editorTokenIdentifier === undefined) return null;
+	const driveSession = await ctx.db
+		.query("driveSessions")
+		.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
+		.unique();
+	if (
+		driveSession === null ||
+		driveSession.editorDrivePermissionsStatus !== "ready" ||
+		driveSession.editorDrivePermissionsTokenIdentifier !== editorTokenIdentifier
+	) {
+		return null;
+	}
+	const driveClient = await ctx.db.get(driveSession.driveClientId);
+	if (
+		driveClient?.assetsFolder === undefined ||
+		driveSession.sessionFolder === undefined ||
+		driveSession.rawMediaFolder === undefined ||
+		driveSession.deliverablesFolder === undefined
+	) {
+		return null;
+	}
+	return {
+		assets: driveClient.assetsFolder,
+		deliverables: driveSession.deliverablesFolder,
+		rawMedia: driveSession.rawMediaFolder,
+		session: driveSession.sessionFolder
+	};
+}
+
+function buildEditorDrivePermissionsStatus(
+	booking: Doc<"bookings"> | undefined,
+	driveSession: Doc<"driveSessions"> | null
+) {
+	const editorTokenIdentifier = booking?.assignedEditorTokenIdentifier;
+	if (editorTokenIdentifier === undefined) {
+		return { status: "not_assigned" as const, assignmentEmailStatus: "not_sent" as const };
+	}
+
+	if (
+		driveSession === null ||
+		driveSession.editorDrivePermissionsTokenIdentifier !== editorTokenIdentifier
+	) {
+		return { status: "pending" as const, assignmentEmailStatus: "not_sent" as const };
+	}
+
+	const status: "failed" | "pending" | "ready" =
+		driveSession.editorDrivePermissionsStatus ?? "pending";
+	let assignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent" = "not_sent";
+	if (driveSession.assignmentEmailTokenIdentifier === editorTokenIdentifier) {
+		assignmentEmailStatus =
+			driveSession.assignmentEmailStatus ??
+			(driveSession.assignmentEmailClaimedAt === undefined ? "not_sent" : "pending");
+	}
+
+	return { status, assignmentEmailStatus };
+}
+
+export type EditorDriveSetupRecord = {
+	booking: Doc<"bookings">;
+	driveClient: Doc<"driveClients">;
+	driveSession: Doc<"driveSessions">;
+	editor: Doc<"editorProfiles">;
+};
+
+export type EditorDriveSetupRecordError = {
+	reason:
+		| "BOOKING_NOT_FOUND"
+		| "DRIVE_FOLDERS_NOT_READY"
+		| "EDITOR_NOT_ACTIVE"
+		| "EDITOR_NOT_ASSIGNED";
+};
+
+export function getEditorDriveSetup(
+	ctx: QueryCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<EditorDriveSetupRecord, EditorDriveSetupRecordError> {
+	return getDriveSetup(ctx, bookingId).andThen((setup) => {
+		if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+		const editorTokenIdentifier = setup.booking.assignedEditorTokenIdentifier;
+		if (editorTokenIdentifier === undefined) {
+			return errAsync({ reason: "EDITOR_NOT_ASSIGNED" as const });
+		}
+		if (setup.driveClient === null || setup.driveSession === null) {
+			return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
+		}
+
+		return okOrThrow(
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorTokenIdentifier)
+				)
+				.unique()
+		).andThen((editor) => {
+			if (editor === null || !editor.isActive) {
+				return err({ reason: "EDITOR_NOT_ACTIVE" as const });
+			}
+			return ok({
+				...setup,
+				driveClient: setup.driveClient!,
+				driveSession: setup.driveSession!,
+				editor
+			});
+		});
+	});
+}
+
+export function saveEditorDrivePermission(
+	ctx: MutationCtx,
+	args: {
+		bookingId: Id<"bookings">;
+		editorTokenIdentifier: string;
+		name: "Assets" | "Deliverables" | "Session";
+		permission: SavedDrivePermission;
+	}
+) {
+	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
+		if (
+			setup === null ||
+			setup.driveClient === null ||
+			setup.driveSession === null ||
+			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
+		) {
+			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		}
+
+		switch (args.name) {
+			case "Assets":
+				// Assets access is shared across every session for this client and editor.
+				return saveEditorAssetsPermission(ctx, {
+					driveClientId: setup.driveClient._id,
+					editorTokenIdentifier: args.editorTokenIdentifier,
+					permission: args.permission
+				});
+			case "Session":
+				// Session-specific permissions stay on the session's Drive record.
+				return saveEditorSessionPermission(ctx, {
+					driveSessionId: setup.driveSession._id,
+					editorTokenIdentifier: args.editorTokenIdentifier,
+					field: "editorSessionPermission",
+					permission: args.permission
+				});
+			case "Deliverables":
+				return saveEditorSessionPermission(ctx, {
+					driveSessionId: setup.driveSession._id,
+					editorTokenIdentifier: args.editorTokenIdentifier,
+					field: "editorDeliverablesPermission",
+					permission: args.permission
+				});
+			default: {
+				const _exhaustive: never = args.name;
+				return _exhaustive;
+			}
+		}
+	});
+}
+
+function saveEditorAssetsPermission(
+	ctx: MutationCtx,
+	args: {
+		driveClientId: Id<"driveClients">;
+		editorTokenIdentifier: string;
+		permission: SavedDrivePermission;
+	}
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveClientEditorPermissions")
+			.withIndex("by_driveClientId_and_editorTokenIdentifier", (query) =>
+				query
+					.eq("driveClientId", args.driveClientId)
+					.eq("editorTokenIdentifier", args.editorTokenIdentifier)
+			)
+			.unique()
+	).andThen((existing) => {
+		if (existing !== null) return ok(null);
+		const now = Date.now();
+		return okOrThrow(
+			ctx.db
+				.insert("driveClientEditorPermissions", {
+					driveClientId: args.driveClientId,
+					editorTokenIdentifier: args.editorTokenIdentifier,
+					assetsPermission: args.permission,
+					createdAt: now,
+					updatedAt: now
+				})
+				.then(() => null)
+		);
+	});
+}
+
+function saveEditorSessionPermission(
+	ctx: MutationCtx,
+	args: {
+		driveSessionId: Id<"driveSessions">;
+		editorTokenIdentifier: string;
+		field: "editorDeliverablesPermission" | "editorSessionPermission";
+		permission: SavedDrivePermission;
+	}
+) {
+	return okOrThrow(
+		ctx.db
+			.patch(args.driveSessionId, {
+				[args.field]: args.permission,
+				editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
+}
+
+export function saveEditorDrivePermissionsStatus(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; status: "failed" | "ready" }
+) {
+	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
+		if (
+			setup?.driveSession === null ||
+			setup?.driveSession === undefined ||
+			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
+		) {
+			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		}
+		return okOrThrow(
+			ctx.db
+				.patch(setup.driveSession._id, {
+					editorDrivePermissionsStatus: args.status,
+					editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
+					updatedAt: Date.now()
+				})
+				.then(() => null)
+		);
+	});
+}
+
+type ClaimEditorAssignmentEmailArgs = {
+	bookingId: Id<"bookings">;
+	editorTokenIdentifier: string;
+	now: number;
+};
+
+function canClaimEditorAssignmentEmail(
+	driveSession: Doc<"driveSessions">,
+	args: ClaimEditorAssignmentEmailArgs
+) {
+	const emailMatchesEditor =
+		driveSession.assignmentEmailTokenIdentifier === args.editorTokenIdentifier;
+	if (!emailMatchesEditor) return true;
+	const claimedRecently =
+		driveSession.assignmentEmailClaimedAt !== undefined &&
+		args.now - driveSession.assignmentEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS;
+	if (claimedRecently) return false;
+	switch (driveSession.assignmentEmailStatus) {
+		case "failed":
+		case undefined:
+			return true;
+		case "sent":
+			return false;
+		default: {
+			const _exhaustive: never = driveSession.assignmentEmailStatus;
+			return _exhaustive;
+		}
+	}
+}
+
+export function claimEditorAssignmentEmail(ctx: MutationCtx, args: ClaimEditorAssignmentEmailArgs) {
+	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
+		// The email belongs to the current editor and can only follow completed Drive access.
+		if (
+			setup?.driveSession === null ||
+			setup?.driveSession === undefined ||
+			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
+			setup.driveSession.editorDrivePermissionsStatus !== "ready" ||
+			setup.driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
+		) {
+			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+		}
+
+		const driveSession = setup.driveSession;
+		// Reject duplicate, recent, or already completed attempts.
+		if (!canClaimEditorAssignmentEmail(driveSession, args)) {
+			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+		}
+
+		// Load the current editor so the claim contains the final email details.
+		return okOrThrow(
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", args.editorTokenIdentifier)
+				)
+				.unique()
+		).andThen((editor) => {
+			if (editor === null || !editor.isActive) {
+				return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+			}
+			// Save the claim before sending so another action cannot claim it concurrently.
+			return okOrThrow(
+				ctx.db
+					.patch(driveSession._id, {
+						assignmentEmailClaimedAt: args.now,
+						assignmentEmailStatus: undefined,
+						assignmentEmailTokenIdentifier: args.editorTokenIdentifier,
+						updatedAt: Date.now()
+					})
+					.then(() => ({
+						bookingId: setup.booking._id,
+						claimedAt: args.now,
+						editorEmail: editor.email,
+						editorName: editor.displayName,
+						editorTokenIdentifier: args.editorTokenIdentifier,
+						sessionName: setup.booking.accountName.trim() || setup.booking.name,
+						sessionStartAt: setup.booking.sessionStartAt
+					}))
+			);
+		});
+	});
+}
+
+export function saveEditorAssignmentEmailResult(
+	ctx: MutationCtx,
+	args: {
+		bookingId: Id<"bookings">;
+		claimedAt: number;
+		editorTokenIdentifier: string;
+		status: "failed" | "sent";
+	}
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (
+			driveSession === null ||
+			driveSession.assignmentEmailClaimedAt !== args.claimedAt ||
+			driveSession.assignmentEmailTokenIdentifier !== args.editorTokenIdentifier
+		) {
+			return ok(null);
+		}
+		return okOrThrow(
+			ctx.db
+				.patch(driveSession._id, {
+					assignmentEmailClaimedAt: undefined,
+					assignmentEmailStatus: args.status,
+					updatedAt: Date.now()
+				})
+				.then(() => null)
+		);
 	});
 }
 
@@ -394,7 +750,7 @@ export function claimClientAssetsEmail(
 				assetsFolder === undefined ||
 				isEmailCurrent ||
 				(driveSession.assetsEmailClaimedAt !== undefined &&
-					args.now - driveSession.assetsEmailClaimedAt < CLIENT_ASSETS_EMAIL_CLAIM_TIMEOUT_MS) ||
+					args.now - driveSession.assetsEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS) ||
 				!canClaimClientAssetsEmail(args.attempt, driveSession.assetsEmailStatus, isEmailCurrent)
 			) {
 				return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });

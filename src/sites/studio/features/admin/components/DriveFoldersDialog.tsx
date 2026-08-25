@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type Result } from "#/lib/result";
 import {
 	Dialog,
 	DialogContent,
@@ -24,6 +24,10 @@ type DriveStatus = "failed" | "not_created" | "incomplete" | "ready";
 type ClientDrivePermissionsStatus = {
 	status: DriveStatus;
 	assetsEmailStatus: "failed" | "not_sent" | "pending" | "sent";
+};
+type EditorDrivePermissionsStatus = {
+	status: "failed" | "not_assigned" | "pending" | "ready";
+	assignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent";
 };
 
 type SavedFolder = { name: string; url?: string };
@@ -208,98 +212,143 @@ function SavedFolderLinks({
 	);
 }
 
-function ClientDrivePermissionsDetails({
-	clientDrivePermissions
+function DriveStatusRow({
+	isComplete,
+	completeLabel,
+	attentionLabel
 }: {
-	clientDrivePermissions: ClientDrivePermissionsStatus | undefined;
+	isComplete: boolean;
+	completeLabel: string;
+	attentionLabel: string;
 }) {
-	if (clientDrivePermissions === undefined || clientDrivePermissions.status === "not_created") {
-		return null;
-	}
-
-	const hasFolderAccess = clientDrivePermissions.status === "ready";
-	const hasSentAssetsEmail = clientDrivePermissions.assetsEmailStatus === "sent";
-
 	return (
-		<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
-			<div className="flex items-center gap-2">
-				{hasFolderAccess ? (
-					<Check
-						className="size-4 text-primary"
-						aria-hidden
-					/>
-				) : (
-					<X
-						className="size-4 text-destructive"
-						aria-hidden
-					/>
-				)}
-				<span>
-					{hasFolderAccess
-						? "Google Drive permissions set up"
-						: "Google Drive permissions needs attention"}
-				</span>
-			</div>
-			<div className="flex items-center gap-2">
-				{hasSentAssetsEmail ? (
-					<Check
-						className="size-4 text-primary"
-						aria-hidden
-					/>
-				) : (
-					<X
-						className="size-4 text-destructive"
-						aria-hidden
-					/>
-				)}
-				<span>
-					{hasSentAssetsEmail ? "Assets email sent to client" : "Assets email not sent to client"}
-				</span>
-			</div>
+		<div className="flex items-center gap-2">
+			{isComplete ? (
+				<Check
+					className="size-4 text-primary"
+					aria-hidden
+				/>
+			) : (
+				<X
+					className="size-4 text-destructive"
+					aria-hidden
+				/>
+			)}
+			<span>{isComplete ? completeLabel : attentionLabel}</span>
 		</div>
 	);
 }
 
-function ClientDrivePermissionsRetryButton({
-	bookingId,
-	clientDrivePermissions
+function DrivePermissionsDetails({
+	clientDrivePermissions,
+	editorDrivePermissions
 }: {
-	bookingId: Id<"bookings">;
 	clientDrivePermissions: ClientDrivePermissionsStatus | undefined;
+	editorDrivePermissions: EditorDrivePermissionsStatus | undefined;
 }) {
-	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
-	const [isRetrying, setIsRetrying] = useState(false);
-	const canRetry =
-		clientDrivePermissions?.status === "failed" ||
-		clientDrivePermissions?.status === "incomplete" ||
-		clientDrivePermissions?.assetsEmailStatus === "failed";
+	const showClientStatus =
+		clientDrivePermissions !== undefined && clientDrivePermissions.status !== "not_created";
+	const showEditorStatus =
+		editorDrivePermissions !== undefined && editorDrivePermissions.status !== "not_assigned";
 
-	if (!canRetry) return null;
+	if (!showClientStatus && !showEditorStatus) return null;
+
+	return (
+		<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
+			{showClientStatus ? (
+				<>
+					<DriveStatusRow
+						isComplete={clientDrivePermissions.status === "ready"}
+						completeLabel="Google Drive permissions set up for client"
+						attentionLabel="Google Drive permissions for client need attention"
+					/>
+					<DriveStatusRow
+						isComplete={clientDrivePermissions.assetsEmailStatus === "sent"}
+						completeLabel="Assets email sent to client"
+						attentionLabel="Assets email not sent to client"
+					/>
+				</>
+			) : null}
+			{showEditorStatus ? (
+				<>
+					<DriveStatusRow
+						isComplete={editorDrivePermissions.status === "ready"}
+						completeLabel="Google Drive permissions set up for editor"
+						attentionLabel="Google Drive permissions for editor need attention"
+					/>
+					<DriveStatusRow
+						isComplete={editorDrivePermissions.assignmentEmailStatus === "sent"}
+						completeLabel="Assignment email sent to editor"
+						attentionLabel="Assignment email not sent to editor"
+					/>
+				</>
+			) : null}
+		</div>
+	);
+}
+
+function getDriveRetryVisibility({
+	client,
+	editor,
+	driveFoldersReady
+}: {
+	client: ClientDrivePermissionsStatus | undefined;
+	editor: EditorDrivePermissionsStatus | undefined;
+	driveFoldersReady: boolean;
+}) {
+	return {
+		client:
+			client?.status === "failed" ||
+			client?.status === "incomplete" ||
+			client?.assetsEmailStatus === "failed",
+		editorAccess:
+			editor?.status === "failed" || (driveFoldersReady && editor?.status === "pending"),
+		editorEmail: editor?.status === "ready" && editor.assignmentEmailStatus === "failed"
+	};
+}
+
+function DriveRetryButton({
+	show,
+	run,
+	label,
+	pendingLabel,
+	errorMessage,
+	successMessage
+}: {
+	show: boolean;
+	run: () => Promise<Result<unknown, { reason: string }>>;
+	label: string;
+	pendingLabel: string;
+	errorMessage: string;
+	successMessage: string;
+}) {
+	const [isRunning, setIsRunning] = useState(false);
+
+	if (!show) return null;
 
 	async function handleRetry() {
-		setIsRetrying(true);
-		const [error] = await tryCatch(retryClientDrivePermissions({ bookingId }));
-		setIsRetrying(false);
-
-		if (error) {
-			toast.error("Client folder permissions could not be completed.");
+		setIsRunning(true);
+		const [error] = await tryCatch(run());
+		setIsRunning(false);
+		if (error !== null) {
+			toast.error(errorMessage);
 			return;
 		}
-		toast.success("Client folder permissions updated.");
+		toast.success(successMessage);
 	}
 
 	return (
 		<Button
 			type="button"
-			disabled={isRetrying}
+			disabled={isRunning}
 			onClick={() => void handleRetry()}>
-			{isRetrying ? (
+			{isRunning ? (
 				<LoaderCircle
 					className="animate-spin"
 					aria-hidden
 				/>
 			) : null}
-			{isRetrying ? "Retrying" : "Retry client permissions"}
+			{isRunning ? pendingLabel : label}
 		</Button>
 	);
 }
@@ -372,6 +421,9 @@ export function DriveFoldersDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
+	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
+	const retryEditorAccess = useAction(api.drive.retryEditorAccess);
+	const retryEditorAssignmentEmail = useAction(api.drive.retryEditorAssignmentEmail);
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
 	const savedFolders = driveStatus && "folders" in driveStatus ? (driveStatus.folders ?? []) : [];
@@ -379,6 +431,12 @@ export function DriveFoldersDialog({
 		(folder) => folder.name === "Assets" && folder.url !== undefined
 	);
 	const clientDrivePermissions = driveStatus?.clientDrivePermissions;
+	const editorDrivePermissions = driveStatus?.editorDrivePermissions;
+	const retryVisibility = getDriveRetryVisibility({
+		client: clientDrivePermissions,
+		editor: editorDrivePermissions,
+		driveFoldersReady: driveStatus?.status === "ready"
+	});
 	const sessionStartAt = getBookingStartTimestamp(sessionDate, sessionTime);
 	const sessionFolderName = formatDriveSessionFolderName(sessionStartAt);
 	return (
@@ -403,7 +461,10 @@ export function DriveFoldersDialog({
 					rawMediaFolderName={formatDriveSessionMediaFolderName("Raw Media", sessionStartAt)}
 					deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 				/>
-				<ClientDrivePermissionsDetails clientDrivePermissions={clientDrivePermissions} />
+				<DrivePermissionsDetails
+					clientDrivePermissions={clientDrivePermissions}
+					editorDrivePermissions={editorDrivePermissions}
+				/>
 				<DialogFooter>
 					<Button
 						type="button"
@@ -416,9 +477,29 @@ export function DriveFoldersDialog({
 						status={driveStatus?.status}
 						hasClientAssetsLibrary={hasClientAssetsLibrary}
 					/>
-					<ClientDrivePermissionsRetryButton
-						bookingId={bookingId}
-						clientDrivePermissions={clientDrivePermissions}
+					<DriveRetryButton
+						show={retryVisibility.client}
+						run={() => retryClientDrivePermissions({ bookingId })}
+						label="Retry client permissions"
+						pendingLabel="Retrying"
+						errorMessage="Client folder permissions could not be completed."
+						successMessage="Client folder permissions updated."
+					/>
+					<DriveRetryButton
+						show={retryVisibility.editorAccess}
+						run={() => retryEditorAccess({ bookingId })}
+						label="Retry editor access"
+						pendingLabel="Retrying"
+						errorMessage="Editor Google Drive access could not be completed."
+						successMessage="Editor access updated."
+					/>
+					<DriveRetryButton
+						show={retryVisibility.editorEmail}
+						run={() => retryEditorAssignmentEmail({ bookingId })}
+						label="Retry assignment email"
+						pendingLabel="Sending"
+						errorMessage="Editor assignment email could not be sent."
+						successMessage="Assignment email sent."
 					/>
 				</DialogFooter>
 			</DialogContent>
