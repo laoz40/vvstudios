@@ -63,6 +63,7 @@ function saveSessionEditorAssignment(
 ) {
 	return okOrThrow(
 		(async () => {
+			const previousEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
 			await ctx.db.patch(session._id, {
 				adminNotes: adminNotes.trim() || undefined,
 				assignedEditorTokenIdentifier: editor?.tokenIdentifier
@@ -71,6 +72,23 @@ function saveSessionEditorAssignment(
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
 			if (editor !== undefined) {
 				await ctx.db.patch(editor._id, { lastAssignedAt: Date.now() });
+			}
+
+			const editorChanged = previousEditorTokenIdentifier !== editor?.tokenIdentifier;
+			const previousEditorNeedsAccessRemoved =
+				previousEditorTokenIdentifier !== undefined && editorChanged;
+
+			// Reassignment and unassignment must remove the previous editor before adding new access.
+			if (previousEditorNeedsAccessRemoved) {
+				await ctx.scheduler.runAfter(0, internal.drive.updateEditorDriveAccess, {
+					bookingId: session._id,
+					previousEditorTokenIdentifier
+				});
+			}
+
+			const isFirstAssignment = previousEditorTokenIdentifier === undefined && editor !== undefined;
+			// A first assignment has no old Drive access to remove.
+			if (isFirstAssignment) {
 				await ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, {
 					bookingId: session._id
 				});

@@ -41,6 +41,7 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_FOLDER_MISSING"
 		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
+		| "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID";
 };
@@ -179,6 +180,25 @@ export function createDrivePermission(
 		return permission.success
 			? ok(permission.data)
 			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
+	});
+}
+
+export function deleteDrivePermission(
+	drive: DriveClient,
+	input: { fileId: string; permissionId: string }
+) {
+	return ResultAsync.fromPromise(
+		drive.permissions
+			.delete({ fileId: input.fileId, permissionId: input.permissionId, supportsAllDrives: false })
+			.then(() => null),
+		(error) => ({
+			permissionIsMissing: getGoogleProviderErrorCode(error) === 404,
+			reason: mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED").reason
+		})
+	).orElse((error) => {
+		// A prior partial attempt may already have removed this permission.
+		if (error.permissionIsMissing) return ok(null);
+		return err({ reason: error.reason });
 	});
 }
 

@@ -4,10 +4,11 @@ import { errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type { EditorDriveSetupRecord } from "#convex/lib/driveRecords";
+import type { EditorDriveAccessToRemove, EditorDriveSetupRecord } from "#convex/lib/driveRecords";
 import { sendEditorAssignmentEmail } from "#convex/lib/email";
 import {
 	createDrivePermission,
+	deleteDrivePermission,
 	findDrivePermission,
 	loadDriveClient,
 	normalizeDriveEmail,
@@ -24,6 +25,15 @@ export type DriveEditorPermissionsError =
 	| { reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" | "EDITOR_ASSIGNMENT_EMAIL_SEND_FAILED" };
 
 type EditorPermissionRequirement = { fileId: string; role: "reader" | "writer" };
+
+export function loadEditorDriveAccessToRemove(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
+): ResultAsync<EditorDriveAccessToRemove | null, DriveEditorPermissionsError> {
+	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveAccessToRemove, args)).mapErr(
+		() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const })
+	);
+}
 
 function loadEditorDriveSetup(
 	ctx: ActionCtx,
@@ -199,4 +209,39 @@ export function setupEditorAccess(
 				sendEditorAssignmentEmailForReadyAccess(ctx, { bookingId: setup.booking._id })
 			)
 	);
+}
+
+function removeSavedPermission(
+	drive: DriveClient,
+	fileId: string | null,
+	permission: SavedDrivePermission | null
+) {
+	if (fileId === null || permission === null) return okAsync(null);
+	return deleteDrivePermission(drive, { fileId, permissionId: permission.id });
+}
+
+export function removePreviousEditorDriveAccess(
+	ctx: ActionCtx,
+	args: { access: EditorDriveAccessToRemove | null; previousEditorTokenIdentifier: string }
+): ResultAsync<null, DriveEditorPermissionsError> {
+	if (args.access === null) return okAsync(null);
+	const access = args.access;
+	return loadDriveClient()
+		.andThen((drive) =>
+			// Revoke session-specific access before shared client assets access.
+			removeSavedPermission(drive, access.sessionFolderId, access.sessionPermission)
+				.andThen(() =>
+					removeSavedPermission(drive, access.deliverablesFolderId, access.deliverablesPermission)
+				)
+				.andThen(() => removeSavedPermission(drive, access.assetsFolderId, access.assetsPermission))
+		)
+		.andThen(() =>
+			fromConvexTuple(
+				ctx.runMutation(internal.sessions.clearPreviousEditorDriveAccess, {
+					driveClientEditorPermissionId: access.driveClientEditorPermissionId,
+					driveSessionId: access.driveSessionId,
+					editorTokenIdentifier: args.previousEditorTokenIdentifier
+				})
+			).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
+		);
 }

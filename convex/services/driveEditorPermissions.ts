@@ -5,6 +5,8 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
+	loadEditorDriveAccessToRemove,
+	removePreviousEditorDriveAccess,
 	sendEditorAssignmentEmailForReadyAccess,
 	setupEditorAccess
 } from "#convex/lib/driveEditorPermissions";
@@ -26,4 +28,22 @@ export function retryEditorAssignmentEmailService(
 
 export function runEditorAccessSetupService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
 	return setupEditorAccess(ctx, args).orElse(() => okAsync(null));
+}
+
+export function runEditorDriveAccessUpdateService(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; previousEditorTokenIdentifier: string }
+) {
+	return loadEditorDriveAccessToRemove(ctx, {
+		bookingId: args.bookingId,
+		editorTokenIdentifier: args.previousEditorTokenIdentifier
+	})
+		.andThen((access) =>
+			removePreviousEditorDriveAccess(ctx, {
+				access,
+				previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
+			})
+		)
+		.andThen(() => setupEditorAccess(ctx, { bookingId: args.bookingId }))
+		.orElse(() => okAsync(null));
 }

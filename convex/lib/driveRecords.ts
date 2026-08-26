@@ -213,6 +213,160 @@ export type EditorDriveSetupRecord = {
 	editor: Doc<"editorProfiles">;
 };
 
+export type EditorDriveAccessToRemove = {
+	assetsFolderId: string | null;
+	assetsPermission: SavedDrivePermission | null;
+	deliverablesFolderId: string | null;
+	deliverablesPermission: SavedDrivePermission | null;
+	driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
+	driveSessionId: Id<"driveSessions">;
+	sessionFolderId: string | null;
+	sessionPermission: SavedDrivePermission | null;
+};
+
+function getAssetsAccessToRemove(args: {
+	assetsPermissionRecord: Doc<"driveClientEditorPermissions"> | null;
+	driveClient: Doc<"driveClients"> | null;
+	hasOtherClientAssignment: boolean;
+}) {
+	if (args.hasOtherClientAssignment) {
+		return { folderId: null, permission: null, recordId: null };
+	}
+	return {
+		folderId: args.driveClient?.assetsFolder?.id ?? null,
+		permission: args.assetsPermissionRecord?.assetsPermission ?? null,
+		recordId: args.assetsPermissionRecord?._id ?? null
+	};
+}
+
+function getSessionAccessToRemove(driveSession: Doc<"driveSessions">) {
+	return {
+		deliverablesFolderId: driveSession.deliverablesFolder?.id ?? null,
+		deliverablesPermission: driveSession.editorDeliverablesPermission ?? null,
+		driveSessionId: driveSession._id,
+		sessionFolderId: driveSession.sessionFolder?.id ?? null,
+		sessionPermission: driveSession.editorSessionPermission ?? null
+	};
+}
+
+function buildEditorDriveAccessToRemove(args: {
+	assetsPermissionRecord: Doc<"driveClientEditorPermissions"> | null;
+	driveClient: Doc<"driveClients"> | null;
+	driveSession: Doc<"driveSessions">;
+	hasOtherClientAssignment: boolean;
+}): EditorDriveAccessToRemove {
+	const assetsAccess = getAssetsAccessToRemove(args);
+
+	return {
+		assetsFolderId: assetsAccess.folderId,
+		assetsPermission: assetsAccess.permission,
+		driveClientEditorPermissionId: assetsAccess.recordId,
+		...getSessionAccessToRemove(args.driveSession)
+	};
+}
+
+function hasOtherClientAssignment(
+	assignedBookings: Doc<"bookings">[],
+	bookingId: Id<"bookings">,
+	normalizedEmail: string | undefined
+) {
+	return assignedBookings.some(
+		(booking) => booking._id !== bookingId && booking.email.trim().toLowerCase() === normalizedEmail
+	);
+}
+
+async function loadEditorClientDriveData(
+	ctx: QueryCtx,
+	driveSession: Doc<"driveSessions">,
+	editorTokenIdentifier: string
+) {
+	return await Promise.all([
+		ctx.db.get(driveSession.driveClientId),
+		ctx.db
+			.query("driveClientEditorPermissions")
+			.withIndex("by_driveClientId_and_editorTokenIdentifier", (query) =>
+				query
+					.eq("driveClientId", driveSession.driveClientId)
+					.eq("editorTokenIdentifier", editorTokenIdentifier)
+			)
+			.unique(),
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+				query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+			)
+			// TODO(scale): Create or reuse driveClients for new managed bookings, save their optional
+			// driveClientId, then replace this cap with an editor-and-driveClientId index. Historical
+			// bookings stay unlinked because staff manage their Drive access manually.
+			.take(200)
+	]);
+}
+
+export function getEditorDriveAccessToRemove(
+	ctx: QueryCtx,
+	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (
+			driveSession === null ||
+			driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
+		) {
+			return ok(null);
+		}
+
+		return okOrThrow(loadEditorClientDriveData(ctx, driveSession, args.editorTokenIdentifier)).map(
+			([driveClient, assetsPermissionRecord, assignedBookings]) => {
+				return buildEditorDriveAccessToRemove({
+					assetsPermissionRecord,
+					driveClient,
+					driveSession,
+					hasOtherClientAssignment: hasOtherClientAssignment(
+						assignedBookings,
+						args.bookingId,
+						driveClient?.normalizedEmail
+					)
+				});
+			}
+		);
+	});
+}
+
+export function clearPreviousEditorDriveAccess(
+	ctx: MutationCtx,
+	args: {
+		driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
+		driveSessionId: Id<"driveSessions">;
+		editorTokenIdentifier: string;
+	}
+) {
+	return okOrThrow(
+		(async () => {
+			const driveSession = await ctx.db.get(args.driveSessionId);
+			if (driveSession?.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier) {
+				await ctx.db.patch(args.driveSessionId, {
+					assignmentEmailClaimedAt: undefined,
+					assignmentEmailStatus: undefined,
+					assignmentEmailTokenIdentifier: undefined,
+					editorDeliverablesPermission: undefined,
+					editorDrivePermissionsStatus: undefined,
+					editorDrivePermissionsTokenIdentifier: undefined,
+					editorSessionPermission: undefined,
+					updatedAt: Date.now()
+				});
+			}
+			if (args.driveClientEditorPermissionId !== null) {
+				await ctx.db.delete(args.driveClientEditorPermissionId);
+			}
+			return null;
+		})()
+	);
+}
+
 export type EditorDriveSetupRecordError = {
 	reason:
 		| "BOOKING_NOT_FOUND"

@@ -58,6 +58,12 @@
  * 19. Editor access recovery
  *     Tracks provider and email failures separately and protects their retry actions.
  *
+ * 20. Reassignment cleanup and email failure
+ *     Removes the former editor, grants the replacement access, and keeps the removal when the assignment email fails.
+ *
+ * 21. Shared assets access during unassignment
+ *     Keeps assets access after one unassignment and removes it after the editor's final client assignment.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -109,6 +115,7 @@ const driveFake = vi.hoisted(() => {
 		sendNotificationEmail?: boolean;
 	};
 	type PermissionListRequest = { fileId: string };
+	type PermissionDeleteRequest = { fileId: string; permissionId: string };
 	return {
 		folders: new Map<string, Folder>(),
 		permissions: new Map<string, Permission>(),
@@ -119,6 +126,7 @@ const driveFake = vi.hoisted(() => {
 		list: vi.fn<(request: ListRequest) => Promise<{ data: { files: Folder[] } }>>(),
 		get: vi.fn<(request: GetRequest) => Promise<{ data: Folder }>>(),
 		permissionsCreate: vi.fn<(request: PermissionCreateRequest) => Promise<{ data: Permission }>>(),
+		permissionsDelete: vi.fn<(request: PermissionDeleteRequest) => Promise<{ data: object }>>(),
 		permissionsList:
 			vi.fn<(request: PermissionListRequest) => Promise<{ data: { permissions: Permission[] } }>>(),
 		failCreateNameOnce: String(),
@@ -147,7 +155,11 @@ vi.mock("googleapis", () => ({
 	google: {
 		drive: () => ({
 			files: { create: driveFake.create, list: driveFake.list, get: driveFake.get },
-			permissions: { create: driveFake.permissionsCreate, list: driveFake.permissionsList }
+			permissions: {
+				create: driveFake.permissionsCreate,
+				delete: driveFake.permissionsDelete,
+				list: driveFake.permissionsList
+			}
 		})
 	}
 }));
@@ -164,6 +176,12 @@ const editorIdentity = {
 	subject: "editor",
 	issuer: "https://clerk.test",
 	tokenIdentifier: "https://clerk.test|editor",
+	publicMetadata: { role: "editor" }
+};
+const otherEditorIdentity = {
+	subject: "other-editor",
+	issuer: "https://clerk.test",
+	tokenIdentifier: "https://clerk.test|other-editor",
 	publicMetadata: { role: "editor" }
 };
 
@@ -243,6 +261,10 @@ beforeEach(() => {
 			]
 		}
 	}));
+	driveFake.permissionsDelete.mockImplementation(async ({ permissionId }) => {
+		driveFake.permissions.delete(permissionId);
+		return { data: {} };
+	});
 });
 
 describe("Google Drive folder naming", () => {
@@ -595,6 +617,95 @@ describe("Google Drive editor access setup", () => {
 		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(2);
 	});
 
+	test("revokes the former editor before granting a replacement editor access", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		await seedEditor(t, otherEditorIdentity, "other-editor@example.com", "Other editor");
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		await runSetup(t, bookingId);
+		emailFake.sendEditorAssignmentEmail.mockReturnValueOnce(
+			errAsync({ reason: "EMAIL_REQUEST_FAILED" })
+		);
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId,
+				editorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "editor@example.com"
+			)
+		).toHaveLength(0);
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "other-editor@example.com"
+			)
+		).toHaveLength(3);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			assignmentEmailStatus: "failed",
+			editorDrivePermissionsTokenIdentifier: otherEditorIdentity.tokenIdentifier
+		});
+	});
+
+	test("keeps shared assets access until the editor's final client assignment is removed", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const firstBookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
+		const secondBookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+			sessionStartAt: secondStartAt
+		});
+		await runSetup(t, firstBookingId);
+		await runSetup(t, secondBookingId, secondStartAt);
+		const assetsPermission = [...driveFake.permissions.values()].find(
+			(permission) =>
+				permission.fileId === "folder-2" && permission.emailAddress === "editor@example.com"
+		);
+		expect(assetsPermission).toBeDefined();
+		if (assetsPermission === undefined) throw new Error("Expected saved assets permission");
+
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId: firstBookingId,
+				editorTokenIdentifier: null
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId: firstBookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		expect(driveFake.permissions.has(assetsPermission.id)).toBe(true);
+
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId: secondBookingId,
+				editorTokenIdentifier: null
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId: secondBookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		expect(driveFake.permissions.has(assetsPermission.id)).toBe(false);
+		expect(await t.run((ctx) => ctx.db.query("driveClientEditorPermissions").take(1))).toHaveLength(
+			0
+		);
+	});
+
 	test("retries a failed assignment email when editor access setup runs again", async () => {
 		const t = createConvexTest();
 		await seedEditor(t);
@@ -708,12 +819,17 @@ async function seedBooking(
 	);
 }
 
-async function seedEditor(t: TestClient) {
+async function seedEditor(
+	t: TestClient,
+	identity = editorIdentity,
+	email = "editor@example.com",
+	displayName = "Test editor"
+) {
 	return await t.run((ctx) =>
 		ctx.db.insert("editorProfiles", {
-			tokenIdentifier: editorIdentity.tokenIdentifier,
-			displayName: "Test editor",
-			email: "editor@example.com",
+			tokenIdentifier: identity.tokenIdentifier,
+			displayName,
+			email,
 			isActive: true,
 			lastAssignedAt: null,
 			totalEdits: 0

@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { tupleErr, tupleOk, type Result } from "#/lib/result";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
@@ -15,9 +15,10 @@ import {
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveRecords";
-import type { EditorDriveSetupRecord, EditorDriveSetupRecordError } from "#convex/lib/driveRecords";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
+	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessRecord,
+	getEditorDriveAccessToRemove as loadEditorDriveAccessToRemove,
 	getEditorDriveSetup as loadEditorDriveSetup,
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
 	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
@@ -126,8 +127,21 @@ export const saveClientAssetsEmailResult = internalMutation({
 
 export const getEditorDriveSetup = internalQuery({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args): Promise<Result<EditorDriveSetupRecord, EditorDriveSetupRecordError>> =>
-		loadEditorDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+	handler: (ctx, args) => loadEditorDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+});
+
+export const getEditorDriveAccessToRemove = internalQuery({
+	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
+	handler: (ctx, args) => loadEditorDriveAccessToRemove(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const clearPreviousEditorDriveAccess = internalMutation({
+	args: {
+		driveClientEditorPermissionId: v.union(v.id("driveClientEditorPermissions"), v.null()),
+		driveSessionId: v.id("driveSessions"),
+		editorTokenIdentifier: v.string()
+	},
+	handler: (ctx, args) => clearPreviousEditorDriveAccessRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveEditorDrivePermission = internalMutation({
