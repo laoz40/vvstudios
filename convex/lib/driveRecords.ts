@@ -272,14 +272,8 @@ function buildEditorDriveAccessToRemove(args: {
 	};
 }
 
-function hasOtherClientAssignment(
-	assignedBookings: Doc<"bookings">[],
-	bookingId: Id<"bookings">,
-	normalizedEmail: string | undefined
-) {
-	return assignedBookings.some(
-		(booking) => booking._id !== bookingId && booking.email.trim().toLowerCase() === normalizedEmail
-	);
+function hasOtherClientAssignment(assignedBookings: Doc<"bookings">[], bookingId: Id<"bookings">) {
+	return assignedBookings.some((booking) => booking._id !== bookingId);
 }
 
 async function loadEditorClientDriveData(
@@ -299,13 +293,13 @@ async function loadEditorClientDriveData(
 			.unique(),
 		ctx.db
 			.query("bookings")
-			.withIndex("by_assignedEditorTokenIdentifier", (query) =>
-				query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query
+					.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+					.eq("driveClientId", driveSession.driveClientId)
 			)
-			// TODO(scale): Create or reuse driveClients for new managed bookings, save their optional
-			// driveClientId, then replace this cap with an editor-and-driveClientId index. Historical
-			// bookings stay unlinked because staff manage their Drive access manually.
-			.take(200)
+			.filter((query) => query.eq(query.field("multiBookingPackageId"), undefined))
+			.collect()
 	]);
 }
 
@@ -332,11 +326,7 @@ export function getEditorDriveAccessToRemove(
 					assetsPermissionRecord,
 					driveClient,
 					driveSession,
-					hasOtherClientAssignment: hasOtherClientAssignment(
-						assignedBookings,
-						args.bookingId,
-						driveClient?.normalizedEmail
-					)
+					hasOtherClientAssignment: hasOtherClientAssignment(assignedBookings, args.bookingId)
 				});
 			}
 		);
@@ -400,11 +390,7 @@ export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">)
 			const assetsAccess = getAssetsAccessToRemove({
 				assetsPermissionRecord,
 				driveClient,
-				hasOtherClientAssignment: hasOtherClientAssignment(
-					assignedBookings,
-					bookingId,
-					driveClient?.normalizedEmail
-				)
+				hasOtherClientAssignment: hasOtherClientAssignment(assignedBookings, bookingId)
 			});
 			return ok<FailedEditorRemoval | null>({
 				driveSessionId: driveSession._id,

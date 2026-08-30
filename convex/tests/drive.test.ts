@@ -73,6 +73,8 @@
  * 24. Client record without folder
  *     Patches the created client folder into the record created at booking time.
  *
+ * 25. Package session during unassignment
+ *     Removes shared assets access even when a package session of the same client keeps the editor.
  *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
@@ -737,6 +739,42 @@ describe("Google Drive editor access setup", () => {
 		);
 	});
 
+	test("removes shared assets access while a package session of the same client keeps the editor", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		const packageId = await seedPackage(t);
+		// Package sessions have no managed editor access yet, so they must not preserve assets access.
+		await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+			multiBookingPackageId: packageId,
+			sessionStartAt: sessionStartAt + 24 * 60 * 60 * 1000
+		});
+		await runSetup(t, bookingId);
+		const assetsPermission = [...driveFake.permissions.values()].find(
+			(permission) =>
+				permission.fileId === "folder-2" && permission.emailAddress === "editor@example.com"
+		);
+		expect(assetsPermission).toBeDefined();
+		if (assetsPermission === undefined) throw new Error("Expected saved assets permission");
+
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId,
+				editorTokenIdentifier: null
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(driveFake.permissions.has(assetsPermission.id)).toBe(false);
+	});
+
 	test("retries a failed assignment email when editor access setup runs again", async () => {
 		const t = createConvexTest();
 		await seedEditor(t);
@@ -958,6 +996,29 @@ async function seedBooking(
 				: {})
 		});
 	});
+}
+
+async function seedPackage(t: TestClient) {
+	return await t.run((ctx) =>
+		ctx.db.insert("multiBookingPackages", {
+			name: "Test customer",
+			phone: "0400000000",
+			accountName: "Test account",
+			email: "customer@example.com",
+			duration: "1h",
+			addons: [],
+			packageSize: 4,
+			singleSessionAmount: 100,
+			packageSubtotalAmount: 400,
+			discountPercent: 10,
+			discountAmount: 40,
+			totalDueAmount: 360,
+			status: "paid",
+			createdAt: now,
+			invoiceDueAt: now,
+			invoiceEmailStatus: "sent"
+		})
+	);
 }
 
 async function seedEditor(
