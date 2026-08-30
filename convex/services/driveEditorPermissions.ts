@@ -1,11 +1,14 @@
 "use node";
 
-import { okAsync } from "neverthrow";
+import { errAsync, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	loadEditorDriveAccessToRemove,
+	loadFailedEditorRemoval,
+	markPreviousEditorRemovalFailed,
+	removeFailedEditorDriveAccess,
 	removePreviousEditorDriveAccess,
 	sendEditorAssignmentEmailForReadyAccess,
 	setupEditorAccess
@@ -37,13 +40,37 @@ export function runEditorDriveAccessUpdateService(
 	return loadEditorDriveAccessToRemove(ctx, {
 		bookingId: args.bookingId,
 		editorTokenIdentifier: args.previousEditorTokenIdentifier
-	})
-		.andThen((access) =>
-			removePreviousEditorDriveAccess(ctx, {
-				access,
-				previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
-			})
-		)
-		.andThen(() => setupEditorAccess(ctx, { bookingId: args.bookingId }))
-		.orElse(() => okAsync(null));
+	}).andThen((access) => {
+		const removal =
+			access === null
+				? okAsync(null)
+				: removePreviousEditorDriveAccess(ctx, {
+						access,
+						previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
+					});
+		// A removal failure is recorded for manual retry; it never blocks the replacement editor's setup.
+		return removal
+			.orElse((error) =>
+				markPreviousEditorRemovalFailed(ctx, {
+					bookingId: args.bookingId,
+					editorTokenIdentifier: args.previousEditorTokenIdentifier
+				}).andThen(() => errAsync(error))
+			)
+			.orElse(() => okAsync(null))
+			.andThen(() => setupEditorAccess(ctx, { bookingId: args.bookingId }));
+	});
+}
+
+export function retryPreviousEditorRemovalService(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
+		loadFailedEditorRemoval(ctx, args).andThen((removal) => {
+			if (removal === null) {
+				return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
+			}
+			return removeFailedEditorDriveAccess(ctx, removal);
+		})
+	);
 }

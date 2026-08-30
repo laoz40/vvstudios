@@ -92,7 +92,7 @@ Add admin status and retry controls for this slice.
 
 Check after step: verify inherited client browsing, client viewer access to `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)`, permission failure, and replay-safe emails.
 
-### Step 4A: Replace per-session assets with one client assets library
+### Step 4A: Replace per-session assets with one client assets library ✅
 
 Update `driveClients` to store the global `_Assets` folder ID, URL, and client writer permission. Remove the per-session assets fields from `driveSessions`. No migration or backfill is needed because there is no live Drive workspace data.
 
@@ -104,7 +104,7 @@ Update folder status and recovery controls to show the global `_Assets` folder s
 
 Check after step: cover first-client-folder creation, reuse across ordinary and package sessions, partial setup and retry, no per-session assets folder, client writer access, the reusable assets email link, dated deliverables names, and authorization.
 
-### Step 5: Set up access for one editor assignment
+### Step 5: Set up access for one editor assignment ✅
 
 Extend the existing assignment flow after its database transaction succeeds. If the folders exist, grant the assigned editor:
 
@@ -131,9 +131,11 @@ Add separate admin status and retry controls for editor access and assignment-em
 
 Check after step: cover assignment before and after setup, reuse of an existing editor permission on `_Assets`, suppressed Google permission emails, provider failure, retry, authorization, dashboard access to every required folder, first-time-editor clarity, the ordered workflow instructions, and duplicate branded email prevention.
 
-### Step 6: Handle reassignment and unassignment
+### Step 6: Handle reassignment and unassignment ✅
 
-On reassignment, remove the old editor's saved session and deliverables permissions before granting the new editor access. Remove their `_Assets` permission only when they have no other active assignment for the same client. Apply the same rule on unassignment. Notification failure must not block permission removal.
+On reassignment, grant the new editor access without waiting for the old editor's removal, so a removal failure never blocks the new editor from working. Save the old editor's permission snapshot before setup overwrites it, then remove their saved session and deliverables permissions. Remove their `_Assets` permission only when they have no other active assignment for the same client. Apply the same rule on unassignment. Notification failure must not block permission removal.
+
+A removal failure is never retried automatically. Save a failed removal status instead, and give admins a manual retry action that removes the old editor's access using the saved snapshot. The assignment itself stays saved when Google fails.
 
 Show the accepted My Drive limitation where useful: removing folder permissions does not remove access to files the editor owns.
 
@@ -172,6 +174,8 @@ Check after step: cover empty folders, listing failure, first completion, repeat
 ### Step 10: Add explicit recovery controls
 
 Finish the admin view with separate states for folders, client access, editor access, client assets email, editor links email, and deliverables email.
+
+Surface Drive workflow failures on the sessions table itself, e.g. an error icon beside the assigned editor's name, so admins do not need to open the Drive dialog to discover a problem.
 
 Provide authorized actions to:
 

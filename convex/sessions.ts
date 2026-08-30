@@ -20,6 +20,8 @@ import {
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessRecord,
 	getEditorDriveAccessToRemove as loadEditorDriveAccessToRemove,
 	getEditorDriveSetup as loadEditorDriveSetup,
+	getFailedEditorRemoval as loadFailedEditorRemovalRecord,
+	markPreviousEditorRemovalFailed as markPreviousEditorRemovalFailedRecord,
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
 	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
@@ -142,6 +144,17 @@ export const clearPreviousEditorDriveAccess = internalMutation({
 		editorTokenIdentifier: v.string()
 	},
 	handler: (ctx, args) => clearPreviousEditorDriveAccessRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const markPreviousEditorRemovalFailed = internalMutation({
+	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
+	handler: (ctx, args) => markPreviousEditorRemovalFailedRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const getFailedEditorRemoval = internalQuery({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) =>
+		loadFailedEditorRemovalRecord(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const saveEditorDrivePermission = internalMutation({

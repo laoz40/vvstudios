@@ -32,7 +32,6 @@ const packageReminderStateValidator = v.union(
 );
 export default defineSchema({
 	editorProfiles: defineTable({
-		// Convex's canonical auth key combines the token issuer and subject, avoiding cross-issuer collisions.
 		tokenIdentifier: v.string(),
 		displayName: v.string(),
 		email: v.string(),
@@ -83,6 +82,7 @@ export default defineSchema({
 		assignmentEmailStatus: v.optional(assignmentEmailStatusValidator),
 		assignmentEmailTokenIdentifier: v.optional(v.string()),
 		assignmentEmailClaimedAt: v.optional(v.number()),
+		failedRemovalEditorTokenIdentifier: v.optional(v.string()),
 		createdAt: v.number(),
 		updatedAt: v.number()
 	}).index("by_bookingId", ["bookingId"]),
@@ -200,10 +200,8 @@ export default defineSchema({
 		bookingFailureCode: v.optional(v.string()),
 
 		hiddenAt: v.optional(v.number()),
-		// Confirmation email claim state
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
-		// Temporarily holds a target session window while its Calendar event is changed.
 		reservationCreatedAt: v.optional(v.number()),
 		reservationSessionStartAt: v.optional(v.number()),
 		reservationDuration: v.optional(v.string()),

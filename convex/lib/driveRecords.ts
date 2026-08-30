@@ -142,7 +142,8 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 		return {
 			...buildDriveStatus(driveClient, driveSession, booking?.driveSetupFailureCode !== undefined),
 			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession),
-			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession)
+			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession),
+			previousEditorRemovalFailed: driveSession?.failedRemovalEditorTokenIdentifier !== undefined
 		};
 	});
 }
@@ -336,6 +337,82 @@ export function getEditorDriveAccessToRemove(
 	});
 }
 
+export function markPreviousEditorRemovalFailed(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
+) {
+	return okOrThrow(
+		(async () => {
+			const driveSession = await ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+				.unique();
+			if (driveSession === null) return null;
+			await ctx.db.patch(driveSession._id, {
+				failedRemovalEditorTokenIdentifier: args.editorTokenIdentifier,
+				updatedAt: Date.now()
+			});
+			return null;
+		})()
+	);
+}
+
+export type FailedEditorRemoval = {
+	driveSessionId: Id<"driveSessions">;
+	editorTokenIdentifier: string;
+	editorEmail: string;
+	sessionFolderId: string | null;
+	deliverablesFolderId: string | null;
+	assetsFolderId: string | null;
+	driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
+};
+
+// The retry re-finds the failed editor's permissions by email and role because the saved
+// permission fields now belong to the replacement editor.
+export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
+		if (driveSession === null || editorTokenIdentifier === undefined) return ok(null);
+		return okOrThrow(
+			Promise.all([
+				loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier),
+				ctx.db
+					.query("editorProfiles")
+					.withIndex("by_tokenIdentifier", (query) =>
+						query.eq("tokenIdentifier", editorTokenIdentifier)
+					)
+					.unique()
+			])
+		).andThen(([clientData, editor]) => {
+			if (editor === null) return ok(null);
+			const [driveClient, assetsPermissionRecord, assignedBookings] = clientData;
+			const assetsAccess = getAssetsAccessToRemove({
+				assetsPermissionRecord,
+				driveClient,
+				hasOtherClientAssignment: hasOtherClientAssignment(
+					assignedBookings,
+					bookingId,
+					driveClient?.normalizedEmail
+				)
+			});
+			return ok<FailedEditorRemoval | null>({
+				driveSessionId: driveSession._id,
+				editorTokenIdentifier,
+				editorEmail: editor.email,
+				sessionFolderId: driveSession.sessionFolder?.id ?? null,
+				deliverablesFolderId: driveSession.deliverablesFolder?.id ?? null,
+				assetsFolderId: assetsAccess.folderId,
+				driveClientEditorPermissionId: assetsAccess.recordId
+			});
+		});
+	});
+}
+
 export function clearPreviousEditorDriveAccess(
 	ctx: MutationCtx,
 	args: {
@@ -347,7 +424,8 @@ export function clearPreviousEditorDriveAccess(
 	return okOrThrow(
 		(async () => {
 			const driveSession = await ctx.db.get(args.driveSessionId);
-			if (driveSession?.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier) {
+			if (driveSession === null) return null;
+			if (driveSession.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier) {
 				await ctx.db.patch(args.driveSessionId, {
 					assignmentEmailClaimedAt: undefined,
 					assignmentEmailStatus: undefined,
@@ -356,8 +434,12 @@ export function clearPreviousEditorDriveAccess(
 					editorDrivePermissionsStatus: undefined,
 					editorDrivePermissionsTokenIdentifier: undefined,
 					editorSessionPermission: undefined,
+					failedRemovalEditorTokenIdentifier: undefined,
 					updatedAt: Date.now()
 				});
+			} else {
+				// A replacement editor's setup may already own the session fields; still clear the marker.
+				await ctx.db.patch(args.driveSessionId, { failedRemovalEditorTokenIdentifier: undefined });
 			}
 			if (args.driveClientEditorPermissionId !== null) {
 				await ctx.db.delete(args.driveClientEditorPermissionId);

@@ -4,7 +4,11 @@ import { errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type { EditorDriveAccessToRemove, EditorDriveSetupRecord } from "#convex/lib/driveRecords";
+import type {
+	EditorDriveAccessToRemove,
+	EditorDriveSetupRecord,
+	FailedEditorRemoval
+} from "#convex/lib/driveRecords";
 import { sendEditorAssignmentEmail } from "#convex/lib/email";
 import {
 	createDrivePermission,
@@ -22,7 +26,8 @@ export type DriveEditorPermissionsError =
 	| DriveError
 	| { reason: "BOOKING_NOT_FOUND" | "EDITOR_NOT_ASSIGNED" | "EDITOR_NOT_ACTIVE" }
 	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" }
-	| { reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" | "EDITOR_ASSIGNMENT_EMAIL_SEND_FAILED" };
+	| { reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" | "EDITOR_ASSIGNMENT_EMAIL_SEND_FAILED" }
+	| { reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" };
 
 type EditorPermissionRequirement = { fileId: string; role: "reader" | "writer" };
 
@@ -31,6 +36,24 @@ export function loadEditorDriveAccessToRemove(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<EditorDriveAccessToRemove | null, DriveEditorPermissionsError> {
 	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveAccessToRemove, args)).mapErr(
+		() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const })
+	);
+}
+
+export function markPreviousEditorRemovalFailed(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
+): ResultAsync<null, DriveEditorPermissionsError> {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.markPreviousEditorRemovalFailed, args)
+	).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }));
+}
+
+export function loadFailedEditorRemoval(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+): ResultAsync<FailedEditorRemoval | null, DriveEditorPermissionsError> {
+	return fromConvexTuple(ctx.runQuery(internal.sessions.getFailedEditorRemoval, args)).mapErr(
 		() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const })
 	);
 }
@@ -244,4 +267,61 @@ export function removePreviousEditorDriveAccess(
 				})
 			).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
 		);
+}
+
+// Re-finds and deletes the failed editor's permissions by email and role, since the saved
+// permission fields now belong to the replacement editor. Used only by the manual retry.
+export function removeFailedEditorDriveAccess(
+	ctx: ActionCtx,
+	removal: FailedEditorRemoval
+): ResultAsync<null, DriveEditorPermissionsError> {
+	return loadDriveClient()
+		.andThen((drive) =>
+			// Revoke session-specific access before shared client assets access.
+			findAndDeleteEditorPermission(drive, removal.sessionFolderId, removal.editorEmail, "reader")
+				.andThen(() =>
+					findAndDeleteEditorPermission(
+						drive,
+						removal.deliverablesFolderId,
+						removal.editorEmail,
+						"writer"
+					)
+				)
+				.andThen(() =>
+					findAndDeleteEditorPermission(
+						drive,
+						removal.assetsFolderId,
+						removal.editorEmail,
+						"reader"
+					)
+				)
+		)
+		.andThen(() =>
+			fromConvexTuple(
+				ctx.runMutation(internal.sessions.clearPreviousEditorDriveAccess, {
+					driveClientEditorPermissionId: removal.driveClientEditorPermissionId,
+					driveSessionId: removal.driveSessionId,
+					editorTokenIdentifier: removal.editorTokenIdentifier
+				})
+			).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
+		);
+}
+
+function findAndDeleteEditorPermission(
+	drive: DriveClient,
+	fileId: string | null,
+	editorEmail: string,
+	role: "reader" | "writer"
+) {
+	if (fileId === null) return okAsync(null);
+	return findDrivePermission(drive, {
+		email: normalizeDriveEmail(editorEmail),
+		fileId,
+		role
+	}).andThen((permission) =>
+		// Nothing to delete when the permission was never granted or a prior attempt removed it.
+		permission === null
+			? okAsync(null)
+			: deleteDrivePermission(drive, { fileId, permissionId: permission.id })
+	);
 }

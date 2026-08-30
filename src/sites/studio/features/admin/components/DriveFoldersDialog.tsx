@@ -1,5 +1,16 @@
 import { useAction, useQuery } from "convex/react";
-import { Check, ExternalLink, Folder, FolderOpen, LoaderCircle, X } from "lucide-react";
+import type { FunctionReturnType } from "convex/server";
+import {
+	Check,
+	ExternalLink,
+	Folder,
+	FolderOpen,
+	LoaderCircle,
+	X,
+	type LucideIcon
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -13,24 +24,14 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { useState } from "react";
 import {
 	formatDriveSessionMediaFolderName,
 	formatDriveSessionFolderName,
 	getBookingStartTimestamp
 } from "#studio/lib/bookingdatetime";
 
-type DriveStatus = "failed" | "not_created" | "incomplete" | "ready";
-type ClientDrivePermissionsStatus = {
-	status: DriveStatus;
-	assetsEmailStatus: "failed" | "not_sent" | "pending" | "sent";
-};
-type EditorDrivePermissionsStatus = {
-	status: "failed" | "not_assigned" | "pending" | "ready";
-	assignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent";
-};
-
-type SavedFolder = { name: string; url?: string };
+// The ok payload of the query's [error, data] Result tuple; null while loading or on failure.
+type DriveDialogStatus = NonNullable<FunctionReturnType<typeof api.sessions.getDriveStatus>[1]>;
 
 function getSessionChildFolderName({
 	folderName,
@@ -57,7 +58,7 @@ function getDriveDescription({
 	clientName,
 	accountName
 }: {
-	status: DriveStatus | undefined;
+	status: DriveDialogStatus["status"] | undefined;
 	hasClientAssetsLibrary: boolean;
 	clientName: string;
 	accountName: string;
@@ -82,19 +83,59 @@ function getDriveDescription({
 	}
 }
 
+function FolderLink({
+	url,
+	label,
+	icon: Icon,
+	variant,
+	className,
+	fallback
+}: {
+	url: string | undefined;
+	label: string;
+	icon: LucideIcon;
+	variant: "outline" | "secondary";
+	className: string;
+	fallback: ReactNode;
+}) {
+	if (!url) return fallback;
+
+	return (
+		<Button
+			variant={variant}
+			className={className}
+			asChild>
+			<a
+				href={url}
+				target="_blank"
+				rel="noreferrer">
+				<Icon
+					data-icon="inline-start"
+					aria-hidden
+				/>
+				{label}
+				<ExternalLink
+					data-icon="inline-end"
+					aria-hidden
+				/>
+			</a>
+		</Button>
+	);
+}
+
 function SavedFolderLinks({
 	folders,
 	sessionFolderName,
 	rawMediaFolderName,
 	deliverablesFolderName
 }: {
-	folders: SavedFolder[];
+	folders: NonNullable<DriveDialogStatus["folders"]>;
 	sessionFolderName: string;
 	rawMediaFolderName: string;
 	deliverablesFolderName: string;
 }) {
-	const sessionFolder = folders.find((folder) => folder.name === "Session");
 	const assetsFolder = folders.find((folder) => folder.name === "Assets");
+	const sessionFolder = folders.find((folder) => folder.name === "Session");
 	const sessionChildFolders = folders.filter(
 		(folder) => folder.name !== "Session" && folder.name !== "Assets"
 	);
@@ -105,55 +146,25 @@ function SavedFolderLinks({
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-col gap-2">
 				<p className="text-sm font-medium">Client assets library</p>
-				{assetsFolder?.url ? (
-					<Button
-						variant="outline"
-						className="w-full justify-start"
-						asChild>
-						<a
-							href={assetsFolder.url}
-							target="_blank"
-							rel="noreferrer">
-							<FolderOpen
-								data-icon="inline-start"
-								aria-hidden
-							/>
-							_Assets
-							<ExternalLink
-								data-icon="inline-end"
-								aria-hidden
-							/>
-						</a>
-					</Button>
-				) : (
-					<p className="text-sm text-muted-foreground">_Assets: not created</p>
-				)}
+				<FolderLink
+					url={assetsFolder?.url}
+					label="_Assets"
+					icon={FolderOpen}
+					variant="outline"
+					className="w-full justify-start"
+					fallback={<p className="text-sm text-muted-foreground">_Assets: not created</p>}
+				/>
 			</div>
 
 			<div className="flex flex-col gap-2">
 				<p className="text-sm font-medium">Session folders</p>
-				<div>
-					{sessionFolder?.url ? (
-						<Button
-							variant="outline"
-							className="w-full justify-start"
-							asChild>
-							<a
-								href={sessionFolder.url}
-								target="_blank"
-								rel="noreferrer">
-								<FolderOpen
-									data-icon="inline-start"
-									aria-hidden
-								/>
-								{sessionFolderName}
-								<ExternalLink
-									data-icon="inline-end"
-									aria-hidden
-								/>
-							</a>
-						</Button>
-					) : (
+				<FolderLink
+					url={sessionFolder?.url}
+					label={sessionFolderName}
+					icon={FolderOpen}
+					variant="outline"
+					className="w-full justify-start"
+					fallback={
 						<div className="flex h-9 items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
 							<Folder
 								className="size-4"
@@ -161,8 +172,8 @@ function SavedFolderLinks({
 							/>
 							Not created
 						</div>
-					)}
-				</div>
+					}
+				/>
 
 				{sessionChildFolders.length > 0 ? (
 					<div className="ml-3 flex flex-col gap-2 border-l pl-3">
@@ -172,37 +183,18 @@ function SavedFolderLinks({
 								rawMediaFolderName,
 								deliverablesFolderName
 							});
-							if (!folder.url) {
-								return (
-									<p
-										key={folder.name}
-										className="text-sm text-muted-foreground">
-										{folderName}: not created
-									</p>
-								);
-							}
-
 							return (
-								<Button
+								<FolderLink
 									key={folder.name}
+									url={folder.url}
+									label={folderName}
+									icon={Folder}
 									variant="secondary"
 									className="justify-start"
-									asChild>
-									<a
-										href={folder.url}
-										target="_blank"
-										rel="noreferrer">
-										<Folder
-											data-icon="inline-start"
-											aria-hidden
-										/>
-										{folderName}
-										<ExternalLink
-											data-icon="inline-end"
-											aria-hidden
-										/>
-									</a>
-								</Button>
+									fallback={
+										<p className="text-sm text-muted-foreground">{folderName}: not created</p>
+									}
+								/>
 							);
 						})}
 					</div>
@@ -241,17 +233,20 @@ function DriveStatusRow({
 
 function DrivePermissionsDetails({
 	clientDrivePermissions,
-	editorDrivePermissions
+	editorDrivePermissions,
+	previousEditorRemovalFailed
 }: {
-	clientDrivePermissions: ClientDrivePermissionsStatus | undefined;
-	editorDrivePermissions: EditorDrivePermissionsStatus | undefined;
+	clientDrivePermissions: DriveDialogStatus["clientDrivePermissions"] | undefined;
+	editorDrivePermissions: DriveDialogStatus["editorDrivePermissions"] | undefined;
+	previousEditorRemovalFailed: DriveDialogStatus["previousEditorRemovalFailed"];
 }) {
 	const showClientStatus =
 		clientDrivePermissions !== undefined && clientDrivePermissions.status !== "not_created";
 	const showEditorStatus =
 		editorDrivePermissions !== undefined && editorDrivePermissions.status !== "not_assigned";
+	const showRemovalStatus = previousEditorRemovalFailed;
 
-	if (!showClientStatus && !showEditorStatus) return null;
+	if (!showClientStatus && !showEditorStatus && !showRemovalStatus) return null;
 
 	return (
 		<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
@@ -283,39 +278,24 @@ function DrivePermissionsDetails({
 					/>
 				</>
 			) : null}
+			{showRemovalStatus ? (
+				<DriveStatusRow
+					isComplete={false}
+					completeLabel="Previous editor access removed"
+					attentionLabel="Previous editor access removal failed"
+				/>
+			) : null}
 		</div>
 	);
 }
 
-function getDriveRetryVisibility({
-	client,
-	editor,
-	driveFoldersReady
-}: {
-	client: ClientDrivePermissionsStatus | undefined;
-	editor: EditorDrivePermissionsStatus | undefined;
-	driveFoldersReady: boolean;
-}) {
-	return {
-		client:
-			client?.status === "failed" ||
-			client?.status === "incomplete" ||
-			client?.assetsEmailStatus === "failed",
-		editorAccess:
-			editor?.status === "failed" || (driveFoldersReady && editor?.status === "pending"),
-		editorEmail: editor?.status === "ready" && editor.assignmentEmailStatus === "failed"
-	};
-}
-
 function DriveRetryButton({
-	show,
 	run,
 	label,
 	pendingLabel,
 	errorMessage,
 	successMessage
 }: {
-	show: boolean;
 	run: () => Promise<Result<unknown, { reason: string }>>;
 	label: string;
 	pendingLabel: string;
@@ -323,8 +303,6 @@ function DriveRetryButton({
 	successMessage: string;
 }) {
 	const [isRunning, setIsRunning] = useState(false);
-
-	if (!show) return null;
 
 	async function handleRetry() {
 		setIsRunning(true);
@@ -359,7 +337,7 @@ function DriveSetupButton({
 	hasClientAssetsLibrary
 }: {
 	bookingId: Id<"bookings">;
-	status: DriveStatus | undefined;
+	status: DriveDialogStatus["status"] | undefined;
 	hasClientAssetsLibrary: boolean;
 }) {
 	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
@@ -404,6 +382,89 @@ function DriveSetupButton({
 	);
 }
 
+function shouldRetryClientDrivePermissions(
+	client: DriveDialogStatus["clientDrivePermissions"] | undefined
+) {
+	return (
+		client?.status === "failed" ||
+		client?.status === "incomplete" ||
+		client?.assetsEmailStatus === "failed"
+	);
+}
+
+function shouldRetryEditorAccess(
+	editor: DriveDialogStatus["editorDrivePermissions"] | undefined,
+	driveFoldersReady: boolean
+) {
+	// Pending editor access can only be retried once the folders it shares exist.
+	return editor?.status === "failed" || (driveFoldersReady && editor?.status === "pending");
+}
+
+function getDriveErrorStatus(driveStatus: DriveDialogStatus | null) {
+	const editor = driveStatus?.editorDrivePermissions;
+	return {
+		client: shouldRetryClientDrivePermissions(driveStatus?.clientDrivePermissions),
+		editorAccess: shouldRetryEditorAccess(editor, driveStatus?.status === "ready"),
+		editorEmail: editor?.status === "ready" && editor.assignmentEmailStatus === "failed",
+		previousEditorRemoval: driveStatus?.previousEditorRemovalFailed ?? false
+	};
+}
+
+function DriveRetryActions({
+	bookingId,
+	driveStatus
+}: {
+	bookingId: Id<"bookings">;
+	driveStatus: DriveDialogStatus | null;
+}) {
+	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
+	const retryEditorAccess = useAction(api.drive.retryEditorAccess);
+	const retryEditorAssignmentEmail = useAction(api.drive.retryEditorAssignmentEmail);
+	const retryPreviousEditorRemoval = useAction(api.drive.retryPreviousEditorRemoval);
+	const errorStatus = getDriveErrorStatus(driveStatus);
+
+	return (
+		<>
+			{errorStatus.client && (
+				<DriveRetryButton
+					run={() => retryClientDrivePermissions({ bookingId })}
+					label="Retry client permissions"
+					pendingLabel="Retrying"
+					errorMessage="Client folder permissions could not be completed."
+					successMessage="Client folder permissions updated."
+				/>
+			)}
+			{errorStatus.editorAccess && (
+				<DriveRetryButton
+					run={() => retryEditorAccess({ bookingId })}
+					label="Retry editor access"
+					pendingLabel="Retrying"
+					errorMessage="Editor Google Drive access could not be completed."
+					successMessage="Editor access updated."
+				/>
+			)}
+			{errorStatus.editorEmail && (
+				<DriveRetryButton
+					run={() => retryEditorAssignmentEmail({ bookingId })}
+					label="Retry assignment email"
+					pendingLabel="Sending"
+					errorMessage="Editor assignment email could not be sent."
+					successMessage="Assignment email sent."
+				/>
+			)}
+			{errorStatus.previousEditorRemoval && (
+				<DriveRetryButton
+					run={() => retryPreviousEditorRemoval({ bookingId })}
+					label="Retry previous editor removal"
+					pendingLabel="Retrying"
+					errorMessage="Previous editor access could not be removed."
+					successMessage="Previous editor access removed."
+				/>
+			)}
+		</>
+	);
+}
+
 export function DriveFoldersDialog({
 	bookingId,
 	clientName,
@@ -421,22 +482,13 @@ export function DriveFoldersDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
-	const retryEditorAccess = useAction(api.drive.retryEditorAccess);
-	const retryEditorAssignmentEmail = useAction(api.drive.retryEditorAssignmentEmail);
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
-	const savedFolders = driveStatus && "folders" in driveStatus ? (driveStatus.folders ?? []) : [];
+	const savedFolders = driveStatus?.folders ?? [];
+	// The client assets library exists when its folder was created during setup.
 	const hasClientAssetsLibrary = savedFolders.some(
 		(folder) => folder.name === "Assets" && folder.url !== undefined
 	);
-	const clientDrivePermissions = driveStatus?.clientDrivePermissions;
-	const editorDrivePermissions = driveStatus?.editorDrivePermissions;
-	const retryVisibility = getDriveRetryVisibility({
-		client: clientDrivePermissions,
-		editor: editorDrivePermissions,
-		driveFoldersReady: driveStatus?.status === "ready"
-	});
 	const sessionStartAt = getBookingStartTimestamp(sessionDate, sessionTime);
 	const sessionFolderName = formatDriveSessionFolderName(sessionStartAt);
 	return (
@@ -462,8 +514,9 @@ export function DriveFoldersDialog({
 					deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 				/>
 				<DrivePermissionsDetails
-					clientDrivePermissions={clientDrivePermissions}
-					editorDrivePermissions={editorDrivePermissions}
+					clientDrivePermissions={driveStatus?.clientDrivePermissions}
+					editorDrivePermissions={driveStatus?.editorDrivePermissions}
+					previousEditorRemovalFailed={driveStatus?.previousEditorRemovalFailed ?? false}
 				/>
 				<DialogFooter>
 					<Button
@@ -477,29 +530,9 @@ export function DriveFoldersDialog({
 						status={driveStatus?.status}
 						hasClientAssetsLibrary={hasClientAssetsLibrary}
 					/>
-					<DriveRetryButton
-						show={retryVisibility.client}
-						run={() => retryClientDrivePermissions({ bookingId })}
-						label="Retry client permissions"
-						pendingLabel="Retrying"
-						errorMessage="Client folder permissions could not be completed."
-						successMessage="Client folder permissions updated."
-					/>
-					<DriveRetryButton
-						show={retryVisibility.editorAccess}
-						run={() => retryEditorAccess({ bookingId })}
-						label="Retry editor access"
-						pendingLabel="Retrying"
-						errorMessage="Editor Google Drive access could not be completed."
-						successMessage="Editor access updated."
-					/>
-					<DriveRetryButton
-						show={retryVisibility.editorEmail}
-						run={() => retryEditorAssignmentEmail({ bookingId })}
-						label="Retry assignment email"
-						pendingLabel="Sending"
-						errorMessage="Editor assignment email could not be sent."
-						successMessage="Assignment email sent."
+					<DriveRetryActions
+						bookingId={bookingId}
+						driveStatus={driveStatus}
 					/>
 				</DialogFooter>
 			</DialogContent>

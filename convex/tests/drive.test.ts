@@ -64,6 +64,12 @@
  * 21. Shared assets access during unassignment
  *     Keeps assets access after one unassignment and removes it after the editor's final client assignment.
  *
+ * 22. Failed removal recording
+ *     Records a failed removal and still grants the replacement editor access.
+ *
+ * 23. Previous editor removal retry
+ *     Retries a failed removal by re-finding the editor's permissions and protects the action.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -131,7 +137,8 @@ const driveFake = vi.hoisted(() => {
 			vi.fn<(request: PermissionListRequest) => Promise<{ data: { permissions: Permission[] } }>>(),
 		failCreateNameOnce: String(),
 		failPermissionRoleOnce: String(),
-		loseCreateResponseNameOnce: String()
+		loseCreateResponseNameOnce: String(),
+		failNextDelete: false
 	};
 });
 
@@ -195,6 +202,7 @@ beforeEach(() => {
 	driveFake.failCreateNameOnce = "";
 	driveFake.failPermissionRoleOnce = "";
 	driveFake.loseCreateResponseNameOnce = "";
+	driveFake.failNextDelete = false;
 	emailFake.sendClientAssetsEmail.mockReturnValue(okAsync(null));
 	emailFake.sendEditorAssignmentEmail.mockReturnValue(okAsync(null));
 
@@ -262,6 +270,10 @@ beforeEach(() => {
 		}
 	}));
 	driveFake.permissionsDelete.mockImplementation(async ({ permissionId }) => {
+		if (driveFake.failNextDelete) {
+			driveFake.failNextDelete = false;
+			throw new Error("Drive permission delete failed");
+		}
 		driveFake.permissions.delete(permissionId);
 		return { data: {} };
 	});
@@ -756,6 +768,97 @@ describe("Google Drive editor access setup", () => {
 			assignmentEmailStatus: "sent"
 		});
 		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(2);
+	});
+
+	test("records a failed removal and still grants the replacement editor access", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		await seedEditor(t, otherEditorIdentity, "other-editor@example.com", "Other editor");
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		await runSetup(t, bookingId);
+		driveFake.failNextDelete = true;
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId,
+				editorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		// The old editor keeps Drive access and the failed removal is saved for a manual retry.
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "editor@example.com"
+			)
+		).toHaveLength(3);
+		const driveSession = (await readDriveState(t, bookingId)).driveSession;
+		expect(driveSession).toMatchObject({
+			failedRemovalEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		// The replacement editor's access setup was not blocked by the removal failure.
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "other-editor@example.com"
+			)
+		).toHaveLength(3);
+		expect(driveSession).toMatchObject({
+			editorDrivePermissionsTokenIdentifier: otherEditorIdentity.tokenIdentifier
+		});
+	});
+
+	test("retries a failed removal by re-finding the editor's permissions and protects the action", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		await seedEditor(t, otherEditorIdentity, "other-editor@example.com", "Other editor");
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+		await runSetup(t, bookingId);
+		driveFake.failNextDelete = true;
+		await t
+			.withIdentity(adminIdentity)
+			.mutation(api.sessions.assignSessionEditor, {
+				adminNotes: "",
+				bookingId,
+				editorTokenIdentifier: otherEditorIdentity.tokenIdentifier
+			});
+		await t.action(internal.drive.updateEditorDriveAccess, {
+			bookingId,
+			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
+		});
+
+		expect(await t.action(api.drive.retryPreviousEditorRemoval, { bookingId })).toEqual([
+			{ reason: "NOT_AUTHENTICATED" },
+			null
+		]);
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.drive.retryPreviousEditorRemoval, { bookingId });
+		expect(retryResult).toEqual([null, null]);
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "editor@example.com"
+			)
+		).toHaveLength(0);
+		// The failed removal marker is cleared and the replacement editor's permissions are untouched.
+		expect(
+			(await readDriveState(t, bookingId)).driveSession?.failedRemovalEditorTokenIdentifier
+		).toBeUndefined();
+		expect(
+			[...driveFake.permissions.values()].filter(
+				(permission) => permission.emailAddress === "other-editor@example.com"
+			)
+		).toHaveLength(3);
+		expect(
+			await t.run((ctx) => ctx.db.query("driveClientEditorPermissions").collect())
+		).toHaveLength(1);
 	});
 });
 

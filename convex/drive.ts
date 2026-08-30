@@ -6,6 +6,7 @@ import { action, internalAction } from "#convex/_generated/server";
 import {
 	retryEditorAssignmentEmailService,
 	retryEditorAccessService,
+	retryPreviousEditorRemovalService,
 	runEditorAccessSetupService,
 	runEditorDriveAccessUpdateService,
 	type DriveEditorPermissionsError
@@ -35,6 +36,12 @@ export const setupEditorAccess = internalAction({
 
 export const updateEditorDriveAccess = internalAction({
 	args: { bookingId: v.id("bookings"), previousEditorTokenIdentifier: v.string() },
-	handler: (ctx, args): Promise<Result<null, never>> =>
+	handler: (ctx, args): Promise<Result<null, DriveEditorPermissionsError>> =>
 		runEditorDriveAccessUpdateService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryPreviousEditorRemoval = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
+		retryPreviousEditorRemovalService(ctx, args).match(tupleOk, tupleErr)
 });
