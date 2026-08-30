@@ -4,6 +4,8 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import { getOrCreateDriveClientId } from "#convex/lib/driveRecords";
+import { getClientFolderName } from "#convex/lib/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import {
@@ -68,15 +70,24 @@ export function createPendingSessionService(
 						return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 					}
 
-					return okOrThrow(
-						ctx.db.insert("bookings", {
-							...args,
-							email: args.email.trim().toLowerCase(),
-							sessionStartAt,
-							status: "pending_payment",
-							pendingPaymentCreatedAt: Date.now()
+					return getOrCreateDriveClientId(ctx, {
+						email: args.email,
+						displayName: getClientFolderName({
+							accountName: args.accountName,
+							contactName: args.name
 						})
-					).map((bookingId) => ({ bookingId }));
+					}).andThen((driveClientId) =>
+						okOrThrow(
+							ctx.db.insert("bookings", {
+								...args,
+								email: args.email.trim().toLowerCase(),
+								sessionStartAt,
+								status: "pending_payment",
+								pendingPaymentCreatedAt: Date.now(),
+								driveClientId
+							})
+						).map((bookingId) => ({ bookingId }))
+					);
 				})
 			)
 	);

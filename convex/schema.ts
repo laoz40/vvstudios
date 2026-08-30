@@ -46,8 +46,9 @@ export default defineSchema({
 	driveClients: defineTable({
 		normalizedEmail: v.string(),
 		displayName: v.string(),
-		folderId: v.string(),
-		folderUrl: v.string(),
+		// Folder data is absent until the client's Google folder is created by Drive setup.
+		folderId: v.optional(v.string()),
+		folderUrl: v.optional(v.string()),
 		assetsFolder: v.optional(driveFolderValidator),
 		clientFolderPermission: v.optional(drivePermissionValidator),
 		assetsClientPermission: v.optional(drivePermissionValidator),
@@ -218,6 +219,9 @@ export default defineSchema({
 		deliverablesClientNotes: v.optional(v.string()),
 		deliverablesDriveLink: v.optional(v.string()),
 
+		// Drive client record created/reused at booking creation; its folder is created by setup later.
+		driveClientId: v.optional(v.id("driveClients")),
+
 		// Remaining balance/admin edit state
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
@@ -257,6 +261,10 @@ export default defineSchema({
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
 		.index("by_assignedEditorTokenIdentifier", ["assignedEditorTokenIdentifier"])
+		.index("by_assignedEditorTokenIdentifier_and_driveClientId", [
+			"assignedEditorTokenIdentifier",
+			"driveClientId"
+		])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
 		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
 			"multiBookingPackageId",

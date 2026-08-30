@@ -738,6 +738,29 @@ export function saveEditorAssignmentEmailResult(
 	});
 }
 
+// The record starts without a folder; Drive setup creates and saves the client folder later.
+export function getOrCreateDriveClientId(
+	ctx: MutationCtx,
+	client: { email: string; displayName: string }
+): ResultAsync<Id<"driveClients">, never> {
+	const normalizedEmail = client.email.trim().toLowerCase();
+	return okOrThrow(
+		ctx.db
+			.query("driveClients")
+			.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
+			.unique()
+	).andThen((existingClient) => {
+		if (existingClient !== null) return ok(existingClient._id);
+		return okOrThrow(
+			ctx.db.insert("driveClients", {
+				normalizedEmail,
+				displayName: client.displayName,
+				createdAt: Date.now()
+			})
+		);
+	});
+}
+
 export function saveDriveClientFolder(
 	ctx: MutationCtx,
 	clientFolder: { normalizedEmail: string; displayName: string; folder: SavedDriveFolder }
