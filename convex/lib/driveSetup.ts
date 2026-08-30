@@ -35,7 +35,7 @@ export type DriveSetupInfo = {
 		status: Doc<"bookings">["status"];
 		multiBookingPackageId?: Id<"multiBookingPackages">;
 	};
-	driveClient: { _id: Id<"driveClients">; folderId: string; assetsFolder?: SavedFolder } | null;
+	driveClient: { _id: Id<"driveClients">; folderId?: string; assetsFolder?: SavedFolder } | null;
 	driveSession: {
 		_id: Id<"driveSessions">;
 		sessionFolder?: SavedFolder;
@@ -125,11 +125,12 @@ function createFolderOrFindCreatedFolder(
 }
 
 function getOrCreateClientFolder(ctx: ActionCtx, setupInfo: DriveSetupInfo, drive: DriveClient) {
-	if (setupInfo.driveClient !== null) {
-		const savedClient = setupInfo.driveClient;
-		return verifyDriveFolder(drive, savedClient.folderId).map(() => ({
+	const savedClient = setupInfo.driveClient;
+	const savedClientFolderId = savedClient?.folderId;
+	if (savedClient !== null && savedClientFolderId !== undefined) {
+		return verifyDriveFolder(drive, savedClientFolderId).map(() => ({
 			drive,
-			clientFolderId: savedClient.folderId,
+			clientFolderId: savedClientFolderId,
 			driveClientId: savedClient._id,
 			assetsFolder: savedClient.assetsFolder
 		}));

@@ -118,13 +118,19 @@ function buildAssetsEmailStatus(
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
-		const normalizedEmail = booking.email.trim().toLowerCase();
+		// Older bookings have no linked client record, so find it by the booking's email instead.
+		const driveClientLookup =
+			booking.driveClientId !== undefined
+				? ctx.db.get(booking.driveClientId)
+				: ctx.db
+						.query("driveClients")
+						.withIndex("by_normalizedEmail", (query) =>
+							query.eq("normalizedEmail", booking.email.trim().toLowerCase())
+						)
+						.unique();
 		return okOrThrow(
 			Promise.all([
-				ctx.db
-					.query("driveClients")
-					.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
-					.unique(),
+				driveClientLookup,
 				ctx.db
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
@@ -774,6 +780,21 @@ export function saveDriveClientFolder(
 			.unique()
 	).andThen((existingClient) => {
 		if (existingClient !== null) {
+			// The row was created at booking time, so it may have no folder yet.
+			if (existingClient.folderId === undefined) {
+				return okOrThrow(
+					ctx.db
+						.patch(existingClient._id, {
+							folderId: clientFolder.folder.id,
+							folderUrl: clientFolder.folder.webViewLink
+						})
+						.then(() => null)
+				).map(() => ({
+					driveClientId: existingClient._id,
+					folderId: clientFolder.folder.id,
+					assetsFolder: existingClient.assetsFolder
+				}));
+			}
 			return ok({
 				driveClientId: existingClient._id,
 				folderId: existingClient.folderId,

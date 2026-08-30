@@ -51,6 +51,29 @@ type ClientDrivePermissionRequirement = {
 	role: "reader" | "writer";
 };
 
+function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
+	const { driveClient, driveSession } = setupInfo;
+	if (driveClient === null || driveSession === null) return null;
+	const assetsFolder = driveClient.assetsFolder;
+	const clientFolderId = driveClient.folderId;
+	const sessionFolder = driveSession.sessionFolder;
+	const rawMediaFolder = driveSession.rawMediaFolder;
+	const deliverablesFolder = driveSession.deliverablesFolder;
+	if (
+		clientFolderId === undefined ||
+		assetsFolder === undefined ||
+		sessionFolder === undefined ||
+		rawMediaFolder === undefined ||
+		deliverablesFolder === undefined
+	) {
+		return null;
+	}
+	return {
+		driveClient: { _id: driveClient._id, assetsFolder, folderId: clientFolderId },
+		driveSession: { _id: driveSession._id, deliverablesFolder, rawMediaFolder, sessionFolder }
+	};
+}
+
 export function loadReadyBookingDriveFolders(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
@@ -58,26 +81,11 @@ export function loadReadyBookingDriveFolders(
 	return fromConvexTuple(ctx.runQuery(internal.sessions.getDriveSetup, { bookingId }))
 		.andThen((setupInfo) => validateDriveSetup(setupInfo))
 		.andThen((setupInfo) => {
-			const { driveClient, driveSession } = setupInfo;
-			const sessionFolder = driveSession?.sessionFolder;
-			const rawMediaFolder = driveSession?.rawMediaFolder;
-			const assetsFolder = driveClient?.assetsFolder;
-			const deliverablesFolder = driveSession?.deliverablesFolder;
-			if (
-				driveClient === null ||
-				driveSession === null ||
-				sessionFolder === undefined ||
-				rawMediaFolder === undefined ||
-				assetsFolder === undefined ||
-				deliverablesFolder === undefined
-			) {
+			const readyFolders = getReadyBookingFolders(setupInfo);
+			if (readyFolders === null) {
 				return err({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 			}
-			return ok({
-				...setupInfo,
-				driveClient: { _id: driveClient._id, assetsFolder, folderId: driveClient.folderId },
-				driveSession: { _id: driveSession._id, deliverablesFolder, rawMediaFolder, sessionFolder }
-			});
+			return ok({ ...setupInfo, ...readyFolders });
 		});
 }
 

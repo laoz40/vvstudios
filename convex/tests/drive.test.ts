@@ -70,6 +70,10 @@
  * 23. Previous editor removal retry
  *     Retries a failed removal by re-finding the editor's permissions and protects the action.
  *
+ * 24. Client record without folder
+ *     Patches the created client folder into the record created at booking time.
+ *
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -337,6 +341,21 @@ describe("Google Drive scheduled workspace setup", () => {
 			deliverablesFolder: { id: "folder-5" }
 		});
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
+	});
+
+	test("patches the client folder into the record created at booking time", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		await runSetup(t, bookingId);
+		const clientRows = await t.run((ctx) => ctx.db.query("driveClients").collect());
+
+		expect(clientRows).toHaveLength(1);
+		expect(clientRows[0]).toMatchObject({
+			normalizedEmail: "customer@example.com",
+			folderId: "folder-1",
+			folderUrl: "https://drive.google.com/drive/folders/folder-1"
+		});
 	});
 
 	test("grants client writer access to global assets and emails its reusable link", async () => {
@@ -893,11 +912,28 @@ async function seedBooking(
 		status?: Doc<"bookings">["status"];
 		withReservation?: boolean;
 		sessionStartAt?: number;
+		multiBookingPackageId?: Id<"multiBookingPackages">;
 	} = {}
 ) {
 	const bookingStartAt = options.sessionStartAt ?? sessionStartAt;
-	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
+	return await t.run(async (ctx) => {
+		// Mirror booking creation: reuse or insert a driveClients row without a folder and link it.
+		const normalizedEmail = "customer@example.com";
+		const existingClient = await ctx.db
+			.query("driveClients")
+			.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
+			.unique();
+		const driveClientId =
+			existingClient?._id ??
+			(await ctx.db.insert("driveClients", {
+				normalizedEmail,
+				displayName: getClientFolderName({
+					accountName: "Test account",
+					contactName: "Test customer"
+				}),
+				createdAt: now
+			}));
+		return await ctx.db.insert("bookings", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -911,6 +947,8 @@ async function seedBooking(
 			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
+			multiBookingPackageId: options.multiBookingPackageId,
+			driveClientId,
 			...(options.withReservation
 				? {
 						reservationCreatedAt: now,
@@ -918,8 +956,8 @@ async function seedBooking(
 						reservationDuration: "1h"
 					}
 				: {})
-		})
-	);
+		});
+	});
 }
 
 async function seedEditor(
