@@ -397,6 +397,33 @@ export function formatDriveSessionFolderName(sessionStartAt: number) {
 	return `${valueByType.day} ${valueByType.month} ${valueByType.year} - ${time}`;
 }
 
+export function formatDrivePackageFolderName({
+	packageSize,
+	purchasedAt
+}: {
+	packageSize: number;
+	purchasedAt: number;
+}) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "2-digit",
+		month: "short",
+		year: "numeric"
+	}).formatToParts(purchasedAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+
+	return `${packageSize}-Session Package - Ordered on ${valueByType.day} ${valueByType.month} ${valueByType.year}`;
+}
+
+export function formatDrivePackageSessionFolderName(sessionNumber: number, sessionStartAt: number) {
+	return `Session ${String(sessionNumber).padStart(2, "0")} - ${formatDriveSessionFolderName(sessionStartAt)}`;
+}
+
+export function formatDriveClientFolderName(input: { accountName: string; contactName: string }) {
+	const clientName = input.accountName.trim() || input.contactName.trim();
+	return `${clientName} (VV Studios)`;
+}
+
 export function formatDriveSessionMediaFolderName(
 	folderType: "Raw Media" | "Deliverables",
 	sessionStartAt: number

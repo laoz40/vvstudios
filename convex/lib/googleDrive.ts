@@ -6,6 +6,9 @@ import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
 
 export {
+	formatDriveClientFolderName as getClientFolderName,
+	formatDrivePackageFolderName as getPackageFolderName,
+	formatDrivePackageSessionFolderName as getPackageSessionFolderName,
 	formatDriveSessionFolderName as getSessionFolderName,
 	formatDriveSessionMediaFolderName as getSessionMediaFolderName
 } from "#studio/lib/bookingdatetime";
@@ -204,9 +207,4 @@ export function deleteDrivePermission(
 
 export function normalizeDriveEmail(email: string) {
 	return email.trim().toLowerCase();
-}
-
-export function getClientFolderName(input: { accountName: string; contactName: string }) {
-	const clientName = input.accountName.trim() || input.contactName.trim();
-	return `${clientName} (VV Studios)`;
 }

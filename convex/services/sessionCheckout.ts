@@ -1,11 +1,11 @@
 import { err, ok, type ResultAsync } from "neverthrow";
+import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { getOrCreateDriveClientId } from "#convex/lib/driveRecords";
-import { getClientFolderName } from "#convex/lib/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import {
@@ -72,7 +72,7 @@ export function createPendingSessionService(
 
 					return getOrCreateDriveClientId(ctx, {
 						email: args.email,
-						displayName: getClientFolderName({
+						displayName: formatDriveClientFolderName({
 							accountName: args.accountName,
 							contactName: args.name
 						})
