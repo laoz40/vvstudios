@@ -8,6 +8,7 @@ import type {
 	SavedDrivePermission
 } from "#convex/lib/googleDrive";
 import {
+	formatDriveClientFolderName,
 	formatDrivePackageFolderName,
 	formatDrivePackageSessionFolderName,
 	formatDriveSessionFolderName
@@ -125,6 +126,23 @@ export function buildDriveStatus(args: {
 		packageFolderName,
 		sessionFolderName,
 		folders
+	};
+}
+
+function getDriveIdentityStatus(
+	booking: Doc<"bookings"> | null,
+	driveClient: Doc<"driveClients"> | null
+) {
+	if (booking === null || driveClient === null) {
+		return { bookingEmailChanged: false, workspaceNameChanged: false };
+	}
+	return {
+		bookingEmailChanged: booking.email.trim().toLowerCase() !== driveClient.normalizedEmail,
+		workspaceNameChanged:
+			formatDriveClientFolderName({
+				accountName: booking.accountName,
+				contactName: booking.name
+			}) !== driveClient.displayName
 	};
 }
 
@@ -263,6 +281,7 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 				driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
 				sharedPackageFolder: setupInfo?.sharedPackageFolder
 			}),
+			...getDriveIdentityStatus(booking, driveClient),
 			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession),
 			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession),
 			previousEditorRemovalFailed: driveSession?.failedRemovalEditorTokenIdentifier !== undefined

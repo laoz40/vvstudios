@@ -10,11 +10,12 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 
-type ChangedFieldListProps = { fields: string[]; title: string };
+type ChangedFieldListProps = { fields: string[]; title: string; description?: string };
 
 export type AdminEditConfirmationDialogProps = {
 	open: boolean;
 	googleEventFieldLabels: string[];
+	driveIdentityFieldLabels?: string[];
 	isSaving: boolean;
 	pricingFieldLabels: string[];
 	nonPricingTitle?: string;
@@ -25,7 +26,7 @@ export type AdminEditConfirmationDialogProps = {
 	onOpenChange: (open: boolean) => void;
 };
 
-function ChangedFieldList({ fields, title }: ChangedFieldListProps) {
+function ChangedFieldList({ fields, title, description }: ChangedFieldListProps) {
 	if (fields.length === 0) {
 		return null;
 	}
@@ -38,6 +39,7 @@ function ChangedFieldList({ fields, title }: ChangedFieldListProps) {
 					<li key={field}>{field}</li>
 				))}
 			</ul>
+			{description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
 		</section>
 	);
 }
@@ -45,6 +47,7 @@ function ChangedFieldList({ fields, title }: ChangedFieldListProps) {
 export function AdminEditConfirmationDialog({
 	open,
 	googleEventFieldLabels,
+	driveIdentityFieldLabels = [],
 	isSaving,
 	pricingFieldLabels,
 	nonPricingTitle = "Google Calendar event will update",
@@ -73,6 +76,11 @@ export function AdminEditConfirmationDialog({
 					<ChangedFieldList
 						title={nonPricingTitle}
 						fields={googleEventFieldLabels}
+					/>
+					<ChangedFieldList
+						title="Google Drive client folder will not be renamed"
+						fields={driveIdentityFieldLabels}
+						description="The client folder keeps its original name, and sharing stays on the original email. Update those in Google Drive yourself if needed."
 					/>
 					<ChangedFieldList
 						title={pricingTitle}

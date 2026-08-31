@@ -46,7 +46,13 @@ export type DriveSetupInfo = {
 		multiBookingPackageId?: Id<"multiBookingPackages">;
 	};
 	multiBookingPackage: SetupPackage | null;
-	driveClient: { _id: Id<"driveClients">; folderId?: string; assetsFolder?: SavedFolder } | null;
+	driveClient: {
+		_id: Id<"driveClients">;
+		normalizedEmail: string;
+		displayName: string;
+		folderId?: string;
+		assetsFolder?: SavedFolder;
+	} | null;
 	driveSession: {
 		_id: Id<"driveSessions">;
 		packageSessionNumber?: number;
@@ -119,6 +125,22 @@ function buildFolderMarker(bookingId: Id<"bookings">, role: string) {
 	return `${bookingId}:${role}`;
 }
 
+function getClientIdentity(setupInfo: DriveSetupInfo) {
+	if (setupInfo.driveClient !== null) {
+		return {
+			displayName: setupInfo.driveClient.displayName,
+			normalizedEmail: setupInfo.driveClient.normalizedEmail
+		};
+	}
+	return {
+		displayName: getClientFolderName({
+			accountName: setupInfo.booking.accountName,
+			contactName: setupInfo.booking.name
+		}),
+		normalizedEmail: normalizeDriveEmail(setupInfo.booking.email)
+	};
+}
+
 function verifyAndRenameDriveFolder(drive: DriveClient, folderId: string, expectedName: string) {
 	return verifyDriveFolder(drive, folderId).andThen((folder) => {
 		if (folder.name === expectedName) return ok(folder);
@@ -153,11 +175,7 @@ function getOrCreateClientFolder(ctx: ActionCtx, setupInfo: DriveSetupInfo, driv
 		}));
 	}
 
-	const displayName = getClientFolderName({
-		accountName: setupInfo.booking.accountName,
-		contactName: setupInfo.booking.name
-	});
-	const normalizedEmail = normalizeDriveEmail(setupInfo.booking.email);
+	const { displayName, normalizedEmail } = getClientIdentity(setupInfo);
 	return createFolderOrFindCreatedFolder(drive, {
 		name: displayName,
 		parentId: env.GOOGLE_DRIVE_ROOT_FOLDER_ID,
@@ -203,7 +221,7 @@ function getOrCreateClientAssetsFolder(
 	return createFolderOrFindCreatedFolder(client.drive, {
 		name: "_Assets",
 		parentId: client.clientFolderId,
-		marker: `client:${normalizeDriveEmail(setupInfo.booking.email)}:assets`
+		marker: `client:${getClientIdentity(setupInfo).normalizedEmail}:assets`
 	})
 		.andThen((folder) =>
 			fromConvexTuple(

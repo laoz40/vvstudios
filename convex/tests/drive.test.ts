@@ -118,6 +118,12 @@
  * 39. Pre-setup package reschedule
  *     Allocates unallocated package numbers in the new date order.
  *
+ * 40. Booking email change
+ *     Keeps the original client folder and grants Drive permissions to the original email.
+ *
+ * 41. Account name change
+ *     Keeps the saved client folder name and reports the workspace-name warning.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -1319,7 +1325,7 @@ describe("Google Drive package workspaces", () => {
 	});
 });
 
-describe("Google Drive reschedule", () => {
+describe("Google Drive reschedule and identity", () => {
 	const dayMs = 24 * 60 * 60 * 1000;
 	const nextStartAt = sessionStartAt + dayMs;
 
@@ -1425,6 +1431,55 @@ describe("Google Drive reschedule", () => {
 		expect((await readDriveState(t, secondId)).driveSession).toMatchObject({
 			packageSessionNumber: 1
 		});
+	});
+
+	test("keeps the original client folder and permissions after a booking email change", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		await runSetup(t, bookingId);
+		await t.mutation(
+			internal.sessionScheduling.saveAdminSessionUpdate,
+			adminSessionValues(bookingId, { email: "new@example.com" })
+		);
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+		const status = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId });
+
+		expect(state.driveClient).toMatchObject({
+			normalizedEmail: "customer@example.com",
+			folderId: "folder-1"
+		});
+		expect(state.driveSession).toMatchObject({
+			sessionFolder: { id: "folder-3" },
+			rawMediaFolder: { id: "folder-4" },
+			deliverablesFolder: { id: "folder-5" }
+		});
+		expect(
+			driveFake.permissionsCreate.mock.calls.map(([request]) => request.requestBody?.emailAddress)
+		).toEqual(["customer@example.com", "customer@example.com"]);
+		expect(status[1]).toMatchObject({ bookingEmailChanged: true, workspaceNameChanged: false });
+	});
+
+	test("keeps the saved client folder name and reports an account-name mismatch", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		await runSetup(t, bookingId);
+		await t.mutation(
+			internal.sessionScheduling.saveAdminSessionUpdate,
+			adminSessionValues(bookingId, { accountName: "New account" })
+		);
+		await runSetup(t, bookingId);
+		const status = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId });
+
+		expect(driveFake.folders.get("folder-1")?.name).toBe("Test account (VV Studios)");
+		expect(driveFake.update).not.toHaveBeenCalled();
+		expect(status[1]).toMatchObject({ bookingEmailChanged: false, workspaceNameChanged: true });
 	});
 });
 
@@ -1564,14 +1619,7 @@ async function readDriveState(t: TestClient, bookingId: Id<"bookings">) {
 	return await t.run(async (ctx) => {
 		const booking = await ctx.db.get(bookingId);
 		const driveClient =
-			booking === null
-				? null
-				: await ctx.db
-						.query("driveClients")
-						.withIndex("by_normalizedEmail", (query) =>
-							query.eq("normalizedEmail", normalizeDriveEmail(booking.email))
-						)
-						.unique();
+			booking?.driveClientId === undefined ? null : await ctx.db.get(booking.driveClientId);
 		const driveSession = await ctx.db
 			.query("driveSessions")
 			.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))

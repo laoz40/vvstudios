@@ -177,6 +177,9 @@ export function SessionActionsDialogs({
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
+				driveIdentityFieldLabels={
+					editAction.pendingEditWarningState?.driveIdentityFieldLabels ?? []
+				}
 				description={
 					editAction.pendingEditWarningState?.manualPriceWillBeUsed
 						? "Review what this save will affect before making the session changes permanent. The manual remaining balance due will be used instead of the recalculated default."

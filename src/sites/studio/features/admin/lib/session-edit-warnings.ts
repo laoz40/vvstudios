@@ -19,6 +19,8 @@ const googleEventFields: readonly SessionEditWarningField[] = [
 	"notes"
 ];
 
+const driveIdentityFields: readonly SessionEditWarningField[] = ["email", "accountName"];
+
 const pricingFields: readonly SessionEditWarningField[] = [
 	"addons",
 	"duration",
@@ -109,14 +111,19 @@ export function getSessionEditWarningState(session: SessionRecord, draft: Sessio
 		.filter((field) => didSessionEditFieldChange(session, draft, field));
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
+	const driveIdentityFieldLabels = getChangedFieldLabels(changedFields, driveIdentityFields);
 
 	const manualPriceWillBeUsed = draft.remainingBalanceAmount.trim().length > 0;
 
 	return {
 		changedFieldLabels: changedFields.map((field) => sessionEditFieldLabels[field]),
+		driveIdentityFieldLabels,
 		googleEventFieldLabels,
 		manualPriceWillBeUsed,
 		pricingFieldLabels,
-		requiresConfirmation: googleEventFieldLabels.length > 0 || pricingFieldLabels.length > 0
+		requiresConfirmation:
+			googleEventFieldLabels.length > 0 ||
+			pricingFieldLabels.length > 0 ||
+			driveIdentityFieldLabels.length > 0
 	};
 }

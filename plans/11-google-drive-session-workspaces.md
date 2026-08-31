@@ -151,7 +151,7 @@ Reuse the ordinary session setup, client access, and editor access behavior insi
 
 Check after step: cover sessions booked out of order, future sessions, cancellation gaps, concurrent setup, and retries that preserve allocated numbers.
 
-### Step 8: Handle reschedules and client identity changes
+### Step 8: Handle reschedules and client identity changes ✅
 
 After a reschedule, schedule a replacement setup job. A stale job must exit. Rename an existing session folder to its new date and time without changing a saved package session number. Update the short dates in its `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)` names. The global `_Assets` name does not change.
 

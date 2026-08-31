@@ -498,6 +498,33 @@ function DriveRetryActions({
 	);
 }
 
+function DriveIdentityWarnings({
+	bookingEmailChanged,
+	workspaceNameChanged
+}: {
+	bookingEmailChanged: boolean;
+	workspaceNameChanged: boolean;
+}) {
+	if (!bookingEmailChanged && !workspaceNameChanged) return null;
+
+	return (
+		<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
+			{bookingEmailChanged ? (
+				<p>
+					This booking now uses a different email. Drive sharing is still with the original email
+					and does not switch automatically.
+				</p>
+			) : null}
+			{workspaceNameChanged ? (
+				<p>
+					The account name on this booking no longer matches the client folder in Google Drive. That
+					folder is not renamed automatically.
+				</p>
+			) : null}
+		</div>
+	);
+}
+
 export function DriveFoldersDialog({
 	bookingId,
 	clientName,
@@ -538,6 +565,10 @@ export function DriveFoldersDialog({
 						})}
 					</DialogDescription>
 				</DialogHeader>
+				<DriveIdentityWarnings
+					bookingEmailChanged={driveStatus?.bookingEmailChanged ?? false}
+					workspaceNameChanged={driveStatus?.workspaceNameChanged ?? false}
+				/>
 				<SavedFolderLinks
 					folders={savedFolders}
 					sessionFolderName={sessionFolderName}

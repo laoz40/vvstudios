@@ -9,7 +9,6 @@ import {
 	createDrivePermission,
 	findDrivePermission,
 	loadDriveClient,
-	normalizeDriveEmail,
 	type DriveClient,
 	type DriveError,
 	type SavedDrivePermission
@@ -33,6 +32,8 @@ export type DriveClientPermissionsError =
 type ReadyBookingDriveFolders = DriveSetupInfo & {
 	driveClient: {
 		_id: Id<"driveClients">;
+		displayName: string;
+		normalizedEmail: string;
 		folderId: string;
 		assetsFolder: { id: string; url: string };
 	};
@@ -68,7 +69,13 @@ function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
 		return null;
 	}
 	return {
-		driveClient: { _id: driveClient._id, assetsFolder, folderId: clientFolderId },
+		driveClient: {
+			_id: driveClient._id,
+			assetsFolder,
+			displayName: driveClient.displayName,
+			folderId: clientFolderId,
+			normalizedEmail: driveClient.normalizedEmail
+		},
 		driveSession: { _id: driveSession._id, deliverablesFolder, rawMediaFolder, sessionFolder }
 	};
 }
@@ -93,7 +100,7 @@ function requireClientDrivePermission(
 	setup: ReadyBookingDriveFolders,
 	requirement: ClientDrivePermissionRequirement
 ): ResultAsync<SavedDrivePermission, DriveClientPermissionsError> {
-	const clientEmail = normalizeDriveEmail(setup.booking.email);
+	const clientEmail = setup.driveClient.normalizedEmail;
 	return findDrivePermission(drive, {
 		email: clientEmail,
 		fileId: requirement.fileId,
