@@ -74,7 +74,7 @@
  *     Patches the created client folder into the record created at booking time.
  *
  * 25. Package session during unassignment
- *     Removes shared assets access even when a package session of the same client keeps the editor.
+ *     Keeps shared assets access while a package session of the same client keeps the editor.
  *
  * 26. Package workspace creation
  *     Creates the package folder, numbered session folder, and dated media folders.
@@ -772,14 +772,13 @@ describe("Google Drive editor access setup", () => {
 		);
 	});
 
-	test("removes shared assets access while a package session of the same client keeps the editor", async () => {
+	test("keeps shared assets access while a package session of the same client keeps the editor", async () => {
 		const t = createConvexTest();
 		await seedEditor(t);
 		const bookingId = await seedBooking(t, {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 		const packageId = await seedPackage(t);
-		// Package sessions have no managed editor access yet, so they must not preserve assets access.
 		await seedBooking(t, {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
 			multiBookingPackageId: packageId,
@@ -805,7 +804,8 @@ describe("Google Drive editor access setup", () => {
 			previousEditorTokenIdentifier: editorIdentity.tokenIdentifier
 		});
 
-		expect(driveFake.permissions.has(assetsPermission.id)).toBe(false);
+		// The editor's package session for the same client still preserves assets access.
+		expect(driveFake.permissions.has(assetsPermission.id)).toBe(true);
 	});
 
 	test("retries a failed assignment email when editor access setup runs again", async () => {

@@ -414,7 +414,6 @@ async function loadEditorClientDriveData(
 					.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
 					.eq("driveClientId", driveSession.driveClientId)
 			)
-			.filter((query) => query.eq(query.field("multiBookingPackageId"), undefined))
 			.collect()
 	]);
 }
