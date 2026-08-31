@@ -43,6 +43,7 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID"
 		| "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_FOLDER_MISSING"
+		| "GOOGLE_DRIVE_FOLDER_RENAME_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
@@ -120,6 +121,28 @@ export function verifyDriveFolder(drive: DriveClient, folderId: string) {
 				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
 			}
 			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED");
+		}
+	).andThen((response) => {
+		const folder = driveFolderSchema.safeParse(response.data);
+		return folder.success
+			? ok(folder.data)
+			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
+	});
+}
+
+export function renameDriveFolder(drive: DriveClient, input: { folderId: string; name: string }) {
+	return ResultAsync.fromPromise(
+		drive.files.update({
+			fileId: input.folderId,
+			fields: "id,name,webViewLink",
+			requestBody: { name: input.name },
+			supportsAllDrives: false
+		}),
+		(error) => {
+			if (getGoogleProviderErrorCode(error) === 404) {
+				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
+			}
+			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_RENAME_FAILED");
 		}
 	).andThen((response) => {
 		const folder = driveFolderSchema.safeParse(response.data);

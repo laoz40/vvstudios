@@ -16,6 +16,7 @@ import {
 	getSessionMediaFolderName,
 	loadDriveClient,
 	normalizeDriveEmail,
+	renameDriveFolder,
 	verifyDriveFolder,
 	GOOGLE_DRIVE_CHILD_FOLDER_NAMES,
 	type DriveChildFolderName,
@@ -77,6 +78,7 @@ const recordDriveSetupFailureByReason = {
 	GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID: true,
 	GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED: true,
 	GOOGLE_DRIVE_FOLDER_MISSING: true,
+	GOOGLE_DRIVE_FOLDER_RENAME_FAILED: true,
 	GOOGLE_DRIVE_PERMISSION_CREATE_FAILED: false,
 	GOOGLE_DRIVE_PERMISSION_DELETE_FAILED: false,
 	GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED: false,
@@ -115,6 +117,13 @@ export function validateDriveSetup(
 
 function buildFolderMarker(bookingId: Id<"bookings">, role: string) {
 	return `${bookingId}:${role}`;
+}
+
+function verifyAndRenameDriveFolder(drive: DriveClient, folderId: string, expectedName: string) {
+	return verifyDriveFolder(drive, folderId).andThen((folder) => {
+		if (folder.name === expectedName) return ok(folder);
+		return renameDriveFolder(drive, { folderId: folder.id, name: expectedName });
+	});
 }
 
 // If Google's create response is lost, find the folder by its private booking marker.
@@ -219,10 +228,11 @@ function getOrCreateSessionFolder(
 ) {
 	const savedFolder = setupInfo.driveSession?.sessionFolder;
 	if (savedFolder !== undefined) {
-		return verifyDriveFolder(input.drive, savedFolder.id).map(() => ({
-			drive: input.drive,
-			sessionFolderId: savedFolder.id
-		}));
+		return verifyAndRenameDriveFolder(
+			input.drive,
+			savedFolder.id,
+			getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.packageSessionNumber)
+		).map((folder) => ({ drive: input.drive, sessionFolderId: folder.id }));
 	}
 
 	return createFolderOrFindCreatedFolder(input.drive, {
@@ -269,7 +279,13 @@ function getOrCreateChildFolder(
 	name: DriveChildFolderName
 ): ResultAsync<SavedDriveFolder, SetupError> {
 	const savedFolder = savedChildFolder(setupInfo, name);
-	if (savedFolder !== undefined) return verifyDriveFolder(drive, savedFolder.id);
+	if (savedFolder !== undefined) {
+		return verifyAndRenameDriveFolder(
+			drive,
+			savedFolder.id,
+			getSessionMediaFolderName(name, setupInfo.booking.sessionStartAt)
+		);
+	}
 
 	return createFolderOrFindCreatedFolder(drive, {
 		name: getSessionMediaFolderName(name, setupInfo.booking.sessionStartAt),

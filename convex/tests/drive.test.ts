@@ -109,6 +109,15 @@
  * 36. Package folder sibling status
  *     Shows a sibling session's package folder before this session is set up.
  *
+ * 37. Pre-setup reschedule
+ *     Schedules a replacement job, skips the stale job, and creates folders for the new time.
+ *
+ * 38. Post-setup reschedule
+ *     Renames dated session and media folders without changing a saved package session number.
+ *
+ * 39. Pre-setup package reschedule
+ *     Allocates unallocated package numbers in the new date order.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -118,6 +127,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import { shouldRecordDriveSetupFailure } from "#convex/lib/driveSetup";
 import {
 	getClientFolderName,
+	getPackageSessionFolderName,
 	getSessionFolderName,
 	getSessionMediaFolderName,
 	normalizeDriveEmail
@@ -170,6 +180,13 @@ const driveFake = vi.hoisted(() => {
 			>(),
 		list: vi.fn<(request: ListRequest) => Promise<{ data: { files: Folder[] } }>>(),
 		get: vi.fn<(request: GetRequest) => Promise<{ data: Folder }>>(),
+		update:
+			vi.fn<
+				(request: {
+					fileId: string;
+					requestBody?: { name?: string };
+				}) => Promise<{ data: Pick<Folder, "id" | "name" | "webViewLink"> }>
+			>(),
 		permissionsCreate: vi.fn<(request: PermissionCreateRequest) => Promise<{ data: Permission }>>(),
 		permissionsDelete: vi.fn<(request: PermissionDeleteRequest) => Promise<{ data: object }>>(),
 		permissionsList:
@@ -186,7 +203,8 @@ vi.mock("#convex/env", () => ({
 		GOOGLE_CLIENT_ID: "client-id",
 		GOOGLE_CLIENT_SECRET: "client-secret",
 		GOOGLE_REFRESH_TOKEN: "refresh-token",
-		GOOGLE_DRIVE_ROOT_FOLDER_ID: "root-folder"
+		GOOGLE_DRIVE_ROOT_FOLDER_ID: "root-folder",
+		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney"
 	}
 }));
 
@@ -200,7 +218,12 @@ vi.mock("#convex/lib/email", () => ({
 vi.mock("googleapis", () => ({
 	google: {
 		drive: () => ({
-			files: { create: driveFake.create, list: driveFake.list, get: driveFake.get },
+			files: {
+				create: driveFake.create,
+				list: driveFake.list,
+				get: driveFake.get,
+				update: driveFake.update
+			},
 			permissions: {
 				create: driveFake.permissionsCreate,
 				delete: driveFake.permissionsDelete,
@@ -282,6 +305,13 @@ beforeEach(() => {
 		const folder = driveFake.folders.get(fileId);
 		if (folder === undefined) throw { code: 404 };
 		return { data: folder };
+	});
+	driveFake.update.mockImplementation(async ({ fileId, requestBody }) => {
+		const folder = driveFake.folders.get(fileId);
+		if (folder === undefined) throw { code: 404 };
+		const updated = { ...folder, name: requestBody?.name ?? folder.name };
+		driveFake.folders.set(fileId, updated);
+		return { data: { id: updated.id, name: updated.name, webViewLink: updated.webViewLink } };
 	});
 	driveFake.permissionsCreate.mockImplementation(async (request) => {
 		const role = request.requestBody?.role ?? "reader";
@@ -958,6 +988,9 @@ describe("Google Drive setup failure classification", () => {
 			true
 		);
 		expect(shouldRecordDriveSetupFailure({ reason: "GOOGLE_DRIVE_FOLDER_MISSING" })).toBe(true);
+		expect(shouldRecordDriveSetupFailure({ reason: "GOOGLE_DRIVE_FOLDER_RENAME_FAILED" })).toBe(
+			true
+		);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_NOT_ELIGIBLE" })).toBe(false);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_TIMING_CHANGED" })).toBe(false);
 	});
@@ -1286,6 +1319,115 @@ describe("Google Drive package workspaces", () => {
 	});
 });
 
+describe("Google Drive reschedule", () => {
+	const dayMs = 24 * 60 * 60 * 1000;
+	const nextStartAt = sessionStartAt + dayMs;
+
+	test("schedules a replacement job after a pre-setup reschedule and uses the new names", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, { status: "pending_payment", withReservation: true });
+		await t.mutation(internal.bookingConfirmation.markBookingConfirmed, {
+			bookingId,
+			reservation: { reservedAt: now, sessionStartAt, duration: "1h" }
+		});
+
+		const saveResult = await t.mutation(
+			internal.sessionScheduling.saveAdminSessionUpdate,
+			adminSessionValues(bookingId, { date: "2030-01-11" })
+		);
+		const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+
+		expect(saveResult).toEqual([null, null]);
+		expect(jobs).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					args: [{ bookingId, sessionStartAt, duration: "1h" }],
+					scheduledTime: sessionStartAt + 60 * 60 * 1000
+				}),
+				expect.objectContaining({
+					args: [{ bookingId, sessionStartAt: nextStartAt, duration: "1h" }],
+					scheduledTime: nextStartAt + 60 * 60 * 1000
+				})
+			])
+		);
+
+		await runSetup(t, bookingId, sessionStartAt);
+		expect(driveFake.create).not.toHaveBeenCalled();
+		expect((await readDriveState(t, bookingId)).booking?.driveSetupFailureCode).toBeUndefined();
+
+		await runSetup(t, bookingId, nextStartAt);
+		expect(driveFake.create.mock.calls.map(([request]) => request.requestBody?.name)).toEqual([
+			"Test account (VV Studios)",
+			"_Assets",
+			"11 Jan 2030 - 11:00 AM",
+			"Raw Media (11.1.30)",
+			"Deliverables (11.1.30)"
+		]);
+	});
+
+	test("renames dated folders after a post-setup reschedule without changing the package number", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+
+		await runSetup(t, bookingId);
+		await t.mutation(
+			internal.sessionScheduling.saveAdminSessionUpdate,
+			adminSessionValues(bookingId, { date: "2030-01-11" })
+		);
+		await runSetup(t, bookingId, nextStartAt);
+
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 1,
+			sessionFolder: { id: "folder-4" },
+			rawMediaFolder: { id: "folder-5" },
+			deliverablesFolder: { id: "folder-6" }
+		});
+		expect(driveFake.folders.get("folder-1")?.name).toBe("Test account (VV Studios)");
+		expect(driveFake.folders.get("folder-2")?.name).toBe("_Assets");
+		expect(driveFake.folders.get("folder-4")?.name).toBe(
+			getPackageSessionFolderName(1, nextStartAt)
+		);
+		expect(driveFake.folders.get("folder-5")?.name).toBe(
+			getSessionMediaFolderName("Raw Media", nextStartAt)
+		);
+		expect(driveFake.folders.get("folder-6")?.name).toBe(
+			getSessionMediaFolderName("Deliverables", nextStartAt)
+		);
+		expect(driveFake.update.mock.calls.map(([request]) => request.fileId)).toEqual([
+			"folder-4",
+			"folder-5",
+			"folder-6"
+		]);
+	});
+
+	test("allocates unallocated package numbers in the new date order after a pre-setup reschedule", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const secondStartAt = sessionStartAt + 7 * dayMs;
+		const secondId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: secondStartAt
+		});
+		const laterStartAt = sessionStartAt + 14 * dayMs;
+
+		await t.mutation(
+			internal.sessionScheduling.saveAdminSessionUpdate,
+			adminSessionValues(firstId, { date: "2030-01-24" })
+		);
+		await runSetup(t, firstId, laterStartAt);
+		await runSetup(t, secondId, secondStartAt);
+
+		expect((await readDriveState(t, firstId)).driveSession).toMatchObject({
+			packageSessionNumber: 2
+		});
+		expect((await readDriveState(t, secondId)).driveSession).toMatchObject({
+			packageSessionNumber: 1
+		});
+	});
+});
+
 async function runSetup(
 	t: TestClient,
 	bookingId: Id<"bookings">,
@@ -1296,6 +1438,25 @@ async function runSetup(
 		sessionStartAt: expectedStartAt,
 		duration: "1h"
 	});
+}
+
+function adminSessionValues(
+	bookingId: Id<"bookings">,
+	overrides: { accountName?: string; date?: string; email?: string } = {}
+) {
+	return {
+		bookingId,
+		name: "Test customer",
+		phone: "0400000000",
+		accountName: "Test account",
+		email: "customer@example.com",
+		date: "2030-01-10",
+		time: "11:00",
+		duration: "1h",
+		service: "Remote Podcast",
+		addons: [] as string[],
+		...overrides
+	};
 }
 
 async function seedBooking(
