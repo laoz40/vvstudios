@@ -141,7 +141,7 @@ Show the accepted My Drive limitation where useful: removing folder permissions 
 
 Check after step: verify the old editor loses managed session access, retains `_Assets` while assigned to another session for the same client, loses `_Assets` after their final assignment for that client is removed, cannot browse other session directories, and keeps uploader-owned files under Google's documented behavior.
 
-### Step 7: Add package workspaces
+### Step 7: Add package workspaces ✅
 
 For a package booking, create one package folder beneath the client folder. Name it from package size and purchase date.
 
