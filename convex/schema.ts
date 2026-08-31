@@ -69,6 +69,8 @@ export default defineSchema({
 	driveSessions: defineTable({
 		bookingId: v.id("bookings"),
 		driveClientId: v.id("driveClients"),
+		packageSessionNumber: v.optional(v.number()),
+		packageFolder: v.optional(driveFolderValidator),
 		sessionFolder: v.optional(driveFolderValidator),
 		rawMediaFolder: v.optional(driveFolderValidator),
 		deliverablesFolder: v.optional(driveFolderValidator),

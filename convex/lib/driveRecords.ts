@@ -1,4 +1,4 @@
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -7,34 +7,125 @@ import type {
 	SavedDriveFolder,
 	SavedDrivePermission
 } from "#convex/lib/googleDrive";
+import {
+	formatDrivePackageFolderName,
+	formatDrivePackageSessionFolderName,
+	formatDriveSessionFolderName
+} from "#studio/lib/bookingdatetime";
 
 const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 type ClientDrivePermissionsStatus = "failed" | "ready";
 type ClientDrivePermissionsDisplayStatus = "failed" | "incomplete" | "not_created" | "ready";
 type AssetsEmailDisplayStatus = "failed" | "not_sent" | "pending" | "sent";
+type DriveStatusFolderName = "Assets" | "Package" | "Session" | DriveChildFolderName;
 
-export function buildDriveStatus(
-	driveClient: Doc<"driveClients"> | null,
-	driveSession: Doc<"driveSessions"> | null,
-	driveSetupFailed: boolean
+// Package session folders live inside their package folder; ordinary sessions sit directly
+// below the client folder, so the session label differs between the two kinds.
+function getSavedPackageFolderName(multiBookingPackage: Doc<"multiBookingPackages"> | null) {
+	if (multiBookingPackage === null) return undefined;
+	return formatDrivePackageFolderName({
+		packageSize: multiBookingPackage.packageSize,
+		purchasedAt: multiBookingPackage.paidAt ?? multiBookingPackage.createdAt
+	});
+}
+
+function getSavedSessionFolderName(
+	booking: Doc<"bookings"> | null,
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	if (driveSession === null) {
-		const assetsUrl = driveClient?.assetsFolder?.url;
-		if (driveSetupFailed) return { status: "failed" as const };
-		if (assetsUrl === undefined) return { status: "not_created" as const };
-		return { status: "incomplete" as const, folders: [{ name: "Assets", url: assetsUrl }] };
+	if (booking === null) return undefined;
+	if (driveSession?.packageSessionNumber === undefined) {
+		return formatDriveSessionFolderName(booking.sessionStartAt);
 	}
+	return formatDrivePackageSessionFolderName(
+		driveSession.packageSessionNumber,
+		booking.sessionStartAt
+	);
+}
 
-	const folders = [
+type DriveStatusFolder = { name: DriveStatusFolderName; url: string | undefined };
+type SavedPackageFolder = NonNullable<Doc<"driveSessions">["packageFolder"]>;
+
+function getSavedFolderRows(
+	driveClient: Doc<"driveClients"> | null,
+	driveSession: Doc<"driveSessions">,
+	packageFolderName: string | undefined,
+	sharedPackageFolder: SavedPackageFolder | undefined
+): DriveStatusFolder[] {
+	// Package sessions have a package folder row between the assets and session rows.
+	const packageFolderRow: DriveStatusFolder[] =
+		packageFolderName === undefined
+			? []
+			: [{ name: "Package", url: driveSession.packageFolder?.url ?? sharedPackageFolder?.url }];
+	return [
 		{ name: "Assets", url: driveClient?.assetsFolder?.url },
+		...packageFolderRow,
 		{ name: "Session", url: driveSession.sessionFolder?.url },
 		{ name: "Raw Media", url: driveSession.rawMediaFolder?.url },
 		{ name: "Deliverables", url: driveSession.deliverablesFolder?.url }
-	] satisfies Array<{ name: "Assets" | "Session" | DriveChildFolderName; url: string | undefined }>;
+	];
+}
 
+type DriveStatusArgs = {
+	driveClient: Doc<"driveClients"> | null;
+	driveSetupFailed: boolean;
+	sharedPackageFolder: SavedPackageFolder | undefined;
+};
+
+type DriveDisplayStatus = {
+	status: "failed" | "not_created" | "incomplete" | "ready";
+	packageFolderName: string | undefined;
+	sessionFolderName: string | undefined;
+	folders?: DriveStatusFolder[];
+};
+
+function getNoSessionDriveStatus(
+	args: DriveStatusArgs,
+	packageFolderName: string | undefined,
+	sessionFolderName: string | undefined
+): DriveDisplayStatus {
+	const base = { packageFolderName, sessionFolderName };
+	if (args.driveSetupFailed) return { status: "failed", ...base };
+	const assetsUrl = args.driveClient?.assetsFolder?.url;
+	const packageUrl = args.sharedPackageFolder?.url;
+	// A sibling session may already own the package folder even though this session has none.
+	if (assetsUrl === undefined && packageUrl === undefined)
+		return { status: "not_created", ...base };
+	const folders: DriveStatusFolder[] = [];
+	if (assetsUrl !== undefined) folders.push({ name: "Assets", url: assetsUrl });
+	if (packageFolderName !== undefined) folders.push({ name: "Package", url: packageUrl });
+	return { status: "incomplete", ...base, folders };
+}
+
+export function buildDriveStatus(args: {
+	booking: Doc<"bookings"> | null;
+	driveClient: Doc<"driveClients"> | null;
+	driveSession: Doc<"driveSessions"> | null;
+	multiBookingPackage: Doc<"multiBookingPackages"> | null;
+	driveSetupFailed: boolean;
+	sharedPackageFolder: SavedPackageFolder | undefined;
+}): DriveDisplayStatus {
+	const packageFolderName = getSavedPackageFolderName(args.multiBookingPackage);
+	const sessionFolderName = getSavedSessionFolderName(args.booking, args.driveSession);
+
+	if (args.driveSession === null) {
+		return getNoSessionDriveStatus(args, packageFolderName, sessionFolderName);
+	}
+
+	const folders = getSavedFolderRows(
+		args.driveClient,
+		args.driveSession,
+		packageFolderName,
+		args.sharedPackageFolder
+	);
 	const isReady = folders.every((folder) => folder.url !== undefined);
-	return { status: isReady ? ("ready" as const) : ("incomplete" as const), folders };
+	return {
+		status: isReady ? "ready" : "incomplete",
+		packageFolderName,
+		sessionFolderName,
+		folders
+	};
 }
 
 export function buildClientDrivePermissionsStatus(
@@ -118,35 +209,60 @@ function buildAssetsEmailStatus(
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
-		// Older bookings have no linked client record, so find it by the booking's email instead.
-		const driveClientLookup =
-			booking.driveClientId !== undefined
-				? ctx.db.get(booking.driveClientId)
-				: ctx.db
-						.query("driveClients")
-						.withIndex("by_normalizedEmail", (query) =>
-							query.eq("normalizedEmail", booking.email.trim().toLowerCase())
-						)
-						.unique();
 		return okOrThrow(
 			Promise.all([
-				driveClientLookup,
+				booking.driveClientId !== undefined
+					? ctx.db.get(booking.driveClientId)
+					: Promise.resolve(null),
 				ctx.db
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
-					.unique()
+					.unique(),
+				booking.multiBookingPackageId !== undefined
+					? ctx.db.get(booking.multiBookingPackageId)
+					: Promise.resolve(null)
 			])
-		).map(([driveClient, driveSession]) => ({ booking, driveClient, driveSession }));
+		).andThen(([driveClient, driveSession, multiBookingPackage]) => {
+			if (
+				driveSession?.packageFolder !== undefined ||
+				booking.multiBookingPackageId === undefined
+			) {
+				return ok({
+					booking,
+					driveClient,
+					driveSession,
+					multiBookingPackage,
+					sharedPackageFolder: undefined
+				});
+			}
+			return okOrThrow(
+				loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
+			).map((sharedPackageFolder) => ({
+				booking,
+				driveClient,
+				driveSession,
+				multiBookingPackage,
+				sharedPackageFolder
+			}));
+		});
 	});
 }
 
 export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return getDriveSetup(ctx, bookingId).map((setupInfo) => {
-		const booking = setupInfo?.booking;
+		const booking = setupInfo?.booking ?? null;
 		const driveClient = setupInfo?.driveClient ?? null;
 		const driveSession = setupInfo?.driveSession ?? null;
+		const multiBookingPackage = setupInfo?.multiBookingPackage ?? null;
 		return {
-			...buildDriveStatus(driveClient, driveSession, booking?.driveSetupFailureCode !== undefined),
+			...buildDriveStatus({
+				booking,
+				driveClient,
+				driveSession,
+				multiBookingPackage,
+				driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
+				sharedPackageFolder: setupInfo?.sharedPackageFolder
+			}),
 			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession),
 			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession),
 			previousEditorRemovalFailed: driveSession?.failedRemovalEditorTokenIdentifier !== undefined
@@ -186,7 +302,7 @@ export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"
 }
 
 function buildEditorDrivePermissionsStatus(
-	booking: Doc<"bookings"> | undefined,
+	booking: Doc<"bookings"> | null,
 	driveSession: Doc<"driveSessions"> | null
 ) {
 	const editorTokenIdentifier = booking?.assignedEditorTokenIdentifier;
@@ -858,6 +974,213 @@ export function saveDriveSessionFolder(
 	});
 }
 
+export function saveDrivePackageFolder(
+	ctx: MutationCtx,
+	packageFolder: { bookingId: Id<"bookings">; folder: SavedDriveFolder }
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageFolder.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		// A repeated save must keep the package folder that won the first database write.
+		if (driveSession?.packageFolder !== undefined) return ok(driveSession.packageFolder.id);
+		if (driveSession !== null) {
+			return okOrThrow(
+				ctx.db
+					.patch(driveSession._id, {
+						packageFolder: { id: packageFolder.folder.id, url: packageFolder.folder.webViewLink },
+						updatedAt: Date.now()
+					})
+					.then(() => packageFolder.folder.id)
+			);
+		}
+		return okOrThrow(ctx.db.get(packageFolder.bookingId)).andThen((booking) => {
+			if (booking === null || booking.driveClientId === undefined) {
+				return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+			}
+			return okOrThrow(
+				ctx.db
+					.insert("driveSessions", {
+						bookingId: packageFolder.bookingId,
+						driveClientId: booking.driveClientId,
+						packageFolder: { id: packageFolder.folder.id, url: packageFolder.folder.webViewLink },
+						createdAt: Date.now(),
+						updatedAt: Date.now()
+					})
+					.then(() => packageFolder.folder.id)
+			);
+		});
+	});
+}
+
+type PackageSessionNumberError = {
+	reason: "BOOKING_NOT_FOUND" | "BOOKING_NOT_PACKAGE" | "DRIVE_RECORD_NOT_FOUND";
+};
+
+export function allocatePackageSessionNumber(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getPackageBooking(ctx, args.bookingId)
+		.andThen((packageBooking) => resolvePackageSessionNumber(ctx, packageBooking))
+		.andThen((allocation) => {
+			// A retry re-enters with its number already saved; only fresh allocations write.
+			if (allocation.kind === "already_saved") return okAsync(allocation.number);
+			return savePackageSessionNumber(ctx, allocation);
+		});
+}
+
+type PackageBooking = { booking: Doc<"bookings">; packageId: Id<"multiBookingPackages"> };
+
+function getPackageBooking(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<PackageBooking, PackageSessionNumberError> {
+	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+		if (booking.multiBookingPackageId === undefined) {
+			return err({ reason: "BOOKING_NOT_PACKAGE" as const });
+		}
+		return ok({ booking, packageId: booking.multiBookingPackageId });
+	});
+}
+
+type PackageSessionNumberAllocation =
+	| { kind: "already_saved"; number: number }
+	| {
+			kind: "new";
+			booking: Doc<"bookings">;
+			existingSession: Doc<"driveSessions"> | null;
+			number: number;
+	  };
+
+// On a retry the saved number wins; otherwise the number is the session's position in the
+// package's date order, skipping numbers other sessions already have.
+function resolvePackageSessionNumber(
+	ctx: MutationCtx,
+	packageBooking: PackageBooking
+): ResultAsync<PackageSessionNumberAllocation, PackageSessionNumberError> {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking.booking._id))
+			.unique()
+	).andThen((existingSession) => {
+		if (existingSession?.packageSessionNumber !== undefined) {
+			return okAsync({
+				kind: "already_saved" as const,
+				number: existingSession.packageSessionNumber
+			});
+		}
+		return okOrThrow(loadNextPackageSessionNumber(ctx, packageBooking)).map((number) => ({
+			kind: "new" as const,
+			booking: packageBooking.booking,
+			existingSession,
+			number
+		}));
+	});
+}
+
+async function loadNextPackageSessionNumber(
+	ctx: MutationCtx,
+	packageBooking: PackageBooking
+): Promise<number> {
+	const savedNumbers = await loadSavedPackageSessionNumbers(ctx, packageBooking.packageId);
+
+	const scheduledSessions = await loadPackageSessionsSortedByDate(ctx, packageBooking.packageId);
+	// Start at the session's date-order position and step past numbers already in use.
+	let number = scheduledSessions.findIndex((item) => item._id === packageBooking.booking._id) + 1;
+	while (savedNumbers.has(number)) number += 1;
+	return number;
+}
+
+function savePackageSessionNumber(
+	ctx: MutationCtx,
+	allocation: Extract<PackageSessionNumberAllocation, { kind: "new" }>
+): ResultAsync<number, PackageSessionNumberError> {
+	if (allocation.existingSession !== null) {
+		return okOrThrow(
+			ctx.db
+				.patch(allocation.existingSession._id, {
+					packageSessionNumber: allocation.number,
+					updatedAt: Date.now()
+				})
+				.then(() => allocation.number)
+		);
+	}
+	if (allocation.booking.driveClientId === undefined) {
+		return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	}
+	return okOrThrow(
+		ctx.db
+			.insert("driveSessions", {
+				bookingId: allocation.booking._id,
+				driveClientId: allocation.booking.driveClientId,
+				packageSessionNumber: allocation.number,
+				createdAt: Date.now(),
+				updatedAt: Date.now()
+			})
+			.then(() => allocation.number)
+	);
+}
+
+// Numbers of sessions with a saved number stay reserved even when cancelled, because their
+// folders already exist in Drive.
+async function loadSavedPackageSessionNumbers(
+	ctx: MutationCtx,
+	multiBookingId: Id<"multiBookingPackages">
+) {
+	const savedNumbers = new Set<number>();
+	const packageBookings = await loadPackageBookings(ctx, multiBookingId);
+	for (const packageBooking of packageBookings) {
+		const driveSession = await ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
+			.unique();
+		if (driveSession?.packageSessionNumber !== undefined) {
+			savedNumbers.add(driveSession.packageSessionNumber);
+		}
+	}
+	return savedNumbers;
+}
+
+async function loadSharedPackageFolder(
+	ctx: QueryCtx,
+	packageId: Id<"multiBookingPackages">,
+	currentBookingId: Id<"bookings">
+) {
+	const packageBookings = await loadPackageBookings(ctx, packageId);
+	for (const packageBooking of packageBookings) {
+		if (packageBooking._id === currentBookingId) continue;
+		const driveSession = await ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
+			.unique();
+		if (driveSession?.packageFolder !== undefined) return driveSession.packageFolder;
+	}
+	return undefined;
+}
+
+async function loadPackageBookings(ctx: QueryCtx, multiBookingId: Id<"multiBookingPackages">) {
+	return await ctx.db
+		.query("bookings")
+		.withIndex("by_multiBookingPackageId", (query) =>
+			query.eq("multiBookingPackageId", multiBookingId)
+		)
+		.collect();
+}
+
+async function loadPackageSessionsSortedByDate(
+	ctx: MutationCtx,
+	multiBookingId: Id<"multiBookingPackages">
+) {
+	return (await loadPackageBookings(ctx, multiBookingId))
+		.filter((packageBooking) => packageBooking.status !== "cancelled")
+		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
+}
+
 export function saveDriveSetupResult(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; failureCode?: string }
@@ -917,14 +1240,10 @@ export function saveClientDrivePermission(
 	}
 ) {
 	return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
-		if (booking === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		const normalizedEmail = booking.email.trim().toLowerCase();
-		return okOrThrow(
-			ctx.db
-				.query("driveClients")
-				.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
-				.unique()
-		).andThen((driveClient) => {
+		if (booking === null || booking.driveClientId === undefined) {
+			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		}
+		return okOrThrow(ctx.db.get(booking.driveClientId)).andThen((driveClient) => {
 			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 			switch (args.name) {
 				case "Client folder":
@@ -992,14 +1311,12 @@ export function claimClientAssetsEmail(
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
 ) {
 	return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
-		if (booking === null) return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-		const normalizedEmail = booking.email.trim().toLowerCase();
+		if (booking === null || booking.driveClientId === undefined) {
+			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+		}
 		return okOrThrow(
 			Promise.all([
-				ctx.db
-					.query("driveClients")
-					.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
-					.unique(),
+				ctx.db.get(booking.driveClientId),
 				ctx.db
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))

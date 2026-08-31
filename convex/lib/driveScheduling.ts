@@ -16,10 +16,6 @@ export async function scheduleDriveSetup(
 		multiBookingPackageId?: Id<"multiBookingPackages">;
 	}
 ): Promise<Result<null, DriveSchedulingError>> {
-	if (booking.multiBookingPackageId !== undefined) {
-		return okOrThrow(Promise.resolve(null));
-	}
-
 	const durationResult = parseDurationMinutes(booking.duration);
 	if (durationResult.isErr()) return err(durationResult.error);
 

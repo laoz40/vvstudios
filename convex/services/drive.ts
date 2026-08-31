@@ -78,7 +78,9 @@ export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"booking
 	return requirePermissionActions(ctx, "edit:sessions")
 		.andThen(() => loadValidatedSetup(ctx, args))
 		.andThen((setupInfo) => {
-			if (setupInfo.driveSession !== null) {
+			// Package setup allocates its session number into the row first, so only the
+			// session folder proves that setup already ran.
+			if (setupInfo.driveSession?.sessionFolder !== undefined) {
 				return errAsync({ reason: "DRIVE_FOLDERS_ALREADY_CREATED" as const });
 			}
 			return createDriveFolders(ctx, setupInfo).andThen(() =>

@@ -4,6 +4,7 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
+	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,
 	getDriveSetup as loadDriveSetup,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
@@ -12,6 +13,7 @@ import {
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
 	saveDriveClientFolder as saveDriveClientFolderRecord,
+	saveDrivePackageFolder as saveDrivePackageFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveRecords";
@@ -73,6 +75,16 @@ export const saveDriveSessionFolder = internalMutation({
 		folder: savedDriveFolderValidator
 	},
 	handler: (ctx, args) => saveDriveSessionFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const saveDrivePackageFolder = internalMutation({
+	args: { bookingId: v.id("bookings"), folder: savedDriveFolderValidator },
+	handler: (ctx, args) => saveDrivePackageFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const allocatePackageSessionNumber = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => allocatePackageSessionNumberRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveDriveClientAssetsFolder = internalMutation({

@@ -76,6 +76,39 @@
  * 25. Package session during unassignment
  *     Removes shared assets access even when a package session of the same client keeps the editor.
  *
+ * 26. Package workspace creation
+ *     Creates the package folder, numbered session folder, and dated media folders.
+ *
+ * 27. Package scheduling
+ *     Schedules workspace setup when a package session is confirmed.
+ *
+ * 28. Package session numbers out of order
+ *     Numbers sessions by scheduled date order even when booked out of order.
+ *
+ * 29. Package numbers for future sessions
+ *     Reserves date-order positions for scheduled future sessions.
+ *
+ * 30. Package number retry preservation
+ *     Keeps the allocated number across setup retries.
+ *
+ * 31. Package cancellation gaps
+ *     Keeps cancelled session numbers reserved so replacements never reuse them.
+ *
+ * 32. Concurrent package setup
+ *     Allocates distinct numbers when sessions are set up concurrently.
+ *
+ * 33. Package folder reuse
+ *     Reuses one package folder and the client assets library across sessions.
+ *
+ * 34. Package editor access
+ *     Grants the assigned editor access and sends the branded email for a package session.
+ *
+ * 35. Package folder status
+ *     Reports the package folder and numbered session label in the status query.
+ *
+ * 36. Package folder sibling status
+ *     Shows a sibling session's package folder before this session is set up.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -927,7 +960,329 @@ describe("Google Drive setup failure classification", () => {
 		expect(shouldRecordDriveSetupFailure({ reason: "GOOGLE_DRIVE_FOLDER_MISSING" })).toBe(true);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_NOT_ELIGIBLE" })).toBe(false);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_TIMING_CHANGED" })).toBe(false);
-		expect(shouldRecordDriveSetupFailure({ reason: "PACKAGE_SESSION_NOT_SUPPORTED" })).toBe(false);
+	});
+});
+
+describe("Google Drive package workspaces", () => {
+	const packageFolderName = "4-Session Package - Ordered on 01 Jan 2030";
+	const sessionFolderName = "Session 01 - 10 Jan 2030 - 11:00 AM";
+
+	test("creates the package folder, numbered session folder, and dated media folders", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(driveFake.create.mock.calls.map(([request]) => request.requestBody?.name)).toEqual([
+			"Test account (VV Studios)",
+			"_Assets",
+			packageFolderName,
+			sessionFolderName,
+			"Raw Media (10.1.30)",
+			"Deliverables (10.1.30)"
+		]);
+		const packageFolder = [...driveFake.folders.values()].find(
+			(folder) => folder.name === packageFolderName
+		);
+		const sessionFolder = [...driveFake.folders.values()].find(
+			(folder) => folder.name === sessionFolderName
+		);
+		// The session workspace lives inside the package folder, not the client folder.
+		expect(sessionFolder?.parentId).toBe(packageFolder?.id);
+		expect(state.driveSession).toMatchObject({
+			packageSessionNumber: 1,
+			packageFolder: { id: packageFolder?.id },
+			sessionFolder: { id: sessionFolder?.id },
+			rawMediaFolder: { id: "folder-5" },
+			deliverablesFolder: { id: "folder-6" },
+			clientDrivePermissionsStatus: "ready",
+			assetsEmailStatus: "sent"
+		});
+	});
+
+	test("schedules workspace setup when a package session is confirmed", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, {
+			status: "pending_payment",
+			withReservation: true,
+			multiBookingPackageId: packageId
+		});
+
+		const result = await t.mutation(internal.bookingConfirmation.markBookingConfirmed, {
+			bookingId,
+			reservation: { reservedAt: now, sessionStartAt, duration: "1h" }
+		});
+		const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+
+		expect(result).toEqual([null, null]);
+		expect(jobs).toHaveLength(1);
+		expect(jobs[0]).toMatchObject({
+			args: [{ bookingId, sessionStartAt, duration: "1h" }],
+			scheduledTime: sessionStartAt + 60 * 60 * 1000
+		});
+	});
+
+	test("numbers sessions by scheduled date order even when booked out of order", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const laterStartAt = sessionStartAt + 7 * 24 * 60 * 60 * 1000;
+		const laterBookingId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: laterStartAt
+		});
+
+		await runSetup(t, laterBookingId, laterStartAt);
+		expect((await readDriveState(t, laterBookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 1
+		});
+
+		// The earlier session was booked after the later one had already created its folder,
+		// so its date-order position is taken and it receives the next free number.
+		const earlierBookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		await runSetup(t, earlierBookingId);
+		expect((await readDriveState(t, earlierBookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 2
+		});
+		expect(
+			driveFake.create.mock.calls.some(
+				([request]) => request.requestBody?.name === "Session 02 - 10 Jan 2030 - 11:00 AM"
+			)
+		).toBe(true);
+	});
+
+	test("reserves date-order positions for scheduled future sessions", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const futureStartAt = sessionStartAt + 30 * 24 * 60 * 60 * 1000;
+		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const futureBookingId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: futureStartAt
+		});
+
+		// The future session is scheduled, so it keeps position 1 even before its own setup.
+		await runSetup(t, futureBookingId, futureStartAt);
+		expect((await readDriveState(t, futureBookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 2
+		});
+
+		await runSetup(t, bookingId);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 1
+		});
+	});
+
+	test("keeps the allocated number across setup retries", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		driveFake.failCreateNameOnce = sessionFolderName;
+
+		await runSetup(t, bookingId);
+		const failedState = await readDriveState(t, bookingId);
+		expect(failedState.driveSession).toMatchObject({ packageSessionNumber: 1 });
+		expect(failedState.driveSession?.sessionFolder).toBeUndefined();
+		expect(failedState.booking?.driveSetupFailureCode).toBe("GOOGLE_DRIVE_FOLDER_CREATE_FAILED");
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryDriveSetup, { bookingId });
+		expect(retryResult).toEqual([null, null]);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			packageSessionNumber: 1,
+			// The retry creates only the session folder, after the verified earlier folders.
+			sessionFolder: { id: "folder-4" }
+		});
+		// Only one numbered session folder was ever created.
+		expect(
+			[...driveFake.folders.values()].filter((folder) => folder.name.startsWith("Session "))
+		).toHaveLength(1);
+	});
+
+	test("keeps cancelled session numbers reserved so replacements never reuse them", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const dayMs = 24 * 60 * 60 * 1000;
+		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const secondStartAt = sessionStartAt + dayMs;
+		const secondId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: secondStartAt
+		});
+		const thirdStartAt = sessionStartAt + 2 * dayMs;
+		const thirdId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: thirdStartAt
+		});
+
+		await runSetup(t, firstId);
+		await runSetup(t, secondId, secondStartAt);
+		await runSetup(t, thirdId, thirdStartAt);
+		await t.run((ctx) => ctx.db.patch(secondId, { status: "cancelled" }));
+
+		const fourthStartAt = sessionStartAt + 3 * dayMs;
+		const fourthId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: fourthStartAt
+		});
+		await runSetup(t, fourthId, fourthStartAt);
+
+		// Number 2 stays reserved by the cancelled session's folder, so the replacement is 4.
+		expect((await readDriveState(t, fourthId)).driveSession).toMatchObject({
+			packageSessionNumber: 4
+		});
+		expect(
+			driveFake.create.mock.calls.some(
+				([request]) => request.requestBody?.name === "Session 04 - 13 Jan 2030 - 11:00 AM"
+			)
+		).toBe(true);
+	});
+
+	test("allocates distinct numbers when sessions are set up concurrently", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const dayMs = 24 * 60 * 60 * 1000;
+		const secondStartAt = sessionStartAt + dayMs;
+		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const secondId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: secondStartAt
+		});
+
+		await Promise.all([runSetup(t, firstId), runSetup(t, secondId, secondStartAt)]);
+
+		const numbers = (
+			await Promise.all(
+				[firstId, secondId].map(async (bookingId) => {
+					const state = await readDriveState(t, bookingId);
+					return state.driveSession?.packageSessionNumber;
+				})
+			)
+		).filter((number) => number !== undefined);
+		expect(numbers.toSorted((a, b) => a - b)).toEqual([1, 2]);
+	});
+
+	test("reuses one package folder and the client assets library across sessions", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const dayMs = 24 * 60 * 60 * 1000;
+		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const secondStartAt = sessionStartAt + dayMs;
+		const secondId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: secondStartAt
+		});
+		// An ordinary session of the same client must share the client folder and assets library.
+		const ordinaryId = await seedBooking(t, { sessionStartAt: sessionStartAt + 2 * dayMs });
+
+		await runSetup(t, firstId);
+		await runSetup(t, secondId, secondStartAt);
+		await runSetup(t, ordinaryId, sessionStartAt + 2 * dayMs);
+
+		const packageFolders = [...driveFake.folders.values()].filter(
+			(folder) => folder.name === packageFolderName
+		);
+		const assetsFolders = [...driveFake.folders.values()].filter(
+			(folder) => folder.name === "_Assets"
+		);
+		const clientFolders = [...driveFake.folders.values()].filter(
+			(folder) => folder.name === "Test account (VV Studios)"
+		);
+		expect(packageFolders).toHaveLength(1);
+		expect(assetsFolders).toHaveLength(1);
+		expect(clientFolders).toHaveLength(1);
+		// Every package session folder lives inside the one package folder.
+		for (const bookingId of [firstId, secondId]) {
+			const state = await readDriveState(t, bookingId);
+			const sessionFolderId = state.driveSession?.sessionFolder?.id;
+			const sessionFolder = [...driveFake.folders.values()].find(
+				(folder) => folder.id === sessionFolderId
+			);
+			expect(sessionFolder?.parentId).toBe(packageFolders[0]?.id);
+		}
+	});
+
+	test("grants the assigned editor access and sends the branded email for a package session", async () => {
+		const t = createConvexTest();
+		await seedEditor(t);
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, {
+			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
+			multiBookingPackageId: packageId
+		});
+
+		await runSetup(t, bookingId);
+		await runEditorAccessSetup(t, bookingId);
+
+		expect(
+			driveFake.permissionsCreate.mock.calls
+				.filter(([request]) => request.requestBody?.emailAddress === "editor@example.com")
+				.map(([request]) => ({ fileId: request.fileId, role: request.requestBody?.role }))
+		).toEqual([
+			// The editor's session folder, the shared assets folder, and the deliverables folder.
+			{ fileId: "folder-4", role: "reader" },
+			{ fileId: "folder-2", role: "reader" },
+			{ fileId: "folder-6", role: "writer" }
+		]);
+		expect((await readDriveState(t, bookingId)).driveSession).toMatchObject({
+			editorDrivePermissionsStatus: "ready",
+			assignmentEmailStatus: "sent"
+		});
+		expect(emailFake.sendEditorAssignmentEmail).toHaveBeenCalledTimes(1);
+	});
+
+	test("reports the package folder and numbered session label in the status query", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+
+		await runSetup(t, bookingId);
+		const statusResult = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId });
+		const status = statusResult[1];
+
+		expect(statusResult[0]).toBeNull();
+		expect(status).toMatchObject({ status: "ready", packageFolderName, sessionFolderName });
+		expect(status?.folders?.map((folder) => folder.name)).toEqual([
+			"Assets",
+			"Package",
+			"Session",
+			"Raw Media",
+			"Deliverables"
+		]);
+	});
+
+	test("shows a sibling session's package folder before this session is set up", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
+		const secondId = await seedBooking(t, {
+			multiBookingPackageId: packageId,
+			sessionStartAt: secondStartAt
+		});
+
+		await runSetup(t, firstId);
+		const firstStatus = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId: firstId });
+		const secondStatus = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId: secondId });
+		const firstPackageFolder = firstStatus[1]?.folders?.find((folder) => folder.name === "Package");
+		const secondPackageFolder = secondStatus[1]?.folders?.find(
+			(folder) => folder.name === "Package"
+		);
+
+		expect(secondStatus[0]).toBeNull();
+		expect(secondStatus[1]).toMatchObject({ status: "incomplete", packageFolderName });
+		expect(secondPackageFolder?.url).toBe(firstPackageFolder?.url);
+		expect(secondPackageFolder?.url).toBeDefined();
+		expect(secondStatus[1]?.folders?.map((folder) => folder.name)).toEqual(["Assets", "Package"]);
 	});
 });
 
@@ -1015,6 +1370,7 @@ async function seedPackage(t: TestClient) {
 			totalDueAmount: 360,
 			status: "paid",
 			createdAt: now,
+			paidAt: now,
 			invoiceDueAt: now,
 			invoiceEmailStatus: "sent"
 		})

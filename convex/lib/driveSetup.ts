@@ -10,6 +10,8 @@ import {
 	createDriveFolder,
 	findDriveFolderByMarker,
 	getClientFolderName,
+	getPackageFolderName,
+	getPackageSessionFolderName,
 	getSessionFolderName,
 	getSessionMediaFolderName,
 	loadDriveClient,
@@ -24,6 +26,13 @@ import {
 
 type SavedFolder = { id: string; url: string };
 
+type SetupPackage = {
+	_id: Id<"multiBookingPackages">;
+	packageSize: Doc<"multiBookingPackages">["packageSize"];
+	paidAt?: number;
+	createdAt: number;
+};
+
 export type DriveSetupInfo = {
 	booking: {
 		_id: Id<"bookings">;
@@ -35,13 +44,17 @@ export type DriveSetupInfo = {
 		status: Doc<"bookings">["status"];
 		multiBookingPackageId?: Id<"multiBookingPackages">;
 	};
+	multiBookingPackage: SetupPackage | null;
 	driveClient: { _id: Id<"driveClients">; folderId?: string; assetsFolder?: SavedFolder } | null;
 	driveSession: {
 		_id: Id<"driveSessions">;
+		packageSessionNumber?: number;
+		packageFolder?: SavedFolder;
 		sessionFolder?: SavedFolder;
 		rawMediaFolder?: SavedFolder;
 		deliverablesFolder?: SavedFolder;
 	} | null;
+	sharedPackageFolder?: SavedFolder;
 };
 
 export type SetupError =
@@ -54,7 +67,6 @@ export type SetupError =
 				| "BOOKING_NOT_FOUND"
 				| "BOOKING_NOT_ELIGIBLE"
 				| "BOOKING_TIMING_CHANGED"
-				| "PACKAGE_SESSION_NOT_SUPPORTED"
 				| "DRIVE_FOLDERS_ALREADY_CREATED"
 				| "GOOGLE_DRIVE_SAVE_FAILED";
 	  };
@@ -76,7 +88,6 @@ const recordDriveSetupFailureByReason = {
 	BOOKING_NOT_FOUND: false,
 	BOOKING_NOT_ELIGIBLE: false,
 	BOOKING_TIMING_CHANGED: false,
-	PACKAGE_SESSION_NOT_SUPPORTED: false,
 	DRIVE_FOLDERS_ALREADY_CREATED: false
 } satisfies Record<SetupError["reason"], boolean>;
 
@@ -89,9 +100,6 @@ export function validateDriveSetup(
 	expectedTiming?: { sessionStartAt: number; duration: string }
 ) {
 	if (setupInfo === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-	if (setupInfo.booking.multiBookingPackageId !== undefined) {
-		return err({ reason: "PACKAGE_SESSION_NOT_SUPPORTED" as const });
-	}
 	if (setupInfo.booking.status !== "confirmed" && setupInfo.booking.status !== "email_failed") {
 		return err({ reason: "BOOKING_NOT_ELIGIBLE" as const });
 	}
@@ -202,31 +210,42 @@ function getOrCreateClientAssetsFolder(
 function getOrCreateSessionFolder(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo,
-	client: { drive: DriveClient; clientFolderId: string; driveClientId: Id<"driveClients"> }
+	input: {
+		drive: DriveClient;
+		driveClientId: Id<"driveClients">;
+		sessionParentId: string;
+		packageSessionNumber: number | null;
+	}
 ) {
 	const savedFolder = setupInfo.driveSession?.sessionFolder;
 	if (savedFolder !== undefined) {
-		return verifyDriveFolder(client.drive, savedFolder.id).map(() => ({
-			drive: client.drive,
+		return verifyDriveFolder(input.drive, savedFolder.id).map(() => ({
+			drive: input.drive,
 			sessionFolderId: savedFolder.id
 		}));
 	}
 
-	return createFolderOrFindCreatedFolder(client.drive, {
-		name: getSessionFolderName(setupInfo.booking.sessionStartAt),
-		parentId: client.clientFolderId,
+	return createFolderOrFindCreatedFolder(input.drive, {
+		name: getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.packageSessionNumber),
+		parentId: input.sessionParentId,
 		marker: buildFolderMarker(setupInfo.booking._id, "session")
 	}).andThen((folder) =>
 		fromConvexTuple(
 			ctx.runMutation(internal.sessions.saveDriveSessionFolder, {
 				bookingId: setupInfo.booking._id,
-				driveClientId: client.driveClientId,
+				driveClientId: input.driveClientId,
 				folder
 			})
 		)
 			.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-			.map((sessionFolderId) => ({ drive: client.drive, sessionFolderId }))
+			.map((sessionFolderId) => ({ drive: input.drive, sessionFolderId }))
 	);
+}
+
+function getSessionFolderDisplayName(sessionStartAt: number, packageSessionNumber: number | null) {
+	return packageSessionNumber === null
+		? getSessionFolderName(sessionStartAt)
+		: getPackageSessionFolderName(packageSessionNumber, sessionStartAt);
 }
 
 function savedChildFolder(setupInfo: DriveSetupInfo, name: DriveChildFolderName) {
@@ -285,13 +304,97 @@ function getOrCreateChildFolders(
 	return sequence;
 }
 
+// Package sessions must have their permanent number saved before any Drive call so retries
+// keep it stable and concurrent setups of one package cannot allocate the same number.
+function allocatePackageSessionNumberIfNeeded(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo
+): ResultAsync<number | null, SetupError> {
+	if (setupInfo.multiBookingPackage === null) return okAsync(null);
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.allocatePackageSessionNumber, {
+			bookingId: setupInfo.booking._id
+		})
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+// Package sessions live inside their package folder; ordinary sessions sit directly below
+// the client folder.
+function getOrCreateSessionParentFolder(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo,
+	client: ClientFolderSetup
+): ResultAsync<ClientFolderSetup & { sessionParentId: string }, SetupError> {
+	if (setupInfo.multiBookingPackage === null) {
+		return okAsync({ ...client, sessionParentId: client.clientFolderId });
+	}
+
+	const ownPackageFolder = setupInfo.driveSession?.packageFolder;
+	if (ownPackageFolder !== undefined) {
+		return verifyDriveFolder(client.drive, ownPackageFolder.id).map(() => ({
+			...client,
+			sessionParentId: ownPackageFolder.id
+		}));
+	}
+
+	const packageFolderName = getPackageFolderName({
+		packageSize: setupInfo.multiBookingPackage.packageSize,
+		purchasedAt: setupInfo.multiBookingPackage.paidAt ?? setupInfo.multiBookingPackage.createdAt
+	});
+	const sharedPackageFolder = setupInfo.sharedPackageFolder;
+	// A sibling session already created the package folder; link it to this booking.
+	if (sharedPackageFolder !== undefined) {
+		return verifyDriveFolder(client.drive, sharedPackageFolder.id)
+			.andThen(() =>
+				fromConvexTuple(
+					ctx.runMutation(internal.sessions.saveDrivePackageFolder, {
+						bookingId: setupInfo.booking._id,
+						folder: {
+							id: sharedPackageFolder.id,
+							name: packageFolderName,
+							webViewLink: sharedPackageFolder.url
+						}
+					})
+				).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+			)
+			.map((sessionParentId) => ({ ...client, sessionParentId }));
+	}
+
+	return createFolderOrFindCreatedFolder(client.drive, {
+		name: packageFolderName,
+		parentId: client.clientFolderId,
+		// The marker is derived from the package so every session of the package finds it.
+		marker: `package:${setupInfo.multiBookingPackage._id}`
+	})
+		.andThen((folder) =>
+			fromConvexTuple(
+				ctx.runMutation(internal.sessions.saveDrivePackageFolder, {
+					bookingId: setupInfo.booking._id,
+					folder
+				})
+			).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+		)
+		.map((sessionParentId) => ({ ...client, sessionParentId }));
+}
+
 export function createDriveFolders(ctx: ActionCtx, setupInfo: DriveSetupInfo) {
-	return loadDriveClient()
-		.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive))
-		.andThen((client) => getOrCreateClientAssetsFolder(ctx, setupInfo, client))
-		.andThen((client) => getOrCreateSessionFolder(ctx, setupInfo, client))
-		.andThen(({ drive, sessionFolderId }) =>
-			getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId)
+	return allocatePackageSessionNumberIfNeeded(ctx, setupInfo)
+		.andThen((packageSessionNumber) =>
+			loadDriveClient()
+				.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive))
+				.andThen((client) => getOrCreateClientAssetsFolder(ctx, setupInfo, client))
+				.andThen((client) => getOrCreateSessionParentFolder(ctx, setupInfo, client))
+				.andThen((parent) =>
+					getOrCreateSessionFolder(ctx, setupInfo, {
+						drive: parent.drive,
+						driveClientId: parent.driveClientId,
+						sessionParentId: parent.sessionParentId,
+						packageSessionNumber
+					})
+				)
+				.andThen(({ drive, sessionFolderId }) =>
+					getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId)
+				)
 		)
 		.map(() => null);
 }
