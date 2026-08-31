@@ -412,7 +412,7 @@ export function SessionActionsMenu({
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
-				{details.canManageConfirmedSession && !session.multiBookingPackageId ? (
+				{details.canManageConfirmedSession ? (
 					<AnimatedDropdownMenuItem
 						onSelect={onOpenDrive}
 						renderIcon={(iconRef) => (

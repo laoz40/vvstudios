@@ -123,21 +123,36 @@ function FolderLink({
 	);
 }
 
+function NotCreatedFolderRow() {
+	return (
+		<div className="flex h-9 items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
+			<Folder
+				className="size-4"
+				aria-hidden
+			/>
+			Not created
+		</div>
+	);
+}
+
 function SavedFolderLinks({
 	folders,
 	sessionFolderName,
+	packageFolderName,
 	rawMediaFolderName,
 	deliverablesFolderName
 }: {
 	folders: NonNullable<DriveDialogStatus["folders"]>;
 	sessionFolderName: string;
+	packageFolderName: string | undefined;
 	rawMediaFolderName: string;
 	deliverablesFolderName: string;
 }) {
 	const assetsFolder = folders.find((folder) => folder.name === "Assets");
+	const packageFolder = folders.find((folder) => folder.name === "Package");
 	const sessionFolder = folders.find((folder) => folder.name === "Session");
 	const sessionChildFolders = folders.filter(
-		(folder) => folder.name !== "Session" && folder.name !== "Assets"
+		(folder) => folder.name !== "Session" && folder.name !== "Assets" && folder.name !== "Package"
 	);
 
 	if (folders.length === 0) return null;
@@ -156,6 +171,20 @@ function SavedFolderLinks({
 				/>
 			</div>
 
+			{packageFolderName !== undefined ? (
+				<div className="flex flex-col gap-2">
+					<p className="text-sm font-medium">Package folder</p>
+					<FolderLink
+						url={packageFolder?.url}
+						label={packageFolderName}
+						icon={FolderOpen}
+						variant="outline"
+						className="w-full justify-start"
+						fallback={<NotCreatedFolderRow />}
+					/>
+				</div>
+			) : null}
+
 			<div className="flex flex-col gap-2">
 				<p className="text-sm font-medium">Session folders</p>
 				<FolderLink
@@ -164,15 +193,7 @@ function SavedFolderLinks({
 					icon={FolderOpen}
 					variant="outline"
 					className="w-full justify-start"
-					fallback={
-						<div className="flex h-9 items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
-							<Folder
-								className="size-4"
-								aria-hidden
-							/>
-							Not created
-						</div>
-					}
+					fallback={<NotCreatedFolderRow />}
 				/>
 
 				{sessionChildFolders.length > 0 ? (
@@ -331,6 +352,18 @@ function DriveRetryButton({
 	);
 }
 
+function getSessionFolderLabel(driveStatus: DriveDialogStatus | null, sessionStartAt: number) {
+	return driveStatus?.sessionFolderName ?? formatDriveSessionFolderName(sessionStartAt);
+}
+
+function hasSavedAssetsFolder(folders: NonNullable<DriveDialogStatus["folders"]>) {
+	return folders.some((folder) => folder.name === "Assets" && folder.url !== undefined);
+}
+
+function getSavedFolderSections(driveStatus: DriveDialogStatus | null) {
+	return { folders: driveStatus?.folders ?? [], packageFolderName: driveStatus?.packageFolderName };
+}
+
 function DriveSetupButton({
 	bookingId,
 	status,
@@ -484,13 +517,11 @@ export function DriveFoldersDialog({
 }) {
 	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
-	const savedFolders = driveStatus?.folders ?? [];
+	const { folders: savedFolders, packageFolderName } = getSavedFolderSections(driveStatus);
 	// The client assets library exists when its folder was created during setup.
-	const hasClientAssetsLibrary = savedFolders.some(
-		(folder) => folder.name === "Assets" && folder.url !== undefined
-	);
+	const hasClientAssetsLibrary = hasSavedAssetsFolder(savedFolders);
 	const sessionStartAt = getBookingStartTimestamp(sessionDate, sessionTime);
-	const sessionFolderName = formatDriveSessionFolderName(sessionStartAt);
+	const sessionFolderName = getSessionFolderLabel(driveStatus, sessionStartAt);
 	return (
 		<Dialog
 			open={open}
@@ -510,6 +541,7 @@ export function DriveFoldersDialog({
 				<SavedFolderLinks
 					folders={savedFolders}
 					sessionFolderName={sessionFolderName}
+					packageFolderName={packageFolderName}
 					rawMediaFolderName={formatDriveSessionMediaFolderName("Raw Media", sessionStartAt)}
 					deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 				/>
