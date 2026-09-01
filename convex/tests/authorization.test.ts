@@ -238,9 +238,7 @@ const operations: AdminOperation[] = [
 		permissionLevel: "editor-granted",
 		call: (client, { bookingId }) =>
 			client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
-				bookingId,
-				driveLink: "https://drive.google.com/drive/folders/example",
-				emailVariant: "first-time"
+				bookingId
 			})
 	},
 	{

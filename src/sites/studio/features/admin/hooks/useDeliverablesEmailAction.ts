@@ -14,7 +14,9 @@ const deliverablesEmailErrorMessage = {
 	SESSION_NOT_CONFIRMED: "This session is not eligible for a deliverables email.",
 	SESSION_ARCHIVED: "This session is not eligible for a deliverables email.",
 	SESSION_NOT_IN_PAST: "This session is not eligible for a deliverables email.",
-	INVALID_DRIVE_LINK: "Enter a valid Google Drive link.",
+	DELIVERABLES_FOLDER_MISSING: "This session has no Deliverables folder yet.",
+	DELIVERABLES_FOLDER_EMPTY: "Deliverables is empty. Add the finished files before sending.",
+	DELIVERABLES_FOLDER_LIST_FAILED: "Couldn't check the Deliverables folder. Try again.",
 	DELIVERABLES_SEND_FAILED: "Unable to send deliverables email.",
 	UNEXPECTED_ERROR: "Something went wrong while sending the deliverables email."
 } as const;
@@ -80,9 +82,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		const [emailError] = await tryCatch(
 			sendSessionDeliverablesEmail({
 				bookingId: session._id,
-				driveLink: deliverablesDriveLinkDraft,
-				editorNotes: deliverablesEditorNotesDraft,
-				emailVariant: deliverablesEmailVariantDraft
+				editorNotes: deliverablesEditorNotesDraft
 			})
 		);
 
