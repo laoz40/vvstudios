@@ -113,6 +113,30 @@ export function findDriveFolderByMarker(
 	});
 }
 
+const listedDriveChildSchema = z.object({ id: z.string().min(1) });
+
+export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
+	const escapedFolderId = folderId.replaceAll("'", "\\'");
+	return ResultAsync.fromPromise(
+		drive.files.list({
+			fields: "files(id)",
+			pageSize: 1,
+			q: `'${escapedFolderId}' in parents and trashed = false`,
+			supportsAllDrives: false
+		}),
+		(error) => {
+			if (getGoogleProviderErrorCode(error) === 404) {
+				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
+			}
+			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED");
+		}
+	).andThen((response) => {
+		const children = z.array(listedDriveChildSchema).safeParse(response.data.files ?? []);
+		if (!children.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
+		return ok(children.data);
+	});
+}
+
 export function verifyDriveFolder(drive: DriveClient, folderId: string) {
 	return ResultAsync.fromPromise(
 		drive.files.get({ fileId: folderId, fields: "id,name,webViewLink", supportsAllDrives: false }),

@@ -8,9 +8,7 @@ import { sendSessionDeliverablesEmailService } from "./services/deliverablesEmai
 export const sendSessionDeliverablesEmail = action({
 	args: {
 		bookingId: v.id("bookings"),
-		driveLink: v.string(),
-		editorNotes: v.optional(v.string()),
-		emailVariant: v.union(v.literal("first-time"), v.literal("recurring"))
+		editorNotes: v.optional(v.string())
 	},
 	handler: (ctx, args) => sendSessionDeliverablesEmailService(ctx, args).match(tupleOk, tupleErr)
 });

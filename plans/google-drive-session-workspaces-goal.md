@@ -125,7 +125,9 @@ After editor access succeeds, suppress Google's permission email and send one br
 
 Do not assume the editor already understands the folder structure or dashboard statuses. Assignment triggers this notification. If assignment predates folder creation, send it when the folders and permissions are ready. Do not wait for raw media to be uploaded. Keep `/admin` as the editor dashboard URL for now; renaming it is future work.
 
-When `editStatus` changes to `completed`, confirm that `Deliverables (D.M.YY)` contains a file. Block completion and explain the problem when it is empty. When it contains files, send a branded email containing only the `Deliverables (D.M.YY)` link. Every real transition back to `completed` sends another email. Repeated saves that leave the status unchanged do not.
+When `editStatus` changes to `completed`, confirm that `Deliverables (D.M.YY)` contains a file. Block completion and explain the problem when it is empty or Drive cannot list it. When it contains files, send the existing branded first-time or recurring deliverables email with the saved `Deliverables (D.M.YY)` folder URL. Optional editor notes to the client stay as they work today. Every real transition back to `completed` sends another email. Repeated saves that leave the status unchanged do not.
+
+Admin `Deliver` confirms in a dialog (optional client notes, whether to mark completed, and a link to the saved Deliverables folder). It does not accept a pasted Drive URL or a first-time/recurring override. Editor `Ready to review` is only a status change to `review`.
 
 Completion does not remove editor access. Only unassignment does.
 

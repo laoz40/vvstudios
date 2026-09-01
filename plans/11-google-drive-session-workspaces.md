@@ -23,6 +23,7 @@ Build the workflow in `plans/google-drive-session-workspaces-goal.md` as thin ve
 - Name session media folders `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)`, without leading zeroes.
 - Keep every package session in its own session directory, with dated `Raw Media` and `Deliverables` inside it.
 - Read `convex/_generated/ai/guidelines.md` before changing Convex code.
+- For emails, make sure there is a way to distinguish between different bookings, by using a date in the subject line and email body for session date or booked date.
 
 ## Implementation steps
 
@@ -161,15 +162,17 @@ Check after step: verify pre-setup and post-setup reschedules, stale jobs, packa
 
 ### Step 9: Deliver completed edits through the managed folder
 
-Remove the editor workflow that accepts an arbitrary Drive link. Use the saved `Deliverables (D.M.YY)` folder.
+Remove the editor workflow that accepts an arbitrary Drive link. Use the saved `Deliverables (D.M.YY)` folder. Editor `Ready to review` only sets `editStatus` to `review`. No dialog, no Drive URL, no client-facing notes on that action. Editors still use `Write editor notes` for internal notes.
 
-Before a real transition to `completed`, list the folder's children. Block completion with clear copy when it is empty or Drive cannot verify it. After completion succeeds, send one branded client email containing only the `Deliverables (D.M.YY)` link.
+Admin `Deliver` still opens the existing confirmation dialog. Keep optional notes to the client and the checkbox for whether to mark the session completed after send. Remove the first-time/recurring radios and the Drive URL input. Show the saved `Deliverables (D.M.YY)` folder as an open-in-Drive link so the admin can check the files before sending. If that folder is missing, say so instead of showing a link.
 
-A repeated save in `completed` must not resend. A later `completed → editing → completed` transition must send again. Completion must not remove editor permissions.
+On confirm, list the folder's children before a real transition to `completed`. Block with clear copy when it is empty or Drive cannot list it. Do not complete and do not send. When the folder has files, send the existing first-time or recurring deliverables email (same templates, same optional notes). Auto-detect first-time vs recurring in the action. Put the saved `Deliverables (D.M.YY)` URL on the button. Do not paste a URL.
 
-Add separate delivery-email status and retry controls.
+If the email send fails, leave status unchanged when the admin asked to mark completed, keep the dialog, and show a clear error on that attempt. They send again from `Deliver`. Do not add a deliverables-email retry button on the Google Drive folders dialog.
 
-Check after step: cover empty folders, listing failure, first completion, repeated saves, completion after reopening, authorization, and email retry.
+A repeated save that is already `completed` must not resend. A later `completed → editing → completed` transition must send again. Completion must not remove editor permissions.
+
+Check after step: cover empty folders, listing failure, first completion, failed send with obvious UI, repeated saves, completion after reopening, authorization, and the admin dialog without a pasted link.
 
 ### Step 10: Add explicit recovery controls
 
