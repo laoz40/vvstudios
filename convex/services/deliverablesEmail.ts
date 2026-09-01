@@ -10,18 +10,11 @@ import {
 	requireDeliverablesOwnership
 } from "#convex/lib/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email";
-import {
-	listDriveFolderChildren,
-	loadDriveClient,
-	type DriveError
-} from "#convex/lib/googleDrive";
+import { listDriveFolderChildren, loadDriveClient, type DriveError } from "#convex/lib/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
-export type SendSessionDeliverablesEmailArgs = {
-	bookingId: Id<"bookings">;
-	editorNotes?: string;
-};
+export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
 
 type SendDeliverablesError =
 	| { reason: "NOT_AUTHENTICATED" }

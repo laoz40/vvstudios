@@ -237,9 +237,7 @@ const operations: AdminOperation[] = [
 		name: "send a deliverables email",
 		permissionLevel: "editor-granted",
 		call: (client, { bookingId }) =>
-			client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
-				bookingId
-			})
+			client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId })
 	},
 	{
 		name: "send a session invoice email",

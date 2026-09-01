@@ -125,9 +125,7 @@ describe("deliverables email", () => {
 
 		const missingResult = await missingBookingTest
 			.withIdentity(adminIdentity)
-			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
-				bookingId: missingBookingId
-			});
+			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId: missingBookingId });
 		const missingFolderResult = await missingFolderTest
 			.withIdentity(adminIdentity)
 			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId });
