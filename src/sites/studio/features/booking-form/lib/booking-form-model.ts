@@ -21,7 +21,7 @@ export const ADDON_SECTIONS = [
 	},
 	{
 		title: "Editing Services",
-		description: "Choose post-production services for your content.",
+		description: "Choose long-form editing services for your content.",
 		addons: ["Essential Edit", "Complete Edit"]
 	},
 	{
