@@ -5,7 +5,10 @@ import type {
 	BookingAddonQuantities,
 	BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	omitEmptyBookingAddonQuantities,
+	pickBookingAddonQuantities
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
@@ -74,7 +77,7 @@ export function buildCustomInvoiceGenerationData(
 			dueDate: draft.dueDate,
 			...selectedSessionInput,
 			addons: draft.addons,
-			...pickBookingAddonQuantities(draft),
+			...omitEmptyBookingAddonQuantities(draft),
 			includeDepositLineItem: draft.includeDepositLineItem,
 			...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
 		},

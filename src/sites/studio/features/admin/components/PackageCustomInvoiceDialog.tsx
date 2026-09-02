@@ -35,6 +35,7 @@ import {
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
+	omitEmptyBookingAddonQuantities,
 	pickBookingAddonQuantities,
 	toDeliverableCountOption,
 	type BookingAddonQuantities,
@@ -236,7 +237,7 @@ export function PackageCustomInvoiceDialog({
 				dueDate: draft.dueDate,
 				...(draft.duration ? { duration: draft.duration } : {}),
 				addons: draft.addons,
-				...pickBookingAddonQuantities(draft),
+				...omitEmptyBookingAddonQuantities(draft),
 				packageSize: draft.packageSize,
 				includePackageDiscount: draft.includePackageDiscount,
 				includeDepositLineItem: false,

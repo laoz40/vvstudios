@@ -212,6 +212,22 @@ export function pickBookingAddonQuantities(values: BookingAddonQuantities): Book
 	};
 }
 
+export function omitEmptyBookingAddonQuantities(
+	values: BookingAddonQuantities
+): BookingAddonQuantities {
+	const quantities: BookingAddonQuantities = {};
+
+	for (const fieldName of BOOKING_ADDON_QUANTITY_FIELD_NAMES) {
+		const value = values[fieldName];
+
+		if (value) {
+			quantities[fieldName] = value;
+		}
+	}
+
+	return quantities;
+}
+
 export function satisfiesClipVolumePackEditRequirement(addons: readonly BookingAddon[]) {
 	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((addon) => addons.includes(addon));
 }
