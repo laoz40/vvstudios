@@ -19,8 +19,9 @@ import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import {
 	DURATION_OPTIONS,
-	isAddonOption,
 	toDeliverableCountOption,
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -29,7 +30,10 @@ import {
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
+import {
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -38,17 +42,15 @@ export type PackageEditDraft = {
 	accountName: string;
 	addons: BookingFormValues["addons"];
 	abn: string;
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	customerEmail: string;
 	customerName: string;
 	customerPhone: string;
 	duration: BookingFormValues["duration"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
 	expiresAt?: number;
 	notes: string;
 	totalDueAmount: string;
 	packageSize: MultiBookingSize;
-};
+} & BookingAddonQuantities;
 
 type PackageEditDialogProps = {
 	open: boolean;
@@ -85,14 +87,16 @@ function parseDateTimeLocalValue(value: string) {
 function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 	return {
 		accountName: packageRow.accountName,
-		addons: packageRow.addons.filter(isAddonOption),
+		addons: toAdminSessionAddons(packageRow.addons),
 		abn: packageRow.abn ?? "",
 		clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
+		completeEditQuantity: toDeliverableCountOption(packageRow.completeEditQuantity),
 		customerEmail: packageRow.customerEmail,
 		customerName: packageRow.customerName,
 		customerPhone: packageRow.customerPhone,
 		duration: toAdminSessionDuration(packageRow.duration),
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
+		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",
 		packageSize: packageRow.packageSize,
@@ -110,10 +114,9 @@ export function PackageEditDialog({
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
 	const defaultTotalDueAmount = calculatePackageAmounts({
 		addons: draft.addons,
-		clipsPackageQuantity: draft.clipsPackageQuantity,
 		duration: draft.duration,
-		essentialEditQuantity: draft.essentialEditQuantity,
-		packageSize: draft.packageSize
+		packageSize: draft.packageSize,
+		...pickBookingAddonQuantities(draft)
 	}).totalDueAmount;
 
 	useEffect(() => {
@@ -339,7 +342,9 @@ export function PackageEditDialog({
 					<AdminAddonOptions
 						addons={draft.addons}
 						essentialEditQuantity={draft.essentialEditQuantity}
+						completeEditQuantity={draft.completeEditQuantity}
 						clipsPackageQuantity={draft.clipsPackageQuantity}
+						handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
 						disabled={isSaving}
 						idPrefix="edit-package-addon"
 						onChange={(nextValues) => setDraft((current) => ({ ...current, ...nextValues }))}
@@ -356,14 +361,36 @@ export function PackageEditDialog({
 							}
 						/>
 					) : null}
-					{draft.addons.includes("Clips Package") ? (
+					{draft.addons.includes("Complete Edit") ? (
+						<AdminEditingQuantityOptions
+							idPrefix="edit-package-complete-edit-quantity"
+							label="Complete Edit quantity"
+							value={draft.completeEditQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) =>
+								setDraft((current) => ({ ...current, completeEditQuantity: value }))
+							}
+						/>
+					) : null}
+					{draft.addons.includes("Clip Volume Pack") ? (
 						<AdminEditingQuantityOptions
 							idPrefix="edit-package-clips-package-quantity"
-							label="Clips Package quantity"
+							label="Clip Volume Pack quantity"
 							value={draft.clipsPackageQuantity ?? ""}
 							disabled={isSaving}
 							onChange={(value) =>
 								setDraft((current) => ({ ...current, clipsPackageQuantity: value }))
+							}
+						/>
+					) : null}
+					{draft.addons.includes("Handcrafted Clips") ? (
+						<AdminEditingQuantityOptions
+							idPrefix="edit-package-handcrafted-clips-quantity"
+							label="Handcrafted Clips quantity"
+							value={draft.handcraftedClipsQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) =>
+								setDraft((current) => ({ ...current, handcraftedClipsQuantity: value }))
 							}
 						/>
 					) : null}

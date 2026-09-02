@@ -1,5 +1,6 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { getAdminIdentity } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
@@ -13,11 +14,9 @@ type CustomInvoiceDetails = {
 	dueDate?: string;
 	duration?: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	includeDepositLineItem: boolean;
 	customTotalDueAmount?: number;
-};
+} & BookingAddonQuantitiesArgs;
 
 export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 	bookingId: Id<"bookings">;
@@ -81,7 +80,9 @@ export function createBookingCustomInvoiceService(
 					duration: args.duration,
 					addons: args.addons,
 					essentialEditQuantity: args.essentialEditQuantity,
+					completeEditQuantity: args.completeEditQuantity,
 					clipsPackageQuantity: args.clipsPackageQuantity,
+					handcraftedClipsQuantity: args.handcraftedClipsQuantity,
 					includeDepositLineItem: args.includeDepositLineItem,
 					customTotalDueAmount: args.customTotalDueAmount,
 					createdBy: identity.email
@@ -110,7 +111,9 @@ export function createPackageCustomInvoiceService(
 					duration: args.duration,
 					addons: args.addons,
 					essentialEditQuantity: args.essentialEditQuantity,
+					completeEditQuantity: args.completeEditQuantity,
 					clipsPackageQuantity: args.clipsPackageQuantity,
+					handcraftedClipsQuantity: args.handcraftedClipsQuantity,
 					packageSize: args.packageSize,
 					includeDepositLineItem: args.includeDepositLineItem,
 					includePackageDiscount: args.includePackageDiscount,

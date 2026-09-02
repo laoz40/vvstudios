@@ -68,7 +68,9 @@ export function useSavedBookingInfo({
 				: [...savedBookingInfo.addons]
 		);
 		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
+		formApi.setFieldValue("completeEditQuantity", savedBookingInfo.completeEditQuantity);
 		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
+		formApi.setFieldValue("handcraftedClipsQuantity", savedBookingInfo.handcraftedClipsQuantity);
 		formApi.setFieldValue("name", savedBookingInfo.name);
 		formApi.setFieldValue("phone", savedBookingInfo.phone);
 		formApi.setFieldValue("accountName", savedBookingInfo.accountName);

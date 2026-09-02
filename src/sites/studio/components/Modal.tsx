@@ -178,11 +178,11 @@ export function Modal({
 								{title}
 							</h2>
 							{description ? (
-								<p
+								<div
 									id={descriptionId}
 									className="text-muted-foreground text-sm leading-6">
 									{description}
-								</p>
+								</div>
 							) : null}
 						</div>
 

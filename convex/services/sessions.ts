@@ -83,7 +83,9 @@ export function buildPublicSessionStatusResponse(session: Doc<"bookings">) {
 		service: session.service,
 		addons: session.addons,
 		essentialEditQuantity: session.essentialEditQuantity,
-		clipsPackageQuantity: session.clipsPackageQuantity
+		completeEditQuantity: session.completeEditQuantity,
+		clipsPackageQuantity: session.clipsPackageQuantity,
+		handcraftedClipsQuantity: session.handcraftedClipsQuantity
 	};
 }
 

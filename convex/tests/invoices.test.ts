@@ -2,8 +2,11 @@
  * These tests protect invoice totals, stored package pricing, custom invoice creation, and downloads.
  *
  * 1. Session invoice totals
- *    Duration, add-ons, editing quantities, deposit, and a manual override must create a coherent,
- *    nonnegative invoice whose line items balance to the final total.
+ *    Duration, add-ons, editing quantities, legacy Clips Package values, deposit, and a manual
+ *    override must create a coherent, nonnegative invoice whose line items balance to the final total.
+ *
+ * 1b. Legacy Clips Package pricing
+ *    The stored "Clips Package" add-on name must price as Clip Volume Pack.
  *
  * 2. Package pricing snapshots
  *    Package invoice artifacts must use the commercial amounts and line items saved at purchase
@@ -33,6 +36,7 @@ import {
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { createConvexTest } from "#convex/test.setup";
 import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 
 type SendInvoiceEmails = typeof import("#convex/lib/email").sendBookingInvoiceEmailsForBooking;
 
@@ -75,7 +79,7 @@ describe("invoice financial integrity", () => {
 			time: "10:00",
 			duration: "2h",
 			service: "Table Setup",
-			addons: ["Teleprompter", "Essential Edit", "Clips Package"],
+			addons: ["Teleprompter", "Essential Edit", "Clip Volume Pack"],
 			essentialEditQuantity: "2",
 			clipsPackageQuantity: "3",
 			leadTimeMinutes: 60,
@@ -93,7 +97,7 @@ describe("invoice financial integrity", () => {
 		expect(data.lineItems).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ description: "Essential Edit", quantity: 2, amount: 198 }),
-				expect.objectContaining({ description: "Clips Package", quantity: 3, amount: 237 }),
+				expect.objectContaining({ description: "Clip Volume Pack", quantity: 3, amount: 237 }),
 				expect.objectContaining({ description: "Deposit paid", amount: -50 }),
 				expect.objectContaining({ description: "Manual price adjustment", amount: -13 })
 			])
@@ -101,6 +105,18 @@ describe("invoice financial integrity", () => {
 		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(
 			data.amounts.totalDueAmount
 		);
+	});
+
+	test("prices the legacy Clips Package value as the renamed Clip Volume Pack", () => {
+		const amounts = calculateBookingInvoiceAmounts({
+			duration: "",
+			addons: ["Clips Package"],
+			clipsPackageQuantity: "2",
+			includeBaseAmount: false,
+			includeDepositLineItem: false
+		});
+
+		expect(amounts.addonsAmount).toBe(158);
 	});
 
 	test("clamps an ordinary session invoice total at zero", async () => {

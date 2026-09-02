@@ -250,7 +250,7 @@ describe("admin booking state integrity", () => {
 			api.googleCalendar.updateSessionFromAdmin,
 			adminBookingValues(bookingId, {
 				duration: "2h",
-				addons: ["Essential Edit", "Clips Package"],
+				addons: ["Essential Edit", "Clip Volume Pack"],
 				essentialEditQuantity: "2",
 				clipsPackageQuantity: "3"
 			})
@@ -259,7 +259,7 @@ describe("admin booking state integrity", () => {
 		expect(recalculationResult).toEqual([null, {}]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			duration: "2h",
-			addons: ["Essential Edit", "Clips Package"],
+			addons: ["Essential Edit", "Clip Volume Pack"],
 			essentialEditQuantity: "2",
 			clipsPackageQuantity: "3",
 			remainingBalanceAmount: 684

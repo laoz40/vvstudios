@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
+import { bookingAddonQuantitiesValidator } from "#convex/lib/bookingAddonQuantities";
 import {
 	confirmPackagePaymentService,
 	createPackageRequestService,
@@ -19,8 +20,7 @@ export const createPackageRequest = action({
 		email: v.string(),
 		duration: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},

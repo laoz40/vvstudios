@@ -74,7 +74,9 @@ export type MultiBookingInvoiceInput = Pick<
 	| "duration"
 	| "addons"
 	| "essentialEditQuantity"
+	| "completeEditQuantity"
 	| "clipsPackageQuantity"
+	| "handcraftedClipsQuantity"
 	| "notes"
 	| "packageSize"
 	| "createdAt"
@@ -113,9 +115,17 @@ function parseCustomMultiBookingInvoice(invoiceInput: CustomMultiBookingInvoiceI
 			invoiceInput.customInvoice.essentialEditQuantity ??
 			invoiceInput.multiBooking.essentialEditQuantity ??
 			"",
+		completeEditQuantity:
+			invoiceInput.customInvoice.completeEditQuantity ??
+			invoiceInput.multiBooking.completeEditQuantity ??
+			"",
 		clipsPackageQuantity:
 			invoiceInput.customInvoice.clipsPackageQuantity ??
 			invoiceInput.multiBooking.clipsPackageQuantity ??
+			"",
+		handcraftedClipsQuantity:
+			invoiceInput.customInvoice.handcraftedClipsQuantity ??
+			invoiceInput.multiBooking.handcraftedClipsQuantity ??
 			"",
 		notes: invoiceInput.multiBooking.notes ?? "",
 		packageSize
@@ -138,10 +148,12 @@ function createCustomInvoiceLineItems(
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: customInvoiceData.addons,
 		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
+		completeEditQuantity: customInvoiceData.completeEditQuantity || undefined,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent,
 		duration: customDuration,
 		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
+		handcraftedClipsQuantity: customInvoiceData.handcraftedClipsQuantity || undefined,
 		packageSize
 	});
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
@@ -161,10 +173,8 @@ export function createCustomMultiBookingInvoiceData(
 		// An omitted custom duration intentionally produces an add-ons-only invoice.
 		const customDuration = toCustomDuration(invoiceInput.customInvoice.duration);
 		const amounts = calculatePackageAmounts({
-			addons: customInvoiceData.addons,
-			clipsPackageQuantity: customInvoiceData.clipsPackageQuantity,
+			...customInvoiceData,
 			duration: customDuration,
-			essentialEditQuantity: customInvoiceData.essentialEditQuantity,
 			includeDiscount: invoiceInput.customInvoice.includePackageDiscount !== false,
 			packageSize
 		});
@@ -191,7 +201,9 @@ export function createCustomMultiBookingInvoiceData(
 			duration: customDuration || customInvoiceData.duration,
 			addons: customInvoiceData.addons,
 			essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
+			completeEditQuantity: customInvoiceData.completeEditQuantity || undefined,
 			clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
+			handcraftedClipsQuantity: customInvoiceData.handcraftedClipsQuantity || undefined,
 			createdAt: invoiceInput.customInvoice.createdAt,
 			invoiceDueAt,
 			invoiceNumber: invoiceInput.customInvoice.invoiceNumber,
@@ -217,7 +229,9 @@ function getBookingInvoiceParseInput(
 		service = booking.service,
 		addons = booking.addons,
 		essentialEditQuantity = booking.essentialEditQuantity ?? "",
-		clipsPackageQuantity = booking.clipsPackageQuantity ?? ""
+		completeEditQuantity = booking.completeEditQuantity ?? "",
+		clipsPackageQuantity = booking.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity = booking.handcraftedClipsQuantity ?? ""
 	} = customInvoice ?? {};
 
 	return {
@@ -234,7 +248,9 @@ function getBookingInvoiceParseInput(
 		service,
 		addons,
 		essentialEditQuantity,
+		completeEditQuantity,
 		clipsPackageQuantity,
+		handcraftedClipsQuantity,
 		notes: booking.notes ?? ""
 	};
 }
@@ -281,7 +297,9 @@ export function createBookingInvoiceArtifactsForBooking(
 		service: getBookingInvoiceService(customInvoice, parsedBooking.data.service),
 		addons: parsedBooking.data.addons,
 		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		completeEditQuantity: parsedBooking.data.completeEditQuantity || undefined,
 		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: parsedBooking.data.handcraftedClipsQuantity || undefined,
 		createdAt: customInvoice?.createdAt ?? createdAt,
 		dueDate: customInvoice?.dueDate,
 		includeDepositLineItem: customInvoice?.includeDepositLineItem,
@@ -330,7 +348,9 @@ export function createPackageAdjustmentInvoiceArtifacts(
 		duration: multiBooking.duration,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
+		completeEditQuantity: multiBooking.completeEditQuantity ?? "",
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity ?? "",
 		notes: multiBooking.notes ?? "",
 		packageSize: multiBooking.packageSize
 	});
@@ -380,7 +400,9 @@ export function createMultiBookingInvoiceArtifacts(
 		duration: multiBooking.duration,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
+		completeEditQuantity: multiBooking.completeEditQuantity ?? "",
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity ?? "",
 		notes: multiBooking.notes ?? "",
 		packageSize: multiBooking.packageSize
 	});
@@ -411,7 +433,9 @@ export function createMultiBookingInvoiceArtifacts(
 		duration: multiBookingData.duration,
 		addons: multiBookingData.addons,
 		essentialEditQuantity: multiBookingData.essentialEditQuantity || undefined,
+		completeEditQuantity: multiBookingData.completeEditQuantity || undefined,
 		clipsPackageQuantity: multiBookingData.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: multiBookingData.handcraftedClipsQuantity || undefined,
 		createdAt: multiBooking.createdAt,
 		invoiceDueAt: multiBooking.invoiceDueAt,
 		invoiceNumber: multiBooking.invoiceNumber,

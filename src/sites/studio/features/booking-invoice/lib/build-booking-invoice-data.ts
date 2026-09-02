@@ -5,6 +5,10 @@ import {
 	DURATION_PRICES
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities
+} from "#studio/features/booking-form/lib/booking-form-model";
+import {
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,
 	BOOKING_INVOICE_NOTES,
@@ -75,19 +79,16 @@ export function createPriceAdjustmentInvoiceLineItem(amount: number): BookingInv
 	return { amount, description: "Price adjustment", quantity: 1, rate: amount };
 }
 
-export function createPackageInvoiceLineItemSnapshot(input: {
-	addons: BookingInvoiceBuilderInput["addons"];
-	clipsPackageQuantity?: string;
-	discountAmount: number;
-	discountPercent: number;
-	duration: BookingInvoiceBuilderInput["duration"] | "";
-	essentialEditQuantity?: string;
-	packageSize: number;
-}): BookingInvoiceLineItem[] {
-	const addonQuantities = {
-		essentialEditQuantity: input.essentialEditQuantity,
-		clipsPackageQuantity: input.clipsPackageQuantity
-	};
+export function createPackageInvoiceLineItemSnapshot(
+	input: {
+		addons: BookingInvoiceBuilderInput["addons"];
+		discountAmount: number;
+		discountPercent: number;
+		duration: BookingInvoiceBuilderInput["duration"] | "";
+		packageSize: number;
+	} & BookingAddonQuantities
+): BookingInvoiceLineItem[] {
+	const addonQuantities = pickBookingAddonQuantities(input);
 	const addonLineItems = input.addons.map((addon) => {
 		const quantityPerSession = getAddonQuantity(addon, addonQuantities);
 		const totalQuantity = input.packageSize * quantityPerSession;
@@ -138,8 +139,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const computedAmounts = calculateBookingInvoiceAmounts({
 		duration: input.duration,
 		addons: input.addons,
-		essentialEditQuantity: input.essentialEditQuantity,
-		clipsPackageQuantity: input.clipsPackageQuantity,
+		...pickBookingAddonQuantities(input),
 		includeBaseAmount: Boolean(input.service),
 		includeDepositLineItem: input.includeDepositLineItem !== false
 	});
@@ -156,17 +156,15 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 	const invoiceDate = input.createdAt ?? Date.now();
 	const invoiceDateLabel = format(invoiceDate, "d MMMM yyyy");
 	const dueDateLabel = formatCalendarDate(dueDate);
+	const addonQuantities = pickBookingAddonQuantities(input);
 	const addonsSummary =
 		input.addons.length > 0
 			? input.addons
 					.map((addon) => {
-						const quantity = getAddonQuantity(addon, {
-							essentialEditQuantity: input.essentialEditQuantity,
-							clipsPackageQuantity: input.clipsPackageQuantity
-						});
+						const quantity = getAddonQuantity(addon, addonQuantities);
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
 
-						return `${addon}${quantityLabel} (${getAddonAmount(addon, { essentialEditQuantity: input.essentialEditQuantity, clipsPackageQuantity: input.clipsPackageQuantity }).toFixed(2)})`;
+						return `${addon}${quantityLabel} (${getAddonAmount(addon, addonQuantities).toFixed(2)})`;
 					})
 					.join(", ")
 			: "No add-ons selected";
@@ -183,15 +181,9 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 				]
 			: []),
 		...input.addons.map((addon) => ({
-			amount: getAddonAmount(addon, {
-				essentialEditQuantity: input.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity
-			}),
+			amount: getAddonAmount(addon, addonQuantities),
 			description: addon,
-			quantity: getAddonQuantity(addon, {
-				essentialEditQuantity: input.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity
-			}),
+			quantity: getAddonQuantity(addon, addonQuantities),
 			rate: ADDON_PRICES[addon]
 		})),
 		...(input.includeDepositLineItem === false
@@ -360,29 +352,30 @@ export function buildPackageAdjustmentInvoiceData(input: {
 	};
 }
 
-export function buildMultiBookingInvoiceData(input: {
-	abn?: string;
-	accountName: string;
-	addons: BookingInvoiceBuilderInput["addons"];
-	bookingId: BookingInvoiceBuilderInput["bookingId"];
-	clipsPackageQuantity?: string;
-	createdAt: number;
-	discountAmount: number;
-	discountPercent: number;
-	duration: BookingInvoiceBuilderInput["duration"];
-	email: string;
-	essentialEditQuantity?: string;
-	invoiceDueAt: number;
-	invoiceLineItems: BookingInvoiceLineItem[];
-	invoiceNumber?: string;
-	name: string;
-	leadTimeMinutes: number;
-	packageSize: number;
-	packageSubtotalAmount: number;
-	phone: string;
-	service?: NonNullable<BookingInvoiceBuilderInput["service"]>;
-	totalDueAmount: number;
-}): BookingInvoiceData {
+export function buildMultiBookingInvoiceData(
+	input: {
+		abn?: string;
+		accountName: string;
+		addons: BookingInvoiceBuilderInput["addons"];
+		bookingId: BookingInvoiceBuilderInput["bookingId"];
+		createdAt: number;
+		discountAmount: number;
+		discountPercent: number;
+		duration: BookingInvoiceBuilderInput["duration"];
+		email: string;
+		invoiceDueAt: number;
+		invoiceLineItems: BookingInvoiceLineItem[];
+		invoiceNumber?: string;
+		name: string;
+		leadTimeMinutes: number;
+		packageSize: number;
+		packageSubtotalAmount: number;
+		phone: string;
+		service?: NonNullable<BookingInvoiceBuilderInput["service"]>;
+		totalDueAmount: number;
+	} & BookingAddonQuantities
+): BookingInvoiceData {
+	const addonQuantities = pickBookingAddonQuantities(input);
 	const invoiceDateLabel = format(input.createdAt, "d MMMM yyyy");
 	const dueDate = format(input.invoiceDueAt, "yyyy-MM-dd");
 	const dueDateLabel = format(input.invoiceDueAt, "d MMMM yyyy");
@@ -390,10 +383,7 @@ export function buildMultiBookingInvoiceData(input: {
 		input.addons.length > 0
 			? input.addons
 					.map((addon) => {
-						const quantity = getAddonQuantity(addon, {
-							essentialEditQuantity: input.essentialEditQuantity,
-							clipsPackageQuantity: input.clipsPackageQuantity
-						});
+						const quantity = getAddonQuantity(addon, addonQuantities);
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
 
 						return `${addon}${quantityLabel}`;

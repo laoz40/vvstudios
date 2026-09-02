@@ -1,5 +1,6 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
 export type PackageEditWarningField = keyof PackageEditDraft;
@@ -8,7 +9,9 @@ const pricingFields: readonly PackageEditWarningField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
+	"completeEditQuantity",
 	"clipsPackageQuantity",
+	"handcraftedClipsQuantity",
 	"packageSize",
 	"totalDueAmount"
 ];
@@ -17,12 +20,14 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	abn: "ABN",
 	accountName: "Account name",
 	addons: "Add-ons",
-	clipsPackageQuantity: "Clips Package quantity",
+	clipsPackageQuantity: "Clip Volume Pack quantity",
+	completeEditQuantity: "Complete Edit quantity",
 	customerEmail: "Customer email",
 	customerName: "Customer name",
 	customerPhone: "Phone number",
 	duration: "Session duration",
 	essentialEditQuantity: "Essential Edit quantity",
+	handcraftedClipsQuantity: "Handcrafted Clips quantity",
 	expiresAt: "Package expiry window",
 	notes: "Notes",
 	packageSize: "Package sessions",
@@ -46,7 +51,9 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		field === "abn" ||
 		field === "notes" ||
 		field === "essentialEditQuantity" ||
-		field === "clipsPackageQuantity"
+		field === "completeEditQuantity" ||
+		field === "clipsPackageQuantity" ||
+		field === "handcraftedClipsQuantity"
 	) {
 		return packageRow[field] ?? "";
 	}
@@ -71,10 +78,9 @@ function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
 
 	return calculatePackageAmounts({
 		addons: draft.addons,
-		clipsPackageQuantity: draft.clipsPackageQuantity,
 		duration: draft.duration,
-		essentialEditQuantity: draft.essentialEditQuantity,
-		packageSize: draft.packageSize
+		packageSize: draft.packageSize,
+		...pickBookingAddonQuantities(draft)
 	}).totalDueAmount;
 }
 

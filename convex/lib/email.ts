@@ -26,8 +26,10 @@ import {
 	type MultiBookingInvoiceInput,
 	type PackageAdjustmentInvoiceInput
 } from "./bookingInvoiceArtifacts";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { err, ok, ResultAsync, type Result } from "neverthrow";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -64,7 +66,7 @@ interface SendSessionHostDetailsEmailArgs {
 	reschedule?: SessionHostRescheduleDetails;
 }
 
-interface SendPackageHostDetailsEmailArgs {
+type SendPackageHostDetailsEmailArgs = {
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -73,12 +75,10 @@ interface SendPackageHostDetailsEmailArgs {
 	abn?: string;
 	duration: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
 	packageSize: 4 | 8 | 12;
 	invoiceDueAt: number;
-}
+} & BookingAddonQuantitiesArgs;
 
 interface SendPackagePaymentReminderEmailArgs {
 	email: string;
@@ -103,19 +103,17 @@ interface SendSessionDeliverablesEmailArgs {
 	name: string;
 }
 
-interface SendPackageScheduleEmailArgs {
+type SendPackageScheduleEmailArgs = {
 	addons: string[];
 	leadTimeMinutes: number;
-	clipsPackageQuantity?: string;
 	duration: string;
 	email: string;
-	essentialEditQuantity?: string;
 	expiresAt: number;
 	name: string;
 	packageSize: 4 | 8 | 12;
 	bookedAt: number;
 	scheduleUrl: string;
-}
+} & BookingAddonQuantitiesArgs;
 
 function escapeHtml(value: string) {
 	return value
@@ -151,22 +149,13 @@ function formatTimestampDateShort(timestamp: number) {
 	}).format(new Date(timestamp));
 }
 
-function formatAddonsLine(args: {
-	addons: string[];
-	clipsPackageQuantity?: string;
-	essentialEditQuantity?: string;
-}) {
+function formatAddonsLine(args: { addons: string[] } & BookingAddonQuantitiesArgs) {
 	if (args.addons.length === 0) {
 		return "None";
 	}
 
 	return args.addons
-		.map((addon) =>
-			formatEditingAddonLabel(addon, {
-				clipsPackageQuantity: args.clipsPackageQuantity,
-				essentialEditQuantity: args.essentialEditQuantity
-			})
-		)
+		.map((addon) => formatEditingAddonLabel(addon, args as BookingAddonQuantities))
 		.join(", ");
 }
 
@@ -467,7 +456,9 @@ export async function sendMultiBookingInvoiceEmail(
 		duration: multiBooking.duration,
 		addons: multiBooking.addons,
 		essentialEditQuantity: multiBooking.essentialEditQuantity,
+		completeEditQuantity: multiBooking.completeEditQuantity,
 		clipsPackageQuantity: multiBooking.clipsPackageQuantity,
+		handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity,
 		notes: multiBooking.notes,
 		packageSize: multiBooking.packageSize,
 		invoiceDueAt: multiBooking.invoiceDueAt
@@ -485,9 +476,11 @@ export async function sendMultiBookingInvoiceEmail(
 export async function sendPackageScheduleEmail({
 	addons,
 	clipsPackageQuantity,
+	completeEditQuantity,
 	duration,
 	email,
 	essentialEditQuantity,
+	handcraftedClipsQuantity,
 	expiresAt,
 	name,
 	packageSize,
@@ -505,7 +498,13 @@ export async function sendPackageScheduleEmail({
 	try {
 		html = await render(
 			createElement(MultiBookingSchedulingEmail, {
-				addonsLine: formatAddonsLine({ addons, clipsPackageQuantity, essentialEditQuantity }),
+				addonsLine: formatAddonsLine({
+					addons,
+					clipsPackageQuantity,
+					completeEditQuantity,
+					essentialEditQuantity,
+					handcraftedClipsQuantity
+				}),
 				duration,
 				expiresAtLabel: formatTimestampDateLong(expiresAt),
 				name,

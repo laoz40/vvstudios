@@ -11,6 +11,7 @@ import {
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
 	SERVICES,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -19,11 +20,9 @@ export type CustomInvoiceFormDraft = {
 	service?: BookingFormValues["service"] | "";
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	dueDate: string;
 	customTotalDueAmount: string;
-};
+} & BookingAddonQuantities;
 
 type CustomInvoiceFormFieldsProps<TDraft extends CustomInvoiceFormDraft> = {
 	disabled: boolean;
@@ -49,7 +48,7 @@ type CustomInvoiceQuantityOptionsProps = {
 	disabled: boolean;
 	idPrefix: string;
 	label: string;
-	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
+	onChange: (value: (typeof DELIVERABLE_COUNT_OPTIONS)[number]) => void;
 	value: string;
 };
 
@@ -104,7 +103,9 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 			<AdminAddonOptions
 				addons={draft.addons}
 				essentialEditQuantity={draft.essentialEditQuantity}
+				completeEditQuantity={draft.completeEditQuantity}
 				clipsPackageQuantity={draft.clipsPackageQuantity}
+				handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
 				disabled={disabled}
 				idPrefix={`${idPrefix}-addon`}
 				onChange={(nextValues) => {
@@ -123,15 +124,36 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 					}}
 				/>
 			) : null}
-
-			{draft.addons.includes("Clips Package") ? (
+			{draft.addons.includes("Complete Edit") ? (
+				<CustomInvoiceQuantityOptions
+					idPrefix={`${idPrefix}-complete-edit-quantity`}
+					label="Complete Edit quantity"
+					value={draft.completeEditQuantity ?? ""}
+					disabled={disabled}
+					onChange={(completeEditQuantity) => {
+						onDraftChange({ ...draft, completeEditQuantity });
+					}}
+				/>
+			) : null}
+			{draft.addons.includes("Clip Volume Pack") ? (
 				<CustomInvoiceQuantityOptions
 					idPrefix={`${idPrefix}-clips-package-quantity`}
-					label="Clips Package quantity"
+					label="Clip Volume Pack quantity"
 					value={draft.clipsPackageQuantity ?? ""}
 					disabled={disabled}
 					onChange={(clipsPackageQuantity) => {
 						onDraftChange({ ...draft, clipsPackageQuantity });
+					}}
+				/>
+			) : null}
+			{draft.addons.includes("Handcrafted Clips") ? (
+				<CustomInvoiceQuantityOptions
+					idPrefix={`${idPrefix}-handcrafted-clips-quantity`}
+					label="Handcrafted Clips quantity"
+					value={draft.handcraftedClipsQuantity ?? ""}
+					disabled={disabled}
+					onChange={(handcraftedClipsQuantity) => {
+						onDraftChange({ ...draft, handcraftedClipsQuantity });
 					}}
 				/>
 			) : null}

@@ -89,9 +89,18 @@ export const faqSectionCopy: { readonly title: string; readonly items: readonly 
 							"Syncs audio to video, enhances sound to a broadcast-ready level, and includes multi-camera switching based on the active speaker."
 					},
 					{
-						heading: "Clips Package ($79) - ",
+						heading: "Complete Edit ($249) - ",
+						value:
+							"Adds a dynamic episode teaser, lower thirds and B-roll, and removes filler words and silences with clean cuts."
+					},
+					{
+						heading: "Clip Volume Pack ($79) - ",
 						value:
 							"10 curated clips (15-60s), selected for engagement potential, delivered in vertical format with subtitles for social media."
+					},
+					{
+						heading: "Handcrafted Clips ($199) - ",
+						value: "5 premium clips with animated subtitles, B-roll, and custom graphics."
 					},
 					{
 						heading: "Remote Podcast ($59) - ",

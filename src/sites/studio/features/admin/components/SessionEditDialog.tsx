@@ -23,6 +23,8 @@ import {
 	SERVICES,
 	isAddonOption,
 	toDeliverableCountOption,
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
@@ -38,17 +40,16 @@ export type SessionEditDraft = {
 	addons: BookingFormValues["addons"];
 	abn: string;
 	date: string;
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-	duration: BookingFormValues["duration"];
-	email: string;
-	name: string;
-	notes: string;
-	phone: string;
-	service: SessionRecord["service"];
-	remainingBalanceAmount: string;
-	time: string;
-};
+} & BookingAddonQuantities & {
+		duration: BookingFormValues["duration"];
+		email: string;
+		name: string;
+		notes: string;
+		phone: string;
+		service: SessionRecord["service"];
+		remainingBalanceAmount: string;
+		time: string;
+	};
 
 export type SessionEditDialogProps = {
 	open: boolean;
@@ -66,7 +67,9 @@ function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 		abn: session.abn ?? "",
 		date: session.date,
 		essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+		completeEditQuantity: toDeliverableCountOption(session.completeEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+		handcraftedClipsQuantity: toDeliverableCountOption(session.handcraftedClipsQuantity),
 		time: session.time,
 		duration: toAdminSessionDuration(session.duration),
 		service: session.service,
@@ -90,8 +93,7 @@ export function SessionEditDialog({
 	const defaultRemainingBalanceAmount = calculateBookingInvoiceAmounts({
 		duration: draft.duration,
 		addons: draft.addons,
-		essentialEditQuantity: draft.essentialEditQuantity,
-		clipsPackageQuantity: draft.clipsPackageQuantity
+		...pickBookingAddonQuantities(draft)
 	}).totalDueAmount;
 
 	useEffect(() => {
@@ -337,7 +339,9 @@ export function SessionEditDialog({
 					<AdminAddonOptions
 						addons={draft.addons}
 						essentialEditQuantity={draft.essentialEditQuantity}
+						completeEditQuantity={draft.completeEditQuantity}
 						clipsPackageQuantity={draft.clipsPackageQuantity}
+						handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
 						disabled={isSaving}
 						idPrefix="edit-addon"
 						onChange={(nextValues) => {
@@ -356,14 +360,36 @@ export function SessionEditDialog({
 							}}
 						/>
 					) : null}
-					{draft.addons.includes("Clips Package") ? (
+					{draft.addons.includes("Complete Edit") ? (
+						<AdminEditingQuantityOptions
+							idPrefix="edit-complete-edit-quantity"
+							label="Complete Edit quantity"
+							value={draft.completeEditQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) => {
+								setDraft((current) => ({ ...current, completeEditQuantity: value }));
+							}}
+						/>
+					) : null}
+					{draft.addons.includes("Clip Volume Pack") ? (
 						<AdminEditingQuantityOptions
 							idPrefix="edit-clips-package-quantity"
-							label="Clips Package quantity"
+							label="Clip Volume Pack quantity"
 							value={draft.clipsPackageQuantity ?? ""}
 							disabled={isSaving}
 							onChange={(value) => {
 								setDraft((current) => ({ ...current, clipsPackageQuantity: value }));
+							}}
+						/>
+					) : null}
+					{draft.addons.includes("Handcrafted Clips") ? (
+						<AdminEditingQuantityOptions
+							idPrefix="edit-handcrafted-clips-quantity"
+							label="Handcrafted Clips quantity"
+							value={draft.handcraftedClipsQuantity ?? ""}
+							disabled={isSaving}
+							onChange={(value) => {
+								setDraft((current) => ({ ...current, handcraftedClipsQuantity: value }));
 							}}
 						/>
 					) : null}

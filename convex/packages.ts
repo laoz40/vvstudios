@@ -4,6 +4,7 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
+import { bookingAddonQuantitiesValidator } from "#convex/lib/bookingAddonQuantities";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -41,8 +42,7 @@ export const createPendingPackage = internalMutation({
 		email: v.string(),
 		duration: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		singleSessionAmount: v.number(),
@@ -86,8 +86,7 @@ export const updatePackageFromAdmin = mutation({
 		email: v.string(),
 		duration: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		expiresAt: v.optional(v.number()),

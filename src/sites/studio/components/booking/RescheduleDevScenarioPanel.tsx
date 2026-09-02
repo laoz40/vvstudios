@@ -114,7 +114,7 @@ export function buildDevRescheduleBooking(
 
 	return tupleOk({
 		session: {
-			addons: ["Essential Edit", "Clips Package"],
+			addons: ["Essential Edit", "Clip Volume Pack"],
 			date: "2026-05-12",
 			duration: "2h",
 			name: "Dev Customer",

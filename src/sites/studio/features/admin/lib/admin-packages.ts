@@ -33,7 +33,9 @@ export type AdminPackageRow = {
 	duration: string;
 	addons: string[];
 	clipsPackageQuantity?: string;
+	completeEditQuantity?: string;
 	essentialEditQuantity?: string;
+	handcraftedClipsQuantity?: string;
 	totalDueLabel: string;
 	totalDueAmount: number;
 	adjustment: {
@@ -301,7 +303,9 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		duration: multiBookingPackage.duration,
 		addons: multiBookingPackage.addons,
 		clipsPackageQuantity: multiBookingPackage.clipsPackageQuantity,
+		completeEditQuantity: multiBookingPackage.completeEditQuantity,
 		essentialEditQuantity: multiBookingPackage.essentialEditQuantity,
+		handcraftedClipsQuantity: multiBookingPackage.handcraftedClipsQuantity,
 		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
 		totalDueAmount: multiBookingPackage.totalDueAmount,
 		adjustment: multiBookingPackage.adjustment

@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
+import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
 import {
 	closeEmbeddedCheckoutSessionService,
 	createEmbeddedCheckoutSessionService
@@ -21,8 +22,7 @@ export const createEmbeddedCheckoutSession = action({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
 	handler: async (ctx, args) =>

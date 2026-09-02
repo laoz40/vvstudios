@@ -1,9 +1,11 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { fromConvexTuple } from "#convex/lib/result";
 import type { SessionReservation } from "./sessionReservations";
 import {
@@ -34,11 +36,9 @@ type SessionEditValues = {
 	duration: string;
 	service: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
 	remainingBalanceAmount?: number;
-};
+} & BookingAddonQuantitiesArgs;
 
 export function getSessionStartAt(
 	date: string,
@@ -55,10 +55,12 @@ const sessionEditFieldNames: Record<SessionEditField, null> = {
 	accountName: null,
 	addons: null,
 	clipsPackageQuantity: null,
+	completeEditQuantity: null,
 	date: null,
 	duration: null,
 	email: null,
 	essentialEditQuantity: null,
+	handcraftedClipsQuantity: null,
 	name: null,
 	notes: null,
 	phone: null,
@@ -83,7 +85,9 @@ const sessionGoogleEventFields: readonly SessionEditField[] = [
 	"time",
 	"duration",
 	"essentialEditQuantity",
+	"completeEditQuantity",
 	"clipsPackageQuantity",
+	"handcraftedClipsQuantity",
 	"notes"
 ];
 // Pricing field changes may recalculate the remaining balance.
@@ -91,7 +95,9 @@ const sessionPricingFields: readonly SessionEditField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
-	"clipsPackageQuantity"
+	"completeEditQuantity",
+	"clipsPackageQuantity",
+	"handcraftedClipsQuantity"
 ];
 
 type SessionFieldChangeSummary = {
@@ -143,16 +149,12 @@ export function getSessionEditFieldChanges(
 }
 
 export function calculateSessionRemainingBalanceAmount(
-	values: Pick<
-		SessionEditValues,
-		"addons" | "clipsPackageQuantity" | "duration" | "essentialEditQuantity"
-	>
+	values: Pick<SessionEditValues, "addons" | "duration"> & BookingAddonQuantitiesArgs
 ) {
 	return calculateBookingInvoiceAmounts({
 		duration: values.duration,
 		addons: values.addons,
-		essentialEditQuantity: values.essentialEditQuantity,
-		clipsPackageQuantity: values.clipsPackageQuantity
+		...(values as BookingAddonQuantities)
 	}).totalDueAmount;
 }
 
@@ -191,7 +193,9 @@ export function buildAdminSessionUpdatePatch({
 		service: values.service,
 		addons: values.addons,
 		essentialEditQuantity: values.essentialEditQuantity,
+		completeEditQuantity: values.completeEditQuantity,
 		clipsPackageQuantity: values.clipsPackageQuantity,
+		handcraftedClipsQuantity: values.handcraftedClipsQuantity,
 		notes: values.notes,
 		...(scheduleChanged
 			? {

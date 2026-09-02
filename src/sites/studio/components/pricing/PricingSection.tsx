@@ -1,7 +1,7 @@
 import { useState, type ComponentProps, type ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Globe, Scissors, Smartphone, Video } from "lucide-react";
+import { Globe, Scissors, Smartphone, Sparkles, Video, WandSparkles } from "lucide-react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
@@ -85,11 +85,25 @@ const pricingAddOns: readonly PricingAddOn[] = [
 		icon: Scissors
 	},
 	{
-		label: "Clips Package",
+		label: "Complete Edit",
+		price: "$249",
+		description:
+			"A fuller episode edit. We add a dynamic teaser, lower thirds and B-roll, and cut filler words and silences so the episode is closer to publish-ready.",
+		icon: WandSparkles
+	},
+	{
+		label: "Clip Volume Pack",
 		price: "$79",
 		description:
 			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",
 		icon: Smartphone
+	},
+	{
+		label: "Handcrafted Clips",
+		price: "$199",
+		description:
+			"Get 5 premium clips from your session. Each clip includes animated subtitles, B-roll, and custom graphics for social posts that need more polish than the volume pack.",
+		icon: Sparkles
 	}
 ];
 

@@ -1,16 +1,13 @@
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
-import {
-	DELIVERABLE_COUNT_OPTIONS,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { DELIVERABLE_COUNT_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 
 type AdminEditingQuantityOptionsProps = {
 	disabled: boolean;
 	idPrefix: string;
 	label: string;
-	onChange: (value: BookingFormValues["essentialEditQuantity"]) => void;
+	onChange: (value: (typeof DELIVERABLE_COUNT_OPTIONS)[number]) => void;
 	value: string;
 };
 

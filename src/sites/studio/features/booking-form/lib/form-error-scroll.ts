@@ -1,11 +1,12 @@
+import { BOOKING_ADDON_QUANTITY_FIELD_NAMES } from "#studio/features/booking-form/lib/booking-form-model";
+
 const BOOKING_FORM_ERROR_FIELD_ORDER = [
 	"bookingMode",
 	"packageSize",
 	"service",
 	"duration",
 	"addons",
-	"essentialEditQuantity",
-	"clipsPackageQuantity",
+	...BOOKING_ADDON_QUANTITY_FIELD_NAMES,
 	"date",
 	"time",
 	"name",

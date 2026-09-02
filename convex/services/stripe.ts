@@ -6,6 +6,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import {
 	emailDomainCanReceiveMail,
 	getBookingSubmitRateLimitKey
@@ -25,10 +26,8 @@ export type CreateEmbeddedCheckoutSessionArgs = {
 	duration: string;
 	service: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
-};
+} & BookingAddonQuantitiesArgs;
 
 export type CreateEmbeddedCheckoutSessionError =
 	| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
@@ -96,7 +95,9 @@ export function createEmbeddedCheckoutSessionService(
 						service: booking.service,
 						addons: booking.addons,
 						essentialEditQuantity: booking.essentialEditQuantity || undefined,
+						completeEditQuantity: booking.completeEditQuantity || undefined,
 						clipsPackageQuantity: booking.clipsPackageQuantity || undefined,
+						handcraftedClipsQuantity: booking.handcraftedClipsQuantity || undefined,
 						notes: booking.notes || undefined
 					})
 				)

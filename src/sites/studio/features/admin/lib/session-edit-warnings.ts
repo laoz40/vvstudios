@@ -13,7 +13,9 @@ const googleEventFields: readonly SessionEditWarningField[] = [
 	"time",
 	"duration",
 	"essentialEditQuantity",
+	"completeEditQuantity",
 	"clipsPackageQuantity",
+	"handcraftedClipsQuantity",
 	"notes"
 ];
 
@@ -21,7 +23,9 @@ const pricingFields: readonly SessionEditWarningField[] = [
 	"addons",
 	"duration",
 	"essentialEditQuantity",
+	"completeEditQuantity",
 	"clipsPackageQuantity",
+	"handcraftedClipsQuantity",
 	"remainingBalanceAmount"
 ];
 
@@ -29,11 +33,13 @@ const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
 	abn: "ABN",
 	accountName: "Account name",
 	addons: "Add-ons",
-	clipsPackageQuantity: "Clips Package quantity",
+	clipsPackageQuantity: "Clip Volume Pack quantity",
+	completeEditQuantity: "Complete Edit quantity",
 	date: "Session date",
 	duration: "Session duration",
 	email: "Customer email",
 	essentialEditQuantity: "Essential Edit quantity",
+	handcraftedClipsQuantity: "Handcrafted Clips quantity",
 	name: "Customer name",
 	notes: "Notes",
 	phone: "Phone number",
@@ -59,7 +65,9 @@ function getSessionDraftValue(session: SessionRecord, field: SessionEditWarningF
 		field === "abn" ||
 		field === "notes" ||
 		field === "essentialEditQuantity" ||
-		field === "clipsPackageQuantity"
+		field === "completeEditQuantity" ||
+		field === "clipsPackageQuantity" ||
+		field === "handcraftedClipsQuantity"
 	) {
 		return session[field] ?? "";
 	}

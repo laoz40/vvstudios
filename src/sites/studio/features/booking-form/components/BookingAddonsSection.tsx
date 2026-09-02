@@ -24,16 +24,24 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	ADDON_OPTIONS,
+	ADDON_SECTIONS,
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
+	BOOKING_ADDON_QUANTITY_FIELD_NAMES,
 	DELIVERABLE_COUNT_OPTIONS,
+	forEachClearedAddonQuantityField,
 	isAddonAvailableForService,
+	isClipVolumePackEditAddon,
 	isDeliverableCountOption,
 	isPackageUnavailableAddon,
+	isQuantityTrackedAddon,
+	resolveExclusiveAddonSelection,
+	satisfiesClipVolumePackEditRequirement,
 	toFieldErrorObjects,
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingAddonQuantityFieldProps = {
-	fieldName: "clipsPackageQuantity" | "essentialEditQuantity";
+	fieldName: (typeof BOOKING_ADDON_QUANTITY_FIELD_NAMES)[number];
 	formApi: ReturnType<typeof useBookingFormContext>;
 	label: string;
 	description: string;
@@ -130,13 +138,9 @@ export function BookingAddonsSection() {
 
 		formApi.setFieldValue("addons", availableAddons);
 
-		if (!availableAddons.includes("Essential Edit")) {
-			formApi.setFieldValue("essentialEditQuantity", "");
-		}
-
-		if (!availableAddons.includes("Clips Package")) {
-			formApi.setFieldValue("clipsPackageQuantity", "");
-		}
+		forEachClearedAddonQuantityField(availableAddons, (fieldName, value) => {
+			formApi.setFieldValue(fieldName, value);
+		});
 	}, [formApi, formValues.addons, formValues.service]);
 
 	return (
@@ -145,101 +149,94 @@ export function BookingAddonsSection() {
 				function handleAddonChange(addon: BookingAddon, checked: boolean) {
 					if (
 						checked &&
-						addon === "Clips Package" &&
-						!field.state.value.includes("Essential Edit")
+						addon === "Clip Volume Pack" &&
+						!satisfiesClipVolumePackEditRequirement(field.state.value)
 					) {
 						openClipsPackageRequirementModal();
 						return;
 					}
 
-					let nextAddons = field.state.value.filter((value) => value !== addon);
-
-					if (checked) {
-						nextAddons = [...field.state.value, addon];
-					}
+					const nextAddons = resolveExclusiveAddonSelection(field.state.value, addon, checked);
 
 					const shouldNotifyClipsPackageDeselected =
-						addon === "Essential Edit" && !checked && field.state.value.includes("Clips Package");
+						!checked &&
+						isClipVolumePackEditAddon(addon) &&
+						field.state.value.includes("Clip Volume Pack") &&
+						!satisfiesClipVolumePackEditRequirement(nextAddons);
+
+					let resolvedAddons = nextAddons;
 
 					if (shouldNotifyClipsPackageDeselected) {
-						nextAddons = nextAddons.filter((value) => value !== "Clips Package");
+						resolvedAddons = nextAddons.filter((value) => value !== "Clip Volume Pack");
 					}
 
-					field.handleChange(nextAddons);
+					field.handleChange(resolvedAddons);
 					field.handleBlur();
 
 					if (shouldNotifyClipsPackageDeselected) {
 						openClipsPackageDeselectedModal();
 					}
 
-					// Clear each hidden editing add-on quantity when its add-on is removed,
-					// so the form does not submit stale per-add-on quantities.
-					if (!nextAddons.includes("Essential Edit")) {
-						formApi.setFieldValue("essentialEditQuantity", "");
-					}
-
-					if (!nextAddons.includes("Clips Package")) {
-						formApi.setFieldValue("clipsPackageQuantity", "");
-					}
+					forEachClearedAddonQuantityField(resolvedAddons, (fieldName, value) => {
+						formApi.setFieldValue(fieldName, value);
+					});
 				}
 
 				return (
-					<FieldSet data-field-name="addons">
-						<FieldLegend className={sectionHeadingClassName}>Add-ons</FieldLegend>
-						<FieldDescription>Choose add-ons to enhance your session.</FieldDescription>
-						<div className="flex flex-col gap-4">
-							{availableAddonOptions.map((addon) => (
-								<div
-									key={addon}
-									className="space-y-3">
-									<BookingAddonCard
-										addon={addon}
-										checked={field.state.value.includes(addon)}
-										disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
-										onCheckedChange={handleAddonChange}
-									/>
-									<AnimatePresence initial={false}>
-										{addon === "Essential Edit" && field.state.value.includes("Essential Edit") ? (
-											<BookingAddonQuantityField
-												key="essentialEditQuantity"
-												formApi={formApi}
-												fieldName="essentialEditQuantity"
-												label={
-													isMultiBooking
-														? "Number of Essential Edits Per Session"
-														: "Number of Essential Edits"
-												}
-												description={
-													isMultiBooking
-														? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
-														: "Charged per episode or project you want edited from this session."
-												}
-												shouldShowFieldError={shouldShowFieldError}
-											/>
-										) : null}
-										{addon === "Clips Package" && field.state.value.includes("Clips Package") ? (
-											<BookingAddonQuantityField
-												key="clipsPackageQuantity"
-												formApi={formApi}
-												fieldName="clipsPackageQuantity"
-												label={
-													isMultiBooking
-														? "Number of Clips Packages Per Session"
-														: "Number of Clips Packages"
-												}
-												description={
-													isMultiBooking
-														? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
-														: "One package includes 10 edited social media clips. Charged per package."
-												}
-												shouldShowFieldError={shouldShowFieldError}
-											/>
-										) : null}
-									</AnimatePresence>
-								</div>
-							))}
-						</div>
-					</FieldSet>
+					<div
+						data-field-name="addons"
+						className="flex flex-col gap-8">
+						{ADDON_SECTIONS.map((section) => {
+							const sectionAddons = section.addons.filter((addon) =>
+								availableAddonOptions.includes(addon)
+							);
+
+							if (sectionAddons.length === 0) {
+								return null;
+							}
+
+							return (
+								<FieldSet key={section.title}>
+									<FieldLegend className={sectionHeadingClassName}>{section.title}</FieldLegend>
+									<FieldDescription>{section.description}</FieldDescription>
+									<div className="flex flex-col gap-4">
+										{sectionAddons.map((addon) => (
+											<div
+												key={addon}
+												className="space-y-3">
+												<BookingAddonCard
+													addon={addon}
+													checked={field.state.value.includes(addon)}
+													disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
+													onCheckedChange={handleAddonChange}
+												/>
+												<AnimatePresence initial={false}>
+													{isQuantityTrackedAddon(addon) && field.state.value.includes(addon) ? (
+														<BookingAddonQuantityField
+															key={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
+															formApi={formApi}
+															fieldName={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
+															label={
+																isMultiBooking
+																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.multi
+																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.single
+															}
+															description={
+																isMultiBooking
+																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.multi
+																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.single
+															}
+															shouldShowFieldError={shouldShowFieldError}
+														/>
+													) : null}
+												</AnimatePresence>
+											</div>
+										))}
+									</div>
+								</FieldSet>
+							);
+						})}
+					</div>
 				);
 			}}
 		</FormField>

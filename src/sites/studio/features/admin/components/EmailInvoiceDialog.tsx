@@ -22,6 +22,7 @@ import {
 } from "#/components/ui/select";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import { formatCustomInvoiceTotal } from "#studio/features/admin/lib/custom-invoices";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type EmailInvoiceDialogProps = {
 	open: boolean;
@@ -129,8 +130,7 @@ export function EmailInvoiceDialog({
 											addons: invoice.addons,
 											duration: invoice.duration ?? "",
 											includeDepositLineItem: invoice.includeDepositLineItem,
-											essentialEditQuantity: invoice.essentialEditQuantity,
-											clipsPackageQuantity: invoice.clipsPackageQuantity,
+											...pickBookingAddonQuantities(invoice),
 											customTotalDueAmount: invoice.customTotalDueAmount
 										})}{" "}
 										— {format(invoice.createdAt, "d MMM yyyy")}

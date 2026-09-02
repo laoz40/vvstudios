@@ -10,6 +10,7 @@ import {
 	createPriceAdjustmentInvoiceLineItem
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { getPackageUpdateValidationError } from "./packageScheduling";
 
 export type CreatePendingPackageArgs = {
@@ -20,8 +21,6 @@ export type CreatePendingPackageArgs = {
 	email: string;
 	duration: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
 	packageSize: MultiBookingSize;
 	singleSessionAmount: number;
@@ -30,7 +29,7 @@ export type CreatePendingPackageArgs = {
 	discountAmount: number;
 	totalDueAmount: number;
 	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
-};
+} & BookingAddonQuantitiesArgs;
 
 export type CreatePackageRequestArgs = Omit<
 	CreatePendingPackageArgs,
@@ -51,13 +50,11 @@ export type UpdatePackageArgs = {
 	email: string;
 	duration: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
 	packageSize: MultiBookingSize;
 	expiresAt?: number;
 	totalDueAmount?: number;
-};
+} & BookingAddonQuantitiesArgs;
 
 type ParsedPackage = ReturnType<typeof multiBookingFormSchema.parse>;
 export type ParsedPackageRequest = ParsedPackage;
@@ -74,8 +71,14 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		...(args.essentialEditQuantity !== undefined
 			? { essentialEditQuantity: args.essentialEditQuantity }
 			: {}),
+		...(args.completeEditQuantity !== undefined
+			? { completeEditQuantity: args.completeEditQuantity }
+			: {}),
 		...(args.clipsPackageQuantity !== undefined
 			? { clipsPackageQuantity: args.clipsPackageQuantity }
+			: {}),
+		...(args.handcraftedClipsQuantity !== undefined
+			? { handcraftedClipsQuantity: args.handcraftedClipsQuantity }
 			: {}),
 		...(args.notes !== undefined ? { notes: args.notes } : {}),
 		packageSize: args.packageSize,
@@ -108,7 +111,9 @@ export function parsePackageUpdate(args: UpdatePackageArgs) {
 	const parsedPackage = multiBookingFormSchema.safeParse({
 		...args,
 		essentialEditQuantity: args.essentialEditQuantity ?? "",
+		completeEditQuantity: args.completeEditQuantity ?? "",
 		clipsPackageQuantity: args.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: args.handcraftedClipsQuantity ?? "",
 		notes: args.notes ?? ""
 	});
 
@@ -138,21 +143,11 @@ export function validatePackageUpdate(
 }
 
 export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage: ParsedPackage) {
-	const amounts = calculatePackageAmounts({
-		addons: updatedPackage.addons,
-		clipsPackageQuantity: updatedPackage.clipsPackageQuantity,
-		duration: updatedPackage.duration,
-		essentialEditQuantity: updatedPackage.essentialEditQuantity,
-		packageSize: updatedPackage.packageSize
-	});
+	const amounts = calculatePackageAmounts(updatedPackage);
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
-		addons: updatedPackage.addons,
-		clipsPackageQuantity: updatedPackage.clipsPackageQuantity,
+		...updatedPackage,
 		discountAmount: amounts.discountAmount,
-		discountPercent: amounts.discountPercent,
-		duration: updatedPackage.duration,
-		essentialEditQuantity: updatedPackage.essentialEditQuantity,
-		packageSize: updatedPackage.packageSize
+		discountPercent: amounts.discountPercent
 	});
 	const totalDueAmount = args.totalDueAmount ?? amounts.totalDueAmount;
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
@@ -170,7 +165,9 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		duration: updatedPackage.duration,
 		addons: updatedPackage.addons,
 		essentialEditQuantity: updatedPackage.essentialEditQuantity,
+		completeEditQuantity: updatedPackage.completeEditQuantity,
 		clipsPackageQuantity: updatedPackage.clipsPackageQuantity,
+		handcraftedClipsQuantity: updatedPackage.handcraftedClipsQuantity,
 		notes: updatedPackage.notes,
 		packageSize: updatedPackage.packageSize,
 		...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {}),

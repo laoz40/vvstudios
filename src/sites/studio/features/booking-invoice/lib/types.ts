@@ -1,6 +1,7 @@
 import type { GenericId } from "convex/values";
 import type {
 	BookingAddon,
+	BookingAddonQuantities,
 	DURATION_OPTIONS,
 	SERVICES
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -8,7 +9,7 @@ import type {
 export type BookingService = (typeof SERVICES)[number];
 export type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
-export interface BookingInvoiceBuilderInput {
+export type BookingInvoiceBuilderInput = {
 	bookingId: GenericId<"bookings"> | GenericId<"multiBookingPackages">;
 	name: string;
 	phone: string;
@@ -21,15 +22,14 @@ export interface BookingInvoiceBuilderInput {
 	duration: BookingDuration;
 	service?: BookingService;
 	addons: BookingAddon[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	leadTimeMinutes: number;
-	createdAt?: number;
-	includeDepositLineItem?: boolean;
-	invoiceNumber?: string;
-	rescheduleUrl?: string;
-	customTotalDueAmount?: number;
-}
+} & BookingAddonQuantities & {
+		leadTimeMinutes: number;
+		createdAt?: number;
+		includeDepositLineItem?: boolean;
+		invoiceNumber?: string;
+		rescheduleUrl?: string;
+		customTotalDueAmount?: number;
+	};
 
 export interface BookingInvoiceMoneyAmounts {
 	addonsAmount: number;

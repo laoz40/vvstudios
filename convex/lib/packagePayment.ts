@@ -33,10 +33,12 @@ export function createPendingPackage(
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: args.addons,
 		clipsPackageQuantity: args.clipsPackageQuantity || undefined,
+		completeEditQuantity: args.completeEditQuantity || undefined,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent,
 		duration: args.duration,
 		essentialEditQuantity: args.essentialEditQuantity || undefined,
+		handcraftedClipsQuantity: args.handcraftedClipsQuantity || undefined,
 		packageSize: args.packageSize
 	});
 
@@ -45,7 +47,9 @@ export function createPendingPackage(
 			...args,
 			abn: args.abn || undefined,
 			clipsPackageQuantity: args.clipsPackageQuantity || undefined,
+			completeEditQuantity: args.completeEditQuantity || undefined,
 			essentialEditQuantity: args.essentialEditQuantity || undefined,
+			handcraftedClipsQuantity: args.handcraftedClipsQuantity || undefined,
 			notes: args.notes || undefined,
 			...amounts,
 			invoiceLineItems
