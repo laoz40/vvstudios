@@ -176,7 +176,7 @@ Check after step: cover empty folders, listing failure, first completion, failed
 
 ### Step 10: Add explicit recovery controls
 
-Finish the admin view with separate states for folders, client access, editor access, client assets email, editor links email, and deliverables email.
+Finish the admin view with separate states for folders, client access, editor access, client assets email, and editor assignment email. Do not track or retry deliverables email from this dialog. Failed sends stay on `Deliver`.
 
 Surface Drive workflow failures on the sessions table itself, e.g. an error icon beside the assigned editor's name, so admins do not need to open the Drive dialog to discover a problem.
 
