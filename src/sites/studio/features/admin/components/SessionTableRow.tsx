@@ -141,6 +141,17 @@ function SessionDetailsCell({ session }: { session: SessionRecord }) {
 
 type SessionNotesView = "client" | "editor";
 
+function getDefaultSessionNotesView(
+	isPastSession: boolean,
+	hasEditorNotes: boolean
+): SessionNotesView {
+	if (isPastSession && hasEditorNotes) {
+		return "editor";
+	}
+
+	return "client";
+}
+
 function SessionNotesCell({
 	session,
 	isPastSession
@@ -148,18 +159,22 @@ function SessionNotesCell({
 	session: SessionRecord;
 	isPastSession: boolean;
 }) {
-	const [notesView, setNotesView] = useState<SessionNotesView>(isPastSession ? "editor" : "client");
+	const hasEditorNotes = Boolean(session.editorNotes?.trim());
+	const canToggleNotes = isPastSession && hasEditorNotes;
+	const [notesView, setNotesView] = useState<SessionNotesView>(() =>
+		getDefaultSessionNotesView(isPastSession, hasEditorNotes)
+	);
 
-	// Move completed sessions to editor notes; upcoming sessions only expose client notes.
+	// Past sessions with editor notes default to editor; otherwise keep client notes visible.
 	useEffect(() => {
-		setNotesView(isPastSession ? "editor" : "client");
-	}, [isPastSession]);
+		setNotesView(getDefaultSessionNotesView(isPastSession, hasEditorNotes));
+	}, [isPastSession, hasEditorNotes]);
 
 	const visibleNotes = notesView === "client" ? session.notes?.trim() : session.editorNotes?.trim();
 	const notesLabel = notesView === "client" ? "Client" : "Editor";
 	const notesText = visibleNotes || "-";
 
-	if (!isPastSession) {
+	if (!canToggleNotes) {
 		return (
 			<p className="whitespace-normal text-sm text-muted-foreground">
 				{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
