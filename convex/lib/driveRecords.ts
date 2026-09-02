@@ -224,6 +224,18 @@ function buildAssetsEmailStatus(
 	}
 }
 
+async function resolveDriveClientForBooking(
+	ctx: QueryCtx,
+	driveSession: Doc<"driveSessions"> | null,
+	driveClientFromBooking: Doc<"driveClients"> | null
+): Promise<Doc<"driveClients"> | null> {
+	if (driveSession?.driveClientId !== undefined) {
+		const sessionClient = await ctx.db.get(driveSession.driveClientId);
+		if (sessionClient !== null) return sessionClient;
+	}
+	return driveClientFromBooking;
+}
+
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
@@ -240,29 +252,33 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 					? ctx.db.get(booking.multiBookingPackageId)
 					: Promise.resolve(null)
 			])
-		).andThen(([driveClient, driveSession, multiBookingPackage]) => {
-			if (
-				driveSession?.packageFolder !== undefined ||
-				booking.multiBookingPackageId === undefined
-			) {
-				return ok({
-					booking,
-					driveClient,
-					driveSession,
-					multiBookingPackage,
-					sharedPackageFolder: undefined
-				});
-			}
-			return okOrThrow(
-				loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
-			).map((sharedPackageFolder) => ({
-				booking,
-				driveClient,
-				driveSession,
-				multiBookingPackage,
-				sharedPackageFolder
-			}));
-		});
+		).andThen(([driveClientFromBooking, driveSession, multiBookingPackage]) =>
+			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(
+				(driveClient) => {
+					if (
+						driveSession?.packageFolder !== undefined ||
+						booking.multiBookingPackageId === undefined
+					) {
+						return ok({
+							booking,
+							driveClient,
+							driveSession,
+							multiBookingPackage,
+							sharedPackageFolder: undefined
+						});
+					}
+					return okOrThrow(
+						loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
+					).map((sharedPackageFolder) => ({
+						booking,
+						driveClient,
+						driveSession,
+						multiBookingPackage,
+						sharedPackageFolder
+					}));
+				}
+			)
+		);
 	});
 }
 

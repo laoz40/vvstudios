@@ -133,6 +133,9 @@
  * 44. Existing folder setup
  *     Explicit setup verifies saved folders and does not create duplicates.
  *
+ * 45. Session client assets status
+ *     Shows assets from driveSessions.driveClientId when booking.driveClientId points elsewhere.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -1066,6 +1069,33 @@ describe("Google Drive deletion recovery", () => {
 		expect(setupResult).toEqual([null, null]);
 		expect(driveFake.create).toHaveBeenCalledTimes(5);
 		expect(driveFake.folders).toHaveLength(5);
+	});
+
+	test("shows assets from the session client when booking points elsewhere", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await runSetup(t, bookingId);
+		const setupState = await readDriveState(t, bookingId);
+		const assetsClientId = setupState.driveClient?._id;
+		const assetsUrl = setupState.driveClient?.assetsFolder?.url;
+		expect(assetsClientId).toBeDefined();
+		expect(assetsUrl).toBeDefined();
+
+		await t.run(async (ctx) => {
+			const staleClientId = await ctx.db.insert("driveClients", {
+				normalizedEmail: "stale-client@example.com",
+				displayName: "Stale client",
+				createdAt: Date.now()
+			});
+			await ctx.db.patch(bookingId, { driveClientId: staleClientId });
+		});
+
+		const status = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId });
+
+		expect(status[1]?.folders?.find((folder) => folder.name === "Assets")?.url).toBe(assetsUrl);
+		expect(status[1]).toMatchObject({ status: "ready" });
 	});
 });
 
