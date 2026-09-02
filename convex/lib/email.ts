@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
@@ -102,6 +102,7 @@ interface SendPackageExpiryReminderEmailArgs {
 
 interface SendClientAssetsEmailArgs {
 	assetsUrl: string;
+	bookingId: Id<"bookings">;
 	email: string;
 	name: string;
 }
@@ -614,7 +615,12 @@ export async function sendFeedbackEmailForMessage(message: string) {
 	});
 }
 
-export function sendClientAssetsEmail({ assetsUrl, email, name }: SendClientAssetsEmailArgs) {
+export function sendClientAssetsEmail({
+	assetsUrl,
+	bookingId,
+	email,
+	name
+}: SendClientAssetsEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
@@ -625,7 +631,7 @@ export function sendClientAssetsEmail({ assetsUrl, email, name }: SendClientAsse
 			to: [email],
 			subject: "Anything you'd like us to use in your video edit?",
 			html,
-			idempotencyKey: `client-assets:${assetsUrl}`
+			idempotencyKey: `client-assets:${bookingId}:${assetsUrl}`
 		})
 	);
 }

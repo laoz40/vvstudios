@@ -180,7 +180,12 @@ export function sendClientAssetsFolderEmail(
 			})
 		)
 			.andThen((claim) =>
-				sendClientAssetsEmail({ assetsUrl: claim.assetsUrl, email: claim.email, name: claim.name })
+				sendClientAssetsEmail({
+					assetsUrl: claim.assetsUrl,
+					bookingId: claim.bookingId,
+					email: claim.email,
+					name: claim.name
+				})
 					.mapErr(() => ({ reason: "CLIENT_ASSETS_EMAIL_SEND_FAILED" as const }))
 					.andThen(() =>
 						fromConvexTuple(

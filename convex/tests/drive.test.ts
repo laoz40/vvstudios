@@ -472,6 +472,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledWith({
 			assetsUrl: "https://drive.google.com/drive/folders/folder-2",
+			bookingId,
 			email: "customer@example.com",
 			name: "Test customer"
 		});
@@ -494,11 +495,17 @@ describe("Google Drive scheduled workspace setup", () => {
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(2);
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenNthCalledWith(
 			1,
-			expect.objectContaining({ assetsUrl: assetsFolders[0]?.webViewLink })
+			expect.objectContaining({
+				assetsUrl: assetsFolders[0]?.webViewLink,
+				bookingId: firstBookingId
+			})
 		);
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenNthCalledWith(
 			2,
-			expect.objectContaining({ assetsUrl: assetsFolders[0]?.webViewLink })
+			expect.objectContaining({
+				assetsUrl: assetsFolders[0]?.webViewLink,
+				bookingId: secondBookingId
+			})
 		);
 	});
 
