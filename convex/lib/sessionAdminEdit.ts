@@ -282,6 +282,7 @@ export async function verifySessionCanBeScheduled({
 
 export type AdminSessionUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_DURATION" }
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_NOT_FOUND" }

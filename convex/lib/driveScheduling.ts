@@ -5,7 +5,7 @@ import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 import { parseDurationMinutes } from "#convex/lib/sessionCalendarTime";
 
-type DriveSchedulingError = { reason: "BOOKING_INVALID_DURATION" } | { reason: "UNEXPECTED_ERROR" };
+type DriveSchedulingError = { reason: "BOOKING_INVALID_DURATION" };
 
 export async function scheduleDriveSetup(
 	ctx: MutationCtx,

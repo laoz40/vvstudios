@@ -1,4 +1,4 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -441,43 +441,42 @@ export function saveCreatedPackageSessionService(
 					})
 				}).andThen((driveClientId) =>
 					okOrThrow(
-						ctx.db
-							.insert("bookings", {
-								name: packageFromDb.name,
-								phone: packageFromDb.phone,
-								accountName: packageFromDb.accountName,
-								abn: packageFromDb.abn,
-								email: packageFromDb.email,
-								instagramHandle: packageFromDb.instagramHandle,
-								date: args.date,
-								time: args.time,
+						ctx.db.insert("bookings", {
+							name: packageFromDb.name,
+							phone: packageFromDb.phone,
+							accountName: packageFromDb.accountName,
+							abn: packageFromDb.abn,
+							email: packageFromDb.email,
+							instagramHandle: packageFromDb.instagramHandle,
+							date: args.date,
+							time: args.time,
+							sessionStartAt,
+							duration: packageFromDb.duration,
+							service: args.service,
+							addons: getPackageSessionAddons(packageFromDb.addons, args.remotePodcast),
+							essentialEditQuantity: packageFromDb.essentialEditQuantity,
+							completeEditQuantity: packageFromDb.completeEditQuantity,
+							clipsPackageQuantity: packageFromDb.clipsPackageQuantity,
+							handcraftedClipsQuantity: packageFromDb.handcraftedClipsQuantity,
+							notes: args.notes,
+							status: "confirmed",
+							pendingPaymentCreatedAt: packageFromDb.createdAt,
+							paymentCompletedAt: packageFromDb.paidAt,
+							bookingConfirmedAt: args.now,
+							googleCalendarId: args.googleCalendarId,
+							googleEventId: args.googleEventId,
+							multiBookingPackageId: packageFromDb._id,
+							driveClientId
+						})
+					).andThen((bookingId) =>
+						ResultAsync.fromSafePromise(
+							scheduleDriveSetup(ctx, {
+								bookingId,
 								sessionStartAt,
 								duration: packageFromDb.duration,
-								service: args.service,
-								addons: getPackageSessionAddons(packageFromDb.addons, args.remotePodcast),
-								essentialEditQuantity: packageFromDb.essentialEditQuantity,
-								completeEditQuantity: packageFromDb.completeEditQuantity,
-								clipsPackageQuantity: packageFromDb.clipsPackageQuantity,
-								handcraftedClipsQuantity: packageFromDb.handcraftedClipsQuantity,
-								notes: args.notes,
-								status: "confirmed",
-								pendingPaymentCreatedAt: packageFromDb.createdAt,
-								paymentCompletedAt: packageFromDb.paidAt,
-								bookingConfirmedAt: args.now,
-								googleCalendarId: args.googleCalendarId,
-								googleEventId: args.googleEventId,
-								multiBookingPackageId: packageFromDb._id,
-								driveClientId
+								multiBookingPackageId: packageFromDb._id
 							})
-							.then(async (bookingId) => {
-								await scheduleDriveSetup(ctx, {
-									bookingId,
-									sessionStartAt,
-									duration: packageFromDb.duration,
-									multiBookingPackageId: packageFromDb._id
-								});
-								return { bookingId, packageFromDb };
-							})
+						).andThen((scheduled) => scheduled.map(() => ({ bookingId, packageFromDb })))
 					)
 				)
 			)

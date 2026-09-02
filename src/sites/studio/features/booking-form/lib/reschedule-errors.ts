@@ -84,6 +84,7 @@ const rescheduleUpdateToastMessages = {
 	BOOKING_NOT_FOUND: "We could not find this booking.",
 	BOOKING_NOT_RESCHEDULABLE: "This booking can’t be rescheduled online.",
 	BOOKING_INVALID_DATE: "Please choose a valid date.",
+	BOOKING_INVALID_DURATION: "This booking has an invalid session duration.",
 	BOOKING_INVALID_TIME: "Please choose a valid time.",
 	BOOKING_INVALID_INPUT:
 		"This booking can’t be updated from this link. Please contact us for help.",

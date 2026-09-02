@@ -89,6 +89,11 @@ export async function saveConfirmedBooking(
 				bookingId: session._id
 			});
 			break;
+		case "BOOKING_INVALID_DURATION":
+			console.error("Booking duration was invalid before Drive setup could be scheduled", {
+				bookingId: session._id
+			});
+			break;
 		default: {
 			const _exhaustive: never = completionResult.error;
 			return _exhaustive;
