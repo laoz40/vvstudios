@@ -31,7 +31,10 @@ const listedDrivePermissionSchema = z.object({
 	emailAddress: z.string().email().optional(),
 	role: z.string().min(1)
 });
-const googleProviderErrorSchema = z.object({ code: z.number() });
+const googleProviderErrorSchema = z.object({
+	status: z.number().optional(),
+	response: z.object({ status: z.number().optional() }).optional()
+});
 
 export type DriveClient = drive_v3.Drive;
 export type SavedDriveFolder = z.infer<typeof driveFolderSchema>;
@@ -52,7 +55,8 @@ export type DriveError = {
 
 function getGoogleProviderErrorCode(error: unknown) {
 	const parsedError = googleProviderErrorSchema.safeParse(error);
-	return parsedError.success ? parsedError.data.code : null;
+	if (!parsedError.success) return null;
+	return parsedError.data.status ?? parsedError.data.response?.status ?? null;
 }
 
 function mapDriveError(error: unknown, fallback: DriveError["reason"]) {
