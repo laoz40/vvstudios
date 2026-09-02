@@ -85,15 +85,15 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 	},
 	"Clip Volume Pack": {
 		fieldName: "clipsPackageQuantity",
-		requiredMessage: "Number of clips packages is required.",
+		requiredMessage: "Number of Clip Volume Packs is required.",
 		labels: {
 			multi: "Number of Clip Volume Packs Per Session",
 			single: "Number of Clip Volume Packs"
 		},
 		descriptions: {
 			multi:
-				"Select how many clips packages you want for each session. Each 10-clip package adds $79.",
-			single: "One package includes 10 edited social media clips. Charged per package."
+				"Select how many Clip Volume Packs you want for each session. Each 10-clip pack adds $79.",
+			single: "One pack includes 10 edited social media clips. Charged per pack."
 		}
 	},
 	"Handcrafted Clips": {
