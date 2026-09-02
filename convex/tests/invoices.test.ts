@@ -5,6 +5,9 @@
  *    Duration, add-ons, editing quantities, legacy Clips Package values, deposit, and a manual
  *    override must create a coherent, nonnegative invoice whose line items balance to the final total.
  *
+ * 1b. Legacy Clips Package pricing
+ *    The stored "Clips Package" add-on name must price as Clip Volume Pack.
+ *
  * 2. Package pricing snapshots
  *    Package invoice artifacts must use the commercial amounts and line items saved at purchase
  *    time instead of recalculating them from current pricing.
