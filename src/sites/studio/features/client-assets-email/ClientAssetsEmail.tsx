@@ -56,7 +56,7 @@ export function ClientAssetsEmail({ assetsUrl, name, signoffName }: ClientAssets
 					<Section style={sessionNotice}>
 						<Text style={sectionTitle}>Uploading files for a particular session?</Text>
 						<Text style={sessionNoticeText}>
-							Include the session name in the file or folder name so our editors know where it
+							Include the session date in the file or folder name so our editors know where it
 							belongs.
 						</Text>
 					</Section>
