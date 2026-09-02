@@ -945,8 +945,10 @@ export function saveDriveClientAssetsFolder(
 ): ResultAsync<{ id: string; url: string }, { reason: "DRIVE_RECORD_NOT_FOUND" }> {
 	return okOrThrow(ctx.db.get(args.driveClientId)).andThen((driveClient) => {
 		if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		if (driveClient.assetsFolder !== undefined) return ok(driveClient.assetsFolder);
 		const assetsFolder = { id: args.folder.id, url: args.folder.webViewLink };
+		if (driveClient.assetsFolder !== undefined && driveClient.assetsFolder.id === assetsFolder.id) {
+			return ok(driveClient.assetsFolder);
+		}
 		return okOrThrow(ctx.db.patch(driveClient._id, { assetsFolder }).then(() => assetsFolder));
 	});
 }
@@ -1197,6 +1199,71 @@ async function loadPackageSessionsSortedByDate(
 	return (await loadPackageBookings(ctx, multiBookingId))
 		.filter((packageBooking) => packageBooking.status !== "cancelled")
 		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
+}
+
+export type ClearSavedDriveFolderArgs =
+	| { kind: "client"; driveClientId: Id<"driveClients"> }
+	| { kind: "assets"; driveClientId: Id<"driveClients"> }
+	| { kind: "package"; bookingId: Id<"bookings"> }
+	| { kind: "session"; bookingId: Id<"bookings"> }
+	| { kind: "child"; bookingId: Id<"bookings">; name: DriveChildFolderName };
+
+export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFolderArgs) {
+	switch (args.kind) {
+		case "client":
+			return okOrThrow(
+				ctx.db
+					.patch(args.driveClientId, { folderId: undefined, folderUrl: undefined })
+					.then(() => null)
+			);
+		case "assets":
+			return okOrThrow(
+				ctx.db.patch(args.driveClientId, { assetsFolder: undefined }).then(() => null)
+			);
+		case "package":
+			return clearDriveSessionFields(ctx, args.bookingId, { packageFolder: undefined });
+		case "session":
+			return clearDriveSessionFields(ctx, args.bookingId, {
+				sessionFolder: undefined,
+				rawMediaFolder: undefined,
+				deliverablesFolder: undefined
+			});
+		case "child":
+			return clearDriveSessionFields(
+				ctx,
+				args.bookingId,
+				args.name === "Raw Media"
+					? { rawMediaFolder: undefined }
+					: { deliverablesFolder: undefined }
+			);
+		default: {
+			const _exhaustive: never = args;
+			return _exhaustive;
+		}
+	}
+}
+
+function clearDriveSessionFields(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	fields: {
+		packageFolder?: undefined;
+		sessionFolder?: undefined;
+		rawMediaFolder?: undefined;
+		deliverablesFolder?: undefined;
+	}
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		return okOrThrow(
+			ctx.db.patch(driveSession._id, { ...fields, updatedAt: Date.now() }).then(() => null)
+		);
+	});
 }
 
 export function saveDriveSetupResult(

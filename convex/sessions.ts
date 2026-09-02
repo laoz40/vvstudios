@@ -6,6 +6,7 @@ import { internalMutation, internalQuery, mutation, query } from "#convex/_gener
 import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,
+	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	getDriveSetup as loadDriveSetup,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
 	saveClientDrivePermission as saveClientDrivePermissionRecord,
@@ -95,6 +96,39 @@ export const saveDriveClientAssetsFolder = internalMutation({
 export const saveDriveSetupResult = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.optional(v.string()) },
 	handler: (ctx, args) => saveDriveSetupResultRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const clearDriveClientFolder = internalMutation({
+	args: { driveClientId: v.id("driveClients") },
+	handler: (ctx, args) =>
+		clearSavedDriveFolderRecord(ctx, { kind: "client", ...args }).match(tupleOk, tupleErr)
+});
+
+export const clearDriveClientAssetsFolder = internalMutation({
+	args: { driveClientId: v.id("driveClients") },
+	handler: (ctx, args) =>
+		clearSavedDriveFolderRecord(ctx, { kind: "assets", ...args }).match(tupleOk, tupleErr)
+});
+
+export const clearDrivePackageFolder = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) =>
+		clearSavedDriveFolderRecord(ctx, { kind: "package", ...args }).match(tupleOk, tupleErr)
+});
+
+export const clearDriveSessionFolder = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) =>
+		clearSavedDriveFolderRecord(ctx, { kind: "session", ...args }).match(tupleOk, tupleErr)
+});
+
+export const clearDriveChildFolder = internalMutation({
+	args: {
+		bookingId: v.id("bookings"),
+		name: v.union(v.literal("Raw Media"), v.literal("Deliverables"))
+	},
+	handler: (ctx, args) =>
+		clearSavedDriveFolderRecord(ctx, { kind: "child", ...args }).match(tupleOk, tupleErr)
 });
 
 export const saveDriveChildFolder = internalMutation({

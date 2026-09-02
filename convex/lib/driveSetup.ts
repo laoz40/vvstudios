@@ -75,8 +75,27 @@ export type SetupError =
 				| "BOOKING_NOT_ELIGIBLE"
 				| "BOOKING_TIMING_CHANGED"
 				| "DRIVE_FOLDERS_ALREADY_CREATED"
+				| "DRIVE_FOLDERS_INCOMPLETE"
 				| "GOOGLE_DRIVE_SAVE_FAILED";
 	  };
+
+export function areDriveSetupFoldersSaved(setupInfo: DriveSetupInfo | null) {
+	if (setupInfo === null) return false;
+	const { driveClient, driveSession, multiBookingPackage, sharedPackageFolder } = setupInfo;
+	if (driveClient?.folderId === undefined || driveClient.assetsFolder === undefined) return false;
+	if (driveSession === null || driveSession.sessionFolder === undefined) return false;
+	if (driveSession.rawMediaFolder === undefined || driveSession.deliverablesFolder === undefined) {
+		return false;
+	}
+	if (
+		multiBookingPackage !== null &&
+		driveSession.packageFolder === undefined &&
+		sharedPackageFolder === undefined
+	) {
+		return false;
+	}
+	return true;
+}
 
 const recordDriveSetupFailureByReason = {
 	GOOGLE_DRIVE_AUTH_FAILED: true,
@@ -96,7 +115,8 @@ const recordDriveSetupFailureByReason = {
 	BOOKING_NOT_FOUND: false,
 	BOOKING_NOT_ELIGIBLE: false,
 	BOOKING_TIMING_CHANGED: false,
-	DRIVE_FOLDERS_ALREADY_CREATED: false
+	DRIVE_FOLDERS_ALREADY_CREATED: false,
+	DRIVE_FOLDERS_INCOMPLETE: true
 } satisfies Record<SetupError["reason"], boolean>;
 
 export function shouldRecordDriveSetupFailure(error: SetupError) {
@@ -163,41 +183,6 @@ function createFolderOrFindCreatedFolder(
 	});
 }
 
-function getOrCreateClientFolder(ctx: ActionCtx, setupInfo: DriveSetupInfo, drive: DriveClient) {
-	const savedClient = setupInfo.driveClient;
-	const savedClientFolderId = savedClient?.folderId;
-	if (savedClient !== null && savedClientFolderId !== undefined) {
-		return verifyDriveFolder(drive, savedClientFolderId).map(() => ({
-			drive,
-			clientFolderId: savedClientFolderId,
-			driveClientId: savedClient._id,
-			assetsFolder: savedClient.assetsFolder
-		}));
-	}
-
-	const { displayName, normalizedEmail } = getClientIdentity(setupInfo);
-	return createFolderOrFindCreatedFolder(drive, {
-		name: displayName,
-		parentId: env.GOOGLE_DRIVE_ROOT_FOLDER_ID,
-		marker: `client:${normalizedEmail}`
-	})
-		.andThen((folder) =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessions.saveDriveClientFolder, {
-					normalizedEmail,
-					displayName,
-					folder
-				})
-			).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-		)
-		.map(({ assetsFolder, driveClientId, folderId }) => ({
-			drive,
-			clientFolderId: folderId,
-			driveClientId,
-			assetsFolder
-		}));
-}
-
 type ClientFolderSetup = {
 	drive: DriveClient;
 	clientFolderId: string;
@@ -205,17 +190,112 @@ type ClientFolderSetup = {
 	assetsFolder?: SavedFolder;
 };
 
+type SessionFolderSetup = { drive: DriveClient; sessionFolderId: string };
+
+function shouldReplaceMissingFolder(error: SetupError, replaceMissingFolders: boolean) {
+	return replaceMissingFolders && error.reason === "GOOGLE_DRIVE_FOLDER_MISSING";
+}
+
+function clearSavedClientFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.clearDriveClientFolder, { driveClientId })
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+function clearSavedClientAssetsFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.clearDriveClientAssetsFolder, { driveClientId })
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+function clearSavedPackageFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.clearDrivePackageFolder, { bookingId })
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+function clearSavedSessionFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.clearDriveSessionFolder, { bookingId })
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+function clearSavedChildFolder(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	name: DriveChildFolderName
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.clearDriveChildFolder, { bookingId, name })
+	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+}
+
+function getOrCreateClientFolder(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo,
+	drive: DriveClient,
+	replaceMissingFolders: boolean
+): ResultAsync<ClientFolderSetup, SetupError> {
+	const savedClient = setupInfo.driveClient;
+	const savedClientFolderId = savedClient?.folderId;
+	if (savedClient !== null && savedClientFolderId !== undefined) {
+		return verifyDriveFolder(drive, savedClientFolderId)
+			.map(() => ({
+				drive,
+				clientFolderId: savedClientFolderId,
+				driveClientId: savedClient._id,
+				assetsFolder: savedClient.assetsFolder
+			}))
+			.orElse((error) => {
+				if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+				savedClient.folderId = undefined;
+				return clearSavedClientFolder(ctx, savedClient._id).andThen(() =>
+					getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders)
+				);
+			});
+	}
+
+	const { displayName, normalizedEmail } = getClientIdentity(setupInfo);
+	return createFolderOrFindCreatedFolder(drive, {
+		name: displayName,
+		parentId: env.GOOGLE_DRIVE_ROOT_FOLDER_ID,
+		marker: `client:${normalizedEmail}`
+	}).andThen((folder) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.sessions.saveDriveClientFolder, {
+				normalizedEmail,
+				displayName,
+				folder
+			})
+		)
+			.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+			.map(({ assetsFolder, driveClientId, folderId }) => ({
+				drive,
+				clientFolderId: folderId,
+				driveClientId,
+				assetsFolder
+			}))
+	);
+}
+
 function getOrCreateClientAssetsFolder(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo,
-	client: ClientFolderSetup
+	client: ClientFolderSetup,
+	replaceMissingFolders: boolean
 ): ResultAsync<ClientFolderSetup & { assetsFolder: SavedFolder }, SetupError> {
 	const savedAssetsFolder = client.assetsFolder;
 	if (savedAssetsFolder !== undefined) {
-		return verifyDriveFolder(client.drive, savedAssetsFolder.id).map(() => ({
-			...client,
-			assetsFolder: savedAssetsFolder
-		}));
+		return verifyDriveFolder(client.drive, savedAssetsFolder.id)
+			.map(() => ({ ...client, assetsFolder: savedAssetsFolder }))
+			.orElse((error) => {
+				if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+				client.assetsFolder = undefined;
+				if (setupInfo.driveClient !== null) setupInfo.driveClient.assetsFolder = undefined;
+				return clearSavedClientAssetsFolder(ctx, client.driveClientId).andThen(() =>
+					getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders)
+				);
+			});
 	}
 
 	return createFolderOrFindCreatedFolder(client.drive, {
@@ -242,15 +322,28 @@ function getOrCreateSessionFolder(
 		driveClientId: Id<"driveClients">;
 		sessionParentId: string;
 		packageSessionNumber: number | null;
+		replaceMissingFolders: boolean;
 	}
-) {
+): ResultAsync<SessionFolderSetup, SetupError> {
 	const savedFolder = setupInfo.driveSession?.sessionFolder;
 	if (savedFolder !== undefined) {
 		return verifyAndRenameDriveFolder(
 			input.drive,
 			savedFolder.id,
 			getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.packageSessionNumber)
-		).map((folder) => ({ drive: input.drive, sessionFolderId: folder.id }));
+		)
+			.map((folder) => ({ drive: input.drive, sessionFolderId: folder.id }))
+			.orElse((error) => {
+				if (!shouldReplaceMissingFolder(error, input.replaceMissingFolders)) return err(error);
+				if (setupInfo.driveSession !== null) {
+					setupInfo.driveSession.sessionFolder = undefined;
+					setupInfo.driveSession.rawMediaFolder = undefined;
+					setupInfo.driveSession.deliverablesFolder = undefined;
+				}
+				return clearSavedSessionFolder(ctx, setupInfo.booking._id).andThen(() =>
+					getOrCreateSessionFolder(ctx, setupInfo, input)
+				);
+			});
 	}
 
 	return createFolderOrFindCreatedFolder(input.drive, {
@@ -294,7 +387,8 @@ function getOrCreateChildFolder(
 	drive: DriveClient,
 	setupInfo: DriveSetupInfo,
 	sessionFolderId: string,
-	name: DriveChildFolderName
+	name: DriveChildFolderName,
+	replaceMissingFolders: boolean
 ): ResultAsync<SavedDriveFolder, SetupError> {
 	const savedFolder = savedChildFolder(setupInfo, name);
 	if (savedFolder !== undefined) {
@@ -302,7 +396,18 @@ function getOrCreateChildFolder(
 			drive,
 			savedFolder.id,
 			getSessionMediaFolderName(name, setupInfo.booking.sessionStartAt)
-		);
+		).orElse((error) => {
+			if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+			if (setupInfo.driveSession !== null && name === "Raw Media") {
+				setupInfo.driveSession.rawMediaFolder = undefined;
+			}
+			if (setupInfo.driveSession !== null && name === "Deliverables") {
+				setupInfo.driveSession.deliverablesFolder = undefined;
+			}
+			return clearSavedChildFolder(ctx, setupInfo.booking._id, name).andThen(() =>
+				getOrCreateChildFolder(ctx, drive, setupInfo, sessionFolderId, name, replaceMissingFolders)
+			);
+		});
 	}
 
 	return createFolderOrFindCreatedFolder(drive, {
@@ -326,13 +431,21 @@ function getOrCreateChildFolders(
 	ctx: ActionCtx,
 	drive: DriveClient,
 	setupInfo: DriveSetupInfo,
-	sessionFolderId: string
+	sessionFolderId: string,
+	replaceMissingFolders: boolean
 ) {
 	// Save each folder before creating the next so retries resume from the first unsaved folder.
 	let sequence: ResultAsync<null, SetupError> = okAsync(null);
 	for (const name of GOOGLE_DRIVE_CHILD_FOLDER_NAMES) {
 		sequence = sequence.andThen(() =>
-			getOrCreateChildFolder(ctx, drive, setupInfo, sessionFolderId, name).map(() => null)
+			getOrCreateChildFolder(
+				ctx,
+				drive,
+				setupInfo,
+				sessionFolderId,
+				name,
+				replaceMissingFolders
+			).map(() => null)
 		);
 	}
 	return sequence;
@@ -357,7 +470,8 @@ function allocatePackageSessionNumberIfNeeded(
 function getOrCreateSessionParentFolder(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo,
-	client: ClientFolderSetup
+	client: ClientFolderSetup,
+	replaceMissingFolders: boolean
 ): ResultAsync<ClientFolderSetup & { sessionParentId: string }, SetupError> {
 	if (setupInfo.multiBookingPackage === null) {
 		return okAsync({ ...client, sessionParentId: client.clientFolderId });
@@ -365,10 +479,15 @@ function getOrCreateSessionParentFolder(
 
 	const ownPackageFolder = setupInfo.driveSession?.packageFolder;
 	if (ownPackageFolder !== undefined) {
-		return verifyDriveFolder(client.drive, ownPackageFolder.id).map(() => ({
-			...client,
-			sessionParentId: ownPackageFolder.id
-		}));
+		return verifyDriveFolder(client.drive, ownPackageFolder.id)
+			.map(() => ({ ...client, sessionParentId: ownPackageFolder.id }))
+			.orElse((error) => {
+				if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+				if (setupInfo.driveSession !== null) setupInfo.driveSession.packageFolder = undefined;
+				return clearSavedPackageFolder(ctx, setupInfo.booking._id).andThen(() =>
+					getOrCreateSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders)
+				);
+			});
 	}
 
 	const packageFolderName = getPackageFolderName({
@@ -391,7 +510,12 @@ function getOrCreateSessionParentFolder(
 					})
 				).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
 			)
-			.map((sessionParentId) => ({ ...client, sessionParentId }));
+			.map((sessionParentId) => ({ ...client, sessionParentId }))
+			.orElse((error) => {
+				if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+				setupInfo.sharedPackageFolder = undefined;
+				return getOrCreateSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders);
+			});
 	}
 
 	return createFolderOrFindCreatedFolder(client.drive, {
@@ -411,23 +535,32 @@ function getOrCreateSessionParentFolder(
 		.map((sessionParentId) => ({ ...client, sessionParentId }));
 }
 
-export function createDriveFolders(ctx: ActionCtx, setupInfo: DriveSetupInfo) {
+export function createDriveFolders(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo,
+	replaceMissingFolders = false
+): ResultAsync<null, SetupError> {
 	return allocatePackageSessionNumberIfNeeded(ctx, setupInfo)
 		.andThen((packageSessionNumber) =>
 			loadDriveClient()
-				.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive))
-				.andThen((client) => getOrCreateClientAssetsFolder(ctx, setupInfo, client))
-				.andThen((client) => getOrCreateSessionParentFolder(ctx, setupInfo, client))
+				.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders))
+				.andThen((client) =>
+					getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders)
+				)
+				.andThen((client) =>
+					getOrCreateSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders)
+				)
 				.andThen((parent) =>
 					getOrCreateSessionFolder(ctx, setupInfo, {
 						drive: parent.drive,
 						driveClientId: parent.driveClientId,
 						sessionParentId: parent.sessionParentId,
-						packageSessionNumber
+						packageSessionNumber,
+						replaceMissingFolders
 					})
 				)
 				.andThen(({ drive, sessionFolderId }) =>
-					getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId)
+					getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId, replaceMissingFolders)
 				)
 		)
 		.map(() => null);

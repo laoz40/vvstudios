@@ -6,6 +6,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
+	areDriveSetupFoldersSaved,
 	createDriveFolders,
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
@@ -42,12 +43,23 @@ function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode
 
 function setupFoldersAndRecordResult(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
+	args: {
+		bookingId: Id<"bookings">;
+		sessionStartAt?: number;
+		duration?: string;
+		replaceMissingFolders: boolean;
+	}
 ): ResultAsync<null, SetupError> {
 	return (
 		// Create or recover every folder, then mark the folder setup as complete.
 		loadValidatedSetup(ctx, args)
-			.andThen((setupInfo) => createDriveFolders(ctx, setupInfo))
+			.andThen((setupInfo) => createDriveFolders(ctx, setupInfo, args.replaceMissingFolders))
+			.andThen(() => loadValidatedSetup(ctx, args))
+			.andThen((setupInfo) =>
+				areDriveSetupFoldersSaved(setupInfo)
+					? okAsync(null)
+					: errAsync({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const })
+			)
 			.andThen(() =>
 				fromConvexTuple(
 					ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId: args.bookingId })
@@ -75,30 +87,14 @@ function setupFoldersAndRecordResult(
 }
 
 export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermissionActions(ctx, "edit:sessions")
-		.andThen(() => loadValidatedSetup(ctx, args))
-		.andThen((setupInfo) => {
-			// Package setup allocates its session number into the row first, so only the
-			// session folder proves that setup already ran.
-			if (setupInfo.driveSession?.sessionFolder !== undefined) {
-				return errAsync({ reason: "DRIVE_FOLDERS_ALREADY_CREATED" as const });
-			}
-			return createDriveFolders(ctx, setupInfo).andThen(() =>
-				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
-					bookingId: args.bookingId,
-					attempt: "automatic"
-				})
-					.orElse(() => okAsync(null))
-					.andThen(() =>
-						setupEditorAccess(ctx, { bookingId: args.bookingId }).orElse(() => okAsync(null))
-					)
-			);
-		});
+	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
+		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
+	);
 }
 
 export function retryDriveSetupService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		setupFoldersAndRecordResult(ctx, args)
+		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
 	);
 }
 
@@ -106,6 +102,8 @@ export function runScheduledDriveSetupService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; sessionStartAt: number; duration: string }
 ): ResultAsync<null, never> {
-	// The admin retries provider failures from the session dialog.
-	return setupFoldersAndRecordResult(ctx, args).orElse(() => okAsync(null));
+	// Scheduled jobs resume partial setup only; admins recreate missing folders from the dialog.
+	return setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: false }).orElse(() =>
+		okAsync(null)
+	);
 }

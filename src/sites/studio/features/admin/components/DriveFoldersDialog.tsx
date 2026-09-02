@@ -167,7 +167,7 @@ function SavedFolderLinks({
 					icon={FolderOpen}
 					variant="outline"
 					className="w-full justify-start"
-					fallback={<p className="text-sm text-muted-foreground">_Assets: not created</p>}
+					fallback={<NotCreatedFolderRow />}
 				/>
 			</div>
 
@@ -364,20 +364,25 @@ function getSavedFolderSections(driveStatus: DriveDialogStatus | null) {
 	return { folders: driveStatus?.folders ?? [], packageFolderName: driveStatus?.packageFolderName };
 }
 
+function getDriveSetupButtonMode(status: DriveDialogStatus["status"] | undefined) {
+	const shouldRetry = status === "incomplete" || status === "failed";
+	const canSetUp = status === "not_created" || shouldRetry || status === "ready";
+	return { canSetUp, shouldRetry };
+}
+
 function DriveSetupButton({
 	bookingId,
-	status,
-	hasClientAssetsLibrary
+	hasClientAssetsLibrary,
+	status
 }: {
 	bookingId: Id<"bookings">;
-	status: DriveDialogStatus["status"] | undefined;
 	hasClientAssetsLibrary: boolean;
+	status: DriveDialogStatus["status"] | undefined;
 }) {
 	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
 	const retryDriveSetup = useAction(api.googleCalendar.retryDriveSetup);
 	const [isSettingUp, setIsSettingUp] = useState(false);
-	const shouldRetry = status === "incomplete" || status === "failed";
-	const canSetUp = status === "not_created" || shouldRetry;
+	const { canSetUp, shouldRetry } = getDriveSetupButtonMode(status);
 
 	if (!canSetUp) return null;
 
@@ -387,7 +392,7 @@ function DriveSetupButton({
 		const [error] = await tryCatch(setupAction({ bookingId }));
 		setIsSettingUp(false);
 
-		if (error) {
+		if (error !== null) {
 			toast.error("Google Drive folders could not be created.");
 			return;
 		}
@@ -590,8 +595,8 @@ export function DriveFoldersDialog({
 					</Button>
 					<DriveSetupButton
 						bookingId={bookingId}
-						status={driveStatus?.status}
 						hasClientAssetsLibrary={hasClientAssetsLibrary}
+						status={driveStatus?.status}
 					/>
 					<DriveRetryActions
 						bookingId={bookingId}

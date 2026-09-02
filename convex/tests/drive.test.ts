@@ -124,6 +124,15 @@
  * 41. Account name change
  *     Keeps the saved client folder name and reports the workspace-name warning.
  *
+ * 42. Deleted folder admin retry
+ *     Admin retry recreates saved folders that are missing in Drive.
+ *
+ * 43. Deleted folder scheduled setup
+ *     Scheduled setup does not recreate saved folders that are missing in Drive.
+ *
+ * 44. Existing folder setup
+ *     Explicit setup verifies saved folders and does not create duplicates.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -999,6 +1008,64 @@ describe("Google Drive setup failure classification", () => {
 		);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_NOT_ELIGIBLE" })).toBe(false);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_TIMING_CHANGED" })).toBe(false);
+	});
+});
+
+describe("Google Drive deletion recovery", () => {
+	test("recreates missing saved folders on admin retry", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await runSetup(t, bookingId);
+		driveFake.folders.delete("folder-3");
+		driveFake.folders.delete("folder-4");
+		driveFake.folders.delete("folder-5");
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryDriveSetup, { bookingId });
+		const state = await readDriveState(t, bookingId);
+		const status = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.getDriveStatus, { bookingId });
+
+		expect(retryResult).toEqual([null, null]);
+		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
+		expect(state.driveSession?.sessionFolder).toBeDefined();
+		expect(state.driveSession?.rawMediaFolder).toBeDefined();
+		expect(state.driveSession?.deliverablesFolder).toBeDefined();
+		expect(driveFake.folders.size).toBe(5);
+		expect(driveFake.create.mock.calls.length).toBeGreaterThan(5);
+		expect(status[1]).toMatchObject({ status: "ready" });
+	});
+
+	test("does not recreate missing saved folders on scheduled setup", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await runSetup(t, bookingId);
+		driveFake.folders.delete("folder-3");
+		driveFake.folders.delete("folder-4");
+		driveFake.folders.delete("folder-5");
+
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(state.booking?.driveSetupFailureCode).toBe("GOOGLE_DRIVE_FOLDER_MISSING");
+		expect(state.driveSession?.sessionFolder?.id).toBe("folder-3");
+		expect(driveFake.create).toHaveBeenCalledTimes(5);
+	});
+
+	test("does not create duplicate folders when explicit setup runs on a ready session", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await runSetup(t, bookingId);
+
+		const setupResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.setupDrive, { bookingId });
+
+		expect(setupResult).toEqual([null, null]);
+		expect(driveFake.create).toHaveBeenCalledTimes(5);
+		expect(driveFake.folders).toHaveLength(5);
 	});
 });
 
