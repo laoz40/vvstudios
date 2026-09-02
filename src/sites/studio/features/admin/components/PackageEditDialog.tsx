@@ -19,7 +19,6 @@ import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import {
 	DURATION_OPTIONS,
-	isAddonOption,
 	toDeliverableCountOption,
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities,
@@ -31,7 +30,10 @@ import {
 	MULTI_BOOKING_PLANS,
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
+import {
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toOptionId } from "#studio/lib/bookingdatetime";
@@ -85,7 +87,7 @@ function parseDateTimeLocalValue(value: string) {
 function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 	return {
 		accountName: packageRow.accountName,
-		addons: packageRow.addons.filter(isAddonOption),
+		addons: toAdminSessionAddons(packageRow.addons),
 		abn: packageRow.abn ?? "",
 		clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
 		completeEditQuantity: toDeliverableCountOption(packageRow.completeEditQuantity),
