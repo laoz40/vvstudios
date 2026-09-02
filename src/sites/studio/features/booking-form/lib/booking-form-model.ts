@@ -34,6 +34,7 @@ export const ADDON_SECTIONS = [
 	description: string;
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
+export const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
 const EDITING_ADDONS = ["Essential Edit", "Clip Volume Pack"] as const;
 const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
 const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
@@ -89,6 +90,34 @@ export function isClipVolumePackEditAddon(
 	addon: BookingAddon
 ): addon is (typeof CLIP_VOLUME_PACK_EDIT_ADDONS)[number] {
 	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((editAddon) => editAddon === addon);
+}
+
+function findExclusiveAddonGroup(addon: BookingAddon) {
+	return EXCLUSIVE_ADDON_GROUPS.find((group) => group.some((groupAddon) => groupAddon === addon));
+}
+
+function getExclusiveAddonSiblings(addon: BookingAddon): readonly BookingAddon[] {
+	const group = findExclusiveAddonGroup(addon);
+
+	if (!group) {
+		return [];
+	}
+
+	return group.filter((groupAddon) => groupAddon !== addon);
+}
+
+export function resolveExclusiveAddonSelection(
+	selectedAddons: readonly BookingAddon[],
+	addon: BookingAddon,
+	checked: boolean
+): BookingAddon[] {
+	if (!checked) {
+		return selectedAddons.filter((value) => value !== addon);
+	}
+
+	const siblings = getExclusiveAddonSiblings(addon);
+
+	return [...selectedAddons.filter((value) => value !== addon && !siblings.includes(value)), addon];
 }
 
 export function isDeliverableCountOption(
@@ -195,6 +224,23 @@ function validatePackageAddonAvailability(
 	}
 }
 
+function validateExclusiveAddonGroups(
+	values: { addons: readonly BookingAddon[] },
+	ctx: z.RefinementCtx
+) {
+	for (const group of EXCLUSIVE_ADDON_GROUPS) {
+		const selectedInGroup = group.filter((groupAddon) => values.addons.includes(groupAddon));
+
+		if (selectedInGroup.length > 1) {
+			ctx.addIssue({
+				code: "custom",
+				message: `Select only one of: ${group.join(" or ")}.`,
+				path: ["addons"]
+			});
+		}
+	}
+}
+
 function validateEditingAddonQuantities(
 	values: {
 		addons: readonly BookingAddon[];
@@ -243,6 +289,7 @@ export const bookingSchema = z
 		time: z.string()
 	})
 	.superRefine((values, ctx) => {
+		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 
 		if (values.bookingMode === "multi" && !values.packageSize) {
@@ -275,6 +322,7 @@ export type BookingFormValues = z.input<typeof bookingSchema>;
 export const multiBookingFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredMultiBookingSize })
 	.superRefine((values, ctx) => {
+		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 		validatePackageAddonAvailability(values, ctx);
 	});

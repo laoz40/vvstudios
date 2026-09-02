@@ -30,6 +30,7 @@ import {
 	isClipVolumePackEditAddon,
 	isDeliverableCountOption,
 	isPackageUnavailableAddon,
+	resolveExclusiveAddonSelection,
 	satisfiesClipVolumePackEditRequirement,
 	toFieldErrorObjects,
 	type BookingAddon
@@ -155,11 +156,7 @@ export function BookingAddonsSection() {
 						return;
 					}
 
-					let nextAddons = field.state.value.filter((value) => value !== addon);
-
-					if (checked) {
-						nextAddons = [...field.state.value, addon];
-					}
+					const nextAddons = resolveExclusiveAddonSelection(field.state.value, addon, checked);
 
 					const shouldNotifyClipsPackageDeselected =
 						!checked &&
@@ -167,11 +164,13 @@ export function BookingAddonsSection() {
 						field.state.value.includes("Clip Volume Pack") &&
 						!satisfiesClipVolumePackEditRequirement(nextAddons);
 
+					let resolvedAddons = nextAddons;
+
 					if (shouldNotifyClipsPackageDeselected) {
-						nextAddons = nextAddons.filter((value) => value !== "Clip Volume Pack");
+						resolvedAddons = nextAddons.filter((value) => value !== "Clip Volume Pack");
 					}
 
-					field.handleChange(nextAddons);
+					field.handleChange(resolvedAddons);
 					field.handleBlur();
 
 					if (shouldNotifyClipsPackageDeselected) {
@@ -180,11 +179,11 @@ export function BookingAddonsSection() {
 
 					// Clear each hidden editing add-on quantity when its add-on is removed,
 					// so the form does not submit stale per-add-on quantities.
-					if (!nextAddons.includes("Essential Edit")) {
+					if (!resolvedAddons.includes("Essential Edit")) {
 						formApi.setFieldValue("essentialEditQuantity", "");
 					}
 
-					if (!nextAddons.includes("Clip Volume Pack")) {
+					if (!resolvedAddons.includes("Clip Volume Pack")) {
 						formApi.setFieldValue("clipsPackageQuantity", "");
 					}
 				}
