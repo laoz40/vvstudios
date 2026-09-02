@@ -35,6 +35,7 @@ export const ADDON_SECTIONS = [
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
 const EDITING_ADDONS = ["Essential Edit", "Clip Volume Pack"] as const;
+const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
 const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
@@ -78,6 +79,16 @@ export function getPackageSessionAddons(
 
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
 	return addons.some((addon) => EDITING_ADDONS.some((editingAddon) => editingAddon === addon));
+}
+
+export function satisfiesClipVolumePackEditRequirement(addons: readonly BookingAddon[]) {
+	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((addon) => addons.includes(addon));
+}
+
+export function isClipVolumePackEditAddon(
+	addon: BookingAddon
+): addon is (typeof CLIP_VOLUME_PACK_EDIT_ADDONS)[number] {
+	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((editAddon) => editAddon === addon);
 }
 
 export function isDeliverableCountOption(
@@ -192,10 +203,13 @@ function validateEditingAddonQuantities(
 	},
 	ctx: z.RefinementCtx
 ) {
-	if (values.addons.includes("Clip Volume Pack") && !values.addons.includes("Essential Edit")) {
+	if (
+		values.addons.includes("Clip Volume Pack") &&
+		!satisfiesClipVolumePackEditRequirement(values.addons)
+	) {
 		ctx.addIssue({
 			code: "custom",
-			message: "Essential Edit is required with the Clip Volume Pack.",
+			message: "Essential Edit or Complete Edit is required with the Clip Volume Pack.",
 			path: ["addons"]
 		});
 	}

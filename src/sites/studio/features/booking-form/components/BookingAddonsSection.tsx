@@ -27,8 +27,10 @@ import {
 	ADDON_SECTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
 	isAddonAvailableForService,
+	isClipVolumePackEditAddon,
 	isDeliverableCountOption,
 	isPackageUnavailableAddon,
+	satisfiesClipVolumePackEditRequirement,
 	toFieldErrorObjects,
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -147,7 +149,7 @@ export function BookingAddonsSection() {
 					if (
 						checked &&
 						addon === "Clip Volume Pack" &&
-						!field.state.value.includes("Essential Edit")
+						!satisfiesClipVolumePackEditRequirement(field.state.value)
 					) {
 						openClipsPackageRequirementModal();
 						return;
@@ -160,9 +162,10 @@ export function BookingAddonsSection() {
 					}
 
 					const shouldNotifyClipsPackageDeselected =
-						addon === "Essential Edit" &&
 						!checked &&
-						field.state.value.includes("Clip Volume Pack");
+						isClipVolumePackEditAddon(addon) &&
+						field.state.value.includes("Clip Volume Pack") &&
+						!satisfiesClipVolumePackEditRequirement(nextAddons);
 
 					if (shouldNotifyClipsPackageDeselected) {
 						nextAddons = nextAddons.filter((value) => value !== "Clip Volume Pack");
