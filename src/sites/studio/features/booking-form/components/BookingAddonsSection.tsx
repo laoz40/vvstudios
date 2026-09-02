@@ -25,11 +25,15 @@ import {
 import {
 	ADDON_OPTIONS,
 	ADDON_SECTIONS,
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
+	BOOKING_ADDON_QUANTITY_FIELD_NAMES,
 	DELIVERABLE_COUNT_OPTIONS,
+	forEachClearedAddonQuantityField,
 	isAddonAvailableForService,
 	isClipVolumePackEditAddon,
 	isDeliverableCountOption,
 	isPackageUnavailableAddon,
+	isQuantityTrackedAddon,
 	resolveExclusiveAddonSelection,
 	satisfiesClipVolumePackEditRequirement,
 	toFieldErrorObjects,
@@ -37,7 +41,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 
 type BookingAddonQuantityFieldProps = {
-	fieldName: "clipsPackageQuantity" | "essentialEditQuantity";
+	fieldName: (typeof BOOKING_ADDON_QUANTITY_FIELD_NAMES)[number];
 	formApi: ReturnType<typeof useBookingFormContext>;
 	label: string;
 	description: string;
@@ -134,13 +138,9 @@ export function BookingAddonsSection() {
 
 		formApi.setFieldValue("addons", availableAddons);
 
-		if (!availableAddons.includes("Essential Edit")) {
-			formApi.setFieldValue("essentialEditQuantity", "");
-		}
-
-		if (!availableAddons.includes("Clip Volume Pack")) {
-			formApi.setFieldValue("clipsPackageQuantity", "");
-		}
+		forEachClearedAddonQuantityField(availableAddons, (fieldName, value) => {
+			formApi.setFieldValue(fieldName, value);
+		});
 	}, [formApi, formValues.addons, formValues.service]);
 
 	return (
@@ -177,15 +177,9 @@ export function BookingAddonsSection() {
 						openClipsPackageDeselectedModal();
 					}
 
-					// Clear each hidden editing add-on quantity when its add-on is removed,
-					// so the form does not submit stale per-add-on quantities.
-					if (!resolvedAddons.includes("Essential Edit")) {
-						formApi.setFieldValue("essentialEditQuantity", "");
-					}
-
-					if (!resolvedAddons.includes("Clip Volume Pack")) {
-						formApi.setFieldValue("clipsPackageQuantity", "");
-					}
+					forEachClearedAddonQuantityField(resolvedAddons, (fieldName, value) => {
+						formApi.setFieldValue(fieldName, value);
+					});
 				}
 
 				return (
@@ -217,40 +211,20 @@ export function BookingAddonsSection() {
 													onCheckedChange={handleAddonChange}
 												/>
 												<AnimatePresence initial={false}>
-													{addon === "Essential Edit" &&
-													field.state.value.includes("Essential Edit") ? (
+													{isQuantityTrackedAddon(addon) && field.state.value.includes(addon) ? (
 														<BookingAddonQuantityField
-															key="essentialEditQuantity"
+															key={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
 															formApi={formApi}
-															fieldName="essentialEditQuantity"
+															fieldName={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
 															label={
 																isMultiBooking
-																	? "Number of Essential Edits Per Session"
-																	: "Number of Essential Edits"
+																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.multi
+																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.single
 															}
 															description={
 																isMultiBooking
-																	? "Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99."
-																	: "Charged per episode or project you want edited from this session."
-															}
-															shouldShowFieldError={shouldShowFieldError}
-														/>
-													) : null}
-													{addon === "Clip Volume Pack" &&
-													field.state.value.includes("Clip Volume Pack") ? (
-														<BookingAddonQuantityField
-															key="clipsPackageQuantity"
-															formApi={formApi}
-															fieldName="clipsPackageQuantity"
-															label={
-																isMultiBooking
-																	? "Number of Clip Volume Packs Per Session"
-																	: "Number of Clip Volume Packs"
-															}
-															description={
-																isMultiBooking
-																	? "Select how many clips packages you want for each session. Each 10-clip package adds $79."
-																	: "One package includes 10 edited social media clips. Charged per package."
+																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.multi
+																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.single
 															}
 															shouldShowFieldError={shouldShowFieldError}
 														/>

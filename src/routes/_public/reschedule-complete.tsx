@@ -118,7 +118,9 @@ function buildDevRescheduleCompleteBookingResult(
 			service: "Table Setup",
 			addons: ["Essential Edit", "Clip Volume Pack"],
 			essentialEditQuantity: "1",
-			clipsPackageQuantity: "2"
+			completeEditQuantity: undefined,
+			clipsPackageQuantity: "2",
+			handcraftedClipsQuantity: undefined
 		}
 	];
 }

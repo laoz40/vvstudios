@@ -1,20 +1,27 @@
 import {
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
 	hasEditingAddon,
-	type BookingAddon
+	type BookingAddon,
+	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 
-export type EditingAddonQuantities = {
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-};
+export type EditingAddonQuantities = BookingAddonQuantities;
 
 function getEditingAddonQuantityField(addon: string) {
 	if (addon === "Essential Edit") {
-		return "essentialEditQuantity" as const;
+		return BOOKING_ADDON_QUANTITY_FIELD_CONFIG["Essential Edit"].fieldName;
+	}
+
+	if (addon === "Complete Edit") {
+		return BOOKING_ADDON_QUANTITY_FIELD_CONFIG["Complete Edit"].fieldName;
 	}
 
 	if (addon === "Clip Volume Pack") {
-		return "clipsPackageQuantity" as const;
+		return BOOKING_ADDON_QUANTITY_FIELD_CONFIG["Clip Volume Pack"].fieldName;
+	}
+
+	if (addon === "Handcrafted Clips") {
+		return BOOKING_ADDON_QUANTITY_FIELD_CONFIG["Handcrafted Clips"].fieldName;
 	}
 
 	return null;

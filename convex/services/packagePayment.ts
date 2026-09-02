@@ -132,9 +132,11 @@ export function confirmPackagePaymentService(
 				sendAndRecordPackageScheduleEmail(ctx, args.multiBookingId, {
 					addons: paymentResult.multiBooking.addons,
 					clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
+					completeEditQuantity: paymentResult.multiBooking.completeEditQuantity,
 					duration: paymentResult.multiBooking.duration,
 					email: paymentResult.multiBooking.email,
 					essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
+					handcraftedClipsQuantity: paymentResult.multiBooking.handcraftedClipsQuantity,
 					expiresAt: paymentResult.expiresAt,
 					leadTimeMinutes: bookingSettings.leadTimeMinutes,
 					name: paymentResult.multiBooking.name,
@@ -168,9 +170,11 @@ export function retryPackageSchedulingEmailService(
 				sendAndRecordPackageScheduleEmail(ctx, args.multiBookingId, {
 					addons: tokenResult.multiBooking.addons,
 					clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
+					completeEditQuantity: tokenResult.multiBooking.completeEditQuantity,
 					duration: tokenResult.multiBooking.duration,
 					email: tokenResult.multiBooking.email,
 					essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
+					handcraftedClipsQuantity: tokenResult.multiBooking.handcraftedClipsQuantity,
 					expiresAt: tokenResult.expiresAt,
 					leadTimeMinutes: bookingSettings.leadTimeMinutes,
 					name: tokenResult.multiBooking.name,

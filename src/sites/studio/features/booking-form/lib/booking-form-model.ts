@@ -35,8 +35,127 @@ export const ADDON_SECTIONS = [
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
 export const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
-const EDITING_ADDONS = ["Essential Edit", "Clip Volume Pack"] as const;
+const QUANTITY_TRACKED_ADDONS = [
+	"Essential Edit",
+	"Complete Edit",
+	"Clip Volume Pack",
+	"Handcrafted Clips"
+] as const;
 const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
+export type BookingAddonQuantityFieldName =
+	| "clipsPackageQuantity"
+	| "completeEditQuantity"
+	| "essentialEditQuantity"
+	| "handcraftedClipsQuantity";
+
+export const BOOKING_ADDON_QUANTITY_FIELD_NAMES = [
+	"essentialEditQuantity",
+	"completeEditQuantity",
+	"clipsPackageQuantity",
+	"handcraftedClipsQuantity"
+] as const satisfies readonly BookingAddonQuantityFieldName[];
+
+export type BookingAddonQuantities = {
+	clipsPackageQuantity?: string;
+	completeEditQuantity?: string;
+	essentialEditQuantity?: string;
+	handcraftedClipsQuantity?: string;
+};
+
+export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
+	"Essential Edit": {
+		fieldName: "essentialEditQuantity",
+		requiredMessage: "Number of essential edits is required.",
+		labels: { multi: "Number of Essential Edits Per Session", single: "Number of Essential Edits" },
+		descriptions: {
+			multi:
+				"Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99.",
+			single: "Charged per episode or project you want edited from this session."
+		}
+	},
+	"Complete Edit": {
+		fieldName: "completeEditQuantity",
+		requiredMessage: "Number of complete edits is required.",
+		labels: { multi: "Number of Complete Edits Per Session", single: "Number of Complete Edits" },
+		descriptions: {
+			multi:
+				"Select how many episodes or projects you want fully edited for each session. Each Complete Edit adds $249.",
+			single: "Charged per episode or project you want fully edited from this session."
+		}
+	},
+	"Clip Volume Pack": {
+		fieldName: "clipsPackageQuantity",
+		requiredMessage: "Number of clips packages is required.",
+		labels: {
+			multi: "Number of Clip Volume Packs Per Session",
+			single: "Number of Clip Volume Packs"
+		},
+		descriptions: {
+			multi:
+				"Select how many clips packages you want for each session. Each 10-clip package adds $79.",
+			single: "One package includes 10 edited social media clips. Charged per package."
+		}
+	},
+	"Handcrafted Clips": {
+		fieldName: "handcraftedClipsQuantity",
+		requiredMessage: "Number of handcrafted clips packs is required.",
+		labels: {
+			multi: "Number of Handcrafted Clips Packs Per Session",
+			single: "Number of Handcrafted Clips Packs"
+		},
+		descriptions: {
+			multi:
+				"Select how many Handcrafted Clips packs you want for each session. Each pack adds $199.",
+			single: "One pack includes 5 premium edited social media clips. Charged per pack."
+		}
+	}
+} as const satisfies Record<
+	(typeof QUANTITY_TRACKED_ADDONS)[number],
+	{
+		fieldName: BookingAddonQuantityFieldName;
+		requiredMessage: string;
+		labels: { multi: string; single: string };
+		descriptions: { multi: string; single: string };
+	}
+>;
+
+export function isQuantityTrackedAddon(
+	addon: BookingAddon
+): addon is (typeof QUANTITY_TRACKED_ADDONS)[number] {
+	return QUANTITY_TRACKED_ADDONS.some((quantityTrackedAddon) => quantityTrackedAddon === addon);
+}
+
+export function getClearedAddonQuantityUpdates(
+	selectedAddons: readonly BookingAddon[]
+): Partial<Record<BookingAddonQuantityFieldName, "">> {
+	const updates: Partial<Record<BookingAddonQuantityFieldName, "">> = {};
+
+	for (const addon of QUANTITY_TRACKED_ADDONS) {
+		const { fieldName } = BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon];
+
+		if (!selectedAddons.includes(addon)) {
+			updates[fieldName] = "";
+		}
+	}
+
+	return updates;
+}
+
+export function forEachClearedAddonQuantityField(
+	selectedAddons: readonly BookingAddon[],
+	callback: (fieldName: BookingAddonQuantityFieldName, value: "") => void
+) {
+	const updates = getClearedAddonQuantityUpdates(selectedAddons);
+
+	for (const fieldName of BOOKING_ADDON_QUANTITY_FIELD_NAMES) {
+		const value = updates[fieldName];
+
+		if (value !== undefined) {
+			callback(fieldName, value);
+		}
+	}
+}
+
 const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
@@ -79,7 +198,18 @@ export function getPackageSessionAddons(
 }
 
 export function hasEditingAddon(addons: readonly BookingAddon[]) {
-	return addons.some((addon) => EDITING_ADDONS.some((editingAddon) => editingAddon === addon));
+	return addons.some((addon) =>
+		QUANTITY_TRACKED_ADDONS.some((quantityTrackedAddon) => quantityTrackedAddon === addon)
+	);
+}
+
+export function pickBookingAddonQuantities(values: BookingAddonQuantities): BookingAddonQuantities {
+	return {
+		clipsPackageQuantity: values.clipsPackageQuantity,
+		completeEditQuantity: values.completeEditQuantity,
+		essentialEditQuantity: values.essentialEditQuantity,
+		handcraftedClipsQuantity: values.handcraftedClipsQuantity
+	};
 }
 
 export function satisfiesClipVolumePackEditRequirement(addons: readonly BookingAddon[]) {
@@ -207,7 +337,9 @@ const sharedBookingFields = {
 	duration,
 	addons,
 	essentialEditQuantity: deliverableCountOption.optional(),
+	completeEditQuantity: deliverableCountOption.optional(),
 	clipsPackageQuantity: deliverableCountOption.optional(),
+	handcraftedClipsQuantity: deliverableCountOption.optional(),
 	notes
 };
 
@@ -242,11 +374,7 @@ function validateExclusiveAddonGroups(
 }
 
 function validateEditingAddonQuantities(
-	values: {
-		addons: readonly BookingAddon[];
-		essentialEditQuantity?: string;
-		clipsPackageQuantity?: string;
-	},
+	values: { addons: readonly BookingAddon[] } & BookingAddonQuantities,
 	ctx: z.RefinementCtx
 ) {
 	if (
@@ -260,22 +388,14 @@ function validateEditingAddonQuantities(
 		});
 	}
 
-	// Editing add-ons are charged independently, so each selected editing add-on
+	// Quantity-tracked add-ons are charged independently, so each selected add-on
 	// must have its own quantity instead of sharing one deliverable count.
-	if (values.addons.includes("Essential Edit") && !values.essentialEditQuantity) {
-		ctx.addIssue({
-			code: "custom",
-			message: "Number of essential edits is required.",
-			path: ["essentialEditQuantity"]
-		});
-	}
+	for (const addon of QUANTITY_TRACKED_ADDONS) {
+		const { fieldName, requiredMessage } = BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon];
 
-	if (values.addons.includes("Clip Volume Pack") && !values.clipsPackageQuantity) {
-		ctx.addIssue({
-			code: "custom",
-			message: "Number of clips packages is required.",
-			path: ["clipsPackageQuantity"]
-		});
+		if (values.addons.includes(addon) && !values[fieldName]) {
+			ctx.addIssue({ code: "custom", message: requiredMessage, path: [fieldName] });
+		}
 	}
 }
 
@@ -343,7 +463,9 @@ export const INITIAL_FORM: BookingFormValues = {
 	service: "",
 	addons: [],
 	essentialEditQuantity: "",
+	completeEditQuantity: "",
 	clipsPackageQuantity: "",
+	handcraftedClipsQuantity: "",
 	notes: ""
 };
 

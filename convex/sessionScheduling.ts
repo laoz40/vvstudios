@@ -7,6 +7,7 @@ import {
 	reserveSessionTime,
 	unreserveSessionTime
 } from "./lib/sessionReservations";
+import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService
@@ -44,8 +45,7 @@ export const saveAdminSessionUpdate = internalMutation({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number()),
 		googleCalendarId: v.optional(v.string()),

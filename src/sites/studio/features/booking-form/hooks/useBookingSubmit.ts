@@ -8,6 +8,7 @@ import { loadBookingPaymentModal } from "#studio/features/booking-form/component
 import {
 	bookingSchema,
 	multiBookingFormSchema,
+	pickBookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -54,6 +55,8 @@ export function useBookingSubmit({
 
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
+		const addonQuantities = pickBookingAddonQuantities(multiBookingValue);
+
 		const [error, result] = await tryCatch(
 			createPackageRequest({
 				name: multiBookingValue.name,
@@ -63,8 +66,10 @@ export function useBookingSubmit({
 				email: multiBookingValue.email,
 				duration: multiBookingValue.duration,
 				addons: multiBookingValue.addons,
-				essentialEditQuantity: multiBookingValue.essentialEditQuantity || undefined,
-				clipsPackageQuantity: multiBookingValue.clipsPackageQuantity || undefined,
+				essentialEditQuantity: addonQuantities.essentialEditQuantity || undefined,
+				completeEditQuantity: addonQuantities.completeEditQuantity || undefined,
+				clipsPackageQuantity: addonQuantities.clipsPackageQuantity || undefined,
+				handcraftedClipsQuantity: addonQuantities.handcraftedClipsQuantity || undefined,
 				notes: multiBookingValue.notes,
 				packageSize: multiBookingValue.packageSize
 			})
@@ -92,6 +97,8 @@ export function useBookingSubmit({
 	const submitSingleBooking = async (parsedValue: BookingFormValues) => {
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
+		const addonQuantities = pickBookingAddonQuantities(parsedValue);
+
 		const [error, session] = await tryCatch(
 			createEmbeddedCheckoutSession({
 				name: parsedValue.name,
@@ -104,8 +111,10 @@ export function useBookingSubmit({
 				duration: parsedValue.duration,
 				service: parsedValue.service,
 				addons: parsedValue.addons,
-				essentialEditQuantity: parsedValue.essentialEditQuantity || undefined,
-				clipsPackageQuantity: parsedValue.clipsPackageQuantity || undefined,
+				essentialEditQuantity: addonQuantities.essentialEditQuantity || undefined,
+				completeEditQuantity: addonQuantities.completeEditQuantity || undefined,
+				clipsPackageQuantity: addonQuantities.clipsPackageQuantity || undefined,
+				handcraftedClipsQuantity: addonQuantities.handcraftedClipsQuantity || undefined,
 				notes: parsedValue.notes
 			})
 		);

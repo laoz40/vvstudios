@@ -7,7 +7,10 @@ import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	bookingSchema,
+	pickBookingAddonQuantities
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 type UpdateSessionFromAdminResult = FunctionReturnType<
@@ -55,12 +58,7 @@ function buildSessionUpdateInput(
 		duration: parsedValues.duration,
 		service: parsedValues.service,
 		addons: parsedValues.addons,
-		...(parsedValues.essentialEditQuantity
-			? { essentialEditQuantity: parsedValues.essentialEditQuantity }
-			: {}),
-		...(parsedValues.clipsPackageQuantity
-			? { clipsPackageQuantity: parsedValues.clipsPackageQuantity }
-			: {}),
+		...pickBookingAddonQuantities(parsedValues),
 		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
 		...(remainingBalanceAmountResult?.status === "valid"
 			? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
@@ -96,8 +94,7 @@ export function useEditAction(session: SessionRecord) {
 			duration: values.duration,
 			service: values.service,
 			addons: values.addons,
-			essentialEditQuantity: values.essentialEditQuantity,
-			clipsPackageQuantity: values.clipsPackageQuantity,
+			...pickBookingAddonQuantities(values),
 			notes: values.notes
 		});
 

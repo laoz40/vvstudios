@@ -7,7 +7,10 @@ import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
-import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	multiBookingFormSchema,
+	pickBookingAddonQuantities
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
@@ -29,12 +32,7 @@ function buildPackageUpdateInput(
 		email: parsedValues.email,
 		duration: parsedValues.duration,
 		addons: parsedValues.addons,
-		...(parsedValues.essentialEditQuantity
-			? { essentialEditQuantity: parsedValues.essentialEditQuantity }
-			: {}),
-		...(parsedValues.clipsPackageQuantity
-			? { clipsPackageQuantity: parsedValues.clipsPackageQuantity }
-			: {}),
+		...pickBookingAddonQuantities(parsedValues),
 		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
 		packageSize: parsedValues.packageSize,
 		...(values.expiresAt !== undefined ? { expiresAt: values.expiresAt } : {}),
@@ -101,8 +99,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			email: values.customerEmail,
 			duration: values.duration,
 			addons: values.addons,
-			essentialEditQuantity: values.essentialEditQuantity,
-			clipsPackageQuantity: values.clipsPackageQuantity,
+			...pickBookingAddonQuantities(values),
 			notes: values.notes,
 			packageSize: values.packageSize
 		});

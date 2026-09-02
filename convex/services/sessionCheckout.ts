@@ -3,6 +3,7 @@ import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvaila
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import {
@@ -26,10 +27,8 @@ export type CreatePendingSessionArgs = {
 	duration: string;
 	service: string;
 	addons: string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
 	notes?: string;
-};
+} & BookingAddonQuantitiesArgs;
 
 export function createPendingSessionService(
 	ctx: MutationCtx,

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
+import { bookingAddonQuantitiesValidator } from "#convex/lib/bookingAddonQuantities";
 import {
 	createBookingCustomInvoiceService,
 	createPackageCustomInvoiceService,
@@ -15,8 +16,7 @@ export const createCustomInvoice = mutation({
 		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		includeDepositLineItem: v.boolean(),
 		customTotalDueAmount: v.optional(v.number())
 	},
@@ -30,8 +30,7 @@ export const createPackageCustomInvoice = mutation({
 		dueDate: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		includeDepositLineItem: v.boolean(),
 		includePackageDiscount: v.optional(v.boolean()),

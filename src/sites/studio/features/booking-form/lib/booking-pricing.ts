@@ -1,7 +1,9 @@
 import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	DURATION_OPTIONS,
+	pickBookingAddonQuantities,
 	type BookingAddon,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 
@@ -45,14 +47,12 @@ export type MultiBookingAmounts = {
 	totalDueAmount: number;
 };
 
-export type MultiBookingPricingValues = Pick<
-	BookingFormValues,
-	"addons" | "clipsPackageQuantity" | "essentialEditQuantity"
-> & {
+export type MultiBookingPricingValues = {
+	addons: BookingFormValues["addons"];
 	duration: BookingFormValues["duration"] | "";
-	includeDiscount?: boolean;
 	packageSize: MultiBookingSize;
-};
+	includeDiscount?: boolean;
+} & BookingAddonQuantities;
 
 const MULTI_BOOKING_INVOICE_DUE_DAYS = 7;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -75,13 +75,15 @@ export function formatBookingPriceWithCents(price: number) {
 export { getBookingAddonQuantityForForm as getBookingAddonQuantity };
 
 export function getBookingTotal(
-	values: Pick<BookingFormValues, "addons" | "clipsPackageQuantity" | "essentialEditQuantity"> & {
+	values: {
+		addons: BookingFormValues["addons"];
 		duration: BookingFormValues["duration"] | "";
-	}
+	} & BookingAddonQuantities
 ) {
 	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
+	const addonQuantities = pickBookingAddonQuantities(values);
 	const addonsTotal = values.addons.reduce((total, addon) => {
-		return total + ADDON_PRICES[addon] * getBookingAddonQuantityForForm(addon, values);
+		return total + ADDON_PRICES[addon] * getBookingAddonQuantityForForm(addon, addonQuantities);
 	}, 0);
 
 	return durationTotal + addonsTotal;

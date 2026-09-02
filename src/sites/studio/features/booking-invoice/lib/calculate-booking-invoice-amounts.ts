@@ -1,7 +1,9 @@
 import { getEditingAddonQuantity } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	hasEditingAddon,
-	normalizeBookingAddon
+	normalizeBookingAddon,
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
@@ -16,20 +18,14 @@ function isBookingDuration(value: string): value is keyof typeof DURATION_PRICES
 	return value in DURATION_PRICES;
 }
 
-export function getAddonQuantity(
-	addon: string,
-	quantities: Pick<
-		CalculateBookingInvoiceAmountsInput,
-		"clipsPackageQuantity" | "essentialEditQuantity"
-	> = {}
-) {
+export function getAddonQuantity(addon: string, quantities: BookingAddonQuantities = {}) {
 	const normalizedAddon = normalizeBookingAddon(addon);
 
 	if (!normalizedAddon) {
 		return 0;
 	}
 
-	// Non-editing add-ons are one-time charges. Editing add-ons are charged
+	// Non-editing add-ons are one-time charges. Quantity-tracked add-ons are charged
 	// by their own selected quantity, e.g. 1 Essential Edit and 2 Clip Volume Packs.
 	if (!hasEditingAddon([normalizedAddon])) {
 		return 1;
@@ -38,13 +34,7 @@ export function getAddonQuantity(
 	return getEditingAddonQuantity(normalizedAddon, quantities, 1);
 }
 
-export function getAddonAmount(
-	addon: string,
-	quantities: Pick<
-		CalculateBookingInvoiceAmountsInput,
-		"clipsPackageQuantity" | "essentialEditQuantity"
-	> = {}
-) {
+export function getAddonAmount(addon: string, quantities: BookingAddonQuantities = {}) {
 	const normalizedAddon = normalizeBookingAddon(addon);
 
 	// Add-on total is unit price multiplied by the quantity rules above.
@@ -56,23 +46,18 @@ export function getAddonAmount(
 export type CalculateBookingInvoiceAmountsInput = {
 	duration: string;
 	addons: readonly string[];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	includeBaseAmount?: boolean;
-	includeDepositLineItem?: boolean;
-};
+} & BookingAddonQuantities & { includeBaseAmount?: boolean; includeDepositLineItem?: boolean };
 
 export function calculateBookingInvoiceAmounts({
 	duration,
 	addons,
-	essentialEditQuantity,
-	clipsPackageQuantity,
 	includeBaseAmount = true,
-	includeDepositLineItem = true
+	includeDepositLineItem = true,
+	...quantityValues
 }: CalculateBookingInvoiceAmountsInput): BookingInvoiceMoneyAmounts {
 	const baseAmount =
 		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
-	const addonQuantities = { clipsPackageQuantity, essentialEditQuantity };
+	const addonQuantities = pickBookingAddonQuantities(quantityValues);
 	const addonsAmount = sumMoney(addons.map((addon) => getAddonAmount(addon, addonQuantities)));
 	const subtotalAmount = baseAmount + addonsAmount;
 	const depositAmount = includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;

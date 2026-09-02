@@ -35,7 +35,9 @@ import {
 	type MultiBookingSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
+	pickBookingAddonQuantities,
 	toDeliverableCountOption,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
@@ -51,13 +53,11 @@ type CreatePackageCustomInvoiceError =
 type PackageCustomInvoiceDraft = {
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	packageSize: MultiBookingSize;
 	includePackageDiscount: boolean;
 	dueDate: string;
 	customTotalDueAmount: string;
-};
+} & BookingAddonQuantities;
 
 type PackageCustomInvoiceDialogProps = {
 	open: boolean;
@@ -89,15 +89,15 @@ function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceEr
 	}
 }
 
-function formatPackageInvoiceTotal(input: {
-	addons: BookingFormValues["addons"];
-	clipsPackageQuantity?: BookingFormValues["clipsPackageQuantity"];
-	customTotalDueAmount?: number;
-	duration: BookingFormValues["duration"] | "";
-	essentialEditQuantity?: BookingFormValues["essentialEditQuantity"];
-	packageSize: MultiBookingSize;
-	includePackageDiscount: boolean;
-}) {
+function formatPackageInvoiceTotal(
+	input: {
+		addons: BookingFormValues["addons"];
+		customTotalDueAmount?: number;
+		duration: BookingFormValues["duration"] | "";
+		packageSize: MultiBookingSize;
+		includePackageDiscount: boolean;
+	} & BookingAddonQuantities
+) {
 	const totalDueAmount =
 		input.customTotalDueAmount ??
 		calculatePackageAmounts({ ...input, includeDiscount: input.includePackageDiscount })
@@ -129,7 +129,9 @@ export function PackageCustomInvoiceDialog({
 		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
+		completeEditQuantity: toDeliverableCountOption(packageRow.completeEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
+		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
 		packageSize: packageRow.packageSize,
 		includePackageDiscount: true,
 		dueDate: defaultDueDate,
@@ -155,7 +157,9 @@ export function PackageCustomInvoiceDialog({
 			duration: "",
 			addons: [],
 			essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
+			completeEditQuantity: toDeliverableCountOption(packageRow.completeEditQuantity),
 			clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
+			handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
 			packageSize: packageRow.packageSize,
 			includePackageDiscount: true,
 			dueDate: defaultDueDate,
@@ -164,8 +168,10 @@ export function PackageCustomInvoiceDialog({
 	}, [
 		open,
 		packageRow.clipsPackageQuantity,
+		packageRow.completeEditQuantity,
 		packageRow.duration,
 		packageRow.essentialEditQuantity,
+		packageRow.handcraftedClipsQuantity,
 		packageRow.invoiceDueAt,
 		defaultDueDate,
 		packageRow.packageSize
@@ -230,10 +236,7 @@ export function PackageCustomInvoiceDialog({
 				dueDate: draft.dueDate,
 				...(draft.duration ? { duration: draft.duration } : {}),
 				addons: draft.addons,
-				...(draft.essentialEditQuantity
-					? { essentialEditQuantity: draft.essentialEditQuantity }
-					: {}),
-				...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
+				...pickBookingAddonQuantities(draft),
 				packageSize: draft.packageSize,
 				includePackageDiscount: draft.includePackageDiscount,
 				includeDepositLineItem: false,
@@ -256,12 +259,20 @@ export function PackageCustomInvoiceDialog({
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
 				addons: toAdminSessionAddons(invoice.addons),
-				essentialEditQuantity: toDeliverableCountOption(
-					invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
-				),
-				clipsPackageQuantity: toDeliverableCountOption(
-					invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
-				)
+				...pickBookingAddonQuantities({
+					clipsPackageQuantity: toDeliverableCountOption(
+						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
+					),
+					completeEditQuantity: toDeliverableCountOption(
+						invoice.completeEditQuantity ?? packageRow.completeEditQuantity
+					),
+					essentialEditQuantity: toDeliverableCountOption(
+						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
+					),
+					handcraftedClipsQuantity: toDeliverableCountOption(
+						invoice.handcraftedClipsQuantity ?? packageRow.handcraftedClipsQuantity
+					)
+				})
 			});
 			const packageSize = invoice.packageSize ?? packageRow.packageSize;
 			const duration = invoice.duration ?? "Add-ons only";
@@ -272,16 +283,24 @@ export function PackageCustomInvoiceDialog({
 				description: `${packageSize} sessions · ${duration}${addonText}`,
 				total: formatPackageInvoiceTotal({
 					addons: toAdminSessionAddons(invoice.addons),
-					clipsPackageQuantity: toDeliverableCountOption(
-						invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
-					),
 					customTotalDueAmount: invoice.customTotalDueAmount,
 					duration: toAdminSessionDuration(invoice.duration),
-					essentialEditQuantity: toDeliverableCountOption(
-						invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
-					),
 					includePackageDiscount: invoice.includePackageDiscount !== false,
-					packageSize
+					packageSize,
+					...pickBookingAddonQuantities({
+						clipsPackageQuantity: toDeliverableCountOption(
+							invoice.clipsPackageQuantity ?? packageRow.clipsPackageQuantity
+						),
+						completeEditQuantity: toDeliverableCountOption(
+							invoice.completeEditQuantity ?? packageRow.completeEditQuantity
+						),
+						essentialEditQuantity: toDeliverableCountOption(
+							invoice.essentialEditQuantity ?? packageRow.essentialEditQuantity
+						),
+						handcraftedClipsQuantity: toDeliverableCountOption(
+							invoice.handcraftedClipsQuantity ?? packageRow.handcraftedClipsQuantity
+						)
+					})
 				})
 			};
 		}

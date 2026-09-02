@@ -6,6 +6,8 @@ import {
 } from "#studio/features/admin/lib/admin-sessions";
 import {
 	bookingSchema,
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
@@ -14,16 +16,15 @@ export type DownloadAdminBookingInvoiceInput = {
 	session: Doc<"bookings">;
 	addons?: BookingFormValues["addons"];
 	createdAt?: number;
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	dueDate?: string;
-	duration?: BookingFormValues["duration"];
-	includeDepositLineItem?: boolean;
-	invoiceNumber?: string;
-	leadTimeMinutes: number;
-	service?: BookingService | null;
-	customTotalDueAmount?: number;
-};
+} & BookingAddonQuantities & {
+		dueDate?: string;
+		duration?: BookingFormValues["duration"];
+		includeDepositLineItem?: boolean;
+		invoiceNumber?: string;
+		leadTimeMinutes: number;
+		service?: BookingService | null;
+		customTotalDueAmount?: number;
+	};
 
 export type DownloadAdminBookingInvoiceResult = Result<
 	{ downloaded: true },
@@ -46,8 +47,13 @@ function getInvoiceFormValues(input: DownloadAdminBookingInvoiceInput) {
 		duration: input.duration ?? toAdminSessionDuration(session.duration),
 		service: session.service,
 		addons: input.addons ?? toAdminSessionAddons(session.addons),
-		essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity ?? "",
-		clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity ?? "",
+		...pickBookingAddonQuantities({
+			clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity ?? "",
+			completeEditQuantity: input.completeEditQuantity ?? session.completeEditQuantity ?? "",
+			essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity ?? "",
+			handcraftedClipsQuantity:
+				input.handcraftedClipsQuantity ?? session.handcraftedClipsQuantity ?? ""
+		}),
 		notes: session.notes ?? ""
 	};
 }
@@ -91,8 +97,7 @@ export async function downloadAdminBookingInvoice(
 		duration: parsedBooking.data.duration,
 		service: resolveInvoiceService(input.service, parsedBooking.data.service),
 		addons: parsedBooking.data.addons,
-		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
-		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
+		...pickBookingAddonQuantities(parsedBooking.data),
 		createdAt: input.createdAt,
 		leadTimeMinutes: input.leadTimeMinutes,
 		includeDepositLineItem: input.includeDepositLineItem,

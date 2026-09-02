@@ -1,7 +1,11 @@
 import type { Id } from "#convex/_generated/dataModel";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import type {
+	BookingAddonQuantities,
+	BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
@@ -11,12 +15,11 @@ export type CustomInvoiceDraft = {
 	service: BookingService | "";
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-	dueDate: string;
-	includeDepositLineItem: boolean;
-	customTotalDueAmount: string;
-};
+} & BookingAddonQuantities & {
+		dueDate: string;
+		includeDepositLineItem: boolean;
+		customTotalDueAmount: string;
+	};
 
 type CustomInvoiceGenerationData =
 	| { status: "invalidTotal" }
@@ -28,21 +31,19 @@ type CustomInvoiceGenerationData =
 				service?: BookingService;
 				duration?: BookingFormValues["duration"];
 				addons: BookingFormValues["addons"];
-				essentialEditQuantity?: BookingFormValues["essentialEditQuantity"];
-				clipsPackageQuantity?: BookingFormValues["clipsPackageQuantity"];
-				includeDepositLineItem: boolean;
-				customTotalDueAmount?: number;
-			};
+			} & BookingAddonQuantities & {
+					includeDepositLineItem: boolean;
+					customTotalDueAmount?: number;
+				};
 			downloadInput: {
 				service: BookingService | null;
 				duration?: BookingFormValues["duration"];
 				addons: BookingFormValues["addons"];
-				essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-				clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-				dueDate: string;
-				includeDepositLineItem: boolean;
-				customTotalDueAmount?: number;
-			};
+			} & BookingAddonQuantities & {
+					dueDate: string;
+					includeDepositLineItem: boolean;
+					customTotalDueAmount?: number;
+				};
 	  };
 
 export function buildCustomInvoiceGenerationData(
@@ -73,10 +74,7 @@ export function buildCustomInvoiceGenerationData(
 			dueDate: draft.dueDate,
 			...selectedSessionInput,
 			addons: draft.addons,
-			...(draft.essentialEditQuantity
-				? { essentialEditQuantity: draft.essentialEditQuantity }
-				: {}),
-			...(draft.clipsPackageQuantity ? { clipsPackageQuantity: draft.clipsPackageQuantity } : {}),
+			...pickBookingAddonQuantities(draft),
 			includeDepositLineItem: draft.includeDepositLineItem,
 			...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
 		},
@@ -84,8 +82,7 @@ export function buildCustomInvoiceGenerationData(
 			service: sessionSelection.status === "complete" ? sessionSelection.service : null,
 			duration: sessionSelection.status === "complete" ? sessionSelection.duration : undefined,
 			addons: draft.addons,
-			essentialEditQuantity: draft.essentialEditQuantity,
-			clipsPackageQuantity: draft.clipsPackageQuantity,
+			...pickBookingAddonQuantities(draft),
 			dueDate: draft.dueDate,
 			includeDepositLineItem: draft.includeDepositLineItem,
 			customTotalDueAmount
@@ -124,15 +121,15 @@ function isBookingDuration(value: string): value is BookingDuration {
 	return value in DURATION_PRICES;
 }
 
-export function formatCustomInvoiceTotal(input: {
-	service?: string;
-	addons: readonly string[];
-	duration: string;
-	includeDepositLineItem: boolean;
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	customTotalDueAmount?: number;
-}) {
+export function formatCustomInvoiceTotal(
+	input: {
+		service?: string;
+		addons: readonly string[];
+		duration: string;
+		includeDepositLineItem: boolean;
+		customTotalDueAmount?: number;
+	} & BookingAddonQuantities
+) {
 	const serviceAmount =
 		input.service && isBookingDuration(input.duration) ? DURATION_PRICES[input.duration] : 0;
 	const addonsAmount = input.addons.reduce(
@@ -145,17 +142,12 @@ export function formatCustomInvoiceTotal(input: {
 	return formatCustomInvoiceCurrency(input.customTotalDueAmount ?? computedTotal);
 }
 
-export function formatCustomInvoiceAddonText(input: {
-	addons: BookingFormValues["addons"];
-	essentialEditQuantity?: string;
-	clipsPackageQuantity?: string;
-}) {
+export function formatCustomInvoiceAddonText(
+	input: { addons: BookingFormValues["addons"] } & BookingAddonQuantities
+) {
 	if (input.addons.length === 0) {
 		return "";
 	}
 
-	return ` · ${formatEditingAddonList(input.addons, {
-		essentialEditQuantity: input.essentialEditQuantity,
-		clipsPackageQuantity: input.clipsPackageQuantity
-	})}`;
+	return ` · ${formatEditingAddonList(input.addons, pickBookingAddonQuantities(input))}`;
 }

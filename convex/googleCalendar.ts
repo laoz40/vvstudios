@@ -14,6 +14,7 @@ import {
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService
 } from "./services/sessionCalendar";
+import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
 import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
@@ -72,8 +73,7 @@ export const updateSessionFromAdmin = action({
 		duration: v.string(),
 		service: v.string(),
 		addons: v.array(v.string()),
-		essentialEditQuantity: v.optional(v.string()),
-		clipsPackageQuantity: v.optional(v.string()),
+		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number())
 	},

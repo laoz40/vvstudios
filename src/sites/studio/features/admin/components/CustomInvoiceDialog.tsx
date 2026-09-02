@@ -34,6 +34,7 @@ import {
 	type CustomInvoiceDraft
 } from "#studio/features/admin/lib/custom-invoices";
 import {
+	pickBookingAddonQuantities,
 	SERVICES,
 	toDeliverableCountOption
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -89,7 +90,9 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		duration: "",
 		addons: [],
 		essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+		completeEditQuantity: toDeliverableCountOption(session.completeEditQuantity),
 		clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+		handcraftedClipsQuantity: toDeliverableCountOption(session.handcraftedClipsQuantity),
 		dueDate: session.date,
 		includeDepositLineItem: false,
 		customTotalDueAmount: ""
@@ -112,7 +115,9 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 				duration: "",
 				addons: [],
 				essentialEditQuantity: toDeliverableCountOption(session.essentialEditQuantity),
+				completeEditQuantity: toDeliverableCountOption(session.completeEditQuantity),
 				clipsPackageQuantity: toDeliverableCountOption(session.clipsPackageQuantity),
+				handcraftedClipsQuantity: toDeliverableCountOption(session.handcraftedClipsQuantity),
 				dueDate: session.date,
 				includeDepositLineItem: false,
 				customTotalDueAmount: ""
@@ -120,9 +125,11 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		}
 	}, [
 		session.clipsPackageQuantity,
+		session.completeEditQuantity,
 		session.date,
 		session.duration,
 		session.essentialEditQuantity,
+		session.handcraftedClipsQuantity,
 		open
 	]);
 
@@ -136,7 +143,9 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		createdAt: number;
 		duration?: string;
 		essentialEditQuantity?: string;
+		completeEditQuantity?: string;
 		clipsPackageQuantity?: string;
+		handcraftedClipsQuantity?: string;
 		customTotalDueAmount?: number;
 	}) {
 		if (!bookingSettings) {
@@ -150,8 +159,13 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 				session,
 				addons: toAdminSessionAddons(input.addons),
 				createdAt: input.createdAt,
-				essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity,
-				clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity,
+				...pickBookingAddonQuantities({
+					clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity,
+					completeEditQuantity: input.completeEditQuantity ?? session.completeEditQuantity,
+					essentialEditQuantity: input.essentialEditQuantity ?? session.essentialEditQuantity,
+					handcraftedClipsQuantity:
+						input.handcraftedClipsQuantity ?? session.handcraftedClipsQuantity
+				}),
 				dueDate: input.dueDate,
 				duration: input.duration ? toAdminSessionDuration(input.duration) : undefined,
 				includeDepositLineItem: input.includeDepositLineItem,
@@ -224,8 +238,13 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
 				addons: toAdminSessionAddons(invoice.addons),
-				essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
-				clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity
+				...pickBookingAddonQuantities({
+					clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity,
+					completeEditQuantity: invoice.completeEditQuantity ?? session.completeEditQuantity,
+					essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
+					handcraftedClipsQuantity:
+						invoice.handcraftedClipsQuantity ?? session.handcraftedClipsQuantity
+				})
 			});
 
 			return {
@@ -237,8 +256,13 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 					addons: invoice.addons,
 					duration: invoice.duration ?? "",
 					includeDepositLineItem: invoice.includeDepositLineItem,
-					essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
-					clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity,
+					...pickBookingAddonQuantities({
+						clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity,
+						completeEditQuantity: invoice.completeEditQuantity ?? session.completeEditQuantity,
+						essentialEditQuantity: invoice.essentialEditQuantity ?? session.essentialEditQuantity,
+						handcraftedClipsQuantity:
+							invoice.handcraftedClipsQuantity ?? session.handcraftedClipsQuantity
+					}),
 					customTotalDueAmount: invoice.customTotalDueAmount
 				})
 			};

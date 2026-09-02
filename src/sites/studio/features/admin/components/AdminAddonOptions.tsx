@@ -1,31 +1,31 @@
 import { Checkbox } from "#/components/ui/checkbox";
 import { Label } from "#/components/ui/label";
 import { cn } from "#/lib/utils";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	ADDON_OPTIONS,
+	getClearedAddonQuantityUpdates,
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type AdminAddonOptionsProps = {
 	addons: BookingFormValues["addons"];
-	essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-	clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
 	disabled: boolean;
 	idPrefix: string;
-	onChange: (nextValues: {
-		addons: BookingFormValues["addons"];
-		essentialEditQuantity: BookingFormValues["essentialEditQuantity"];
-		clipsPackageQuantity: BookingFormValues["clipsPackageQuantity"];
-	}) => void;
-};
+	onChange: (nextValues: { addons: BookingFormValues["addons"] } & BookingAddonQuantities) => void;
+} & BookingAddonQuantities;
 
 export function AdminAddonOptions({
 	addons,
-	essentialEditQuantity,
-	clipsPackageQuantity,
 	disabled,
 	idPrefix,
-	onChange
+	onChange,
+	...quantityValues
 }: AdminAddonOptionsProps) {
+	const addonQuantities = pickBookingAddonQuantities(quantityValues);
+
 	return (
 		<section className="grid gap-3">
 			<Label>Add-ons</Label>
@@ -56,12 +56,8 @@ export function AdminAddonOptions({
 
 									onChange({
 										addons: nextAddons,
-										essentialEditQuantity: nextAddons.includes("Essential Edit")
-											? essentialEditQuantity
-											: "",
-										clipsPackageQuantity: nextAddons.includes("Clip Volume Pack")
-											? clipsPackageQuantity
-											: ""
+										...addonQuantities,
+										...getClearedAddonQuantityUpdates(nextAddons)
 									});
 								}}
 							/>
