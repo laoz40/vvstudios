@@ -4,7 +4,10 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
+import {
+	formatDriveSessionMediaFolderName,
+	getBookingStartTimestamp
+} from "#studio/lib/bookingdatetime";
 
 const deliverablesEmailErrorMessage = {
 	NOT_AUTHENTICATED: "You are not signed in.",
@@ -30,46 +33,29 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
-	const [deliverablesDriveLinkDraft, setDeliverablesDriveLinkDraft] = useState(
-		session.deliverablesDriveLink ?? ""
-	);
 	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState(
 		session.deliverablesClientNotes ?? ""
 	);
-	const [deliverablesEmailVariantDraft, setDeliverablesEmailVariantDraft] =
-		useState<DeliverablesEmailVariant>("first-time");
 	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
 		useState(true);
 	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
 		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
-	const customerTypeResult = useQuery(
-		api.sessions.getDeliverablesCustomerType,
+	const driveStatusResult = useQuery(
+		api.sessions.getDriveStatus,
 		isDeliverablesEmailDialogOpen ? { bookingId: session._id } : "skip"
 	);
+	const sessionStartAt = getBookingStartTimestamp(session.date, session.time);
+	const deliverablesFolderName = formatDriveSessionMediaFolderName("Deliverables", sessionStartAt);
+	const deliverablesFolderUrl = driveStatusResult?.[1]?.folders?.find(
+		(folder) => folder.name === "Deliverables"
+	)?.url;
 
-	// Load the editor's submitted review details whenever the send dialog opens.
+	// Load the editor's submitted review notes whenever the send dialog opens.
 	useEffect(() => {
 		if (!isDeliverablesEmailDialogOpen) return;
 
-		setDeliverablesDriveLinkDraft(session.deliverablesDriveLink ?? "");
 		setDeliverablesEditorNotesDraft(session.deliverablesClientNotes ?? "");
-	}, [
-		isDeliverablesEmailDialogOpen,
-		session.deliverablesClientNotes,
-		session.deliverablesDriveLink
-	]);
-
-	// Preselect the customer type when delivery history has been checked; admins may override it.
-	useEffect(() => {
-		if (customerTypeResult === undefined) {
-			return;
-		}
-
-		const [customerTypeError, detectedEmailVariant] = customerTypeResult;
-		if (customerTypeError === null) {
-			setDeliverablesEmailVariantDraft(detectedEmailVariant);
-		}
-	}, [customerTypeResult]);
+	}, [isDeliverablesEmailDialogOpen, session.deliverablesClientNotes]);
 
 	async function handleEmailDeliverables() {
 		setIsEmailingDeliverables(true);
@@ -120,7 +106,6 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}
 
 	function resetDeliverablesEmailDialog() {
-		setDeliverablesDriveLinkDraft("");
 		setDeliverablesEditorNotesDraft("");
 		setMarkDeliverablesAsSentAfterSending(true);
 		setDeliverablesEmailSendState({ status: "ready-to-send" });
@@ -128,17 +113,15 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}
 
 	return {
-		deliverablesDriveLinkDraft,
 		deliverablesEditorNotesDraft,
-		deliverablesEmailVariantDraft,
+		deliverablesFolderName,
+		deliverablesFolderUrl,
 		handleEmailDeliverables,
-		isCustomerTypeLoading: customerTypeResult === undefined,
 		isDeliverablesEmailDialogOpen,
 		isEmailingDeliverables,
+		isFolderStatusLoading: isDeliverablesEmailDialogOpen && driveStatusResult === undefined,
 		markDeliverablesAsSentAfterSending,
-		setDeliverablesDriveLinkDraft,
 		setDeliverablesEditorNotesDraft,
-		setDeliverablesEmailVariantDraft,
 		setIsDeliverablesEmailDialogOpen,
 		setMarkDeliverablesAsSentAfterSending
 	};

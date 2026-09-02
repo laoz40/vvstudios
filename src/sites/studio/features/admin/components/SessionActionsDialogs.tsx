@@ -129,16 +129,13 @@ export function SessionActionsDialogs({
 				recipient={{ visibility: "shown", email: session.email }}
 				bookingId={session._id}
 				bookingName={session.name}
-				driveLink={deliverablesEmailAction.deliverablesDriveLinkDraft}
+				deliverablesFolderName={deliverablesEmailAction.deliverablesFolderName}
+				deliverablesFolderUrl={deliverablesEmailAction.deliverablesFolderUrl}
 				editorNotes={deliverablesEmailAction.deliverablesEditorNotesDraft}
-				emailVariant={deliverablesEmailAction.deliverablesEmailVariantDraft}
-				isCustomerTypeLoading={deliverablesEmailAction.isCustomerTypeLoading}
+				isFolderStatusLoading={deliverablesEmailAction.isFolderStatusLoading}
 				isSending={deliverablesEmailAction.isEmailingDeliverables}
 				markAsSentAfterSending={deliverablesEmailAction.markDeliverablesAsSentAfterSending}
-				showCustomerType
-				onDriveLinkChange={deliverablesEmailAction.setDeliverablesDriveLinkDraft}
 				onEditorNotesChange={deliverablesEmailAction.setDeliverablesEditorNotesDraft}
-				onEmailVariantChange={deliverablesEmailAction.setDeliverablesEmailVariantDraft}
 				onMarkAsSentAfterSendingChange={
 					deliverablesEmailAction.setMarkDeliverablesAsSentAfterSending
 				}
