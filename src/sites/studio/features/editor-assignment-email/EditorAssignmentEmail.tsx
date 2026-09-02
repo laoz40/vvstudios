@@ -53,7 +53,7 @@ export function EditorAssignmentEmail({
 					</Text>
 					<Section style={buttonWrapper}>
 						<Button
-							href="/admin"
+							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}/admin`}
 							style={button}>
 							Open editor dashboard
 						</Button>
