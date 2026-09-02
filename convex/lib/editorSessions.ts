@@ -3,7 +3,6 @@ import { err, ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
-import { parseGoogleDriveLink } from "#convex/lib/googleDriveLinks";
 import { okOrThrow } from "#convex/lib/result";
 
 export type DeliverablesSessionAccess = { identity: UserIdentity; session: Doc<"bookings"> };
@@ -82,28 +81,6 @@ export function saveSessionAdminNotes(
 ) {
 	return okOrThrow(
 		ctx.db.patch(session._id, { adminNotes: adminNotes.trim() || undefined }).then(() => null)
-	);
-}
-
-export function saveSessionReview(
-	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	driveLink: string,
-	clientNotes: string
-) {
-	const parsedDriveLink = parseGoogleDriveLink(driveLink);
-	if (parsedDriveLink === null) {
-		return err({ reason: "INVALID_DRIVE_LINK" as const });
-	}
-
-	return okOrThrow(
-		ctx.db
-			.patch(session._id, {
-				deliverablesDriveLink: parsedDriveLink,
-				deliverablesClientNotes: clientNotes.trim() || undefined,
-				editStatus: "review"
-			})
-			.then(() => null)
 	);
 }
 

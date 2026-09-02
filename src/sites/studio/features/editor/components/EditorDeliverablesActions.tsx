@@ -18,15 +18,10 @@ import { tryCatch } from "#/lib/result";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
 import { deliverableStatusLabelMap } from "#studio/features/admin/lib/session-edit-status";
-import { DeliverablesReviewDialog } from "#studio/features/editor/components/DeliverablesReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import { EditorDriveFoldersDialog } from "#studio/features/editor/components/EditorDriveFoldersDialog";
 
-type DeliverablesDialogState =
-	| { status: "closed" }
-	| { status: "drive" }
-	| { status: "notes" }
-	| { status: "review" };
+type DeliverablesDialogState = { status: "closed" } | { status: "drive" } | { status: "notes" };
 
 export function EditorDeliverablesActions({
 	session,
@@ -36,13 +31,10 @@ export function EditorDeliverablesActions({
 	canManageDeliverables: boolean;
 }) {
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
-	const submitSessionForReview = useMutation(api.sessions.submitSessionForReview);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [dialog, setDialog] = useState<DeliverablesDialogState>({ status: "closed" });
-	const [driveLink, setDriveLink] = useState(session.deliverablesDriveLink ?? "");
-	const [clientNotes, setClientNotes] = useState(session.deliverablesClientNotes ?? "");
 
-	async function handleStatusChange(editStatus: "editing") {
+	async function handleStatusChange(editStatus: "editing" | "review") {
 		setIsUpdating(true);
 		const [error] = await tryCatch(updateSessionEditStatus({ bookingId: session._id, editStatus }));
 		setIsUpdating(false);
@@ -55,26 +47,6 @@ export function EditorDeliverablesActions({
 		toast.success(
 			`Deliverables changed to ${deliverableStatusLabelMap[editStatus].toLowerCase()}.`
 		);
-	}
-
-	async function handleSubmitForReview() {
-		setIsUpdating(true);
-		const [error] = await tryCatch(
-			submitSessionForReview({ bookingId: session._id, driveLink, clientNotes })
-		);
-		setIsUpdating(false);
-
-		if (error !== null) {
-			toast.error(
-				error.reason === "INVALID_DRIVE_LINK"
-					? "Enter a valid Google Drive link."
-					: "Unable to submit deliverables for review."
-			);
-			return;
-		}
-
-		setDialog({ status: "closed" });
-		toast.success("Deliverables submitted for admin review.");
 	}
 
 	return (
@@ -134,7 +106,7 @@ export function EditorDeliverablesActions({
 								<AnimatedDropdownMenuItem
 									className="hover:text-green focus:text-green"
 									disabled={session.editStatus === "review"}
-									onSelect={() => setDialog({ status: "review" })}
+									onSelect={() => void handleStatusChange("review")}
 									renderIcon={(iconRef) => (
 										<CheckedIcon
 											ref={iconRef}
@@ -179,17 +151,6 @@ export function EditorDeliverablesActions({
 					}}
 				/>
 			) : null}
-			<DeliverablesReviewDialog
-				open={dialog.status === "review"}
-				bookingId={session._id}
-				driveLink={driveLink}
-				clientNotes={clientNotes}
-				isSubmitting={isUpdating}
-				onDriveLinkChange={setDriveLink}
-				onClientNotesChange={setClientNotes}
-				onOpenChange={(open) => setDialog({ status: open ? "review" : "closed" })}
-				onSubmit={() => void handleSubmitForReview()}
-			/>
 		</>
 	);
 }

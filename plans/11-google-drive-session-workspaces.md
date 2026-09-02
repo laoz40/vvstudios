@@ -160,7 +160,7 @@ Keep using the original normalized booking email and saved client folder ID afte
 
 Check after step: verify pre-setup and post-setup reschedules, stale jobs, package numbering, changed booking emails, and changed account names.
 
-### Step 9: Deliver completed edits through the managed folder
+### Step 9: Deliver completed edits through the managed folder ✅
 
 Remove the editor workflow that accepts an arbitrary Drive link. Use the saved `Deliverables (D.M.YY)` folder. Editor `Ready to review` only sets `editStatus` to `review`. No dialog, no Drive URL, no client-facing notes on that action. Editors still use `Write editor notes` for internal notes.
 
@@ -174,7 +174,7 @@ A repeated save that is already `completed` must not resend. A later `completed 
 
 Check after step: cover empty folders, listing failure, first completion, failed send with obvious UI, repeated saves, completion after reopening, authorization, and the admin dialog without a pasted link.
 
-### Step 10: Add explicit recovery controls
+### Step 10: Add explicit recovery controls ✅
 
 Finish the admin view with separate states for folders, client access, editor access, client assets email, and editor assignment email. Do not track or retry deliverables email from this dialog. Failed sends stay on `Deliver`.
 

@@ -42,7 +42,6 @@ import type * as lib_googleCalendarAvailability from "../lib/googleCalendarAvail
 import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_googleDrive from "../lib/googleDrive.js";
-import type * as lib_googleDriveLinks from "../lib/googleDriveLinks.js";
 import type * as lib_invoiceDownloads from "../lib/invoiceDownloads.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
 import type * as lib_packageLookup from "../lib/packageLookup.js";
@@ -142,7 +141,6 @@ declare const fullApi: ApiFromModules<{
   "lib/googleCalendarClient": typeof lib_googleCalendarClient;
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
   "lib/googleDrive": typeof lib_googleDrive;
-  "lib/googleDriveLinks": typeof lib_googleDriveLinks;
   "lib/invoiceDownloads": typeof lib_invoiceDownloads;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
   "lib/packageLookup": typeof lib_packageLookup;
