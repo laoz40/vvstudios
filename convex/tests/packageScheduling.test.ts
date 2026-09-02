@@ -25,7 +25,8 @@
  *    One matching Calendar event and confirmed Convex booking are created with
  *    the package snapshot, session choices, package link, and Calendar IDs. Both
  *    sessions of the same package email share one Drive client record created
- *    without a folder, and Drive setup stays skipped for package sessions.
+ *    without folders yet, and schedule Drive setup for session end instead of
+ *    creating folders during booking.
  *
  * 7. Concurrent final-slot requests
  *    When two requests race for the last package session, only one booking wins
@@ -269,7 +270,7 @@ describe("package session creation validation", () => {
 		expect(providerFakes.deleteEvent).not.toHaveBeenCalled();
 	});
 
-	test("links one Drive client record across sessions without scheduling setup", async () => {
+	test("links one Drive client record across sessions and defers folder setup", async () => {
 		const t = createConvexTest();
 		const { token } = await seedPackage(t);
 
@@ -290,7 +291,7 @@ describe("package session creation validation", () => {
 		expect(bookings).toHaveLength(2);
 		expect(bookings[0]?.driveClientId).toBeDefined();
 		expect(bookings[1]?.driveClientId).toEqual(bookings[0]?.driveClientId);
-		// The record has no folder and no Drive session exists: setup stays skipped.
+		// Booking creates the client record and schedules setup; folders appear after session end.
 		expect(driveClients).toHaveLength(1);
 		expect(driveClients[0]).toMatchObject({ normalizedEmail: "customer@example.com" });
 		expect(driveClients[0]?.folderId).toBeUndefined();
