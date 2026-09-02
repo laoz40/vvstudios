@@ -114,7 +114,7 @@ If an editor was assigned before folder creation, save the assignment and apply 
 
 ### Notifications
 
-After client access succeeds, send one Google invitation and one branded VV Studios email containing the client's reusable `_Assets` link. Tell the client to keep reusable files there instead of uploading them again for every session. Tell them to group files that apply only to one episode or session in a way that makes the intended session clear. A dated or descriptive subfolder is an example, not a required naming format. Suppress redundant Google notifications for child permissions.
+After client access succeeds, suppress Google's permission emails for every client permission grant and send one branded VV Studios email containing the client's reusable `_Assets` link. Tell the client to keep reusable files there instead of uploading them again for every session. Tell them to group files that apply only to one episode or session in a way that makes the intended session clear. A dated or descriptive subfolder is an example, not a required naming format.
 
 After editor access succeeds, suppress Google's permission email and send one branded assignment email. Write it for an editor using the workflow for the first time. Tell them which session they have been assigned and include one prominent link labelled `Open editor dashboard`, pointing to `/admin`. Do not include separate Drive folder links. The dashboard session page is the entry point for the session folder, dated `Raw Media`, client `_Assets`, and dated `Deliverables`. Present these instructions as a numbered list:
 

@@ -85,13 +85,14 @@ After folder setup succeeds:
 - grant the booking contact viewer access to the client folder;
 - grant writer access to the client's `_Assets` folder;
 - let `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)` inherit viewer access from the client folder;
+- suppress Google's permission emails for every client permission grant;
 - send one branded Resend email containing the reusable `_Assets` link and explain that the client should keep assets there for future sessions.
 
 Save client folder permission and assets-email results separately. A permission failure must not change folder readiness or block later editor setup.
 
 Add admin status and retry controls for this slice.
 
-Check after step: verify inherited client browsing, client viewer access to `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)`, permission failure, and replay-safe emails.
+Check after step: verify inherited client browsing, client viewer access to `Raw Media (D.M.YY)` and `Deliverables (D.M.YY)`, suppressed Google permission emails, permission failure, and replay-safe emails.
 
 ### Step 4A: Replace per-session assets with one client assets library ✅
 
