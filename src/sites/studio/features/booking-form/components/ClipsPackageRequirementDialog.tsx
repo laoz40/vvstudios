@@ -17,9 +17,13 @@ export function ClipsPackageRequirementDialog({ reason }: ClipsPackageRequiremen
 			}}
 			title={isClipsPackageDeselected ? "Clip Volume Pack removed" : "Essential Edit required"}
 			description={
-				isClipsPackageDeselected
-					? "The Clip Volume Pack requires the Essential Edit add-on."
-					: "The Clip Volume Pack is available only with the Essential Edit add-on."
+				<div className="flex flex-col gap-2">
+					<p>
+						The Clip Volume Pack requires the Essential Edit add-on. This is because the footage
+						must be combined before creating clips.
+					</p>
+					<p>{"Handcrafted Clips don't require an Essential Edit."}</p>
+				</div>
 			}
 			closeLabel="Close dialog"
 			footer={
