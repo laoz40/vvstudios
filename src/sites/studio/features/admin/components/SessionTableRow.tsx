@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
@@ -309,7 +310,31 @@ export function SessionTableRow({
 						</Badge>
 					) : null}
 					{assignedEditorDisplayName ? (
-						<p className="text-xs text-muted-foreground">{assignedEditorDisplayName}</p>
+						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+							{session.hasDriveWorkflowFailure ? (
+								<span
+									className="cursor-help"
+									title="Google Drive needs attention">
+									<CircleAlert
+										aria-label="Google Drive needs attention"
+										className="size-3.5 text-destructive"
+									/>
+								</span>
+							) : null}
+							{assignedEditorDisplayName}
+						</p>
+					) : session.hasDriveWorkflowFailure ? (
+						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+							<span
+								className="cursor-help"
+								title="Google Drive needs attention">
+								<CircleAlert
+									aria-label="Google Drive needs attention"
+									className="size-3.5 text-destructive"
+								/>
+							</span>
+							<span>Google Drive</span>
+						</p>
 					) : null}
 				</div>
 			</TableCell>

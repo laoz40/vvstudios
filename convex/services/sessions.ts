@@ -125,12 +125,18 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {
+			const driveStatus = await getDriveStatus(ctx, session._id);
+			const hasDriveWorkflowFailure = driveStatus.match(
+				(status) => status.hasDriveWorkflowFailure,
+				() => false
+			);
+
 			if (!session.multiBookingPackageId) {
-				return session;
+				return { ...session, hasDriveWorkflowFailure };
 			}
 
 			const multiBookingPackage = await ctx.db.get(session.multiBookingPackageId);
-			if (!multiBookingPackage) return session;
+			if (!multiBookingPackage) return { ...session, hasDriveWorkflowFailure };
 			const packageSessions = await getCapacityConsumingPackageSessions(
 				ctx,
 				multiBookingPackage._id,
@@ -139,6 +145,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 			return {
 				...session,
+				hasDriveWorkflowFailure,
 				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
 					multiBookingPackage._id,
 					multiBookingPackage.createdAt

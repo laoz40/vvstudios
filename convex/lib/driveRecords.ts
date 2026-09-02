@@ -180,6 +180,49 @@ function buildClientDrivePermissionsDisplayStatus(
 	}
 }
 
+function hasClientDriveWorkflowFailure(
+	clientDrivePermissions: ReturnType<typeof buildClientDrivePermissionsStatus>
+) {
+	return (
+		clientDrivePermissions.status === "failed" ||
+		clientDrivePermissions.status === "incomplete" ||
+		clientDrivePermissions.assetsEmailStatus === "failed"
+	);
+}
+
+function hasEditorDriveWorkflowFailure(
+	folderStatus: DriveDisplayStatus["status"],
+	editorDrivePermissions: ReturnType<typeof buildEditorDrivePermissionsStatus>
+) {
+	if (editorDrivePermissions.status === "failed") return true;
+	if (folderStatus === "ready" && editorDrivePermissions.status === "pending") return true;
+	return (
+		editorDrivePermissions.status === "ready" &&
+		editorDrivePermissions.assignmentEmailStatus === "failed"
+	);
+}
+
+export function hasDriveWorkflowFailure(args: {
+	clientDrivePermissions: ReturnType<typeof buildClientDrivePermissionsStatus>;
+	editorDrivePermissions: ReturnType<typeof buildEditorDrivePermissionsStatus>;
+	folderStatus: DriveDisplayStatus["status"];
+	folders: DriveDisplayStatus["folders"];
+	previousEditorRemovalFailed: boolean;
+}) {
+	if (args.folderStatus === "failed") return true;
+	// Incomplete only counts when this session's own folders were started, not a sibling
+	// package folder that already exists for another session.
+	if (
+		args.folderStatus === "incomplete" &&
+		args.folders?.some((folder) => folder.name === "Session")
+	) {
+		return true;
+	}
+	if (hasClientDriveWorkflowFailure(args.clientDrivePermissions)) return true;
+	if (hasEditorDriveWorkflowFailure(args.folderStatus, args.editorDrivePermissions)) return true;
+	return args.previousEditorRemovalFailed;
+}
+
 function areClientDriveFoldersReady(
 	driveClient: Doc<"driveClients">,
 	driveSession: Doc<"driveSessions">
@@ -288,19 +331,32 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 		const driveClient = setupInfo?.driveClient ?? null;
 		const driveSession = setupInfo?.driveSession ?? null;
 		const multiBookingPackage = setupInfo?.multiBookingPackage ?? null;
+		const folderStatus = buildDriveStatus({
+			booking,
+			driveClient,
+			driveSession,
+			multiBookingPackage,
+			driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
+			sharedPackageFolder: setupInfo?.sharedPackageFolder
+		});
+		const clientDrivePermissions = buildClientDrivePermissionsStatus(driveClient, driveSession);
+		const editorDrivePermissions = buildEditorDrivePermissionsStatus(booking, driveSession);
+		const previousEditorRemovalFailed =
+			driveSession?.failedRemovalEditorTokenIdentifier !== undefined;
 		return {
-			...buildDriveStatus({
-				booking,
-				driveClient,
-				driveSession,
-				multiBookingPackage,
-				driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
-				sharedPackageFolder: setupInfo?.sharedPackageFolder
-			}),
+			...folderStatus,
 			...getDriveIdentityStatus(booking, driveClient),
-			clientDrivePermissions: buildClientDrivePermissionsStatus(driveClient, driveSession),
-			editorDrivePermissions: buildEditorDrivePermissionsStatus(booking, driveSession),
-			previousEditorRemovalFailed: driveSession?.failedRemovalEditorTokenIdentifier !== undefined
+			clientDrivePermissions,
+			driveSetupFailureCode: booking?.driveSetupFailureCode,
+			editorDrivePermissions,
+			hasDriveWorkflowFailure: hasDriveWorkflowFailure({
+				clientDrivePermissions,
+				editorDrivePermissions,
+				folderStatus: folderStatus.status,
+				folders: folderStatus.folders,
+				previousEditorRemovalFailed
+			}),
+			previousEditorRemovalFailed
 		};
 	});
 }

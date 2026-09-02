@@ -133,7 +133,10 @@
  * 44. Existing folder setup
  *     Explicit setup verifies saved folders and does not create duplicates.
  *
- * 45. Session client assets status
+ * 45. Session list Drive failures
+ *     Lists Drive workflow failures on the admin sessions query.
+ *
+ * 46. Session client assets status
  *     Shows assets from driveSessions.driveClientId when booking.driveClientId points elsewhere.
  *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
@@ -1014,7 +1017,7 @@ describe("Google Drive setup failure classification", () => {
 	});
 });
 
-describe("Google Drive deletion recovery", () => {
+describe("Google Drive deletion recovery and list status", () => {
 	test("recreates missing saved folders on admin retry", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
@@ -1038,7 +1041,7 @@ describe("Google Drive deletion recovery", () => {
 		expect(state.driveSession?.deliverablesFolder).toBeDefined();
 		expect(driveFake.folders.size).toBe(5);
 		expect(driveFake.create.mock.calls.length).toBeGreaterThan(5);
-		expect(status[1]).toMatchObject({ status: "ready" });
+		expect(status[1]).toMatchObject({ status: "ready", hasDriveWorkflowFailure: false });
 	});
 
 	test("does not recreate missing saved folders on scheduled setup", async () => {
@@ -1095,7 +1098,25 @@ describe("Google Drive deletion recovery", () => {
 			.query(api.sessions.getDriveStatus, { bookingId });
 
 		expect(status[1]?.folders?.find((folder) => folder.name === "Assets")?.url).toBe(assetsUrl);
-		expect(status[1]).toMatchObject({ status: "ready" });
+		expect(status[1]).toMatchObject({ status: "ready", hasDriveWorkflowFailure: false });
+	});
+
+	test("flags Drive workflow failures on the admin sessions list", async () => {
+		const t = createConvexTest();
+		const failedId = await seedBooking(t);
+		driveFake.failCreateNameOnce = "_Assets";
+		await runSetup(t, failedId);
+		const readyId = await seedBooking(t);
+
+		await runSetup(t, readyId);
+		const listed = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.listSessions, { paginationOpts: { cursor: null, numItems: 10 } });
+
+		const failedRow = listed.page.find((session) => session._id === failedId);
+		const readyRow = listed.page.find((session) => session._id === readyId);
+		expect(failedRow?.hasDriveWorkflowFailure).toBe(true);
+		expect(readyRow?.hasDriveWorkflowFailure).toBe(false);
 	});
 });
 

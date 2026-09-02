@@ -11,6 +11,7 @@ import {
 import { getBookingStartTimestamp, isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionRecord = Doc<"bookings"> & {
+	hasDriveWorkflowFailure?: boolean;
 	multiBookingInvoiceNumber?: string;
 	multiBookingPackageSize?: 4 | 8 | 12;
 	multiBookingPackageSessionPosition?: number;
