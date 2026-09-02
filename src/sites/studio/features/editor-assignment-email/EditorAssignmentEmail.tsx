@@ -13,24 +13,30 @@ import {
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 
 export type EditorAssignmentEmailProps = {
+	clientName: string;
 	deliverablesFolderName: string;
+	dueDateLabel: string;
 	editorName: string;
 	rawMediaFolderName: string;
-	sessionLabel: string;
+	sessionDateLabel: string;
 	signoffName: string;
 };
 
 export function EditorAssignmentEmail({
+	clientName,
 	deliverablesFolderName,
+	dueDateLabel,
 	editorName,
 	rawMediaFolderName,
-	sessionLabel,
+	sessionDateLabel,
 	signoffName
 }: EditorAssignmentEmailProps) {
 	return (
 		<Html>
 			<Head />
-			<Preview>You have been assigned {sessionLabel}.</Preview>
+			<Preview>
+				You have been assigned to edit {clientName}&apos;s {sessionDateLabel} session.
+			</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Img
@@ -42,7 +48,9 @@ export function EditorAssignmentEmail({
 					/>
 					<Heading style={heading}>New edit assigned</Heading>
 					<Text style={paragraph}>Hi {editorName},</Text>
-					<Text style={paragraph}>You have been assigned {sessionLabel}.</Text>
+					<Text style={paragraph}>
+						You have been assigned to edit {clientName}&apos;s {sessionDateLabel} session.
+					</Text>
 					<Section style={buttonWrapper}>
 						<Button
 							href="/admin"
@@ -50,11 +58,13 @@ export function EditorAssignmentEmail({
 							Open editor dashboard
 						</Button>
 					</Section>
-					<Text style={menuNotice}>
-						For each session, press the three-dot button on the right of the dashboard row to open
-						the editing and Google Drive actions.
-					</Text>
+					<Section style={dueDateCard}>
+						<Text style={dueDate}>
+							<strong>Due date:</strong> {dueDateLabel}
+						</Text>
+					</Section>
 					<Section style={workflow}>
+						<Text style={sectionTitle}>What to do</Text>
 						<Text style={step}>
 							<strong>1. Start the edit.</strong> Find the assigned session, open the three-dot
 							menu, and click &quot;Start editing&quot; before working on the files. This lets the
@@ -123,17 +133,29 @@ const button = {
 	padding: "12px 18px",
 	textDecoration: "none"
 };
-const menuNotice = {
-	backgroundColor: "#3a3a3a",
-	border: "1px solid #5a5a5a",
+const dueDateCard = {
+	backgroundColor: "#383838",
+	border: "1px solid #454545",
 	borderRadius: "12px",
-	color: "#fafafa",
-	fontSize: "14px",
-	lineHeight: "22px",
 	margin: "0 0 20px",
 	padding: "16px"
 };
+const dueDate = {
+	color: "#ed434b",
+	fontSize: "22px",
+	fontWeight: "700",
+	lineHeight: "30px",
+	margin: "0",
+	textAlign: "center" as const
+};
 const workflow = { margin: "0 0 24px" };
+const sectionTitle = {
+	color: "#f5c400",
+	fontSize: "13px",
+	fontWeight: "600",
+	margin: "0 0 12px",
+	textTransform: "uppercase" as const
+};
 const step = { ...paragraph, margin: "0 0 16px" };
 const stepHeading = { ...paragraph, margin: "0 0 8px" };
 const substep = { ...paragraph, margin: "0 0 8px", paddingLeft: "16px" };

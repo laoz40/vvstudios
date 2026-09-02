@@ -14,7 +14,8 @@ import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-e
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 import {
 	formatBookingTimeRange,
-	formatDriveSessionMediaFolderName
+	formatDriveSessionMediaFolderName,
+	getEditorEditDueAt
 } from "#studio/lib/bookingdatetime";
 import { env } from "#convex/env";
 import {
@@ -638,14 +639,17 @@ export function sendEditorAssignmentEmail({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 	const sessionDate = formatTimestampDateLong(sessionStartAt);
+	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(sessionStartAt));
 
 	return ResultAsync.fromSafePromise(
 		render(
 			createElement(EditorAssignmentEmail, {
+				clientName: sessionName,
 				deliverablesFolderName: formatDriveSessionMediaFolderName("Deliverables", sessionStartAt),
+				dueDateLabel,
 				editorName,
 				rawMediaFolderName: formatDriveSessionMediaFolderName("Raw Media", sessionStartAt),
-				sessionLabel: `${sessionName}, ${sessionDate}`,
+				sessionDateLabel: sessionDate,
 				signoffName
 			})
 		)

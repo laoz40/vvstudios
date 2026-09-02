@@ -16,6 +16,7 @@ import {
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 export const BOOKING_TIME_ZONE = "Australia/Sydney";
+export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
 
 export interface BusyPeriod {
 	calendarId?: string;
@@ -178,6 +179,21 @@ export function getSydneyDateValue(date = new Date()) {
 	const { day, month, year } = getDatePartsInSydney(date);
 
 	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export function getEditorEditDueAt(sessionStartAt: number) {
+	const { day, month, year } = getDatePartsInSydney(new Date(sessionStartAt));
+	return getUtcDateForZonedParts({
+		day: day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION,
+		hours: 12,
+		minutes: 0,
+		month,
+		timeZone: BOOKING_TIME_ZONE,
+		year
+	}).match(
+		(dueAt) => dueAt.getTime(),
+		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * 24 * 60 * 60 * 1000
+	);
 }
 
 function getDateUtcTimestamp(dateValue: string) {
