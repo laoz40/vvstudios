@@ -234,6 +234,19 @@ export function setupEditorAccess(
 	);
 }
 
+export function setupEditorAccessIfAssigned(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+): ResultAsync<null, DriveEditorPermissionsError> {
+	return fromConvexTuple(
+		ctx.runQuery(internal.sessions.getDriveSetup, { bookingId: args.bookingId })
+	).andThen((setup) => {
+		if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+		if (setup.booking.assignedEditorTokenIdentifier === undefined) return okAsync(null);
+		return setupEditorAccess(ctx, args);
+	});
+}
+
 function removeSavedPermission(
 	drive: DriveClient,
 	fileId: string | null,

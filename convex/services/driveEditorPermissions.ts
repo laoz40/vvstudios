@@ -11,7 +11,8 @@ import {
 	removeFailedEditorDriveAccess,
 	removePreviousEditorDriveAccess,
 	sendEditorAssignmentEmailForReadyAccess,
-	setupEditorAccess
+	setupEditorAccess,
+	setupEditorAccessIfAssigned
 } from "#convex/lib/driveEditorPermissions";
 
 export type { DriveEditorPermissionsError } from "#convex/lib/driveEditorPermissions";
@@ -57,7 +58,7 @@ export function runEditorDriveAccessUpdateService(
 				}).andThen(() => errAsync(error))
 			)
 			.orElse(() => okAsync(null))
-			.andThen(() => setupEditorAccess(ctx, { bookingId: args.bookingId }));
+			.andThen(() => setupEditorAccessIfAssigned(ctx, { bookingId: args.bookingId }));
 	});
 }
 
