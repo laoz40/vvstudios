@@ -668,6 +668,7 @@ export function getEditorDriveSetup(
 		if (setup.driveClient === null || setup.driveSession === null) {
 			return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 		}
+		const { driveClient, driveSession } = setup;
 
 		return okOrThrow(
 			ctx.db
@@ -680,12 +681,7 @@ export function getEditorDriveSetup(
 			if (editor === null || !editor.isActive) {
 				return err({ reason: "EDITOR_NOT_ACTIVE" as const });
 			}
-			return ok({
-				...setup,
-				driveClient: setup.driveClient!,
-				driveSession: setup.driveSession!,
-				editor
-			});
+			return ok({ ...setup, driveClient, driveSession, editor });
 		});
 	});
 }
