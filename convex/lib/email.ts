@@ -662,7 +662,7 @@ export function sendEditorAssignmentEmail({
 	).andThen((html) =>
 		sendEmail({
 			to: [editorEmail],
-			subject: `New edit assigned: ${sessionName}, ${sessionDate}`,
+			subject: `New editing job assigned: ${sessionName}, ${sessionDate}`,
 			html,
 			idempotencyKey: `editor-assignment:${editorEmail}:${sessionStartAt}`
 		})

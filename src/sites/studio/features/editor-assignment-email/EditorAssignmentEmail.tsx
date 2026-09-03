@@ -46,10 +46,11 @@ export function EditorAssignmentEmail({
 						src={BOOKING_INVOICE_BUSINESS.logoUrl}
 						style={logo}
 					/>
-					<Heading style={heading}>New edit assigned</Heading>
+					<Heading style={heading}>New editing job assigned</Heading>
 					<Text style={paragraph}>Hi {editorName},</Text>
 					<Text style={paragraph}>
-						You have been assigned to edit {clientName}&apos;s {sessionDateLabel} session.
+						You have been assigned to edit {clientName}&apos;s <strong>{sessionDateLabel}</strong>{" "}
+						session.
 					</Text>
 					<Section style={buttonWrapper}>
 						<Button
@@ -66,12 +67,16 @@ export function EditorAssignmentEmail({
 					<Section style={workflow}>
 						<Text style={sectionTitle}>What to do</Text>
 						<Text style={step}>
-							<strong>1. Start the edit.</strong> Find the assigned session, open the three-dot
-							menu, and click &quot;Start editing&quot; before working on the files. This lets the
-							team know editing has begun.
+							<strong>1. Sign in.</strong> Open the editor dashboard and sign in so you can see your
+							assigned sessions.
+						</Text>
+						<Text style={step}>
+							<strong>2. Find the session to edit.</strong> Open the assigned session, use the
+							three-dot menu, and click &quot;Start editing&quot; before working on the files. This
+							lets the team know editing has begun.
 						</Text>
 						<Text style={stepHeading}>
-							<strong>2. Get the files.</strong>
+							<strong>3. Get the files.</strong>
 						</Text>
 						<Text style={substep}>
 							<strong>Raw media.</strong> Find the assigned session, open the three-dot menu, and
@@ -83,14 +88,19 @@ export function EditorAssignmentEmail({
 							for any relevant brand guidelines, logos, and other supporting files.
 						</Text>
 						<Text style={step}>
-							<strong>3. Upload the finished edit.</strong> Put every edited file the client needs
+							<strong>4. Make the edit.</strong> This is the fun part. Take your time and make it
+							good.
+						</Text>
+						<Text style={step}>
+							<strong>5. Upload the finished edit.</strong> Put every edited file the client needs
 							in &quot;{deliverablesFolderName}&quot;.
 						</Text>
-						<Text style={lastStep}>
-							<strong>4. Send it for review.</strong> Return to the session in the dashboard and
+						<Text style={step}>
+							<strong>6. Send it for review.</strong> Return to the session in the dashboard and
 							click &quot;Ready to review&quot; only after the finished files are in &quot;
 							{deliverablesFolderName}&quot;.
 						</Text>
+						<Text style={lastStep}>That&apos;s it. Thanks for taking this one.</Text>
 					</Section>
 					<Text style={signoff}>Cheers,</Text>
 					<Text style={signature}>{signoffName}</Text>
