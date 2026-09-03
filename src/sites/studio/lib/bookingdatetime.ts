@@ -183,13 +183,16 @@ export function getSydneyDateValue(date = new Date()) {
 
 export function getEditorEditDueAt(sessionStartAt: number) {
 	const { day, month, year } = getDatePartsInSydney(new Date(sessionStartAt));
+	const dueCalendarDate = new Date(
+		Date.UTC(year, month - 1, day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION)
+	);
 	return getUtcDateForZonedParts({
-		day: day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION,
+		day: dueCalendarDate.getUTCDate(),
 		hours: 12,
 		minutes: 0,
-		month,
+		month: dueCalendarDate.getUTCMonth() + 1,
 		timeZone: BOOKING_TIME_ZONE,
-		year
+		year: dueCalendarDate.getUTCFullYear()
 	}).match(
 		(dueAt) => dueAt.getTime(),
 		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * 24 * 60 * 60 * 1000
