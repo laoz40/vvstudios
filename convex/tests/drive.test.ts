@@ -324,12 +324,12 @@ beforeEach(() => {
 	});
 	driveFake.get.mockImplementation(async ({ fileId }) => {
 		const folder = driveFake.folders.get(fileId);
-		if (folder === undefined) throw { code: 404 };
+		if (folder === undefined) throw { status: 404 };
 		return { data: folder };
 	});
 	driveFake.update.mockImplementation(async ({ fileId, requestBody }) => {
 		const folder = driveFake.folders.get(fileId);
-		if (folder === undefined) throw { code: 404 };
+		if (folder === undefined) throw { status: 404 };
 		const updated = { ...folder, name: requestBody?.name ?? folder.name };
 		driveFake.folders.set(fileId, updated);
 		return { data: { id: updated.id, name: updated.name, webViewLink: updated.webViewLink } };
