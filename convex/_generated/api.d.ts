@@ -15,7 +15,7 @@ import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
 import type * as drive from "../drive.js";
-import type * as editors from "../editors.js";
+import type * as employees from "../employees.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
@@ -77,7 +77,7 @@ import type * as services_deliverablesEmail from "../services/deliverablesEmail.
 import type * as services_drive from "../services/drive.js";
 import type * as services_driveClientPermissions from "../services/driveClientPermissions.js";
 import type * as services_driveEditorPermissions from "../services/driveEditorPermissions.js";
-import type * as services_editors from "../services/editors.js";
+import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
 import type * as services_packageAdjustments from "../services/packageAdjustments.js";
@@ -114,7 +114,7 @@ declare const fullApi: ApiFromModules<{
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
   drive: typeof drive;
-  editors: typeof editors;
+  employees: typeof employees;
   env: typeof env;
   feedback: typeof feedback;
   googleCalendar: typeof googleCalendar;
@@ -176,7 +176,7 @@ declare const fullApi: ApiFromModules<{
   "services/drive": typeof services_drive;
   "services/driveClientPermissions": typeof services_driveClientPermissions;
   "services/driveEditorPermissions": typeof services_driveEditorPermissions;
-  "services/editors": typeof services_editors;
+  "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;
   "services/packageAdjustments": typeof services_packageAdjustments;

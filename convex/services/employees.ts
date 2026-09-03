@@ -8,10 +8,10 @@ import {
 } from "#convex/lib/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
 
-type UpdateEditorAccessArgs = { tokenIdentifier: string; isActive: boolean };
-type UpdateEditorNotesArgs = { tokenIdentifier: string; notes: string };
+type UpdateEmployeeAccessArgs = { tokenIdentifier: string; isActive: boolean };
+type UpdateEmployeeNotesArgs = { tokenIdentifier: string; notes: string };
 
-export function listEditorsService(ctx: QueryCtx) {
+export function listEmployeesService(ctx: QueryCtx) {
 	return requirePermission(ctx, "update:editor-access")
 		.andThen(() => listEditorProfiles(ctx))
 		.andThen((editors) =>
@@ -21,13 +21,13 @@ export function listEditorsService(ctx: QueryCtx) {
 		);
 }
 
-export function updateEditorAccessService(ctx: MutationCtx, args: UpdateEditorAccessArgs) {
+export function updateEmployeeAccessService(ctx: MutationCtx, args: UpdateEmployeeAccessArgs) {
 	return requirePermission(ctx, "update:editor-access").andThen(() =>
 		updateEditorAccess(ctx, args.tokenIdentifier, args.isActive)
 	);
 }
 
-export function updateEditorNotesService(ctx: MutationCtx, args: UpdateEditorNotesArgs) {
+export function updateEmployeeNotesService(ctx: MutationCtx, args: UpdateEmployeeNotesArgs) {
 	return requirePermission(ctx, "update:editor-access").andThen(() =>
 		updateEditorNotes(ctx, args.tokenIdentifier, args.notes)
 	);

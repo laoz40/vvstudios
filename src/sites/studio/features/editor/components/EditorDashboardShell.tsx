@@ -7,14 +7,14 @@ import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButto
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { EditorSessionsTable } from "#studio/features/editor/components/EditorSessionsTable";
 
-const EDITOR_PAGE_SIZE = 100;
+const EDITOR_DASHBOARD_PAGE_SIZE = 100;
 
 export function EditorDashboardShell() {
 	const { user } = useUser();
 	const sessions = usePaginatedQuery(
 		api.sessions.listEditorSessions,
 		{},
-		{ initialNumItems: EDITOR_PAGE_SIZE }
+		{ initialNumItems: EDITOR_DASHBOARD_PAGE_SIZE }
 	);
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 	const activeSessions = sessions.results.filter((session) => session.editStatus !== "completed");

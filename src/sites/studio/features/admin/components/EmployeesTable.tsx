@@ -37,11 +37,11 @@ import {
 	type ManagedEditor
 } from "#studio/features/admin/lib/editor-management";
 
-type EditorsTableProps = { editors: ManagedEditor[] };
+type EmployeesTableProps = { editors: ManagedEditor[] };
 type NotesDialogState = { status: "closed" } | { status: "open"; editor: ManagedEditor };
 
-export function EditorsTable({ editors }: EditorsTableProps) {
-	const updateEditorAccess = useMutation(api.editors.updateEditorAccess);
+export function EmployeesTable({ editors }: EmployeesTableProps) {
+	const updateEmployeeAccess = useMutation(api.employees.updateEmployeeAccess);
 	const [showRetired, setShowRetired] = useState(false);
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 	async function handleAccessChange(editor: ManagedEditor) {
 		setUpdatingEditorToken(editor.tokenIdentifier);
 		const [error] = await tryCatch(
-			updateEditorAccess({ tokenIdentifier: editor.tokenIdentifier, isActive: !editor.isActive })
+			updateEmployeeAccess({ tokenIdentifier: editor.tokenIdentifier, isActive: !editor.isActive })
 		);
 		setUpdatingEditorToken(null);
 		setOpenActionsEditorToken(null);
@@ -61,7 +61,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 			return;
 		}
 
-		toast.success(editor.isActive ? "Editor retired" : "Editor reactivated");
+		toast.success(editor.isActive ? "Employee retired" : "Employee reactivated");
 	}
 
 	return (
@@ -69,12 +69,12 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 			<section className="flex flex-col gap-4">
 				<div className="flex items-center justify-end gap-2">
 					<label
-						htmlFor="show-retired-editors"
+						htmlFor="show-retired-employees"
 						className="text-sm text-muted-foreground">
 						Show retired
 					</label>
 					<Switch
-						id="show-retired-editors"
+						id="show-retired-employees"
 						checked={showRetired}
 						onCheckedChange={setShowRetired}
 					/>
@@ -108,14 +108,16 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 									<TableCell
 										colSpan={7}
 										className="h-24 text-center text-muted-foreground">
-										No editors to show.
+										No employees to show.
 									</TableCell>
 								</TableRow>
 							) : (
 								visibleEditors.map((editor) => {
 									const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
 									let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
-									let accessActionLabel = editor.isActive ? "Retire editor" : "Reactivate editor";
+									let accessActionLabel = editor.isActive
+										? "Retire employee"
+										: "Reactivate employee";
 
 									if (isUpdatingThisEditor) {
 										accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
@@ -130,7 +132,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 												</Badge>
 											</TableCell>
 											<TableCell className="font-medium">
-												{editor.displayName || "Unnamed editor"}
+												{editor.displayName || "Unnamed employee"}
 											</TableCell>
 											<TableCell>{editor.email}</TableCell>
 											<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
@@ -153,7 +155,7 @@ export function EditorsTable({ editors }: EditorsTableProps) {
 															variant="ghost"
 															size="icon-sm"
 															disabled={updatingEditorToken !== null}>
-															<span className="sr-only">Open editor actions</span>
+															<span className="sr-only">Open employee actions</span>
 															<MoreHorizontalIcon aria-hidden />
 														</Button>
 													</DropdownMenuTrigger>

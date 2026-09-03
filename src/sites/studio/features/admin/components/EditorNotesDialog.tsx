@@ -27,7 +27,7 @@ type EditorNotesDialogProps = {
 };
 
 export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDialogProps) {
-	const updateEditorNotes = useMutation(api.editors.updateEditorNotes);
+	const updateEmployeeNotes = useMutation(api.employees.updateEmployeeNotes);
 	const [notes, setNotes] = useState(editor.notes ?? "");
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -39,7 +39,7 @@ export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDia
 	async function handleSave() {
 		setIsSaving(true);
 		const [error] = await tryCatch(
-			updateEditorNotes({ tokenIdentifier: editor.tokenIdentifier, notes })
+			updateEmployeeNotes({ tokenIdentifier: editor.tokenIdentifier, notes })
 		);
 		setIsSaving(false);
 

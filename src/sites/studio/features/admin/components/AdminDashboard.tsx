@@ -6,7 +6,7 @@ import { api } from "#convex/_generated/api";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
-import { EditorsTable } from "#studio/features/admin/components/EditorsTable";
+import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
@@ -14,9 +14,9 @@ import { DashboardForbiddenPage } from "#studio/features/auth/components/Dashboa
 
 const ADMIN_PAGE_SIZE = 500;
 
-type EditorListResult = FunctionReturnType<typeof api.editors.listEditors>;
-type EditorListError = NonNullable<EditorListResult[0]>;
-type Editors = NonNullable<EditorListResult[1]>;
+type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
+type EmployeeListError = NonNullable<EmployeeListResult[0]>;
+type Employees = NonNullable<EmployeeListResult[1]>;
 type ActiveEditors = FunctionReturnType<typeof api.sessions.listActiveEditors>;
 type Sessions = FunctionReturnType<typeof api.sessions.listSessions>["page"];
 type Packages = FunctionReturnType<typeof api.packages.listPackages>["page"];
@@ -24,7 +24,7 @@ type Packages = FunctionReturnType<typeof api.packages.listPackages>["page"];
 type AdminDashboardTablesProps = {
 	activeView: AdminDashboardView;
 	activeEditors: ActiveEditors;
-	editors: Editors;
+	editors: Employees;
 	sessions: Sessions;
 	packages: Packages;
 	canLoadMoreSessions: boolean;
@@ -38,7 +38,7 @@ type AdminDashboardTablesProps = {
 	onViewPackageSessions: (invoiceNumber: string) => void;
 };
 
-function renderEditorListError(error: EditorListError) {
+function renderEmployeeListError(error: EmployeeListError) {
 	switch (error.reason) {
 		case "NOT_AUTHENTICATED":
 			return <BackendAuthErrorPage />;
@@ -90,8 +90,8 @@ function AdminDashboardTables({
 					onViewPackageSessions={onViewPackageSessions}
 				/>
 			</Activity>
-			<Activity mode={activeView === "editors" ? "visible" : "hidden"}>
-				<EditorsTable editors={editors} />
+			<Activity mode={activeView === "employees" ? "visible" : "hidden"}>
+				<EmployeesTable editors={editors} />
 			</Activity>
 		</>
 	);
@@ -109,7 +109,7 @@ export function AdminDashboard() {
 		{ initialNumItems: ADMIN_PAGE_SIZE }
 	);
 	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
-	const editorsResult = useQuery(api.editors.listEditors, {});
+	const editorsResult = useQuery(api.employees.listEmployees, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
@@ -131,7 +131,7 @@ export function AdminDashboard() {
 
 	const [editorsError, editors] = editorsResult;
 	if (editorsError !== null) {
-		return renderEditorListError(editorsError);
+		return renderEmployeeListError(editorsError);
 	}
 
 	return (

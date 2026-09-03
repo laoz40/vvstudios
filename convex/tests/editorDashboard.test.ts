@@ -190,19 +190,19 @@ const listEditorSessions = makeFunctionReference<
 const listActiveEditors = makeFunctionReference<"query", Record<string, never>, ActiveEditor[]>(
 	"sessions:listActiveEditors"
 );
-const listEditors = makeFunctionReference<"query", Record<string, never>, ListEditorsResult>(
-	"editors:listEditors"
+const listEmployees = makeFunctionReference<"query", Record<string, never>, ListEditorsResult>(
+	"employees:listEmployees"
 );
-const updateEditorNotes = makeFunctionReference<
+const updateEmployeeNotes = makeFunctionReference<
 	"mutation",
 	{ tokenIdentifier: string; notes: string },
 	UpdateEditorAccessResult
->("editors:updateEditorNotes");
-const updateEditorAccess = makeFunctionReference<
+>("employees:updateEmployeeNotes");
+const updateEmployeeAccess = makeFunctionReference<
 	"mutation",
 	{ tokenIdentifier: string; isActive: boolean },
 	UpdateEditorAccessResult
->("editors:updateEditorAccess");
+>("employees:updateEmployeeAccess");
 const updateSessionNotes = makeFunctionReference<
 	"mutation",
 	{ bookingId: Id<"bookings">; editorNotes: string },
@@ -530,7 +530,7 @@ describe("editor access management", () => {
 		const bookingId = await seedBooking(t, "Editing Work");
 		await assignBooking(t, bookingId);
 
-		const [error, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+		const [error, editors] = await t.withIdentity(adminIdentity).query(listEmployees, {});
 
 		expect(error).toBeNull();
 		if (editors === null) throw new Error("Expected managed editors");
@@ -557,13 +557,13 @@ describe("editor access management", () => {
 		});
 		await assignBooking(t, bookingId);
 
-		let [, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+		let [, editors] = await t.withIdentity(adminIdentity).query(listEmployees, {});
 		expect(editors?.[0]?.totalEdits).toBe(0);
 
 		await updateDeliverablesStatus(t, editorIdentity, bookingId);
 		await updateDeliverablesStatus(t, editorIdentity, bookingId);
 
-		[, editors] = await t.withIdentity(adminIdentity).query(listEditors, {});
+		[, editors] = await t.withIdentity(adminIdentity).query(listEmployees, {});
 		expect(editors?.[0]?.totalEdits).toBe(1);
 	});
 
@@ -577,7 +577,7 @@ describe("editor access management", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.mutation(updateEditorAccess, {
+				.mutation(updateEmployeeAccess, {
 					tokenIdentifier: editorIdentity.tokenIdentifier,
 					isActive: false
 				})
@@ -612,7 +612,7 @@ describe("editor access management", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.mutation(updateEditorAccess, {
+				.mutation(updateEmployeeAccess, {
 					tokenIdentifier: editorIdentity.tokenIdentifier,
 					isActive: true
 				})
@@ -631,7 +631,7 @@ describe("editor access management", () => {
 		expect(
 			await t
 				.withIdentity(editorIdentity)
-				.mutation(updateEditorAccess, {
+				.mutation(updateEmployeeAccess, {
 					tokenIdentifier: otherEditorIdentity.tokenIdentifier,
 					isActive: false
 				})
@@ -645,7 +645,7 @@ describe("editor access management", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.mutation(updateEditorNotes, {
+				.mutation(updateEmployeeNotes, {
 					tokenIdentifier: editorIdentity.tokenIdentifier,
 					notes: "Prefers short-form editing work"
 				})
@@ -655,7 +655,7 @@ describe("editor access management", () => {
 
 		await t
 			.withIdentity(adminIdentity)
-			.mutation(updateEditorNotes, {
+			.mutation(updateEmployeeNotes, {
 				tokenIdentifier: editorIdentity.tokenIdentifier,
 				notes: "  "
 			});
@@ -671,7 +671,7 @@ describe("editor access management", () => {
 		expect(
 			await t
 				.withIdentity(editorIdentity)
-				.mutation(updateEditorNotes, {
+				.mutation(updateEmployeeNotes, {
 					tokenIdentifier: otherEditorIdentity.tokenIdentifier,
 					notes: "Unauthorized note"
 				})
