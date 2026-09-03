@@ -1162,7 +1162,7 @@ function resolvePackageSessionNumber(
 				number: existingSession.packageSessionNumber
 			});
 		}
-		return okOrThrow(loadNextPackageSessionNumber(ctx, packageBooking)).map((number) => ({
+		return loadNextPackageSessionNumber(ctx, packageBooking).map((number) => ({
 			kind: "new" as const,
 			booking: packageBooking.booking,
 			existingSession,
@@ -1171,17 +1171,28 @@ function resolvePackageSessionNumber(
 	});
 }
 
-async function loadNextPackageSessionNumber(
+function loadNextPackageSessionNumber(
 	ctx: MutationCtx,
 	packageBooking: PackageBooking
-): Promise<number> {
-	const savedNumbers = await loadSavedPackageSessionNumbers(ctx, packageBooking.packageId);
-
-	const scheduledSessions = await loadPackageSessionsSortedByDate(ctx, packageBooking.packageId);
-	// Start at the session's date-order position and step past numbers already in use.
-	let number = scheduledSessions.findIndex((item) => item._id === packageBooking.booking._id) + 1;
-	while (savedNumbers.has(number)) number += 1;
-	return number;
+): ResultAsync<number, PackageSessionNumberError> {
+	return okOrThrow(loadPackageSessionsSortedByDate(ctx, packageBooking.packageId)).andThen(
+		(scheduledSessions) => {
+			const sessionIndex = scheduledSessions.findIndex(
+				(item) => item._id === packageBooking.booking._id
+			);
+			if (sessionIndex === -1) {
+				return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+			}
+			return okOrThrow(loadSavedPackageSessionNumbers(ctx, packageBooking.packageId)).map(
+				(savedNumbers) => {
+					// Start at the session's date-order position and step past numbers already in use.
+					let number = sessionIndex + 1;
+					while (savedNumbers.has(number)) number += 1;
+					return number;
+				}
+			);
+		}
+	);
 }
 
 function savePackageSessionNumber(
