@@ -589,7 +589,7 @@ describe("Google Drive scheduled workspace setup", () => {
 
 		expect(driveFake.create).toHaveBeenCalledTimes(5);
 		expect(driveFake.get).toHaveBeenCalledTimes(5);
-		expect(driveFake.folders).toHaveLength(5);
+		expect(driveFake.folders.size).toBe(5);
 	});
 
 	test("resumes after a partial provider failure", async () => {
@@ -1078,7 +1078,7 @@ describe("Google Drive deletion recovery and list status", () => {
 
 		expect(setupResult).toEqual([null, null]);
 		expect(driveFake.create).toHaveBeenCalledTimes(5);
-		expect(driveFake.folders).toHaveLength(5);
+		expect(driveFake.folders.size).toBe(5);
 	});
 
 	test("shows assets from the session client when booking points elsewhere", async () => {
