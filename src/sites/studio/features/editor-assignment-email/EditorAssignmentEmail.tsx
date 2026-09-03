@@ -10,6 +10,7 @@ import {
 	Section,
 	Text
 } from "@react-email/components";
+import { studioSite } from "#/config/sites";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 
 export type EditorAssignmentEmailProps = {
@@ -54,7 +55,7 @@ export function EditorAssignmentEmail({
 					</Text>
 					<Section style={buttonWrapper}>
 						<Button
-							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}/admin`}
+							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}${studioSite.routes.dashboard}`}
 							style={button}>
 							Open editor dashboard
 						</Button>

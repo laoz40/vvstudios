@@ -58,7 +58,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: ReactNode }) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const isAdminPage = pathname === studioSite.routes.admin;
+	const isDashboardPage = pathname === studioSite.routes.dashboard;
 
 	return (
 		<html
@@ -67,7 +67,7 @@ function RootDocument({ children }: { children: ReactNode }) {
 			<head>
 				<HeadContent />
 			</head>
-			<body className={isAdminPage ? "studio-site studio-site-admin" : "studio-site"}>
+			<body className={isDashboardPage ? "studio-site studio-site-admin" : "studio-site"}>
 				{children}
 				<Toaster />
 				<Analytics />

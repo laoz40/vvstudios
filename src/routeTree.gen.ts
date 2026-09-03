@@ -23,7 +23,7 @@ import { Route as PublicBookingExpiredRouteImport } from './routes/_public/booki
 import { Route as PublicBookingCompleteRouteImport } from './routes/_public/booking-complete'
 import { Route as PublicBookRouteImport } from './routes/_public/book'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as PublicRescheduleTokenRouteImport } from './routes/_public/reschedule.$token'
 import { Route as PublicPackageScheduleTokenRouteImport } from './routes/_public/package-schedule.$token'
 
@@ -97,9 +97,9 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthAdminRoute = AuthAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
 const PublicRescheduleTokenRoute = PublicRescheduleTokenRouteImport.update({
@@ -116,7 +116,7 @@ const PublicPackageScheduleTokenRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
-  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/login': typeof AuthLoginRoute
   '/book': typeof PublicBookRoute
   '/booking-complete': typeof PublicBookingCompleteRoute
@@ -133,7 +133,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
-  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/login': typeof AuthLoginRoute
   '/book': typeof PublicBookRoute
   '/booking-complete': typeof PublicBookingCompleteRoute
@@ -152,7 +152,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
-  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_public/book': typeof PublicBookRoute
   '/_public/booking-complete': typeof PublicBookingCompleteRoute
@@ -172,7 +172,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
+    | '/dashboard'
     | '/login'
     | '/book'
     | '/booking-complete'
@@ -189,7 +189,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
+    | '/dashboard'
     | '/login'
     | '/book'
     | '/booking-complete'
@@ -207,7 +207,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_auth'
     | '/_public'
-    | '/_auth/admin'
+    | '/_auth/dashboard'
     | '/_auth/login'
     | '/_public/book'
     | '/_public/booking-complete'
@@ -329,11 +329,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/admin': {
-      id: '/_auth/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthAdminRouteImport
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_public/reschedule/$token': {
@@ -354,12 +354,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteChildren {
-  AuthAdminRoute: typeof AuthAdminRoute
+  AuthDashboardRoute: typeof AuthDashboardRoute
   AuthLoginRoute: typeof AuthLoginRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthAdminRoute: AuthAdminRoute,
+  AuthDashboardRoute: AuthDashboardRoute,
   AuthLoginRoute: AuthLoginRoute,
 }
 

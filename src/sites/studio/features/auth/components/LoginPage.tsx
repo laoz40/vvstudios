@@ -17,7 +17,7 @@ export function LoginPage() {
 	}
 
 	if (userId) {
-		return <Navigate to={studioSite.routes.admin} />;
+		return <Navigate to={studioSite.routes.dashboard} />;
 	}
 
 	return (
@@ -39,10 +39,10 @@ export function LoginPage() {
 				<CardContent className="px-5 pb-5">
 					<SignIn
 						routing="hash"
-						forceRedirectUrl={studioSite.routes.admin}
-						fallbackRedirectUrl={studioSite.routes.admin}
-						signUpForceRedirectUrl={studioSite.routes.admin}
-						signUpFallbackRedirectUrl={studioSite.routes.admin}
+						forceRedirectUrl={studioSite.routes.dashboard}
+						fallbackRedirectUrl={studioSite.routes.dashboard}
+						signUpForceRedirectUrl={studioSite.routes.dashboard}
+						signUpFallbackRedirectUrl={studioSite.routes.dashboard}
 						appearance={{
 							variables: {
 								colorBackground: "#2d2d2d",

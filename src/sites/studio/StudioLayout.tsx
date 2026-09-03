@@ -11,7 +11,7 @@ import { SiteNavbar } from "#studio/components/NavBar";
 export type StudioLayoutProps = { children: ReactNode; pathname: string };
 
 const minimalLayoutRoutes = new Set([
-	studioSite.routes.admin,
+	studioSite.routes.dashboard,
 	studioSite.routes.login,
 	studioSite.routes.bookingComplete,
 	studioSite.routes.packageComplete,

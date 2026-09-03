@@ -19,7 +19,7 @@ const studioRoutes = {
 	contact: withBasePath(studioBasePath, "/contact"),
 	gallery: withBasePath(studioBasePath, "/gallery"),
 	login: withBasePath(studioBasePath, "/login"),
-	admin: withBasePath(studioBasePath, "/admin"),
+	dashboard: withBasePath(studioBasePath, "/dashboard"),
 	pricing: withBasePath(studioBasePath, "/pricing"),
 	termsAndConditions: withBasePath(studioBasePath, "/terms-and-conditions"),
 	privacyPolicy: withBasePath(studioBasePath, "/privacy-policy")
