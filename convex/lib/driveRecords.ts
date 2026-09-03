@@ -223,6 +223,37 @@ export function hasDriveWorkflowFailure(args: {
 	return args.previousEditorRemovalFailed;
 }
 
+type DriveWorkflowFailureInputs = {
+	booking: Doc<"bookings"> | null;
+	driveClient: Doc<"driveClients"> | null;
+	driveSession: Doc<"driveSessions"> | null;
+	multiBookingPackage: Doc<"multiBookingPackages"> | null;
+	sharedPackageFolder: SavedPackageFolder | undefined;
+};
+
+function computeHasDriveWorkflowFailure(args: DriveWorkflowFailureInputs) {
+	const folderStatus = buildDriveStatus({
+		booking: args.booking,
+		driveClient: args.driveClient,
+		driveSession: args.driveSession,
+		multiBookingPackage: args.multiBookingPackage,
+		driveSetupFailed: args.booking?.driveSetupFailureCode !== undefined,
+		sharedPackageFolder: args.sharedPackageFolder
+	});
+	const clientDrivePermissions = buildClientDrivePermissionsStatus(
+		args.driveClient,
+		args.driveSession
+	);
+	const editorDrivePermissions = buildEditorDrivePermissionsStatus(args.booking, args.driveSession);
+	return hasDriveWorkflowFailure({
+		clientDrivePermissions,
+		editorDrivePermissions,
+		folderStatus: folderStatus.status,
+		folders: folderStatus.folders,
+		previousEditorRemovalFailed: args.driveSession?.failedRemovalEditorTokenIdentifier !== undefined
+	});
+}
+
 function areClientDriveFoldersReady(
 	driveClient: Doc<"driveClients">,
 	driveSession: Doc<"driveSessions">
@@ -358,6 +389,31 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 			}),
 			previousEditorRemovalFailed
 		};
+	});
+}
+
+// Admin session lists only need the failure flag, not the full Drive status payload.
+export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: Doc<"bookings">) {
+	const [driveClientFromBooking, driveSession, multiBookingPackage] = await Promise.all([
+		booking.driveClientId !== undefined ? ctx.db.get(booking.driveClientId) : null,
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
+			.unique(),
+		booking.multiBookingPackageId !== undefined ? ctx.db.get(booking.multiBookingPackageId) : null
+	]);
+	const driveClient = await resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking);
+	const sharedPackageFolder =
+		driveSession?.packageFolder === undefined && booking.multiBookingPackageId !== undefined
+			? await loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
+			: undefined;
+
+	return computeHasDriveWorkflowFailure({
+		booking,
+		driveClient,
+		driveSession,
+		multiBookingPackage,
+		sharedPackageFolder
 	});
 }
 

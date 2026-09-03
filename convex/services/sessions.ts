@@ -22,7 +22,11 @@ import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
-import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveRecords";
+import {
+	getDriveStatus,
+	getDriveWorkflowFailureForBooking,
+	getEditorSessionDriveFolders
+} from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -119,11 +123,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {
-			const driveStatus = await getDriveStatus(ctx, session._id);
-			const hasDriveWorkflowFailure = driveStatus.match(
-				(status) => status.hasDriveWorkflowFailure,
-				() => false
-			);
+			const hasDriveWorkflowFailure = await getDriveWorkflowFailureForBooking(ctx, session);
 
 			if (!session.multiBookingPackageId) {
 				return { ...session, hasDriveWorkflowFailure };
