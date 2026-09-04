@@ -1,5 +1,12 @@
 import { useSelector } from "@tanstack/react-store";
-import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "#/components/ui/field";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldLegend,
+	FieldSet
+} from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
@@ -23,7 +30,9 @@ const sectionCopy = {
 	abnLabel: "ABN",
 	abnPlaceholder: "00 000 000 000",
 	emailLabel: "Email *",
-	emailPlaceholder: "email@example.com"
+	emailPlaceholder: "example@gmail.com",
+	emailNote:
+		"A Gmail address is required to receive your invoice and deliverables via Drive. Use the same email for each booking so your deliverables can stay together."
 } as const;
 
 export function BookingContactSection() {
@@ -112,6 +121,10 @@ export function BookingContactSection() {
 							</Field>
 						)}
 					</formApi.Field>
+
+					<FieldDescription className="text-xs self-end text-pretty italic md:pb-1">
+						{sectionCopy.emailNote}
+					</FieldDescription>
 				</div>
 			</FieldSet>
 
