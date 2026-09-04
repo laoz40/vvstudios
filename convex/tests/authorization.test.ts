@@ -20,6 +20,7 @@
  *    - generate a new session reschedule link;
  *    - create a custom invoice for a session or package;
  *    - assign an editor to a session.
+ *    - invite a user.
  *
  *    Every operation is attempted as both a signed-out user and a customer. Every operation
  *    guarded by an admin-only permission is also attempted by an active editor. Each attempt
@@ -287,6 +288,12 @@ const operations: AdminOperation[] = [
 				editorTokenIdentifier: editorMetadataIdentity.tokenIdentifier,
 				adminNotes: ""
 			})
+	},
+	{
+		name: "invite a user",
+		permissionLevel: "admin-only",
+		call: (client) =>
+			client.action(api.employeeInvitations.inviteUser, { email: "invitee@example.com" })
 	}
 ];
 
