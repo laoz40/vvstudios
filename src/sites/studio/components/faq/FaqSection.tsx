@@ -101,7 +101,7 @@ export const faqSectionCopy: { readonly title: string; readonly items: readonly 
 					{
 						heading: "Handcrafted Clips ($199) - ",
 						value: "5 premium clips with animated subtitles, B-roll, and custom graphics."
-					},
+					}
 				]
 			},
 			{
