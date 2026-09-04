@@ -15,6 +15,7 @@ import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
 import type * as drive from "../drive.js";
+import type * as employeeInvitations from "../employeeInvitations.js";
 import type * as employees from "../employees.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
@@ -27,6 +28,7 @@ import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
+import type * as lib_clerkInvitations from "../lib/clerkInvitations.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
 import type * as lib_driveClientPermissions from "../lib/driveClientPermissions.js";
 import type * as lib_driveEditorPermissions from "../lib/driveEditorPermissions.js";
@@ -77,6 +79,7 @@ import type * as services_deliverablesEmail from "../services/deliverablesEmail.
 import type * as services_drive from "../services/drive.js";
 import type * as services_driveClientPermissions from "../services/driveClientPermissions.js";
 import type * as services_driveEditorPermissions from "../services/driveEditorPermissions.js";
+import type * as services_employeeInvitations from "../services/employeeInvitations.js";
 import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
@@ -114,6 +117,7 @@ declare const fullApi: ApiFromModules<{
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
   drive: typeof drive;
+  employeeInvitations: typeof employeeInvitations;
   employees: typeof employees;
   env: typeof env;
   feedback: typeof feedback;
@@ -126,6 +130,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
+  "lib/clerkInvitations": typeof lib_clerkInvitations;
   "lib/customInvoices": typeof lib_customInvoices;
   "lib/driveClientPermissions": typeof lib_driveClientPermissions;
   "lib/driveEditorPermissions": typeof lib_driveEditorPermissions;
@@ -176,6 +181,7 @@ declare const fullApi: ApiFromModules<{
   "services/drive": typeof services_drive;
   "services/driveClientPermissions": typeof services_driveClientPermissions;
   "services/driveEditorPermissions": typeof services_driveEditorPermissions;
+  "services/employeeInvitations": typeof services_employeeInvitations;
   "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;
