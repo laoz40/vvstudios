@@ -1,5 +1,8 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
-import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	multiBookingFormSchema,
+	shouldPromptGmailAddress
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
 	getMultiBookingInvoiceDueAt,
@@ -101,6 +104,10 @@ export function parsePackageRequest(
 	const parsedPackage = multiBookingFormSchema.safeParse(args);
 
 	if (!parsedPackage.success) {
+		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
+	}
+
+	if (shouldPromptGmailAddress(parsedPackage.data.email)) {
 		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 

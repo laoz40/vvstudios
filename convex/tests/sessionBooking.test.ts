@@ -82,7 +82,7 @@ const validBooking = {
 	name: "Test Customer",
 	phone: "0400000000",
 	accountName: "Test Account",
-	email: "customer@example.com",
+	email: "customer@gmail.com",
 	date: "2030-01-10",
 	time: "10:00",
 	duration: "1h",
@@ -118,6 +118,21 @@ describe("single-session checkout creation", () => {
 		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, {
 			...validBooking,
 			email: "not-an-email"
+		});
+
+		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
+		expect(await listBookings(t)).toEqual([]);
+		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
+		expect(providerFakes.createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	test("rejects a non-Gmail email before DNS or checkout creation", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+
+		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, {
+			...validBooking,
+			email: "customer@example.com"
 		});
 
 		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);

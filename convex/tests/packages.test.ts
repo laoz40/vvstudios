@@ -72,7 +72,7 @@ const validRequest = {
 	phone: " 0400 000 000 ",
 	accountName: "  Test account  ",
 	abn: "12 345 678 901",
-	email: " Customer@Example.com ",
+	email: " Customer@gmail.com ",
 	duration: "1h",
 	addons: ["Teleprompter"],
 	notes: "  Please call on arrival  ",
@@ -316,7 +316,7 @@ describe("package request creation", () => {
 			phone: "0400 000 000",
 			accountName: "Test account",
 			abn: "12345678901",
-			email: "customer@example.com",
+			email: "customer@gmail.com",
 			duration: "1h",
 			addons: ["Teleprompter"],
 			notes: "Please call on arrival",
@@ -369,6 +369,20 @@ describe("package request creation", () => {
 
 		expect(result).toEqual([{ reason: "BOOKING_EMAIL_DOMAIN_INVALID" }, null]);
 		expect(await readPackages(t)).toEqual([]);
+		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
+	});
+
+	test("rejects a non-Gmail email before DNS or invoice delivery", async () => {
+		const t = createConvexTest();
+
+		const result = await t.action(api.packagePayment.createPackageRequest, {
+			...validRequest,
+			email: "customer@example.com"
+		});
+
+		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
+		expect(await readPackages(t)).toEqual([]);
+		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
 		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
 	});
 

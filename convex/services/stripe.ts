@@ -13,7 +13,7 @@ import {
 } from "#convex/lib/bookingSubmission";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
-import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { publicBookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type CreateEmbeddedCheckoutSessionArgs = {
 	name: string;
@@ -56,7 +56,7 @@ export function createEmbeddedCheckoutSessionService(
 	{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
 	CreateEmbeddedCheckoutSessionError
 > {
-	const parsedBooking = bookingSchema.safeParse({
+	const parsedBooking = publicBookingSchema.safeParse({
 		...args,
 		bookingMode: "single",
 		packageSize: ""
