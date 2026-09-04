@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { Id } from "#convex/_generated/dataModel";
+import { shouldPromptGmailAddress } from "#studio/features/booking-form/lib/booking-form-model";
 import type { EmbeddedCheckoutSession } from "#studio/features/booking-form/lib/checkout-session";
 
 export type BookingModalState =
@@ -20,7 +21,8 @@ export type BookingModalState =
 			time: string;
 			timeSummary: string;
 	  }
-	| { modal: "terms" };
+	| { modal: "terms" }
+	| { modal: "gmailRequired" };
 
 const initialState: BookingModalState = { modal: "none" };
 
@@ -61,6 +63,14 @@ export function openRescheduleConfirmationModal(
 
 export function openTermsModal() {
 	useBookingModalStore.setState({ modal: "terms" }, true);
+}
+
+export function maybeOpenGmailRequiredModal(email: string) {
+	if (!shouldPromptGmailAddress(email)) {
+		return;
+	}
+
+	useBookingModalStore.setState({ modal: "gmailRequired" }, true);
 }
 
 export function closeBookingModal() {

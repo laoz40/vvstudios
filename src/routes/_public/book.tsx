@@ -23,7 +23,11 @@ import {
 	bookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
-import { bookingSchema, INITIAL_FORM } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	INITIAL_FORM,
+	publicBookingSchema
+} from "#studio/features/booking-form/lib/booking-form-model";
+import { maybeOpenGmailRequiredModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	termsDialogPendingError,
 	useBookingSubmit
@@ -57,7 +61,7 @@ function BookingPage() {
 
 	const formApi: BookingFormApi = useForm({
 		defaultValues: INITIAL_FORM,
-		validators: { onBlur: bookingSchema, onSubmit: bookingSchema },
+		validators: { onBlur: publicBookingSchema, onSubmit: publicBookingSchema },
 		onSubmit: async ({ value }) => {
 			await bookingSubmit.handleSubmit(value);
 		}
@@ -127,6 +131,7 @@ function BookingPage() {
 							.handleSubmit()
 							.then(() => {
 								if (!formApi.state.isValid) {
+									maybeOpenGmailRequiredModal(formApi.state.values.email);
 									bookingSubmit.resetTermsSubmit();
 									scrollToFirstBookingFormError(formRef);
 								}

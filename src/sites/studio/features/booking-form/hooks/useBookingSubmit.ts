@@ -6,9 +6,9 @@ import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
-	bookingSchema,
 	multiBookingFormSchema,
 	pickBookingAddonQuantities,
+	publicBookingSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -136,7 +136,7 @@ export function useBookingSubmit({
 			return;
 		}
 
-		const parsedValue = bookingSchema.parse(value);
+		const parsedValue = publicBookingSchema.parse(value);
 
 		if (!submitAfterTermsRef.current) {
 			openTermsModal();

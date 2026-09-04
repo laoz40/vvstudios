@@ -320,6 +320,19 @@ const email = z
 	.min(1, "Email is required.")
 	.pipe(z.email("Please enter a valid email address."));
 
+export const GMAIL_REQUIRED_MESSAGE = "A Gmail address is required.";
+
+export function shouldPromptGmailAddress(emailValue: string) {
+	const trimmed = emailValue.trim();
+	const atIndex = trimmed.lastIndexOf("@");
+
+	if (atIndex <= 0 || atIndex === trimmed.length - 1) {
+		return false;
+	}
+
+	return trimmed.slice(atIndex + 1).toLowerCase() !== "gmail.com";
+}
+
 const bookingMode = z
 	.union([z.literal(""), z.enum(BOOKING_MODES)])
 	.refine((value) => value !== "", { message: "Booking type is required." });
@@ -454,6 +467,12 @@ export const bookingSchema = z
 	});
 
 export type BookingFormValues = z.input<typeof bookingSchema>;
+
+export const publicBookingSchema = bookingSchema.superRefine((values, ctx) => {
+	if (shouldPromptGmailAddress(values.email)) {
+		ctx.addIssue({ code: "custom", message: GMAIL_REQUIRED_MESSAGE, path: ["email"] });
+	}
+});
 
 export const multiBookingFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredMultiBookingSize })
