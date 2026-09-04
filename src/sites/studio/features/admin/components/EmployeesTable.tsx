@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	CheckIcon,
 	LoaderCircleIcon,
@@ -10,6 +10,8 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { Badge } from "#/components/ui/badge";
+import MailFilledIcon from "#/components/ui/mail-filled-icon";
+import type { AnimatedIconHandle } from "#/components/ui/types";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -29,6 +31,7 @@ import {
 } from "#/components/ui/table";
 import { api } from "#convex/_generated/api";
 import { EditorNotesDialog } from "#studio/features/admin/components/EditorNotesDialog";
+import { InviteUserDialog } from "#studio/features/admin/components/InviteUserDialog";
 import {
 	editorWorkStatusBadgeClassNames,
 	editorWorkStatusLabels,
@@ -46,6 +49,8 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
+	const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+	const inviteIconRef = useRef<AnimatedIconHandle | null>(null);
 	const visibleEditors = editors.filter((editor) => editor.isActive !== showRetired);
 
 	async function handleAccessChange(editor: ManagedEditor) {
@@ -67,17 +72,33 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 	return (
 		<>
 			<section className="flex flex-col gap-4">
-				<div className="flex items-center justify-end gap-2">
-					<label
-						htmlFor="show-retired-employees"
-						className="text-sm text-muted-foreground">
-						Show retired
-					</label>
-					<Switch
-						id="show-retired-employees"
-						checked={showRetired}
-						onCheckedChange={setShowRetired}
-					/>
+				<div className="flex items-center justify-between gap-4">
+					<Button
+						variant="outline"
+						onClick={() => setIsInviteDialogOpen(true)}
+						onPointerEnter={() => inviteIconRef.current?.startAnimation()}
+						onPointerLeave={() => inviteIconRef.current?.stopAnimation()}
+						onFocus={() => inviteIconRef.current?.startAnimation()}
+						onBlur={() => inviteIconRef.current?.stopAnimation()}>
+						<MailFilledIcon
+							ref={inviteIconRef}
+							size={16}
+							aria-hidden
+						/>
+						Invite User
+					</Button>
+					<div className="flex items-center justify-end gap-2">
+						<label
+							htmlFor="show-retired-employees"
+							className="text-sm text-muted-foreground">
+							Show retired
+						</label>
+						<Switch
+							id="show-retired-employees"
+							checked={showRetired}
+							onCheckedChange={setShowRetired}
+						/>
+					</div>
 				</div>
 
 				<div className="overflow-x-auto border-y">
@@ -200,6 +221,10 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 					}}
 				/>
 			) : null}
+			<InviteUserDialog
+				open={isInviteDialogOpen}
+				onOpenChange={setIsInviteDialogOpen}
+			/>
 		</>
 	);
 }
