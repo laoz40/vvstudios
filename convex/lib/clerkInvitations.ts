@@ -2,6 +2,7 @@
 
 import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import { z } from "zod";
+import { studioSite } from "#/config/sites";
 import { env } from "#convex/env";
 
 const clerkInvitationsUrl = "https://api.clerk.com/v1/invitations";
@@ -78,7 +79,11 @@ export function createClerkInvitation(email: string) {
 				Authorization: `Bearer ${env.CLERK_SECRET_KEY}`,
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({ email_address: email, notify: true })
+			body: JSON.stringify({
+				email_address: email,
+				notify: true,
+				redirect_url: new URL(studioSite.routes.login, env.STRIPE_CHECKOUT_RETURN_URL).href
+			})
 		}),
 		() => ({ reason: "CLERK_INVITATION_FAILED" as const })
 	).andThen((response) =>

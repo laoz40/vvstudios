@@ -65,11 +65,8 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 			onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Invite user</DialogTitle>
-					<DialogDescription>
-						Send a Clerk invitation email so this person can create an account while public sign-ups
-						stay disabled.
-					</DialogDescription>
+					<DialogTitle>Invite editor</DialogTitle>
+					<DialogDescription>This will send an invitation email for the editor to create an account.</DialogDescription>
 				</DialogHeader>
 				<Field data-invalid={fieldError !== null || undefined}>
 					<FieldLabel htmlFor="invite-user-email">Email</FieldLabel>

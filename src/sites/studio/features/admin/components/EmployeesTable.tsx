@@ -85,7 +85,7 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 							size={16}
 							aria-hidden
 						/>
-						Invite User
+						Invite editor
 					</Button>
 					<div className="flex items-center justify-end gap-2">
 						<label

@@ -58,7 +58,7 @@ export function getInviteUserErrorMessage(reason: InviteUserErrorReason) {
 		case "EMAIL_DOMAIN_INVALID":
 			return "This email domain doesn't appear able to receive email. Please check for typos.";
 		case "USER_EXISTS":
-			return "A Clerk account already exists for this email.";
+			return "An account already exists for this email.";
 		case "INVITATION_PENDING":
 			return "An invitation is already pending for this email.";
 		case "CLERK_INVITATION_FAILED":
@@ -66,7 +66,7 @@ export function getInviteUserErrorMessage(reason: InviteUserErrorReason) {
 		case "NOT_AUTHENTICATED":
 			return "Your session has expired. Sign in again.";
 		case "NOT_AUTHORIZED":
-			return "You don't have permission to invite users.";
+			return "You don't have permission to invite editors.";
 		case "UNEXPECTED_ERROR":
 			return "The invitation could not be sent. Please try again.";
 		default: {

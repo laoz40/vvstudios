@@ -30,7 +30,11 @@ import { createConvexTest } from "#convex/test.setup";
 const providerFakes = vi.hoisted(() => ({ fetch: vi.fn(), resolveMx: vi.fn() }));
 
 vi.mock("#convex/env", () => ({
-	env: { CLERK_FRONTEND_API_URL: "https://clerk.example", CLERK_SECRET_KEY: "sk_test" }
+	env: {
+		CLERK_FRONTEND_API_URL: "https://clerk.example",
+		CLERK_SECRET_KEY: "sk_test",
+		STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return"
+	}
 }));
 
 vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
@@ -133,7 +137,11 @@ describe("employee invitations", () => {
 			expect.objectContaining({
 				method: "POST",
 				headers: { Authorization: "Bearer sk_test", "Content-Type": "application/json" },
-				body: JSON.stringify({ email_address: inviteEmail, notify: true })
+				body: JSON.stringify({
+					email_address: inviteEmail,
+					notify: true,
+					redirect_url: "https://example.com/login"
+				})
 			})
 		);
 	});
