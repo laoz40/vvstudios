@@ -1296,15 +1296,17 @@ async function loadSavedPackageSessionNumbers(
 ) {
 	const savedNumbers = new Set<number>();
 	const packageBookings = await loadPackageBookings(ctx, multiBookingId);
-	for (const packageBooking of packageBookings) {
-		const driveSession = await ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
-			.unique();
-		if (driveSession?.packageSessionNumber !== undefined) {
-			savedNumbers.add(driveSession.packageSessionNumber);
-		}
-	}
+	await Promise.all(
+		packageBookings.map(async (packageBooking) => {
+			const driveSession = await ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
+				.unique();
+			if (driveSession?.packageSessionNumber !== undefined) {
+				savedNumbers.add(driveSession.packageSessionNumber);
+			}
+		})
+	);
 	return savedNumbers;
 }
 
@@ -1314,15 +1316,18 @@ async function loadSharedPackageFolder(
 	currentBookingId: Id<"bookings">
 ) {
 	const packageBookings = await loadPackageBookings(ctx, packageId);
-	for (const packageBooking of packageBookings) {
-		if (packageBooking._id === currentBookingId) continue;
-		const driveSession = await ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
-			.unique();
-		if (driveSession?.packageFolder !== undefined) return driveSession.packageFolder;
-	}
-	return undefined;
+	const sharedFolders = await Promise.all(
+		packageBookings
+			.filter((packageBooking) => packageBooking._id !== currentBookingId)
+			.map(async (packageBooking) => {
+				const driveSession = await ctx.db
+					.query("driveSessions")
+					.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
+					.unique();
+				return driveSession?.packageFolder;
+			})
+	);
+	return sharedFolders.find((packageFolder) => packageFolder !== undefined);
 }
 
 async function loadPackageBookings(ctx: QueryCtx, multiBookingId: Id<"multiBookingPackages">) {
