@@ -11,7 +11,8 @@
  *    Creates one global assets library and dated session media folders.
  *
  * 4. Client access
- *    Adds the required permissions and sends one assets email.
+ *    Adds an editor guest link on assets, reader access on the client folder, and sends one assets email.
+
  *
  * 5. Permission retry
  *    Retries failed permissions without recreating folders or resending email.
@@ -139,6 +140,9 @@
  * 46. Session client assets status
  *     Shows assets from driveSessions.driveClientId when booking.driveClientId points elsewhere.
  *
+ * 47. Missing Google account
+ *     Skips client-folder user sharing without failing setup, and still sends the assets guest link.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -184,10 +188,11 @@ const driveFake = vi.hoisted(() => {
 		fileId: string;
 		id: string;
 		role: "reader" | "writer" | "commenter" | "owner";
+		type?: "anyone" | "user";
 	};
 	type PermissionCreateRequest = {
 		fileId: string;
-		requestBody?: { emailAddress?: string; role?: Permission["role"] };
+		requestBody?: { emailAddress?: string; role?: Permission["role"]; type?: "anyone" | "user" };
 		sendNotificationEmail?: boolean;
 	};
 	type PermissionListRequest = { fileId: string };
@@ -214,6 +219,7 @@ const driveFake = vi.hoisted(() => {
 			vi.fn<(request: PermissionListRequest) => Promise<{ data: { permissions: Permission[] } }>>(),
 		failCreateNameOnce: String(),
 		failPermissionRoleOnce: String(),
+		failNextPermissionAsMissingGoogleAccount: false,
 		loseCreateResponseNameOnce: String(),
 		failNextDelete: false
 	};
@@ -284,6 +290,7 @@ beforeEach(() => {
 	driveFake.permissions.clear();
 	driveFake.failCreateNameOnce = "";
 	driveFake.failPermissionRoleOnce = "";
+	driveFake.failNextPermissionAsMissingGoogleAccount = false;
 	driveFake.loseCreateResponseNameOnce = "";
 	driveFake.failNextDelete = false;
 	emailFake.sendClientAssetsEmail.mockReturnValue(okAsync(null));
@@ -336,15 +343,33 @@ beforeEach(() => {
 	});
 	driveFake.permissionsCreate.mockImplementation(async (request) => {
 		const role = request.requestBody?.role ?? "reader";
+		if (
+			driveFake.failNextPermissionAsMissingGoogleAccount &&
+			request.requestBody?.type === "user"
+		) {
+			driveFake.failNextPermissionAsMissingGoogleAccount = false;
+			throw {
+				response: {
+					status: 400,
+					data: {
+						error: {
+							errors: [{ reason: "invalidSharingRequest" }],
+							message: "The specified user does not exist or does not have a Google Account"
+						}
+					}
+				}
+			};
+		}
 		if (driveFake.failPermissionRoleOnce === role) {
 			driveFake.failPermissionRoleOnce = "";
 			throw new Error("Drive permission create failed");
 		}
 		const permission = {
-			emailAddress: request.requestBody?.emailAddress ?? "",
+			emailAddress: request.requestBody?.emailAddress,
 			fileId: request.fileId,
 			id: `permission-${driveFake.permissions.size + 1}`,
-			role
+			role,
+			type: request.requestBody?.type
 		};
 		driveFake.permissions.set(permission.id, permission);
 		return { data: permission };
@@ -444,7 +469,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 	});
 
-	test("grants client writer access to global assets and emails its reusable link", async () => {
+	test("grants an editor guest link to global assets and emails its reusable link", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -455,11 +480,12 @@ describe("Google Drive scheduled workspace setup", () => {
 			driveFake.permissionsCreate.mock.calls.map(([request]) => ({
 				fileId: request.fileId,
 				role: request.requestBody?.role,
-				sendNotificationEmail: request.sendNotificationEmail
+				sendNotificationEmail: request.sendNotificationEmail,
+				type: request.requestBody?.type
 			}))
 		).toEqual([
-			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false },
-			{ fileId: "folder-2", role: "writer", sendNotificationEmail: false }
+			{ fileId: "folder-2", role: "writer", sendNotificationEmail: false, type: "anyone" },
+			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false, type: "user" }
 		]);
 		expect(
 			driveFake.permissionsCreate.mock.calls.some(
@@ -476,6 +502,24 @@ describe("Google Drive scheduled workspace setup", () => {
 			email: "customer@example.com",
 			name: "Test customer"
 		});
+	});
+
+	test("skips client Drive sharing when the email is not a Google account", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		driveFake.failNextPermissionAsMissingGoogleAccount = true;
+
+		const result = await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(result).toEqual([null, null]);
+		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
+		expect(state.driveSession).toMatchObject({
+			clientDrivePermissionsStatus: "skipped",
+			assetsEmailStatus: "sent",
+			deliverablesFolder: { id: "folder-5" }
+		});
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
 	});
 
 	test("reuses one global assets library across sessions for the same client", async () => {
@@ -1584,7 +1628,7 @@ describe("Google Drive reschedule and identity", () => {
 		});
 		expect(
 			driveFake.permissionsCreate.mock.calls.map(([request]) => request.requestBody?.emailAddress)
-		).toEqual(["customer@example.com", "customer@example.com"]);
+		).toEqual([undefined, "customer@example.com"]);
 		expect(status[1]).toMatchObject({ bookingEmailChanged: true, workspaceNameChanged: false });
 	});
 

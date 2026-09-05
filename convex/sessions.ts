@@ -54,7 +54,7 @@ const savedDriveFolderValidator = v.object({
 });
 const savedDrivePermissionValidator = v.object({
 	id: v.string(),
-	emailAddress: v.string(),
+	emailAddress: v.optional(v.string()),
 	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
 });
 
@@ -149,7 +149,10 @@ export const saveClientDrivePermission = internalMutation({
 });
 
 export const saveClientDrivePermissionsStatus = internalMutation({
-	args: { bookingId: v.id("bookings"), status: v.union(v.literal("failed"), v.literal("ready")) },
+	args: {
+		bookingId: v.id("bookings"),
+		status: v.union(v.literal("failed"), v.literal("ready"), v.literal("skipped"))
+	},
 	handler: (ctx, args) => saveClientDrivePermissionsStatusRecord(ctx, args).match(tupleOk, tupleErr)
 });
 

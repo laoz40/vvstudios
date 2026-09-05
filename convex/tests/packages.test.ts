@@ -372,20 +372,6 @@ describe("package request creation", () => {
 		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
 	});
 
-	test("rejects a non-Gmail email before DNS or invoice delivery", async () => {
-		const t = createConvexTest();
-
-		const result = await t.action(api.packagePayment.createPackageRequest, {
-			...validRequest,
-			email: "customer@example.com"
-		});
-
-		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
-		expect(await readPackages(t)).toEqual([]);
-		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
-		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
-	});
-
 	test("preserves the package and records a failed invoice delivery for retry", async () => {
 		const t = createConvexTest();
 		providerFakes.sendInvoiceEmail.mockResolvedValue(err({ reason: "INVOICE_SEND_FAILED" }));

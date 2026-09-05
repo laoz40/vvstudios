@@ -47,12 +47,6 @@ export function ClientAssetsEmail({ assetsUrl, name, signoffName }: ClientAssets
 							Upload assets for your edit
 						</Button>
 					</Section>
-					<Section style={accountNotice}>
-						<Text style={accountNoticeText}>
-							When opening the folder, sign in to Google with the same email address that received
-							this email.
-						</Text>
-					</Section>
 					<Section style={sessionNotice}>
 						<Text style={sectionTitle}>Uploading files for a particular session?</Text>
 						<Text style={sessionNoticeText}>
@@ -109,19 +103,6 @@ const button = {
 	fontWeight: "600",
 	padding: "12px 18px",
 	textDecoration: "none"
-};
-const accountNotice = {
-	backgroundColor: "#3a3a3a",
-	border: "1px solid #5a5a5a",
-	borderRadius: "12px",
-	padding: "16px"
-};
-const accountNoticeText = {
-	color: "#fafafa",
-	fontSize: "15px",
-	fontWeight: "700",
-	lineHeight: "24px",
-	margin: "0"
 };
 const contactSection = { margin: "0 0 20px" };
 const contactParagraph = { ...paragraph, margin: "4px 0 12px" };

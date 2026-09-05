@@ -62,24 +62,9 @@ export function FirstTimeDeliverablesEmail({
 					</Section>
 
 					<Section style={compactSection}>
-						<Text style={subtleSectionTitle}>How to save the folder</Text>
-						<Section style={instructionCard}>
-							<Text style={detailLine}>1. Click “Access Your Deliverables Here” below.</Text>
-							<Text style={detailLine}>2. Sign in with your preferred Google account.</Text>
-							<Section style={stepGroup}>
-								<Text style={groupedDetailLine}>3. Add the folder to your starred items:</Text>
-								<Text style={nestedDetailLine}>
-									<strong>Mobile:</strong> Tap the three dots &gt; Select “Add to Starred”
-								</Text>
-								<Text style={lastNestedDetailLine}>
-									<strong>Desktop:</strong> Click [YOUR NAME x VV Studios] &gt; Organize &gt; Add to
-									starred
-								</Text>
-							</Section>
-							<Text style={lastDetailLine}>
-								4. To find it later, open Google Drive and go to the “Starred” section.
-							</Text>
-						</Section>
+						<Text style={paragraph}>
+							Open the link below to view your files. You do not need a Google account.
+						</Text>
 					</Section>
 
 					<Section style={buttonWrapper}>
@@ -177,32 +162,6 @@ const sectionTitle = {
 	margin: "0 0 8px",
 	textTransform: "uppercase" as const
 };
-
-const subtleSectionTitle = {
-	color: "#fafafa",
-	fontSize: "13px",
-	fontWeight: "600",
-	margin: "0 0 8px"
-};
-
-const instructionCard = {
-	backgroundColor: "#383838",
-	border: "1px solid #454545",
-	borderRadius: "12px",
-	padding: "16px"
-};
-
-const detailLine = { color: "#fafafa", fontSize: "14px", lineHeight: "20px", margin: "0 0 12px" };
-
-const stepGroup = { margin: "0 0 12px" };
-
-const groupedDetailLine = { ...detailLine, margin: "0 0 1px" };
-
-const nestedDetailLine = { ...detailLine, margin: "0 0 1px 16px" };
-
-const lastNestedDetailLine = { ...detailLine, margin: "0 0 0 16px" };
-
-const lastDetailLine = { ...detailLine, margin: "0" };
 
 const buttonWrapper = { margin: "28px 0", textAlign: "center" as const };
 

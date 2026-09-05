@@ -5,7 +5,6 @@ import { BookingNotesField } from "#studio/features/booking-form/components/Book
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-form-model";
-import { maybeOpenGmailRequiredModal } from "#studio/features/booking-form/lib/booking-modal-store";
 
 const fieldSetClassName = "gap-5 md:gap-6";
 const fieldStackClassName = "gap-1 md:gap-2";
@@ -24,7 +23,7 @@ const sectionCopy = {
 	abnLabel: "ABN",
 	abnPlaceholder: "00 000 000 000",
 	emailLabel: "Email *",
-	emailPlaceholder: "example@gmail.com"
+	emailPlaceholder: "you@example.com"
 } as const;
 
 export function BookingContactSection() {
@@ -105,10 +104,7 @@ export function BookingContactSection() {
 									className={formControlShadowClassName}
 									value={field.state.value}
 									onChange={(event) => field.handleChange(event.target.value)}
-									onBlur={() => {
-										field.handleBlur();
-										maybeOpenGmailRequiredModal(field.state.value);
-									}}
+									onBlur={field.handleBlur}
 								/>
 								{field.state.meta.isBlurred || shouldShowFieldError ? (
 									<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />

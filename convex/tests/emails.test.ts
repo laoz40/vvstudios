@@ -15,6 +15,7 @@
  *
  * 5. Admin deliverables email
  *    Admin sends use the saved folder URL, detected customer type, and optional editor notes.
+ *    Sending always adds anyone-with-the-link viewer access on the Deliverables folder.
  *
  * 6. Completed session skip
  *    A session already marked completed does not send again.
@@ -45,6 +46,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
+	ensureAnyoneReaderPermission: vi.fn(),
 	listDriveFolderChildren: vi.fn(),
 	loadDriveClient: vi.fn(),
 	rateLimit: vi.fn(),
@@ -66,6 +68,7 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 vi.mock("#convex/lib/googleDrive", () => ({
+	ensureAnyoneReaderPermission: providerFakes.ensureAnyoneReaderPermission,
 	listDriveFolderChildren: providerFakes.listDriveFolderChildren,
 	loadDriveClient: providerFakes.loadDriveClient
 }));
@@ -91,6 +94,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	providerFakes.rateLimit.mockResolvedValue({ ok: true });
 	providerFakes.loadDriveClient.mockReturnValue(okAsync({}));
+	providerFakes.ensureAnyoneReaderPermission.mockReturnValue(okAsync(null));
 	providerFakes.listDriveFolderChildren.mockReturnValue(okAsync([{ id: "file-1" }]));
 	providerFakes.sendDeliverablesEmail.mockReturnValue(okAsync(null));
 	providerFakes.sendFeedbackEmail.mockResolvedValue(okAsync(null));
@@ -185,6 +189,10 @@ describe("deliverables email", () => {
 			emailVariant: "recurring",
 			name: "Deliverables customer"
 		});
+		expect(providerFakes.ensureAnyoneReaderPermission).toHaveBeenCalledWith(
+			{},
+			savedDeliverablesFolder.id
+		);
 	});
 
 	test("does not send again when the session is already completed", async () => {
