@@ -7,7 +7,12 @@ import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import type { PhotoGalleryImage } from "#studio/content/photos";
-import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
+import {
+	landingContactActionsStackedClassName,
+	landingSectionContentGapClassName,
+	landingSectionHeadingClassName,
+	landingSectionIntroGapClassName
+} from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 const testimonialCopy = {
@@ -61,10 +66,11 @@ export function LandingTestimonials() {
 	return (
 		<section
 			aria-labelledby="landing-testimonials-title"
-			className="px-4 pt-28 pb-16 md:px-12 md:pt-40 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
+			className="px-4 pt-20 pb-16 md:px-12 md:pt-40 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
 			<motion.div
 				className={cn(
-					"flex flex-col items-start gap-10 md:items-center",
+					"flex flex-col items-start md:items-center",
+					landingSectionIntroGapClassName,
 					"w-full",
 					"text-left md:text-center"
 				)}
@@ -76,7 +82,12 @@ export function LandingTestimonials() {
 				</h2>
 
 				<div
-					className={cn("grid gap-10 md:grid-cols-2 md:items-stretch", "w-full", "md:text-left")}>
+					className={cn(
+						"grid md:grid-cols-2 md:items-stretch",
+						landingSectionContentGapClassName,
+						"w-full",
+						"md:text-left"
+					)}>
 					<ImageViewerTrigger
 						image={testimonialImage}
 						onSelect={setPreviewImage}
@@ -140,7 +151,9 @@ export function LandingTestimonials() {
 							imageClassName="absolute inset-0 size-full object-cover"
 						/>
 
-						<ContactActions className="md:justify-start" />
+						<ContactActions
+							className={cn(landingContactActionsStackedClassName, "md:justify-start")}
+						/>
 					</div>
 				</div>
 			</motion.div>

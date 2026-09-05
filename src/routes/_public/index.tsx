@@ -13,6 +13,7 @@ import {
 	seoMetadata
 } from "#/lib/seo";
 import { cn } from "#/lib/utils";
+import { landingPageSectionsGapClassName } from "#studio/lib/landing-styles";
 
 export const Route = createFileRoute("/_public/")({
 	head: () => ({
@@ -47,7 +48,8 @@ function HomeRoute() {
 				className={cn(
 					// Landing content overlap and spotlight
 					"landing-page-content-overlap page-spotlight-background",
-					"relative z-10 flex flex-col gap-16 md:gap-20"
+					"relative z-10 flex flex-col",
+					landingPageSectionsGapClassName
 				)}>
 				<LandingTestimonials />
 				<LandingGallery />

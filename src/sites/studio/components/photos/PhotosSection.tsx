@@ -9,6 +9,7 @@ import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 export interface PhotosSectionProps {
 	className?: string;
+	contactActionsClassName?: string;
 	headingLevel?: "h1" | "h2";
 	images?: PhotoGalleryImage[];
 	mobileImages?: PhotoGalleryImage[];
@@ -18,6 +19,7 @@ export interface PhotosSectionProps {
 
 export function PhotosSection({
 	className,
+	contactActionsClassName,
 	headingLevel = "h2",
 	images = photosPageContent.galleryImages,
 	mobileImages,
@@ -87,7 +89,7 @@ export function PhotosSection({
 						))}
 					</div>
 				</div>
-				<ContactActions className="max-w-3xl" />
+				<ContactActions className={cn("max-w-3xl", contactActionsClassName)} />
 			</motion.div>
 			<ImageViewer
 				image={previewImage}

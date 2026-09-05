@@ -11,6 +11,11 @@ import { ContactActions } from "#studio/components/contact/ContactActions";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import type { PhotoGalleryImage } from "#studio/content/photos";
+import {
+	landingContactActionsStackedClassName,
+	landingSectionContentGapClassName,
+	landingSectionHeadingAfterClassName
+} from "#studio/lib/landing-styles";
 
 export type LandingFaqProps = { id?: string };
 
@@ -30,8 +35,19 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 			className="px-4 pb-16 md:px-12 md:pb-20 lg:px-24 xl:px-32 2xl:px-48"
 			containerClassName="w-full"
 			fadeIn>
-			<div className={cn("grid gap-10 md:grid-cols-2 md:items-start", "w-full", "mt-6 md:mt-10")}>
-				<div className={cn("order-2 flex flex-col gap-6 md:order-1", "w-full")}>
+			<div
+				className={cn(
+					"grid md:grid-cols-2 md:items-start",
+					landingSectionContentGapClassName,
+					landingSectionHeadingAfterClassName,
+					"w-full"
+				)}>
+				<div
+					className={cn(
+						"order-2 flex flex-col md:order-1",
+						landingSectionContentGapClassName,
+						"w-full"
+					)}>
 					<ImageViewerTrigger
 						image={faqImage}
 						onSelect={setPreviewImage}
@@ -44,7 +60,9 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 						imageClassName="h-full w-full object-cover"
 					/>
 
-					<ContactActions className="mt-7 md:mt-0 md:justify-start" />
+					<ContactActions
+						className={cn(landingContactActionsStackedClassName, "md:justify-start")}
+					/>
 				</div>
 
 				<Accordion
