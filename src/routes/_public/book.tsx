@@ -27,7 +27,6 @@ import {
 	INITIAL_FORM,
 	publicBookingSchema
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { maybeOpenGmailRequiredModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
 	termsDialogPendingError,
 	useBookingSubmit
@@ -131,7 +130,6 @@ function BookingPage() {
 							.handleSubmit()
 							.then(() => {
 								if (!formApi.state.isValid) {
-									maybeOpenGmailRequiredModal(formApi.state.values.email);
 									bookingSubmit.resetTermsSubmit();
 									scrollToFirstBookingFormError(formRef);
 								}

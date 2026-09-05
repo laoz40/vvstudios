@@ -126,21 +126,6 @@ describe("single-session checkout creation", () => {
 		expect(providerFakes.createCheckoutSession).not.toHaveBeenCalled();
 	});
 
-	test("rejects a non-Gmail email before DNS or checkout creation", async () => {
-		const t = createConvexTest();
-		await seedBookingSettings(t);
-
-		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, {
-			...validBooking,
-			email: "customer@example.com"
-		});
-
-		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
-		expect(await listBookings(t)).toEqual([]);
-		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
-		expect(providerFakes.createCheckoutSession).not.toHaveBeenCalled();
-	});
-
 	const unavailableCases: AvailabilityCase[] = [
 		{
 			label: "past time",
