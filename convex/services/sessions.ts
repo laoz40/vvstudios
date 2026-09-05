@@ -2,28 +2,111 @@ import { ConvexError } from "convex/values";
 import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
+import {
+	buildActiveEditorProjection,
+	listActiveEditorProfiles,
+	updateSessionEditorAssignment
+} from "#convex/lib/editorAssignments";
+import {
+	buildEditorSessionProjection,
+	detectDeliverablesCustomerType,
+	isEditorVisibleSession,
+	requireDeliverablesEligibility,
+	requireDeliverablesOwnership,
+	saveSessionAdminNotes,
+	saveSessionEditorNotes,
+	saveSessionEditStatus
+} from "#convex/lib/editorSessions";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
+import {
+	getDriveStatus,
+	getDriveWorkflowFailureForBooking,
+	getEditorSessionDriveFolders
+} from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
-type ListSessionsArgs = { paginationOpts: { numItems: number; cursor: string | null } };
+type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
+type ListSessionsArgs = PaginationArgs;
+type ListEditorSessionsArgs = PaginationArgs;
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
+type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
 type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "completed";
+	editStatus: "to_edit" | "editing" | "review" | "completed";
 };
+type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
+type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: string };
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
+type GetDriveStatusArgs = { bookingId: Id<"bookings"> };
+type AssignSessionEditorArgs = {
+	bookingId: Id<"bookings">;
+	editorTokenIdentifier: string | null;
+	adminNotes: string;
+};
+
+export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
+		getDriveStatus(ctx, args.bookingId)
+	);
+}
+
+export function getDeliverablesCustomerTypeService(
+	ctx: QueryCtx,
+	args: GetDeliverablesCustomerTypeArgs
+) {
+	return requirePermission(ctx, "send:deliverables-email")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(requireDeliverablesEligibility)
+		.andThen((session) => detectDeliverablesCustomerType(ctx, session));
+}
+
+export function listActiveEditorsService(ctx: QueryCtx) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => listActiveEditorProfiles(ctx))
+		.andThen((editors) =>
+			okOrThrow(Promise.all(editors.map((editor) => buildActiveEditorProjection(ctx, editor))))
+		);
+}
+
+export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSessionsArgs) {
+	return requirePermission(ctx, "view:sessions")
+		.andThen((identity) =>
+			okOrThrow(
+				ctx.db
+					.query("bookings")
+					.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+						query.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
+					)
+					.order("desc")
+					.paginate(args.paginationOpts)
+			)
+		)
+		.andThen((bookingsPage) => {
+			const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
+			return okOrThrow(
+				Promise.all(
+					visibleSessions.map(async (session) =>
+						buildEditorSessionProjection(session, await getEditorSessionDriveFolders(ctx, session))
+					)
+				)
+			).map((page) => ({ ...bookingsPage, page }));
+		});
+}
 
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
-	await getAdminIdentity(ctx).match(
+	await requirePermission(ctx, "view:sensitive-booking-data").match(
 		() => null,
 		(authError) => {
 			throw new ConvexError(authError);
@@ -40,12 +123,14 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {
+			const hasDriveWorkflowFailure = await getDriveWorkflowFailureForBooking(ctx, session);
+
 			if (!session.multiBookingPackageId) {
-				return session;
+				return { ...session, hasDriveWorkflowFailure };
 			}
 
 			const multiBookingPackage = await ctx.db.get(session.multiBookingPackageId);
-			if (!multiBookingPackage) return session;
+			if (!multiBookingPackage) return { ...session, hasDriveWorkflowFailure };
 			const packageSessions = await getCapacityConsumingPackageSessions(
 				ctx,
 				multiBookingPackage._id,
@@ -54,6 +139,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 			return {
 				...session,
+				hasDriveWorkflowFailure,
 				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
 					multiBookingPackage._id,
 					multiBookingPackage.createdAt
@@ -126,8 +212,16 @@ export function saveSessionInstagramHandleService(
 		);
 }
 
+export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen((session) =>
+			updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
+		);
+}
+
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
 			okOrThrow(
@@ -142,7 +236,7 @@ export function updateSessionPaidStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionPaidStatusArgs
 ) {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "update:payment-status")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen((session) =>
 			okOrThrow(
@@ -153,15 +247,35 @@ export function updateSessionPaidStatusService(
 		);
 }
 
+export function updateSessionAdminNotesService(
+	ctx: MutationCtx,
+	args: UpdateSessionAdminNotesArgs
+) {
+	return requirePermission(ctx, "assign:session-editor")
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes));
+}
+
+export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionNotesArgs) {
+	return requirePermission(ctx, "update:deliverables")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes));
+}
+
 export function updateSessionEditStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionEditStatusArgs
 ) {
-	return getAdminIdentity(ctx)
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			okOrThrow(ctx.db.patch(session._id, { editStatus: args.editStatus }).then(() => null))
-		);
+	return requirePermission(ctx, "update:deliverables")
+		.andThen((identity) =>
+			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen(requireDeliverablesEligibility)
+		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus));
 }
 
 export function markSessionCalendarEventDeletedService(

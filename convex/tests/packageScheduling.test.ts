@@ -23,7 +23,10 @@
  *
  * 6. Successful scheduling
  *    One matching Calendar event and confirmed Convex booking are created with
- *    the package snapshot, session choices, package link, and Calendar IDs.
+ *    the package snapshot, session choices, package link, and Calendar IDs. Both
+ *    sessions of the same package email share one Drive client record created
+ *    without folders yet, and schedule Drive setup for session end instead of
+ *    creating folders during booking.
  *
  * 7. Concurrent final-slot requests
  *    When two requests race for the last package session, only one booking wins
@@ -265,6 +268,35 @@ describe("package session creation validation", () => {
 		expect(result).toEqual([null, { bookingId: bookings[0]?._id }]);
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
 		expect(providerFakes.deleteEvent).not.toHaveBeenCalled();
+	});
+
+	test("links one Drive client record across sessions and defers folder setup", async () => {
+		const t = createConvexTest();
+		const { token } = await seedPackage(t);
+
+		const firstResult = await t.action(api.packageScheduling.createPackageSession, {
+			token,
+			...target
+		});
+		const secondResult = await t.action(api.packageScheduling.createPackageSession, {
+			token,
+			...target
+		});
+		const bookings = await readBookings(t);
+		const driveClients = await t.run((ctx) => ctx.db.query("driveClients").collect());
+		const driveSessions = await t.run((ctx) => ctx.db.query("driveSessions").collect());
+
+		expect(firstResult[0]).toBeNull();
+		expect(secondResult[0]).toBeNull();
+		expect(bookings).toHaveLength(2);
+		expect(bookings[0]?.driveClientId).toBeDefined();
+		expect(bookings[1]?.driveClientId).toEqual(bookings[0]?.driveClientId);
+		// Booking creates the client record and schedules setup; folders appear after session end.
+		expect(driveClients).toHaveLength(1);
+		expect(driveClients[0]).toMatchObject({ normalizedEmail: "customer@example.com" });
+		expect(driveClients[0]?.folderId).toBeUndefined();
+		expect(driveClients[0]?.folderUrl).toBeUndefined();
+		expect(driveSessions).toHaveLength(0);
 	});
 
 	test("allows one winner when two requests race for the final package slot", async () => {

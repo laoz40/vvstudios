@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
+import { DriveFoldersDialog } from "#studio/features/admin/components/DriveFoldersDialog";
 import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
+import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
-import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
+import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
 import { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
@@ -15,9 +18,19 @@ import {
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
-export type SessionActionsProps = { session: SessionRecord };
+export type SessionActionsProps = {
+	activeEditors: ActiveEditor[];
+	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
+	session: SessionRecord;
+};
 
-export function SessionActions({ session }: SessionActionsProps) {
+export function SessionActions({
+	activeEditors,
+	deliverablesEmailAction,
+	session
+}: SessionActionsProps) {
+	const [isAdminNotesDialogOpen, setIsAdminNotesDialogOpen] = useState(false);
+	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const details: SessionActionDetails = {
@@ -30,7 +43,6 @@ export function SessionActions({ session }: SessionActionsProps) {
 	};
 
 	const deleteAction = useDeleteAction(session);
-	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const editAction = useEditAction(session);
 	const invoiceActions = useInvoiceActions(session);
 	const paymentActions = usePaymentActions(session);
@@ -40,6 +52,7 @@ export function SessionActions({ session }: SessionActionsProps) {
 	return (
 		<>
 			<SessionActionsMenu
+				activeEditors={activeEditors}
 				session={session}
 				details={details}
 				deleteAction={deleteAction}
@@ -49,6 +62,17 @@ export function SessionActions({ session }: SessionActionsProps) {
 				paymentActions={paymentActions}
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
+				onOpenDrive={() => setIsDriveDialogOpen(true)}
+				onEditAdminNotes={() => setIsAdminNotesDialogOpen(true)}
+			/>
+			<DriveFoldersDialog
+				bookingId={session._id}
+				clientName={session.name}
+				accountName={session.accountName}
+				sessionDate={session.date}
+				sessionTime={session.time}
+				open={isDriveDialogOpen}
+				onOpenChange={setIsDriveDialogOpen}
 			/>
 			<SessionActionsDialogs
 				session={session}
@@ -58,6 +82,8 @@ export function SessionActions({ session }: SessionActionsProps) {
 				editAction={editAction}
 				invoiceActions={invoiceActions}
 				rescheduleAction={rescheduleAction}
+				isAdminNotesDialogOpen={isAdminNotesDialogOpen}
+				onAdminNotesDialogOpenChange={setIsAdminNotesDialogOpen}
 			/>
 		</>
 	);

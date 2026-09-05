@@ -11,21 +11,21 @@ const AdminPage = lazy(() =>
 	}))
 );
 
-export const Route = createFileRoute("/_auth/admin")({
-	head: () => buildNoIndexHead("Admin Dashboard | VV Studios"),
-	errorComponent: AdminRouteError,
-	component: AdminRoute
+export const Route = createFileRoute("/_auth/dashboard")({
+	head: () => buildNoIndexHead("Dashboard | VV Studios"),
+	errorComponent: DashboardRouteError,
+	component: DashboardRoute
 });
 
-function AdminRoute() {
+function DashboardRoute() {
 	return (
-		<Suspense fallback={<AdminRouteLoading />}>
+		<Suspense fallback={<DashboardRouteLoading />}>
 			<AdminPage />
 		</Suspense>
 	);
 }
 
-function AdminRouteLoading() {
+function DashboardRouteLoading() {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12">
 			<StudioLoadingState label="Calibrating systems" />
@@ -33,11 +33,11 @@ function AdminRouteLoading() {
 	);
 }
 
-function AdminRouteError() {
+function DashboardRouteError() {
 	return (
 		<main className="grid min-h-dvh place-items-center px-6 py-12 text-center">
 			<div className="max-w-md space-y-4">
-				<h1 className="text-3xl font-semibold tracking-tight">Could not load admin dashboard.</h1>
+				<h1 className="text-3xl font-semibold tracking-tight">Could not load dashboard.</h1>
 				<p className="text-muted-foreground">
 					Your session may have expired, or this account may not have permission to view bookings.
 				</p>

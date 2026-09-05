@@ -9,8 +9,8 @@ export default function AppClerkProvider({ children }: { children: React.ReactNo
 		<ClerkProvider
 			publishableKey={PUBLISHABLE_KEY}
 			signInUrl={studioSite.routes.login}
-			signInForceRedirectUrl={studioSite.routes.admin}
-			signUpForceRedirectUrl={studioSite.routes.admin}
+			signInForceRedirectUrl={studioSite.routes.dashboard}
+			signUpForceRedirectUrl={studioSite.routes.dashboard}
 			afterSignOutUrl={studioSite.routes.login}>
 			{children}
 		</ClerkProvider>

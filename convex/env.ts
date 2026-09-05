@@ -4,9 +4,11 @@ import { z } from "zod";
 export const env = createEnv({
 	server: {
 		CLERK_FRONTEND_API_URL: z.string().min(1),
+		CLERK_SECRET_KEY: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_REFRESH_TOKEN: z.string().min(1),
+		GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().min(1),
 		GOOGLE_CALENDAR_ID: z.string().min(1),
 		GOOGLE_CALENDAR_AVAILABILITY_IDS: z.string().min(1).optional(),
 		GOOGLE_CALENDAR_TIMEZONE: z.string().min(1),

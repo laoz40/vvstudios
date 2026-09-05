@@ -18,10 +18,11 @@ import { cn } from "#/lib/utils";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { PackageActionDialogs } from "#studio/features/admin/components/PackageActionDialogs";
 import { PackageOtherActionsMenu } from "#studio/features/admin/components/PackageOtherActionsMenu";
-import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
+import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
 import { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import {
 	getPackageArchiveActionLabel,
+	isAdminPackageAdjustmentPaymentEligible,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 
@@ -62,7 +63,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					align="end"
-					className="w-60 touch-manipulation">
+					className="w-80 touch-manipulation">
 					<DropdownMenuGroup>
 						<div className="flex items-center gap-2 px-2 py-1">
 							<a
@@ -110,55 +111,32 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 						</div>
 					</DropdownMenuGroup>
 					<DropdownMenuSeparator />
-					<DropdownMenuLabel className="text-muted-foreground text-sm">
+					<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
 						Payment status
 					</DropdownMenuLabel>
-					<div className="flex items-center gap-2 px-2 pb-2">
-						<StatusCircleButton
-							ariaLabel="Mark package unpaid"
-							className="bg-destructive"
-							disabled={isActionPending || !packageRow.isPaid}
-							isSelected={!packageRow.isPaid}
-							onClick={() => {
-								void handleMarkPackageUnpaid();
-							}}
-						/>
-						<StatusCircleButton
-							ariaLabel="Mark package paid"
-							className="bg-green"
-							disabled={isActionPending || packageRow.isPaid}
-							isSelected={packageRow.isPaid}
-							onClick={() => setIsPaymentDialogOpen(true)}
+					<div className="px-2 pb-2">
+						<PaymentStatusTabs
+							disabled={isActionPending}
+							isPaid={packageRow.isPaid}
+							onMarkPaid={() => setIsPaymentDialogOpen(true)}
+							onMarkUnpaid={() => void handleMarkPackageUnpaid()}
 						/>
 					</div>
 					{packageRow.adjustment ? (
 						<>
 							<DropdownMenuSeparator />
-							<DropdownMenuLabel className="text-muted-foreground text-sm">
+							<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
 								Adjustment status
 							</DropdownMenuLabel>
-							<div className="flex items-center gap-2 px-2 pb-2">
-								<StatusCircleButton
-									ariaLabel="Mark adjustment unpaid"
-									className="bg-destructive"
+							<div className="px-2 pb-2">
+								<PaymentStatusTabs
 									disabled={
 										isActionPending ||
-										packageRow.adjustment.invoiceEmailStatus !== "sent" ||
-										packageRow.adjustment.paymentStatus === "unpaid"
+										!isAdminPackageAdjustmentPaymentEligible(packageRow.adjustment)
 									}
-									isSelected={packageRow.adjustment.paymentStatus === "unpaid"}
-									onClick={() => void handleAdjustmentPaymentChange(false)}
-								/>
-								<StatusCircleButton
-									ariaLabel="Mark adjustment paid"
-									className="bg-green"
-									disabled={
-										isActionPending ||
-										packageRow.adjustment.invoiceEmailStatus !== "sent" ||
-										packageRow.adjustment.paymentStatus === "paid"
-									}
-									isSelected={packageRow.adjustment.paymentStatus === "paid"}
-									onClick={() => void handleAdjustmentPaymentChange(true)}
+									isPaid={packageRow.adjustment.paymentStatus === "paid"}
+									onMarkPaid={() => void handleAdjustmentPaymentChange(true)}
+									onMarkUnpaid={() => void handleAdjustmentPaymentChange(false)}
 								/>
 							</div>
 						</>

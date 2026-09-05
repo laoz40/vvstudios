@@ -1,7 +1,7 @@
 /* Studio-specific theme tokens, page effects, and third-party styling. */
 
 .studio-site {
-	--background: rgb(20, 20, 20);
+	--background: #141414;
 	--foreground: #fafafa;
 
 	--card: #25252580;
@@ -27,6 +27,7 @@
 	--destructive-foreground: #ffffff;
 
 	--green: #00bc00;
+	--orange: #ea580c;
 
 	--border: #36363640;
 	--input: #3f3f3f80;
@@ -85,7 +86,7 @@
 }
 
 .studio-site-admin {
-	background-color: var(--card);
+	background-color: var(--background);
 }
 
 @media (min-width: 768px) {

@@ -1,7 +1,10 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { getOrCreateDriveClientId } from "#convex/lib/driveRecords";
+import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
+import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
 import {
 	checkPackageSessionAvailability,
@@ -430,9 +433,15 @@ export function saveCreatedPackageSessionService(
 			})
 			// Save the confirmed booking with the package and session snapshots.
 			.andThen(({ packageFromDb, sessionStartAt }) =>
-				okOrThrow(
-					ctx.db
-						.insert("bookings", {
+				getOrCreateDriveClientId(ctx, {
+					email: packageFromDb.email,
+					displayName: formatDriveClientFolderName({
+						accountName: packageFromDb.accountName,
+						contactName: packageFromDb.name
+					})
+				}).andThen((driveClientId) =>
+					okOrThrow(
+						ctx.db.insert("bookings", {
 							name: packageFromDb.name,
 							phone: packageFromDb.phone,
 							accountName: packageFromDb.accountName,
@@ -456,9 +465,19 @@ export function saveCreatedPackageSessionService(
 							bookingConfirmedAt: args.now,
 							googleCalendarId: args.googleCalendarId,
 							googleEventId: args.googleEventId,
-							multiBookingPackageId: packageFromDb._id
+							multiBookingPackageId: packageFromDb._id,
+							driveClientId
 						})
-						.then((bookingId) => ({ bookingId, packageFromDb }))
+					).andThen((bookingId) =>
+						ResultAsync.fromSafePromise(
+							scheduleDriveSetup(ctx, {
+								bookingId,
+								sessionStartAt,
+								duration: packageFromDb.duration,
+								multiBookingPackageId: packageFromDb._id
+							})
+						).andThen((scheduled) => scheduled.map(() => ({ bookingId, packageFromDb })))
+					)
 				)
 			)
 			// Clear expiry reminder after the customer schedules another session.

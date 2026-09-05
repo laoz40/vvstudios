@@ -4,9 +4,9 @@ import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import {
 	CopyableText,
-	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
@@ -14,8 +14,7 @@ import {
 	getAdminPackageStatusDisplay,
 	isAdminPackagePaymentDueClose,
 	isAdminPackageExpiryClose,
-	isAdminPackageExpired,
-	isAdminPackageOverdue,
+	isAdminPackageRowDimmed,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 import {
@@ -78,8 +77,16 @@ function PackageTableDateCell({
 	);
 }
 
+function hasOutstandingPackagePayment(packageRow: AdminPackageRow) {
+	if (!packageRow.isPaid) {
+		return true;
+	}
+
+	return packageRow.adjustment?.paymentStatus === "unpaid";
+}
+
 function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
-	const isInactive = isAdminPackageOverdue(packageRow) || isAdminPackageExpired(packageRow);
+	const isInactive = isAdminPackageRowDimmed(packageRow);
 	const dashboardDate = getAdminPackageDashboardDate(packageRow);
 	const isDashboardDateOutstanding =
 		dashboardDate.kind !== "adjustment_due" || packageRow.adjustment?.paymentStatus === "unpaid";
@@ -89,6 +96,9 @@ function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
 		Date.now() > dashboardDate.timestamp;
 
 	return {
+		amountCellClassName:
+			isInactive && !hasOutstandingPackagePayment(packageRow) ? "opacity-70" : undefined,
+		dateCellClassName: isInactive && !isDashboardDatePastDue ? "opacity-70" : undefined,
 		isDashboardDatePastDue,
 		inactiveCellClassName: isInactive ? "opacity-70" : undefined,
 		rowClassName: isInactive ? "text-muted-foreground" : undefined
@@ -102,8 +112,13 @@ export function PackageTableRow({
 	onViewPackageSessions: (invoiceNumber: string) => void;
 	packageRow: AdminPackageRow;
 }) {
-	const { inactiveCellClassName, isDashboardDatePastDue, rowClassName } =
-		getAdminPackageTableRowState(packageRow);
+	const {
+		amountCellClassName,
+		dateCellClassName,
+		inactiveCellClassName,
+		isDashboardDatePastDue,
+		rowClassName
+	} = getAdminPackageTableRowState(packageRow);
 	const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
 
 	return (
@@ -204,13 +219,13 @@ export function PackageTableRow({
 					</p>
 				</div>
 			</TableCell>
-			<TableCell className={inactiveCellClassName}>
+			<TableCell className={dateCellClassName}>
 				<PackageTableDateCell
 					packageRow={packageRow}
 					isPastDue={isDashboardDatePastDue}
 				/>
 			</TableCell>
-			<TableCell className={cn("tabular-nums text-right", inactiveCellClassName)}>
+			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
 				<div className="flex flex-col gap-1">
 					<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
 						{packageRow.totalDueLabel}

@@ -12,6 +12,7 @@ import {
 import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
+import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
 import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
@@ -31,6 +32,8 @@ type SessionActionsDialogsProps = {
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
+	isAdminNotesDialogOpen: boolean;
+	onAdminNotesDialogOpenChange: (open: boolean) => void;
 };
 
 export function SessionActionsDialogs({
@@ -40,10 +43,20 @@ export function SessionActionsDialogs({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	rescheduleAction
+	rescheduleAction,
+	isAdminNotesDialogOpen,
+	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
 	return (
 		<>
+			<SessionAdminNotesDialog
+				bookingId={session._id}
+				bookingName={session.name}
+				savedNotes={session.adminNotes}
+				open={isAdminNotesDialogOpen}
+				onOpenChange={onAdminNotesDialogOpenChange}
+			/>
+
 			<Dialog
 				open={rescheduleAction.isRescheduleLinkDialogOpen}
 				onOpenChange={rescheduleAction.setIsRescheduleLinkDialogOpen}>
@@ -113,17 +126,16 @@ export function SessionActionsDialogs({
 
 			<DeliverablesEmailDialog
 				open={deliverablesEmailAction.isDeliverablesEmailDialogOpen}
-				bookingEmail={session.email}
+				recipient={{ visibility: "shown", email: session.email }}
 				bookingId={session._id}
 				bookingName={session.name}
-				driveLink={deliverablesEmailAction.deliverablesDriveLinkDraft}
+				deliverablesFolderName={deliverablesEmailAction.deliverablesFolderName}
+				deliverablesFolderUrl={deliverablesEmailAction.deliverablesFolderUrl}
 				editorNotes={deliverablesEmailAction.deliverablesEditorNotesDraft}
-				emailVariant={deliverablesEmailAction.deliverablesEmailVariantDraft}
+				isFolderStatusLoading={deliverablesEmailAction.isFolderStatusLoading}
 				isSending={deliverablesEmailAction.isEmailingDeliverables}
 				markAsSentAfterSending={deliverablesEmailAction.markDeliverablesAsSentAfterSending}
-				onDriveLinkChange={deliverablesEmailAction.setDeliverablesDriveLinkDraft}
 				onEditorNotesChange={deliverablesEmailAction.setDeliverablesEditorNotesDraft}
-				onEmailVariantChange={deliverablesEmailAction.setDeliverablesEmailVariantDraft}
 				onMarkAsSentAfterSendingChange={
 					deliverablesEmailAction.setMarkDeliverablesAsSentAfterSending
 				}
@@ -162,6 +174,9 @@ export function SessionActionsDialogs({
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
+				driveIdentityFieldLabels={
+					editAction.pendingEditWarningState?.driveIdentityFieldLabels ?? []
+				}
 				description={
 					editAction.pendingEditWarningState?.manualPriceWillBeUsed
 						? "Review what this save will affect before making the session changes permanent. The manual remaining balance due will be used instead of the recalculated default."

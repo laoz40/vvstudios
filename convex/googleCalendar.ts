@@ -16,10 +16,44 @@ import {
 } from "./services/sessionCalendar";
 import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
 import {
+	retryDriveSetupService,
+	runScheduledDriveSetupService,
+	setupDriveService,
+	type SetupError
+} from "./services/drive";
+import {
+	retryClientDrivePermissionsService,
+	type DriveClientPermissionsError
+} from "./services/driveClientPermissions";
+import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
 	sendSessionReminderEmailService
 } from "./services/bookingConfirmationActions";
+
+export const setupDrive = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, SetupError>> =>
+		setupDriveService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryDriveSetup = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, SetupError>> =>
+		retryDriveSetupService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryClientDrivePermissions = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
+		retryClientDrivePermissionsService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const runScheduledDriveSetup = internalAction({
+	args: { bookingId: v.id("bookings"), sessionStartAt: v.number(), duration: v.string() },
+	handler: async (ctx, args) =>
+		(await runScheduledDriveSetupService(ctx, args)).match(tupleOk, tupleErr)
+});
 
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },

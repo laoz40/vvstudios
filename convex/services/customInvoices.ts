@@ -1,7 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
@@ -33,7 +33,7 @@ export function listCustomInvoicesForBookingService(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getAdminIdentity(ctx).andThen(() =>
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		okOrThrow(
 			ctx.db
 				.query("customInvoices")
@@ -48,7 +48,7 @@ export function listCustomInvoicesForPackageService(
 	ctx: QueryCtx,
 	args: { multiBookingId: Id<"multiBookingPackages"> }
 ) {
-	return getAdminIdentity(ctx).andThen(() =>
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		okOrThrow(
 			ctx.db
 				.query("customInvoices")
@@ -64,7 +64,7 @@ export function createBookingCustomInvoiceService(
 	args: CreateBookingCustomInvoiceArgs
 ) {
 	return (
-		getAdminIdentity(ctx)
+		requirePermission(ctx, "create:invoices")
 			// Validate the optional price override before loading or writing invoice data.
 			.andThen((identity) =>
 				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
@@ -96,7 +96,7 @@ export function createPackageCustomInvoiceService(
 	args: CreatePackageCustomInvoiceArgs
 ) {
 	return (
-		getAdminIdentity(ctx)
+		requirePermission(ctx, "create:invoices")
 			// Validate the optional price override before loading or writing invoice data.
 			.andThen((identity) =>
 				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)

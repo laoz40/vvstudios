@@ -183,7 +183,7 @@ export function buildAdminSessionUpdatePatch({
 		phone: values.phone,
 		accountName: values.accountName,
 		abn: values.abn,
-		email: values.email,
+		email: values.email.trim().toLowerCase(),
 		date: values.date,
 		time: values.time,
 		duration: values.duration,
@@ -282,6 +282,7 @@ export async function verifySessionCanBeScheduled({
 
 export type AdminSessionUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
+	| { reason: "BOOKING_INVALID_DURATION" }
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_NOT_FOUND" }

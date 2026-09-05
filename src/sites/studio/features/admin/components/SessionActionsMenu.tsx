@@ -3,15 +3,16 @@ import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
+import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
 import PhoneVolume from "#/components/ui/phone-volume";
-import SendIcon from "#/components/ui/send-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { cn } from "#/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -24,11 +25,17 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
-import { StatusCircleButton } from "#studio/features/admin/components/StatusCircleButton";
+import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
+import {
+	SessionEditorAssignment,
+	type ActiveEditor
+} from "#studio/features/admin/components/SessionEditorAssignment";
 import {
 	EDIT_STATUS_OPTIONS,
-	deliverableStatusDotClassNameMap,
-	deliverableStatusLabelMap
+	deliverableStatusIconMap,
+	deliverableStatusLabelMap,
+	deliverableStatusTabClassNameMap,
+	deliverableStatusTabLabelMap
 } from "#studio/features/admin/lib/session-edit-status";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
@@ -41,6 +48,7 @@ import type { useRescheduleAction } from "#studio/features/admin/hooks/useResche
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
 type SessionActionsMenuProps = {
+	activeEditors: ActiveEditor[];
 	session: SessionRecord;
 	details: SessionActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
@@ -50,9 +58,106 @@ type SessionActionsMenuProps = {
 	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
+	onOpenDrive: () => void;
+	onEditAdminNotes: () => void;
 };
 
+function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
+	return details.canManageConfirmedSession && details.isPastSession;
+}
+
+function DeliverablesControls({
+	activeEditors,
+	session,
+	details,
+	deliverablesEmailAction,
+	statusActions,
+	onEditAdminNotes
+}: Pick<
+	SessionActionsMenuProps,
+	| "activeEditors"
+	| "session"
+	| "details"
+	| "deliverablesEmailAction"
+	| "statusActions"
+	| "onEditAdminNotes"
+>) {
+	const adminNotesIconRef = useRef<AnimatedIconHandle | null>(null);
+
+	if (!details.canManageConfirmedSession || !details.isPastSession) return null;
+
+	return (
+		<>
+			<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
+				Deliverables
+			</DropdownMenuLabel>
+			<div className="px-2 pb-2">
+				<Tabs value={statusActions.deliverableStatus}>
+					<TabsList className="w-full bg-background/60">
+						{EDIT_STATUS_OPTIONS.map((option) => {
+							const Icon = deliverableStatusIconMap[option];
+							const tabLabel =
+								option === statusActions.deliverableStatus
+									? deliverableStatusLabelMap[option]
+									: deliverableStatusTabLabelMap[option];
+							const isDeliverAction = option === "completed";
+							const isDisabled =
+								statusActions.isUpdatingEditStatus ||
+								(isDeliverAction
+									? deliverablesEmailAction.isEmailingDeliverables
+									: statusActions.deliverableStatus === option);
+
+							return (
+								<TabsTrigger
+									key={option}
+									value={option}
+									className={deliverableStatusTabClassNameMap[option]}
+									disabled={isDisabled}
+									onClick={() => {
+										if (isDeliverAction) {
+											deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
+											return;
+										}
+
+										void statusActions.handleUpdateEditStatus(option);
+									}}>
+									<Icon aria-hidden />
+									{tabLabel}
+								</TabsTrigger>
+							);
+						})}
+					</TabsList>
+				</Tabs>
+			</div>
+			<div className="flex flex-col gap-2 px-2 pb-2">
+				<SessionEditorAssignment
+					activeEditors={activeEditors}
+					session={session}
+				/>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className="w-full bg-background/60"
+					onPointerEnter={() => adminNotesIconRef.current?.startAnimation()}
+					onPointerLeave={() => adminNotesIconRef.current?.stopAnimation()}
+					onFocus={() => adminNotesIconRef.current?.startAnimation()}
+					onBlur={() => adminNotesIconRef.current?.stopAnimation()}
+					onClick={onEditAdminNotes}>
+					<PenIcon
+						ref={adminNotesIconRef}
+						aria-hidden
+					/>
+					Write admin notes
+				</Button>
+			</div>
+			<DropdownMenuSeparator />
+		</>
+	);
+}
+
 export function SessionActionsMenu({
+	activeEditors,
 	session,
 	details,
 	deleteAction,
@@ -61,7 +166,9 @@ export function SessionActionsMenu({
 	invoiceActions,
 	paymentActions,
 	rescheduleAction,
-	statusActions
+	statusActions,
+	onOpenDrive,
+	onEditAdminNotes
 }: SessionActionsMenuProps) {
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
@@ -97,7 +204,7 @@ export function SessionActionsMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
-				className="w-72 touch-manipulation">
+				className="w-80 touch-manipulation">
 				<DropdownMenuGroup>
 					<div className="flex items-center gap-2 px-2 py-1">
 						<a
@@ -146,80 +253,32 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.canManageConfirmedSession ? (
+				{details.canManageConfirmedSession && session.multiBookingPackageId === undefined ? (
 					<>
 						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="text-muted-foreground text-sm">
+						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
 							Payment status
 						</DropdownMenuLabel>
-						<div className="flex items-center gap-2 px-2 pb-2">
-							<StatusCircleButton
-								ariaLabel="Mark balance unpaid"
-								className="bg-destructive"
-								disabled={
-									paymentActions.isUpdatingPaidRemainingBalance ||
-									!paymentActions.isPaidRemainingBalance
-								}
-								isSelected={!paymentActions.isPaidRemainingBalance}
-								onClick={() => {
-									void paymentActions.handleSetPaidRemainingBalance(false);
-								}}
-							/>
-							<StatusCircleButton
-								ariaLabel="Mark balance paid"
-								className="bg-green"
-								disabled={
-									paymentActions.isUpdatingPaidRemainingBalance ||
-									paymentActions.isPaidRemainingBalance
-								}
-								isSelected={paymentActions.isPaidRemainingBalance}
-								onClick={() => {
-									void paymentActions.handleSetPaidRemainingBalance(true);
-								}}
+						<div className="px-2 pb-2">
+							<PaymentStatusTabs
+								disabled={paymentActions.isUpdatingPaidRemainingBalance}
+								isPaid={paymentActions.isPaidRemainingBalance}
+								onMarkPaid={() => void paymentActions.handleSetPaidRemainingBalance(true)}
+								onMarkUnpaid={() => void paymentActions.handleSetPaidRemainingBalance(false)}
 							/>
 						</div>
 					</>
 				) : null}
 				<DropdownMenuSeparator />
-				{details.canManageConfirmedSession && details.isPastSession ? (
-					<>
-						<DropdownMenuLabel className="text-muted-foreground text-sm">
-							Deliverables status
-						</DropdownMenuLabel>
-						<div className="flex items-center gap-2 px-2 pb-2">
-							{EDIT_STATUS_OPTIONS.map((option) => (
-								<StatusCircleButton
-									key={option}
-									ariaLabel={deliverableStatusLabelMap[option]}
-									className={deliverableStatusDotClassNameMap[option]}
-									disabled={
-										statusActions.isUpdatingEditStatus || statusActions.deliverableStatus === option
-									}
-									isSelected={statusActions.deliverableStatus === option}
-									onClick={() => {
-										void statusActions.handleUpdateEditStatus(option);
-									}}
-								/>
-							))}
-						</div>
-						<DropdownMenuSeparator />
-						<AnimatedDropdownMenuItem
-							className="focus:text-green hover:text-green"
-							disabled={deliverablesEmailAction.isEmailingDeliverables}
-							onSelect={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}
-							renderIcon={(iconRef) => (
-								<SendIcon
-									ref={iconRef}
-									size={16}
-									aria-hidden
-									className="shrink-0 text-current"
-								/>
-							)}>
-							Deliver deliverables email
-						</AnimatedDropdownMenuItem>
-						<DropdownMenuSeparator />
-					</>
-				) : null}
+				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
+				<DeliverablesControls
+					activeEditors={activeEditors}
+					session={session}
+					details={details}
+					deliverablesEmailAction={deliverablesEmailAction}
+					statusActions={statusActions}
+					onEditAdminNotes={onEditAdminNotes}
+				/>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger
 						onPointerEnter={() => otherMenuIconRef.current?.startAnimation()}
@@ -232,7 +291,7 @@ export function SessionActionsMenu({
 						/>
 						Other
 					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="w-72 touch-manipulation">
+					<DropdownMenuSubContent className="w-80 touch-manipulation">
 						{details.canManageConfirmedSession ? (
 							<>
 								<AnimatedDropdownMenuItem
@@ -316,6 +375,25 @@ export function SessionActionsMenu({
 							</AnimatedDropdownMenuItem>
 						)}
 						<DropdownMenuSeparator />
+						{canSetDeliverablesStatusToSent(details) ? (
+							<AnimatedDropdownMenuItem
+								className="hover:text-green focus:text-green"
+								disabled={
+									statusActions.isUpdatingEditStatus ||
+									statusActions.deliverableStatus === "completed"
+								}
+								onSelect={() => void statusActions.handleUpdateEditStatus("completed")}
+								renderIcon={(iconRef) => (
+									<MailFilledIcon
+										ref={iconRef}
+										size={16}
+										aria-hidden
+										className="shrink-0 text-current"
+									/>
+								)}>
+								Set deliverables status to sent
+							</AnimatedDropdownMenuItem>
+						) : null}
 						<AnimatedDropdownMenuItem
 							disabled={
 								!details.canGenerateRescheduleLink || rescheduleAction.isGeneratingRescheduleLink
@@ -334,6 +412,20 @@ export function SessionActionsMenu({
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
+				{details.canManageConfirmedSession ? (
+					<AnimatedDropdownMenuItem
+						onSelect={onOpenDrive}
+						renderIcon={(iconRef) => (
+							<BrandGoogleIcon
+								ref={iconRef}
+								size={16}
+								aria-hidden
+								className="shrink-0 text-current"
+							/>
+						)}>
+						Google Drive folders
+					</AnimatedDropdownMenuItem>
+				) : null}
 				<AnimatedDropdownMenuItem
 					className="focus:text-destructive hover:text-destructive"
 					onSelect={() => editAction.setIsEditDialogOpen(true)}

@@ -1,24 +1,50 @@
-import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
-import { Link, Navigate } from "@tanstack/react-router";
-import { Activity, useState } from "react";
-import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import HomeIcon from "#/components/ui/home-icon";
-import LogoutIcon from "#/components/ui/logout-icon";
+import { useAuth } from "@clerk/clerk-react";
+import { Navigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useConvexAuth, useMutation } from "convex/react";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
-import { StudioErrorPage } from "#studio/components/StudioErrorPage";
-import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
-import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
-import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
-import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
+import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
+import { DashboardAccessGate } from "#studio/features/auth/components/DashboardAccessGate";
 
-const ADMIN_PAGE_SIZE = 500;
+type EditorProvisioningState =
+	| { status: "pending" }
+	| { status: "complete" }
+	| { status: "failed" };
 
 export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
 	const { isLoading: isConvexLoading, isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+	const createEditorUser = useMutation(api.auth.createEditorUser);
+	const [editorProvisioningState, setEditorProvisioningState] = useState<EditorProvisioningState>({
+		status: "pending"
+	});
+
+	// Create or refresh the editor profile before checking dashboard access.
+	useEffect(() => {
+		if (!isConvexAuthenticated) return undefined;
+
+		let isCurrent = true;
+		setEditorProvisioningState({ status: "pending" });
+		void createEditorUser({}).then(
+			([error]) => {
+				if (!isCurrent) return;
+				if (error !== null) {
+					setEditorProvisioningState({ status: "failed" });
+					return;
+				}
+				setEditorProvisioningState({ status: "complete" });
+			},
+			() => {
+				if (isCurrent) setEditorProvisioningState({ status: "failed" });
+			}
+		);
+
+		return () => {
+			isCurrent = false;
+		};
+	}, [isConvexAuthenticated, createEditorUser]);
 
 	if (!isClerkLoaded || isConvexLoading) {
 		return (
@@ -32,147 +58,17 @@ export function AdminPage() {
 		return <Navigate to={studioSite.routes.login} />;
 	}
 
-	if (!isConvexAuthenticated) {
-		return (
-			<main>
-				<h1>Past sessions</h1>
-				<p>
-					You are signed in with Clerk, but the backend is not receiving a valid Convex auth token
-					yet.
-				</p>
-				<p>
-					In Clerk, enable the Convex integration or create the <code>convex</code> JWT template,
-					then run <code>proxy npx convex dev</code>.
-				</p>
-				<SignOutButton redirectUrl={studioSite.routes.login}>
-					<AnimatedIconButton
-						type="button"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<LogoutIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<button type="button">Sign out</button>
-					</AnimatedIconButton>
-				</SignOutButton>
-			</main>
-		);
+	if (!isConvexAuthenticated || editorProvisioningState.status === "failed") {
+		return <BackendAuthErrorPage />;
 	}
 
-	return <AdminAccessGate />;
-}
-
-function AdminAccessGate() {
-	const access = useQuery(api.auth.getCurrentUserAccess, {});
-
-	if (!access) {
+	if (editorProvisioningState.status === "pending") {
 		return (
 			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Confirming Level 9 Clearance" />
+				<StudioLoadingState label="Preparing editor access" />
 			</main>
 		);
 	}
 
-	if (!access.isAdmin) {
-		return <AdminForbiddenPage />;
-	}
-
-	return <AdminPageContent />;
-}
-
-function AdminForbiddenPage() {
-	return (
-		<StudioErrorPage
-			title="Admin access required."
-			description="This account does not have permission to view the admin dashboard."
-			actions={
-				<>
-					<AnimatedIconButton
-						size="lg"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<HomeIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<Link to={studioSite.routes.home}>Home</Link>
-					</AnimatedIconButton>
-					<SignOutButton redirectUrl={studioSite.routes.login}>
-						<AnimatedIconButton
-							variant="outline"
-							size="lg"
-							iconPosition="before"
-							renderIcon={(iconRef) => (
-								<LogoutIcon
-									ref={iconRef}
-									aria-hidden
-								/>
-							)}>
-							<button type="button">Sign out</button>
-						</AnimatedIconButton>
-					</SignOutButton>
-				</>
-			}
-		/>
-	);
-}
-
-function AdminPageContent() {
-	const sessions = usePaginatedQuery(
-		api.sessions.listSessions,
-		{},
-		{ initialNumItems: ADMIN_PAGE_SIZE }
-	);
-	const packages = usePaginatedQuery(
-		api.packages.listPackages,
-		{},
-		{ initialNumItems: ADMIN_PAGE_SIZE }
-	);
-	const { user } = useUser();
-	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
-	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
-	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
-
-	function viewPackageSessions(invoiceNumber: string) {
-		setSessionSearchQuery(invoiceNumber);
-		setActiveView("bookings");
-	}
-
-	if (sessions.status === "LoadingFirstPage" || packages.status === "LoadingFirstPage") {
-		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Decrypting classified files" />
-			</main>
-		);
-	}
-
-	return (
-		<AdminDashboardShell
-			activeView={activeView}
-			email={email ?? null}
-			onActiveViewChange={setActiveView}>
-			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
-				<SessionsTable
-					sessions={sessions.results}
-					canLoadMoreSessions={sessions.status === "CanLoadMore"}
-					isLoadingMoreSessions={sessions.status === "LoadingMore"}
-					loadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
-					searchQuery={sessionSearchQuery}
-					onSearchQueryChange={setSessionSearchQuery}
-				/>
-			</Activity>
-			<Activity mode={activeView === "packages" ? "visible" : "hidden"}>
-				<PackagesTable
-					packages={packages.results}
-					canLoadMorePackages={packages.status === "CanLoadMore"}
-					isLoadingMorePackages={packages.status === "LoadingMore"}
-					loadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
-					onViewPackageSessions={viewPackageSessions}
-				/>
-			</Activity>
-		</AdminDashboardShell>
-	);
+	return <DashboardAccessGate />;
 }

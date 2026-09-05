@@ -65,6 +65,19 @@ export function getSentPackageAdjustmentInvoice(
 	});
 }
 
+export function requirePackageAdjustmentPaymentEligibility(
+	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
+	now: number
+) {
+	const isSentOrOverdue = adjustment.invoiceEmailStatus === "sent" || now > adjustment.invoiceDueAt;
+
+	if (!isSentOrOverdue) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
+	}
+
+	return ok(adjustment);
+}
+
 type PackageAdjustmentEvaluation =
 	| { kind: "wait_for_sessions_to_end"; nextCheckAt: number }
 	| { kind: "invalid_duration" }

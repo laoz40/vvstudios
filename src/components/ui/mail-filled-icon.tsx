@@ -36,6 +36,7 @@ const MailFilledIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				strokeWidth={strokeWidth}
 				strokeLinecap="round"
 				strokeLinejoin="round"
+				data-slot="animated-icon"
 				className={`${className} cursor-pointer perspective-distant`}
 				onHoverStart={() => {
 					void start();

@@ -1,7 +1,8 @@
-import { err, ok } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import {
 	buildAdminSessionUpdatePatch,
 	type AdminSessionUpdateArgs
@@ -57,28 +58,46 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 					return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 				}
 
-				return ok(updatePatch);
+				return ok({ session, updatePatch });
 			})
 			// Save the edit, Calendar linkage, confirmation state, and reservation cleanup together.
-			.andThen((updatePatch) =>
+			.andThen(({ session, updatePatch }) =>
 				okOrThrow(
-					ctx.db
-						.patch(args.bookingId, {
-							...updatePatch,
-							// Keep the booking linked to the current Calendar event after an edit.
-							...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
-							...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
-							...(args.confirmBooking
-								? {
-										status: "confirmed" as const,
-										bookingConfirmedAt: Date.now(),
-										bookingFailureCode: undefined
-									}
-								: {}),
-							...(args.reservation ? clearedSessionReservationPatch : {})
+					ctx.db.patch(args.bookingId, {
+						...updatePatch,
+						// Keep the booking linked to the current Calendar event after an edit.
+						...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
+						...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
+						...(args.confirmBooking
+							? {
+									status: "confirmed" as const,
+									bookingConfirmedAt: Date.now(),
+									bookingFailureCode: undefined
+								}
+							: {}),
+						...(args.reservation ? clearedSessionReservationPatch : {})
+					})
+				).andThen(() => {
+					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
+					const timingChanged =
+						session.sessionStartAt !== updatePatch.sessionStartAt ||
+						session.duration !== args.duration;
+					if (
+						(nextStatus !== "confirmed" && nextStatus !== "email_failed") ||
+						(!timingChanged && !args.confirmBooking)
+					) {
+						return ok(null);
+					}
+
+					return ResultAsync.fromSafePromise(
+						scheduleDriveSetup(ctx, {
+							bookingId: session._id,
+							sessionStartAt: updatePatch.sessionStartAt,
+							duration: args.duration,
+							multiBookingPackageId: session.multiBookingPackageId
 						})
-						.then(() => null)
-				)
+					).andThen((scheduled) => scheduled);
+				})
 			)
 	);
 }
@@ -111,21 +130,33 @@ export function saveClientSessionRescheduleService(
 				return ok(session);
 			})
 			// Save the new time and clear the old reminder and reservation state.
-			.andThen(() =>
+			.andThen((session) =>
 				okOrThrow(
-					ctx.db
-						.patch(args.bookingId, {
-							date: args.date,
-							time: args.time,
+					ctx.db.patch(args.bookingId, {
+						date: args.date,
+						time: args.time,
+						sessionStartAt: args.sessionStartAt,
+						reminderEmailClaimedAt: undefined,
+						reminderEmailSentAt: undefined,
+						reminderEmailFailureCode: undefined,
+						...buildClientSessionRescheduleOptionalPatch(args),
+						...clearedSessionReservationPatch
+					})
+				).andThen(() => {
+					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
+					if (nextStatus !== "confirmed" && nextStatus !== "email_failed") {
+						return ok(null);
+					}
+
+					return ResultAsync.fromSafePromise(
+						scheduleDriveSetup(ctx, {
+							bookingId: session._id,
 							sessionStartAt: args.sessionStartAt,
-							reminderEmailClaimedAt: undefined,
-							reminderEmailSentAt: undefined,
-							reminderEmailFailureCode: undefined,
-							...buildClientSessionRescheduleOptionalPatch(args),
-							...clearedSessionReservationPatch
+							duration: session.duration,
+							multiBookingPackageId: session.multiBookingPackageId
 						})
-						.then(() => null)
-				)
+					).andThen((scheduled) => scheduled);
+				})
 			)
 			// Recalculate the package adjustment only for package sessions.
 			.andThen(() => {

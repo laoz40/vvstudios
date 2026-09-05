@@ -33,6 +33,14 @@ export function useStatusActions(session: SessionRecord) {
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
 					break;
+				case "SESSION_NOT_ASSIGNED_TO_EDITOR":
+					toast.error("This session is assigned to another editor.");
+					break;
+				case "SESSION_NOT_CONFIRMED":
+				case "SESSION_ARCHIVED":
+				case "SESSION_NOT_IN_PAST":
+					toast.error("Deliverables can only be updated for completed sessions.");
+					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the deliverables status.");
 					break;

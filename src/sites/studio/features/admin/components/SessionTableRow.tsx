@@ -1,14 +1,18 @@
+import { useEffect, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
+import { toast } from "sonner";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
+import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
-	formatDashboardAddonLabel,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	sessionStatusIconClassNameMap,
 	sessionStatusIconMap,
@@ -19,6 +23,7 @@ import {
 	getDeliverableStatus,
 	isDeliverableSession
 } from "#studio/features/admin/lib/session-edit-status";
+import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
@@ -37,6 +42,8 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type SessionTableRowProps = {
+	activeEditors: ActiveEditor[];
+	assignedEditorDisplayName: string | null;
 	session: SessionRecord;
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
@@ -132,6 +139,67 @@ function SessionDetailsCell({ session }: { session: SessionRecord }) {
 	);
 }
 
+type SessionNotesView = "client" | "editor";
+
+function getDefaultSessionNotesView(
+	isPastSession: boolean,
+	hasEditorNotes: boolean
+): SessionNotesView {
+	if (isPastSession && hasEditorNotes) {
+		return "editor";
+	}
+
+	return "client";
+}
+
+function SessionNotesCell({
+	session,
+	isPastSession
+}: {
+	session: SessionRecord;
+	isPastSession: boolean;
+}) {
+	const hasEditorNotes = Boolean(session.editorNotes?.trim());
+	const canToggleNotes = isPastSession && hasEditorNotes;
+	const [notesView, setNotesView] = useState<SessionNotesView>(() =>
+		getDefaultSessionNotesView(isPastSession, hasEditorNotes)
+	);
+
+	// Past sessions with editor notes default to editor; otherwise keep client notes visible.
+	useEffect(() => {
+		setNotesView(getDefaultSessionNotesView(isPastSession, hasEditorNotes));
+	}, [isPastSession, hasEditorNotes]);
+
+	const visibleNotes = notesView === "client" ? session.notes?.trim() : session.editorNotes?.trim();
+	const notesLabel = notesView === "client" ? "Client" : "Editor";
+	const notesText = visibleNotes || "-";
+
+	if (!canToggleNotes) {
+		return (
+			<p className="whitespace-normal text-sm text-muted-foreground">
+				{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
+				{notesText}
+			</p>
+		);
+	}
+
+	function toggleNotesView() {
+		const nextNotesView = notesView === "client" ? "editor" : "client";
+		setNotesView(nextNotesView);
+		toast.info(`${nextNotesView === "client" ? "Client" : "Editor"} notes displayed.`);
+	}
+
+	return (
+		<button
+			type="button"
+			className="w-full whitespace-normal text-left text-sm text-muted-foreground"
+			onClick={toggleNotesView}>
+			{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
+			{notesText}
+		</button>
+	);
+}
+
 function RemainingBalanceCell({ session }: { session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const showRemainingBalance =
@@ -174,11 +242,17 @@ function PackageSessionProgress({
 	);
 }
 
-export function SessionTableRow({ session, onPackageFilterClick }: SessionTableRowProps) {
+export function SessionTableRow({
+	activeEditors,
+	assignedEditorDisplayName,
+	session,
+	onPackageFilterClick
+}: SessionTableRowProps) {
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const packageInvoiceNumber = session.multiBookingInvoiceNumber;
+	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
 
@@ -223,21 +297,61 @@ export function SessionTableRow({ session, onPackageFilterClick }: SessionTableR
 				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<p className="whitespace-normal text-sm text-muted-foreground">
-					{session.notes?.trim() || "No notes"}
-				</p>
+				<SessionNotesCell
+					session={session}
+					isPastSession={isPastSession}
+				/>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
 				<RemainingBalanceCell session={session} />
 			</TableCell>
 			<TableCell className="text-center">
-				{deliverableStatus ? (
-					<Badge
-						variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-						className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-						{deliverableStatusLabelMap[deliverableStatus]}
-					</Badge>
-				) : null}
+				<div className="flex flex-col items-center gap-1">
+					{deliverableStatus === "review" ? (
+						<button
+							type="button"
+							onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
+							<Badge
+								variant={deliverableStatusBadgeVariantMap.review}
+								className={deliverableStatusBadgeClassNameMap.review}>
+								{deliverableStatusLabelMap.review}
+							</Badge>
+						</button>
+					) : deliverableStatus ? (
+						<Badge
+							variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+							className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+							{deliverableStatusLabelMap[deliverableStatus]}
+						</Badge>
+					) : null}
+					{assignedEditorDisplayName ? (
+						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+							{session.hasDriveWorkflowFailure ? (
+								<span
+									className="cursor-help"
+									title="Google Drive needs attention">
+									<CircleAlert
+										aria-label="Google Drive needs attention"
+										className="size-3.5 text-destructive"
+									/>
+								</span>
+							) : null}
+							{assignedEditorDisplayName}
+						</p>
+					) : session.hasDriveWorkflowFailure ? (
+						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+							<span
+								className="cursor-help"
+								title="Google Drive needs attention">
+								<CircleAlert
+									aria-label="Google Drive needs attention"
+									className="size-3.5 text-destructive"
+								/>
+							</span>
+							<span>Google Drive</span>
+						</p>
+					) : null}
+				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
@@ -248,7 +362,11 @@ export function SessionTableRow({ session, onPackageFilterClick }: SessionTableR
 				</div>
 			</TableCell>
 			<TableCell>
-				<SessionActions session={session} />
+				<SessionActions
+					activeEditors={activeEditors}
+					deliverablesEmailAction={deliverablesEmailAction}
+					session={session}
+				/>
 			</TableCell>
 		</TableRow>
 	);

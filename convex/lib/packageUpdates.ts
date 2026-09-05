@@ -1,5 +1,8 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
-import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	multiBookingFormSchema,
+	shouldPromptGmailAddress
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
 	getMultiBookingInvoiceDueAt,
@@ -65,7 +68,7 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		phone: args.phone,
 		accountName: args.accountName,
 		...(args.abn !== undefined ? { abn: args.abn } : {}),
-		email: args.email,
+		email: args.email.trim().toLowerCase(),
 		duration: args.duration,
 		addons: args.addons,
 		...(args.essentialEditQuantity !== undefined
@@ -101,6 +104,10 @@ export function parsePackageRequest(
 	const parsedPackage = multiBookingFormSchema.safeParse(args);
 
 	if (!parsedPackage.success) {
+		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
+	}
+
+	if (shouldPromptGmailAddress(parsedPackage.data.email)) {
 		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 
@@ -161,7 +168,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		phone: updatedPackage.phone,
 		accountName: updatedPackage.accountName,
 		abn: updatedPackage.abn,
-		email: updatedPackage.email,
+		email: updatedPackage.email.trim().toLowerCase(),
 		duration: updatedPackage.duration,
 		addons: updatedPackage.addons,
 		essentialEditQuantity: updatedPackage.essentialEditQuantity,

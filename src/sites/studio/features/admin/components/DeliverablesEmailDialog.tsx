@@ -1,4 +1,4 @@
-import { LoaderCircle, X } from "lucide-react";
+import { ExternalLink, FolderOpen, LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import {
@@ -9,53 +9,49 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
-import { Input } from "#/components/ui/input";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
+
+type DeliverablesRecipient = { visibility: "shown"; email: string } | { visibility: "hidden" };
 
 export type DeliverablesEmailDialogProps = {
-	bookingEmail: string;
 	bookingId: Doc<"bookings">["_id"];
 	bookingName: string;
-	driveLink: string;
+	deliverablesFolderName: string;
+	deliverablesFolderUrl: string | undefined;
 	editorNotes: string;
-	emailVariant: DeliverablesEmailVariant;
+	isFolderStatusLoading: boolean;
 	isSending: boolean;
 	markAsSentAfterSending: boolean;
-	onDriveLinkChange: (driveLink: string) => void;
 	onEditorNotesChange: (editorNotes: string) => void;
-	onEmailVariantChange: (emailVariant: DeliverablesEmailVariant) => void;
 	onMarkAsSentAfterSendingChange: (markAsSentAfterSending: boolean) => void;
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
+	recipient: DeliverablesRecipient;
 };
 
-function isDeliverablesEmailVariant(value: string): value is DeliverablesEmailVariant {
-	return value === "first-time" || value === "recurring";
-}
-
 export function DeliverablesEmailDialog({
-	bookingEmail,
 	bookingId,
 	bookingName,
-	driveLink,
+	deliverablesFolderName,
+	deliverablesFolderUrl,
 	editorNotes,
-	emailVariant,
+	isFolderStatusLoading,
 	isSending,
-	markAsSentAfterSending,
-	onDriveLinkChange,
 	onEditorNotesChange,
-	onEmailVariantChange,
 	onMarkAsSentAfterSendingChange,
 	onOpenChange,
 	onSend,
-	open
+	open,
+	recipient,
+	markAsSentAfterSending
 }: DeliverablesEmailDialogProps) {
+	const sendButtonLabel = isSending ? "Sending" : "Send email";
+	const canSend = deliverablesFolderUrl !== undefined && !isFolderStatusLoading && !isSending;
+
 	return (
 		<Dialog
 			open={open}
@@ -94,51 +90,48 @@ export function DeliverablesEmailDialog({
 					<DialogTitle>Send Deliverables Email</DialogTitle>
 				</DialogHeader>
 
-				<SessionCustomerSummary
-					bookingName={bookingName}
-					bookingEmail={bookingEmail}
-				/>
+				{recipient.visibility === "shown" ? (
+					<SessionCustomerSummary
+						bookingName={bookingName}
+						bookingEmail={recipient.email}
+					/>
+				) : null}
 
 				<FieldGroup>
 					<Field>
-						<FieldLabel>Customer type</FieldLabel>
-						<RadioGroup
-							value={emailVariant}
-							onValueChange={(value) => {
-								if (isDeliverablesEmailVariant(value)) {
-									onEmailVariantChange(value);
-								}
-							}}
-							className="gap-2"
-							disabled={isSending}>
-							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="first-time" />
-								<span className="text-sm font-medium leading-5">First time customer</span>
-							</FieldLabel>
-							<FieldLabel className="w-full rounded-md border p-3">
-								<RadioGroupItem value="recurring" />
-								<span className="text-sm font-medium leading-5">Recurring customer</span>
-							</FieldLabel>
-						</RadioGroup>
-					</Field>
-
-					<Field>
-						<FieldLabel htmlFor={`deliverables-drive-link-${bookingId}`}>
-							Google Drive link
-						</FieldLabel>
-						<Input
-							id={`deliverables-drive-link-${bookingId}`}
-							type="url"
-							placeholder="https://drive.google.com/drive/folders/..."
-							value={driveLink}
-							onChange={(event) => onDriveLinkChange(event.target.value)}
-							disabled={isSending}
-						/>
+						<FieldLabel>Deliverables folder</FieldLabel>
+						{deliverablesFolderUrl ? (
+							<Button
+								variant="outline"
+								className="w-full justify-start"
+								asChild>
+								<a
+									href={deliverablesFolderUrl}
+									target="_blank"
+									rel="noreferrer">
+									<FolderOpen
+										data-icon="inline-start"
+										aria-hidden
+									/>
+									{deliverablesFolderName}
+									<ExternalLink
+										data-icon="inline-end"
+										aria-hidden
+									/>
+								</a>
+							</Button>
+						) : (
+							<p className="text-sm text-muted-foreground">
+								{isFolderStatusLoading
+									? "Loading the Deliverables folder."
+									: "This session has no Deliverables folder yet."}
+							</p>
+						)}
 					</Field>
 
 					<Field>
 						<FieldLabel htmlFor={`deliverables-editor-notes-${bookingId}`}>
-							Editor notes (optional)
+							Notes to the client (optional)
 						</FieldLabel>
 						<Textarea
 							id={`deliverables-editor-notes-${bookingId}`}
@@ -152,15 +145,21 @@ export function DeliverablesEmailDialog({
 					<Field orientation="horizontal">
 						<Checkbox
 							id={`deliverables-mark-sent-${bookingId}`}
-							checked={markAsSentAfterSending}
+							aria-describedby={`deliverables-mark-sent-description-${bookingId}`}
+							checked={!markAsSentAfterSending}
 							onCheckedChange={(checked) => {
-								onMarkAsSentAfterSendingChange(checked === true);
+								onMarkAsSentAfterSendingChange(checked !== true);
 							}}
 							disabled={isSending}
 						/>
-						<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
-							Mark deliverables as sent after sending
-						</FieldLabel>
+						<div className="flex flex-col gap-1">
+							<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
+								Don&apos;t set status to sent
+							</FieldLabel>
+							<FieldDescription id={`deliverables-mark-sent-description-${bookingId}`}>
+								Check this if there are more deliverables to send later.
+							</FieldDescription>
+						</div>
 					</Field>
 				</FieldGroup>
 
@@ -175,9 +174,9 @@ export function DeliverablesEmailDialog({
 					<Button
 						type="button"
 						onClick={onSend}
-						disabled={isSending || !driveLink.trim()}>
+						disabled={!canSend}>
 						{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isSending ? "Sending..." : "Send email"}
+						{sendButtonLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

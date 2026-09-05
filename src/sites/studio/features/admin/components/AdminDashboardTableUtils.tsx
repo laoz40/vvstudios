@@ -7,26 +7,6 @@ import CopyIcon from "#/components/ui/copy-icon";
 import { cn } from "#/lib/utils";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import {
-	getEditingAddonQuantity,
-	type EditingAddonQuantities
-} from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { normalizeBookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-
-const dashboardAddonLabelMap: Record<string, string> = {
-	"Essential Edit": "Editing",
-	"4K UHD Recording": "4K",
-	"Remote Podcast": "Remote",
-	"Clip Volume Pack": "Clips"
-};
-
-export function formatDashboardAddonLabel(addon: string, quantities: EditingAddonQuantities) {
-	const normalizedAddon = normalizeBookingAddon(addon) ?? addon;
-	const label = dashboardAddonLabelMap[normalizedAddon] ?? normalizedAddon;
-	const quantity = getEditingAddonQuantity(normalizedAddon, quantities, 1);
-
-	return quantity > 1 ? `${quantity} x ${label}` : label;
-}
 
 export function formatInstagramHandle(instagramHandle: string) {
 	const trimmedHandle = instagramHandle.trim();

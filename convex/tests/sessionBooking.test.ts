@@ -35,6 +35,10 @@
  * 9. Stripe closure failure
  *    Provider rejection while closing must return its stable expected failure.
  *
+ * 10. Drive client linking
+ *     Booking creation links one Drive client record per email and reuses it
+ *     across the customer's bookings without creating folders.
+ *
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -78,7 +82,7 @@ const validBooking = {
 	name: "Test Customer",
 	phone: "0400000000",
 	accountName: "Test Account",
-	email: "customer@example.com",
+	email: "customer@gmail.com",
 	date: "2030-01-10",
 	time: "10:00",
 	duration: "1h",
@@ -114,6 +118,21 @@ describe("single-session checkout creation", () => {
 		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, {
 			...validBooking,
 			email: "not-an-email"
+		});
+
+		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
+		expect(await listBookings(t)).toEqual([]);
+		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
+		expect(providerFakes.createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	test("rejects a non-Gmail email before DNS or checkout creation", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+
+		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, {
+			...validBooking,
+			email: "customer@example.com"
 		});
 
 		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
@@ -192,6 +211,28 @@ describe("single-session checkout creation", () => {
 				metadata: { bookingId: bookings[0]?._id }
 			})
 		);
+	});
+
+	test("links a Drive client record and reuses it for the same email", async () => {
+		const t = createConvexTest();
+		await seedBookingSettings(t);
+
+		const firstResult = await t.action(api.stripe.createEmbeddedCheckoutSession, validBooking);
+		const secondBooking = { ...validBooking, date: "2030-01-11", time: "11:00" };
+		const secondResult = await t.action(api.stripe.createEmbeddedCheckoutSession, secondBooking);
+		const bookings = await listBookings(t);
+		const driveClients = await t.run((ctx) => ctx.db.query("driveClients").collect());
+
+		expect(firstResult[0]).toBeNull();
+		expect(secondResult[0]).toBeNull();
+		expect(bookings).toHaveLength(2);
+		expect(bookings[0]?.driveClientId).toBeDefined();
+		expect(bookings[1]?.driveClientId).toEqual(bookings[0]?.driveClientId);
+		// The record has no folder yet: nothing is created during checkout.
+		expect(driveClients).toHaveLength(1);
+		expect(driveClients[0]).toMatchObject({ normalizedEmail: validBooking.email });
+		expect(driveClients[0]?.folderId).toBeUndefined();
+		expect(driveClients[0]?.folderUrl).toBeUndefined();
 	});
 
 	test("allows only one concurrent checkout for the same session time", async () => {

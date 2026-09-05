@@ -6,6 +6,16 @@ const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
 );
 
+const driveFolderValidator = v.object({ id: v.string(), url: v.string() });
+const drivePermissionValidator = v.object({
+	id: v.string(),
+	emailAddress: v.string(),
+	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
+});
+const clientDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
+const editorDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const assignmentEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 const packageReminderTypeValidator = v.union(v.literal("payment"), v.literal("expiry"));
 const packageReminderStateValidator = v.union(
 	v.object({
@@ -21,6 +31,65 @@ const packageReminderStateValidator = v.union(
 	})
 );
 export default defineSchema({
+	editorProfiles: defineTable({
+		tokenIdentifier: v.string(),
+		displayName: v.string(),
+		email: v.string(),
+		isActive: v.boolean(),
+		lastAssignedAt: v.union(v.number(), v.null()),
+		totalEdits: v.number(),
+		notes: v.optional(v.string())
+	})
+		.index("by_tokenIdentifier", ["tokenIdentifier"])
+		.index("by_isActive", ["isActive"]),
+
+	driveClients: defineTable({
+		normalizedEmail: v.string(),
+		displayName: v.string(),
+		// Folder data is absent until the client's Google folder is created by Drive setup.
+		folderId: v.optional(v.string()),
+		folderUrl: v.optional(v.string()),
+		assetsFolder: v.optional(driveFolderValidator),
+		clientFolderPermission: v.optional(drivePermissionValidator),
+		assetsClientPermission: v.optional(drivePermissionValidator),
+		createdAt: v.number()
+	}).index("by_normalizedEmail", ["normalizedEmail"]),
+
+	driveClientEditorPermissions: defineTable({
+		driveClientId: v.id("driveClients"),
+		editorTokenIdentifier: v.string(),
+		assetsPermission: drivePermissionValidator,
+		createdAt: v.number(),
+		updatedAt: v.number()
+	}).index("by_driveClientId_and_editorTokenIdentifier", [
+		"driveClientId",
+		"editorTokenIdentifier"
+	]),
+
+	driveSessions: defineTable({
+		bookingId: v.id("bookings"),
+		driveClientId: v.id("driveClients"),
+		packageSessionNumber: v.optional(v.number()),
+		packageFolder: v.optional(driveFolderValidator),
+		sessionFolder: v.optional(driveFolderValidator),
+		rawMediaFolder: v.optional(driveFolderValidator),
+		deliverablesFolder: v.optional(driveFolderValidator),
+		clientDrivePermissionsStatus: v.optional(clientDrivePermissionsStatusValidator),
+		assetsEmailStatus: v.optional(assetsEmailStatusValidator),
+		assetsEmailFolderId: v.optional(v.string()),
+		assetsEmailClaimedAt: v.optional(v.number()),
+		editorDrivePermissionsStatus: v.optional(editorDrivePermissionsStatusValidator),
+		editorDrivePermissionsTokenIdentifier: v.optional(v.string()),
+		editorSessionPermission: v.optional(drivePermissionValidator),
+		editorDeliverablesPermission: v.optional(drivePermissionValidator),
+		assignmentEmailStatus: v.optional(assignmentEmailStatusValidator),
+		assignmentEmailTokenIdentifier: v.optional(v.string()),
+		assignmentEmailClaimedAt: v.optional(v.number()),
+		failedRemovalEditorTokenIdentifier: v.optional(v.string()),
+		createdAt: v.number(),
+		updatedAt: v.number()
+	}).index("by_bookingId", ["bookingId"]),
+
 	bookingSettings: defineTable({
 		key: v.string(),
 		leadTimeMinutes: v.number(),
@@ -134,10 +203,8 @@ export default defineSchema({
 		bookingFailureCode: v.optional(v.string()),
 
 		hiddenAt: v.optional(v.number()),
-		// Confirmation email claim state
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
-		// Temporarily holds a target session window while its Calendar event is changed.
 		reservationCreatedAt: v.optional(v.number()),
 		reservationSessionStartAt: v.optional(v.number()),
 		reservationDuration: v.optional(v.string()),
@@ -147,11 +214,26 @@ export default defineSchema({
 		reminderEmailSentAt: v.optional(v.number()),
 		reminderEmailFailureCode: v.optional(v.string()),
 
+		// Editor assignment and internal editing instructions
+		assignedEditorTokenIdentifier: v.optional(v.string()),
+		adminNotes: v.optional(v.string()),
+		editorNotes: v.optional(v.string()),
+		deliverablesClientNotes: v.optional(v.string()),
+		deliverablesDriveLink: v.optional(v.string()),
+
+		// Drive client record created/reused at booking creation; its folder is created by setup later.
+		driveClientId: v.optional(v.id("driveClients")),
+
 		// Remaining balance/admin edit state
 		paidRemainingBalance: v.optional(v.boolean()),
 		remainingBalanceAmount: v.optional(v.number()),
 		editStatus: v.optional(
-			v.union(v.literal("to_edit"), v.literal("editing"), v.literal("completed"))
+			v.union(
+				v.literal("to_edit"),
+				v.literal("editing"),
+				v.literal("review"),
+				v.literal("completed")
+			)
 		),
 
 		// Stripe data
@@ -163,8 +245,13 @@ export default defineSchema({
 		googleCalendarId: v.optional(v.string()),
 
 		// Multi-booking package link, when this booking is one scheduled package session
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages"))
+		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+
+		// Admin-visible Drive setup failure state. A manual retry clears it after setup succeeds.
+		driveSetupFailedAt: v.optional(v.number()),
+		driveSetupFailureCode: v.optional(v.string())
 	})
+		.index("by_email", ["email"])
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
@@ -175,6 +262,11 @@ export default defineSchema({
 		])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
+		.index("by_assignedEditorTokenIdentifier", ["assignedEditorTokenIdentifier"])
+		.index("by_assignedEditorTokenIdentifier_and_driveClientId", [
+			"assignedEditorTokenIdentifier",
+			"driveClientId"
+		])
 		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
 		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
 			"multiBookingPackageId",

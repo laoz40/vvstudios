@@ -21,6 +21,10 @@
  *    Confirmation must schedule a backend job for the correct package and expiry time.
  *    That job will check whether the package needs a final adjustment invoice.
  *
+ * 6. Admin package row appearance
+ *    Paid closed-out and paid expired packages are dimmed. Payment overdue and adjustment payment
+ *    status alone do not imply package completion and therefore do not dim a row.
+ *
  * Customer request creation, invoice delivery, payment confirmation, lifecycle revocation, capacity-safe
  * sizing, and pricing edits are covered here. Authorization is covered by authorization.test.ts.
  * DNS and email providers are replaced with controlled fakes.
@@ -29,6 +33,8 @@ import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
+import { isAdminPackageRowDimmed } from "#studio/features/admin/lib/admin-packages";
 import {
 	getMultiBookingExpiresAt,
 	getMultiBookingInvoiceDueAt
@@ -66,7 +72,7 @@ const validRequest = {
 	phone: " 0400 000 000 ",
 	accountName: "  Test account  ",
 	abn: "12 345 678 901",
-	email: " Customer@Example.com ",
+	email: " Customer@gmail.com ",
 	duration: "1h",
 	addons: ["Teleprompter"],
 	notes: "  Please call on arrival  ",
@@ -95,6 +101,45 @@ beforeEach(() => {
 	);
 	providerFakes.sendScheduleEmail.mockResolvedValue(ok(null));
 });
+
+describe("admin package row appearance", () => {
+	test("dims a paid package when its closeout is complete", () => {
+		expect(isAdminPackageRowDimmed(createAdminPackageRow({ areSessionsComplete: true }))).toBe(
+			true
+		);
+	});
+
+	test("dims a paid package when it is expired", () => {
+		expect(isAdminPackageRowDimmed(createAdminPackageRow({ expiresAt: now - 1 }))).toBe(true);
+	});
+
+	test("does not dim a package only because its payment is overdue", () => {
+		expect(
+			isAdminPackageRowDimmed(
+				createAdminPackageRow({ expiresAt: undefined, isPaid: false, status: "pending_payment" })
+			)
+		).toBe(false);
+	});
+
+	test("does not dim a package only because its adjustment is paid", () => {
+		expect(isAdminPackageRowDimmed(createAdminPackageRow())).toBe(false);
+	});
+});
+
+type AdminPackageRowOverrides = Partial<
+	Pick<AdminPackageRow, "areSessionsComplete" | "expiresAt" | "isPaid" | "status">
+>;
+
+function createAdminPackageRow(overrides: AdminPackageRowOverrides = {}) {
+	return {
+		adjustment: { invoiceDueAt: now + 1, paymentStatus: "paid" as const },
+		expiresAt: now + 1,
+		areSessionsComplete: false,
+		isPaid: true,
+		status: "paid" as const,
+		...overrides
+	};
+}
 
 describe("package payment confirmation", () => {
 	test("initializes the complete package scheduling lifecycle", async () => {
@@ -271,7 +316,7 @@ describe("package request creation", () => {
 			phone: "0400 000 000",
 			accountName: "Test account",
 			abn: "12345678901",
-			email: "Customer@Example.com",
+			email: "customer@gmail.com",
 			duration: "1h",
 			addons: ["Teleprompter"],
 			notes: "Please call on arrival",
@@ -324,6 +369,20 @@ describe("package request creation", () => {
 
 		expect(result).toEqual([{ reason: "BOOKING_EMAIL_DOMAIN_INVALID" }, null]);
 		expect(await readPackages(t)).toEqual([]);
+		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
+	});
+
+	test("rejects a non-Gmail email before DNS or invoice delivery", async () => {
+		const t = createConvexTest();
+
+		const result = await t.action(api.packagePayment.createPackageRequest, {
+			...validRequest,
+			email: "customer@example.com"
+		});
+
+		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
+		expect(await readPackages(t)).toEqual([]);
+		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
 		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
 	});
 

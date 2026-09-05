@@ -4,7 +4,7 @@ import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	saveConfirmedBooking,
 	sendBookingReminderEmailForSession,
@@ -43,8 +43,8 @@ export function sendBookingInvoiceForBookingService(
 	args: SendBookingInvoiceForBookingArgs
 ): ResultAsync<null, SendBookingInvoiceError> {
 	return (
-		getAdminIdentity(ctx)
-			// Load the booking only after admin authorization succeeds.
+		requirePermissionActions(ctx, "send:invoice-emails")
+			// Load the booking only after send:invoice-emails authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Resolve and validate the optional stored custom invoice.
 			.andThen((session) =>

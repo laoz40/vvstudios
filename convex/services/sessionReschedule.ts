@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
@@ -75,7 +75,7 @@ export function createAdminRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { bookingId: Doc<"bookings">["_id"] }
 ): NeverthrowResultAsync<{ rescheduleUrl: string }, CreateAdminRescheduleLinkError> {
-	return getAdminIdentity(ctx)
+	return requirePermission(ctx, "create:reschedule-links")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(validateAdminSessionForReschedule)
 		.andThen((session) =>

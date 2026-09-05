@@ -16,6 +16,7 @@ import {
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 export const BOOKING_TIME_ZONE = "Australia/Sydney";
+export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
 
 export interface BusyPeriod {
 	calendarId?: string;
@@ -180,6 +181,24 @@ export function getSydneyDateValue(date = new Date()) {
 	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export function getEditorEditDueAt(sessionStartAt: number) {
+	const { day, month, year } = getDatePartsInSydney(new Date(sessionStartAt));
+	const dueCalendarDate = new Date(
+		Date.UTC(year, month - 1, day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION)
+	);
+	return getUtcDateForZonedParts({
+		day: dueCalendarDate.getUTCDate(),
+		hours: 12,
+		minutes: 0,
+		month: dueCalendarDate.getUTCMonth() + 1,
+		timeZone: BOOKING_TIME_ZONE,
+		year: dueCalendarDate.getUTCFullYear()
+	}).match(
+		(dueAt) => dueAt.getTime(),
+		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * 24 * 60 * 60 * 1000
+	);
+}
+
 function getDateUtcTimestamp(dateValue: string) {
 	const date = parseDateValue(dateValue);
 	if (!date) {
@@ -319,15 +338,23 @@ export function formatBookingDateMedium(dateValue: string) {
 	return formatShortMonthFullDate(date);
 }
 
-export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
+export function getBookingDayDifference(dateValue: string, now = new Date()) {
 	const bookingTimestamp = getDateUtcTimestamp(dateValue);
 	const todayTimestamp = getDateUtcTimestamp(getSydneyDateValue(now));
 
 	if (bookingTimestamp === null || todayTimestamp === null) {
-		return dateValue;
+		return null;
 	}
 
-	const dayDifference = Math.round((bookingTimestamp - todayTimestamp) / (24 * 60 * 60 * 1000));
+	return Math.round((bookingTimestamp - todayTimestamp) / (24 * 60 * 60 * 1000));
+}
+
+export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
+	const dayDifference = getBookingDayDifference(dateValue, now);
+
+	if (dayDifference === null) {
+		return dateValue;
+	}
 
 	if (dayDifference === 0) {
 		return "Today";
@@ -367,6 +394,68 @@ export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
 	}
 
 	return utcDate.getTime();
+}
+
+export function formatDriveSessionFolderName(sessionStartAt: number) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "2-digit",
+		month: "short",
+		year: "numeric"
+	}).formatToParts(sessionStartAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+	const time = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true
+	})
+		.format(sessionStartAt)
+		.toUpperCase();
+
+	return `${valueByType.day} ${valueByType.month} ${valueByType.year} - ${time}`;
+}
+
+export function formatDrivePackageFolderName({
+	packageSize,
+	purchasedAt
+}: {
+	packageSize: number;
+	purchasedAt: number;
+}) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "2-digit",
+		month: "short",
+		year: "numeric"
+	}).formatToParts(purchasedAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+
+	return `${packageSize}-Session Package - Ordered on ${valueByType.day} ${valueByType.month} ${valueByType.year}`;
+}
+
+export function formatDrivePackageSessionFolderName(sessionNumber: number, sessionStartAt: number) {
+	return `Session ${String(sessionNumber).padStart(2, "0")} - ${formatDriveSessionFolderName(sessionStartAt)}`;
+}
+
+export function formatDriveClientFolderName(input: { accountName: string; contactName: string }) {
+	const clientName = input.accountName.trim() || input.contactName.trim();
+	return `${clientName} (VV Studios)`;
+}
+
+export function formatDriveSessionMediaFolderName(
+	folderType: "Raw Media" | "Deliverables",
+	sessionStartAt: number
+) {
+	const dateParts = new Intl.DateTimeFormat("en-AU", {
+		timeZone: BOOKING_TIME_ZONE,
+		day: "numeric",
+		month: "numeric",
+		year: "2-digit"
+	}).formatToParts(sessionStartAt);
+	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+
+	return `${folderType} (${valueByType.day}.${valueByType.month}.${valueByType.year})`;
 }
 
 export function isUpcomingBooking(dateValue: string, timeValue: string, now = Date.now()) {

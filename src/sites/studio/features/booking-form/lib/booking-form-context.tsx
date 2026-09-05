@@ -1,11 +1,11 @@
 import { createContext, useContext } from "react";
 import type { ReactFormExtendedApi } from "@tanstack/react-form";
 import {
-	bookingSchema,
+	publicBookingSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 
-type BookingFormValidator = typeof bookingSchema;
+type BookingFormValidator = typeof publicBookingSchema;
 
 export type BookingFormApi = ReactFormExtendedApi<
 	BookingFormValues,

@@ -25,6 +25,7 @@ const sessionUpdateErrorMessageMap = {
 	NOT_AUTHORIZED: "You do not have access to update sessions.",
 	BOOKING_NOT_FOUND: "That session no longer exists.",
 	BOOKING_INVALID_DATE: "Enter a valid session date.",
+	BOOKING_INVALID_DURATION: "Enter a valid session duration.",
 	BOOKING_INVALID_TIME: "Enter a valid session time.",
 	BOOKING_INVALID_INPUT: "Check the session details and balance, then try again.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",

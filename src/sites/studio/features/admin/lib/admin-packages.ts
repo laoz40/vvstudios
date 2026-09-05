@@ -10,6 +10,7 @@ export type AdminPackageStatus =
 
 export type AdminPackageRecord = Doc<"multiBookingPackages"> & {
 	bookedSessions?: number;
+	areSessionsComplete: boolean;
 	adjustment?: {
 		_id: Doc<"packageAdjustments">["_id"];
 		totalAmount: number;
@@ -46,6 +47,7 @@ export type AdminPackageRow = {
 		paymentStatus: "unpaid" | "paid";
 	} | null;
 	isPaid: boolean;
+	areSessionsComplete: boolean;
 	invoiceDueAt: number;
 	expiresAt?: number;
 	createdAt: number;
@@ -161,7 +163,12 @@ export function getAdminPackageStatusDisplay(
 }
 
 export function isAdminPackageOverdue(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "status">
+	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "status"> & {
+		adjustment: Pick<
+			NonNullable<AdminPackageRow["adjustment"]>,
+			"invoiceDueAt" | "paymentStatus"
+		> | null;
+	}
 ) {
 	if (packageRow.adjustment?.paymentStatus === "unpaid") {
 		return Date.now() > packageRow.adjustment.invoiceDueAt;
@@ -178,6 +185,21 @@ export function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expires
 	return (
 		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
 	);
+}
+
+export function isAdminPackageAdjustmentPaymentEligible(
+	adjustment: NonNullable<AdminPackageRow["adjustment"]>
+) {
+	return adjustment.invoiceEmailStatus === "sent" || Date.now() > adjustment.invoiceDueAt;
+}
+
+type AdminPackageRowDimmingInput = Pick<
+	AdminPackageRow,
+	"areSessionsComplete" | "expiresAt" | "isPaid"
+>;
+
+export function isAdminPackageRowDimmed(packageRow: AdminPackageRowDimmingInput) {
+	return isAdminPackageExpired(packageRow) || (packageRow.isPaid && packageRow.areSessionsComplete);
 }
 
 export function isAdminPackagePaymentDueClose(
@@ -320,6 +342,7 @@ export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): A
 		isPaid:
 			multiBookingPackage.status === "paid" ||
 			multiBookingPackage.status === "schedule_email_failed",
+		areSessionsComplete: multiBookingPackage.areSessionsComplete,
 		invoiceDueAt: multiBookingPackage.invoiceDueAt,
 		expiresAt: multiBookingPackage.expiresAt,
 		createdAt: multiBookingPackage.createdAt,

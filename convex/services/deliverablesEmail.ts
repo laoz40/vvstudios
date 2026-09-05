@@ -1,38 +1,84 @@
 "use node";
 
-import { errAsync, type ResultAsync } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/lib/auth";
+import {
+	requireDeliverablesEligibility,
+	requireDeliverablesOwnership
+} from "#convex/lib/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email";
-import { parseGoogleDriveLink } from "#convex/lib/googleDriveLinks";
+import { listDriveFolderChildren, loadDriveClient, type DriveError } from "#convex/lib/googleDrive";
+import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
-export type SendSessionDeliverablesEmailArgs = {
-	bookingId: Id<"bookings">;
-	driveLink: string;
-	editorNotes?: string;
-	emailVariant: "first-time" | "recurring";
-};
+export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
+
+type SendDeliverablesError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" }
+	| { reason: "SESSION_NOT_CONFIRMED" }
+	| { reason: "SESSION_ARCHIVED" }
+	| { reason: "SESSION_NOT_IN_PAST" }
+	| { reason: "DELIVERABLES_FOLDER_MISSING" }
+	| { reason: "DELIVERABLES_FOLDER_EMPTY" }
+	| { reason: "DELIVERABLES_FOLDER_LIST_FAILED" }
+	| { reason: "DELIVERABLES_SEND_FAILED" };
+
+function mapFolderListError(error: DriveError): SendDeliverablesError {
+	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
+		return { reason: "DELIVERABLES_FOLDER_MISSING" };
+	}
+	return { reason: "DELIVERABLES_FOLDER_LIST_FAILED" };
+}
+
+function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
+	return fromConvexTuple(ctx.runQuery(internal.sessions.getDriveSetup, { bookingId })).andThen(
+		(setupInfo) => {
+			const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
+			if (deliverablesFolder === undefined) {
+				return errAsync({ reason: "DELIVERABLES_FOLDER_MISSING" as const });
+			}
+			return okAsync(deliverablesFolder);
+		}
+	);
+}
+
+function requireDeliverablesFolderContents(folder: { id: string; url: string }) {
+	return loadDriveClient()
+		.andThen((drive) => listDriveFolderChildren(drive, folder.id))
+		.mapErr(mapFolderListError)
+		.andThen((children) => {
+			if (children.length === 0) {
+				return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
+			}
+			return okAsync(folder);
+		});
+}
 
 function sendDeliverablesEmailForSession(
+	ctx: ActionCtx,
 	session: Doc<"bookings">,
-	args: SendSessionDeliverablesEmailArgs
-): ResultAsync<null, { reason: "INVALID_DRIVE_LINK" } | { reason: "DELIVERABLES_SEND_FAILED" }> {
-	const parsedDriveLink = parseGoogleDriveLink(args.driveLink);
-
-	if (!parsedDriveLink) {
-		return errAsync({ reason: "INVALID_DRIVE_LINK" as const });
-	}
-
-	return sendDeliverablesEmail({
-		date: session.date,
-		driveLink: parsedDriveLink,
-		editorNotes: args.editorNotes,
-		email: session.email,
-		emailVariant: args.emailVariant,
-		name: session.name
-	})
+	folderUrl: string,
+	editorNotes: string | undefined
+): ResultAsync<null, SendDeliverablesError> {
+	return fromConvexTuple(
+		ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
+	)
+		.andThen((emailVariant) =>
+			sendDeliverablesEmail({
+				date: session.date,
+				driveLink: folderUrl,
+				editorNotes,
+				email: session.email,
+				emailVariant,
+				name: session.name
+			})
+		)
 		.map(() => null)
 		.mapErr((emailError) => {
 			console.error("Manual session deliverables email send failed", {
@@ -46,15 +92,23 @@ function sendDeliverablesEmailForSession(
 export function sendSessionDeliverablesEmailService(
 	ctx: ActionCtx,
 	args: SendSessionDeliverablesEmailArgs
-): ResultAsync<
-	null,
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" }
-	| { reason: "INVALID_DRIVE_LINK" }
-	| { reason: "DELIVERABLES_SEND_FAILED" }
-> {
-	return getAdminIdentity(ctx)
-		.andThen(() => getSessionFromQuery(ctx, args.bookingId))
-		.andThen((session) => sendDeliverablesEmailForSession(session, args));
+): ResultAsync<null, SendDeliverablesError> {
+	return requirePermissionActions(ctx, "send:deliverables-email")
+		.andThen((identity) =>
+			getSessionFromQuery(ctx, args.bookingId).map((session) => ({ identity, session }))
+		)
+		.andThen(requireDeliverablesOwnership)
+		.andThen((access) => requireDeliverablesEligibility(access))
+		.andThen((session) => {
+			// A session already marked completed was delivered. Skip a second email until it leaves completed.
+			if (session.editStatus === "completed") {
+				return okAsync(null);
+			}
+
+			return requireSavedDeliverablesFolder(session._id, ctx)
+				.andThen(requireDeliverablesFolderContents)
+				.andThen((folder) =>
+					sendDeliverablesEmailForSession(ctx, session, folder.url, args.editorNotes)
+				);
+		});
 }

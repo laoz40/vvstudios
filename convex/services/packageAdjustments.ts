@@ -1,10 +1,11 @@
 import { ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getAdminIdentity } from "#convex/lib/auth";
+import { requirePermission } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
 	getSentPackageAdjustmentInvoice,
+	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
@@ -121,8 +122,9 @@ export function markPackageAdjustmentPaymentStatusService(
 	ctx: MutationCtx,
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
-	return getAdminIdentity(ctx)
-		.andThen(() => getSentPackageAdjustmentInvoice(ctx, args.adjustmentId))
+	return requirePermission(ctx, "update:payment-status")
+		.andThen(() => getPackageAdjustmentInvoice(ctx, args.adjustmentId))
+		.andThen((adjustment) => requirePackageAdjustmentPaymentEligibility(adjustment, Date.now()))
 		.andThen((adjustment) =>
 			okOrThrow(
 				ctx.db
