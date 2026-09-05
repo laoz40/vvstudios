@@ -247,7 +247,7 @@ export function PricingSection({
 				<div
 					className={cn(
 						"flex w-full flex-col items-start md:items-center",
-						"gap-5 pb-2",
+						"gap-4 pb-2 md:gap-5",
 						"text-left md:text-center"
 					)}>
 					<HeadingTag className={landingSectionHeadingClassName}>
