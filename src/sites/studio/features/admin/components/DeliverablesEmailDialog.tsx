@@ -87,7 +87,7 @@ export function DeliverablesEmailDialog({
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Send Deliverables Email</DialogTitle>
+					<DialogTitle>Deliver deliverables</DialogTitle>
 				</DialogHeader>
 
 				{recipient.visibility === "shown" ? (
@@ -146,18 +146,18 @@ export function DeliverablesEmailDialog({
 						<Checkbox
 							id={`deliverables-mark-sent-${bookingId}`}
 							aria-describedby={`deliverables-mark-sent-description-${bookingId}`}
-							checked={!markAsSentAfterSending}
+							checked={markAsSentAfterSending}
 							onCheckedChange={(checked) => {
-								onMarkAsSentAfterSendingChange(checked !== true);
+								onMarkAsSentAfterSendingChange(checked === true);
 							}}
 							disabled={isSending}
 						/>
 						<div className="flex flex-col gap-1">
 							<FieldLabel htmlFor={`deliverables-mark-sent-${bookingId}`}>
-								Don&apos;t set status to sent
+								Mark deliverables as sent
 							</FieldLabel>
 							<FieldDescription id={`deliverables-mark-sent-description-${bookingId}`}>
-								Check this if there are more deliverables to send later.
+								Updates the session status to sent after the email is sent.
 							</FieldDescription>
 						</div>
 					</Field>
