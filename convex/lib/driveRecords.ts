@@ -363,40 +363,81 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	});
 }
 
-export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).map((setupInfo) => {
-		const booking = setupInfo?.booking ?? null;
-		const driveClient = setupInfo?.driveClient ?? null;
-		const driveSession = setupInfo?.driveSession ?? null;
-		const multiBookingPackage = setupInfo?.multiBookingPackage ?? null;
-		const folderStatus = buildDriveStatus({
-			booking,
-			driveClient,
-			driveSession,
-			multiBookingPackage,
-			driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
-			sharedPackageFolder: setupInfo?.sharedPackageFolder
-		});
-		const clientDrivePermissions = buildClientDrivePermissionsStatus(driveClient, driveSession);
-		const editorDrivePermissions = buildEditorDrivePermissionsStatus(booking, driveSession);
-		const previousEditorRemovalFailed =
-			driveSession?.failedRemovalEditorTokenIdentifier !== undefined;
-		return {
-			...folderStatus,
-			...getDriveIdentityStatus(booking, driveClient),
-			clientDrivePermissions,
-			driveSetupFailureCode: booking?.driveSetupFailureCode,
-			editorDrivePermissions,
-			hasDriveWorkflowFailure: hasDriveWorkflowFailure({
-				clientDrivePermissions,
-				editorDrivePermissions,
-				folderStatus: folderStatus.status,
-				folders: folderStatus.folders,
-				previousEditorRemovalFailed
-			}),
-			previousEditorRemovalFailed
-		};
+function buildDriveWorkflowFailureStatus(args: {
+	clientDrivePermissions: ReturnType<typeof buildClientDrivePermissionsStatus>;
+	editorDrivePermissions: ReturnType<typeof buildEditorDrivePermissionsStatus>;
+	folderStatus: ReturnType<typeof buildDriveStatus>;
+	previousEditorRemovalFailed: boolean;
+}) {
+	return hasDriveWorkflowFailure({
+		clientDrivePermissions: args.clientDrivePermissions,
+		editorDrivePermissions: args.editorDrivePermissions,
+		folderStatus: args.folderStatus.status,
+		folders: args.folderStatus.folders,
+		previousEditorRemovalFailed: args.previousEditorRemovalFailed
 	});
+}
+
+function getDriveSetupEntities(
+	setupInfo: {
+		booking: Doc<"bookings"> | null;
+		driveClient: Doc<"driveClients"> | null;
+		driveSession: Doc<"driveSessions"> | null;
+		multiBookingPackage: Doc<"multiBookingPackages"> | null;
+		sharedPackageFolder?: { id: string; url: string };
+	} | null
+) {
+	return {
+		booking: setupInfo?.booking ?? null,
+		driveClient: setupInfo?.driveClient ?? null,
+		driveSession: setupInfo?.driveSession ?? null,
+		multiBookingPackage: setupInfo?.multiBookingPackage ?? null,
+		sharedPackageFolder: setupInfo?.sharedPackageFolder
+	};
+}
+
+function buildDriveStatusFromSetup(
+	setupInfo: {
+		booking: Doc<"bookings"> | null;
+		driveClient: Doc<"driveClients"> | null;
+		driveSession: Doc<"driveSessions"> | null;
+		multiBookingPackage: Doc<"multiBookingPackages"> | null;
+		sharedPackageFolder?: { id: string; url: string };
+	} | null
+) {
+	const { booking, driveClient, driveSession, multiBookingPackage, sharedPackageFolder } =
+		getDriveSetupEntities(setupInfo);
+	const folderStatus = buildDriveStatus({
+		booking,
+		driveClient,
+		driveSession,
+		multiBookingPackage,
+		driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
+		sharedPackageFolder
+	});
+	const clientDrivePermissions = buildClientDrivePermissionsStatus(driveClient, driveSession);
+	const editorDrivePermissions = buildEditorDrivePermissionsStatus(booking, driveSession);
+	const previousEditorRemovalFailed =
+		driveSession?.failedRemovalEditorTokenIdentifier !== undefined;
+
+	return {
+		...folderStatus,
+		...getDriveIdentityStatus(booking, driveClient),
+		clientDrivePermissions,
+		driveSetupFailureCode: booking?.driveSetupFailureCode,
+		editorDrivePermissions,
+		hasDriveWorkflowFailure: buildDriveWorkflowFailureStatus({
+			clientDrivePermissions,
+			editorDrivePermissions,
+			folderStatus,
+			previousEditorRemovalFailed
+		}),
+		previousEditorRemovalFailed
+	};
+}
+
+export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getDriveSetup(ctx, bookingId).map((setupInfo) => buildDriveStatusFromSetup(setupInfo));
 }
 
 // Admin session lists only need the failure flag, not the full Drive status payload.
@@ -1538,6 +1579,33 @@ function canClaimClientAssetsEmail(
 	}
 }
 
+function canClaimClientAssetsEmailSend(args: {
+	attempt: "automatic" | "retry";
+	assetsFolder: { id: string; url: string } | undefined;
+	driveSession: Doc<"driveSessions"> | null;
+	isEmailCurrent: boolean;
+	now: number;
+}) {
+	if (args.driveSession === null || args.assetsFolder === undefined) {
+		return false;
+	}
+
+	const { driveSession } = args;
+	const permissionsReady =
+		driveSession.clientDrivePermissionsStatus === "ready" ||
+		driveSession.clientDrivePermissionsStatus === "skipped";
+	const claimStillActive =
+		driveSession.assetsEmailClaimedAt !== undefined &&
+		args.now - driveSession.assetsEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS;
+
+	return (
+		permissionsReady &&
+		!args.isEmailCurrent &&
+		!claimStillActive &&
+		canClaimClientAssetsEmail(args.attempt, driveSession.assetsEmailStatus, args.isEmailCurrent)
+	);
+}
+
 export function claimClientAssetsEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
@@ -1560,24 +1628,28 @@ export function claimClientAssetsEmail(
 				driveSession?.assetsEmailStatus === "sent" &&
 				driveSession.assetsEmailFolderId === assetsFolder?.id;
 			if (
+				!canClaimClientAssetsEmailSend({
+					attempt: args.attempt,
+					assetsFolder,
+					driveSession,
+					isEmailCurrent,
+					now: args.now
+				}) ||
 				driveSession === null ||
-				(driveSession.clientDrivePermissionsStatus !== "ready" &&
-					driveSession.clientDrivePermissionsStatus !== "skipped") ||
-				assetsFolder === undefined ||
-				isEmailCurrent ||
-				(driveSession.assetsEmailClaimedAt !== undefined &&
-					args.now - driveSession.assetsEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS) ||
-				!canClaimClientAssetsEmail(args.attempt, driveSession.assetsEmailStatus, isEmailCurrent)
+				assetsFolder === undefined
 			) {
 				return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
 			}
 
+			const claimedDriveSession = driveSession;
+			const claimedAssetsFolder = assetsFolder;
+
 			return okOrThrow(
 				ctx.db
-					.patch(driveSession._id, { assetsEmailClaimedAt: args.now, updatedAt: Date.now() })
+					.patch(claimedDriveSession._id, { assetsEmailClaimedAt: args.now, updatedAt: Date.now() })
 					.then(() => ({
-						assetsUrl: assetsFolder.url,
-						assetsFolderId: assetsFolder.id,
+						assetsUrl: claimedAssetsFolder.url,
+						assetsFolderId: claimedAssetsFolder.id,
 						bookingId: booking._id,
 						claimedAt: args.now,
 						email: booking.email,
