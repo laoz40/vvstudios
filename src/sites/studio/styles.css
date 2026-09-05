@@ -133,10 +133,6 @@
 
 /* nav */
 
-.site-navbar {
-	view-transition-name: none;
-}
-
 .site-nav-cta {
 	min-width: 9rem;
 	justify-content: center;
