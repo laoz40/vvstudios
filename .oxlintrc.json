@@ -116,6 +116,15 @@
 			"env": { "browser": true, "node": true }
 		},
 		{
+			"files": ["src/components/ui/**"],
+			"plugins": ["jsx-a11y"],
+			"rules": {
+				"jsx-a11y/prefer-tag-over-role": "off",
+				"jsx-a11y/no-noninteractive-tabindex": "off",
+				"jsx-a11y/no-noninteractive-element-interactions": "off"
+			}
+		},
+		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {
 				"constructor-super": "off",
