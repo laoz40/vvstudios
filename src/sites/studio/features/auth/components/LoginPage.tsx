@@ -84,11 +84,11 @@ export function LoginPage() {
 				className={cn("w-full max-w-sm", "gap-5", "rounded-lg border-border bg-card shadow-sm")}>
 				<CardHeader className="gap-3 px-5">
 					<h1 className="text-xl leading-tight font-semibold">
-						{isInvitationSignUp ? "Set up your account" : "Administrator login"}
+						{isInvitationSignUp ? "Create your account" : "Administrator login"}
 					</h1>
 					<p className="text-sm leading-6 text-muted-foreground">
 						{isInvitationSignUp ? (
-							"Use the invitation sent to your email to create your account."
+							"Enter your details below to finish joining."
 						) : (
 							<>
 								Authorised access only. If you want to create a booking, please go to the{" "}

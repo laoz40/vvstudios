@@ -10,7 +10,7 @@ const LoginPage = lazy(() =>
 );
 
 export const Route = createFileRoute("/_auth/login")({
-	head: () => buildNoIndexHead("Admin Login | VV Studios"),
+	head: () => buildNoIndexHead("Login | VV Studios"),
 	component: LoginRoute
 });
 
