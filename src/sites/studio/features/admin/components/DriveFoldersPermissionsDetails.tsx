@@ -1,6 +1,42 @@
 import { Check, X } from "lucide-react";
 import type { DriveDialogStatus } from "#studio/features/admin/lib/drive-folders-dialog";
 
+function clientDrivePermissionsCompleteLabel(
+	status: NonNullable<DriveDialogStatus["clientDrivePermissions"]>["status"]
+) {
+	switch (status) {
+		case "skipped":
+			return "Client Drive upload skipped. No Google account";
+		case "ready":
+		case "failed":
+		case "incomplete":
+		case "not_created":
+			return "Google Drive permissions set up for client";
+		default: {
+			const _exhaustive: never = status;
+			return _exhaustive;
+		}
+	}
+}
+
+function isClientDrivePermissionsComplete(
+	status: NonNullable<DriveDialogStatus["clientDrivePermissions"]>["status"]
+) {
+	switch (status) {
+		case "ready":
+		case "skipped":
+			return true;
+		case "failed":
+		case "incomplete":
+		case "not_created":
+			return false;
+		default: {
+			const _exhaustive: never = status;
+			return _exhaustive;
+		}
+	}
+}
+
 function DriveStatusRow({
 	isComplete,
 	completeLabel,
@@ -50,13 +86,20 @@ export function DrivePermissionsDetails({
 			{showClientStatus ? (
 				<>
 					<DriveStatusRow
-						isComplete={clientDrivePermissions.status === "ready"}
-						completeLabel="Google Drive permissions set up for client"
+						isComplete={isClientDrivePermissionsComplete(clientDrivePermissions.status)}
+						completeLabel={clientDrivePermissionsCompleteLabel(clientDrivePermissions.status)}
 						attentionLabel="Google Drive permissions for client need attention"
 					/>
 					<DriveStatusRow
-						isComplete={clientDrivePermissions.assetsEmailStatus === "sent"}
-						completeLabel="Assets email sent to client"
+						isComplete={
+							clientDrivePermissions.assetsEmailStatus === "sent" ||
+							clientDrivePermissions.status === "skipped"
+						}
+						completeLabel={
+							clientDrivePermissions.status === "skipped"
+								? "Assets upload email skipped. No Google account"
+								: "Assets email sent to client"
+						}
 						attentionLabel="Assets email not sent to client"
 					/>
 				</>

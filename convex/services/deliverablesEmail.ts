@@ -10,7 +10,12 @@ import {
 	requireDeliverablesOwnership
 } from "#convex/lib/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email";
-import { listDriveFolderChildren, loadDriveClient, type DriveError } from "#convex/lib/googleDrive";
+import {
+	ensureAnyoneReaderPermission,
+	listDriveFolderChildren,
+	loadDriveClient,
+	type DriveError
+} from "#convex/lib/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
@@ -27,6 +32,7 @@ type SendDeliverablesError =
 	| { reason: "DELIVERABLES_FOLDER_MISSING" }
 	| { reason: "DELIVERABLES_FOLDER_EMPTY" }
 	| { reason: "DELIVERABLES_FOLDER_LIST_FAILED" }
+	| { reason: "DELIVERABLES_LINK_SHARE_FAILED" }
 	| { reason: "DELIVERABLES_SEND_FAILED" };
 
 function mapFolderListError(error: DriveError): SendDeliverablesError {
@@ -34,6 +40,20 @@ function mapFolderListError(error: DriveError): SendDeliverablesError {
 		return { reason: "DELIVERABLES_FOLDER_MISSING" };
 	}
 	return { reason: "DELIVERABLES_FOLDER_LIST_FAILED" };
+}
+
+function mapLinkShareError(error: DriveError): SendDeliverablesError {
+	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
+		return { reason: "DELIVERABLES_FOLDER_MISSING" };
+	}
+	return { reason: "DELIVERABLES_LINK_SHARE_FAILED" };
+}
+
+function grantGuestViewerLink(folder: { id: string; url: string }) {
+	return loadDriveClient()
+		.andThen((drive) => ensureAnyoneReaderPermission(drive, folder.id))
+		.mapErr(mapLinkShareError)
+		.map(() => folder);
 }
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
@@ -107,6 +127,7 @@ export function sendSessionDeliverablesEmailService(
 
 			return requireSavedDeliverablesFolder(session._id, ctx)
 				.andThen(requireDeliverablesFolderContents)
+				.andThen((folder) => grantGuestViewerLink(folder))
 				.andThen((folder) =>
 					sendDeliverablesEmailForSession(ctx, session, folder.url, args.editorNotes)
 				);

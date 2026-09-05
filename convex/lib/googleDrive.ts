@@ -29,11 +29,36 @@ const drivePermissionSchema = z.object({
 const listedDrivePermissionSchema = z.object({
 	id: z.string().min(1),
 	emailAddress: z.string().email().optional(),
-	role: z.string().min(1)
+	role: z.string().min(1),
+	type: z.string().optional()
+});
+const anyoneReaderPermissionSchema = z.object({
+	id: z.string().min(1),
+	role: z.literal("reader"),
+	type: z.literal("anyone")
 });
 const googleProviderErrorSchema = z.object({
 	status: z.number().optional(),
 	response: z.object({ status: z.number().optional() }).optional()
+});
+const googleShareErrorSchema = z.object({
+	errors: z.array(z.object({ reason: z.string(), message: z.string().optional() })).optional(),
+	response: z
+		.object({
+			data: z
+				.object({
+					error: z
+						.object({
+							errors: z
+								.array(z.object({ reason: z.string(), message: z.string().optional() }))
+								.optional(),
+							message: z.string().optional()
+						})
+						.optional()
+				})
+				.optional()
+		})
+		.optional()
 });
 
 export type DriveClient = drive_v3.Drive;
@@ -50,7 +75,8 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
-		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID";
+		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID"
+		| "GOOGLE_DRIVE_SHARE_TARGET_MISSING";
 };
 
 function getGoogleProviderErrorCode(error: unknown) {
@@ -59,9 +85,35 @@ function getGoogleProviderErrorCode(error: unknown) {
 	return parsedError.data.status ?? parsedError.data.response?.status ?? null;
 }
 
+function isMissingGoogleAccountShareError(error: unknown) {
+	const parsedError = googleShareErrorSchema.safeParse(error);
+	if (!parsedError.success) return false;
+
+	const shareErrors = [
+		...(parsedError.data.errors ?? []),
+		...(parsedError.data.response?.data?.error?.errors ?? [])
+	];
+	if (shareErrors.some((shareError) => shareError.reason === "invalidSharingRequest")) {
+		return true;
+	}
+
+	const messages = [
+		parsedError.data.response?.data?.error?.message,
+		...shareErrors.map((shareError) => shareError.message)
+	].filter((message): message is string => message !== undefined);
+
+	return messages.some((message) => /does not have a Google Account/i.test(message));
+}
+
 function mapDriveError(error: unknown, fallback: DriveError["reason"]) {
 	const code = getGoogleProviderErrorCode(error);
 	if (code === 401 || code === 403) return { reason: "GOOGLE_DRIVE_AUTH_FAILED" as const };
+	if (
+		fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED" &&
+		isMissingGoogleAccountShareError(error)
+	) {
+		return { reason: "GOOGLE_DRIVE_SHARE_TARGET_MISSING" as const };
+	}
 	return { reason: fallback };
 }
 
@@ -187,7 +239,7 @@ export function findDrivePermission(
 	return ResultAsync.fromPromise(
 		drive.permissions.list({
 			fileId: input.fileId,
-			fields: "permissions(id,emailAddress,role)",
+			fields: "permissions(id,emailAddress,role,type)",
 			pageSize: 100,
 			supportsAllDrives: false
 		}),
@@ -234,6 +286,46 @@ export function createDrivePermission(
 		return permission.success
 			? ok(permission.data)
 			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
+	});
+}
+
+export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
+	return ResultAsync.fromPromise(
+		drive.permissions.list({
+			fileId,
+			fields: "permissions(id,emailAddress,role,type)",
+			pageSize: 100,
+			supportsAllDrives: false
+		}),
+		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED")
+	).andThen((response) => {
+		const permissions = z
+			.array(listedDrivePermissionSchema)
+			.safeParse(response.data.permissions ?? []);
+		if (!permissions.success) {
+			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
+		}
+
+		const existingPermission = permissions.data.find(
+			(candidate) => candidate.type === "anyone" && candidate.role === "reader"
+		);
+		if (existingPermission !== undefined) return ok(null);
+
+		return ResultAsync.fromPromise(
+			drive.permissions.create({
+				fileId,
+				fields: "id,role,type",
+				sendNotificationEmail: false,
+				requestBody: { role: "reader", type: "anyone" },
+				supportsAllDrives: false
+			}),
+			(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED")
+		).andThen((createResponse) => {
+			const permission = anyoneReaderPermissionSchema.safeParse(createResponse.data);
+			return permission.success
+				? ok(null)
+				: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
+		});
 	});
 }
 

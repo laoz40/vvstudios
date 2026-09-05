@@ -50,6 +50,9 @@ export function RecurringDeliverablesEmail({
 						Great working with you again on the {bookingDate}. Your final deliverables are polished
 						and ready to go:
 					</Text>
+					<Text style={paragraph}>
+						Open the link below to view your files. You do not need a Google account.
+					</Text>
 
 					<Section style={buttonWrapper}>
 						<Button

@@ -130,7 +130,7 @@ function saveClientDrivePermission(
 export function saveClientDrivePermissionsStatus(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	status: "failed" | "ready"
+	status: "failed" | "ready" | "skipped"
 ) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.saveClientDrivePermissionsStatus, { bookingId, status })
@@ -163,7 +163,14 @@ export function requireClientDrivePermissions(
 				)
 		)
 		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
-		.map(() => setup);
+		.map(() => setup)
+		.orElse((error) => {
+			if (error.reason !== "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
+				return errAsync(error);
+			}
+
+			return saveClientDrivePermissionsStatus(ctx, setup.booking._id, "skipped").map(() => setup);
+		});
 }
 
 export function sendClientAssetsFolderEmail(

@@ -20,6 +20,7 @@ const deliverablesEmailErrorMessage = {
 	DELIVERABLES_FOLDER_MISSING: "This session has no Deliverables folder yet.",
 	DELIVERABLES_FOLDER_EMPTY: "Deliverables is empty. Add the finished files before sending.",
 	DELIVERABLES_FOLDER_LIST_FAILED: "Couldn't check the Deliverables folder. Try again.",
+	DELIVERABLES_LINK_SHARE_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
 	DELIVERABLES_SEND_FAILED: "Unable to send deliverables email.",
 	UNEXPECTED_ERROR: "Something went wrong while sending the deliverables email."
 } as const;

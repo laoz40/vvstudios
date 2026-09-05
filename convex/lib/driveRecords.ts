@@ -16,8 +16,13 @@ import {
 
 const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
-type ClientDrivePermissionsStatus = "failed" | "ready";
-type ClientDrivePermissionsDisplayStatus = "failed" | "incomplete" | "not_created" | "ready";
+type ClientDrivePermissionsStatus = "failed" | "ready" | "skipped";
+type ClientDrivePermissionsDisplayStatus =
+	| "failed"
+	| "incomplete"
+	| "not_created"
+	| "ready"
+	| "skipped";
 type AssetsEmailDisplayStatus = "failed" | "not_sent" | "pending" | "sent";
 type DriveStatusFolderName = "Assets" | "Package" | "Session" | DriveChildFolderName;
 
@@ -169,6 +174,8 @@ function buildClientDrivePermissionsDisplayStatus(
 	switch (driveSession.clientDrivePermissionsStatus) {
 		case "failed":
 			return "failed";
+		case "skipped":
+			return "skipped";
 		case "ready":
 			return foldersAreReady && permissionsAreReady ? "ready" : "incomplete";
 		case undefined:

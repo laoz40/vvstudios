@@ -12,7 +12,11 @@ const drivePermissionValidator = v.object({
 	emailAddress: v.string(),
 	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
 });
-const clientDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const clientDrivePermissionsStatusValidator = v.union(
+	v.literal("ready"),
+	v.literal("failed"),
+	v.literal("skipped")
+);
 const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 const editorDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
 const assignmentEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
