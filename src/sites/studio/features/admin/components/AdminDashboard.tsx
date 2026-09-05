@@ -3,7 +3,8 @@ import { useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
-import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
+import type { DashboardRole } from "#studio/features/auth/lib/dashboard-loading-labels";
 import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
 import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable";
@@ -94,7 +95,7 @@ function AdminDashboardTables({
 	);
 }
 
-export function AdminDashboard() {
+export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
 	const sessions = usePaginatedQuery(
 		api.sessions.listSessions,
 		{},
@@ -120,9 +121,10 @@ export function AdminDashboard() {
 	const isPaginatedDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
 	if (isPaginatedDataLoading || activeEditors === undefined || editorsResult === undefined) {
 		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Decrypting classified files" />
-			</main>
+			<DashboardLoadingState
+				dashboardRole={dashboardRole}
+				stage="loading-data"
+			/>
 		);
 	}
 

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 
 const clerkAppearance = {
 	variables: {
@@ -67,7 +68,7 @@ export function LoginPage() {
 	if (!isLoaded) {
 		return (
 			<main className="grid min-h-dvh place-items-center px-4 py-12">
-				<p className="text-sm text-muted-foreground">Loading sign-in...</p>
+				<StudioLoadingState label="Contacting security" />
 			</main>
 		);
 	}
