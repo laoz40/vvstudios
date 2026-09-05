@@ -74,22 +74,24 @@ export async function reserveSessionTime(
 	const searchStartAt = args.sessionStartAt - searchPaddingMs;
 	const searchEndAt = args.sessionStartAt + searchPaddingMs;
 	const confirmedStatuses = ["confirmed", "email_failed"] as const;
-	const confirmedBookings: Doc<"bookings">[] = [];
-
-	// Find nearby bookings that already use calendar time.
-	for (const status of confirmedStatuses) {
-		const nearbyBookings = ctx.db
-			.query("bookings")
-			.withIndex("by_status_and_sessionStartAt", (query) =>
-				query
-					.eq("status", status)
-					.gte("sessionStartAt", searchStartAt)
-					.lte("sessionStartAt", searchEndAt)
-			);
-		for await (const confirmedBooking of nearbyBookings) {
-			confirmedBookings.push(confirmedBooking);
-		}
-	}
+	const confirmedBookingsByStatus = await Promise.all(
+		confirmedStatuses.map(async (status) => {
+			const bookingsForStatus: Doc<"bookings">[] = [];
+			const nearbyBookings = ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_sessionStartAt", (query) =>
+					query
+						.eq("status", status)
+						.gte("sessionStartAt", searchStartAt)
+						.lte("sessionStartAt", searchEndAt)
+				);
+			for await (const confirmedBooking of nearbyBookings) {
+				bookingsForStatus.push(confirmedBooking);
+			}
+			return bookingsForStatus;
+		})
+	);
+	const confirmedBookings = confirmedBookingsByStatus.flat();
 
 	// Find new times reserved by session updates that are still running.
 	// Expired reservations are ignored.
