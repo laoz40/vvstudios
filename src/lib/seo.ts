@@ -1,4 +1,4 @@
-import { INSTAGRAM_URL } from "#/config/contact";
+import { CONTACT_EMAIL, INSTAGRAM_URL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
 
 const siteUrl = "https://vertigovisuals.au";
@@ -116,7 +116,7 @@ export function buildLocalBusinessJsonLd() {
 		url: siteUrl,
 		image: buildAbsoluteUrl(defaultOgImage),
 		telephone: "+61434367184",
-		email: "contact@vertigovisuals.com.au",
+		email: CONTACT_EMAIL,
 		priceRange: "$200/1h, $299/2h, $399/3h",
 		areaServed: "South West Sydney, NSW, Australia",
 		address: {
