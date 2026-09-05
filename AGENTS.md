@@ -17,6 +17,7 @@ Booking website for podcast studio.
 
 - run format and lint and typecheck once changes are complete
 - do not run build or convex codegen unless asked to
+- never use eslint ignore to bypass linter
 
 ## Behaviour
 
