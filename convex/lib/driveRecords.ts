@@ -1556,7 +1556,8 @@ export function claimClientAssetsEmail(
 				driveSession.assetsEmailFolderId === assetsFolder?.id;
 			if (
 				driveSession === null ||
-				driveSession.clientDrivePermissionsStatus !== "ready" ||
+				(driveSession.clientDrivePermissionsStatus !== "ready" &&
+					driveSession.clientDrivePermissionsStatus !== "skipped") ||
 				assetsFolder === undefined ||
 				isEmailCurrent ||
 				(driveSession.assetsEmailClaimedAt !== undefined &&

@@ -11,7 +11,8 @@
  *    Creates one global assets library and dated session media folders.
  *
  * 4. Client access
- *    Adds the required permissions and sends one assets email.
+ *    Adds an editor guest link on assets, reader access on the client folder, and sends one assets email.
+
  *
  * 5. Permission retry
  *    Retries failed permissions without recreating folders or resending email.
@@ -140,7 +141,7 @@
  *     Shows assets from driveSessions.driveClientId when booking.driveClientId points elsewhere.
  *
  * 47. Missing Google account
- *     Skips client user sharing without failing setup or sending the assets email.
+ *     Skips client-folder user sharing without failing setup, and still sends the assets guest link.
  *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
@@ -342,7 +343,10 @@ beforeEach(() => {
 	});
 	driveFake.permissionsCreate.mockImplementation(async (request) => {
 		const role = request.requestBody?.role ?? "reader";
-		if (driveFake.failNextPermissionAsMissingGoogleAccount) {
+		if (
+			driveFake.failNextPermissionAsMissingGoogleAccount &&
+			request.requestBody?.type === "user"
+		) {
 			driveFake.failNextPermissionAsMissingGoogleAccount = false;
 			throw {
 				response: {
@@ -465,7 +469,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		});
 	});
 
-	test("grants client writer access to global assets and emails its reusable link", async () => {
+	test("grants an editor guest link to global assets and emails its reusable link", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -476,11 +480,12 @@ describe("Google Drive scheduled workspace setup", () => {
 			driveFake.permissionsCreate.mock.calls.map(([request]) => ({
 				fileId: request.fileId,
 				role: request.requestBody?.role,
-				sendNotificationEmail: request.sendNotificationEmail
+				sendNotificationEmail: request.sendNotificationEmail,
+				type: request.requestBody?.type
 			}))
 		).toEqual([
-			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false },
-			{ fileId: "folder-2", role: "writer", sendNotificationEmail: false }
+			{ fileId: "folder-2", role: "writer", sendNotificationEmail: false, type: "anyone" },
+			{ fileId: "folder-1", role: "reader", sendNotificationEmail: false, type: "user" }
 		]);
 		expect(
 			driveFake.permissionsCreate.mock.calls.some(
@@ -511,9 +516,10 @@ describe("Google Drive scheduled workspace setup", () => {
 		expect(state.booking?.driveSetupFailureCode).toBeUndefined();
 		expect(state.driveSession).toMatchObject({
 			clientDrivePermissionsStatus: "skipped",
+			assetsEmailStatus: "sent",
 			deliverablesFolder: { id: "folder-5" }
 		});
-		expect(emailFake.sendClientAssetsEmail).not.toHaveBeenCalled();
+		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
 	});
 
 	test("reuses one global assets library across sessions for the same client", async () => {
@@ -1622,7 +1628,7 @@ describe("Google Drive reschedule and identity", () => {
 		});
 		expect(
 			driveFake.permissionsCreate.mock.calls.map(([request]) => request.requestBody?.emailAddress)
-		).toEqual(["customer@example.com", "customer@example.com"]);
+		).toEqual([undefined, "customer@example.com"]);
 		expect(status[1]).toMatchObject({ bookingEmailChanged: true, workspaceNameChanged: false });
 	});
 

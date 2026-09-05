@@ -6,7 +6,7 @@ function clientDrivePermissionsCompleteLabel(
 ) {
 	switch (status) {
 		case "skipped":
-			return "Client Drive upload skipped. No Google account";
+			return "Client folder was not shared as a viewer. This email is not a Google account";
 		case "ready":
 		case "failed":
 		case "incomplete":
@@ -91,15 +91,8 @@ export function DrivePermissionsDetails({
 						attentionLabel="Google Drive permissions for client need attention"
 					/>
 					<DriveStatusRow
-						isComplete={
-							clientDrivePermissions.assetsEmailStatus === "sent" ||
-							clientDrivePermissions.status === "skipped"
-						}
-						completeLabel={
-							clientDrivePermissions.status === "skipped"
-								? "Assets upload email skipped. No Google account"
-								: "Assets email sent to client"
-						}
+						isComplete={clientDrivePermissions.assetsEmailStatus === "sent"}
+						completeLabel="Assets email sent to client"
 						attentionLabel="Assets email not sent to client"
 					/>
 				</>

@@ -54,7 +54,7 @@ const savedDriveFolderValidator = v.object({
 });
 const savedDrivePermissionValidator = v.object({
 	id: v.string(),
-	emailAddress: v.string(),
+	emailAddress: v.optional(v.string()),
 	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
 });
 

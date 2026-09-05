@@ -23,7 +23,7 @@ const driveFolderSchema = z.object({
 });
 const drivePermissionSchema = z.object({
 	id: z.string().min(1),
-	emailAddress: z.string().email(),
+	emailAddress: z.string().email().optional(),
 	role: z.union([z.literal("reader"), z.literal("writer"), z.literal("commenter")])
 });
 const listedDrivePermissionSchema = z.object({
@@ -32,9 +32,9 @@ const listedDrivePermissionSchema = z.object({
 	role: z.string().min(1),
 	type: z.string().optional()
 });
-const anyoneReaderPermissionSchema = z.object({
+const anyonePermissionSchema = z.object({
 	id: z.string().min(1),
-	role: z.literal("reader"),
+	role: z.union([z.literal("reader"), z.literal("writer")]),
 	type: z.literal("anyone")
 });
 const googleProviderErrorSchema = z.object({
@@ -289,7 +289,11 @@ export function createDrivePermission(
 	});
 }
 
-export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
+export function ensureAnyonePermission(
+	drive: DriveClient,
+	fileId: string,
+	role: "reader" | "writer"
+) {
 	return ResultAsync.fromPromise(
 		drive.permissions.list({
 			fileId,
@@ -307,26 +311,32 @@ export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string)
 		}
 
 		const existingPermission = permissions.data.find(
-			(candidate) => candidate.type === "anyone" && candidate.role === "reader"
+			(candidate) => candidate.type === "anyone" && candidate.role === role
 		);
-		if (existingPermission !== undefined) return ok(null);
+		if (existingPermission !== undefined) {
+			return ok({ id: existingPermission.id, role, type: "anyone" as const });
+		}
 
 		return ResultAsync.fromPromise(
 			drive.permissions.create({
 				fileId,
 				fields: "id,role,type",
 				sendNotificationEmail: false,
-				requestBody: { role: "reader", type: "anyone" },
+				requestBody: { role, type: "anyone" },
 				supportsAllDrives: false
 			}),
 			(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED")
 		).andThen((createResponse) => {
-			const permission = anyoneReaderPermissionSchema.safeParse(createResponse.data);
+			const permission = anyonePermissionSchema.safeParse(createResponse.data);
 			return permission.success
-				? ok(null)
+				? ok(permission.data)
 				: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
 		});
 	});
+}
+
+export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
+	return ensureAnyonePermission(drive, fileId, "reader").map(() => null);
 }
 
 export function deleteDrivePermission(

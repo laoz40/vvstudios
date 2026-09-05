@@ -7,6 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { type DriveSetupInfo, validateDriveSetup } from "#convex/lib/driveSetup";
 import {
 	createDrivePermission,
+	ensureAnyonePermission,
 	findDrivePermission,
 	loadDriveClient,
 	type DriveClient,
@@ -45,11 +46,7 @@ type ReadyBookingDriveFolders = DriveSetupInfo & {
 	};
 };
 
-type ClientDrivePermissionRequirement = {
-	fileId: string;
-	name: "Assets" | "Client folder";
-	role: "reader" | "writer";
-};
+type ClientDrivePermissionRequirement = { fileId: string; name: "Client folder"; role: "reader" };
 
 function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
 	const { driveClient, driveSession } = setupInfo;
@@ -119,7 +116,7 @@ function requireClientDrivePermission(
 function saveClientDrivePermission(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	name: ClientDrivePermissionRequirement["name"],
+	name: "Assets" | "Client folder",
 	permission: SavedDrivePermission
 ) {
 	return fromConvexTuple(
@@ -143,23 +140,22 @@ export function requireClientDrivePermissions(
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	return loadDriveClient()
 		.andThen((drive) =>
-			requireClientDrivePermission(drive, setup, {
-				fileId: setup.driveClient.folderId,
-				name: "Client folder",
-				role: "reader"
-			})
+			ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
 				.andThen((permission) =>
-					saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission)
+					saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
+						id: permission.id,
+						role: permission.role
+					})
 				)
 				.andThen(() =>
 					requireClientDrivePermission(drive, setup, {
-						fileId: setup.driveClient.assetsFolder.id,
-						name: "Assets",
-						role: "writer"
+						fileId: setup.driveClient.folderId,
+						name: "Client folder",
+						role: "reader"
 					})
 				)
 				.andThen((permission) =>
-					saveClientDrivePermission(ctx, setup.booking._id, "Assets", permission)
+					saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission)
 				)
 		)
 		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
