@@ -25,6 +25,7 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
 import {
 	SessionEditorAssignment,
@@ -295,7 +296,7 @@ export function SessionActionsMenu({
 						{details.canManageConfirmedSession ? (
 							<>
 								<AnimatedDropdownMenuItem
-									onSelect={() => void navigator.clipboard.writeText(details.customerSessionId)}
+									onSelect={() => void copyText(details.customerSessionId, "invoice number")}
 									renderIcon={(iconRef) => (
 										<HashtagIcon
 											ref={iconRef}
@@ -304,7 +305,7 @@ export function SessionActionsMenu({
 											className="shrink-0 text-current"
 										/>
 									)}>
-									Copy invoice number
+									{details.customerSessionId}
 								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
 									onSelect={() => void navigator.clipboard.writeText(String(session._id))}

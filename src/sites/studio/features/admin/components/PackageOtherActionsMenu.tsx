@@ -13,6 +13,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
+import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -164,7 +165,7 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-60 touch-manipulation">
 				<AnimatedDropdownMenuItem
-					onSelect={() => void navigator.clipboard.writeText(invoiceNumber)}
+					onSelect={() => void copyText(invoiceNumber, "invoice number")}
 					renderIcon={(iconRef) => (
 						<HashtagIcon
 							ref={iconRef}
@@ -173,7 +174,7 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Copy invoice number
+					{invoiceNumber}
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					onSelect={() => void navigator.clipboard.writeText(String(packageRow.id))}
