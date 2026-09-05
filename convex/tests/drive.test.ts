@@ -1403,14 +1403,16 @@ describe("Google Drive package workspaces", () => {
 		expect(assetsFolders).toHaveLength(1);
 		expect(clientFolders).toHaveLength(1);
 		// Every package session folder lives inside the one package folder.
-		for (const bookingId of [firstId, secondId]) {
-			const state = await readDriveState(t, bookingId);
-			const sessionFolderId = state.driveSession?.sessionFolder?.id;
-			const sessionFolder = [...driveFake.folders.values()].find(
-				(folder) => folder.id === sessionFolderId
-			);
-			expect(sessionFolder?.parentId).toBe(packageFolders[0]?.id);
-		}
+		await Promise.all(
+			[firstId, secondId].map(async (bookingId) => {
+				const state = await readDriveState(t, bookingId);
+				const sessionFolderId = state.driveSession?.sessionFolder?.id;
+				const sessionFolder = [...driveFake.folders.values()].find(
+					(folder) => folder.id === sessionFolderId
+				);
+				expect(sessionFolder?.parentId).toBe(packageFolders[0]?.id);
+			})
+		);
 	});
 
 	test("grants the assigned editor access and sends the branded email for a package session", async () => {

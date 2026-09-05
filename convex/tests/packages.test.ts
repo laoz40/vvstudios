@@ -399,9 +399,11 @@ describe("admin package management", () => {
 	test("rejects shrinking below active capacity without changing the package", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		for (let index = 0; index < 5; index += 1) {
-			await seedPackageSession(t, packageId, index, index === 4 ? "email_failed" : "confirmed");
-		}
+		await Promise.all(
+			Array.from({ length: 5 }, (_, index) =>
+				seedPackageSession(t, packageId, index, index === 4 ? "email_failed" : "confirmed")
+			)
+		);
 		const packageBefore = await readPackage(t, packageId);
 
 		const result = await t

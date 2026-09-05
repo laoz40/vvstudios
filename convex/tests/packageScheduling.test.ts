@@ -204,9 +204,9 @@ describe("package session creation validation", () => {
 	test("rejects a package with every session scheduled without creating another record", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		for (let index = 0; index < 4; index += 1) {
-			await seedPackageSession(t, packageId, index);
-		}
+		await Promise.all(
+			Array.from({ length: 4 }, (_, index) => seedPackageSession(t, packageId, index))
+		);
 
 		const result = await t.action(api.packageScheduling.createPackageSession, { token, ...target });
 
@@ -302,9 +302,9 @@ describe("package session creation validation", () => {
 	test("allows one winner when two requests race for the final package slot", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		for (let index = 0; index < 3; index += 1) {
-			await seedPackageSession(t, packageId, index);
-		}
+		await Promise.all(
+			Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index))
+		);
 		let nextEventNumber = 0;
 		providerFakes.insertEvent.mockImplementation(async () => {
 			nextEventNumber += 1;
@@ -326,9 +326,9 @@ describe("package session creation validation", () => {
 	test("deletes a created Calendar event when the booking cannot be saved", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		for (let index = 0; index < 3; index += 1) {
-			await seedPackageSession(t, packageId, index);
-		}
+		await Promise.all(
+			Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index))
+		);
 		let releaseCalendarCreation: (() => void) | undefined;
 		const calendarCreationBlocked = new Promise<void>((resolve) => {
 			releaseCalendarCreation = resolve;
@@ -486,7 +486,7 @@ describe("package session unscheduling", () => {
 	test("cancels after deletion and frees capacity for another session", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		for (let index = 0; index < 3; index += 1) await seedPackageSession(t, packageId, index);
+		await Promise.all(Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index)));
 		const bookingId = await seedPackageSession(t, packageId, 3);
 
 		const result = await t.action(api.packageScheduling.unschedulePackageSession, {

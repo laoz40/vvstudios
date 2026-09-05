@@ -330,14 +330,16 @@ describe("invoice download access", () => {
 		await seedBooking(t, { status: "confirmed", stripeSessionId: "confirmed" });
 		await seedBooking(t, { status: "email_failed", stripeSessionId: "email-failed" });
 
-		for (const stripeSessionId of ["confirmed", "email-failed"]) {
-			const [error, payload] = await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
-				stripeSessionId
-			});
-			expect(error).toBeNull();
-			expect(payload).toMatchObject({ contentType: "application/pdf" });
-			expect(payload?.content.byteLength).toBeGreaterThan(0);
-		}
+		await Promise.all(
+			["confirmed", "email-failed"].map(async (stripeSessionId) => {
+				const [error, payload] = await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
+					stripeSessionId
+				});
+				expect(error).toBeNull();
+				expect(payload).toMatchObject({ contentType: "application/pdf" });
+				expect(payload?.content.byteLength).toBeGreaterThan(0);
+			})
+		);
 	});
 
 	test("expires public package downloads while keeping admin download available", async () => {
