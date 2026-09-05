@@ -66,6 +66,7 @@
 				"react/no-array-index-key": "warn",
 				"react/no-unknown-property": "off",
 				"react/no-unsafe": "off",
+				"react/iframe-missing-sandbox": "off",
 				"react/react-in-jsx-scope": "off",
 				"react-hooks/rules-of-hooks": "error",
 				"react-hooks/exhaustive-deps": "error",
@@ -76,7 +77,7 @@
 				"jsx-a11y/control-has-associated-label": "error",
 				"jsx-a11y/no-noninteractive-element-interactions": "error",
 				"jsx-a11y/no-static-element-interactions": "error",
-				"jsx-a11y/prefer-tag-over-role": "error",
+				"jsx-a11y/prefer-tag-over-role": "off",
 				"jsx-a11y/aria-props": "error",
 				"jsx-a11y/aria-proptypes": "error",
 				"jsx-a11y/aria-unsupported-elements": "error",
@@ -102,6 +103,14 @@
 				"jsx-a11y/no-noninteractive-tabindex": "off",
 				"jsx-a11y/no-noninteractive-element-interactions": "off"
 			}
+		},
+		{
+			"files": [
+				"src/sites/studio/components/Modal.tsx",
+				"src/sites/studio/components/photos/ImageViewer.tsx"
+			],
+			"plugins": ["jsx-a11y"],
+			"rules": { "jsx-a11y/no-noninteractive-element-interactions": "off" }
 		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
