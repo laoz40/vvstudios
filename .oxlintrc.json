@@ -52,6 +52,17 @@
 				"react/jsx-no-duplicate-props": "error",
 				"react/jsx-no-target-blank": "off",
 				"react/jsx-no-undef": "error",
+				"react/forbid-elements": [
+					"error",
+					{
+						"forbid": [
+							{
+								"element": "img",
+								"message": "Use Image from @unpic/react in app UI. Use Img from @react-email/components in emails."
+							}
+						]
+					}
+				],
 				"react/no-children-prop": "error",
 				"react/no-danger-with-children": "error",
 				"react/no-direct-mutation-state": "error",
