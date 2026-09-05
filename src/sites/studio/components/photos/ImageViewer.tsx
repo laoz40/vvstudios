@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- The full-screen viewer background closes on pointer interaction. */
 import { useEffect, useId, useRef } from "react";
 import { Image } from "@unpic/react";
 import { Maximize2, X } from "lucide-react";

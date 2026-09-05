@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Interactive spans avoid invalid nested buttons inside the accordion trigger button. */
 import { Armchair, EllipsisVertical, Globe, LoaderCircle } from "lucide-react";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "#/components/ui/accordion";
 import { Badge } from "#/components/ui/badge";
