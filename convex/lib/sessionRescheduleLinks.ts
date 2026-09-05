@@ -195,10 +195,7 @@ export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 	bookingId: Id<"bookings">;
 	now: number;
 }) {
-	let invalidatedLinkCount: number;
-
-	// Continue only when a full batch means more active links may remain.
-	do {
+	const invalidateNextBatch = async (): Promise<void> => {
 		const activeLinks = await args.ctx.db
 			.query("bookingRescheduleLinks")
 			.withIndex("by_bookingId_and_status", (q) =>
@@ -206,10 +203,18 @@ export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 			)
 			.take(rescheduleLinkInvalidationBatchSize);
 
-		for (const link of activeLinks) {
-			await args.ctx.db.patch(link._id, { status: "used", usedAt: args.now });
+		if (activeLinks.length === 0) {
+			return;
 		}
 
-		invalidatedLinkCount = activeLinks.length;
-	} while (invalidatedLinkCount === rescheduleLinkInvalidationBatchSize);
+		await Promise.all(
+			activeLinks.map((link) => args.ctx.db.patch(link._id, { status: "used", usedAt: args.now }))
+		);
+
+		if (activeLinks.length === rescheduleLinkInvalidationBatchSize) {
+			await invalidateNextBatch();
+		}
+	};
+
+	await invalidateNextBatch();
 }
