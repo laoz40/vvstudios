@@ -691,12 +691,14 @@ describe("requirePermission", () => {
 	});
 
 	test("allows admins every permission", async () => {
-		for (const permission of PERMISSIONS) {
-			const result = await createConvexTest()
-				.withIdentity(adminIdentity)
-				.run((ctx) => requirePermission(ctx, permission).match(tupleOk, tupleErr));
+		await Promise.all(
+			PERMISSIONS.map(async (permission) => {
+				const result = await createConvexTest()
+					.withIdentity(adminIdentity)
+					.run((ctx) => requirePermission(ctx, permission).match(tupleOk, tupleErr));
 
-			expect(result).toMatchObject([null, adminIdentity]);
-		}
+				expect(result).toMatchObject([null, adminIdentity]);
+			})
+		);
 	});
 });
