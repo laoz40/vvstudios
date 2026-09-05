@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useConvexAuth, useMutation } from "convex/react";
 import { studioSite } from "#/config/sites";
 import { api } from "#convex/_generated/api";
-import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardAccessGate } from "#studio/features/auth/components/DashboardAccessGate";
 
@@ -47,11 +47,7 @@ export function AdminPage() {
 	}, [isConvexAuthenticated, createEditorUser]);
 
 	if (!isClerkLoaded || isConvexLoading) {
-		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Establishing a secure uplink" />
-			</main>
-		);
+		return <DashboardLoadingState stage="scanning-badge" />;
 	}
 
 	if (!userId) {
@@ -63,11 +59,7 @@ export function AdminPage() {
 	}
 
 	if (editorProvisioningState.status === "pending") {
-		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Preparing editor access" />
-			</main>
-		);
+		return <DashboardLoadingState stage="preparing-editor-access" />;
 	}
 
 	return <DashboardAccessGate />;

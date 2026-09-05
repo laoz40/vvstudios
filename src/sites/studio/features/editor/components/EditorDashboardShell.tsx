@@ -4,12 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { api } from "#convex/_generated/api";
 import { cn } from "#/lib/utils";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
-import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
+import type { DashboardRole } from "#studio/features/auth/lib/dashboard-loading-labels";
 import { EditorSessionsTable } from "#studio/features/editor/components/EditorSessionsTable";
 
 const EDITOR_DASHBOARD_PAGE_SIZE = 100;
 
-export function EditorDashboardShell() {
+export function EditorDashboardShell({ dashboardRole }: { dashboardRole: DashboardRole }) {
 	const { user } = useUser();
 	const sessions = usePaginatedQuery(
 		api.sessions.listEditorSessions,
@@ -24,9 +25,10 @@ export function EditorDashboardShell() {
 
 	if (sessions.status === "LoadingFirstPage") {
 		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Loading assigned sessions" />
-			</main>
+			<DashboardLoadingState
+				dashboardRole={dashboardRole}
+				stage="loading-data"
+			/>
 		);
 	}
 

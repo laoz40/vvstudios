@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
 import { hasPermission } from "#/lib/permissions";
-import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
 import { AdminDashboard } from "#studio/features/admin/components/AdminDashboard";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
@@ -11,11 +11,7 @@ export function DashboardAccessGate() {
 	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
 
 	if (!accessResult) {
-		return (
-			<main className="grid min-h-dvh place-items-center px-6 py-12">
-				<StudioLoadingState label="Confirming Level 9 Clearance" />
-			</main>
-		);
+		return <DashboardLoadingState stage="confirming-clearance" />;
 	}
 
 	const [accessError, access] = accessResult;
@@ -37,8 +33,8 @@ export function DashboardAccessGate() {
 	}
 
 	if (access.role === "admin") {
-		return <AdminDashboard />;
+		return <AdminDashboard dashboardRole="admin" />;
 	}
 
-	return <EditorDashboardShell />;
+	return <EditorDashboardShell dashboardRole="editor" />;
 }
