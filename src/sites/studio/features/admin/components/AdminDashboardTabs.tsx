@@ -21,7 +21,7 @@ export function AdminDashboardTabs({ activeView, onActiveViewChange }: AdminDash
 			<TabsList variant="line">
 				<TabsTrigger value="bookings">Sessions</TabsTrigger>
 				<TabsTrigger value="packages">Packages</TabsTrigger>
-				<TabsTrigger value="employees">Employees</TabsTrigger>
+				<TabsTrigger value="employees">Contractors</TabsTrigger>
 			</TabsList>
 		</Tabs>
 	);

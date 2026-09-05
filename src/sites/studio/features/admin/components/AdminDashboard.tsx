@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/clerk-react";
-import { Activity, useState } from "react";
+import { useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
@@ -69,8 +69,7 @@ function AdminDashboardTables({
 }: AdminDashboardTablesProps) {
 	return (
 		<>
-			{/* Keep all tables mounted when switching tabs so pagination and search stay where the user left them. */}
-			<Activity mode={activeView === "bookings" ? "visible" : "hidden"}>
+			{activeView === "bookings" ? (
 				<SessionsTable
 					activeEditors={activeEditors}
 					sessions={sessions}
@@ -80,8 +79,8 @@ function AdminDashboardTables({
 					searchQuery={sessionSearchQuery}
 					onSearchQueryChange={onSearchQueryChange}
 				/>
-			</Activity>
-			<Activity mode={activeView === "packages" ? "visible" : "hidden"}>
+			) : null}
+			{activeView === "packages" ? (
 				<PackagesTable
 					packages={packages}
 					canLoadMorePackages={canLoadMorePackages}
@@ -89,10 +88,8 @@ function AdminDashboardTables({
 					loadMorePackages={onLoadMorePackages}
 					onViewPackageSessions={onViewPackageSessions}
 				/>
-			</Activity>
-			<Activity mode={activeView === "employees" ? "visible" : "hidden"}>
-				<EmployeesTable editors={editors} />
-			</Activity>
+			) : null}
+			{activeView === "employees" ? <EmployeesTable editors={editors} /> : null}
 		</>
 	);
 }

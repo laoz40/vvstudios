@@ -38,7 +38,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		session.deliverablesClientNotes ?? ""
 	);
 	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
-		useState(true);
+		useState(false);
 	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
 		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
 	const driveStatusResult = useQuery(
@@ -108,7 +108,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 
 	function resetDeliverablesEmailDialog() {
 		setDeliverablesEditorNotesDraft("");
-		setMarkDeliverablesAsSentAfterSending(true);
+		setMarkDeliverablesAsSentAfterSending(false);
 		setDeliverablesEmailSendState({ status: "ready-to-send" });
 		setIsDeliverablesEmailDialogOpen(false);
 	}

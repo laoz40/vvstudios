@@ -14,7 +14,7 @@ export function formatInstagramHandle(instagramHandle: string) {
 	return trimmedHandle.startsWith("@") ? trimmedHandle : `@${trimmedHandle}`;
 }
 
-async function copyText(value: string, label: string) {
+export async function copyText(value: string, label: string) {
 	try {
 		await navigator.clipboard.writeText(value);
 		toast.success(`Copied ${label}.`);
