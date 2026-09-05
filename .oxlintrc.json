@@ -1,7 +1,7 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
 	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
-	"categories": { "correctness": "error", "suspicious": "warn" },
+	"categories": { "correctness": "error", "suspicious": "error" },
 	"options": { "typeAware": true, "reportUnusedDisableDirectives": "error" },
 	"env": { "builtin": true },
 	"ignorePatterns": ["out/**", "build/**", "convex/_generated/**"],
