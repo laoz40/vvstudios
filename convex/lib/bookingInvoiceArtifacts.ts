@@ -100,34 +100,50 @@ function toCustomDuration(value: string | undefined): BookingFormValues["duratio
 	return DURATION_OPTIONS.find((duration) => duration === value) ?? "";
 }
 
+function resolveCustomInvoiceQuantity(
+	customInvoice: Doc<"customInvoices">,
+	multiBooking: Doc<"multiBookingPackages">,
+	field:
+		| "essentialEditQuantity"
+		| "completeEditQuantity"
+		| "clipsPackageQuantity"
+		| "handcraftedClipsQuantity"
+) {
+	return customInvoice[field] ?? multiBooking[field] ?? "";
+}
+
 function parseCustomMultiBookingInvoice(invoiceInput: CustomMultiBookingInvoiceInput) {
-	const packageSize =
-		invoiceInput.customInvoice.packageSize ?? invoiceInput.multiBooking.packageSize;
+	const { customInvoice, multiBooking } = invoiceInput;
+	const packageSize = customInvoice.packageSize ?? multiBooking.packageSize;
 	const parsedCustomInvoice = multiBookingFormSchema.safeParse({
-		name: invoiceInput.multiBooking.name,
-		phone: invoiceInput.multiBooking.phone,
-		accountName: invoiceInput.multiBooking.accountName,
-		abn: invoiceInput.multiBooking.abn,
-		email: invoiceInput.multiBooking.email,
-		duration: invoiceInput.customInvoice.duration ?? invoiceInput.multiBooking.duration,
-		addons: invoiceInput.customInvoice.addons,
-		essentialEditQuantity:
-			invoiceInput.customInvoice.essentialEditQuantity ??
-			invoiceInput.multiBooking.essentialEditQuantity ??
-			"",
-		completeEditQuantity:
-			invoiceInput.customInvoice.completeEditQuantity ??
-			invoiceInput.multiBooking.completeEditQuantity ??
-			"",
-		clipsPackageQuantity:
-			invoiceInput.customInvoice.clipsPackageQuantity ??
-			invoiceInput.multiBooking.clipsPackageQuantity ??
-			"",
-		handcraftedClipsQuantity:
-			invoiceInput.customInvoice.handcraftedClipsQuantity ??
-			invoiceInput.multiBooking.handcraftedClipsQuantity ??
-			"",
-		notes: invoiceInput.multiBooking.notes ?? "",
+		name: multiBooking.name,
+		phone: multiBooking.phone,
+		accountName: multiBooking.accountName,
+		abn: multiBooking.abn,
+		email: multiBooking.email,
+		duration: customInvoice.duration ?? multiBooking.duration,
+		addons: customInvoice.addons,
+		essentialEditQuantity: resolveCustomInvoiceQuantity(
+			customInvoice,
+			multiBooking,
+			"essentialEditQuantity"
+		),
+		completeEditQuantity: resolveCustomInvoiceQuantity(
+			customInvoice,
+			multiBooking,
+			"completeEditQuantity"
+		),
+		clipsPackageQuantity: resolveCustomInvoiceQuantity(
+			customInvoice,
+			multiBooking,
+			"clipsPackageQuantity"
+		),
+		handcraftedClipsQuantity: resolveCustomInvoiceQuantity(
+			customInvoice,
+			multiBooking,
+			"handcraftedClipsQuantity"
+		),
+		notes: multiBooking.notes ?? "",
 		packageSize
 	});
 
@@ -218,21 +234,68 @@ export function createCustomMultiBookingInvoiceData(
 	});
 }
 
+function getCustomInvoiceQuantityDefault(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined,
+	field:
+		| "essentialEditQuantity"
+		| "completeEditQuantity"
+		| "clipsPackageQuantity"
+		| "handcraftedClipsQuantity"
+) {
+	if (customInvoice?.[field] !== undefined) {
+		return customInvoice[field];
+	}
+
+	return booking[field] ?? "";
+}
+
+function getCustomInvoiceFieldDefaults(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined
+) {
+	return {
+		duration: customInvoice?.duration ?? booking.duration,
+		// Custom invoices may intentionally omit studio hire and contain only add-ons.
+		// Parse against the booking's valid service, then omit it from the artifact below.
+		service: customInvoice?.service ?? booking.service,
+		addons: customInvoice?.addons ?? booking.addons,
+		essentialEditQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"essentialEditQuantity"
+		),
+		completeEditQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"completeEditQuantity"
+		),
+		clipsPackageQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"clipsPackageQuantity"
+		),
+		handcraftedClipsQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"handcraftedClipsQuantity"
+		)
+	};
+}
+
 function getBookingInvoiceParseInput(
 	booking: Doc<"bookings">,
 	customInvoice: Doc<"customInvoices"> | undefined
 ) {
 	const {
-		duration = booking.duration,
-		// Custom invoices may intentionally omit studio hire and contain only add-ons.
-		// Parse against the booking's valid service, then omit it from the artifact below.
-		service = booking.service,
-		addons = booking.addons,
-		essentialEditQuantity = booking.essentialEditQuantity ?? "",
-		completeEditQuantity = booking.completeEditQuantity ?? "",
-		clipsPackageQuantity = booking.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity = booking.handcraftedClipsQuantity ?? ""
-	} = customInvoice ?? {};
+		duration,
+		service,
+		addons,
+		essentialEditQuantity,
+		completeEditQuantity,
+		clipsPackageQuantity,
+		handcraftedClipsQuantity
+	} = getCustomInvoiceFieldDefaults(booking, customInvoice);
 
 	return {
 		name: booking.name,
