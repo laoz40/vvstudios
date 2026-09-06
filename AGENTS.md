@@ -6,10 +6,12 @@ Booking website for podcast studio.
 - default to shadcn for ui
 - t3env
 
-Goal: enforcing stricter linting rules incrementally. each rule that is fixed should be its own small commit.
-if a rule contains lots of errors which would result in a massive commit,
+Goal: Enforcing stricter linting rules incrementally. Each rule that is fixed should be its own small commit.
+If a rule contains lots of errors which would result in a massive commit,
 split into different commits per large file.
 Ensure no barrel files and no wrapper functions.
+Do not create wrapper functions as a hack to avoid linting errors.
+If linting errors occur, then it means the code can likely be restructured in a cleaner way.
 
 ## File/Change Hygiene
 
