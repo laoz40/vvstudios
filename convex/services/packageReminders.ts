@@ -10,7 +10,7 @@ import {
 	type PackageReminderType
 } from "#convex/lib/packageReminders";
 import {
-	getTimeZoneDateParts,
+	getTimeZoneDate,
 	getTimeZoneDayRange,
 	REMINDER_BATCH_SIZE,
 	REMINDER_TIME_ZONE
@@ -159,7 +159,7 @@ function ensurePackageExists(ctx: MutationCtx, multiBookingId: Doc<"multiBooking
 }
 
 const getSydneyCalendarDayNumber = (timestamp: number) => {
-	const { year, month, day } = getTimeZoneDateParts(new Date(timestamp), REMINDER_TIME_ZONE);
+	const { year, month, day } = getTimeZoneDate(new Date(timestamp), REMINDER_TIME_ZONE);
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
 

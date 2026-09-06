@@ -1,22 +1,23 @@
 import { err, ok } from "neverthrow";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-
-function isValidTime(value: string) {
-	return /^([01]\d|2[0-3]):(00|30)$/.test(value);
-}
+import { parseScheduleTime, scheduleTimeStringSchema } from "#studio/lib/calendarDate";
 
 function getTimeMinutes(value: string) {
-	const [hours, minutes] = value.split(":").map(Number);
+	const timeOfDay = parseScheduleTime(value);
 
-	if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+	if (!timeOfDay) {
 		return null;
 	}
 
-	return hours * 60 + minutes;
+	return timeOfDay.hours * 60 + timeOfDay.minutes;
 }
 
 function isValidScheduleWindow(startTime: string, endTime: string) {
-	if (!isValidTime(startTime) || !isValidTime(endTime)) {
+	if (!scheduleTimeStringSchema.safeParse(startTime).success) {
+		return false;
+	}
+
+	if (!scheduleTimeStringSchema.safeParse(endTime).success) {
 		return false;
 	}
 
