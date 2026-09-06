@@ -2,7 +2,7 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getOrCreateDriveClientId } from "#convex/lib/driveRecords";
+import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
