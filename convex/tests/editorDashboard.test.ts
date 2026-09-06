@@ -168,7 +168,9 @@ type EditorSessionProjection = {
 	service: string;
 	addons: string[];
 	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
 	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
 	editStatus?: "to_edit" | "editing" | "review" | "completed";
 };
 type EditorSessionsResult = {
@@ -292,7 +294,9 @@ async function seedBooking(
 				"Internal Billing Add-on"
 			],
 			essentialEditQuantity: "2",
+			completeEditQuantity: "3",
 			clipsPackageQuantity: "3",
+			handcraftedClipsQuantity: "4",
 			notes: `${name} production notes`,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: Date.parse("2030-01-01T00:00:00.000Z"),
@@ -770,7 +774,9 @@ describe("restricted editor session query", () => {
 						"Internal Billing Add-on"
 					],
 					essentialEditQuantity: "2",
+					completeEditQuantity: "3",
 					clipsPackageQuantity: "3",
+					handcraftedClipsQuantity: "4",
 					driveFolders: null,
 					editStatus: "editing"
 				}
@@ -786,6 +792,7 @@ describe("restricted editor session query", () => {
 				"addons",
 				"adminNotes",
 				"clipsPackageQuantity",
+				"completeEditQuantity",
 				"date",
 				"deliverablesClientNotes",
 				"deliverablesDriveLink",
@@ -794,6 +801,7 @@ describe("restricted editor session query", () => {
 				"editStatus",
 				"editorNotes",
 				"essentialEditQuantity",
+				"handcraftedClipsQuantity",
 				"name",
 				"notes",
 				"service",
