@@ -65,37 +65,41 @@ export function getPackageScheduleCalendarView({
 	};
 }
 
-export function getPackageDatePickerOptions(
-	params: PackageDatePickerParams
-): PackageDatePickerOptions {
-	const selectedBusyDay = params.selectedDateValue
-		? getSelectedBusyDay({
-				date: params.selectedDateValue,
-				monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
-				selectedMonth: params.selectedMonth
-			})
+export function getPackageDatePickerOptions({
+	currentTimestamp,
+	duration,
+	isViewingSelectedMonth,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	selectedDate,
+	selectedDateValue,
+	selectedMonth,
+	settings,
+	today
+}: PackageDatePickerParams): PackageDatePickerOptions {
+	const selectedBusyDay = selectedDateValue
+		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
-
 	const availableTimes = getBookableAvailableTimes({
-		currentTimestamp: params.currentTimestamp,
-		duration: params.duration,
-		isViewingSelectedMonth: params.isViewingSelectedMonth,
-		lastBookableDate: params.lastBookableDate,
-		monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+		currentTimestamp,
+		duration,
+		isViewingSelectedMonth,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
 		selectedBusyDay,
-		selectedDate: params.selectedDate,
-		selectedDateValue: params.selectedDateValue,
-		selectedMonth: params.selectedMonth,
-		settings: params.settings,
-		today: params.today
+		selectedDate,
+		selectedDateValue,
+		selectedMonth,
+		settings,
+		today
 	});
 	const nextAvailableDate = getNextAvailableBookingDate({
-		currentTimestamp: params.currentTimestamp,
-		duration: params.duration,
-		lastBookableDate: params.lastBookableDate,
-		monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
-		selectedDate: params.selectedDate,
-		settings: params.settings
+		currentTimestamp,
+		duration,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
+		selectedDate,
+		settings
 	});
 	const selectedBusyPeriods = selectedBusyDay?.busyPeriods ?? [];
 
@@ -103,21 +107,21 @@ export function getPackageDatePickerOptions(
 		return isBookingDateDisabled({
 			date,
 			isAvailabilityRateLimited: false,
-			lastBookableDate: params.lastBookableDate,
-			monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
-			today: params.today
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			today
 		});
 	}
 
 	function unavailableDates(date: Date) {
 		return isBookingDateUnavailable({
-			currentTimestamp: params.currentTimestamp,
+			currentTimestamp,
 			date,
-			duration: params.duration,
-			lastBookableDate: params.lastBookableDate,
-			monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
-			settings: params.settings,
-			today: params.today
+			duration,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			settings,
+			today
 		});
 	}
 
