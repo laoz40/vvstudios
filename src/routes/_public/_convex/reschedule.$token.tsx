@@ -33,7 +33,7 @@ import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 import { getRescheduleUpdateToastMessage } from "#studio/features/booking-form/lib/reschedule-errors";
 
-export const Route = createFileRoute("/_public/reschedule/$token")({
+export const Route = createFileRoute("/_public/_convex/reschedule/$token")({
 	validateSearch: parseRescheduleSearch,
 	head: () => buildNoIndexHead("Reschedule Booking | VV Studios"),
 	component: ReschedulePage
