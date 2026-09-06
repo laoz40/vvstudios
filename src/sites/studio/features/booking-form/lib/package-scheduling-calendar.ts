@@ -1,0 +1,96 @@
+import {
+	getBookableAvailableTimes,
+	getNextAvailableBookingDate,
+	getSelectedBusyDay,
+	isBookingDateDisabled,
+	isBookingDateUnavailable,
+	type BusyWindowsByMonth
+} from "#studio/features/booking-form/lib/monthly-availability";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import type { BusyPeriod } from "#studio/lib/bookingdatetime";
+
+export interface PackageDatePickerOptions {
+	availableTimes: string[];
+	disabledDates: (date: Date) => boolean;
+	nextAvailableDate: Date | undefined;
+	selectedBusyPeriods: BusyPeriod[];
+	unavailableDates: (date: Date) => boolean;
+}
+
+interface PackageDatePickerParams {
+	currentTimestamp: number;
+	duration: string;
+	isViewingSelectedMonth: boolean;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
+	selectedDate: Date | undefined;
+	selectedDateValue: string;
+	selectedMonth: string;
+	settings: BookingAvailabilitySettings;
+	today: Date;
+}
+
+export function getPackageDatePickerOptions(
+	params: PackageDatePickerParams
+): PackageDatePickerOptions {
+	const selectedBusyDay = params.selectedDateValue
+		? getSelectedBusyDay({
+				date: params.selectedDateValue,
+				monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+				selectedMonth: params.selectedMonth
+			})
+		: null;
+
+	const availableTimes = getBookableAvailableTimes({
+		currentTimestamp: params.currentTimestamp,
+		duration: params.duration,
+		isViewingSelectedMonth: params.isViewingSelectedMonth,
+		lastBookableDate: params.lastBookableDate,
+		monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+		selectedBusyDay,
+		selectedDate: params.selectedDate,
+		selectedDateValue: params.selectedDateValue,
+		selectedMonth: params.selectedMonth,
+		settings: params.settings,
+		today: params.today
+	});
+	const nextAvailableDate = getNextAvailableBookingDate({
+		currentTimestamp: params.currentTimestamp,
+		duration: params.duration,
+		lastBookableDate: params.lastBookableDate,
+		monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+		selectedDate: params.selectedDate,
+		settings: params.settings
+	});
+	const selectedBusyPeriods = selectedBusyDay?.busyPeriods ?? [];
+
+	function disabledDates(date: Date) {
+		return isBookingDateDisabled({
+			date,
+			isAvailabilityRateLimited: false,
+			lastBookableDate: params.lastBookableDate,
+			monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+			today: params.today
+		});
+	}
+
+	function unavailableDates(date: Date) {
+		return isBookingDateUnavailable({
+			currentTimestamp: params.currentTimestamp,
+			date,
+			duration: params.duration,
+			lastBookableDate: params.lastBookableDate,
+			monthlyBusyWindowsByMonth: params.monthlyBusyWindowsByMonth,
+			settings: params.settings,
+			today: params.today
+		});
+	}
+
+	return {
+		availableTimes,
+		disabledDates,
+		nextAvailableDate,
+		selectedBusyPeriods,
+		unavailableDates
+	};
+}
