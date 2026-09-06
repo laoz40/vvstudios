@@ -27,6 +27,7 @@
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitOverride": true,
+		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true
 	}
 }
