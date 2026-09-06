@@ -3,7 +3,7 @@ import { parseBookingCompleteSearch } from "#studio/components/booking/BookingCo
 import { BookingCompletePage } from "#studio/features/booking-complete/components/BookingCompletePage";
 import { buildNoIndexHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/_public/booking-complete")({
+export const Route = createFileRoute("/_public/_convex/booking-complete")({
 	validateSearch: parseBookingCompleteSearch,
 	head: () => buildNoIndexHead("Booking Complete | VV Studios"),
 	component: SingleBookingCompletePage

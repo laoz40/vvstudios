@@ -44,7 +44,7 @@ import { useSavedBookingInfo } from "#studio/features/booking-form/hooks/useSave
 import { scrollToFirstBookingFormError } from "#studio/features/booking-form/lib/form-error-scroll";
 import { cn } from "#/lib/utils";
 
-export const Route = createFileRoute("/_public/book")({
+export const Route = createFileRoute("/_public/_convex/book")({
 	head: () => buildSeoHead(seoMetadata.book),
 	component: BookingPage
 });

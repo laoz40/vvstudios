@@ -1,5 +1,5 @@
 import { FreeTourModal } from "#studio/components/FreeTourModal";
-import { GiveFeedbackModal } from "#studio/components/GiveFeedbackModal";
+import { GiveFeedbackModalHost } from "#studio/components/GiveFeedbackModalHost";
 import { useModalStore } from "#studio/lib/modal-store";
 
 export function ModalHost() {
@@ -7,7 +7,7 @@ export function ModalHost() {
 
 	switch (modalState.modal) {
 		case "feedback":
-			return <GiveFeedbackModal />;
+			return <GiveFeedbackModalHost />;
 
 		case "freeTour":
 			return <FreeTourModal />;
