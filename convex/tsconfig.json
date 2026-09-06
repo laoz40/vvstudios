@@ -12,6 +12,10 @@
 		"skipLibCheck": true,
 		"allowSyntheticDefaultImports": true,
 		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"types": ["vite/client"],
 		"paths": {
 			"#/*": ["../src/*"],
