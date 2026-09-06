@@ -8,7 +8,7 @@ import {
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
 	saveClientDrivePermission as saveClientDrivePermissionRecord,
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord
-} from "#convex/lib/driveRecords";
+} from "#convex/lib/driveClientAccess";
 import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
