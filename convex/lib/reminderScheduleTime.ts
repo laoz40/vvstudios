@@ -59,7 +59,12 @@ export const getUtcTimeForTimeZoneDate = (
 	const utcGuess = Date.UTC(year, month - 1, day, hour);
 	const actualDate = getTimeZoneDate(new Date(utcGuess), timeZone);
 	const targetAsUtc = Date.UTC(year, month - 1, day, hour);
-	const actualAsUtc = Date.UTC(actualDate.year, actualDate.month - 1, actualDate.day, actualDate.hour);
+	const actualAsUtc = Date.UTC(
+		actualDate.year,
+		actualDate.month - 1,
+		actualDate.day,
+		actualDate.hour
+	);
 
 	return utcGuess - (actualAsUtc - targetAsUtc);
 };

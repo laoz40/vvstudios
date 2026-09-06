@@ -205,22 +205,22 @@ export function AdminAvailabilitySettings() {
 							}
 
 							return (
-							<div
-								key={label}
-								className={cn(
-									"grid gap-3 md:grid-cols-[80px_1fr_1fr] md:items-center",
-									"border-b p-3 last:border-b-0"
-								)}>
-								<p className="text-sm font-medium">{label}</p>
-								<TimeSelect
-									value={daySchedule.startTime}
-									onChange={(value) => updateDaySchedule(day, "startTime", value)}
-								/>
-								<TimeSelect
-									value={daySchedule.endTime}
-									onChange={(value) => updateDaySchedule(day, "endTime", value)}
-								/>
-							</div>
+								<div
+									key={label}
+									className={cn(
+										"grid gap-3 md:grid-cols-[80px_1fr_1fr] md:items-center",
+										"border-b p-3 last:border-b-0"
+									)}>
+									<p className="text-sm font-medium">{label}</p>
+									<TimeSelect
+										value={daySchedule.startTime}
+										onChange={(value) => updateDaySchedule(day, "startTime", value)}
+									/>
+									<TimeSelect
+										value={daySchedule.endTime}
+										onChange={(value) => updateDaySchedule(day, "endTime", value)}
+									/>
+								</div>
 							);
 						})}
 					</div>

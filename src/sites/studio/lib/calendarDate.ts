@@ -26,12 +26,7 @@ export const yearMonthSchema = yearMonthStringSchema
 		const [year, month] = value.split("-").map(Number);
 		return { year, month };
 	})
-	.pipe(
-		z.object({
-			month: finiteInt.min(1).max(12),
-			year: finiteInt.min(1)
-		})
-	);
+	.pipe(z.object({ month: finiteInt.min(1).max(12), year: finiteInt.min(1) }));
 
 export type YearMonth = z.infer<typeof yearMonthSchema>;
 
@@ -89,9 +84,7 @@ export function parseScheduleTime(value: string): TimeOfDay | null {
 	return result.success ? result.data : null;
 }
 
-export function parseTimeZoneDate(
-	values: Record<string, number | undefined>
-): TimeZoneDate | null {
+export function parseTimeZoneDate(values: Record<string, number | undefined>): TimeZoneDate | null {
 	const result = timeZoneDateSchema.safeParse(values);
 	return result.success ? result.data : null;
 }
