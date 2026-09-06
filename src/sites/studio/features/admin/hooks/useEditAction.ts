@@ -7,7 +7,7 @@ import {
 	parseSessionEditDraft,
 	performSessionEditSave
 } from "#studio/features/admin/lib/session-edit";
-import { getSessionEditConfirmationWarning } from "#studio/features/admin/lib/session-edit-warnings";
+import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useEditAction(session: SessionRecord) {
@@ -17,7 +17,7 @@ export function useEditAction(session: SessionRecord) {
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getSessionEditConfirmationWarning
+		typeof getSessionEditWarningState
 	> | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -27,27 +27,24 @@ export function useEditAction(session: SessionRecord) {
 	) {
 		const parsedDraft = parseSessionEditDraft(values);
 
-		if (parsedDraft.status === "booking-invalid") {
-			toast.error(parsedDraft.message);
+		if (parsedDraft.status !== "ok") {
+			if (parsedDraft.status === "booking-invalid") {
+				toast.error(parsedDraft.message);
+			} else {
+				toast.error("Enter a valid remaining balance.");
+			}
 			return;
 		}
 
-		if (parsedDraft.status === "remaining-balance-invalid") {
-			toast.error("Enter a valid remaining balance.");
-			return;
-		}
+		if (!options?.skipConfirmation) {
+			const warningState = getSessionEditWarningState(session, values);
 
-		const confirmationWarning = getSessionEditConfirmationWarning(
-			session,
-			values,
-			options?.skipConfirmation
-		);
-
-		if (confirmationWarning) {
-			setPendingEditDraft(values);
-			setPendingEditWarningState(confirmationWarning);
-			setIsEditConfirmationDialogOpen(true);
-			return;
+			if (warningState.requiresConfirmation) {
+				setPendingEditDraft(values);
+				setPendingEditWarningState(warningState);
+				setIsEditConfirmationDialogOpen(true);
+				return;
+			}
 		}
 
 		setIsSaving(true);
