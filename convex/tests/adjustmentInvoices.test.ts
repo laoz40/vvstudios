@@ -103,7 +103,7 @@ describe("package adjustment closeout", () => {
 			remotePodcastBookingIds: [bookingId],
 			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
 		});
-		if (adjustment.outcome !== "invoice_required") {
+		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			throw new Error("Expected an invoice-required adjustment");
 		}
 		expect(adjustment.invoiceNumber).not.toBe("pending");
@@ -376,6 +376,9 @@ describe("package adjustment invoice delivery", () => {
 			.withIdentity(adminIdentity)
 			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
 		const invoiceInput = providerFakes.sendAdjustmentInvoice.mock.calls[0]?.[0];
+		if (!invoiceInput) {
+			throw new Error("Expected sendAdjustmentInvoice to be called");
+		}
 
 		expect(result).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });

@@ -4,6 +4,12 @@ import {
 	BOOKING_TIME_OPTIONS
 } from "#studio/lib/bookingAvailabilitySettings";
 import { getTimeZoneDateKey, getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
+import {
+	type CalendarDate,
+	type TimeOfDay,
+	parseCalendarDate,
+	parseTimeOfDay
+} from "#studio/lib/calendarDate";
 
 export interface BusyWindow {
 	calendarId?: string;
@@ -16,17 +22,6 @@ export interface BusyDayWindow {
 	date: string;
 	label: string;
 	busyPeriods: Array<{ calendarId?: string; end: string; eventId?: string; start: string }>;
-}
-
-interface DateParts {
-	year: number;
-	month: number;
-	day: number;
-}
-
-interface TimeParts {
-	hours: number;
-	minutes: number;
 }
 
 export type SessionAvailabilitySettings = {
@@ -61,36 +56,16 @@ export function parseDurationMinutes(
 	return err({ reason: "BOOKING_INVALID_DURATION" });
 }
 
-function isValidDateParts(
-	year: number | undefined,
-	month: number | undefined,
-	day: number | undefined
-) {
-	return Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day);
+function parseDate(date: string): Result<CalendarDate, { reason: "BOOKING_INVALID_DATE" }> {
+	const calendarDate = parseCalendarDate(date);
+
+	return calendarDate ? ok(calendarDate) : err({ reason: "BOOKING_INVALID_DATE" });
 }
 
-function isValidTimeParts(hours: number | undefined, minutes: number | undefined) {
-	return Number.isFinite(hours) && Number.isFinite(minutes);
-}
+function parseTime(time: string): Result<TimeOfDay, { reason: "BOOKING_INVALID_TIME" }> {
+	const timeOfDay = parseTimeOfDay(time);
 
-function parseDate(date: string): Result<DateParts, { reason: "BOOKING_INVALID_DATE" }> {
-	const [year, month, day] = date.split("-").map(Number);
-
-	if (!isValidDateParts(year, month, day)) {
-		return err({ reason: "BOOKING_INVALID_DATE" });
-	}
-
-	return ok({ year, month, day });
-}
-
-function parseTime(time: string): Result<TimeParts, { reason: "BOOKING_INVALID_TIME" }> {
-	const [hours, minutes] = time.split(":").map(Number);
-
-	if (!isValidTimeParts(hours, minutes)) {
-		return err({ reason: "BOOKING_INVALID_TIME" });
-	}
-
-	return ok({ hours, minutes });
+	return timeOfDay ? ok(timeOfDay) : err({ reason: "BOOKING_INVALID_TIME" });
 }
 
 // turn a local date and time in a timezone into a real utc date
@@ -99,15 +74,15 @@ export function getUtcDateForZonedDateTime(
 	time: string,
 	timeZone: string
 ): Result<Date, Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
-	return parseDate(date).andThen((dateParts) =>
-		parseTime(time).andThen((timeParts) =>
+	return parseDate(date).andThen((calendarDate) =>
+		parseTime(time).andThen((timeOfDay) =>
 			getUtcDateForZonedParts({
-				day: dateParts.day,
-				hours: timeParts.hours,
-				minutes: timeParts.minutes,
-				month: dateParts.month,
+				day: calendarDate.day,
+				hours: timeOfDay.hours,
+				minutes: timeOfDay.minutes,
+				month: calendarDate.month,
 				timeZone,
-				year: dateParts.year
+				year: calendarDate.year
 			}).mapErr(() => ({ reason: "BOOKING_INVALID_TIME" as const }))
 		)
 	);
@@ -214,23 +189,23 @@ export function isTimeSlotAvailable({
 // this helps catch events that start the night before or end the next day
 // and still block time on the selected date
 function parseDateValue(value: string): Result<Date, { reason: "BOOKING_INVALID_DATE" }> {
-	const [year, month, day] = value.split("-").map(Number);
+	const calendarDate = parseCalendarDate(value);
 
-	if (!isValidDateParts(year, month, day)) {
+	if (!calendarDate) {
 		return err({ reason: "BOOKING_INVALID_DATE" });
 	}
 
-	return ok(new Date(year, month - 1, day));
+	return ok(new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day));
 }
 
 function parseTimeToMinutes(time: string) {
-	const [hours, minutes] = time.split(":").map(Number);
+	const timeOfDay = parseTimeOfDay(time);
 
-	if (!isValidTimeParts(hours, minutes)) {
+	if (!timeOfDay) {
 		return null;
 	}
 
-	return hours * 60 + minutes;
+	return timeOfDay.hours * 60 + timeOfDay.minutes;
 }
 
 function startOfToday(now = new Date()) {
@@ -431,8 +406,15 @@ function getUtcDateForBufferedQuery(date: string, time: string) {
 }
 
 function getPreviousDate(date: string) {
-	const [year, month, day] = date.split("-").map(Number);
-	const previousDate = new Date(Date.UTC(year, month - 1, day - 1, 0, 0, 0, 0));
+	const calendarDate = parseCalendarDate(date);
+
+	if (!calendarDate) {
+		return date;
+	}
+
+	const previousDate = new Date(
+		Date.UTC(calendarDate.year, calendarDate.month - 1, calendarDate.day - 1, 0, 0, 0, 0)
+	);
 
 	const previousYear = previousDate.getUTCFullYear();
 	const previousMonth = String(previousDate.getUTCMonth() + 1).padStart(2, "0");
@@ -442,8 +424,15 @@ function getPreviousDate(date: string) {
 }
 
 function getNextDate(date: string) {
-	const [year, month, day] = date.split("-").map(Number);
-	const nextDate = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+	const calendarDate = parseCalendarDate(date);
+
+	if (!calendarDate) {
+		return date;
+	}
+
+	const nextDate = new Date(
+		Date.UTC(calendarDate.year, calendarDate.month - 1, calendarDate.day + 1, 0, 0, 0, 0)
+	);
 
 	const nextYear = nextDate.getUTCFullYear();
 	const nextMonth = String(nextDate.getUTCMonth() + 1).padStart(2, "0");
@@ -514,9 +503,9 @@ export function formatCalendarEventTime(dateTime: string, timeZone: string) {
 }
 
 export function formatSessionDateLong(date: string) {
-	const [year, month, day] = date.split("-").map(Number);
+	const calendarDate = parseCalendarDate(date);
 
-	if (!year || !month || !day) {
+	if (!calendarDate) {
 		return date;
 	}
 
@@ -525,16 +514,17 @@ export function formatSessionDateLong(date: string) {
 		month: "long",
 		day: "numeric",
 		year: "numeric"
-	}).format(new Date(year, month - 1, day));
+	}).format(new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day));
 }
 
 export function formatSessionDateWithoutYear(date: string) {
-	const [, month, day] = date.split("-").map(Number);
+	const calendarDate = parseCalendarDate(date);
 
-	if (!month || !day) {
+	if (!calendarDate) {
 		return date;
 	}
 
+	const { day, month } = calendarDate;
 	const suffix = getOrdinalSuffix(day);
 	const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long" }).format(
 		new Date(2000, month - 1, day)

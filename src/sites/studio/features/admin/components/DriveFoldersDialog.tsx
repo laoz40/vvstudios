@@ -73,6 +73,27 @@ function getDriveSetupButtonMode(status: DriveDialogStatus["status"] | undefined
 	return { canSetUp, shouldRetry };
 }
 
+function getDriveSetupButtonLabel({
+	hasClientAssetsLibrary,
+	isSettingUp,
+	shouldRetry
+}: {
+	hasClientAssetsLibrary: boolean;
+	isSettingUp: boolean;
+	shouldRetry: boolean;
+}) {
+	if (isSettingUp) {
+		return hasClientAssetsLibrary ? "Creating" : "Setting up";
+	}
+	if (shouldRetry && hasClientAssetsLibrary) {
+		return "Create Google Drive folders";
+	}
+	if (shouldRetry) {
+		return "Retry Google Drive folders";
+	}
+	return "Set up Google Drive folders";
+}
+
 function DriveSetupButton({
 	bookingId,
 	hasClientAssetsLibrary,
@@ -102,10 +123,7 @@ function DriveSetupButton({
 		toast.success("Google Drive folders created.");
 	}
 
-	let label = "Set up Google Drive folders";
-	if (shouldRetry) label = "Retry Google Drive folders";
-	if (shouldRetry && hasClientAssetsLibrary) label = "Create Google Drive folders";
-	if (isSettingUp) label = hasClientAssetsLibrary ? "Creating" : "Setting up";
+	const label = getDriveSetupButtonLabel({ hasClientAssetsLibrary, isSettingUp, shouldRetry });
 
 	return (
 		<Button
@@ -150,6 +168,79 @@ function DriveIdentityWarnings({
 	);
 }
 
+function DriveFoldersDialogBody({
+	accountName,
+	bookingId,
+	clientName,
+	driveStatus,
+	hasClientAssetsLibrary,
+	onOpenChange,
+	packageFolderName,
+	savedFolders,
+	sessionFolderName,
+	sessionStartAt
+}: {
+	accountName: string;
+	bookingId: Id<"bookings">;
+	clientName: string;
+	driveStatus: DriveDialogStatus | null;
+	hasClientAssetsLibrary: boolean;
+	onOpenChange: (open: boolean) => void;
+	packageFolderName: string | undefined;
+	savedFolders: NonNullable<DriveDialogStatus["folders"]>;
+	sessionFolderName: string;
+	sessionStartAt: number;
+}) {
+	return (
+		<>
+			<DialogHeader>
+				<DialogTitle>Google Drive folders</DialogTitle>
+				<DialogDescription>
+					{getDriveDescription({
+						status: driveStatus?.status,
+						hasClientAssetsLibrary,
+						clientName,
+						accountName
+					})}
+				</DialogDescription>
+			</DialogHeader>
+			<DriveIdentityWarnings
+				bookingEmailChanged={driveStatus?.bookingEmailChanged ?? false}
+				workspaceNameChanged={driveStatus?.workspaceNameChanged ?? false}
+			/>
+			<SavedFolderLinks
+				folders={savedFolders}
+				sessionFolderName={sessionFolderName}
+				packageFolderName={packageFolderName}
+				rawMediaFolderName={formatDriveSessionMediaFolderName("Raw Media", sessionStartAt)}
+				deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
+			/>
+			<DrivePermissionsDetails
+				clientDrivePermissions={driveStatus?.clientDrivePermissions}
+				editorDrivePermissions={driveStatus?.editorDrivePermissions}
+				previousEditorRemovalFailed={driveStatus?.previousEditorRemovalFailed ?? false}
+			/>
+			<DialogFooter>
+				<Button
+					type="button"
+					variant="outline"
+					onClick={() => onOpenChange(false)}>
+					Close
+				</Button>
+				<DriveSetupButton
+					bookingId={bookingId}
+					hasClientAssetsLibrary={hasClientAssetsLibrary}
+					status={driveStatus?.status}
+				/>
+				<DriveRetryActions
+					bookingId={bookingId}
+					driveStatus={driveStatus}
+				/>
+			</DialogFooter>
+		</>
+	);
+}
+
 export function DriveFoldersDialog({
 	bookingId,
 	clientName,
@@ -179,50 +270,18 @@ export function DriveFoldersDialog({
 			open={open}
 			onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl">
-				<DialogHeader>
-					<DialogTitle>Google Drive folders</DialogTitle>
-					<DialogDescription>
-						{getDriveDescription({
-							status: driveStatus?.status,
-							hasClientAssetsLibrary,
-							clientName,
-							accountName
-						})}
-					</DialogDescription>
-				</DialogHeader>
-				<DriveIdentityWarnings
-					bookingEmailChanged={driveStatus?.bookingEmailChanged ?? false}
-					workspaceNameChanged={driveStatus?.workspaceNameChanged ?? false}
-				/>
-				<SavedFolderLinks
-					folders={savedFolders}
-					sessionFolderName={sessionFolderName}
+				<DriveFoldersDialogBody
+					accountName={accountName}
+					bookingId={bookingId}
+					clientName={clientName}
+					driveStatus={driveStatus}
+					hasClientAssetsLibrary={hasClientAssetsLibrary}
+					onOpenChange={onOpenChange}
 					packageFolderName={packageFolderName}
-					rawMediaFolderName={formatDriveSessionMediaFolderName("Raw Media", sessionStartAt)}
-					deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
+					savedFolders={savedFolders}
+					sessionFolderName={sessionFolderName}
+					sessionStartAt={sessionStartAt}
 				/>
-				<DrivePermissionsDetails
-					clientDrivePermissions={driveStatus?.clientDrivePermissions}
-					editorDrivePermissions={driveStatus?.editorDrivePermissions}
-					previousEditorRemovalFailed={driveStatus?.previousEditorRemovalFailed ?? false}
-				/>
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}>
-						Close
-					</Button>
-					<DriveSetupButton
-						bookingId={bookingId}
-						hasClientAssetsLibrary={hasClientAssetsLibrary}
-						status={driveStatus?.status}
-					/>
-					<DriveRetryActions
-						bookingId={bookingId}
-						driveStatus={driveStatus}
-					/>
-				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);

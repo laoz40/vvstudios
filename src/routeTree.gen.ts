@@ -13,19 +13,20 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PublicTermsAndConditionsRouteImport } from './routes/_public/terms-and-conditions'
-import { Route as PublicRescheduleCompleteRouteImport } from './routes/_public/reschedule-complete'
 import { Route as PublicPrivacyPolicyRouteImport } from './routes/_public/privacy-policy'
 import { Route as PublicPricingRouteImport } from './routes/_public/pricing'
-import { Route as PublicPackageCompleteRouteImport } from './routes/_public/package-complete'
 import { Route as PublicGalleryRouteImport } from './routes/_public/gallery'
 import { Route as PublicContactRouteImport } from './routes/_public/contact'
-import { Route as PublicBookingExpiredRouteImport } from './routes/_public/booking-expired'
-import { Route as PublicBookingCompleteRouteImport } from './routes/_public/booking-complete'
-import { Route as PublicBookRouteImport } from './routes/_public/book'
+import { Route as PublicConvexRouteImport } from './routes/_public/_convex'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
-import { Route as PublicRescheduleTokenRouteImport } from './routes/_public/reschedule.$token'
-import { Route as PublicPackageScheduleTokenRouteImport } from './routes/_public/package-schedule.$token'
+import { Route as PublicConvexRescheduleCompleteRouteImport } from './routes/_public/_convex/reschedule-complete'
+import { Route as PublicConvexPackageCompleteRouteImport } from './routes/_public/_convex/package-complete'
+import { Route as PublicConvexBookingExpiredRouteImport } from './routes/_public/_convex/booking-expired'
+import { Route as PublicConvexBookingCompleteRouteImport } from './routes/_public/_convex/booking-complete'
+import { Route as PublicConvexBookRouteImport } from './routes/_public/_convex/book'
+import { Route as PublicConvexRescheduleTokenRouteImport } from './routes/_public/_convex/reschedule.$token'
+import { Route as PublicConvexPackageScheduleTokenRouteImport } from './routes/_public/_convex/package-schedule.$token'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -46,12 +47,6 @@ const PublicTermsAndConditionsRoute =
     path: '/terms-and-conditions',
     getParentRoute: () => PublicRoute,
   } as any)
-const PublicRescheduleCompleteRoute =
-  PublicRescheduleCompleteRouteImport.update({
-    id: '/reschedule-complete',
-    path: '/reschedule-complete',
-    getParentRoute: () => PublicRoute,
-  } as any)
 const PublicPrivacyPolicyRoute = PublicPrivacyPolicyRouteImport.update({
   id: '/privacy-policy',
   path: '/privacy-policy',
@@ -60,11 +55,6 @@ const PublicPrivacyPolicyRoute = PublicPrivacyPolicyRouteImport.update({
 const PublicPricingRoute = PublicPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicPackageCompleteRoute = PublicPackageCompleteRouteImport.update({
-  id: '/package-complete',
-  path: '/package-complete',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicGalleryRoute = PublicGalleryRouteImport.update({
@@ -77,19 +67,8 @@ const PublicContactRoute = PublicContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => PublicRoute,
 } as any)
-const PublicBookingExpiredRoute = PublicBookingExpiredRouteImport.update({
-  id: '/booking-expired',
-  path: '/booking-expired',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicBookingCompleteRoute = PublicBookingCompleteRouteImport.update({
-  id: '/booking-complete',
-  path: '/booking-complete',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicBookRoute = PublicBookRouteImport.update({
-  id: '/book',
-  path: '/book',
+const PublicConvexRoute = PublicConvexRouteImport.update({
+  id: '/_convex',
   getParentRoute: () => PublicRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -102,51 +81,81 @@ const AuthDashboardRoute = AuthDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
-const PublicRescheduleTokenRoute = PublicRescheduleTokenRouteImport.update({
-  id: '/reschedule/$token',
-  path: '/reschedule/$token',
-  getParentRoute: () => PublicRoute,
+const PublicConvexRescheduleCompleteRoute =
+  PublicConvexRescheduleCompleteRouteImport.update({
+    id: '/reschedule-complete',
+    path: '/reschedule-complete',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
+const PublicConvexPackageCompleteRoute =
+  PublicConvexPackageCompleteRouteImport.update({
+    id: '/package-complete',
+    path: '/package-complete',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
+const PublicConvexBookingExpiredRoute =
+  PublicConvexBookingExpiredRouteImport.update({
+    id: '/booking-expired',
+    path: '/booking-expired',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
+const PublicConvexBookingCompleteRoute =
+  PublicConvexBookingCompleteRouteImport.update({
+    id: '/booking-complete',
+    path: '/booking-complete',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
+const PublicConvexBookRoute = PublicConvexBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => PublicConvexRoute,
 } as any)
-const PublicPackageScheduleTokenRoute =
-  PublicPackageScheduleTokenRouteImport.update({
+const PublicConvexRescheduleTokenRoute =
+  PublicConvexRescheduleTokenRouteImport.update({
+    id: '/reschedule/$token',
+    path: '/reschedule/$token',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
+const PublicConvexPackageScheduleTokenRoute =
+  PublicConvexPackageScheduleTokenRouteImport.update({
     id: '/package-schedule/$token',
     path: '/package-schedule/$token',
-    getParentRoute: () => PublicRoute,
+    getParentRoute: () => PublicConvexRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/dashboard': typeof AuthDashboardRoute
   '/login': typeof AuthLoginRoute
-  '/book': typeof PublicBookRoute
-  '/booking-complete': typeof PublicBookingCompleteRoute
-  '/booking-expired': typeof PublicBookingExpiredRoute
   '/contact': typeof PublicContactRoute
   '/gallery': typeof PublicGalleryRoute
-  '/package-complete': typeof PublicPackageCompleteRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
-  '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
-  '/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
-  '/reschedule/$token': typeof PublicRescheduleTokenRoute
+  '/book': typeof PublicConvexBookRoute
+  '/booking-complete': typeof PublicConvexBookingCompleteRoute
+  '/booking-expired': typeof PublicConvexBookingExpiredRoute
+  '/package-complete': typeof PublicConvexPackageCompleteRoute
+  '/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
+  '/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
+  '/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/dashboard': typeof AuthDashboardRoute
   '/login': typeof AuthLoginRoute
-  '/book': typeof PublicBookRoute
-  '/booking-complete': typeof PublicBookingCompleteRoute
-  '/booking-expired': typeof PublicBookingExpiredRoute
   '/contact': typeof PublicContactRoute
   '/gallery': typeof PublicGalleryRoute
-  '/package-complete': typeof PublicPackageCompleteRoute
   '/pricing': typeof PublicPricingRoute
   '/privacy-policy': typeof PublicPrivacyPolicyRoute
-  '/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/terms-and-conditions': typeof PublicTermsAndConditionsRoute
-  '/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
-  '/reschedule/$token': typeof PublicRescheduleTokenRoute
+  '/book': typeof PublicConvexBookRoute
+  '/booking-complete': typeof PublicConvexBookingCompleteRoute
+  '/booking-expired': typeof PublicConvexBookingExpiredRoute
+  '/package-complete': typeof PublicConvexPackageCompleteRoute
+  '/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
+  '/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
+  '/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,19 +163,20 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/login': typeof AuthLoginRoute
-  '/_public/book': typeof PublicBookRoute
-  '/_public/booking-complete': typeof PublicBookingCompleteRoute
-  '/_public/booking-expired': typeof PublicBookingExpiredRoute
+  '/_public/_convex': typeof PublicConvexRouteWithChildren
   '/_public/contact': typeof PublicContactRoute
   '/_public/gallery': typeof PublicGalleryRoute
-  '/_public/package-complete': typeof PublicPackageCompleteRoute
   '/_public/pricing': typeof PublicPricingRoute
   '/_public/privacy-policy': typeof PublicPrivacyPolicyRoute
-  '/_public/reschedule-complete': typeof PublicRescheduleCompleteRoute
   '/_public/terms-and-conditions': typeof PublicTermsAndConditionsRoute
   '/_public/': typeof PublicIndexRoute
-  '/_public/package-schedule/$token': typeof PublicPackageScheduleTokenRoute
-  '/_public/reschedule/$token': typeof PublicRescheduleTokenRoute
+  '/_public/_convex/book': typeof PublicConvexBookRoute
+  '/_public/_convex/booking-complete': typeof PublicConvexBookingCompleteRoute
+  '/_public/_convex/booking-expired': typeof PublicConvexBookingExpiredRoute
+  '/_public/_convex/package-complete': typeof PublicConvexPackageCompleteRoute
+  '/_public/_convex/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
+  '/_public/_convex/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
+  '/_public/_convex/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -174,16 +184,16 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/contact'
+    | '/gallery'
+    | '/pricing'
+    | '/privacy-policy'
+    | '/terms-and-conditions'
     | '/book'
     | '/booking-complete'
     | '/booking-expired'
-    | '/contact'
-    | '/gallery'
     | '/package-complete'
-    | '/pricing'
-    | '/privacy-policy'
     | '/reschedule-complete'
-    | '/terms-and-conditions'
     | '/package-schedule/$token'
     | '/reschedule/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -191,16 +201,16 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/contact'
+    | '/gallery'
+    | '/pricing'
+    | '/privacy-policy'
+    | '/terms-and-conditions'
     | '/book'
     | '/booking-complete'
     | '/booking-expired'
-    | '/contact'
-    | '/gallery'
     | '/package-complete'
-    | '/pricing'
-    | '/privacy-policy'
     | '/reschedule-complete'
-    | '/terms-and-conditions'
     | '/package-schedule/$token'
     | '/reschedule/$token'
   id:
@@ -209,19 +219,20 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_auth/dashboard'
     | '/_auth/login'
-    | '/_public/book'
-    | '/_public/booking-complete'
-    | '/_public/booking-expired'
+    | '/_public/_convex'
     | '/_public/contact'
     | '/_public/gallery'
-    | '/_public/package-complete'
     | '/_public/pricing'
     | '/_public/privacy-policy'
-    | '/_public/reschedule-complete'
     | '/_public/terms-and-conditions'
     | '/_public/'
-    | '/_public/package-schedule/$token'
-    | '/_public/reschedule/$token'
+    | '/_public/_convex/book'
+    | '/_public/_convex/booking-complete'
+    | '/_public/_convex/booking-expired'
+    | '/_public/_convex/package-complete'
+    | '/_public/_convex/reschedule-complete'
+    | '/_public/_convex/package-schedule/$token'
+    | '/_public/_convex/reschedule/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -259,13 +270,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicTermsAndConditionsRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/reschedule-complete': {
-      id: '/_public/reschedule-complete'
-      path: '/reschedule-complete'
-      fullPath: '/reschedule-complete'
-      preLoaderRoute: typeof PublicRescheduleCompleteRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_public/privacy-policy': {
       id: '/_public/privacy-policy'
       path: '/privacy-policy'
@@ -278,13 +282,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PublicPricingRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/package-complete': {
-      id: '/_public/package-complete'
-      path: '/package-complete'
-      fullPath: '/package-complete'
-      preLoaderRoute: typeof PublicPackageCompleteRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/gallery': {
@@ -301,25 +298,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicContactRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/booking-expired': {
-      id: '/_public/booking-expired'
-      path: '/booking-expired'
-      fullPath: '/booking-expired'
-      preLoaderRoute: typeof PublicBookingExpiredRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/booking-complete': {
-      id: '/_public/booking-complete'
-      path: '/booking-complete'
-      fullPath: '/booking-complete'
-      preLoaderRoute: typeof PublicBookingCompleteRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/book': {
-      id: '/_public/book'
-      path: '/book'
-      fullPath: '/book'
-      preLoaderRoute: typeof PublicBookRouteImport
+    '/_public/_convex': {
+      id: '/_public/_convex'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicConvexRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_auth/login': {
@@ -336,19 +319,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_public/reschedule/$token': {
-      id: '/_public/reschedule/$token'
+    '/_public/_convex/reschedule-complete': {
+      id: '/_public/_convex/reschedule-complete'
+      path: '/reschedule-complete'
+      fullPath: '/reschedule-complete'
+      preLoaderRoute: typeof PublicConvexRescheduleCompleteRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
+    '/_public/_convex/package-complete': {
+      id: '/_public/_convex/package-complete'
+      path: '/package-complete'
+      fullPath: '/package-complete'
+      preLoaderRoute: typeof PublicConvexPackageCompleteRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
+    '/_public/_convex/booking-expired': {
+      id: '/_public/_convex/booking-expired'
+      path: '/booking-expired'
+      fullPath: '/booking-expired'
+      preLoaderRoute: typeof PublicConvexBookingExpiredRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
+    '/_public/_convex/booking-complete': {
+      id: '/_public/_convex/booking-complete'
+      path: '/booking-complete'
+      fullPath: '/booking-complete'
+      preLoaderRoute: typeof PublicConvexBookingCompleteRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
+    '/_public/_convex/book': {
+      id: '/_public/_convex/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof PublicConvexBookRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
+    '/_public/_convex/reschedule/$token': {
+      id: '/_public/_convex/reschedule/$token'
       path: '/reschedule/$token'
       fullPath: '/reschedule/$token'
-      preLoaderRoute: typeof PublicRescheduleTokenRouteImport
-      parentRoute: typeof PublicRoute
+      preLoaderRoute: typeof PublicConvexRescheduleTokenRouteImport
+      parentRoute: typeof PublicConvexRoute
     }
-    '/_public/package-schedule/$token': {
-      id: '/_public/package-schedule/$token'
+    '/_public/_convex/package-schedule/$token': {
+      id: '/_public/_convex/package-schedule/$token'
       path: '/package-schedule/$token'
       fullPath: '/package-schedule/$token'
-      preLoaderRoute: typeof PublicPackageScheduleTokenRouteImport
-      parentRoute: typeof PublicRoute
+      preLoaderRoute: typeof PublicConvexPackageScheduleTokenRouteImport
+      parentRoute: typeof PublicConvexRoute
     }
   }
 }
@@ -365,36 +383,48 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface PublicConvexRouteChildren {
+  PublicConvexBookRoute: typeof PublicConvexBookRoute
+  PublicConvexBookingCompleteRoute: typeof PublicConvexBookingCompleteRoute
+  PublicConvexBookingExpiredRoute: typeof PublicConvexBookingExpiredRoute
+  PublicConvexPackageCompleteRoute: typeof PublicConvexPackageCompleteRoute
+  PublicConvexRescheduleCompleteRoute: typeof PublicConvexRescheduleCompleteRoute
+  PublicConvexPackageScheduleTokenRoute: typeof PublicConvexPackageScheduleTokenRoute
+  PublicConvexRescheduleTokenRoute: typeof PublicConvexRescheduleTokenRoute
+}
+
+const PublicConvexRouteChildren: PublicConvexRouteChildren = {
+  PublicConvexBookRoute: PublicConvexBookRoute,
+  PublicConvexBookingCompleteRoute: PublicConvexBookingCompleteRoute,
+  PublicConvexBookingExpiredRoute: PublicConvexBookingExpiredRoute,
+  PublicConvexPackageCompleteRoute: PublicConvexPackageCompleteRoute,
+  PublicConvexRescheduleCompleteRoute: PublicConvexRescheduleCompleteRoute,
+  PublicConvexPackageScheduleTokenRoute: PublicConvexPackageScheduleTokenRoute,
+  PublicConvexRescheduleTokenRoute: PublicConvexRescheduleTokenRoute,
+}
+
+const PublicConvexRouteWithChildren = PublicConvexRoute._addFileChildren(
+  PublicConvexRouteChildren,
+)
+
 interface PublicRouteChildren {
-  PublicBookRoute: typeof PublicBookRoute
-  PublicBookingCompleteRoute: typeof PublicBookingCompleteRoute
-  PublicBookingExpiredRoute: typeof PublicBookingExpiredRoute
+  PublicConvexRoute: typeof PublicConvexRouteWithChildren
   PublicContactRoute: typeof PublicContactRoute
   PublicGalleryRoute: typeof PublicGalleryRoute
-  PublicPackageCompleteRoute: typeof PublicPackageCompleteRoute
   PublicPricingRoute: typeof PublicPricingRoute
   PublicPrivacyPolicyRoute: typeof PublicPrivacyPolicyRoute
-  PublicRescheduleCompleteRoute: typeof PublicRescheduleCompleteRoute
   PublicTermsAndConditionsRoute: typeof PublicTermsAndConditionsRoute
   PublicIndexRoute: typeof PublicIndexRoute
-  PublicPackageScheduleTokenRoute: typeof PublicPackageScheduleTokenRoute
-  PublicRescheduleTokenRoute: typeof PublicRescheduleTokenRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
-  PublicBookRoute: PublicBookRoute,
-  PublicBookingCompleteRoute: PublicBookingCompleteRoute,
-  PublicBookingExpiredRoute: PublicBookingExpiredRoute,
+  PublicConvexRoute: PublicConvexRouteWithChildren,
   PublicContactRoute: PublicContactRoute,
   PublicGalleryRoute: PublicGalleryRoute,
-  PublicPackageCompleteRoute: PublicPackageCompleteRoute,
   PublicPricingRoute: PublicPricingRoute,
   PublicPrivacyPolicyRoute: PublicPrivacyPolicyRoute,
-  PublicRescheduleCompleteRoute: PublicRescheduleCompleteRoute,
   PublicTermsAndConditionsRoute: PublicTermsAndConditionsRoute,
   PublicIndexRoute: PublicIndexRoute,
-  PublicPackageScheduleTokenRoute: PublicPackageScheduleTokenRoute,
-  PublicRescheduleTokenRoute: PublicRescheduleTokenRoute,
 }
 
 const PublicRouteWithChildren =

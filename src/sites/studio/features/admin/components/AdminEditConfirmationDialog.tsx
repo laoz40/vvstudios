@@ -12,6 +12,8 @@ import {
 
 type ChangedFieldListProps = { fields: string[]; title: string; description?: string };
 
+const EMPTY_FIELD_LABELS: string[] = [];
+
 export type AdminEditConfirmationDialogProps = {
 	open: boolean;
 	googleEventFieldLabels: string[];
@@ -47,7 +49,7 @@ function ChangedFieldList({ fields, title, description }: ChangedFieldListProps)
 export function AdminEditConfirmationDialog({
 	open,
 	googleEventFieldLabels,
-	driveIdentityFieldLabels = [],
+	driveIdentityFieldLabels = EMPTY_FIELD_LABELS,
 	isSaving,
 	pricingFieldLabels,
 	nonPricingTitle = "Google Calendar event will update",

@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Field is a generic layout group and cannot always introduce fieldset semantics. */
 import { useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

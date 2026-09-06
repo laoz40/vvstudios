@@ -9,7 +9,7 @@ import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
-export const Route = createFileRoute("/_public/booking-expired")({
+export const Route = createFileRoute("/_public/_convex/booking-expired")({
 	head: () => buildNoIndexHead("Booking Session Expired | VV Studios"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		session_id:

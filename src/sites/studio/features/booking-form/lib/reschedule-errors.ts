@@ -58,6 +58,44 @@ export function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleL
 	}
 }
 
+export type RescheduleBusyWindowsLoadError =
+	| RescheduleLinkLookupError
+	| RescheduleAvailabilityError;
+
+export type RescheduleBusyWindowsLoadOutcome =
+	| { kind: "availabilityError"; message: string }
+	| { kind: "invalidLink"; content: RescheduleLinkInvalidContent };
+
+export function isRescheduleBusyWindowsLoadError(
+	error: unknown
+): error is RescheduleBusyWindowsLoadError {
+	return typeof error === "object" && error !== null && "reason" in error;
+}
+
+export function resolveRescheduleBusyWindowsLoadError(
+	error: RescheduleBusyWindowsLoadError
+): RescheduleBusyWindowsLoadOutcome {
+	switch (error.reason) {
+		case "RESCHEDULE_LINK_NOT_FOUND":
+		case "RESCHEDULE_LINK_USED":
+		case "RESCHEDULE_LINK_EXPIRED":
+		case "BOOKING_NOT_FOUND":
+		case "BOOKING_NOT_RESCHEDULABLE":
+			return { kind: "invalidLink", content: getInvalidMessage(error) };
+
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+		case "UNEXPECTED_ERROR":
+			return { kind: "availabilityError", message: getAvailabilityErrorMessage(error) };
+
+		default: {
+			const _exhaustive: never = error;
+			return _exhaustive;
+		}
+	}
+}
+
 export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError): string {
 	switch (error.reason) {
 		case "GOOGLE_CALENDAR_AUTH_FAILED":

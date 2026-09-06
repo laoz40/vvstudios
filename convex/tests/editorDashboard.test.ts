@@ -397,13 +397,15 @@ describe("editor assignment", () => {
 			seedBooking(t, "Archived Assignment", { hidden: true })
 		]);
 
-		for (const bookingId of ineligibleBookingIds) {
-			expect(await assignBooking(t, bookingId)).toEqual([
-				{ reason: "SESSION_NOT_ASSIGNABLE" },
-				null
-			]);
-			expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
-		}
+		await Promise.all(
+			ineligibleBookingIds.map(async (bookingId) => {
+				expect(await assignBooking(t, bookingId)).toEqual([
+					{ reason: "SESSION_NOT_ASSIGNABLE" },
+					null
+				]);
+				expect(await readBooking(t, bookingId)).not.toHaveProperty("assignedEditorTokenIdentifier");
+			})
+		);
 	});
 
 	test("allows an ineligible session's existing assignment to be removed", async () => {
@@ -722,7 +724,7 @@ describe("restricted editor session query", () => {
 			seedBooking(t, "Cancelled Customer", { status: "cancelled" }),
 			seedBooking(t, "Archived Customer", { hidden: true, status: "confirmed" })
 		]);
-		for (const bookingId of bookings) await assignBooking(t, bookingId);
+		await Promise.all(bookings.map((bookingId) => assignBooking(t, bookingId)));
 
 		const result = await t
 			.withIdentity(editorIdentity)

@@ -121,8 +121,8 @@ export function BookingAddonsSection() {
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 	const isMultiBooking = formValues.bookingMode === "multi";
-	const availableAddonOptions = ADDON_OPTIONS.filter((addon) =>
-		isAddonAvailableForService(formValues.service, addon)
+	const availableAddonOptions = new Set(
+		ADDON_OPTIONS.filter((addon) => isAddonAvailableForService(formValues.service, addon))
 	);
 	const FormField = formApi.Field;
 
@@ -188,7 +188,7 @@ export function BookingAddonsSection() {
 						className="flex flex-col gap-8">
 						{ADDON_SECTIONS.map((section) => {
 							const sectionAddons = section.addons.filter((addon) =>
-								availableAddonOptions.includes(addon)
+								availableAddonOptions.has(addon)
 							);
 
 							if (sectionAddons.length === 0) {

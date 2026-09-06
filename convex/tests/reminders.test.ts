@@ -118,13 +118,15 @@ describe("daily reminder dispatch", () => {
 			packageReminderState: { type: "payment", status: "sent", sentAt: now - 1 }
 		});
 		const fullPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
-		for (let index = 0; index < 4; index += 1) {
-			await seedBooking(t, {
-				multiBookingPackageId: fullPackageId,
-				sessionStartAt: now + index,
-				status: "confirmed"
-			});
-		}
+		await Promise.all(
+			Array.from({ length: 4 }, (_, index) =>
+				seedBooking(t, {
+					multiBookingPackageId: fullPackageId,
+					sessionStartAt: now + index,
+					status: "confirmed"
+				})
+			)
+		);
 
 		await t.action(internal.sessionReminders.sendDueReminders, {});
 

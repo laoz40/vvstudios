@@ -9,6 +9,12 @@ import { Accordion as AccordionPrimitive } from "radix-ui";
 import { cn } from "#/lib/utils";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 
+const defaultAccordionContentTransition: Transition = {
+	type: "spring",
+	stiffness: 150,
+	damping: 22
+};
+
 function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
 	return (
 		<AccordionPrimitive.Root
@@ -101,7 +107,7 @@ type AccordionContentProps = Omit<
 function AccordionContent({
 	className,
 	children,
-	transition = { type: "spring", stiffness: 150, damping: 22 },
+	transition = defaultAccordionContentTransition,
 	keepRendered = false,
 	...props
 }: AccordionContentProps) {

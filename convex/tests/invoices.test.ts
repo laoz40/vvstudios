@@ -330,14 +330,17 @@ describe("invoice download access", () => {
 		await seedBooking(t, { status: "confirmed", stripeSessionId: "confirmed" });
 		await seedBooking(t, { status: "email_failed", stripeSessionId: "email-failed" });
 
-		for (const stripeSessionId of ["confirmed", "email-failed"]) {
-			const [error, payload] = await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
-				stripeSessionId
-			});
-			expect(error).toBeNull();
-			expect(payload).toMatchObject({ contentType: "application/pdf" });
-			expect(payload?.content.byteLength).toBeGreaterThan(0);
-		}
+		await Promise.all(
+			["confirmed", "email-failed"].map(async (stripeSessionId) => {
+				const [error, payload] = await t.action(
+					api.invoices.getBookingInvoicePdfByStripeSessionId,
+					{ stripeSessionId }
+				);
+				expect(error).toBeNull();
+				expect(payload).toMatchObject({ contentType: "application/pdf" });
+				expect(payload?.content.byteLength).toBeGreaterThan(0);
+			})
+		);
 	});
 
 	test("expires public package downloads while keeping admin download available", async () => {
@@ -402,7 +405,11 @@ describe("session invoice email selection", () => {
 			.withIdentity(adminIdentity)
 			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
 
-		const [sentBooking, sentOptions] = providerFakes.sendInvoiceEmails.mock.calls[0];
+		const invoiceCall = providerFakes.sendInvoiceEmails.mock.calls[0];
+		if (!invoiceCall) {
+			throw new Error("Expected sendInvoiceEmails to be called");
+		}
+		const [sentBooking, sentOptions] = invoiceCall;
 
 		expect(result).toEqual([null, null]);
 		expect(sentBooking).toMatchObject({ _id: bookingId });

@@ -26,7 +26,7 @@ import {
 	getDriveStatus,
 	getDriveWorkflowFailureForBooking,
 	getEditorSessionDriveFolders
-} from "#convex/lib/driveRecords";
+} from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";

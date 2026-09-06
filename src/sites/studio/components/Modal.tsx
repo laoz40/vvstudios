@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- Native dialog backdrop clicks require a pointer handler on the dialog element. */
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "#/components/ui/button";

@@ -139,13 +139,17 @@ export async function getCapacityConsumingPackageSessions(
 	packageSize: 4 | 8 | 12
 ) {
 	const bookings: Doc<"bookings">[] = [];
-	for (const status of capacityConsumingSessionStatuses) {
-		const statusBookings = await ctx.db
-			.query("bookings")
-			.withIndex("by_multiBookingPackageId_and_status_and_sessionStartAt", (q) =>
-				q.eq("multiBookingPackageId", packageId).eq("status", status)
-			)
-			.take(packageSize);
+	const bookingsByStatus = await Promise.all(
+		capacityConsumingSessionStatuses.map((status) =>
+			ctx.db
+				.query("bookings")
+				.withIndex("by_multiBookingPackageId_and_status_and_sessionStartAt", (q) =>
+					q.eq("multiBookingPackageId", packageId).eq("status", status)
+				)
+				.take(packageSize)
+		)
+	);
+	for (const statusBookings of bookingsByStatus) {
 		bookings.push(...statusBookings);
 	}
 	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);

@@ -151,7 +151,11 @@ describe("package payment confirmation", () => {
 			.withIdentity(adminIdentity)
 			.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
-		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
+		const emailCall = providerFakes.sendScheduleEmail.mock.calls[0];
+		if (!emailCall) {
+			throw new Error("Expected sendScheduleEmail to be called");
+		}
+		const emailArgs = emailCall[0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
 		expect(result).toEqual([null, null]);
@@ -399,9 +403,11 @@ describe("admin package management", () => {
 	test("rejects shrinking below active capacity without changing the package", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		for (let index = 0; index < 5; index += 1) {
-			await seedPackageSession(t, packageId, index, index === 4 ? "email_failed" : "confirmed");
-		}
+		await Promise.all(
+			Array.from({ length: 5 }, (_, index) =>
+				seedPackageSession(t, packageId, index, index === 4 ? "email_failed" : "confirmed")
+			)
+		);
 		const packageBefore = await readPackage(t, packageId);
 
 		const result = await t
