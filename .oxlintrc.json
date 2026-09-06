@@ -40,8 +40,8 @@
 		"import/no-cycle": "error",
 		"oxc/branches-sharing-code": "error",
 		"oxc/no-map-spread": "off",
-		"complexity": ["warn", { "max": 12 }],
-		"max-depth": ["warn", 3],
+		"complexity": ["error", { "max": 15 }],
+		"max-depth": ["error", { "max": 3 }],
 		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }]
 	},
 	"overrides": [
