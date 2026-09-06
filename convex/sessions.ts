@@ -28,7 +28,7 @@ import {
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
 	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
-} from "#convex/lib/driveRecords";
+} from "#convex/lib/driveEditor";
 import {
 	archiveSessionService,
 	assignSessionEditorService,
