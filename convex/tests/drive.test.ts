@@ -296,13 +296,13 @@ beforeEach(() => {
 	emailFake.sendClientAssetsEmail.mockReturnValue(okAsync(null));
 	emailFake.sendEditorAssignmentEmail.mockReturnValue(okAsync(null));
 
-	driveFake.create.mockImplementation(async (request) => {
+	driveFake.create.mockImplementation((request) => {
 		const name = request.requestBody?.name ?? "";
 		const marker = request.requestBody?.appProperties?.vvWorkspaceMarker ?? "";
 		const parentId = request.requestBody?.parents?.[0] ?? "";
 		if (driveFake.failCreateNameOnce === name) {
 			driveFake.failCreateNameOnce = "";
-			throw new Error("Drive create failed");
+			return Promise.reject(new Error("Drive create failed"));
 		}
 		const id = `folder-${driveFake.folders.size + 1}`;
 		const folder = {
@@ -317,38 +317,42 @@ beforeEach(() => {
 		driveFake.folders.set(id, folder);
 		if (driveFake.loseCreateResponseNameOnce === name) {
 			driveFake.loseCreateResponseNameOnce = "";
-			throw new Error("Drive response was lost");
+			return Promise.reject(new Error("Drive response was lost"));
 		}
-		return { data: { id: folder.id, name: folder.name, webViewLink: folder.webViewLink } };
+		return Promise.resolve({
+			data: { id: folder.id, name: folder.name, webViewLink: folder.webViewLink }
+		});
 	});
-	driveFake.list.mockImplementation(async (request) => {
+	driveFake.list.mockImplementation((request) => {
 		const marker = request.q?.match(/value='([^']+)'/)?.[1] ?? "";
 		const parentId = request.q?.match(/^'([^']+)' in parents/)?.[1] ?? "";
 		const files = [...driveFake.folders.values()].filter(
 			(folder) => folder.marker === marker && folder.parentId === parentId
 		);
-		return { data: { files } };
+		return Promise.resolve({ data: { files } });
 	});
-	driveFake.get.mockImplementation(async ({ fileId }) => {
+	driveFake.get.mockImplementation(({ fileId }) => {
 		const folder = driveFake.folders.get(fileId);
-		if (folder === undefined) throw { status: 404 };
-		return { data: folder };
+		if (folder === undefined) return Promise.reject({ status: 404 });
+		return Promise.resolve({ data: folder });
 	});
-	driveFake.update.mockImplementation(async ({ fileId, requestBody }) => {
+	driveFake.update.mockImplementation(({ fileId, requestBody }) => {
 		const folder = driveFake.folders.get(fileId);
-		if (folder === undefined) throw { status: 404 };
+		if (folder === undefined) return Promise.reject({ status: 404 });
 		const updated = { ...folder, name: requestBody?.name ?? folder.name };
 		driveFake.folders.set(fileId, updated);
-		return { data: { id: updated.id, name: updated.name, webViewLink: updated.webViewLink } };
+		return Promise.resolve({
+			data: { id: updated.id, name: updated.name, webViewLink: updated.webViewLink }
+		});
 	});
-	driveFake.permissionsCreate.mockImplementation(async (request) => {
+	driveFake.permissionsCreate.mockImplementation((request) => {
 		const role = request.requestBody?.role ?? "reader";
 		if (
 			driveFake.failNextPermissionAsMissingGoogleAccount &&
 			request.requestBody?.type === "user"
 		) {
 			driveFake.failNextPermissionAsMissingGoogleAccount = false;
-			throw {
+			return Promise.reject({
 				response: {
 					status: 400,
 					data: {
@@ -358,11 +362,11 @@ beforeEach(() => {
 						}
 					}
 				}
-			};
+			});
 		}
 		if (driveFake.failPermissionRoleOnce === role) {
 			driveFake.failPermissionRoleOnce = "";
-			throw new Error("Drive permission create failed");
+			return Promise.reject(new Error("Drive permission create failed"));
 		}
 		const permission = {
 			emailAddress: request.requestBody?.emailAddress,
@@ -372,25 +376,27 @@ beforeEach(() => {
 			type: request.requestBody?.type
 		};
 		driveFake.permissions.set(permission.id, permission);
-		return { data: permission };
+		return Promise.resolve({ data: permission });
 	});
-	driveFake.permissionsList.mockImplementation(async ({ fileId }) => ({
-		data: {
-			permissions: [
-				{ fileId, id: "owner-permission", role: "owner" as const },
-				...Array.from(driveFake.permissions.values()).filter(
-					(permission) => permission.fileId === fileId
-				)
-			]
-		}
-	}));
-	driveFake.permissionsDelete.mockImplementation(async ({ permissionId }) => {
+	driveFake.permissionsList.mockImplementation(({ fileId }) =>
+		Promise.resolve({
+			data: {
+				permissions: [
+					{ fileId, id: "owner-permission", role: "owner" as const },
+					...Array.from(driveFake.permissions.values()).filter(
+						(permission) => permission.fileId === fileId
+					)
+				]
+			}
+		})
+	);
+	driveFake.permissionsDelete.mockImplementation(({ permissionId }) => {
 		if (driveFake.failNextDelete) {
 			driveFake.failNextDelete = false;
-			throw new Error("Drive permission delete failed");
+			return Promise.reject(new Error("Drive permission delete failed"));
 		}
 		driveFake.permissions.delete(permissionId);
-		return { data: {} };
+		return Promise.resolve({ data: {} });
 	});
 });
 

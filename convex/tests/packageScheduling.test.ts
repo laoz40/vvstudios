@@ -306,9 +306,9 @@ describe("package session creation validation", () => {
 			Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index))
 		);
 		let nextEventNumber = 0;
-		providerFakes.insertEvent.mockImplementation(async () => {
+		providerFakes.insertEvent.mockImplementation(() => {
 			nextEventNumber += 1;
-			return { data: { id: `google-event-${nextEventNumber}` } };
+			return Promise.resolve({ data: { id: `google-event-${nextEventNumber}` } });
 		});
 
 		const results = await Promise.all([
