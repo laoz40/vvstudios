@@ -1,6 +1,6 @@
 ---
 name: vvstudios-frontend
-description: ALWAYS read this skill before any frontend work. React, Tailwind related code.
+description: Project specific frontend rules. ALWAYS read this skill before any frontend work. React, Tailwind related code.
 ---
 
 # Frontend
