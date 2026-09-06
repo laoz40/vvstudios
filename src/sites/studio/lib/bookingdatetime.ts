@@ -544,8 +544,13 @@ function parseReadableTimeToMinutes(time: string) {
 
 	const hours = Number(match[1]);
 	const minutes = Number(match[2]);
-	const meridiem = match[3].toUpperCase();
-	const normalizedHours = (hours % 12) + (meridiem === "PM" ? 12 : 0);
+	const meridiem = match[3];
+	if (!meridiem) {
+		return 0;
+	}
+
+	const normalizedMeridiem = meridiem.toUpperCase();
+	const normalizedHours = (hours % 12) + (normalizedMeridiem === "PM" ? 12 : 0);
 
 	return normalizedHours * 60 + minutes;
 }
