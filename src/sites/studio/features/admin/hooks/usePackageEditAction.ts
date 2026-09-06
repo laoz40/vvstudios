@@ -42,6 +42,38 @@ function buildPackageUpdateInput(
 	};
 }
 
+function parsePackageEditValues(values: PackageEditDraft) {
+	const parsedValues = multiBookingFormSchema.safeParse({
+		name: values.customerName,
+		phone: values.customerPhone,
+		accountName: values.accountName,
+		abn: values.abn,
+		email: values.customerEmail,
+		duration: values.duration,
+		addons: values.addons,
+		...pickBookingAddonQuantities(values),
+		notes: values.notes,
+		packageSize: values.packageSize
+	});
+
+	if (!parsedValues.success) {
+		toast.error(parsedValues.error.issues[0]?.message ?? "Please check the package details.");
+		return null;
+	}
+
+	const totalDueDraft = values.totalDueAmount.trim();
+	const totalDueAmountResult = totalDueDraft
+		? parseRemainingBalanceAmountDraft(totalDueDraft)
+		: null;
+
+	if (totalDueAmountResult?.status === "invalid") {
+		toast.error("Enter a valid package total due.");
+		return null;
+	}
+
+	return { parsedValues: parsedValues.data, totalDueAmountResult };
+}
+
 function showPackageUpdateError(
 	error: NonNullable<UpdatePackageFromAdminResult[0]> | UnexpectedError
 ) {
@@ -91,33 +123,12 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 		values: PackageEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
-		const parsedValues = multiBookingFormSchema.safeParse({
-			name: values.customerName,
-			phone: values.customerPhone,
-			accountName: values.accountName,
-			abn: values.abn,
-			email: values.customerEmail,
-			duration: values.duration,
-			addons: values.addons,
-			...pickBookingAddonQuantities(values),
-			notes: values.notes,
-			packageSize: values.packageSize
-		});
-
-		if (!parsedValues.success) {
-			toast.error(parsedValues.error.issues[0]?.message ?? "Please check the package details.");
+		const parsedEditValues = parsePackageEditValues(values);
+		if (!parsedEditValues) {
 			return;
 		}
 
-		const totalDueDraft = values.totalDueAmount.trim();
-		const totalDueAmountResult = totalDueDraft
-			? parseRemainingBalanceAmountDraft(totalDueDraft)
-			: null;
-
-		if (totalDueAmountResult?.status === "invalid") {
-			toast.error("Enter a valid package total due.");
-			return;
-		}
+		const { parsedValues, totalDueAmountResult } = parsedEditValues;
 
 		if (!options?.skipConfirmation) {
 			const warningState = getPackageEditWarningState(packageRow, values);
@@ -135,7 +146,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 		const updateInput = buildPackageUpdateInput(
 			packageRow,
 			values,
-			parsedValues.data,
+			parsedValues,
 			totalDueAmountResult
 		);
 		const [error] = await tryCatch(updatePackage(updateInput));
