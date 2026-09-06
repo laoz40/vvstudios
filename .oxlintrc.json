@@ -41,7 +41,8 @@
 		"oxc/branches-sharing-code": "error",
 		"oxc/no-map-spread": "off",
 		"complexity": ["warn", { "max": 12 }],
-		"max-depth": ["warn", 3]
+		"max-depth": ["warn", 3],
+		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }]
 	},
 	"overrides": [
 		{
@@ -123,6 +124,10 @@
 			],
 			"plugins": ["jsx-a11y"],
 			"rules": { "jsx-a11y/no-noninteractive-element-interactions": "off" }
+		},
+		{
+			"files": ["**/*.test.ts", "**/*.test.tsx", "convex/tests/**"],
+			"rules": { "max-lines": "off" }
 		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
