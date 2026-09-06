@@ -7,7 +7,6 @@ import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
-	getDriveSetup as loadDriveSetup,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
 	saveClientDrivePermission as saveClientDrivePermissionRecord,
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord,
@@ -18,6 +17,7 @@ import {
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveRecords";
+import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessRecord,
