@@ -105,6 +105,24 @@ function getChangedFieldLabels(
 		.map((field) => sessionEditFieldLabels[field]);
 }
 
+export function getSessionEditConfirmationWarning(
+	session: SessionRecord,
+	draft: SessionEditDraft,
+	skipConfirmation?: boolean
+) {
+	if (skipConfirmation) {
+		return null;
+	}
+
+	const warningState = getSessionEditWarningState(session, draft);
+
+	if (!warningState.requiresConfirmation) {
+		return null;
+	}
+
+	return warningState;
+}
+
 export function getSessionEditWarningState(session: SessionRecord, draft: SessionEditDraft) {
 	const changedFields = Object.keys(draft)
 		.filter(isSessionEditWarningField)
