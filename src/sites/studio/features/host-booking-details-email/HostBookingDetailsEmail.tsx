@@ -140,7 +140,12 @@ export function HostBookingDetailsEmail({
 	notes,
 	...bookingDetails
 }: HostBookingDetailsEmailProps) {
-	const selectedQuote = bookingQuotes[Math.floor(Math.random() * bookingQuotes.length)];
+	const quoteIndex = Math.floor(Math.random() * bookingQuotes.length);
+	const selectedQuote = bookingQuotes[quoteIndex];
+
+	if (selectedQuote === undefined) {
+		throw new Error("Expected booking quote");
+	}
 	const emailCopy = getHostBookingEmailCopy(name, bookingDetails);
 
 	return (

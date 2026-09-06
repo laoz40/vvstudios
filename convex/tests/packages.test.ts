@@ -151,7 +151,11 @@ describe("package payment confirmation", () => {
 			.withIdentity(adminIdentity)
 			.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
-		const emailArgs = providerFakes.sendScheduleEmail.mock.calls[0][0];
+		const emailCall = providerFakes.sendScheduleEmail.mock.calls[0];
+		if (!emailCall) {
+			throw new Error("Expected sendScheduleEmail to be called");
+		}
+		const emailArgs = emailCall[0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
 		expect(result).toEqual([null, null]);

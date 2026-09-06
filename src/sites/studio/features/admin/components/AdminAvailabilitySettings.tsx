@@ -197,7 +197,14 @@ export function AdminAvailabilitySettings() {
 					</div>
 
 					<div className="overflow-hidden rounded-md border">
-						{bookingDayLabels.map((label, day) => (
+						{bookingDayLabels.map((label, day) => {
+							const daySchedule = draft.weekSchedule[day];
+
+							if (!daySchedule) {
+								return null;
+							}
+
+							return (
 							<div
 								key={label}
 								className={cn(
@@ -206,15 +213,16 @@ export function AdminAvailabilitySettings() {
 								)}>
 								<p className="text-sm font-medium">{label}</p>
 								<TimeSelect
-									value={draft.weekSchedule[day].startTime}
+									value={daySchedule.startTime}
 									onChange={(value) => updateDaySchedule(day, "startTime", value)}
 								/>
 								<TimeSelect
-									value={draft.weekSchedule[day].endTime}
+									value={daySchedule.endTime}
 									onChange={(value) => updateDaySchedule(day, "endTime", value)}
 								/>
 							</div>
-						))}
+							);
+						})}
 					</div>
 
 					<span className="text-sm text-muted-foreground">

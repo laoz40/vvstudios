@@ -405,7 +405,11 @@ describe("session invoice email selection", () => {
 			.withIdentity(adminIdentity)
 			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
 
-		const [sentBooking, sentOptions] = providerFakes.sendInvoiceEmails.mock.calls[0];
+		const invoiceCall = providerFakes.sendInvoiceEmails.mock.calls[0];
+		if (!invoiceCall) {
+			throw new Error("Expected sendInvoiceEmails to be called");
+		}
+		const [sentBooking, sentOptions] = invoiceCall;
 
 		expect(result).toEqual([null, null]);
 		expect(sentBooking).toMatchObject({ _id: bookingId });
