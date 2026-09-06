@@ -42,7 +42,8 @@
 		"oxc/no-map-spread": "off",
 		"complexity": ["error", { "max": 15 }],
 		"max-depth": ["error", { "max": 3 }],
-		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }]
+		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }],
+		"max-statements": ["error", { "max": 25 }]
 	},
 	"overrides": [
 		{
