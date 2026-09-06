@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -7,31 +7,30 @@ import type { BookingAvailabilityPickerState } from "#studio/features/booking-fo
 import { usePackageCalendarBusyWindows } from "#studio/features/booking-form/hooks/usePackageCalendarBusyWindows";
 import {
 	getBookingTimeSelectionMessage,
+	recordingSpaceSchema,
 	type BookingFormValues,
 	type BookingTimeSelectionMessage
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { excludeBusyEvent } from "#studio/features/booking-form/lib/monthly-availability";
 import {
-	confirmPackageSessionUnschedule,
-	emptyPackageSessionDraft,
-	getPackageSessionDraftForKey,
-	requestPackageSessionSave,
-	savePackageDefaultSpace,
-	savePackageSession,
-	unschedulePackageSessionBooking,
-	type PackageSessionDraft
-} from "#studio/features/booking-form/lib/package-scheduling-actions";
-import {
-	getPackageDatePickerOptions,
-	getPackageScheduleCalendarView
-} from "#studio/features/booking-form/lib/package-scheduling-calendar";
+	excludeBusyEvent,
+	getBookableAvailableTimes,
+	getBookableMonthKeys,
+	getNextAvailableBookingDate,
+	getSelectedBusyDay,
+	isBookingDateDisabled,
+	isBookingDateUnavailable,
+	type BusyWindowsByMonth
+} from "#studio/features/booking-form/lib/monthly-availability";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import type { PackageSession } from "#studio/features/booking-form/lib/package-scheduling-session";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import type { BusyPeriod } from "#studio/lib/bookingdatetime";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
+	formatDateValue,
 	formatMonthKey,
 	getCurrentTimestamp,
+	parseDateValue,
 	parseMonthKey,
 	startOfToday
 } from "#studio/lib/bookingdatetime";
@@ -40,66 +39,171 @@ type PackageData = NonNullable<
 	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
 >;
 
-interface UsePackageScheduleOptions {
-	packageData: PackageData;
-	token: string;
-}
-
-interface PackageScheduleState {
+type SessionSelectionState = {
 	activeSessionKey: string | null;
-	availability: BookingAvailabilityPickerState;
-	availabilitySettings: BookingAvailabilitySettings;
-	currentTimestamp: number;
-	handleChooseSession: (sessionKey: string, dateValue?: string, time?: string) => void;
-	handleCloseSession: () => void;
-	handleConfirmUnschedule: () => Promise<void>;
-	handleDateChange: (dateValue: string) => void;
-	handleMakeDefaultSpace: () => Promise<void>;
-	handleRemotePodcastChange: (checked: boolean) => void;
-	handleRequestSaveSession: () => void;
 	highlightedBookingId: Id<"bookings"> | null;
-	isSavingDefaultSpace: boolean;
-	noticeWindowLabel: string;
-	savingSessionKey: string | null;
 	selectedDateValue: string;
 	selectedNotes: string;
 	selectedRemotePodcast: boolean;
 	selectedService: BookingFormValues["service"];
 	selectedTime: string;
+};
+
+interface UsePackageScheduleOptions {
+	packageData: PackageData;
+	token: string;
+}
+
+interface PackageDatePickerOptions {
+	availableTimes: string[];
+	disabledDates: (date: Date) => boolean;
+	nextAvailableDate: Date | undefined;
+	selectedBusyPeriods: BusyPeriod[];
+	unavailableDates: (date: Date) => boolean;
+}
+
+export interface PackageScheduleState extends SessionSelectionState {
+	activeBooking: PackageSession | undefined;
+	availability: BookingAvailabilityPickerState;
+	availabilitySettings: BookingAvailabilitySettings;
+	clearSessionSelection: () => void;
+	currentTimestamp: number;
+	handleChooseSession: (sessionKey: string, dateValue?: string, time?: string) => void;
+	handleCloseSession: () => void;
+	handleDateChange: (dateValue: string) => void;
+	handleRemotePodcastChange: (checked: boolean) => void;
+	invalidateCalendarCache: () => void;
+	noticeWindowLabel: string;
+	setHighlightedBookingId: (bookingId: Id<"bookings"> | null) => void;
 	setSelectedNotes: (notes: string) => void;
 	setSelectedService: (service: Exclude<BookingFormValues["service"], "">) => void;
 	setSelectedTime: (time: string) => void;
 	timeSelectionMessage: BookingTimeSelectionMessage | null;
-	unschedulingBookingId: Id<"bookings"> | null;
+}
+
+function getPackageDatePickerOptions({
+	currentTimestamp,
+	duration,
+	isViewingSelectedMonth,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	selectedDate,
+	selectedDateValue,
+	selectedMonth,
+	settings,
+	today
+}: {
+	currentTimestamp: number;
+	duration: string;
+	isViewingSelectedMonth: boolean;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
+	selectedDate: Date | undefined;
+	selectedDateValue: string;
+	selectedMonth: string;
+	settings: BookingAvailabilitySettings;
+	today: Date;
+}): PackageDatePickerOptions {
+	const selectedBusyDay = selectedDateValue
+		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
+		: null;
+	const availableTimes = getBookableAvailableTimes({
+		currentTimestamp,
+		duration,
+		isViewingSelectedMonth,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
+		selectedBusyDay,
+		selectedDate,
+		selectedDateValue,
+		selectedMonth,
+		settings,
+		today
+	});
+	const nextAvailableDate = getNextAvailableBookingDate({
+		currentTimestamp,
+		duration,
+		lastBookableDate,
+		monthlyBusyWindowsByMonth,
+		selectedDate,
+		settings
+	});
+	const selectedBusyPeriods = selectedBusyDay?.busyPeriods ?? [];
+
+	function disabledDates(date: Date) {
+		return isBookingDateDisabled({
+			date,
+			isAvailabilityRateLimited: false,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			today
+		});
+	}
+
+	function unavailableDates(date: Date) {
+		return isBookingDateUnavailable({
+			currentTimestamp,
+			date,
+			duration,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			settings,
+			today
+		});
+	}
+
+	return {
+		availableTimes,
+		disabledDates,
+		nextAvailableDate,
+		selectedBusyPeriods,
+		unavailableDates
+	};
 }
 
 export function usePackageSchedule({
 	packageData,
 	token
 }: UsePackageScheduleOptions): PackageScheduleState {
-	const createPackageSession = useAction(api.packageScheduling.createPackageSession);
-	const setDefaultSpace = useMutation(api.packageScheduling.setDefaultSpace);
-	const reschedulePackageSession = useAction(api.packageScheduling.reschedulePackageSession);
-	const unschedulePackageSession = useAction(api.packageScheduling.unschedulePackageSession);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
-
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	const [calendarMonth, setCalendarMonth] = useState(() =>
 		parseMonthKey(formatMonthKey(startOfToday()))
 	);
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
-	const [sessionDraft, setSessionDraft] = useState<PackageSessionDraft>(emptyPackageSessionDraft);
-	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
-	const [isSavingDefaultSpace, setIsSavingDefaultSpace] = useState(false);
-	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
-
-	const calendarView = getPackageScheduleCalendarView({
-		calendarMonth,
-		expiresAt: packageData.expiresAt,
-		selectedDateValue: sessionDraft.selectedDateValue
+	const [sessionSelection, setSessionSelection] = useState<SessionSelectionState>({
+		activeSessionKey: null,
+		highlightedBookingId: null,
+		selectedDateValue: "",
+		selectedNotes: "",
+		selectedRemotePodcast: false,
+		selectedService: "",
+		selectedTime: ""
 	});
-	const activeBooking: PackageSession | undefined = packageData.sessions.find(
-		(booking) => booking._id === sessionDraft.activeSessionKey
+
+	const calendarView = useMemo(() => {
+		const today = startOfToday();
+		const selectedDate = parseDateValue(sessionSelection.selectedDateValue);
+		const expiresDateValue = formatDateValue(new Date(packageData.expiresAt));
+		const lastBookableDate = parseDateValue(expiresDateValue) ?? today;
+		const bookableMonthKeys = getBookableMonthKeys(today, lastBookableDate);
+		const visibleMonth = formatMonthKey(calendarMonth);
+		const selectedMonth = sessionSelection.selectedDateValue
+			? sessionSelection.selectedDateValue.slice(0, 7)
+			: visibleMonth;
+
+		return {
+			bookableMonthKeys,
+			isViewingSelectedMonth: !sessionSelection.selectedDateValue || selectedMonth === visibleMonth,
+			lastBookableDate,
+			selectedDate,
+			selectedMonth,
+			today
+		};
+	}, [calendarMonth, packageData.expiresAt, sessionSelection.selectedDateValue]);
+
+	const activeBooking = packageData.sessions.find(
+		(booking) => booking._id === sessionSelection.activeSessionKey
 	);
 	const { busyWindowsByMonth, calendarLoadError, invalidateCalendarCache, isLoadingCalendar } =
 		usePackageCalendarBusyWindows({ bookableMonthKeys: calendarView.bookableMonthKeys, token });
@@ -121,18 +225,18 @@ export function usePackageSchedule({
 
 	// Fade the updated session border back after the success highlight.
 	useEffect(() => {
-		if (sessionDraft.highlightedBookingId === null) {
+		if (sessionSelection.highlightedBookingId === null) {
 			return undefined;
 		}
 
 		const timeout = window.setTimeout(() => {
-			setSessionDraft((current) => ({ ...current, highlightedBookingId: null }));
+			setSessionSelection((current) => ({ ...current, highlightedBookingId: null }));
 		}, 1_000);
 
 		return () => {
 			window.clearTimeout(timeout);
 		};
-	}, [sessionDraft.highlightedBookingId]);
+	}, [sessionSelection.highlightedBookingId]);
 
 	const datePickerOptions = getPackageDatePickerOptions({
 		currentTimestamp,
@@ -141,33 +245,78 @@ export function usePackageSchedule({
 		lastBookableDate: calendarView.lastBookableDate,
 		monthlyBusyWindowsByMonth: busyWindowsForPicker,
 		selectedDate: calendarView.selectedDate,
-		selectedDateValue: sessionDraft.selectedDateValue,
+		selectedDateValue: sessionSelection.selectedDateValue,
 		selectedMonth: calendarView.selectedMonth,
 		settings: availabilitySettings,
 		today: calendarView.today
 	});
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
-		hasDate: Boolean(sessionDraft.selectedDateValue),
+		hasDate: Boolean(sessionSelection.selectedDateValue),
 		hasDuration: true,
 		isViewingSelectedMonth: calendarView.isViewingSelectedMonth
 	});
 	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
-	const mutationContext = {
-		activeBooking,
-		createPackageSession,
-		invalidateCalendarCache,
-		noticeWindowLabel,
-		reschedulePackageSession,
-		sessionDraft,
-		setSavingSessionKey,
-		setSessionDraft,
-		setUnschedulingBookingId,
-		token,
-		unschedulePackageSession
-	};
+
+	function clearSessionSelection() {
+		setSessionSelection((current) => ({
+			...current,
+			selectedDateValue: "",
+			selectedNotes: "",
+			selectedRemotePodcast: false,
+			selectedService: "",
+			selectedTime: ""
+		}));
+	}
+
+	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
+		const booking = packageData.sessions.find((session) => session._id === sessionKey);
+		setSessionSelection({
+			activeSessionKey: sessionKey,
+			highlightedBookingId: null,
+			selectedDateValue: dateValue ?? "",
+			selectedNotes: booking?.notes ?? "",
+			selectedRemotePodcast: booking?.addons.includes("Remote Podcast") ?? false,
+			selectedService:
+				recordingSpaceSchema.safeParse(booking?.service ?? packageData.defaultSpace).data ?? "",
+			selectedTime: time ?? ""
+		});
+	}
+
+	function handleCloseSession() {
+		setSessionSelection((current) => ({ ...current, activeSessionKey: null }));
+	}
+
+	function handleDateChange(dateValue: string) {
+		setSessionSelection((current) => ({
+			...current,
+			selectedDateValue: dateValue,
+			selectedTime: ""
+		}));
+	}
+
+	function handleRemotePodcastChange(checked: boolean) {
+		setSessionSelection((current) => ({ ...current, selectedRemotePodcast: checked }));
+	}
+
+	function setHighlightedBookingId(bookingId: Id<"bookings"> | null) {
+		setSessionSelection((current) => ({ ...current, highlightedBookingId: bookingId }));
+	}
+
+	function setSelectedNotes(notes: string) {
+		setSessionSelection((current) => ({ ...current, selectedNotes: notes }));
+	}
+
+	function setSelectedService(service: Exclude<BookingFormValues["service"], "">) {
+		setSessionSelection((current) => ({ ...current, selectedService: service }));
+	}
+
+	function setSelectedTime(time: string) {
+		setSessionSelection((current) => ({ ...current, selectedTime: time }));
+	}
 
 	return {
-		activeSessionKey: sessionDraft.activeSessionKey,
+		...sessionSelection,
+		activeBooking,
 		availability: {
 			availabilityError: calendarLoadError,
 			availableTimes: datePickerOptions.availableTimes,
@@ -183,53 +332,18 @@ export function usePackageSchedule({
 			setCalendarMonth
 		},
 		availabilitySettings,
+		clearSessionSelection,
 		currentTimestamp,
-		handleChooseSession: (sessionKey, dateValue, time) => {
-			setSessionDraft(getPackageSessionDraftForKey(packageData, sessionKey, dateValue, time));
-		},
-		handleCloseSession: () => {
-			setSessionDraft((current) => ({ ...current, activeSessionKey: null }));
-		},
-		handleConfirmUnschedule: () =>
-			confirmPackageSessionUnschedule((bookingId) =>
-				unschedulePackageSessionBooking(bookingId, mutationContext)
-			),
-		handleDateChange: (dateValue) => {
-			setSessionDraft((current) => ({
-				...current,
-				selectedDateValue: dateValue,
-				selectedTime: ""
-			}));
-		},
-		handleMakeDefaultSpace: async () => {
-			setIsSavingDefaultSpace(true);
-			await savePackageDefaultSpace(sessionDraft.selectedService, setDefaultSpace, token);
-			setIsSavingDefaultSpace(false);
-		},
-		handleRemotePodcastChange: (checked) => {
-			setSessionDraft((current) => ({ ...current, selectedRemotePodcast: checked }));
-		},
-		handleRequestSaveSession: () =>
-			requestPackageSessionSave(sessionDraft, () => savePackageSession(mutationContext)),
-		highlightedBookingId: sessionDraft.highlightedBookingId,
-		isSavingDefaultSpace,
+		handleChooseSession,
+		handleCloseSession,
+		handleDateChange,
+		handleRemotePodcastChange,
+		invalidateCalendarCache,
 		noticeWindowLabel,
-		savingSessionKey,
-		selectedDateValue: sessionDraft.selectedDateValue,
-		selectedNotes: sessionDraft.selectedNotes,
-		selectedRemotePodcast: sessionDraft.selectedRemotePodcast,
-		selectedService: sessionDraft.selectedService,
-		selectedTime: sessionDraft.selectedTime,
-		setSelectedNotes: (notes) => {
-			setSessionDraft((current) => ({ ...current, selectedNotes: notes }));
-		},
-		setSelectedService: (service) => {
-			setSessionDraft((current) => ({ ...current, selectedService: service }));
-		},
-		setSelectedTime: (time) => {
-			setSessionDraft((current) => ({ ...current, selectedTime: time }));
-		},
-		timeSelectionMessage,
-		unschedulingBookingId
+		setHighlightedBookingId,
+		setSelectedNotes,
+		setSelectedService,
+		setSelectedTime,
+		timeSelectionMessage
 	};
 }
