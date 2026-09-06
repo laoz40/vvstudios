@@ -43,7 +43,11 @@
 		"complexity": ["error", { "max": 15 }],
 		"max-depth": ["error", { "max": 3 }],
 		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }],
-		"max-statements": ["error", { "max": 25 }]
+		"max-statements": ["error", { "max": 25 }],
+		"eqeqeq": "error",
+		"array-callback-return": "error",
+		"default-case": "error",
+		"class-methods-use-this": "error"
 	},
 	"overrides": [
 		{
