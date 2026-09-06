@@ -3,15 +3,16 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
+Goal: Enforcing stricter linting rules incrementally. Each rule that is fixed should be its own small commit.
+If a rule contains lots of errors which would result in a massive commit,
+split into different commits per large file.
+If proposed rule change is going to cause a lot of churn, let me know and we can discuss it.
+
 ## Stack
 
 - Bun
 - default to shadcn for ui
 - t3env
-
-Goal: Enforcing stricter linting rules incrementally. Each rule that is fixed should be its own small commit.
-If a rule contains lots of errors which would result in a massive commit,
-split into different commits per large file.
 
 ## Behaviour
 
