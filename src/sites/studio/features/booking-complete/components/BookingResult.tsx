@@ -277,6 +277,10 @@ function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
 			return;
+		default: {
+			const _exhaustive: never = reason;
+			return _exhaustive;
+		}
 	}
 }
 
@@ -298,6 +302,10 @@ function handleMultiBookingInvoiceError(reason: MultiBookingInvoiceErrorReason) 
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
 			return;
+		default: {
+			const _exhaustive: never = reason;
+			return _exhaustive;
+		}
 	}
 }
 
