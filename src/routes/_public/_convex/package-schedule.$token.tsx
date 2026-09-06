@@ -8,9 +8,7 @@ import { BookingStatusLayout } from "#studio/features/booking-complete/component
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { PackageSessionDetailsModal } from "#studio/features/booking-form/components/PackageSessionDetailsModal";
 import { PackageSessionsAccordion } from "#studio/features/booking-form/components/PackageSessionsAccordion";
-import { usePackageSessionDatePicker } from "#studio/features/booking-form/hooks/usePackageSessionDatePicker";
-import { usePackageSessionDraft } from "#studio/features/booking-form/hooks/usePackageSessionDraft";
-import { usePackageSessionMutations } from "#studio/features/booking-form/hooks/usePackageSessionMutations";
+import { usePackageSchedule } from "#studio/features/booking-form/hooks/usePackageSchedule";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { openPackageUnscheduleConfirmationModal } from "#studio/features/booking-form/lib/booking-modal-store";
 import { getPackageLinkInvalidMessage } from "#studio/features/booking-form/lib/package-scheduling-errors";
@@ -79,28 +77,7 @@ function PackageScheduleContent({
 	packageData: NonNullable<GetPackageByTokenResult[1]>;
 	token: string;
 }) {
-	const draft = usePackageSessionDraft({ packageData });
-	const datePicker = usePackageSessionDatePicker({
-		excludeGoogleEventId: draft.activeBooking?.googleEventId,
-		packageData,
-		selectedDateValue: draft.selectedDateValue,
-		token
-	});
-	const mutations = usePackageSessionMutations({
-		activeBooking: draft.activeBooking,
-		activeSessionKey: draft.activeSessionKey,
-		clearSessionDraft: draft.clearSessionDraft,
-		invalidateCalendarCache: datePicker.invalidateCalendarCache,
-		noticeWindowLabel: datePicker.noticeWindowLabel,
-		selectedDateValue: draft.selectedDateValue,
-		selectedNotes: draft.selectedNotes,
-		selectedRemotePodcast: draft.selectedRemotePodcast,
-		selectedService: draft.selectedService,
-		selectedTime: draft.selectedTime,
-		setActiveSessionKey: draft.setActiveSessionKey,
-		setHighlightedBookingId: draft.setHighlightedBookingId,
-		token
-	});
+	const scheduling = usePackageSchedule({ packageData, token });
 	const schedulingProgressMessage = getPackageSchedulingProgressMessage(
 		packageData.packageSize,
 		packageData.sessions.length
@@ -129,45 +106,45 @@ function PackageScheduleContent({
 				</div>
 
 				<PackageSessionsAccordion
-					activeSessionKey={draft.activeSessionKey}
-					availability={datePicker.availability}
-					highlightedBookingId={draft.highlightedBookingId}
-					isDefaultSpace={draft.selectedService === packageData.defaultSpace}
+					activeSessionKey={scheduling.activeSessionKey}
+					availability={scheduling.availability}
+					highlightedBookingId={scheduling.highlightedBookingId}
+					isDefaultSpace={scheduling.selectedService === packageData.defaultSpace}
 					packageData={packageData}
-					savingSessionKey={mutations.savingSessionKey}
-					isSavingDefaultSpace={mutations.isSavingDefaultSpace}
-					selectedDateValue={draft.selectedDateValue}
-					selectedNotes={draft.selectedNotes}
-					selectedRemotePodcast={draft.selectedRemotePodcast}
-					selectedService={draft.selectedService}
-					selectedTime={draft.selectedTime}
-					timeSelectionMessage={datePicker.timeSelectionMessage}
-					currentTimestamp={datePicker.currentTimestamp}
-					leadTimeMinutes={datePicker.availabilitySettings.leadTimeMinutes}
-					onDateChange={draft.handleDateChange}
+					savingSessionKey={scheduling.savingSessionKey}
+					isSavingDefaultSpace={scheduling.isSavingDefaultSpace}
+					selectedDateValue={scheduling.selectedDateValue}
+					selectedNotes={scheduling.selectedNotes}
+					selectedRemotePodcast={scheduling.selectedRemotePodcast}
+					selectedService={scheduling.selectedService}
+					selectedTime={scheduling.selectedTime}
+					timeSelectionMessage={scheduling.timeSelectionMessage}
+					currentTimestamp={scheduling.currentTimestamp}
+					leadTimeMinutes={scheduling.availabilitySettings.leadTimeMinutes}
+					onDateChange={scheduling.handleDateChange}
 					onMakeDefaultSpace={() => {
-						void mutations.handleMakeDefaultSpace();
+						void scheduling.handleMakeDefaultSpace();
 					}}
-					onNotesChange={draft.setSelectedNotes}
-					onRemotePodcastChange={draft.handleRemotePodcastChange}
-					onServiceChange={draft.setSelectedService}
+					onNotesChange={scheduling.setSelectedNotes}
+					onRemotePodcastChange={scheduling.handleRemotePodcastChange}
+					onServiceChange={scheduling.setSelectedService}
 					onRequestUnschedule={handleRequestUnschedule}
-					onRequestSaveSession={mutations.handleRequestSaveSession}
-					onSessionClose={draft.handleCloseSession}
-					onSessionSelect={draft.handleChooseSession}
-					onTimeChange={draft.setSelectedTime}
+					onRequestSaveSession={scheduling.handleRequestSaveSession}
+					onSessionClose={scheduling.handleCloseSession}
+					onSessionSelect={scheduling.handleChooseSession}
+					onTimeChange={scheduling.setSelectedTime}
 				/>
 
 				<p className="mt-6 text-center text-xs text-muted-foreground">
-					Sessions can be changed until {datePicker.noticeWindowLabel} before they start.
+					Sessions can be changed until {scheduling.noticeWindowLabel} before they start.
 				</p>
 			</div>
 			<BookingModalHost
 				isSubmitting={
-					mutations.savingSessionKey !== null || mutations.unschedulingBookingId !== null
+					scheduling.savingSessionKey !== null || scheduling.unschedulingBookingId !== null
 				}
 				onPackageUnscheduleConfirm={() => {
-					void mutations.handleConfirmUnschedule();
+					void scheduling.handleConfirmUnschedule();
 				}}
 				onPaymentClose={() => {}}
 				onTermsConfirm={() => {}}

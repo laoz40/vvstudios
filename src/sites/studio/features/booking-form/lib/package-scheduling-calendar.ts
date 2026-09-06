@@ -1,5 +1,6 @@
 import {
 	getBookableAvailableTimes,
+	getBookableMonthKeys,
 	getNextAvailableBookingDate,
 	getSelectedBusyDay,
 	isBookingDateDisabled,
@@ -8,6 +9,12 @@ import {
 } from "#studio/features/booking-form/lib/monthly-availability";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import type { BusyPeriod } from "#studio/lib/bookingdatetime";
+import {
+	formatDateValue,
+	formatMonthKey,
+	parseDateValue,
+	startOfToday
+} from "#studio/lib/bookingdatetime";
 
 export interface PackageDatePickerOptions {
 	availableTimes: string[];
@@ -28,6 +35,34 @@ interface PackageDatePickerParams {
 	selectedMonth: string;
 	settings: BookingAvailabilitySettings;
 	today: Date;
+}
+
+export function getPackageScheduleCalendarView({
+	calendarMonth,
+	expiresAt,
+	selectedDateValue
+}: {
+	calendarMonth: Date;
+	expiresAt: number;
+	selectedDateValue: string;
+}) {
+	const today = startOfToday();
+	const selectedDate = parseDateValue(selectedDateValue);
+	const expiresDateValue = formatDateValue(new Date(expiresAt));
+	const lastBookableDate = parseDateValue(expiresDateValue) ?? today;
+	const bookableMonthKeys = getBookableMonthKeys(today, lastBookableDate);
+	const visibleMonth = formatMonthKey(calendarMonth);
+	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
+	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
+
+	return {
+		bookableMonthKeys,
+		isViewingSelectedMonth,
+		lastBookableDate,
+		selectedDate,
+		selectedMonth,
+		today
+	};
 }
 
 export function getPackageDatePickerOptions(
