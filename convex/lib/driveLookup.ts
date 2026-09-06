@@ -17,7 +17,10 @@ export async function resolveDriveClientForBooking(
 	return driveClientFromBooking;
 }
 
-export async function loadPackageBookings(ctx: QueryCtx, multiBookingId: Id<"multiBookingPackages">) {
+export async function loadPackageBookings(
+	ctx: QueryCtx,
+	multiBookingId: Id<"multiBookingPackages">
+) {
 	return await ctx.db
 		.query("bookings")
 		.withIndex("by_multiBookingPackageId", (query) =>

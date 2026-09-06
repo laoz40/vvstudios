@@ -486,7 +486,9 @@ describe("package session unscheduling", () => {
 	test("cancels after deletion and frees capacity for another session", async () => {
 		const t = createConvexTest();
 		const { packageId, token } = await seedPackage(t);
-		await Promise.all(Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index)));
+		await Promise.all(
+			Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index))
+		);
 		const bookingId = await seedPackageSession(t, packageId, 3);
 
 		const result = await t.action(api.packageScheduling.unschedulePackageSession, {
