@@ -50,7 +50,9 @@
 		"eqeqeq": "error",
 		"array-callback-return": "error",
 		"default-case": "error",
-		"class-methods-use-this": "error"
+		"class-methods-use-this": "error",
+		"no-undef": "error",
+		"no-unreachable": "error"
 	},
 	"overrides": [
 		{
