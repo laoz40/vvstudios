@@ -5,10 +5,8 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
-import {
-	updateSessionTimingWithGoogleCalendar,
-	validateSessionTimingEdit
-} from "#convex/lib/sessionAdminEdit";
+import { updateSessionTimingWithGoogleCalendar } from "#convex/lib/sessionAdminGoogleCalendarUpdate";
+import { validateSessionTimingEdit } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { fromConvexTuple } from "#convex/lib/result";
 

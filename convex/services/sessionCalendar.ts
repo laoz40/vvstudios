@@ -16,11 +16,11 @@ import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
 import {
 	getSessionStartAt,
 	isValidSessionRemainingBalanceAmount,
-	updateSessionFromAdminWithGoogleCalendar,
 	type AdminSessionUpdateArgs,
 	type AdminSessionUpdateError,
 	type AdminSessionUpdateResult
 } from "#convex/lib/sessionAdminEdit";
+import { updateSessionFromAdminWithGoogleCalendar } from "#convex/lib/sessionAdminGoogleCalendarUpdate";
 import { deleteSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";

@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
+import { err, ok, ResultAsync, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
@@ -17,7 +18,6 @@ import {
 	formatDriveSessionMediaFolderName,
 	getEditorEditDueAt
 } from "#studio/lib/bookingdatetime";
-import { env } from "#convex/env";
 import {
 	formatSessionDateLong,
 	formatSessionDateShort,
@@ -33,9 +33,14 @@ import {
 	type PackageAdjustmentInvoiceInput
 } from "./bookingInvoiceArtifacts";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
-import { err, ok, ResultAsync, type Result } from "neverthrow";
-import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	escapeHtml,
+	formatAddonsLine,
+	formatTimestampDateLong,
+	formatTimestampDateShort,
+	getHostEmails,
+	sendEmail
+} from "./emailSend";
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -134,98 +139,6 @@ type SendPackageScheduleEmailArgs = {
 	bookedAt: number;
 	scheduleUrl: string;
 } & BookingAddonQuantitiesArgs;
-
-function escapeHtml(value: string) {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&#39;");
-}
-
-interface EmailAttachment {
-	content: Uint8Array;
-	contentType: string;
-	filename: string;
-}
-
-function formatTimestampDateLong(timestamp: number) {
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-		weekday: "long",
-		year: "numeric"
-	}).format(new Date(timestamp));
-}
-
-function formatTimestampDateShort(timestamp: number) {
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-		year: "numeric"
-	}).format(new Date(timestamp));
-}
-
-function formatAddonsLine(args: { addons: string[] } & BookingAddonQuantitiesArgs) {
-	if (args.addons.length === 0) {
-		return "None";
-	}
-
-	return args.addons
-		.map((addon) => formatEditingAddonLabel(addon, args as BookingAddonQuantities))
-		.join(", ");
-}
-
-function sendEmail(args: {
-	to: string[];
-	subject: string;
-	html: string;
-	attachments?: EmailAttachment[];
-	idempotencyKey?: string;
-}) {
-	const attachments = args.attachments?.map((attachment) => ({
-		filename: attachment.filename,
-		content: Buffer.from(attachment.content).toString("base64"),
-		contentType: attachment.contentType
-	}));
-
-	return ResultAsync.fromPromise(
-		fetch("https://api.resend.com/emails", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${env.RESEND_API_KEY}`,
-				"Content-Type": "application/json",
-				...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {})
-			},
-			body: JSON.stringify({
-				from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
-				to: args.to,
-				subject: args.subject,
-				html: args.html,
-				...(attachments ? { attachments } : {})
-			})
-		}),
-		() => ({ reason: "EMAIL_REQUEST_FAILED" as const })
-	).andThen((response) => {
-		if (response.ok) {
-			return ok(null);
-		}
-
-		return ResultAsync.fromSafePromise(response.text()).andThen((body) => {
-			console.error("Resend email response failed", {
-				status: response.status,
-				body,
-				to: args.to,
-				subject: args.subject,
-				attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
-			});
-			return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
-		});
-	});
-}
 
 export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
@@ -739,10 +652,4 @@ export async function sendSessionReminderEmail({
 	});
 
 	return emailResult;
-}
-
-export function getHostEmails() {
-	return env.GOOGLE_CALENDAR_HOST_EMAILS.split(",")
-		.map((email) => email.trim())
-		.filter(Boolean);
 }
