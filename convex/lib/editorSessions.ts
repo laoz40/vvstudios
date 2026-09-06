@@ -138,7 +138,9 @@ export function buildEditorSessionProjection(
 		service: session.service,
 		addons: session.addons,
 		essentialEditQuantity: session.essentialEditQuantity,
+		completeEditQuantity: session.completeEditQuantity,
 		clipsPackageQuantity: session.clipsPackageQuantity,
+		handcraftedClipsQuantity: session.handcraftedClipsQuantity,
 		editStatus: session.editStatus,
 		driveFolders
 	};
