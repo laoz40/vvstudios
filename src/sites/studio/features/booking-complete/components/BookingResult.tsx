@@ -279,7 +279,8 @@ function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 			return;
 		default: {
 			const _exhaustive: never = reason;
-			return _exhaustive;
+			void _exhaustive;
+			return;
 		}
 	}
 }
@@ -304,7 +305,8 @@ function handleMultiBookingInvoiceError(reason: MultiBookingInvoiceErrorReason) 
 			return;
 		default: {
 			const _exhaustive: never = reason;
-			return _exhaustive;
+			void _exhaustive;
+			return;
 		}
 	}
 }
