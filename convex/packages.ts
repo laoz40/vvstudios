@@ -4,8 +4,10 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
-import { bookingAddonQuantitiesValidator } from "#convex/lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "#convex/lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	archivePackageService,
 	createPendingPackageService,

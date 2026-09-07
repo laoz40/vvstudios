@@ -7,8 +7,10 @@ import {
 	reserveSessionTime,
 	unreserveSessionTime
 } from "./lib/sessionReservations";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "./lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService

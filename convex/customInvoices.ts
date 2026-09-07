@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
-import { bookingAddonQuantitiesValidator } from "#convex/lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "#convex/lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	createBookingCustomInvoiceService,
 	createPackageCustomInvoiceService,

@@ -3,8 +3,10 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "./lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	closeEmbeddedCheckoutSessionService,
 	createEmbeddedCheckoutSessionService

@@ -14,8 +14,10 @@ import {
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService
 } from "./services/sessionCalendar";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "./lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,

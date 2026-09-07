@@ -1,4 +1,7 @@
-import { ADDON_OPTIONS, type BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	ADDON_OPTIONS,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export const CLIP_VOLUME_PACK_ADDON = "Clip Volume Pack";
@@ -12,8 +15,7 @@ export function renameClipsPackageInAddons(addons: readonly string[]) {
 	let changed = false;
 
 	for (const addon of addons) {
-		const normalizedAddon =
-			addon === LEGACY_CLIPS_PACKAGE_ADDON ? CLIP_VOLUME_PACK_ADDON : addon;
+		const normalizedAddon = addon === LEGACY_CLIPS_PACKAGE_ADDON ? CLIP_VOLUME_PACK_ADDON : addon;
 
 		if (normalizedAddon !== addon) {
 			changed = true;

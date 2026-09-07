@@ -2,8 +2,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
-import { bookingAddonsValidator } from "./lib/bookingAddons";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	createPendingSessionService,
 	deletePendingSessionService,
