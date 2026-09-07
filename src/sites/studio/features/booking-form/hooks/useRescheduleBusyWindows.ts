@@ -120,7 +120,7 @@ export function useRescheduleBusyWindows({
 		availabilityError: devAvailabilityError || fetchAvailabilityError,
 		clearInvalidLinkMessage,
 		invalidLinkMessage,
-		isLoadingMonthAvailability: busyWindowsQuery.isPending,
+		isLoadingMonthAvailability: busyWindowsQuery.isLoading,
 		monthlyBusyWindowsByMonth: busyWindowsQuery.data ?? {}
 	};
 }
