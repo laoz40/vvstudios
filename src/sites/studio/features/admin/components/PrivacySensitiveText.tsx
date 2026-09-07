@@ -17,10 +17,10 @@ export function PrivacySensitiveText({
 	rowId,
 	value
 }: PrivacySensitiveTextProps) {
-	const { isPrivacyModeEnabled, isRowRevealed, revealRow } = useAdminPrivacyMode();
+	const { isPrivacyModeEnabled, isRowRevealed, toggleRowPrivacy } = useAdminPrivacyMode();
 	const isBlurred = isPrivacyModeEnabled && !isRowRevealed(rowId);
 
-	if (!isBlurred) {
+	if (!isPrivacyModeEnabled) {
 		if (!copyable) {
 			return <span>{children}</span>;
 		}
@@ -34,13 +34,36 @@ export function PrivacySensitiveText({
 		);
 	}
 
+	if (isBlurred) {
+		return (
+			<button
+				type="button"
+				className="cursor-pointer text-left"
+				onClick={() => toggleRowPrivacy(rowId)}
+				aria-label={`Reveal ${label}`}>
+				<span className="inline-block blur-sm select-none">{children}</span>
+			</button>
+		);
+	}
+
+	if (!copyable) {
+		return (
+			<button
+				type="button"
+				className="cursor-pointer text-left"
+				onClick={() => toggleRowPrivacy(rowId)}
+				aria-label={`Hide ${label}`}>
+				{children}
+			</button>
+		);
+	}
+
 	return (
-		<button
-			type="button"
-			className="cursor-pointer text-left"
-			onClick={() => revealRow(rowId)}
-			aria-label={`Reveal ${label}`}>
-			<span className="inline-block blur-sm select-none">{children}</span>
-		</button>
+		<CopyableText
+			value={value}
+			label={label}
+			onTextClick={() => toggleRowPrivacy(rowId)}>
+			{children}
+		</CopyableText>
 	);
 }

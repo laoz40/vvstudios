@@ -7,8 +7,8 @@ import {
 type AdminPrivacyModeContextValue = {
 	isPrivacyModeEnabled: boolean;
 	isRowRevealed: (rowId: string) => boolean;
-	revealRow: (rowId: string) => void;
 	setPrivacyModeEnabled: (enabled: boolean) => void;
+	toggleRowPrivacy: (rowId: string) => void;
 };
 
 const AdminPrivacyModeContext = createContext<AdminPrivacyModeContextValue | null>(null);
@@ -26,15 +26,25 @@ export function AdminPrivacyModeProvider({ children }: { children: ReactNode }) 
 		}
 	}, []);
 
-	const revealRow = useCallback((rowId: string) => {
-		setRevealedRowIds((current) => new Set([...current, rowId]));
+	const toggleRowPrivacy = useCallback((rowId: string) => {
+		setRevealedRowIds((current) => {
+			const next = new Set(current);
+
+			if (next.has(rowId)) {
+				next.delete(rowId);
+			} else {
+				next.add(rowId);
+			}
+
+			return next;
+		});
 	}, []);
 
 	const isRowRevealed = useCallback((rowId: string) => revealedRowIds.has(rowId), [revealedRowIds]);
 
 	const value = useMemo(
-		() => ({ isPrivacyModeEnabled, isRowRevealed, revealRow, setPrivacyModeEnabled }),
-		[isPrivacyModeEnabled, isRowRevealed, revealRow, setPrivacyModeEnabled]
+		() => ({ isPrivacyModeEnabled, isRowRevealed, setPrivacyModeEnabled, toggleRowPrivacy }),
+		[isPrivacyModeEnabled, isRowRevealed, setPrivacyModeEnabled, toggleRowPrivacy]
 	);
 
 	return (
