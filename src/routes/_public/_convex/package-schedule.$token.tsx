@@ -9,10 +9,10 @@ import { buildNoIndexHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/_public/_convex/package-schedule/$token")({
 	head: () => buildNoIndexHead("Schedule Package Sessions | VV Studios"),
-	component: MultiBookingSchedulePage
+	component: PackageSchedulePage
 });
 
-function MultiBookingSchedulePage() {
+function PackageSchedulePage() {
 	const { token } = Route.useParams();
 	const packageResult = useQuery(api.packageScheduling.getPackageByToken, { token });
 

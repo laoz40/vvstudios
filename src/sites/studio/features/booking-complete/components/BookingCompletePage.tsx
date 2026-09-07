@@ -12,17 +12,17 @@ import { BookingStatusLayout } from "#studio/features/booking-complete/component
 import {
 	canCreateFailedBookingRescheduleLink,
 	getBookingResultContent,
-	getMultiBookingResultContent
+	getPackageResultContent
 } from "#studio/features/booking-complete/lib/booking-result-content";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { studioSite } from "#/config/sites";
 import { z } from "zod";
 
-const multiBookingIdSchema = z.custom<Id<"multiBookingPackages">>(
+const packageIdSchema = z.custom<Id<"packages">>(
 	(value) => typeof value === "string" && value.length > 0
 );
-const DEV_MULTI_BOOKING_ID = multiBookingIdSchema.parse("dev-multi-booking-package");
+const DEV_PACKAGE_ID = packageIdSchema.parse("dev-package");
 function useBookingCompletePageData(search: BookingCompleteSearch) {
 	const activeDevScenario = import.meta.env.DEV ? search.dev_scenario : undefined;
 	const stripeSessionId = search.session_id;
@@ -40,9 +40,9 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 		hasBookingRequest: Boolean(stripeSessionId || activeDevScenario),
 		isLoading: bookingQueryArgs !== "skip" && liveBooking === undefined,
 		isPackageRequest:
-			Boolean(search.multi_booking_id && search.package_size) ||
+			Boolean(search.package_id && search.package_size) ||
 			activeDevScenario === "package_request",
-		multiBookingId: search.multi_booking_id,
+		packageId: search.package_id,
 		packageSize: search.package_size,
 		previewStripeSessionId:
 			usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null),
@@ -56,7 +56,7 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 		hasBookingRequest,
 		isLoading,
 		isPackageRequest,
-		multiBookingId,
+		packageId,
 		packageSize,
 		previewStripeSessionId,
 		usableStripeSessionId
@@ -64,18 +64,18 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 
 	if (isPackageRequest) {
 		const previewPackageSize = packageSize ?? 8;
-		const previewMultiBookingId = multiBookingId
-			? multiBookingIdSchema.parse(multiBookingId)
-			: DEV_MULTI_BOOKING_ID;
+		const previewPackageId = packageId
+			? packageIdSchema.parse(packageId)
+			: DEV_PACKAGE_ID;
 		return (
 			<BookingStatusLayout
 				bookingStatus="confirmed"
-				instagramPromptTarget={{ kind: "multiBooking", multiBookingId: previewMultiBookingId }}
+				instagramPromptTarget={{ kind: "package", packageId: previewPackageId }}
 				stripeSessionId={null}>
 				<BookingResult
 					booking={null}
-					content={getMultiBookingResultContent(previewPackageSize)}
-					invoiceDownloadTarget={{ kind: "multiBooking", multiBookingId: previewMultiBookingId }}
+					content={getPackageResultContent(previewPackageSize)}
+					invoiceDownloadTarget={{ kind: "package", packageId: previewPackageId }}
 					showBookingDetails={false}
 				/>
 			</BookingStatusLayout>

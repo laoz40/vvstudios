@@ -26,9 +26,9 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
-	isMultiBookingSize,
+	isPackageSize,
 	MULTI_BOOKING_PLANS,
-	type MultiBookingSize
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
@@ -46,7 +46,7 @@ export type PackageEditDraft = {
 	expiresAt?: number;
 	notes: string;
 	totalDueAmount: string;
-	packageSize: MultiBookingSize;
+	packageSize: PackageSize;
 } & BookingAddonQuantities;
 
 type PackageEditDialogProps = {
@@ -264,14 +264,14 @@ export function PackageEditDialog({
 							onValueChange={(value) => {
 								const packageSize = Number(value);
 
-								if (isMultiBookingSize(packageSize)) {
+								if (isPackageSize(packageSize)) {
 									setDraft((current) => ({ ...current, packageSize }));
 								}
 							}}
 							className="grid gap-3 sm:grid-cols-3">
 							{Object.keys(MULTI_BOOKING_PLANS)
 								.map(Number)
-								.filter(isMultiBookingSize)
+								.filter(isPackageSize)
 								.map((packageSize) => {
 									const optionId = `edit-package-size-${packageSize}`;
 

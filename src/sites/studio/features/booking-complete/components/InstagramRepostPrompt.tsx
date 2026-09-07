@@ -10,12 +10,12 @@ import { tryCatch } from "#/lib/result";
 
 type InstagramRepostTarget =
 	| { kind: "booking"; stripeSessionId: string }
-	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
+	| { kind: "package"; packageId: Id<"packages"> };
 
 type BookingInstagramSaveErrorReason =
 	| NonNullable<FunctionReturnType<typeof api.sessions.saveSessionInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
-type MultiBookingInstagramSaveErrorReason =
+type PackageInstagramSaveErrorReason =
 	| NonNullable<FunctionReturnType<typeof api.packages.savePackageInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
@@ -54,16 +54,16 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 	}
 
 	async function saveInstagramHandle(trimmedInstagramHandle: string): Promise<boolean> {
-		if (target.kind === "multiBooking") {
+		if (target.kind === "package") {
 			const [error] = await tryCatch(
 				savePackageInstagramHandle({
 					instagramHandle: trimmedInstagramHandle,
-					multiBookingId: target.multiBookingId
+					packageId: target.packageId
 				})
 			);
 
 			if (error !== null) {
-				handleMultiBookingSaveError(error.reason);
+				handlePackageSaveError(error.reason);
 				return false;
 			}
 
@@ -137,7 +137,7 @@ function handleBookingSaveError(reason: BookingInstagramSaveErrorReason) {
 	}
 }
 
-function handleMultiBookingSaveError(reason: MultiBookingInstagramSaveErrorReason) {
+function handlePackageSaveError(reason: PackageInstagramSaveErrorReason) {
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("We could not find this package request. Please contact us if you need help.");

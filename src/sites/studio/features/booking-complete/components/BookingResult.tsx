@@ -15,15 +15,15 @@ import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob
 
 type InvoiceDownloadTarget =
 	| { kind: "booking"; stripeSessionId: string }
-	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
+	| { kind: "package"; packageId: Id<"packages"> };
 
 type BookingInvoiceErrorReason =
 	| NonNullable<
 			FunctionReturnType<typeof api.invoices.getBookingInvoicePdfByStripeSessionId>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
-type MultiBookingInvoiceErrorReason =
-	| NonNullable<FunctionReturnType<typeof api.invoices.getMultiBookingInvoicePdfById>[0]>["reason"]
+type PackageInvoiceErrorReason =
+	| NonNullable<FunctionReturnType<typeof api.invoices.getPackageInvoicePdfById>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface BookingResultProps {
@@ -41,7 +41,7 @@ export function BookingResult({
 }: BookingResultProps): ReactNode {
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
-	const getMultiBookingInvoicePdf = useAction(api.invoices.getMultiBookingInvoicePdfById);
+	const getPackageInvoicePdf = useAction(api.invoices.getPackageInvoicePdfById);
 
 	function handleDownloadInvoice(): void {
 		if (!invoiceDownloadTarget) {
@@ -52,8 +52,8 @@ export function BookingResult({
 
 		void (async () => {
 			try {
-				if (invoiceDownloadTarget.kind === "multiBooking") {
-					await downloadMultiBookingInvoice(invoiceDownloadTarget.multiBookingId);
+				if (invoiceDownloadTarget.kind === "package") {
+					await downloadPackageInvoice(invoiceDownloadTarget.packageId);
 					return;
 				}
 
@@ -75,13 +75,13 @@ export function BookingResult({
 		downloadInvoicePdf(invoice);
 	}
 
-	async function downloadMultiBookingInvoice(
-		multiBookingId: Id<"multiBookingPackages">
+	async function downloadPackageInvoice(
+		packageId: Id<"packages">
 	): Promise<void> {
-		const [error, invoice] = await tryCatch(getMultiBookingInvoicePdf({ multiBookingId }));
+		const [error, invoice] = await tryCatch(getPackageInvoicePdf({ packageId }));
 
 		if (error !== null) {
-			handleMultiBookingInvoiceError(error.reason);
+			handlePackageInvoiceError(error.reason);
 			return;
 		}
 
@@ -119,15 +119,15 @@ function BookingResultContentView({
 }: BookingResultContentViewProps): ReactNode {
 	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
 	const showInvoiceDownloadLink =
-		Boolean(invoiceDownloadTarget) && invoiceDownloadTarget?.kind !== "multiBooking";
-	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "multiBooking";
+		Boolean(invoiceDownloadTarget) && invoiceDownloadTarget?.kind !== "package";
+	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "package";
 
 	return (
 		<div className="space-y-8">
 			<BookingResultHeading
 				content={content}
 				hasConfirmedBooking={hasConfirmedBooking}
-				isMultiBooking={invoiceDownloadTarget?.kind === "multiBooking"}
+				isPackageBooking={invoiceDownloadTarget?.kind === "package"}
 			/>
 			{showDescription ? (
 				<BookingResultDescription
@@ -154,13 +154,13 @@ function BookingResultContentView({
 function BookingResultHeading({
 	content,
 	hasConfirmedBooking,
-	isMultiBooking
+	isPackageBooking
 }: {
 	content: BookingResultContent;
 	hasConfirmedBooking: boolean;
-	isMultiBooking: boolean;
+	isPackageBooking: boolean;
 }): ReactNode {
-	const showSuccessIcon = hasConfirmedBooking || isMultiBooking;
+	const showSuccessIcon = hasConfirmedBooking || isPackageBooking;
 
 	return (
 		<h1 className="font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase">
@@ -285,7 +285,7 @@ function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 	}
 }
 
-function handleMultiBookingInvoiceError(reason: MultiBookingInvoiceErrorReason) {
+function handlePackageInvoiceError(reason: PackageInvoiceErrorReason) {
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("Unable to find this package request.");
@@ -320,7 +320,7 @@ function getInvoiceLeadText({
 	content: BookingResultContent;
 	invoiceDownloadTarget?: InvoiceDownloadTarget;
 }): ReactNode {
-	if (invoiceDownloadTarget?.kind === "multiBooking") {
+	if (invoiceDownloadTarget?.kind === "package") {
 		return "Your invoice has been emailed to you, or you can download it";
 	}
 

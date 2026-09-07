@@ -22,7 +22,7 @@ export type DevBookingScenario = (typeof DEV_SCENARIO_OPTIONS)[number]["value"];
 
 export interface BookingCompleteSearch {
 	dev_scenario?: DevBookingScenario;
-	multi_booking_id?: string;
+	package_id?: string;
 	package_size?: 4 | 8 | 12;
 	session_id?: string;
 }
@@ -64,7 +64,7 @@ export function BookingCompleteDevScenarioPanel() {
 export function parseBookingCompleteSearch(search: Record<string, unknown>): BookingCompleteSearch {
 	return {
 		dev_scenario: parseDevBookingScenario(search.dev_scenario),
-		multi_booking_id: parseNonEmptyString(search.multi_booking_id),
+		package_id: parseNonEmptyString(search.package_id),
 		package_size: parsePackageSize(search.package_size),
 		session_id: parseNonEmptyString(search.session_id)
 	};

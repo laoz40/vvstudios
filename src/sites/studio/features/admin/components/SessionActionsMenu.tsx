@@ -254,7 +254,7 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.canManageConfirmedSession && session.multiBookingPackageId === undefined ? (
+				{details.canManageConfirmedSession && session.packageId === undefined ? (
 					<>
 						<DropdownMenuSeparator />
 						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">

@@ -251,7 +251,7 @@ export function SessionTableRow({
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
-	const packageInvoiceNumber = session.multiBookingInvoiceNumber;
+	const packageInvoiceNumber = session.packageInvoiceNumber;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;

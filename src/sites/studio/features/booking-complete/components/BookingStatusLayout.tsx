@@ -19,7 +19,7 @@ import type { Id } from "#convex/_generated/dataModel";
 
 type InstagramPromptTarget =
 	| { kind: "booking"; stripeSessionId: string }
-	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
+	| { kind: "package"; packageId: Id<"packages"> };
 
 const defaultDevPanel = <BookingCompleteDevScenarioPanel />;
 export interface BookingStatusLayoutProps {

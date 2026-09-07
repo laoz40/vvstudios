@@ -99,7 +99,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 	}
 }
 
-export function getMultiBookingResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
+export function getPackageResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
 	return {
 		title: `${packageSize}-Session Package requested.`,
 		descriptionHeading: "Next Steps:",

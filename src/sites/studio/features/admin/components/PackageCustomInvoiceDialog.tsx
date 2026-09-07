@@ -29,7 +29,7 @@ import {
 import { formatDateValue } from "#studio/lib/bookingdatetime";
 import {
 	calculatePackageAmounts,
-	type MultiBookingSize
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	omitEmptyBookingAddonQuantities,
@@ -51,7 +51,7 @@ type CreatePackageCustomInvoiceError =
 type PackageCustomInvoiceDraft = {
 	duration: BookingFormValues["duration"] | "";
 	addons: BookingFormValues["addons"];
-	packageSize: MultiBookingSize;
+	packageSize: PackageSize;
 	includePackageDiscount: boolean;
 	dueDate: string;
 	customTotalDueAmount: string;
@@ -92,7 +92,7 @@ function formatPackageInvoiceTotal(
 		addons: BookingFormValues["addons"];
 		customTotalDueAmount?: number;
 		duration: BookingFormValues["duration"] | "";
-		packageSize: MultiBookingSize;
+		packageSize: PackageSize;
 		includePackageDiscount: boolean;
 	} & BookingAddonQuantities
 ) {
@@ -115,10 +115,10 @@ export function PackageCustomInvoiceDialog({
 }: PackageCustomInvoiceDialogProps) {
 	const createPackageCustomInvoice = useMutation(api.customInvoices.createPackageCustomInvoice);
 	const getCustomPackageInvoicePdf = useAction(
-		api.invoices.getAdminCustomMultiBookingInvoicePdfById
+		api.invoices.getAdminCustomPackageInvoicePdfById
 	);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForPackage, {
-		multiBookingId: packageRow.id
+		packageId: packageRow.id
 	});
 	const customInvoices: PackageCustomInvoiceRecord[] | undefined =
 		customInvoicesResult?.[1] ?? undefined;
@@ -230,7 +230,7 @@ export function PackageCustomInvoiceDialog({
 
 		const [error, customInvoice] = await tryCatch(
 			createPackageCustomInvoice({
-				multiBookingId: packageRow.id,
+				packageId: packageRow.id,
 				dueDate: draft.dueDate,
 				...(draft.duration ? { duration: draft.duration } : {}),
 				addons: draft.addons,
