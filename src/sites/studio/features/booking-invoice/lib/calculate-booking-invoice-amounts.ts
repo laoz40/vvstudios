@@ -1,8 +1,8 @@
 import { getEditingAddonQuantity } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	hasEditingAddon,
-	isAddonOption,
 	pickBookingAddonQuantities,
+	type BookingAddon,
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -18,11 +18,7 @@ function isBookingDuration(value: string): value is keyof typeof DURATION_PRICES
 	return value in DURATION_PRICES;
 }
 
-export function getAddonQuantity(addon: string, quantities: BookingAddonQuantities = {}) {
-	if (!isAddonOption(addon)) {
-		return 0;
-	}
-
+export function getAddonQuantity(addon: BookingAddon, quantities: BookingAddonQuantities = {}) {
 	// Non-editing add-ons are one-time charges. Quantity-tracked add-ons are charged
 	// by their own selected quantity, e.g. 1 Essential Edit and 2 Clip Volume Packs.
 	if (!hasEditingAddon([addon])) {
@@ -32,18 +28,14 @@ export function getAddonQuantity(addon: string, quantities: BookingAddonQuantiti
 	return getEditingAddonQuantity(addon, quantities, 1);
 }
 
-export function getAddonAmount(addon: string, quantities: BookingAddonQuantities = {}) {
-	if (!isAddonOption(addon)) {
-		return 0;
-	}
-
+export function getAddonAmount(addon: BookingAddon, quantities: BookingAddonQuantities = {}) {
 	// Add-on total is unit price multiplied by the quantity rules above.
 	return ADDON_PRICES[addon] * getAddonQuantity(addon, quantities);
 }
 
 export type CalculateBookingInvoiceAmountsInput = {
 	duration: string;
-	addons: readonly string[];
+	addons: readonly BookingAddon[];
 } & BookingAddonQuantities & { includeBaseAmount?: boolean; includeDepositLineItem?: boolean };
 
 export function calculateBookingInvoiceAmounts({

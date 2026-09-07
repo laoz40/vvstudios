@@ -159,10 +159,6 @@ export function forEachClearedAddonQuantityField(
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
 
-export function isAddonOption(value: string): value is BookingAddon {
-	return ADDON_OPTIONS.some((option) => option === value);
-}
-
 export function isPackageUnavailableAddon(addon: BookingAddon) {
 	return addon === "Remote Podcast";
 }
@@ -176,9 +172,9 @@ export function isAddonAvailableForService(service: BookingService | "", addon: 
 }
 
 export function getPackageSessionAddons(
-	packageAddons: readonly string[],
+	packageAddons: readonly BookingAddon[],
 	hasRemotePodcast: boolean
-): string[] {
+): BookingAddon[] {
 	const standardSessionAddons = packageAddons.filter((addon) => addon !== "Remote Podcast");
 
 	if (!hasRemotePodcast) {

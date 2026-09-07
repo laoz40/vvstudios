@@ -35,7 +35,10 @@ import {
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { err, ok, ResultAsync, type Result } from "neverthrow";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import type {
+	BookingAddon,
+	BookingAddonQuantities
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -48,7 +51,7 @@ interface SendBookingReminderEmailForBookingArgs {
 	isPackageSession?: boolean;
 	service: string;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 }
 
 interface SessionHostRescheduleDetails {
@@ -67,7 +70,7 @@ interface SendSessionHostDetailsEmailArgs {
 	time: string;
 	service: string;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	notes?: string;
 	reschedule?: SessionHostRescheduleDetails;
 }
@@ -80,7 +83,7 @@ type SendPackageHostDetailsEmailArgs = {
 	accountName: string;
 	abn?: string;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	notes?: string;
 	packageSize: 4 | 8 | 12;
 	invoiceDueAt: number;
@@ -124,7 +127,7 @@ interface SendSessionDeliverablesEmailArgs {
 }
 
 type SendPackageScheduleEmailArgs = {
-	addons: string[];
+	addons: BookingAddon[];
 	leadTimeMinutes: number;
 	duration: string;
 	email: string;
@@ -169,7 +172,7 @@ function formatTimestampDateShort(timestamp: number) {
 	}).format(new Date(timestamp));
 }
 
-function formatAddonsLine(args: { addons: string[] } & BookingAddonQuantitiesArgs) {
+function formatAddonsLine(args: { addons: BookingAddon[] } & BookingAddonQuantitiesArgs) {
 	if (args.addons.length === 0) {
 		return "None";
 	}

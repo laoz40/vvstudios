@@ -258,7 +258,7 @@ describe("package session creation validation", () => {
 			time: target.time,
 			duration: "1h",
 			service: "Table Setup",
-			addons: ["Live Streaming", "Remote Podcast"],
+			addons: ["4K UHD Recording", "Remote Podcast"],
 			notes: "Use the side entrance",
 			status: "confirmed",
 			googleCalendarId: "primary-calendar",
@@ -439,7 +439,7 @@ describe("package session rescheduling", () => {
 			date: target.date,
 			time: target.time,
 			service: "Armchair Setup",
-			addons: ["Live Streaming", "Remote Podcast"],
+			addons: ["4K UHD Recording", "Remote Podcast"],
 			notes: "Moved session"
 		});
 		expect(state.booking).not.toHaveProperty("reminderEmailClaimedAt");
@@ -527,7 +527,7 @@ async function seedPackage(
 			accountName: "Test account",
 			email: "customer@example.com",
 			duration: "1h",
-			addons: ["Live Streaming"],
+			addons: ["4K UHD Recording"],
 			packageSize: 4,
 			singleSessionAmount: 100,
 			packageSubtotalAmount: 400,

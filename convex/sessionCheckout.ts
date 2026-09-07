@@ -2,7 +2,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	createPendingSessionService,
 	deletePendingSessionService,
@@ -26,7 +29,7 @@ export const createPendingSession = internalMutation({
 		time: v.string(),
 		duration: v.string(),
 		service: v.string(),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},

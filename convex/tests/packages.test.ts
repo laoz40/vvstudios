@@ -33,6 +33,7 @@ import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { isAdminPackageRowDimmed } from "#studio/features/admin/lib/admin-packages";
 import {
@@ -74,7 +75,7 @@ const validRequest = {
 	abn: "12 345 678 901",
 	email: " Customer@gmail.com ",
 	duration: "1h",
-	addons: ["Teleprompter"],
+	addons: ["Teleprompter"] as BookingAddon[],
 	notes: "  Please call on arrival  ",
 	packageSize: 4 as const
 };
@@ -85,7 +86,7 @@ const editedPackage = {
 	accountName: "Updated account",
 	email: "updated@example.com",
 	duration: "2h",
-	addons: ["Teleprompter"],
+	addons: ["Teleprompter"] as BookingAddon[],
 	notes: "Updated notes",
 	packageSize: 8 as const
 };
@@ -318,7 +319,7 @@ describe("package request creation", () => {
 			abn: "12345678901",
 			email: "customer@gmail.com",
 			duration: "1h",
-			addons: ["Teleprompter"],
+			addons: ["Teleprompter"] as BookingAddon[],
 			notes: "Please call on arrival",
 			packageSize: 4,
 			singleSessionAmount: 229,

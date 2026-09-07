@@ -1,6 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
@@ -13,7 +14,7 @@ import { getSessionFromDb } from "#convex/lib/sessionLookup";
 type CustomInvoiceDetails = {
 	dueDate?: string;
 	duration?: string;
-	addons: string[];
+	addons: BookingAddon[];
 	includeDepositLineItem: boolean;
 	customTotalDueAmount?: number;
 } & BookingAddonQuantitiesArgs;

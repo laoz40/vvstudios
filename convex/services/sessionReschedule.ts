@@ -3,6 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { requirePermission } from "#convex/lib/auth";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
@@ -30,7 +31,7 @@ export interface RescheduleSessionSummary {
 		time: string;
 		duration: string;
 		service: string;
-		addons: string[];
+		addons: BookingAddon[];
 		name: string;
 	};
 	expiresAt: number;

@@ -2,6 +2,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import type {
+	BookingAddon,
 	BookingAddonQuantities,
 	BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -127,7 +128,7 @@ function isBookingDuration(value: string): value is BookingDuration {
 export function formatCustomInvoiceTotal(
 	input: {
 		service?: string;
-		addons: readonly string[];
+		addons: readonly BookingAddon[];
 		duration: string;
 		includeDepositLineItem: boolean;
 		customTotalDueAmount?: number;

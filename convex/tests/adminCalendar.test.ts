@@ -37,6 +37,7 @@ import { ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
@@ -391,7 +392,7 @@ function adminBookingValues(
 		email: string;
 		date: string;
 		duration: string;
-		addons: string[];
+		addons: BookingAddon[];
 		essentialEditQuantity: string;
 		clipsPackageQuantity: string;
 		remainingBalanceAmount: number;

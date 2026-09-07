@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ok, okAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	createBookingInvoiceArtifactsForBooking,
 	createMultiBookingInvoiceArtifacts
@@ -449,7 +450,7 @@ function packageFields(createdAt: number) {
 		accountName: "Package account",
 		email: "package@example.com",
 		duration: "1h",
-		addons: [] as string[],
+		addons: [] as BookingAddon[],
 		packageSize: 4 as const,
 		singleSessionAmount: 250,
 		packageSubtotalAmount: 912.34,

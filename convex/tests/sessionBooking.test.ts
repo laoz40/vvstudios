@@ -44,6 +44,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createConvexTest } from "#convex/test.setup";
 
 const providerFakes = vi.hoisted(() => ({
@@ -87,7 +88,7 @@ const validBooking = {
 	time: "10:00",
 	duration: "1h",
 	service: "Table Setup",
-	addons: [] as string[],
+	addons: [] as BookingAddon[],
 	notes: ""
 };
 

@@ -54,7 +54,6 @@ import type * as lib_packageSchedulingCalendar from "../lib/packageSchedulingCal
 import type * as lib_packageUpdates from "../lib/packageUpdates.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
-import type * as lib_renameClipsPackageAddon from "../lib/renameClipsPackageAddon.js";
 import type * as lib_result from "../lib/result.js";
 import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
 import type * as lib_sessionCalendarEvents from "../lib/sessionCalendarEvents.js";
@@ -64,7 +63,6 @@ import type * as lib_sessionLookup from "../lib/sessionLookup.js";
 import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.js";
 import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWorkflow.js";
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
-import type * as migrations from "../migrations.js";
 import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
 import type * as packageAdjustments from "../packageAdjustments.js";
 import type * as packagePayment from "../packagePayment.js";
@@ -158,7 +156,6 @@ declare const fullApi: ApiFromModules<{
   "lib/packageUpdates": typeof lib_packageUpdates;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
-  "lib/renameClipsPackageAddon": typeof lib_renameClipsPackageAddon;
   "lib/result": typeof lib_result;
   "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;
   "lib/sessionCalendarEvents": typeof lib_sessionCalendarEvents;
@@ -168,7 +165,6 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionRescheduleLinks": typeof lib_sessionRescheduleLinks;
   "lib/sessionRescheduleWorkflow": typeof lib_sessionRescheduleWorkflow;
   "lib/sessionReservations": typeof lib_sessionReservations;
-  migrations: typeof migrations;
   packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
   packageAdjustments: typeof packageAdjustments;
   packagePayment: typeof packagePayment;

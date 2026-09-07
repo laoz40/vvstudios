@@ -7,7 +7,10 @@ import {
 	reserveSessionTime,
 	unreserveSessionTime
 } from "./lib/sessionReservations";
-import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "./lib/bookingAddonQuantities";
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService
@@ -44,7 +47,7 @@ export const saveAdminSessionUpdate = internalMutation({
 		time: v.string(),
 		duration: v.string(),
 		service: v.string(),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number()),
@@ -62,7 +65,7 @@ export const saveClientSessionReschedule = internalMutation({
 		date: v.string(),
 		time: v.string(),
 		service: v.optional(v.string()),
-		addons: v.optional(v.array(v.string())),
+		addons: v.optional(bookingAddonsValidator),
 		notes: v.optional(v.string()),
 		sessionStartAt: v.number(),
 		confirmBooking: v.optional(v.boolean()),
