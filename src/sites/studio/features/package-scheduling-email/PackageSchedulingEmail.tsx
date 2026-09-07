@@ -11,6 +11,7 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
 export interface PackageSchedulingEmailProps {
@@ -105,6 +106,7 @@ export function PackageSchedulingEmail({
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>

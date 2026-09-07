@@ -10,6 +10,7 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 const bookingQuotes = [
 	{
@@ -237,6 +238,7 @@ export function HostBookingDetailsEmail({
 						<Text style={quote}>“{selectedQuote.text}”</Text>
 						<Text style={quoteAttribution}>— {selectedQuote.attribution}</Text>
 					</Section>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>
