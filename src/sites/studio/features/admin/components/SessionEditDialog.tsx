@@ -21,14 +21,16 @@ import type { Doc } from "#convex/_generated/dataModel";
 import {
 	DURATION_OPTIONS,
 	SERVICES,
-	isAddonOption,
 	toDeliverableCountOption,
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
+import {
+	toAdminSessionAddons,
+	toAdminSessionDuration
+} from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
@@ -73,7 +75,7 @@ function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 		time: session.time,
 		duration: toAdminSessionDuration(session.duration),
 		service: session.service,
-		addons: session.addons.filter(isAddonOption),
+		addons: toAdminSessionAddons(session.addons),
 		email: session.email,
 		phone: session.phone,
 		notes: session.notes ?? "",

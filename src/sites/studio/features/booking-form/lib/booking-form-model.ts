@@ -156,20 +156,11 @@ export function forEachClearedAddonQuantityField(
 	}
 }
 
-const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
 
 export function isAddonOption(value: string): value is BookingAddon {
 	return ADDON_OPTIONS.some((option) => option === value);
-}
-
-export function normalizeBookingAddon(value: string): BookingAddon | undefined {
-	if (value === LEGACY_CLIPS_PACKAGE_ADDON) {
-		return "Clip Volume Pack";
-	}
-
-	return ADDON_OPTIONS.find((option) => option === value);
 }
 
 export function isPackageUnavailableAddon(addon: BookingAddon) {
