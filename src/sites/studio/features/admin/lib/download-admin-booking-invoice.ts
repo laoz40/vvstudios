@@ -1,9 +1,6 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import {
-	toAdminSessionAddons,
-	toAdminSessionDuration
-} from "#studio/features/admin/lib/admin-sessions";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import {
 	bookingSchema,
 	pickBookingAddonQuantities,
@@ -46,7 +43,7 @@ function getInvoiceFormValues(input: DownloadAdminBookingInvoiceInput) {
 		time: session.time,
 		duration: input.duration ?? toAdminSessionDuration(session.duration),
 		service: session.service,
-		addons: input.addons ?? toAdminSessionAddons(session.addons),
+		addons: input.addons ?? [...session.addons],
 		...pickBookingAddonQuantities({
 			clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity ?? "",
 			completeEditQuantity: input.completeEditQuantity ?? session.completeEditQuantity ?? "",

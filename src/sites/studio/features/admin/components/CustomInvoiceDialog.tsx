@@ -10,10 +10,7 @@ import { Button } from "#/components/ui/button";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
-import {
-	toAdminSessionAddons,
-	toAdminSessionDuration
-} from "#studio/features/admin/lib/admin-sessions";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	type DownloadAdminBookingInvoiceResult,
@@ -158,7 +155,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
 			downloadAdminBookingInvoice({
 				session,
-				addons: toAdminSessionAddons(input.addons),
+				addons: [...input.addons],
 				createdAt: input.createdAt,
 				...pickBookingAddonQuantities({
 					clipsPackageQuantity: input.clipsPackageQuantity ?? session.clipsPackageQuantity,
@@ -238,7 +235,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 	const previousInvoices: PreviousCustomInvoiceItem[] | undefined = customInvoices?.map(
 		(invoice) => {
 			const addonText = formatCustomInvoiceAddonText({
-				addons: toAdminSessionAddons(invoice.addons),
+				addons: [...invoice.addons],
 				...pickBookingAddonQuantities({
 					clipsPackageQuantity: invoice.clipsPackageQuantity ?? session.clipsPackageQuantity,
 					completeEditQuantity: invoice.completeEditQuantity ?? session.completeEditQuantity,

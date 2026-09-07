@@ -27,10 +27,7 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import {
-	toAdminSessionAddons,
-	toAdminSessionDuration
-} from "#studio/features/admin/lib/admin-sessions";
+import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
@@ -75,7 +72,7 @@ function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 		time: session.time,
 		duration: toAdminSessionDuration(session.duration),
 		service: session.service,
-		addons: toAdminSessionAddons(session.addons),
+		addons: [...session.addons],
 		email: session.email,
 		phone: session.phone,
 		notes: session.notes ?? "",
