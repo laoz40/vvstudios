@@ -89,6 +89,7 @@ export function usePackageCalendarBusyWindows({
 	]);
 
 	const invalidateCalendarCache = useCallback(() => {
+		setCalendarLoadError("");
 		setBusyWindowsByMonth({});
 	}, []);
 
