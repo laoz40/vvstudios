@@ -81,7 +81,7 @@ const productionAddOns: readonly PricingAddOn[] = [
 		label: "Remote Podcast",
 		price: formatBookingPrice(ADDON_PRICES["Remote Podcast"]),
 		description:
-			"Record with guests anywhere in the world through Riverside.fm, while you get the professional studio look and cinematic lighting in your own recording.",
+			"Bring in guests via remote video call through Riverside.fm (like Zoom but with separate full-resolution recordings for editing). You record in-studio with our cameras and lighting.",
 		icon: Globe
 	},
 	{
