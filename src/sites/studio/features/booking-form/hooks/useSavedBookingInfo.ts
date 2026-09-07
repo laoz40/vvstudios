@@ -58,12 +58,12 @@ export function useSavedBookingInfo({
 		formApi.setFieldValue("packageSize", savedBookingInfo.packageSize);
 		formApi.setFieldValue(
 			"service",
-			savedBookingInfo.bookingMode === "multi" ? "" : savedBookingInfo.service
+			savedBookingInfo.bookingMode === "package" ? "" : savedBookingInfo.service
 		);
 		formApi.setFieldValue("duration", savedBookingInfo.duration);
 		formApi.setFieldValue(
 			"addons",
-			savedBookingInfo.bookingMode === "multi"
+			savedBookingInfo.bookingMode === "package"
 				? savedBookingInfo.addons.filter((addon) => !isPackageUnavailableAddon(addon))
 				: [...savedBookingInfo.addons]
 		);

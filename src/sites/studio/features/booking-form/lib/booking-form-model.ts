@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const BOOKING_MODES = ["single", "multi"] as const;
+export const BOOKING_MODES = ["single", "package"] as const;
 export const SERVICES = ["Table Setup", "Armchair Setup", "Music Setup"] as const;
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
 export const ADDON_OPTIONS = [
@@ -328,8 +328,8 @@ const addons = z
 		message: "Duplicate add-ons are not allowed."
 	});
 const notes = z.string().trim().max(200, "Please keep this under 200 characters.");
-const requiredMultiBookingSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
-const optionalMultiBookingSize = z.union([z.literal(""), requiredMultiBookingSize]);
+const requiredPackageSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
+const optionalPackageSize = z.union([z.literal(""), requiredPackageSize]);
 
 const sharedBookingFields = {
 	name,
@@ -407,7 +407,7 @@ export const bookingSchema = z
 		...sharedBookingFields,
 		service,
 		bookingMode,
-		packageSize: optionalMultiBookingSize,
+		packageSize: optionalPackageSize,
 		date: z.string(),
 		time: z.string()
 	})
@@ -415,11 +415,11 @@ export const bookingSchema = z
 		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 
-		if (values.bookingMode === "multi" && !values.packageSize) {
+		if (values.bookingMode === "package" && !values.packageSize) {
 			ctx.addIssue({ code: "custom", message: "Package size is required.", path: ["packageSize"] });
 		}
 
-		if (values.bookingMode === "multi") {
+		if (values.bookingMode === "package") {
 			validatePackageAddonAvailability(values, ctx);
 		}
 
@@ -444,15 +444,15 @@ export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const publicBookingSchema = bookingSchema;
 
-export const multiBookingFormSchema = z
-	.object({ ...sharedBookingFields, packageSize: requiredMultiBookingSize })
+export const packageFormSchema = z
+	.object({ ...sharedBookingFields, packageSize: requiredPackageSize })
 	.superRefine((values, ctx) => {
 		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 		validatePackageAddonAvailability(values, ctx);
 	});
 
-export type MultiBookingFormValues = z.input<typeof multiBookingFormSchema>;
+export type PackageFormValues = z.input<typeof packageFormSchema>;
 
 export const INITIAL_FORM: BookingFormValues = {
 	name: "",

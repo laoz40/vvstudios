@@ -193,8 +193,8 @@ function BookingPage() {
 								"text-base font-bold! tracking-wider",
 								"shadow-lg shadow-primary/45"
 							)}
-							disabled={bookingSubmit.isSubmitting || bookingSubmit.hasCompletedMultiBooking}>
-							{bookingSubmit.hasCompletedMultiBooking ? "REQUEST SENT" : "COMPLETE BOOKING"}
+							disabled={bookingSubmit.isSubmitting || bookingSubmit.hasCompletedPackageBooking}>
+							{bookingSubmit.hasCompletedPackageBooking ? "REQUEST SENT" : "COMPLETE BOOKING"}
 						</Button>
 					</div>
 				</form>

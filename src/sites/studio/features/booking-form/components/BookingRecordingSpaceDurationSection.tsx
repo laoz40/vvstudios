@@ -65,7 +65,7 @@ export function BookingRecordingSpaceDurationSection() {
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const isPackageBooking = useSelector(
 		formApi.store,
-		(state) => state.values.bookingMode === "multi"
+		(state) => state.values.bookingMode === "package"
 	);
 	const shouldShowFieldError = submissionAttempts > 0;
 

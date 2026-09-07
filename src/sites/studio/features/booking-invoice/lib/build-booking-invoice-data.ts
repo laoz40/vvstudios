@@ -41,7 +41,7 @@ export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: numbe
 	return `VV-${datePart}-${suffix}`;
 }
 
-function buildMultiBookingInvoiceLineItems(input: {
+function buildPackageInvoiceLineItems(input: {
 	addonLineItems: BookingInvoiceLineItem[];
 	baseSessionAmount: number;
 	discountAmount: number;
@@ -101,7 +101,7 @@ export function createPackageInvoiceLineItemSnapshot(
 		};
 	});
 
-	return buildMultiBookingInvoiceLineItems({
+	return buildPackageInvoiceLineItems({
 		addonLineItems,
 		baseSessionAmount: input.duration ? DURATION_PRICES[input.duration] : 0,
 		discountAmount: input.discountAmount,
@@ -111,7 +111,7 @@ export function createPackageInvoiceLineItemSnapshot(
 	});
 }
 
-export function createStoredAmountMultiBookingInvoiceLineItemSnapshot(input: {
+export function createStoredAmountPackageInvoiceLineItemSnapshot(input: {
 	discountAmount: number;
 	discountPercent: number;
 	duration: BookingInvoiceBuilderInput["duration"];
@@ -352,7 +352,7 @@ export function buildPackageAdjustmentInvoiceData(input: {
 	};
 }
 
-export function buildMultiBookingInvoiceData(
+export function buildPackageInvoiceData(
 	input: {
 		abn?: string;
 		accountName: string;
@@ -390,7 +390,7 @@ export function buildMultiBookingInvoiceData(
 					})
 					.join(", ")
 			: "No add-ons selected";
-	const multiBookingLineItems = input.invoiceLineItems;
+	const packageLineItems = input.invoiceLineItems;
 
 	const noticeWindowLabel = formatNoticeWindowLabel(input.leadTimeMinutes);
 
@@ -438,11 +438,11 @@ export function buildMultiBookingInvoiceData(
 			number: input.invoiceNumber ?? formatBookingInvoiceNumber(input.bookingId, input.createdAt),
 			title: BOOKING_INVOICE_TITLE
 		},
-		lineItems: multiBookingLineItems,
+		lineItems: packageLineItems,
 		notes: {
 			cancellationPolicy:
-				BOOKING_INVOICE_NOTES.getMultiBookingCancellationPolicy(noticeWindowLabel),
-			paymentNote: BOOKING_INVOICE_NOTES.multiBookingPaymentNote
+				BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel),
+			paymentNote: BOOKING_INVOICE_NOTES.packagePaymentNote
 		},
 		package: { size: input.packageSize },
 		payment: {

@@ -10,7 +10,7 @@ export type BookingService = (typeof SERVICES)[number];
 export type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
 export type BookingInvoiceBuilderInput = {
-	bookingId: GenericId<"bookings"> | GenericId<"multiBookingPackages">;
+	bookingId: GenericId<"bookings"> | GenericId<"packages">;
 	name: string;
 	phone: string;
 	accountName: string;

@@ -41,7 +41,7 @@ type CloseCheckoutToastError =
 type AvailabilityToastError =
 	| NonNullable<FunctionReturnType<typeof api.googleCalendar.getBookableRangeBusyWindows>[0]>
 	| UnexpectedError;
-type CreateMultiBookingToastError =
+type CreatePackageToastError =
 	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageRequest>[0]>
 	| UnexpectedError;
 
@@ -68,14 +68,14 @@ export const startCheckoutToastMessages = {
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
 
-export const createMultiBookingToastMessages = {
+export const createPackageToastMessages = {
 	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
 	INVOICE_FAILURE_CODE_REQUIRED: "Something went wrong while creating your package request.",
 	INVOICE_NUMBER_REQUIRED: "Something went wrong while creating your package request.",
 	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
-} satisfies Record<CreateMultiBookingToastError["reason"], string>;
+} satisfies Record<CreatePackageToastError["reason"], string>;
 
 export const closeCheckoutToastMessages = {
 	STRIPE_CHECKOUT_CLOSE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CLOSE_FAILED,

@@ -48,7 +48,7 @@ export function BookingModeSection() {
 							field.handleChange(bookingMode);
 							field.handleBlur();
 
-							if (bookingMode === "multi") {
+							if (bookingMode === "package") {
 								formApi.setFieldValue("date", "");
 								formApi.setFieldValue("time", "");
 								formApi.setFieldValue("service", "");
