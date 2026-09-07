@@ -55,6 +55,52 @@ type CustomInvoiceQuantityOptionsProps = {
 const OPTION_LABEL_CLASS_NAME =
 	"flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-checked:border-primary has-checked:bg-primary/5";
 
+const ADDON_QUANTITY_FIELD_CONFIG = [
+	{ addon: "Essential Edit", field: "essentialEditQuantity", label: "Essential Edit quantity" },
+	{ addon: "Complete Edit", field: "completeEditQuantity", label: "Complete Edit quantity" },
+	{ addon: "Clip Volume Pack", field: "clipsPackageQuantity", label: "Clip Volume Pack quantity" },
+	{
+		addon: "Handcrafted Clips",
+		field: "handcraftedClipsQuantity",
+		label: "Handcrafted Clips quantity"
+	}
+] as const satisfies ReadonlyArray<{
+	addon: BookingFormValues["addons"][number];
+	field: keyof BookingAddonQuantities;
+	label: string;
+}>;
+
+function AddonQuantityFields<TDraft extends CustomInvoiceFormDraft>({
+	disabled,
+	draft,
+	idPrefix,
+	onDraftChange
+}: {
+	disabled: boolean;
+	draft: TDraft;
+	idPrefix: string;
+	onDraftChange: (nextDraft: TDraft) => void;
+}) {
+	return ADDON_QUANTITY_FIELD_CONFIG.map(({ addon, field, label }) => {
+		if (!draft.addons.includes(addon)) {
+			return null;
+		}
+
+		return (
+			<CustomInvoiceQuantityOptions
+				key={field}
+				idPrefix={`${idPrefix}-${field}`}
+				label={label}
+				value={draft[field] ?? ""}
+				disabled={disabled}
+				onChange={(nextValue) => {
+					onDraftChange({ ...draft, [field]: nextValue });
+				}}
+			/>
+		);
+	});
+}
+
 export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 	disabled,
 	draft,
@@ -113,50 +159,12 @@ export function CustomInvoiceFormFields<TDraft extends CustomInvoiceFormDraft>({
 				}}
 			/>
 
-			{draft.addons.includes("Essential Edit") ? (
-				<CustomInvoiceQuantityOptions
-					idPrefix={`${idPrefix}-essential-edit-quantity`}
-					label="Essential Edit quantity"
-					value={draft.essentialEditQuantity ?? ""}
-					disabled={disabled}
-					onChange={(essentialEditQuantity) => {
-						onDraftChange({ ...draft, essentialEditQuantity });
-					}}
-				/>
-			) : null}
-			{draft.addons.includes("Complete Edit") ? (
-				<CustomInvoiceQuantityOptions
-					idPrefix={`${idPrefix}-complete-edit-quantity`}
-					label="Complete Edit quantity"
-					value={draft.completeEditQuantity ?? ""}
-					disabled={disabled}
-					onChange={(completeEditQuantity) => {
-						onDraftChange({ ...draft, completeEditQuantity });
-					}}
-				/>
-			) : null}
-			{draft.addons.includes("Clip Volume Pack") ? (
-				<CustomInvoiceQuantityOptions
-					idPrefix={`${idPrefix}-clips-package-quantity`}
-					label="Clip Volume Pack quantity"
-					value={draft.clipsPackageQuantity ?? ""}
-					disabled={disabled}
-					onChange={(clipsPackageQuantity) => {
-						onDraftChange({ ...draft, clipsPackageQuantity });
-					}}
-				/>
-			) : null}
-			{draft.addons.includes("Handcrafted Clips") ? (
-				<CustomInvoiceQuantityOptions
-					idPrefix={`${idPrefix}-handcrafted-clips-quantity`}
-					label="Handcrafted Clips quantity"
-					value={draft.handcraftedClipsQuantity ?? ""}
-					disabled={disabled}
-					onChange={(handcraftedClipsQuantity) => {
-						onDraftChange({ ...draft, handcraftedClipsQuantity });
-					}}
-				/>
-			) : null}
+			<AddonQuantityFields
+				disabled={disabled}
+				draft={draft}
+				idPrefix={idPrefix}
+				onDraftChange={onDraftChange}
+			/>
 
 			<PriceField
 				disabled={disabled}

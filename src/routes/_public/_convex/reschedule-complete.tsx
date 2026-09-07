@@ -27,7 +27,7 @@ type RescheduleCompletePageResult = Result<
 	NonNullable<GetPublicRescheduleCompleteSessionResult[0]>
 >;
 
-export const Route = createFileRoute("/_public/reschedule-complete")({
+export const Route = createFileRoute("/_public/_convex/reschedule-complete")({
 	validateSearch: parseRescheduleCompleteSearch,
 	head: () => buildNoIndexHead("Reschedule Complete | VV Studios"),
 	component: RescheduleCompletePage

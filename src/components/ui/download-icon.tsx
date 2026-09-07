@@ -12,7 +12,9 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			if (isAnimationRunning()) return;
 			isAnimatingRef.current = true;
 
-			while (isAnimationRunning()) {
+			const runCycle = async () => {
+				if (!isAnimationRunning()) return;
+
 				// 1. Initial Arrow Drop through Tray
 				animate(
 					".arrow-head",
@@ -26,7 +28,7 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					{ duration: 1, times: [0, 0.3, 0.4, 0.5, 1], ease: "easeInOut" }
 				);
 
-				if (!isAnimationRunning()) break;
+				if (!isAnimationRunning()) return;
 
 				// 2. Tray "Weight" Pulse
 				await animate(
@@ -35,11 +37,15 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					{ duration: 0.3, ease: "easeOut" }
 				);
 
-				if (!isAnimationRunning()) break;
+				if (!isAnimationRunning()) return;
 
 				// Slight pause between cycles
 				await new Promise((resolve) => setTimeout(resolve, 200));
-			}
+
+				await runCycle();
+			};
+
+			await runCycle();
 		}, [animate, isAnimationRunning]);
 
 		const stop = useCallback(() => {

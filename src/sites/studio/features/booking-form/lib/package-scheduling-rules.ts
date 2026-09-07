@@ -17,3 +17,17 @@ export function formatNoticeWindowLabel(leadTimeMinutes: number) {
 
 	return `${leadTimeMinutes} ${leadTimeMinutes === 1 ? "minute" : "minutes"}`;
 }
+
+export function getPackageSchedulingProgressMessage(
+	packageSize: number,
+	scheduledSessionCount: number
+) {
+	const sessionsRemaining = packageSize - scheduledSessionCount;
+
+	if (sessionsRemaining <= 0) {
+		return "All sessions are scheduled. Your booking is complete.";
+	}
+
+	const sessionLabel = sessionsRemaining === 1 ? "session" : "sessions";
+	return `Schedule ${sessionsRemaining} more ${sessionLabel} to complete your booking.`;
+}

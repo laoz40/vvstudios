@@ -54,12 +54,8 @@ export async function getBusyWindowsInRange({
 	timeMin,
 	timeZone
 }: GetBusyWindowsInRangeArgs): Promise<BusyWindow[]> {
-	const busyWindows: BusyWindow[] = [];
-
-	for (const calendarId of calendarIds) {
-		let pageToken: string | undefined;
-
-		do {
+	const loadBusyWindowsForCalendar = async (calendarId: string) => {
+		const loadPage = async (pageToken?: string): Promise<BusyWindow[]> => {
 			const response = await calendar.events.list({
 				calendarId,
 				maxResults: 500,
@@ -71,17 +67,29 @@ export async function getBusyWindowsInRange({
 				timeZone
 			});
 
+			const pageBusyWindows: BusyWindow[] = [];
 			for (const event of response.data.items ?? []) {
 				const busyWindow = toBusyWindow({ calendarId, event, ignoredEvent, timeZone });
 
-				busyWindows.push(...(busyWindow ? [busyWindow] : []));
+				pageBusyWindows.push(...(busyWindow ? [busyWindow] : []));
 			}
 
-			pageToken = response.data.nextPageToken ?? undefined;
-		} while (pageToken);
-	}
+			const nextPageToken = response.data.nextPageToken ?? undefined;
+			if (!nextPageToken) {
+				return pageBusyWindows;
+			}
 
-	return busyWindows;
+			return [...pageBusyWindows, ...(await loadPage(nextPageToken))];
+		};
+
+		return loadPage();
+	};
+
+	const busyWindowsByCalendar = await Promise.all(
+		calendarIds.map((calendarId) => loadBusyWindowsForCalendar(calendarId))
+	);
+
+	return busyWindowsByCalendar.flat();
 }
 
 function toBusyWindow({

@@ -10,7 +10,7 @@ import {
 	type PackageReminderType
 } from "#convex/lib/packageReminders";
 import {
-	getTimeZoneDateParts,
+	getTimeZoneDate,
 	getTimeZoneDayRange,
 	REMINDER_BATCH_SIZE,
 	REMINDER_TIME_ZONE
@@ -159,7 +159,7 @@ function ensurePackageExists(ctx: MutationCtx, multiBookingId: Doc<"multiBooking
 }
 
 const getSydneyCalendarDayNumber = (timestamp: number) => {
-	const { year, month, day } = getTimeZoneDateParts(new Date(timestamp), REMINDER_TIME_ZONE);
+	const { year, month, day } = getTimeZoneDate(new Date(timestamp), REMINDER_TIME_ZONE);
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
 
@@ -180,45 +180,47 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 	);
 
 	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
-	for (const packageRecord of paymentPackages) {
-		try {
-			const claimResult = await fromConvexTuple(
-				ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-					multiBookingId: packageRecord._id,
-					now,
-					reminderType: "payment"
-				})
-			);
-			if (claimResult.isErr()) continue;
-
-			const sendResult = await sendPackagePaymentReminderEmail({
-				email: packageRecord.email,
-				invoiceDueAt: packageRecord.invoiceDueAt,
-				name: packageRecord.name,
-				requestDate: packageRecord.createdAt
-			});
-			if (sendResult.isOk()) {
-				await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+	await Promise.all(
+		paymentPackages.map(async (packageRecord) => {
+			try {
+				const claimResult = await fromConvexTuple(
+					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 						multiBookingId: packageRecord._id,
 						now,
 						reminderType: "payment"
 					})
 				);
-				continue;
-			}
+				if (claimResult.isErr()) return;
 
-			await fromConvexTuple(
-				ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-					failureCode: sendResult.error.reason,
-					multiBookingId: packageRecord._id,
-					reminderType: "payment"
-				})
-			);
-		} catch (error) {
-			console.error(`Failed to process payment reminder for package ${packageRecord._id}`, error);
-		}
-	}
+				const sendResult = await sendPackagePaymentReminderEmail({
+					email: packageRecord.email,
+					invoiceDueAt: packageRecord.invoiceDueAt,
+					name: packageRecord.name,
+					requestDate: packageRecord.createdAt
+				});
+				if (sendResult.isOk()) {
+					await fromConvexTuple(
+						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+							multiBookingId: packageRecord._id,
+							now,
+							reminderType: "payment"
+						})
+					);
+					return;
+				}
+
+				await fromConvexTuple(
+					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
+						failureCode: sendResult.error.reason,
+						multiBookingId: packageRecord._id,
+						reminderType: "payment"
+					})
+				);
+			} catch (error) {
+				console.error(`Failed to process payment reminder for package ${packageRecord._id}`, error);
+			}
+		})
+	);
 }
 
 async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
@@ -231,55 +233,57 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	);
 
 	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
-	for (const packageRecord of expiryPackages) {
-		try {
-			const { expiresAt, remainingSessions } = packageRecord;
-			if (
-				expiresAt === undefined ||
-				remainingSessions === 0 ||
-				getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
-					remainingSessions * 7
-			) {
-				continue;
-			}
+	await Promise.all(
+		expiryPackages.map(async (packageRecord) => {
+			try {
+				const { expiresAt, remainingSessions } = packageRecord;
+				if (
+					expiresAt === undefined ||
+					remainingSessions === 0 ||
+					getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
+						remainingSessions * 7
+				) {
+					return;
+				}
 
-			const claimResult = await fromConvexTuple(
-				ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-					multiBookingId: packageRecord._id,
-					now,
-					reminderType: "expiry"
-				})
-			);
-			if (claimResult.isErr()) continue;
-
-			const sendResult = await sendPackageExpiryReminderEmail({
-				email: packageRecord.email,
-				expiresAt,
-				name: packageRecord.name,
-				remainingSessions
-			});
-			if (sendResult.isOk()) {
-				await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+				const claimResult = await fromConvexTuple(
+					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
 						multiBookingId: packageRecord._id,
 						now,
 						reminderType: "expiry"
 					})
 				);
-				continue;
-			}
+				if (claimResult.isErr()) return;
 
-			await fromConvexTuple(
-				ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-					failureCode: sendResult.error.reason,
-					multiBookingId: packageRecord._id,
-					reminderType: "expiry"
-				})
-			);
-		} catch (error) {
-			console.error(`Failed to process expiry reminder for package ${packageRecord._id}`, error);
-		}
-	}
+				const sendResult = await sendPackageExpiryReminderEmail({
+					email: packageRecord.email,
+					expiresAt,
+					name: packageRecord.name,
+					remainingSessions
+				});
+				if (sendResult.isOk()) {
+					await fromConvexTuple(
+						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+							multiBookingId: packageRecord._id,
+							now,
+							reminderType: "expiry"
+						})
+					);
+					return;
+				}
+
+				await fromConvexTuple(
+					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
+						failureCode: sendResult.error.reason,
+						multiBookingId: packageRecord._id,
+						reminderType: "expiry"
+					})
+				);
+			} catch (error) {
+				console.error(`Failed to process expiry reminder for package ${packageRecord._id}`, error);
+			}
+		})
+	);
 }
 
 // If processing throws after claiming a reminder, that reminder stays claimed and will not retry.

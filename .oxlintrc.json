@@ -1,32 +1,11 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"plugins": ["eslint", "oxc", "nextjs", "typescript", "unicorn", "react", "import", "jsx-a11y"],
-	"categories": { "correctness": "error", "suspicious": "warn" },
+	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
+	"categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
 	"options": { "typeAware": true, "reportUnusedDisableDirectives": "error" },
 	"env": { "builtin": true },
-	"ignorePatterns": [".next/**", "out/**", "build/**", "convex/_generated/**", "next-env.d.ts"],
+	"ignorePatterns": ["out/**", "build/**", "convex/_generated/**"],
 	"rules": {
-		"@next/next/google-font-display": "warn",
-		"@next/next/google-font-preconnect": "warn",
-		"@next/next/next-script-for-ga": "warn",
-		"@next/next/no-async-client-component": "warn",
-		"@next/next/no-before-interactive-script-outside-document": "warn",
-		"@next/next/no-css-tags": "warn",
-		"@next/next/no-head-element": "off",
-		"@next/next/no-html-link-for-pages": "error",
-		"@next/next/no-img-element": "warn",
-		"@next/next/no-page-custom-font": "warn",
-		"@next/next/no-styled-jsx-in-document": "warn",
-		"@next/next/no-sync-scripts": "error",
-		"@next/next/no-title-in-document-head": "warn",
-		"@next/next/no-typos": "warn",
-		"@next/next/no-unwanted-polyfillio": "warn",
-		"@next/next/inline-script-id": "error",
-		"@next/next/no-assign-module-variable": "error",
-		"@next/next/no-document-import-in-page": "error",
-		"@next/next/no-duplicate-head": "error",
-		"@next/next/no-head-import-in-document": "error",
-		"@next/next/no-script-component-in-head": "error",
 		"@typescript-eslint/ban-ts-comment": "error",
 		"no-array-constructor": "error",
 		"@typescript-eslint/no-duplicate-enum-values": "error",
@@ -40,9 +19,9 @@
 		"@typescript-eslint/no-unnecessary-type-constraint": "error",
 		"@typescript-eslint/no-unsafe-declaration-merging": "error",
 		"@typescript-eslint/no-unsafe-function-type": "error",
-		"no-unused-expressions": "warn",
-		"no-unused-vars": "warn",
-		"no-underscore-dangle": ["warn", { "allow": ["_id", "_exhaustive"] }],
+		"no-unused-expressions": "error",
+		"no-unused-vars": "error",
+		"no-underscore-dangle": ["error", { "allow": ["_id", "_exhaustive"] }],
 		"@typescript-eslint/no-wrapper-object-types": "error",
 		"@typescript-eslint/prefer-as-const": "error",
 		"@typescript-eslint/prefer-namespace-keyword": "error",
@@ -55,13 +34,25 @@
 		"typescript/no-unsafe-call": "error",
 		"typescript/no-unsafe-member-access": "error",
 		"typescript/no-unsafe-return": "error",
+		"typescript/no-unsafe-type-assertion": "error",
+		"typescript/non-nullable-type-assertion-style": "error",
+		"typescript/require-await": "error",
 		"typescript/no-unnecessary-condition": "error",
 		"typescript/no-unnecessary-type-assertion": "error",
 		"typescript/switch-exhaustiveness-check": "error",
-		"import/no-cycle": "warn",
-		"oxc/branches-sharing-code": "warn",
-		"complexity": ["warn", { "max": 12 }],
-		"max-depth": ["warn", 3]
+		"import/no-cycle": "error",
+		"oxc/branches-sharing-code": "error",
+		"oxc/no-map-spread": "off",
+		"complexity": ["error", { "max": 15 }],
+		"max-depth": ["error", { "max": 3 }],
+		"max-lines": ["error", { "max": 600, "skipBlankLines": true, "skipComments": true }],
+		"max-statements": ["error", { "max": 25 }],
+		"eqeqeq": "error",
+		"array-callback-return": "error",
+		"default-case": "error",
+		"class-methods-use-this": "error",
+		"no-undef": "error",
+		"no-unreachable": "error"
 	},
 	"overrides": [
 		{
@@ -73,6 +64,17 @@
 				"react/jsx-no-duplicate-props": "error",
 				"react/jsx-no-target-blank": "off",
 				"react/jsx-no-undef": "error",
+				"react/forbid-elements": [
+					"error",
+					{
+						"forbid": [
+							{
+								"element": "img",
+								"message": "Use Image from @unpic/react in app UI. Use Img from @react-email/components in emails."
+							}
+						]
+					}
+				],
 				"react/no-children-prop": "error",
 				"react/no-danger-with-children": "error",
 				"react/no-direct-mutation-state": "error",
@@ -84,20 +86,21 @@
 				"react/jsx-no-useless-fragment": "error",
 				"react/self-closing-comp": "error",
 				"react/no-unstable-nested-components": "error",
-				"react/no-array-index-key": "warn",
+				"react/no-array-index-key": "error",
 				"react/no-unknown-property": "off",
 				"react/no-unsafe": "off",
+				"react/iframe-missing-sandbox": "off",
 				"react/react-in-jsx-scope": "off",
 				"react-hooks/rules-of-hooks": "error",
 				"react-hooks/exhaustive-deps": "error",
-				"import/no-anonymous-default-export": "warn",
+				"import/no-anonymous-default-export": "error",
 				"jsx-a11y/alt-text": ["error", { "elements": ["img"], "img": ["Image"] }],
 				"jsx-a11y/anchor-is-valid": "error",
 				"jsx-a11y/click-events-have-key-events": "error",
 				"jsx-a11y/control-has-associated-label": "error",
 				"jsx-a11y/no-noninteractive-element-interactions": "error",
 				"jsx-a11y/no-static-element-interactions": "error",
-				"jsx-a11y/prefer-tag-over-role": "error",
+				"jsx-a11y/prefer-tag-over-role": "off",
 				"jsx-a11y/aria-props": "error",
 				"jsx-a11y/aria-proptypes": "error",
 				"jsx-a11y/aria-unsupported-elements": "error",
@@ -114,6 +117,27 @@
 				"WorkletGlobalScope": "readonly"
 			},
 			"env": { "browser": true, "node": true }
+		},
+		{
+			"files": ["src/components/ui/**"],
+			"plugins": ["jsx-a11y"],
+			"rules": {
+				"jsx-a11y/prefer-tag-over-role": "off",
+				"jsx-a11y/no-noninteractive-tabindex": "off",
+				"jsx-a11y/no-noninteractive-element-interactions": "off"
+			}
+		},
+		{
+			"files": [
+				"src/sites/studio/components/Modal.tsx",
+				"src/sites/studio/components/photos/ImageViewer.tsx"
+			],
+			"plugins": ["jsx-a11y"],
+			"rules": { "jsx-a11y/no-noninteractive-element-interactions": "off" }
+		},
+		{
+			"files": ["**/*.test.ts", "**/*.test.tsx", "convex/tests/**"],
+			"rules": { "max-lines": "off" }
 		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],

@@ -104,36 +104,38 @@ describe("customer booking rescheduling", () => {
 			{ kind: "unsupported-status", expectedReason: "BOOKING_NOT_RESCHEDULABLE" }
 		] as const;
 
-		for (const testCase of rejectedCases) {
-			const t = createConvexTest();
-			const seeded = await seedReschedulableSession(t);
-			let token = seeded.token;
+		await Promise.all(
+			rejectedCases.map(async (testCase) => {
+				const t = createConvexTest();
+				const seeded = await seedReschedulableSession(t);
+				let token = seeded.token;
 
-			if (testCase.kind === "unknown") {
-				token = "unknown-reschedule-token";
-			} else {
-				await t.run(async (ctx) => {
-					if (testCase.kind === "used") {
-						await ctx.db.patch(seeded.linkId, { status: "used", usedAt: now });
-					}
-					if (testCase.kind === "expired") {
-						await ctx.db.patch(seeded.linkId, { status: "expired" });
-					}
-					if (testCase.kind === "past-session") {
-						await ctx.db.patch(seeded.bookingId, { sessionStartAt: now - 1 });
-					}
-					if (testCase.kind === "unsupported-status") {
-						await ctx.db.patch(seeded.bookingId, { status: "cancelled" });
-					}
+				if (testCase.kind === "unknown") {
+					token = "unknown-reschedule-token";
+				} else {
+					await t.run(async (ctx) => {
+						if (testCase.kind === "used") {
+							await ctx.db.patch(seeded.linkId, { status: "used", usedAt: now });
+						}
+						if (testCase.kind === "expired") {
+							await ctx.db.patch(seeded.linkId, { status: "expired" });
+						}
+						if (testCase.kind === "past-session") {
+							await ctx.db.patch(seeded.bookingId, { sessionStartAt: now - 1 });
+						}
+						if (testCase.kind === "unsupported-status") {
+							await ctx.db.patch(seeded.bookingId, { status: "cancelled" });
+						}
+					});
+				}
+
+				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+					token,
+					now
 				});
-			}
-
-			const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-				token,
-				now
-			});
-			expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
-		}
+				expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+			})
+		);
 
 		const supportedCases = [
 			{ status: "confirmed" as const },
@@ -142,18 +144,20 @@ describe("customer booking rescheduling", () => {
 			{ status: "failed" as const, bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED" as const }
 		];
 
-		for (const bookingState of supportedCases) {
-			const t = createConvexTest();
-			const seeded = await seedReschedulableSession(t);
-			await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
+		await Promise.all(
+			supportedCases.map(async (bookingState) => {
+				const t = createConvexTest();
+				const seeded = await seedReschedulableSession(t);
+				await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
 
-			const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-				token: seeded.token,
-				now
-			});
-			expect(result[0]).toBeNull();
-			expect(result[1]?.session._id).toBe(seeded.bookingId);
-		}
+				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
+					token: seeded.token,
+					now
+				});
+				expect(result[0]).toBeNull();
+				expect(result[1]?.session._id).toBe(seeded.bookingId);
+			})
+		);
 	});
 
 	test("leaves the original booking and link untouched when the target is busy", async () => {

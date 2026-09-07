@@ -8,7 +8,7 @@ import type {
 	EditorDriveAccessToRemove,
 	EditorDriveSetupRecord,
 	FailedEditorRemoval
-} from "#convex/lib/driveRecords";
+} from "#convex/lib/driveEditor";
 import { sendEditorAssignmentEmail } from "#convex/lib/email";
 import {
 	createDrivePermission,

@@ -20,6 +20,8 @@ import type { Id } from "#convex/_generated/dataModel";
 type InstagramPromptTarget =
 	| { kind: "booking"; stripeSessionId: string }
 	| { kind: "multiBooking"; multiBookingId: Id<"multiBookingPackages"> };
+
+const defaultDevPanel = <BookingCompleteDevScenarioPanel />;
 export interface BookingStatusLayoutProps {
 	bookingStatus?: BookingStatus["status"];
 	canCreateRescheduleLink?: boolean;
@@ -39,7 +41,7 @@ export function BookingStatusLayout({
 	instagramPromptTarget,
 	stripeSessionId,
 	className,
-	devPanel = <BookingCompleteDevScenarioPanel />
+	devPanel = defaultDevPanel
 }: BookingStatusLayoutProps): ReactNode {
 	const [isCreatingRescheduleLink, setIsCreatingRescheduleLink] = useState(false);
 	const createFailedSessionRescheduleLink = useMutation(

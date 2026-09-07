@@ -13,6 +13,7 @@ import {
 	DEFAULT_BOOKING_START_TIME,
 	type BookingAvailabilitySettings
 } from "#studio/lib/bookingAvailabilitySettings";
+import { parseCalendarDate, parseTimeOfDay, parseYearMonth } from "#studio/lib/calendarDate";
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 export const BOOKING_TIME_ZONE = "Australia/Sydney";
@@ -70,9 +71,13 @@ export function formatMonthKey(date: Date) {
 }
 
 export function parseMonthKey(monthKey: string) {
-	const [year, month] = monthKey.split("-").map(Number);
+	const yearMonth = parseYearMonth(monthKey);
 
-	return new Date(year, month - 1, 1);
+	if (!yearMonth) {
+		throw new Error(`Invalid month key: ${monthKey}`);
+	}
+
+	return new Date(yearMonth.year, yearMonth.month - 1, 1);
 }
 
 export function formatDateValue(date: Date) {
@@ -86,12 +91,12 @@ export function parseDateValue(value: string) {
 		return undefined;
 	}
 
-	const [year, month, day] = value.split("-").map(Number);
-	if (!year || !month || !day) {
+	const calendarDate = parseCalendarDate(value);
+	if (!calendarDate) {
 		return undefined;
 	}
 
-	return new Date(year, month - 1, day);
+	return new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day);
 }
 
 export function formatBookingDate(dateValue: string) {
@@ -158,7 +163,7 @@ export function formatShortMonthFullDate(date: Date | number) {
 	return shortMonthFullDateFormatter.format(date);
 }
 
-function getDatePartsInSydney(date: Date) {
+function getCalendarDateInSydney(date: Date) {
 	const parts = new Intl.DateTimeFormat("en-AU", {
 		day: "2-digit",
 		month: "2-digit",
@@ -176,13 +181,13 @@ function getDatePartsInSydney(date: Date) {
 }
 
 export function getSydneyDateValue(date = new Date()) {
-	const { day, month, year } = getDatePartsInSydney(date);
+	const { day, month, year } = getCalendarDateInSydney(date);
 
 	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export function getEditorEditDueAt(sessionStartAt: number) {
-	const { day, month, year } = getDatePartsInSydney(new Date(sessionStartAt));
+	const { day, month, year } = getCalendarDateInSydney(new Date(sessionStartAt));
 	const dueCalendarDate = new Date(
 		Date.UTC(year, month - 1, day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION)
 	);
@@ -294,14 +299,14 @@ export function getTimeValueMinutes(time: string) {
 }
 
 export function formatTimeValue(time: string) {
-	const [hours, minutes] = time.split(":").map(Number);
+	const timeOfDay = parseTimeOfDay(time);
 
-	if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+	if (!timeOfDay) {
 		return time;
 	}
 
 	return new Intl.DateTimeFormat("en-AU", { hour: "numeric", hour12: true, minute: "2-digit" })
-		.format(new Date(2000, 0, 1, hours, minutes))
+		.format(new Date(2000, 0, 1, timeOfDay.hours, timeOfDay.minutes))
 		.replace(/\s?(am|pm)$/i, "$1");
 }
 
@@ -472,14 +477,23 @@ function parseDateTimeValue(dateValue: string, timeValue: string) {
 		return null;
 	}
 
-	const [hours, minutes] = timeValue.split(":").map(Number);
-	date.setHours(hours, minutes, 0, 0);
+	const timeOfDay = parseTimeOfDay(timeValue);
+	if (!timeOfDay) {
+		return null;
+	}
+
+	date.setHours(timeOfDay.hours, timeOfDay.minutes, 0, 0);
 	return date;
 }
 
 function parseTimeToMinutes(time: string) {
-	const [hours, minutes] = time.split(":").map(Number);
-	return hours * 60 + minutes;
+	const timeOfDay = parseTimeOfDay(time);
+
+	if (!timeOfDay) {
+		return 0;
+	}
+
+	return timeOfDay.hours * 60 + timeOfDay.minutes;
 }
 
 function formatMinutesToTime(totalMinutes: number) {
@@ -505,11 +519,15 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 		return null;
 	}
 
-	const [hours, minutes] = timeValue.split(":").map(Number);
+	const timeOfDay = parseTimeOfDay(timeValue);
+	if (!timeOfDay) {
+		return null;
+	}
+
 	const zonedTimeResult = getUtcDateForZonedParts({
 		day: date.getDate(),
-		hours,
-		minutes,
+		hours: timeOfDay.hours,
+		minutes: timeOfDay.minutes,
 		month: date.getMonth() + 1,
 		timeZone,
 		year: date.getFullYear()
@@ -526,8 +544,13 @@ function parseReadableTimeToMinutes(time: string) {
 
 	const hours = Number(match[1]);
 	const minutes = Number(match[2]);
-	const meridiem = match[3].toUpperCase();
-	const normalizedHours = (hours % 12) + (meridiem === "PM" ? 12 : 0);
+	const meridiem = match[3];
+	if (!meridiem) {
+		return 0;
+	}
+
+	const normalizedMeridiem = meridiem.toUpperCase();
+	const normalizedHours = (hours % 12) + (normalizedMeridiem === "PM" ? 12 : 0);
 
 	return normalizedHours * 60 + minutes;
 }

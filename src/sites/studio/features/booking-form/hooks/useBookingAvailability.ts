@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAction, useQuery } from "convex/react";
-import { toast } from "sonner";
+import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { useBookingBusyWindows } from "#studio/features/booking-form/hooks/useBookingBusyWindows";
 import { availabilityErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
-import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 import {
 	getBookableAvailableTimes,
 	getBookableMonthKeys,
 	getNextAvailableBookingDate,
 	getSelectedBusyDay,
-	getUncachedMonthKeys,
 	isBookingDateDisabled,
 	isBookingDateUnavailable,
-	mergeBookableRangeBusyWindows,
 	type BusyWindowsByMonth
 } from "#studio/features/booking-form/lib/monthly-availability";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import type { BusyPeriod } from "#studio/lib/bookingdatetime";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
@@ -55,171 +52,45 @@ interface UseBookingAvailabilityOptions {
 	selectedTime: string;
 }
 
-export function useBookingAvailability({
+interface BookingPickerOptions {
+	availableTimes: string[];
+	disabledDates: (date: Date) => boolean;
+	nextAvailableDate: Date | undefined;
+	selectedBusyPeriods: BusyPeriod[];
+	unavailableDates: (date: Date) => boolean;
+}
+
+function getBookingPickerOptions({
+	availabilitySettings,
+	currentTimestamp,
 	date,
 	duration,
-	onSelectedTimeInvalidated,
-	selectedTime
-}: UseBookingAvailabilityOptions): BookingAvailabilityState {
-	// Convex reads and actions
-	const getBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
-
-	// Availability settings and date bounds
-	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-	const today = startOfToday();
-	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
-	const selectedDate = parseDateValue(date);
-	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
-	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
-	const bookableStartDateValue = formatDateValue(today);
-	const bookableEndDateValue = formatDateValue(lastBookableDate);
-
-	// Availability state
-	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
-	const [monthlyBusyWindowsByMonth, setMonthlyBusyWindowsByMonth] = useState<BusyWindowsByMonth>(
-		{}
-	);
-	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState<string | null>(null);
-	const [availabilityError, setAvailabilityError] = useState("");
-	const [isLoadingMonthAvailability, setIsLoadingMonthAvailability] = useState(false);
-	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
-
-	// Bookable month range
-	const bookableMonthKeys = useMemo(() => {
-		const startDate = parseDateValue(bookableStartDateValue);
-		const endDate = parseDateValue(bookableEndDateValue);
-
-		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
-	}, [bookableStartDateValue, bookableEndDateValue]);
-
-	// Visible month state
-	const visibleMonth = formatMonthKey(calendarMonth);
-	const selectedMonth = date ? date.slice(0, 7) : visibleMonth;
-	const isViewingSelectedMonth = !date || selectedMonth === visibleMonth;
-	const isAvailabilityRateLimited =
-		availabilityError === availabilityErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED;
-
-	// Load the saved availability rate limit key
-	useEffect(() => {
-		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
-	}, []);
-
-	// Fetch calendar availability for uncached bookable months
-	useEffect(() => {
-		if (!availabilityRateLimitKey) {
-			return undefined;
-		}
-
-		const rateLimitKey = availabilityRateLimitKey;
-		const uncachedMonthKeys = getUncachedMonthKeys(bookableMonthKeys, monthlyBusyWindowsByMonth);
-		if (uncachedMonthKeys.length === 0) {
-			setAvailabilityError("");
-			setIsLoadingMonthAvailability(false);
-			return undefined;
-		}
-
-		let isCancelled = false;
-		setAvailabilityError("");
-		setIsLoadingMonthAvailability(true);
-
-		async function loadAvailability() {
-			const [error, result] = await tryCatch(getBookableRangeBusyWindows({ rateLimitKey }));
-
-			if (isCancelled) {
-				return;
-			}
-
-			if (error !== null) {
-				const errorMessage = availabilityErrorMessages[error.reason];
-
-				console.error("Booking availability failed", { reason: error.reason });
-
-				setAvailabilityError(errorMessage);
-				toast.error(errorMessage);
-				setIsLoadingMonthAvailability(false);
-				return;
-			}
-
-			setMonthlyBusyWindowsByMonth((current) =>
-				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
-			);
-			setIsLoadingMonthAvailability(false);
-		}
-
-		void loadAvailability();
-
-		return () => {
-			isCancelled = true;
-		};
-	}, [
-		availabilityRateLimitKey,
-		bookableMonthKeys,
-		getBookableRangeBusyWindows,
-		monthlyBusyWindowsByMonth
-	]);
-
-	// Selected day availability
+	isAvailabilityRateLimited,
+	isViewingSelectedMonth,
+	lastBookableDate,
+	monthlyBusyWindowsByMonth,
+	selectedDate,
+	selectedMonth,
+	today
+}: {
+	availabilitySettings: BookingAvailabilitySettings;
+	currentTimestamp: number;
+	date: string;
+	duration: string;
+	isAvailabilityRateLimited: boolean;
+	isViewingSelectedMonth: boolean;
+	lastBookableDate: Date;
+	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
+	selectedDate: Date | undefined;
+	selectedMonth: string;
+	today: Date;
+}): BookingPickerOptions {
 	const selectedBusyDay = date
 		? getSelectedBusyDay({ date, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
 
-	// Calendar disabled dates
-	const disabledDates = useMemo(() => {
-		return (disabledDate: Date) =>
-			isBookingDateDisabled({
-				date: disabledDate,
-				isAvailabilityRateLimited,
-				lastBookableDate,
-				monthlyBusyWindowsByMonth,
-				today
-			});
-	}, [isAvailabilityRateLimited, lastBookableDate, monthlyBusyWindowsByMonth, today]);
-
-	const unavailableDates = useMemo(
-		() => (calendarDate: Date) =>
-			isBookingDateUnavailable({
-				currentTimestamp,
-				date: calendarDate,
-				duration,
-				lastBookableDate,
-				monthlyBusyWindowsByMonth,
-				settings: availabilitySettings,
-				today
-			}),
-		[
-			availabilitySettings,
-			currentTimestamp,
-			duration,
-			lastBookableDate,
-			monthlyBusyWindowsByMonth,
-			today
-		]
-	);
-
-	const nextAvailableDate = useMemo(
-		() =>
-			getNextAvailableBookingDate({
-				currentTimestamp,
-				duration,
-				lastBookableDate,
-				monthlyBusyWindowsByMonth,
-				selectedDate,
-				settings: availabilitySettings
-			}),
-		[
-			availabilitySettings,
-			currentTimestamp,
-			duration,
-			lastBookableDate,
-			monthlyBusyWindowsByMonth,
-			selectedDate
-		]
-	);
-
-	// Available times for the selected date
-	const availableTimes = useMemo<string[]>(() => {
-		return getBookableAvailableTimes({
+	return {
+		availableTimes: getBookableAvailableTimes({
 			currentTimestamp,
 			duration,
 			isViewingSelectedMonth,
@@ -231,20 +102,111 @@ export function useBookingAvailability({
 			selectedMonth,
 			settings: availabilitySettings,
 			today
-		});
-	}, [
-		currentTimestamp,
-		date,
-		duration,
-		availabilitySettings,
-		isViewingSelectedMonth,
-		monthlyBusyWindowsByMonth,
-		selectedBusyDay,
-		selectedMonth,
-		selectedDate,
-		lastBookableDate,
-		today
-	]);
+		}),
+		disabledDates: (disabledDate: Date) =>
+			isBookingDateDisabled({
+				date: disabledDate,
+				isAvailabilityRateLimited,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				today
+			}),
+		nextAvailableDate: getNextAvailableBookingDate({
+			currentTimestamp,
+			duration,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedDate,
+			settings: availabilitySettings
+		}),
+		selectedBusyPeriods: selectedBusyDay?.busyPeriods ?? [],
+		unavailableDates: (calendarDate: Date) =>
+			isBookingDateUnavailable({
+				currentTimestamp,
+				date: calendarDate,
+				duration,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				settings: availabilitySettings,
+				today
+			})
+	};
+}
+
+export function useBookingAvailability({
+	date,
+	duration,
+	onSelectedTimeInvalidated,
+	selectedTime
+}: UseBookingAvailabilityOptions): BookingAvailabilityState {
+	const bookingSettings = useQuery(api.bookingSettings.get, {});
+
+	// Availability settings and date bounds
+	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
+	const today = useMemo(() => startOfToday(), []);
+	const lastBookableDate = useMemo(
+		() => getLastBookableDate(today, availabilitySettings.maxDaysAhead),
+		[today, availabilitySettings.maxDaysAhead]
+	);
+	const selectedDate = useMemo(() => parseDateValue(date), [date]);
+	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
+	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
+	const bookableStartDateValue = formatDateValue(today);
+	const bookableEndDateValue = formatDateValue(lastBookableDate);
+
+	// Availability state
+	const [calendarMonth, setCalendarMonth] = useState(() => parseMonthKey(getCurrentMonthKey()));
+	const [manualAvailabilityError, setAvailabilityError] = useState("");
+	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
+
+	// Bookable month range
+	const bookableMonthKeys = useMemo(() => {
+		const startDate = parseDateValue(bookableStartDateValue);
+		const endDate = parseDateValue(bookableEndDateValue);
+
+		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
+	}, [bookableStartDateValue, bookableEndDateValue]);
+
+	const { fetchAvailabilityError, isLoadingMonthAvailability, monthlyBusyWindowsByMonth } =
+		useBookingBusyWindows({ bookableMonthKeys });
+	const availabilityError = manualAvailabilityError || fetchAvailabilityError;
+
+	// Visible month state
+	const visibleMonth = formatMonthKey(calendarMonth);
+	const selectedMonth = date ? date.slice(0, 7) : visibleMonth;
+	const isViewingSelectedMonth = !date || selectedMonth === visibleMonth;
+	const isAvailabilityRateLimited =
+		availabilityError === availabilityErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED;
+
+	const pickerOptions = useMemo(
+		() =>
+			getBookingPickerOptions({
+				availabilitySettings,
+				currentTimestamp,
+				date,
+				duration,
+				isAvailabilityRateLimited,
+				isViewingSelectedMonth,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				selectedDate,
+				selectedMonth,
+				today
+			}),
+		[
+			availabilitySettings,
+			currentTimestamp,
+			date,
+			duration,
+			isAvailabilityRateLimited,
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedDate,
+			selectedMonth,
+			today
+		]
+	);
 
 	// Keep time-based availability fresh
 	useEffect(() => {
@@ -274,18 +236,18 @@ export function useBookingAvailability({
 			return;
 		}
 
-		if (availableTimes.length === 0) {
+		if (pickerOptions.availableTimes.length === 0) {
 			if (selectedTime) {
 				onSelectedTimeInvalidated();
 			}
 			return;
 		}
 
-		if (selectedTime && !availableTimes.includes(selectedTime)) {
+		if (selectedTime && !pickerOptions.availableTimes.includes(selectedTime)) {
 			onSelectedTimeInvalidated();
 		}
 	}, [
-		availableTimes,
+		pickerOptions.availableTimes,
 		date,
 		isLoadingMonthAvailability,
 		isSelectedDateInPast,
@@ -299,13 +261,13 @@ export function useBookingAvailability({
 
 	return {
 		availabilityError,
-		availableTimes,
+		availableTimes: pickerOptions.availableTimes,
 		calendarMonth,
-		disabledDates,
+		disabledDates: pickerOptions.disabledDates,
 		isLoadingMonthAvailability,
-		nextAvailableDate,
-		selectedBusyPeriods: selectedBusyDay?.busyPeriods ?? [],
-		unavailableDates,
+		nextAvailableDate: pickerOptions.nextAvailableDate,
+		selectedBusyPeriods: pickerOptions.selectedBusyPeriods,
+		unavailableDates: pickerOptions.unavailableDates,
 		isSelectedDateInPast,
 		isViewingSelectedMonth,
 		selectedDate,

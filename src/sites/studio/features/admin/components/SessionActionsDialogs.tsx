@@ -36,6 +36,95 @@ type SessionActionsDialogsProps = {
 	onAdminNotesDialogOpenChange: (open: boolean) => void;
 };
 
+function RescheduleLinkDialog({
+	sessionName,
+	rescheduleAction
+}: {
+	sessionName: string;
+	rescheduleAction: ReturnType<typeof useRescheduleAction>;
+}) {
+	const generatedUrl = rescheduleAction.generatedRescheduleUrl;
+	const isGenerating = rescheduleAction.isGeneratingRescheduleLink;
+
+	return (
+		<Dialog
+			open={rescheduleAction.isRescheduleLinkDialogOpen}
+			onOpenChange={rescheduleAction.setIsRescheduleLinkDialogOpen}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>Generate reschedule link?</DialogTitle>
+					<DialogDescription>
+						This will create a new reschedule link for {sessionName}. Any existing active reschedule
+						link they have will stop working.
+					</DialogDescription>
+				</DialogHeader>
+				{generatedUrl ? (
+					<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
+						<span className="font-medium">New reschedule link</span>
+						<a
+							href={generatedUrl}
+							target="_blank"
+							rel="noreferrer"
+							className="break-all text-muted-foreground underline underline-offset-4">
+							{generatedUrl}
+						</a>
+					</div>
+				) : null}
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => rescheduleAction.setIsRescheduleLinkDialogOpen(false)}>
+						{generatedUrl ? "Close" : "Cancel"}
+					</Button>
+					{generatedUrl ? (
+						<Button
+							type="button"
+							onClick={rescheduleAction.copyRescheduleLink}>
+							Copy link
+						</Button>
+					) : (
+						<Button
+							type="button"
+							disabled={isGenerating}
+							onClick={() => {
+								void rescheduleAction.handleGenerateRescheduleLink();
+							}}>
+							{isGenerating ? <LoaderCircle className="size-4 animate-spin" /> : null}
+							{isGenerating ? "Generating..." : "Generate link"}
+						</Button>
+					)}
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+function ReplacementEventDialog({ editAction }: { editAction: ReturnType<typeof useEditAction> }) {
+	return (
+		<Dialog
+			open={editAction.isReplacementEventDialogOpen}
+			onOpenChange={editAction.setIsReplacementEventDialogOpen}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>Google Calendar event repaired</DialogTitle>
+					<DialogDescription>
+						The old Google Calendar event was missing or deleted, so a replacement event was created
+						and linked to this session.
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<Button
+						type="button"
+						onClick={() => editAction.setIsReplacementEventDialogOpen(false)}>
+						OK
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
 export function SessionActionsDialogs({
 	session,
 	details,
@@ -57,58 +146,10 @@ export function SessionActionsDialogs({
 				onOpenChange={onAdminNotesDialogOpenChange}
 			/>
 
-			<Dialog
-				open={rescheduleAction.isRescheduleLinkDialogOpen}
-				onOpenChange={rescheduleAction.setIsRescheduleLinkDialogOpen}>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>Generate reschedule link?</DialogTitle>
-						<DialogDescription>
-							This will create a new reschedule link for {session.name}. Any existing active
-							reschedule link they have will stop working.
-						</DialogDescription>
-					</DialogHeader>
-					{rescheduleAction.generatedRescheduleUrl ? (
-						<div className="flex flex-col gap-2 rounded-md bg-muted p-3 text-sm">
-							<span className="font-medium">New reschedule link</span>
-							<a
-								href={rescheduleAction.generatedRescheduleUrl}
-								target="_blank"
-								rel="noreferrer"
-								className="break-all text-muted-foreground underline underline-offset-4">
-								{rescheduleAction.generatedRescheduleUrl}
-							</a>
-						</div>
-					) : null}
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => rescheduleAction.setIsRescheduleLinkDialogOpen(false)}>
-							{rescheduleAction.generatedRescheduleUrl ? "Close" : "Cancel"}
-						</Button>
-						{rescheduleAction.generatedRescheduleUrl ? (
-							<Button
-								type="button"
-								onClick={rescheduleAction.copyRescheduleLink}>
-								Copy link
-							</Button>
-						) : (
-							<Button
-								type="button"
-								disabled={rescheduleAction.isGeneratingRescheduleLink}
-								onClick={() => {
-									void rescheduleAction.handleGenerateRescheduleLink();
-								}}>
-								{rescheduleAction.isGeneratingRescheduleLink ? (
-									<LoaderCircle className="size-4 animate-spin" />
-								) : null}
-								{rescheduleAction.isGeneratingRescheduleLink ? "Generating..." : "Generate link"}
-							</Button>
-						)}
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<RescheduleLinkDialog
+				sessionName={session.name}
+				rescheduleAction={rescheduleAction}
+			/>
 
 			<EmailInvoiceDialog
 				open={invoiceActions.isEmailInvoiceDialogOpen}
@@ -195,26 +236,7 @@ export function SessionActionsDialogs({
 				}}
 			/>
 
-			<Dialog
-				open={editAction.isReplacementEventDialogOpen}
-				onOpenChange={editAction.setIsReplacementEventDialogOpen}>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>Google Calendar event repaired</DialogTitle>
-						<DialogDescription>
-							The old Google Calendar event was missing or deleted, so a replacement event was
-							created and linked to this session.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							type="button"
-							onClick={() => editAction.setIsReplacementEventDialogOpen(false)}>
-							OK
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<ReplacementEventDialog editAction={editAction} />
 		</>
 	);
 }
