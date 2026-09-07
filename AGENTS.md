@@ -3,7 +3,30 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
-Current Goal: Removing dead code and duplicated code using fallow.
+## Current Goal
+
+There are many tests in this project for convex behaviour. Not all of it is essential.
+
+For this project, I DONT want these:
+- mock tests
+- unit tests
+- integration tests
+- tautological tests
+
+They can be harmful and require high maintenance.
+
+### Switching to E2E tests in CI
+
+- Prioritize E2E for customer-facing flows (booking, checkout, confirmation, reschedule).
+- Admin dashboard actions only need E2E the flow is high-risk or hard to verify. Simple CRUD can rely on existing Convex tests or manual check.
+- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
+- Dont add new mock/unit/integration tests unless there's a strong reason (e.g. complex failure-mode logic impractical to hit through the UI).
+- Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
+
+- E2E runs against Convex preview deployments in CI, never prod.
+- Preview deployments use test env vars only (`sk_test`, sandbox Google calendar/Drive, test Resend addresses).
+- Prod credentials must never appear in CI E2E jobs.
+- Delete test data after each run where possible (Convex records, sandbox calendar events, Drive folders).
 
 ## Stack
 
@@ -11,7 +34,7 @@ Current Goal: Removing dead code and duplicated code using fallow.
 - default to shadcn for ui
 - t3env
 
-For convex code, ALWAYS use `vvstudios-convex` skill
+For convex code or tests, ALWAYS use `vvstudios-convex` skill
 For frontend code, ALWAYS use `vvstudios-frontend` skill
 
 ## Behaviour
@@ -19,8 +42,7 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Ask user before making assumptions that change behavior, UX, architecture
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
-- If proposed rule change is going to cause a lot of change, let me know and we can discuss it.
-- If a change will result in a massive commit, split into different commits.
+- If a task contains lots of changes which would result in a massive commit, propose splitting into different commits per large change or file changed.
 
 ## File/Change Hygiene
 
