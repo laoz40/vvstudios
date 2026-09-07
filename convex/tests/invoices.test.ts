@@ -86,17 +86,17 @@ describe("invoice financial integrity", () => {
 
 		expect(data.amounts).toMatchObject({
 			baseAmount: 299,
-			addonsAmount: 464,
+			addonsAmount: 469,
 			depositAmount: 50,
 			subtotalAmount: 750,
 			totalDueAmount: 700
 		});
 		expect(data.lineItems).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ description: "Essential Edit", quantity: 2, amount: 198 }),
-				expect.objectContaining({ description: "Clip Volume Pack", quantity: 3, amount: 237 }),
+				expect.objectContaining({ description: "Essential Edit", quantity: 2, amount: 200 }),
+				expect.objectContaining({ description: "Clip Volume Pack", quantity: 3, amount: 240 }),
 				expect.objectContaining({ description: "Deposit paid", amount: -50 }),
-				expect.objectContaining({ description: "Manual price adjustment", amount: -13 })
+				expect.objectContaining({ description: "Manual price adjustment", amount: -18 })
 			])
 		);
 		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(

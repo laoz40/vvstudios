@@ -168,11 +168,11 @@ export function buildLocalBusinessJsonLd() {
 				priceCurrency: "AUD"
 			},
 			{ "@type": "Offer", name: "4K recording add-on", price: "49", priceCurrency: "AUD" },
-			{ "@type": "Offer", name: "Video editing add-on", price: "99", priceCurrency: "AUD" },
+			{ "@type": "Offer", name: "Video editing add-on", price: "100", priceCurrency: "AUD" },
 			{
 				"@type": "Offer",
 				name: "Edited social media clips add-on",
-				price: "79",
+				price: "80",
 				priceCurrency: "AUD"
 			},
 			{ "@type": "Offer", name: "Remote podcast add-on", price: "59", priceCurrency: "AUD" }

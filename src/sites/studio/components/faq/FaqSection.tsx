@@ -84,7 +84,7 @@ export const faqSectionCopy: { readonly title: string; readonly items: readonly 
 				question: "Do you offer editing and post-production?",
 				answerParts: [
 					{
-						heading: "Essential Edit ($99) - ",
+						heading: "Essential Edit ($100) - ",
 						value:
 							"Syncs audio to video, enhances sound to a broadcast-ready level, and includes multi-camera switching based on the active speaker."
 					},
@@ -94,7 +94,7 @@ export const faqSectionCopy: { readonly title: string; readonly items: readonly 
 							"Adds a dynamic episode teaser, lower thirds and B-roll, and removes filler words and silences with clean cuts."
 					},
 					{
-						heading: "Clip Volume Pack ($79) - ",
+						heading: "Clip Volume Pack ($80) - ",
 						value:
 							"10 curated clips (15-60s), selected for engagement potential, delivered in vertical format with subtitles for social media."
 					},
