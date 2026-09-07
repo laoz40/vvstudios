@@ -13,7 +13,7 @@ export async function scheduleDriveSetup(
 		bookingId: Id<"bookings">;
 		sessionStartAt: number;
 		duration: string;
-		multiBookingPackageId?: Id<"multiBookingPackages">;
+		packageId?: Id<"packages">;
 	}
 ): Promise<Result<null, DriveSchedulingError>> {
 	const durationResult = parseDurationMinutes(booking.duration);

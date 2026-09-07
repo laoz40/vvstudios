@@ -24,11 +24,11 @@ type DriveStatusFolderName = "Assets" | "Package" | "Session" | DriveChildFolder
 
 // Package session folders live inside their package folder; ordinary sessions sit directly
 // below the client folder, so the session label differs between the two kinds.
-function getSavedPackageFolderName(multiBookingPackage: Doc<"multiBookingPackages"> | null) {
-	if (multiBookingPackage === null) return undefined;
+function getSavedPackageFolderName(packageRecord: Doc<"packages"> | null) {
+	if (packageRecord === null) return undefined;
 	return formatDrivePackageFolderName({
-		packageSize: multiBookingPackage.packageSize,
-		purchasedAt: multiBookingPackage.paidAt ?? multiBookingPackage.createdAt
+		packageSize: packageRecord.packageSize,
+		purchasedAt: packageRecord.paidAt ?? packageRecord.createdAt
 	});
 }
 
@@ -104,11 +104,11 @@ export function buildDriveStatus(args: {
 	booking: Doc<"bookings"> | null;
 	driveClient: Doc<"driveClients"> | null;
 	driveSession: Doc<"driveSessions"> | null;
-	multiBookingPackage: Doc<"multiBookingPackages"> | null;
+	packageRecord: Doc<"packages"> | null;
 	driveSetupFailed: boolean;
 	sharedPackageFolder: SavedPackageFolder | undefined;
 }): DriveDisplayStatus {
-	const packageFolderName = getSavedPackageFolderName(args.multiBookingPackage);
+	const packageFolderName = getSavedPackageFolderName(args.packageRecord);
 	const sessionFolderName = getSavedSessionFolderName(args.booking, args.driveSession);
 
 	if (args.driveSession === null) {
@@ -230,7 +230,7 @@ type DriveWorkflowFailureInputs = {
 	booking: Doc<"bookings"> | null;
 	driveClient: Doc<"driveClients"> | null;
 	driveSession: Doc<"driveSessions"> | null;
-	multiBookingPackage: Doc<"multiBookingPackages"> | null;
+	packageRecord: Doc<"packages"> | null;
 	sharedPackageFolder: SavedPackageFolder | undefined;
 };
 
@@ -239,7 +239,7 @@ function computeHasDriveWorkflowFailure(args: DriveWorkflowFailureInputs) {
 		booking: args.booking,
 		driveClient: args.driveClient,
 		driveSession: args.driveSession,
-		multiBookingPackage: args.multiBookingPackage,
+		packageRecord: args.packageRecord,
 		driveSetupFailed: args.booking?.driveSetupFailureCode !== undefined,
 		sharedPackageFolder: args.sharedPackageFolder
 	});
@@ -321,7 +321,7 @@ function getDriveSetupEntities(
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
 		driveSession: Doc<"driveSessions"> | null;
-		multiBookingPackage: Doc<"multiBookingPackages"> | null;
+		packageRecord: Doc<"packages"> | null;
 		sharedPackageFolder?: { id: string; url: string };
 	} | null
 ) {
@@ -329,7 +329,7 @@ function getDriveSetupEntities(
 		booking: setupInfo?.booking ?? null,
 		driveClient: setupInfo?.driveClient ?? null,
 		driveSession: setupInfo?.driveSession ?? null,
-		multiBookingPackage: setupInfo?.multiBookingPackage ?? null,
+		packageRecord: setupInfo?.packageRecord ?? null,
 		sharedPackageFolder: setupInfo?.sharedPackageFolder
 	};
 }
@@ -339,17 +339,17 @@ function buildDriveStatusFromSetup(
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
 		driveSession: Doc<"driveSessions"> | null;
-		multiBookingPackage: Doc<"multiBookingPackages"> | null;
+		packageRecord: Doc<"packages"> | null;
 		sharedPackageFolder?: { id: string; url: string };
 	} | null
 ) {
-	const { booking, driveClient, driveSession, multiBookingPackage, sharedPackageFolder } =
+	const { booking, driveClient, driveSession, packageRecord, sharedPackageFolder } =
 		getDriveSetupEntities(setupInfo);
 	const folderStatus = buildDriveStatus({
 		booking,
 		driveClient,
 		driveSession,
-		multiBookingPackage,
+		packageRecord,
 		driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
 		sharedPackageFolder
 	});
@@ -380,25 +380,25 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 
 // Admin session lists only need the failure flag, not the full Drive status payload.
 export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: Doc<"bookings">) {
-	const [driveClientFromBooking, driveSession, multiBookingPackage] = await Promise.all([
+	const [driveClientFromBooking, driveSession, packageRecord] = await Promise.all([
 		booking.driveClientId !== undefined ? ctx.db.get(booking.driveClientId) : null,
 		ctx.db
 			.query("driveSessions")
 			.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
 			.unique(),
-		booking.multiBookingPackageId !== undefined ? ctx.db.get(booking.multiBookingPackageId) : null
+		booking.packageId !== undefined ? ctx.db.get(booking.packageId) : null
 	]);
 	const driveClient = await resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking);
 	const sharedPackageFolder =
-		driveSession?.packageFolder === undefined && booking.multiBookingPackageId !== undefined
-			? await loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
+		driveSession?.packageFolder === undefined && booking.packageId !== undefined
+			? await loadSharedPackageFolder(ctx, booking.packageId, booking._id)
 			: undefined;
 
 	return computeHasDriveWorkflowFailure({
 		booking,
 		driveClient,
 		driveSession,
-		multiBookingPackage,
+		packageRecord,
 		sharedPackageFolder
 	});
 }

@@ -22,7 +22,7 @@ const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type PackageReminderArgs = {
-	multiBookingId: Doc<"multiBookingPackages">["_id"];
+	packageId: Doc<"packages">["_id"];
 	reminderType: PackageReminderType;
 };
 
@@ -34,7 +34,7 @@ export async function listPackagesDueForPaymentReminderService(
 	const packagesByStatus = await Promise.all(
 		(["pending_payment", "invoice_email_failed"] as const).map((status) =>
 			ctx.db
-				.query("multiBookingPackages")
+				.query("packages")
 				.withIndex("by_status_and_invoiceDueAt", (query) =>
 					query
 						.eq("status", status)
@@ -61,7 +61,7 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 	const packagesByStatus = await Promise.all(
 		(["paid", "schedule_email_failed"] as const).map((status) =>
 			ctx.db
-				.query("multiBookingPackages")
+				.query("packages")
 				.withIndex("by_status_and_expiresAt", (query) =>
 					query
 						.eq("status", status)
@@ -98,7 +98,7 @@ export function claimPackageReminderService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return okOrThrow(ctx.db.get(args.multiBookingId))
+	return okOrThrow(ctx.db.get(args.packageId))
 		.andThen((packageFromDb) =>
 			packageFromDb ? ok(packageFromDb) : err({ reason: "PACKAGE_NOT_FOUND" as const })
 		)
@@ -106,7 +106,7 @@ export function claimPackageReminderService(
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
-					.patch(args.multiBookingId, {
+					.patch(args.packageId, {
 						packageReminderState: {
 							type: args.reminderType,
 							status: "claimed",
@@ -122,10 +122,10 @@ export function markPackageReminderSentService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return ensurePackageExists(ctx, args.multiBookingId).andThen(() =>
+	return ensurePackageExists(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.multiBookingId, {
+				.patch(args.packageId, {
 					packageReminderState: { type: args.reminderType, status: "sent", sentAt: args.now }
 				})
 				.then(() => null)
@@ -137,10 +137,10 @@ export function markPackageReminderFailedService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { failureCode: string }
 ) {
-	return ensurePackageExists(ctx, args.multiBookingId).andThen(() =>
+	return ensurePackageExists(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.multiBookingId, {
+				.patch(args.packageId, {
 					packageReminderState: {
 						type: args.reminderType,
 						status: "failed",
@@ -152,8 +152,8 @@ export function markPackageReminderFailedService(
 	);
 }
 
-function ensurePackageExists(ctx: MutationCtx, multiBookingId: Doc<"multiBookingPackages">["_id"]) {
-	return okOrThrow(ctx.db.get(multiBookingId)).andThen((packageFromDb) =>
+function ensurePackageExists(ctx: MutationCtx, packageId: Doc<"packages">["_id"]) {
+	return okOrThrow(ctx.db.get(packageId)).andThen((packageFromDb) =>
 		packageFromDb ? ok(null) : err({ reason: "PACKAGE_NOT_FOUND" as const })
 	);
 }
@@ -185,7 +185,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 			try {
 				const claimResult = await fromConvexTuple(
 					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-						multiBookingId: packageRecord._id,
+						packageId: packageRecord._id,
 						now,
 						reminderType: "payment"
 					})
@@ -201,7 +201,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 				if (sendResult.isOk()) {
 					await fromConvexTuple(
 						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
-							multiBookingId: packageRecord._id,
+							packageId: packageRecord._id,
 							now,
 							reminderType: "payment"
 						})
@@ -212,7 +212,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 				await fromConvexTuple(
 					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
 						failureCode: sendResult.error.reason,
-						multiBookingId: packageRecord._id,
+						packageId: packageRecord._id,
 						reminderType: "payment"
 					})
 				);
@@ -248,7 +248,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 
 				const claimResult = await fromConvexTuple(
 					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-						multiBookingId: packageRecord._id,
+						packageId: packageRecord._id,
 						now,
 						reminderType: "expiry"
 					})
@@ -264,7 +264,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 				if (sendResult.isOk()) {
 					await fromConvexTuple(
 						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
-							multiBookingId: packageRecord._id,
+							packageId: packageRecord._id,
 							now,
 							reminderType: "expiry"
 						})
@@ -275,7 +275,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 				await fromConvexTuple(
 					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
 						failureCode: sendResult.error.reason,
-						multiBookingId: packageRecord._id,
+						packageId: packageRecord._id,
 						reminderType: "expiry"
 					})
 				);

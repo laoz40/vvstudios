@@ -8,7 +8,7 @@ import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booki
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { ParsedPackageRequest } from "./packageUpdates";
 import { fromConvexTuple, okOrThrow } from "./result";
-import { sendMultiBookingInvoiceEmail, sendPackageScheduleEmail } from "./email";
+import { sendPackageInvoiceEmail, sendPackageScheduleEmail } from "./email";
 
 type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
 type PackageScheduleEmailResult = ResultAsync<
@@ -23,7 +23,7 @@ export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	return url.toString();
 }
 
-type PackageInvoiceInput = Parameters<typeof sendMultiBookingInvoiceEmail>[0];
+type PackageInvoiceInput = Parameters<typeof sendPackageInvoiceEmail>[0];
 
 export function createPendingPackage(
 	ctx: ActionCtx,
@@ -54,26 +54,26 @@ export function createPendingPackage(
 			...amounts,
 			invoiceLineItems
 		})
-	).map((createResult) => createResult.multiBooking);
+	).map((createResult) => createResult.packageRecord);
 }
 
 export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoiceInput) {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
 		.andThen((bookingSettings) =>
 			okOrThrow(
-				sendMultiBookingInvoiceEmail(packageFromDb, {
+				sendPackageInvoiceEmail(packageFromDb, {
 					leadTimeMinutes: bookingSettings.leadTimeMinutes
 				})
 			).andThen((emailResult) => emailResult)
 		)
 		.map((emailResult) => ({
-			multiBookingId: packageFromDb._id,
+			packageId: packageFromDb._id,
 			invoiceNumber: emailResult.invoiceNumber,
 			status: "sent" as const
 		}))
 		.orElse((emailError) =>
 			ok({
-				multiBookingId: packageFromDb._id,
+				packageId: packageFromDb._id,
 				status: "failed" as const,
 				failureCode: emailError.reason
 			})
@@ -87,21 +87,21 @@ export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoice
 
 export function refreshPackageScheduleToken(
 	ctx: ActionCtx,
-	multiBookingId: Id<"multiBookingPackages">
+	packageId: Id<"packages">
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.packages.refreshPackageScheduleToken, { multiBookingId })
+		ctx.runMutation(internal.packages.refreshPackageScheduleToken, { packageId })
 	);
 }
 
 export function markPackagePaid(
 	ctx: ActionCtx,
-	multiBookingId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	paidAt: number
 ): ResultAsync<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
-			multiBookingId,
+			packageId,
 			paidAt
 		})
 	);
@@ -109,13 +109,13 @@ export function markPackagePaid(
 
 export function sendAndRecordPackageScheduleEmail(
 	ctx: ActionCtx,
-	multiBookingId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	email: PackageScheduleEmailArgs
 ): PackageScheduleEmailResult {
 	return ResultAsync.fromSafePromise(sendPackageScheduleEmail(email)).andThen((emailResult) => {
 		if (emailResult.isErr()) {
 			// Record the failed email so an admin can retry the paid package lifecycle.
-			return recordPackageScheduleEmailAttempt(ctx, multiBookingId, "failed")
+			return recordPackageScheduleEmailAttempt(ctx, packageId, "failed")
 				.mapErr(() => ({
 					reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" as const
 				}))
@@ -123,7 +123,7 @@ export function sendAndRecordPackageScheduleEmail(
 		}
 
 		// Translate a failed status write into the workflow error the admin can act on.
-		return recordPackageScheduleEmailAttempt(ctx, multiBookingId, "sent").mapErr(() => ({
+		return recordPackageScheduleEmailAttempt(ctx, packageId, "sent").mapErr(() => ({
 			reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" as const
 		}));
 	});
@@ -131,10 +131,10 @@ export function sendAndRecordPackageScheduleEmail(
 
 function recordPackageScheduleEmailAttempt(
 	ctx: ActionCtx,
-	multiBookingId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	status: "sent" | "failed"
 ): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.packages.markPackageScheduleEmailAttempt, { multiBookingId, status })
+		ctx.runMutation(internal.packages.markPackageScheduleEmailAttempt, { packageId, status })
 	);
 }

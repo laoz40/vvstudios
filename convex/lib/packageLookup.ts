@@ -11,11 +11,11 @@ export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INACTIVE" }
 	| { reason: "PACKAGE_NOT_PAID" };
 
-export type ValidPackage = Doc<"multiBookingPackages"> & { expiresAt: number };
+export type ValidPackage = Doc<"packages"> & { expiresAt: number };
 
 export function getPackageFromDb(
 	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"multiBookingPackages">
+	packageId: Id<"packages">
 ) {
 	return ResultAsync.fromSafePromise(ctx.db.get(packageId)).andThen((packageFromDb) => {
 		if (!packageFromDb) {
@@ -26,9 +26,9 @@ export function getPackageFromDb(
 	});
 }
 
-export function getPackageForAction(ctx: ActionCtx, packageId: Id<"multiBookingPackages">) {
-	return okOrThrow<Doc<"multiBookingPackages"> | null>(
-		ctx.runQuery(internal.packages.getPackageById, { multiBookingId: packageId })
+export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {
+	return okOrThrow<Doc<"packages"> | null>(
+		ctx.runQuery(internal.packages.getPackageById, { packageId: packageId })
 	).andThen((packageFromDb) => {
 		if (packageFromDb === null) {
 			return err({ reason: "PACKAGE_NOT_FOUND" as const });
@@ -43,7 +43,7 @@ export function getValidPackageByToken(ctx: QueryCtx | MutationCtx, token: strin
 		.andThen((scheduleTokenHash) =>
 			ResultAsync.fromSafePromise(
 				ctx.db
-					.query("multiBookingPackages")
+					.query("packages")
 					.withIndex("by_scheduleTokenHash", (query) =>
 						query.eq("scheduleTokenHash", scheduleTokenHash)
 					)

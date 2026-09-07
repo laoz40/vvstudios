@@ -16,7 +16,7 @@ import type { SessionReservation } from "#convex/lib/sessionReservations";
 import { fromConvexTuple } from "#convex/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
-	if (session.multiBookingPackageId !== undefined) {
+	if (session.packageId !== undefined) {
 		return okAsync<string | undefined>(undefined);
 	}
 
@@ -43,7 +43,7 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 						duration: session.duration,
 						addons: session.addons,
 						rescheduleUrl,
-						isPackageSession: session.multiBookingPackageId !== undefined
+						isPackageSession: session.packageId !== undefined
 					})
 				)
 					.andThen((emailResult) => emailResult)

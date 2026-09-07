@@ -25,19 +25,19 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 
 type SavePackageInstagramHandleArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 	instagramHandle: string;
 };
-type ArchivePackageArgs = { multiBookingId: Id<"multiBookingPackages">; archived: boolean };
-type PackageIdArgs = { multiBookingId: Id<"multiBookingPackages"> };
-type MarkPackageUnpaidArgs = { packageId: Id<"multiBookingPackages"> };
+type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
+type PackageIdArgs = { packageId: Id<"packages"> };
+type MarkPackageUnpaidArgs = { packageId: Id<"packages"> };
 type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
 type MarkPackageScheduleEmailAttemptArgs = PackageIdArgs & { status: "sent" | "failed" };
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 export type PaidPackageResult = {
 	expiresAt: number;
 	paidAt: number;
-	multiBooking: Doc<"multiBookingPackages">;
+	packageRecord: Doc<"packages">;
 	token: string;
 };
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
@@ -48,8 +48,8 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 	);
 
 	return ctx.db
-		.insert("multiBookingPackages", packageRecord)
-		.then((packageId) => ({ multiBooking: { _id: packageId, ...packageRecord } }));
+		.insert("packages", packageRecord)
+		.then((packageId) => ({ packageRecord: { _id: packageId, ...packageRecord } }));
 }
 
 export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOptions) {
@@ -57,7 +57,7 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
-					.query("multiBookingPackages")
+					.query("packages")
 					.withIndex("by_createdAt")
 					.order("desc")
 					.paginate(paginationOpts)
@@ -75,8 +75,8 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 							),
 							ctx.db
 								.query("packageAdjustments")
-								.withIndex("by_multiBookingId", (indexQuery) =>
-									indexQuery.eq("multiBookingId", packageFromDb._id)
+								.withIndex("by_packageId", (indexQuery) =>
+									indexQuery.eq("packageId", packageFromDb._id)
 								)
 								.unique()
 						]);
@@ -105,7 +105,7 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
 	return requirePermission(ctx, "edit:sessions")
-		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
+		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen((existingPackage) =>
 			parsePackageUpdate(args).map((updatedPackage) => ({ existingPackage, updatedPackage }))
 		)
@@ -120,7 +120,7 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 		.andThen((updatedPackage) =>
 			okOrThrow(
 				ctx.db
-					.patch(args.multiBookingId, buildPackageUpdatePatch(args, updatedPackage))
+					.patch(args.packageId, buildPackageUpdatePatch(args, updatedPackage))
 					.then(() => null)
 			)
 		);
@@ -130,7 +130,7 @@ export function savePackageInstagramHandleService(
 	ctx: MutationCtx,
 	args: SavePackageInstagramHandleArgs
 ) {
-	return getPackageFromDb(ctx, args.multiBookingId)
+	return getPackageFromDb(ctx, args.packageId)
 		.andThen((packageFromDb) => {
 			if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
 				return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
@@ -146,11 +146,11 @@ export function savePackageInstagramHandleService(
 
 export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs) {
 	return requirePermission(ctx, "archive:sessions")
-		.andThen(() => getPackageFromDb(ctx, args.multiBookingId))
+		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
-					.patch(args.multiBookingId, { hiddenAt: args.archived ? Date.now() : undefined })
+					.patch(args.packageId, { hiddenAt: args.archived ? Date.now() : undefined })
 					.then(() => null)
 			)
 		);
@@ -184,7 +184,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 	scheduleExpiry: (expiresAt: number) => Promise<unknown>
 ) {
 	return (
-		getPackageFromDb(ctx, args.multiBookingId)
+		getPackageFromDb(ctx, args.packageId)
 			// Reject packages that have already entered their paid lifecycle.
 			.andThen((packageFromDb) => {
 				if (packageFromDb.status === "paid" || packageFromDb.status === "schedule_email_failed") {
@@ -201,7 +201,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 			.andThen((packageSchedulingDetails) =>
 				okOrThrow(
 					ctx.db
-						.patch(args.multiBookingId, {
+						.patch(args.packageId, {
 							expiresAt: packageSchedulingDetails.expiresAt,
 							paidAt: args.paidAt,
 							packageReminderState: undefined,
@@ -221,7 +221,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 			.map((packageSchedulingDetails) => ({
 				expiresAt: packageSchedulingDetails.expiresAt,
 				paidAt: args.paidAt,
-				multiBooking: {
+				packageRecord: {
 					...packageSchedulingDetails.packageFromDb,
 					expiresAt: packageSchedulingDetails.expiresAt,
 					paidAt: args.paidAt,
@@ -235,7 +235,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 }
 
 export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: PackageIdArgs) {
-	return getPackageFromDb(ctx, args.multiBookingId)
+	return getPackageFromDb(ctx, args.packageId)
 		.andThen(validatePackageScheduleTokenRefresh)
 		.andThen((packageFromDb) =>
 			okOrThrow(createPackageScheduleToken()).map((scheduleToken) => ({
@@ -246,11 +246,11 @@ export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: Packa
 		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
 			okOrThrow(
 				ctx.db
-					.patch(args.multiBookingId, { scheduleLinkStatus: "active", scheduleTokenHash })
+					.patch(args.packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
 					.then(() => ({
 						expiresAt: packageFromDb.expiresAt,
 						paidAt: packageFromDb.paidAt,
-						multiBooking: {
+						packageRecord: {
 							...packageFromDb,
 							scheduleLinkStatus: "active" as const,
 							scheduleTokenHash
@@ -286,7 +286,7 @@ export function markPackageInvoiceEmailAttemptService(
 						status: "invoice_email_failed" as const
 					};
 
-		return okOrThrow(ctx.db.patch(args.multiBookingId, patch).then(() => null));
+		return okOrThrow(ctx.db.patch(args.packageId, patch).then(() => null));
 	});
 }
 
@@ -294,10 +294,10 @@ export function markPackageScheduleEmailAttemptService(
 	ctx: MutationCtx,
 	args: MarkPackageScheduleEmailAttemptArgs
 ) {
-	return getPackageFromDb(ctx, args.multiBookingId).andThen(() =>
+	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.multiBookingId, {
+				.patch(args.packageId, {
 					status: args.status === "sent" ? "paid" : "schedule_email_failed"
 				})
 				.then(() => null)

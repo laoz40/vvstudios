@@ -34,7 +34,7 @@ export function validateBookingInvoiceDownload(booking: Doc<"bookings">, now: nu
 }
 
 export function validatePackageInvoiceDownload(
-	packageFromDb: Doc<"multiBookingPackages">,
+	packageFromDb: Doc<"packages">,
 	now: number
 ) {
 	if (now - packageFromDb.createdAt > INVOICE_DOWNLOAD_EXPIRY_MS) {

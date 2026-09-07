@@ -36,7 +36,7 @@ export type SaveClientSessionRescheduleArgs = {
 	confirmBooking?: boolean;
 	googleCalendarId?: string;
 	googleEventId?: string;
-	multiBookingPackageId?: Id<"multiBookingPackages">;
+	packageId?: Id<"packages">;
 	reservation: SessionReservation;
 };
 
@@ -95,7 +95,7 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 							bookingId: session._id,
 							sessionStartAt: updatePatch.sessionStartAt,
 							duration: args.duration,
-							multiBookingPackageId: session.multiBookingPackageId
+							packageId: session.packageId
 						})
 					).andThen((scheduled) => scheduled);
 				})
@@ -106,15 +106,15 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 export function saveClientSessionRescheduleService(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs,
-	schedulePackageAdjustment: (multiBookingId: Id<"multiBookingPackages">) => Promise<unknown>
+	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<unknown>
 ) {
 	return (
 		getSessionFromDb(ctx, args.bookingId)
 			// For package reschedules, check that the session is active and belongs to the package.
 			.andThen((session) => {
 				if (
-					args.multiBookingPackageId !== undefined &&
-					(session.multiBookingPackageId !== args.multiBookingPackageId ||
+					args.packageId !== undefined &&
+					(session.packageId !== args.packageId ||
 						!sessionConsumesPackageCapacity(session))
 				) {
 					return err({ reason: "BOOKING_NOT_FOUND" as const });
@@ -154,18 +154,18 @@ export function saveClientSessionRescheduleService(
 							bookingId: session._id,
 							sessionStartAt: args.sessionStartAt,
 							duration: session.duration,
-							multiBookingPackageId: session.multiBookingPackageId
+							packageId: session.packageId
 						})
 					).andThen((scheduled) => scheduled);
 				})
 			)
 			// Recalculate the package adjustment only for package sessions.
 			.andThen(() => {
-				if (args.multiBookingPackageId === undefined) {
+				if (args.packageId === undefined) {
 					return ok(null);
 				}
 
-				return okOrThrow(schedulePackageAdjustment(args.multiBookingPackageId).then(() => null));
+				return okOrThrow(schedulePackageAdjustment(args.packageId).then(() => null));
 			})
 	);
 }

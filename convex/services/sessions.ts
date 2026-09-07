@@ -125,27 +125,27 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 		bookingsPage.page.map(async (session) => {
 			const hasDriveWorkflowFailure = await getDriveWorkflowFailureForBooking(ctx, session);
 
-			if (!session.multiBookingPackageId) {
+			if (!session.packageId) {
 				return { ...session, hasDriveWorkflowFailure };
 			}
 
-			const multiBookingPackage = await ctx.db.get(session.multiBookingPackageId);
-			if (!multiBookingPackage) return { ...session, hasDriveWorkflowFailure };
+			const packageRecord = await ctx.db.get(session.packageId);
+			if (!packageRecord) return { ...session, hasDriveWorkflowFailure };
 			const packageSessions = await getCapacityConsumingPackageSessions(
 				ctx,
-				multiBookingPackage._id,
-				multiBookingPackage.packageSize
+				packageRecord._id,
+				packageRecord.packageSize
 			);
 
 			return {
 				...session,
 				hasDriveWorkflowFailure,
-				multiBookingInvoiceNumber: formatBookingInvoiceNumber(
-					multiBookingPackage._id,
-					multiBookingPackage.createdAt
+				packageInvoiceNumber: formatBookingInvoiceNumber(
+					packageRecord._id,
+					packageRecord.createdAt
 				),
-				multiBookingPackageSize: multiBookingPackage.packageSize,
-				multiBookingPackageSessionPosition: sessionConsumesPackageCapacity(session)
+				linkedPackageSize: packageRecord.packageSize,
+				packageSessionPosition: sessionConsumesPackageCapacity(session)
 					? packageSessions.findIndex(({ _id }) => _id === session._id) + 1
 					: undefined
 			};
