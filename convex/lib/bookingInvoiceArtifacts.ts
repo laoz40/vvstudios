@@ -5,16 +5,16 @@ import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booki
 import {
 	bookingSchema,
 	DURATION_OPTIONS,
-	multiBookingFormSchema,
+	packageFormSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildBookingInvoiceData,
-	buildMultiBookingInvoiceData,
+	buildPackageInvoiceData,
 	buildPackageAdjustmentInvoiceData,
 	createPackageInvoiceLineItemSnapshot,
 	createPriceAdjustmentInvoiceLineItem,
-	createStoredAmountMultiBookingInvoiceLineItemSnapshot
+	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import type {
@@ -23,7 +23,7 @@ import type {
 } from "#studio/features/booking-invoice/lib/types";
 
 export type MarkPackageInvoiceEmailAttemptArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 	status: "sent" | "failed";
 	invoiceNumber?: string;
 	failureCode?: string;
@@ -60,11 +60,11 @@ type InvoiceEmailArtifacts = {
 
 export type PackageAdjustmentInvoiceInput = {
 	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>;
-	multiBooking: Doc<"multiBookingPackages">;
+	packageRecord: Doc<"packages">;
 };
 
-export type MultiBookingInvoiceInput = Pick<
-	Doc<"multiBookingPackages">,
+export type PackageInvoiceInput = Pick<
+	Doc<"packages">,
 	| "_id"
 	| "name"
 	| "phone"
@@ -89,12 +89,12 @@ export type MultiBookingInvoiceInput = Pick<
 	| "totalDueAmount"
 > & { invoiceLineItems?: BookingInvoiceLineItem[] };
 
-export type CustomMultiBookingInvoiceInput = {
+export type CustomPackageInvoiceInput = {
 	customInvoice: Doc<"customInvoices">;
-	multiBooking: Doc<"multiBookingPackages">;
+	packageRecord: Doc<"packages">;
 };
 
-type CustomMultiBookingFormData = z.infer<typeof multiBookingFormSchema>;
+type CustomPackageFormData = z.infer<typeof packageFormSchema>;
 
 function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
 	return DURATION_OPTIONS.find((duration) => duration === value) ?? "";
@@ -102,48 +102,48 @@ function toCustomDuration(value: string | undefined): BookingFormValues["duratio
 
 function resolveCustomInvoiceQuantity(
 	customInvoice: Doc<"customInvoices">,
-	multiBooking: Doc<"multiBookingPackages">,
+	packageRecord: Doc<"packages">,
 	field:
 		| "essentialEditQuantity"
 		| "completeEditQuantity"
 		| "clipsPackageQuantity"
 		| "handcraftedClipsQuantity"
 ) {
-	return customInvoice[field] ?? multiBooking[field] ?? "";
+	return customInvoice[field] ?? packageRecord[field] ?? "";
 }
 
-function parseCustomMultiBookingInvoice(invoiceInput: CustomMultiBookingInvoiceInput) {
-	const { customInvoice, multiBooking } = invoiceInput;
-	const packageSize = customInvoice.packageSize ?? multiBooking.packageSize;
-	const parsedCustomInvoice = multiBookingFormSchema.safeParse({
-		name: multiBooking.name,
-		phone: multiBooking.phone,
-		accountName: multiBooking.accountName,
-		abn: multiBooking.abn,
-		email: multiBooking.email,
-		duration: customInvoice.duration ?? multiBooking.duration,
+function parseCustomPackageInvoice(invoiceInput: CustomPackageInvoiceInput) {
+	const { customInvoice, packageRecord } = invoiceInput;
+	const packageSize = customInvoice.packageSize ?? packageRecord.packageSize;
+	const parsedCustomInvoice = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: customInvoice.duration ?? packageRecord.duration,
 		addons: customInvoice.addons,
 		essentialEditQuantity: resolveCustomInvoiceQuantity(
 			customInvoice,
-			multiBooking,
+			packageRecord,
 			"essentialEditQuantity"
 		),
 		completeEditQuantity: resolveCustomInvoiceQuantity(
 			customInvoice,
-			multiBooking,
+			packageRecord,
 			"completeEditQuantity"
 		),
 		clipsPackageQuantity: resolveCustomInvoiceQuantity(
 			customInvoice,
-			multiBooking,
+			packageRecord,
 			"clipsPackageQuantity"
 		),
 		handcraftedClipsQuantity: resolveCustomInvoiceQuantity(
 			customInvoice,
-			multiBooking,
+			packageRecord,
 			"handcraftedClipsQuantity"
 		),
-		notes: multiBooking.notes ?? "",
+		notes: packageRecord.notes ?? "",
 		packageSize
 	});
 
@@ -155,7 +155,7 @@ function parseCustomMultiBookingInvoice(invoiceInput: CustomMultiBookingInvoiceI
 }
 
 function createCustomInvoiceLineItems(
-	customInvoiceData: CustomMultiBookingFormData,
+	customInvoiceData: CustomPackageFormData,
 	customDuration: BookingFormValues["duration"] | "",
 	packageSize: number,
 	amounts: ReturnType<typeof calculatePackageAmounts>,
@@ -181,11 +181,11 @@ function createCustomInvoiceLineItems(
 	return invoiceLineItems;
 }
 
-export function createCustomMultiBookingInvoiceData(
-	invoiceInput: CustomMultiBookingInvoiceInput,
+export function createCustomPackageInvoiceData(
+	invoiceInput: CustomPackageInvoiceInput,
 	leadTimeMinutes: number
 ) {
-	return parseCustomMultiBookingInvoice(invoiceInput).map(({ customInvoiceData, packageSize }) => {
+	return parseCustomPackageInvoice(invoiceInput).map(({ customInvoiceData, packageSize }) => {
 		// An omitted custom duration intentionally produces an add-ons-only invoice.
 		const customDuration = toCustomDuration(invoiceInput.customInvoice.duration);
 		const amounts = calculatePackageAmounts({
@@ -205,10 +205,10 @@ export function createCustomMultiBookingInvoiceData(
 		);
 		const invoiceDueAt = invoiceInput.customInvoice.dueDate
 			? new Date(`${invoiceInput.customInvoice.dueDate}T00:00:00`).getTime()
-			: invoiceInput.multiBooking.invoiceDueAt;
+			: invoiceInput.packageRecord.invoiceDueAt;
 
-		return buildMultiBookingInvoiceData({
-			bookingId: invoiceInput.multiBooking._id,
+		return buildPackageInvoiceData({
+			bookingId: invoiceInput.packageRecord._id,
 			name: customInvoiceData.name,
 			phone: customInvoiceData.phone,
 			accountName: customInvoiceData.accountName,
@@ -401,39 +401,39 @@ export function createPackageAdjustmentInvoiceArtifacts(
 	InvoiceEmailArtifacts,
 	{ reason: "INVALID_BOOKING_DATA" } | { reason: "INVOICE_EMAIL_RENDER_FAILED" }
 > {
-	const { adjustment, multiBooking } = invoiceInput;
-	const parsedMultiBooking = multiBookingFormSchema.safeParse({
-		name: multiBooking.name,
-		phone: multiBooking.phone,
-		accountName: multiBooking.accountName,
-		abn: multiBooking.abn,
-		email: multiBooking.email,
-		duration: multiBooking.duration,
-		addons: multiBooking.addons,
-		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
-		completeEditQuantity: multiBooking.completeEditQuantity ?? "",
-		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity ?? "",
-		notes: multiBooking.notes ?? "",
-		packageSize: multiBooking.packageSize
+	const { adjustment, packageRecord } = invoiceInput;
+	const parsedPackage = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
+		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
+		notes: packageRecord.notes ?? "",
+		packageSize: packageRecord.packageSize
 	});
 
-	if (!parsedMultiBooking.success) {
+	if (!parsedPackage.success) {
 		return errAsync({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 
 	const data = buildPackageAdjustmentInvoiceData({
-		abn: multiBooking.abn,
-		accountName: multiBooking.accountName,
-		bookedAt: multiBooking.createdAt,
+		abn: packageRecord.abn,
+		accountName: packageRecord.accountName,
+		bookedAt: packageRecord.createdAt,
 		createdAt: adjustment.createdAt,
-		duration: parsedMultiBooking.data.duration,
-		email: multiBooking.email,
+		duration: parsedPackage.data.duration,
+		email: packageRecord.email,
 		invoiceDueAt: adjustment.invoiceDueAt,
 		invoiceNumber: adjustment.invoiceNumber,
-		name: multiBooking.name,
-		packageSize: multiBooking.packageSize,
-		phone: multiBooking.phone,
+		name: packageRecord.name,
+		packageSize: packageRecord.packageSize,
+		phone: packageRecord.phone,
 		quantity: adjustment.quantity,
 		rate: adjustment.rate,
 		totalAmount: adjustment.totalAmount
@@ -447,66 +447,66 @@ export function createPackageAdjustmentInvoiceArtifacts(
 	}));
 }
 
-export function createMultiBookingInvoiceArtifacts(
-	multiBooking: MultiBookingInvoiceInput,
+export function createPackageInvoiceArtifacts(
+	packageRecord: PackageInvoiceInput,
 	options: { leadTimeMinutes: number }
 ): ResultAsync<
 	InvoiceEmailArtifacts,
 	{ reason: "INVALID_BOOKING_DATA" } | { reason: "INVOICE_EMAIL_RENDER_FAILED" }
 > {
-	const parsedMultiBooking = multiBookingFormSchema.safeParse({
-		name: multiBooking.name,
-		phone: multiBooking.phone,
-		accountName: multiBooking.accountName,
-		abn: multiBooking.abn,
-		email: multiBooking.email,
-		duration: multiBooking.duration,
-		addons: multiBooking.addons,
-		essentialEditQuantity: multiBooking.essentialEditQuantity ?? "",
-		completeEditQuantity: multiBooking.completeEditQuantity ?? "",
-		clipsPackageQuantity: multiBooking.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity ?? "",
-		notes: multiBooking.notes ?? "",
-		packageSize: multiBooking.packageSize
+	const parsedPackage = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
+		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
+		notes: packageRecord.notes ?? "",
+		packageSize: packageRecord.packageSize
 	});
 
-	if (!parsedMultiBooking.success) {
+	if (!parsedPackage.success) {
 		return errAsync({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 
-	const multiBookingData = parsedMultiBooking.data;
+	const packageFormData = parsedPackage.data;
 
 	const invoiceLineItems =
-		multiBooking.invoiceLineItems ??
-		createStoredAmountMultiBookingInvoiceLineItemSnapshot({
-			discountAmount: multiBooking.discountAmount,
-			discountPercent: multiBooking.discountPercent,
-			duration: multiBookingData.duration,
-			packageSize: multiBooking.packageSize,
-			packageSubtotalAmount: multiBooking.packageSubtotalAmount,
-			singleSessionAmount: multiBooking.singleSessionAmount
+		packageRecord.invoiceLineItems ??
+		createStoredAmountPackageInvoiceLineItemSnapshot({
+			discountAmount: packageRecord.discountAmount,
+			discountPercent: packageRecord.discountPercent,
+			duration: packageFormData.duration,
+			packageSize: packageRecord.packageSize,
+			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+			singleSessionAmount: packageRecord.singleSessionAmount
 		});
-	const data = buildMultiBookingInvoiceData({
-		bookingId: multiBooking._id,
-		name: multiBookingData.name,
-		phone: multiBookingData.phone,
-		accountName: multiBookingData.accountName,
-		abn: multiBookingData.abn,
-		email: multiBookingData.email,
-		duration: multiBookingData.duration,
-		addons: multiBookingData.addons,
-		essentialEditQuantity: multiBookingData.essentialEditQuantity || undefined,
-		completeEditQuantity: multiBookingData.completeEditQuantity || undefined,
-		clipsPackageQuantity: multiBookingData.clipsPackageQuantity || undefined,
-		handcraftedClipsQuantity: multiBookingData.handcraftedClipsQuantity || undefined,
-		createdAt: multiBooking.createdAt,
-		invoiceDueAt: multiBooking.invoiceDueAt,
-		invoiceNumber: multiBooking.invoiceNumber,
-		packageSize: multiBooking.packageSize,
-		packageSubtotalAmount: multiBooking.packageSubtotalAmount,
-		discountPercent: multiBooking.discountPercent,
-		discountAmount: multiBooking.discountAmount,
-		totalDueAmount: multiBooking.totalDueAmount,
+	const data = buildPackageInvoiceData({
+		bookingId: packageRecord._id,
+		name: packageFormData.name,
+		phone: packageFormData.phone,
+		accountName: packageFormData.accountName,
+		abn: packageFormData.abn,
+		email: packageFormData.email,
+		duration: packageFormData.duration,
+		addons: packageFormData.addons,
+		essentialEditQuantity: packageFormData.essentialEditQuantity || undefined,
+		completeEditQuantity: packageFormData.completeEditQuantity || undefined,
+		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
+		createdAt: packageRecord.createdAt,
+		invoiceDueAt: packageRecord.invoiceDueAt,
+		invoiceNumber: packageRecord.invoiceNumber,
+		packageSize: packageRecord.packageSize,
+		packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+		discountPercent: packageRecord.discountPercent,
+		discountAmount: packageRecord.discountAmount,
+		totalDueAmount: packageRecord.totalDueAmount,
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes
 	});

@@ -890,7 +890,7 @@ describe("Google Drive editor access setup", () => {
 		const packageId = await seedPackage(t);
 		await seedBooking(t, {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
-			multiBookingPackageId: packageId,
+			packageId: packageId,
 			sessionStartAt: sessionStartAt + 24 * 60 * 60 * 1000
 		});
 		await runSetup(t, bookingId);
@@ -1185,7 +1185,7 @@ describe("Google Drive package workspaces", () => {
 	test("creates the package folder, numbered session folder, and dated media folders", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const bookingId = await seedBooking(t, { packageId: packageId });
 
 		await runSetup(t, bookingId);
 		const state = await readDriveState(t, bookingId);
@@ -1223,7 +1223,7 @@ describe("Google Drive package workspaces", () => {
 		const bookingId = await seedBooking(t, {
 			status: "pending_payment",
 			withReservation: true,
-			multiBookingPackageId: packageId
+			packageId: packageId
 		});
 
 		const result = await t.mutation(internal.bookingConfirmation.markBookingConfirmed, {
@@ -1245,7 +1245,7 @@ describe("Google Drive package workspaces", () => {
 		const packageId = await seedPackage(t);
 		const laterStartAt = sessionStartAt + 7 * 24 * 60 * 60 * 1000;
 		const laterBookingId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
+			packageId: packageId,
 			sessionStartAt: laterStartAt
 		});
 
@@ -1256,7 +1256,7 @@ describe("Google Drive package workspaces", () => {
 
 		// The earlier session was booked after the later one had already created its folder,
 		// so its date-order position is taken and it receives the next free number.
-		const earlierBookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const earlierBookingId = await seedBooking(t, { packageId: packageId });
 		await runSetup(t, earlierBookingId);
 		expect((await readDriveState(t, earlierBookingId)).driveSession).toMatchObject({
 			packageSessionNumber: 2
@@ -1272,9 +1272,9 @@ describe("Google Drive package workspaces", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 		const futureStartAt = sessionStartAt + 30 * 24 * 60 * 60 * 1000;
-		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const bookingId = await seedBooking(t, { packageId: packageId });
 		const futureBookingId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
+			packageId: packageId,
 			sessionStartAt: futureStartAt
 		});
 
@@ -1293,7 +1293,7 @@ describe("Google Drive package workspaces", () => {
 	test("keeps the allocated number across setup retries", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const bookingId = await seedBooking(t, { packageId: packageId });
 		driveFake.failCreateNameOnce = sessionFolderName;
 
 		await runSetup(t, bookingId);
@@ -1321,17 +1321,11 @@ describe("Google Drive package workspaces", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 		const dayMs = 24 * 60 * 60 * 1000;
-		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + dayMs;
-		const secondId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		const thirdStartAt = sessionStartAt + 2 * dayMs;
-		const thirdId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: thirdStartAt
-		});
+		const thirdId = await seedBooking(t, { packageId: packageId, sessionStartAt: thirdStartAt });
 
 		await runSetup(t, firstId);
 		await runSetup(t, secondId, secondStartAt);
@@ -1339,10 +1333,7 @@ describe("Google Drive package workspaces", () => {
 		await t.run((ctx) => ctx.db.patch(secondId, { status: "cancelled" }));
 
 		const fourthStartAt = sessionStartAt + 3 * dayMs;
-		const fourthId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: fourthStartAt
-		});
+		const fourthId = await seedBooking(t, { packageId: packageId, sessionStartAt: fourthStartAt });
 		await runSetup(t, fourthId, fourthStartAt);
 
 		// Number 2 stays reserved by the cancelled session's folder, so the replacement is 4.
@@ -1361,11 +1352,8 @@ describe("Google Drive package workspaces", () => {
 		const packageId = await seedPackage(t);
 		const dayMs = 24 * 60 * 60 * 1000;
 		const secondStartAt = sessionStartAt + dayMs;
-		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
-		const secondId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const firstId = await seedBooking(t, { packageId: packageId });
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 
 		await Promise.all([runSetup(t, firstId), runSetup(t, secondId, secondStartAt)]);
 
@@ -1384,12 +1372,9 @@ describe("Google Drive package workspaces", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 		const dayMs = 24 * 60 * 60 * 1000;
-		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + dayMs;
-		const secondId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		// An ordinary session of the same client must share the client folder and assets library.
 		const ordinaryId = await seedBooking(t, { sessionStartAt: sessionStartAt + 2 * dayMs });
 
@@ -1428,7 +1413,7 @@ describe("Google Drive package workspaces", () => {
 		const packageId = await seedPackage(t);
 		const bookingId = await seedBooking(t, {
 			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier,
-			multiBookingPackageId: packageId
+			packageId: packageId
 		});
 
 		await runSetup(t, bookingId);
@@ -1454,7 +1439,7 @@ describe("Google Drive package workspaces", () => {
 	test("reports the package folder and numbered session label in the status query", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const bookingId = await seedBooking(t, { packageId: packageId });
 
 		await runSetup(t, bookingId);
 		const statusResult = await t
@@ -1476,12 +1461,9 @@ describe("Google Drive package workspaces", () => {
 	test("shows a sibling session's package folder before this session is set up", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
-		const secondId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 
 		await runSetup(t, firstId);
 		const firstStatus = await t
@@ -1552,7 +1534,7 @@ describe("Google Drive reschedule and identity", () => {
 	test("renames dated folders after a post-setup reschedule without changing the package number", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const bookingId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const bookingId = await seedBooking(t, { packageId: packageId });
 
 		await runSetup(t, bookingId);
 		await t.mutation(
@@ -1588,12 +1570,9 @@ describe("Google Drive reschedule and identity", () => {
 	test("allocates unallocated package numbers in the new date order after a pre-setup reschedule", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
-		const firstId = await seedBooking(t, { multiBookingPackageId: packageId });
+		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + 7 * dayMs;
-		const secondId = await seedBooking(t, {
-			multiBookingPackageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		const laterStartAt = sessionStartAt + 14 * dayMs;
 
 		await t.mutation(
@@ -1699,7 +1678,7 @@ async function seedBooking(
 		status?: Doc<"bookings">["status"];
 		withReservation?: boolean;
 		sessionStartAt?: number;
-		multiBookingPackageId?: Id<"multiBookingPackages">;
+		packageId?: Id<"packages">;
 	} = {}
 ) {
 	const bookingStartAt = options.sessionStartAt ?? sessionStartAt;
@@ -1734,7 +1713,7 @@ async function seedBooking(
 			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
-			multiBookingPackageId: options.multiBookingPackageId,
+			packageId: options.packageId,
 			driveClientId,
 			...(options.withReservation
 				? {
@@ -1749,7 +1728,7 @@ async function seedBooking(
 
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", {
+		ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",

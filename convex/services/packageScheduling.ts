@@ -51,7 +51,7 @@ type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<
 type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
 
 export type PackageSessionRequestDetails = {
-	multiBooking: ValidPackage;
+	packageRecord: ValidPackage;
 	eventBufferMinutes: number;
 	leadTimeMinutes: number;
 	sessionStartAt: number;
@@ -59,36 +59,36 @@ export type PackageSessionRequestDetails = {
 
 export type PackageRescheduleRequestDetails = {
 	session: Doc<"bookings">;
-	multiBooking: ValidPackage;
+	packageRecord: ValidPackage;
 	eventBufferMinutes: number;
 	sessionStartAt: number;
 };
 
 export type PackageUnscheduleRequestDetails = {
 	session: Doc<"bookings">;
-	multiBooking: ValidPackage;
+	packageRecord: ValidPackage;
 };
 
 export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 	return getValidPackageByToken(ctx, token, Date.now())
-		.andThen((multiBooking) =>
+		.andThen((packageRecord) =>
 			okOrThrow(
-				getCapacityConsumingPackageSessions(ctx, multiBooking._id, multiBooking.packageSize)
-			).map((sessions) => ({ multiBooking, sessions }))
+				getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize)
+			).map((sessions) => ({ packageRecord, sessions }))
 		)
-		.map(({ multiBooking, sessions }) => ({
-			_id: multiBooking._id,
-			name: multiBooking.name,
-			email: multiBooking.email,
-			duration: multiBooking.duration,
-			addons: multiBooking.addons,
-			essentialEditQuantity: multiBooking.essentialEditQuantity,
-			completeEditQuantity: multiBooking.completeEditQuantity,
-			clipsPackageQuantity: multiBooking.clipsPackageQuantity,
-			handcraftedClipsQuantity: multiBooking.handcraftedClipsQuantity,
-			packageSize: multiBooking.packageSize,
-			expiresAt: multiBooking.expiresAt,
-			defaultSpace: multiBooking.defaultSpace,
+		.map(({ packageRecord, sessions }) => ({
+			_id: packageRecord._id,
+			name: packageRecord.name,
+			email: packageRecord.email,
+			duration: packageRecord.duration,
+			addons: packageRecord.addons,
+			essentialEditQuantity: packageRecord.essentialEditQuantity,
+			completeEditQuantity: packageRecord.completeEditQuantity,
+			clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+			handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+			packageSize: packageRecord.packageSize,
+			expiresAt: packageRecord.expiresAt,
+			defaultSpace: packageRecord.defaultSpace,
 			sessions: sessions.map((session) => ({
 				_id: session._id,
 				date: session.date,
@@ -106,10 +106,10 @@ export function setPackageDefaultSpaceService(
 	ctx: MutationCtx,
 	args: { service: RecordingSpace; token: string }
 ) {
-	return getValidPackageByToken(ctx, args.token, Date.now()).andThen((multiBooking) =>
+	return getValidPackageByToken(ctx, args.token, Date.now()).andThen((packageRecord) =>
 		okOrThrow(
 			ctx.db
-				.patch(multiBooking._id, { defaultSpace: args.service })
+				.patch(packageRecord._id, { defaultSpace: args.service })
 				.then(() => ({ defaultSpace: args.service }))
 		)
 	);
@@ -134,7 +134,7 @@ export function createPackageSessionService(
 			.andThen((details) =>
 				fromConvexTuple(
 					ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
-						submitRateLimitKey: `package:${details.multiBooking._id}`
+						submitRateLimitKey: `package:${details.packageRecord._id}`
 					})
 				).map(() => details)
 			)
@@ -145,7 +145,7 @@ export function createPackageSessionService(
 						session: null,
 						details: toPackageCalendarDetails(
 							args,
-							details.multiBooking,
+							details.packageRecord,
 							details.eventBufferMinutes
 						)
 					})
@@ -169,11 +169,11 @@ export function createPackageSessionService(
 						ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
 							session: {
 								date: args.date,
-								duration: details.multiBooking.duration,
-								email: details.multiBooking.email,
+								duration: details.packageRecord.duration,
+								email: details.packageRecord.email,
 								googleCalendarId: calendar.googleCalendarId,
 								googleEventId: calendar.googleEventId,
-								name: details.multiBooking.name,
+								name: details.packageRecord.name,
 								time: args.time
 							}
 						})
@@ -209,7 +209,7 @@ export function reschedulePackageSessionService(
 				fromConvexTuple(
 					ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 						bookingId: args.bookingId,
-						duration: details.multiBooking.duration,
+						duration: details.packageRecord.duration,
 						eventBufferMinutes: details.eventBufferMinutes,
 						now: Date.now(),
 						sessionStartAt: details.sessionStartAt
@@ -227,7 +227,7 @@ export function reschedulePackageSessionService(
 						session: toPackageCalendarSession(details.session),
 						details: toPackageCalendarDetails(
 							args,
-							details.multiBooking,
+							details.packageRecord,
 							details.eventBufferMinutes
 						)
 					})
@@ -251,11 +251,11 @@ export function reschedulePackageSessionService(
 						time: args.time,
 						service: args.service,
 						notes: args.notes,
-						addons: getPackageSessionAddons(details.multiBooking.addons, args.remotePodcast),
+						addons: getPackageSessionAddons(details.packageRecord.addons, args.remotePodcast),
 						sessionStartAt: details.sessionStartAt,
 						googleCalendarId: calendar.googleCalendarId,
 						googleEventId: calendar.googleEventId,
-						multiBookingPackageId: details.multiBooking._id,
+						packageId: details.packageRecord._id,
 						reservation
 					})
 				)
@@ -321,35 +321,35 @@ export function validatePackageSessionRequestService(
 	return (
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load availability settings after validating the package link.
-			.andThen((multiBooking) =>
+			.andThen((packageRecord) =>
 				okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-					(settings) => ({ multiBooking, settings })
+					(settings) => ({ packageRecord, settings })
 				)
 			)
 			// Enforce package availability before reading sessions that consume capacity.
-			.andThen(({ multiBooking, settings }) =>
-				checkPackageSessionAvailability(args, multiBooking, settings, args.now).map(() => ({
-					multiBooking,
+			.andThen(({ packageRecord, settings }) =>
+				checkPackageSessionAvailability(args, packageRecord, settings, args.now).map(() => ({
+					packageRecord,
 					settings
 				}))
 			)
 			// Confirm a package slot remains before parsing the requested start time.
-			.andThen(({ multiBooking, settings }) =>
+			.andThen(({ packageRecord, settings }) =>
 				okOrThrow(
-					getCapacityConsumingPackageSessions(ctx, multiBooking._id, multiBooking.packageSize)
+					getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize)
 				).andThen((bookings) => {
-					if (bookings.length >= multiBooking.packageSize) {
+					if (bookings.length >= packageRecord.packageSize) {
 						return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
 					}
 
-					return ok({ multiBooking, settings });
+					return ok({ packageRecord, settings });
 				})
 			)
 			// Parse the start time and return only the details needed by the action service.
-			.andThen(({ multiBooking, settings }) =>
+			.andThen(({ packageRecord, settings }) =>
 				getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
 					(sessionStartAt) => ({
-						multiBooking,
+						packageRecord,
 						eventBufferMinutes: settings.eventBufferMinutes,
 						leadTimeMinutes: settings.leadTimeMinutes,
 						sessionStartAt
@@ -365,15 +365,15 @@ export function validatePackageRescheduleRequestService(
 ): ResultAsync<PackageRescheduleRequestDetails, ReschedulePackageSessionError> {
 	return getEditablePackageSession(ctx, args)
 		.andThen((details) =>
-			checkPackageSessionAvailability(args, details.multiBooking, details.settings, args.now).map(
+			checkPackageSessionAvailability(args, details.packageRecord, details.settings, args.now).map(
 				() => details
 			)
 		)
-		.andThen(({ session, multiBooking, settings }) =>
+		.andThen(({ session, packageRecord, settings }) =>
 			getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
 				(sessionStartAt) => ({
 					session,
-					multiBooking,
+					packageRecord,
 					eventBufferMinutes: settings.eventBufferMinutes,
 					sessionStartAt
 				})
@@ -388,22 +388,22 @@ export function validatePackageUnscheduleRequestService(
 	PackageUnscheduleRequestDetails,
 	ValidPackageByTokenError | UnschedulePackageSessionError
 > {
-	return getEditablePackageSession(ctx, args).map(({ session, multiBooking }) => ({
+	return getEditablePackageSession(ctx, args).map(({ session, packageRecord }) => ({
 		session,
-		multiBooking
+		packageRecord
 	}));
 }
 
 export function processPackageAdjustmentAtExpiryService(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages">; expectedExpiresAt: number }
+	args: { packageId: Id<"packages">; expectedExpiresAt: number }
 ) {
 	return processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
 }
 
 export function processPackageAdjustmentWhenSessionsCompleteService(
 	ctx: MutationCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
+	args: { packageId: Id<"packages"> }
 ) {
 	return processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
 }
@@ -411,7 +411,7 @@ export function processPackageAdjustmentWhenSessionsCompleteService(
 export function saveCreatedPackageSessionService(
 	ctx: MutationCtx,
 	args: SaveCreatedPackageSessionArgs,
-	schedulePackageAdjustment: (packageId: Id<"multiBookingPackages">) => Promise<unknown>
+	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<unknown>
 ) {
 	return (
 		getValidPackageByToken(ctx, args.token, args.now)
@@ -465,7 +465,7 @@ export function saveCreatedPackageSessionService(
 							bookingConfirmedAt: args.now,
 							googleCalendarId: args.googleCalendarId,
 							googleEventId: args.googleEventId,
-							multiBookingPackageId: packageFromDb._id,
+							packageId: packageFromDb._id,
 							driveClientId
 						})
 					).andThen((bookingId) =>
@@ -474,7 +474,7 @@ export function saveCreatedPackageSessionService(
 								bookingId,
 								sessionStartAt,
 								duration: packageFromDb.duration,
-								multiBookingPackageId: packageFromDb._id
+								packageId: packageFromDb._id
 							})
 						).andThen((scheduled) => scheduled.map(() => ({ bookingId, packageFromDb })))
 					)

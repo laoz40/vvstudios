@@ -3,9 +3,9 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
-	isMultiBookingSize,
-	MULTI_BOOKING_PLANS,
-	type MultiBookingSize
+	isPackageSize,
+	PACKAGE_PLANS,
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	DELIVERABLE_COUNT_OPTIONS,
@@ -32,7 +32,7 @@ type CustomInvoiceFormFieldsProps<TDraft extends CustomInvoiceFormDraft> = {
 	priceHelpText: string;
 	showService?: boolean;
 	deposit?: { checked: boolean; onChange: (checked: boolean) => void };
-	packageSize?: { value: MultiBookingSize; onChange: (packageSize: MultiBookingSize) => void };
+	packageSize?: { value: PackageSize; onChange: (packageSize: PackageSize) => void };
 	packageDiscount?: { checked: boolean; onChange: (checked: boolean) => void };
 };
 
@@ -245,12 +245,10 @@ function PackageSizeOptions({
 }: {
 	disabled: boolean;
 	idPrefix: string;
-	onChange: (value: MultiBookingSize) => void;
-	packageSize: MultiBookingSize;
+	onChange: (value: PackageSize) => void;
+	packageSize: PackageSize;
 }) {
-	const packageSizeOptions = Object.keys(MULTI_BOOKING_PLANS)
-		.map(Number)
-		.filter(isMultiBookingSize);
+	const packageSizeOptions = Object.keys(PACKAGE_PLANS).map(Number).filter(isPackageSize);
 
 	return (
 		<section className="grid gap-3">

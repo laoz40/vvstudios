@@ -102,7 +102,7 @@ export function customerFilter(row: { original: SessionRecord }, value: unknown)
 	}
 
 	const invoiceNumber =
-		row.original.multiBookingInvoiceNumber ??
+		row.original.packageInvoiceNumber ??
 		formatBookingInvoiceNumber(row.original._id, row.original.pendingPaymentCreatedAt);
 
 	return [

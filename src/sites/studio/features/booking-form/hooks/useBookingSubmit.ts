@@ -6,7 +6,7 @@ import { api } from "#convex/_generated/api";
 import { studioSite } from "#/config/sites";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
-	multiBookingFormSchema,
+	packageFormSchema,
 	pickBookingAddonQuantities,
 	publicBookingSchema,
 	type BookingFormValues
@@ -17,7 +17,7 @@ import {
 	openTermsModal
 } from "#studio/features/booking-form/lib/booking-modal-store";
 import {
-	createMultiBookingToastMessages,
+	createPackageToastMessages,
 	startCheckoutToastMessages
 } from "#studio/features/booking-form/lib/booking-page-errors";
 import { tryCatch } from "#/lib/result";
@@ -45,52 +45,49 @@ export function useBookingSubmit({
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [hasCompletedMultiBooking, setHasCompletedMultiBooking] = useState(false);
+	const [hasCompletedPackageBooking, setHasCompletedPackageBooking] = useState(false);
 	const isSubmittingRef = useRef(false);
 	const submitAfterTermsRef = useRef(false);
 	const navigate = useNavigate();
 
-	const submitMultiBooking = async (parsedValue: BookingFormValues) => {
-		const multiBookingValue = multiBookingFormSchema.parse(parsedValue);
+	const submitPackageBooking = async (parsedValue: BookingFormValues) => {
+		const packageFormValue = packageFormSchema.parse(parsedValue);
 
 		isSubmittingRef.current = true;
 		setIsSubmitting(true);
-		const addonQuantities = pickBookingAddonQuantities(multiBookingValue);
+		const addonQuantities = pickBookingAddonQuantities(packageFormValue);
 
 		const [error, result] = await tryCatch(
 			createPackageRequest({
-				name: multiBookingValue.name,
-				phone: multiBookingValue.phone,
-				accountName: multiBookingValue.accountName,
-				abn: multiBookingValue.abn || undefined,
-				email: multiBookingValue.email,
-				duration: multiBookingValue.duration,
-				addons: multiBookingValue.addons,
+				name: packageFormValue.name,
+				phone: packageFormValue.phone,
+				accountName: packageFormValue.accountName,
+				abn: packageFormValue.abn || undefined,
+				email: packageFormValue.email,
+				duration: packageFormValue.duration,
+				addons: packageFormValue.addons,
 				essentialEditQuantity: addonQuantities.essentialEditQuantity || undefined,
 				completeEditQuantity: addonQuantities.completeEditQuantity || undefined,
 				clipsPackageQuantity: addonQuantities.clipsPackageQuantity || undefined,
 				handcraftedClipsQuantity: addonQuantities.handcraftedClipsQuantity || undefined,
-				notes: multiBookingValue.notes,
-				packageSize: multiBookingValue.packageSize
+				notes: packageFormValue.notes,
+				packageSize: packageFormValue.packageSize
 			})
 		);
 		isSubmittingRef.current = false;
 		setIsSubmitting(false);
 
 		if (error !== null) {
-			toast.error(createMultiBookingToastMessages[error.reason]);
+			toast.error(createPackageToastMessages[error.reason]);
 			return;
 		}
 
 		persistBookingInfoFromForm({ ...parsedValue, notes: "" });
-		setHasCompletedMultiBooking(true);
+		setHasCompletedPackageBooking(true);
 		closeBookingModal();
 		await navigate({
 			to: studioSite.routes.packageComplete,
-			search: {
-				multi_booking_id: result.multiBookingId,
-				package_size: multiBookingValue.packageSize
-			}
+			search: { package_id: result.packageId, package_size: packageFormValue.packageSize }
 		});
 	};
 
@@ -132,7 +129,7 @@ export function useBookingSubmit({
 	};
 
 	const handleSubmit = async (value: BookingFormValues) => {
-		if (isSubmittingRef.current || hasCompletedMultiBooking) {
+		if (isSubmittingRef.current || hasCompletedPackageBooking) {
 			return;
 		}
 
@@ -150,8 +147,8 @@ export function useBookingSubmit({
 
 		submitAfterTermsRef.current = false;
 
-		if (parsedValue.bookingMode === "multi") {
-			await submitMultiBooking(parsedValue);
+		if (parsedValue.bookingMode === "package") {
+			await submitPackageBooking(parsedValue);
 			return;
 		}
 
@@ -159,7 +156,7 @@ export function useBookingSubmit({
 	};
 
 	const handleTermsConfirm = () => {
-		if (isSubmittingRef.current || submitAfterTermsRef.current || hasCompletedMultiBooking) {
+		if (isSubmittingRef.current || submitAfterTermsRef.current || hasCompletedPackageBooking) {
 			return;
 		}
 
@@ -174,7 +171,7 @@ export function useBookingSubmit({
 	return {
 		handleSubmit,
 		handleTermsConfirm,
-		hasCompletedMultiBooking,
+		hasCompletedPackageBooking,
 		isSubmitting,
 		resetTermsSubmit
 	};

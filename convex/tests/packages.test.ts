@@ -37,13 +37,13 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { isAdminPackageRowDimmed } from "#studio/features/admin/lib/admin-packages";
 import {
-	getMultiBookingExpiresAt,
-	getMultiBookingInvoiceDueAt
+	getPackageExpiresAt,
+	getPackageInvoiceDueAt
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
-type SendInvoiceEmail = typeof import("#convex/lib/email").sendMultiBookingInvoiceEmail;
+type SendInvoiceEmail = typeof import("#convex/lib/email").sendPackageInvoiceEmail;
 type SendScheduleEmail = (
 	args: Parameters<typeof import("#convex/lib/email").sendPackageScheduleEmail>[0]
 ) => unknown;
@@ -61,7 +61,7 @@ vi.mock("#convex/env", () => ({
 }));
 
 vi.mock("#convex/lib/email", () => ({
-	sendMultiBookingInvoiceEmail: providerFakes.sendInvoiceEmail,
+	sendPackageInvoiceEmail: providerFakes.sendInvoiceEmail,
 	sendPackageScheduleEmail: providerFakes.sendScheduleEmail
 }));
 
@@ -145,13 +145,13 @@ function createAdminPackageRow(overrides: AdminPackageRowOverrides = {}) {
 describe("package payment confirmation", () => {
 	test("initializes the complete package scheduling lifecycle", async () => {
 		const t = createConvexTest();
-		const multiBookingId = await seedPendingPackage(t);
-		const expiresAt = getMultiBookingExpiresAt(now, 4);
+		const packageId = await seedPendingPackage(t);
+		const expiresAt = getPackageExpiresAt(now, 4);
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
-		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
+			.action(api.packagePayment.confirmPackagePayment, { packageId });
+		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
 		const emailCall = providerFakes.sendScheduleEmail.mock.calls[0];
 		if (!emailCall) {
 			throw new Error("Expected sendScheduleEmail to be called");
@@ -179,24 +179,22 @@ describe("package payment confirmation", () => {
 		expect(emailArgs.scheduleUrl).toContain("https://example.com/package-schedule/");
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
-			args: [{ expectedExpiresAt: expiresAt, multiBookingId }],
+			args: [{ expectedExpiresAt: expiresAt, packageId }],
 			scheduledTime: expiresAt
 		});
 	});
 
 	test("rejects repeated confirmation without replacing the paid lifecycle", async () => {
 		const t = createConvexTest();
-		const multiBookingId = await seedPendingPackage(t);
+		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			multiBookingId
-		});
-		const firstState = await readLifecycleState(t, multiBookingId);
+		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
+		const firstState = await readLifecycleState(t, packageId);
 		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			multiBookingId
+			packageId
 		});
-		const secondState = await readLifecycleState(t, multiBookingId);
+		const secondState = await readLifecycleState(t, packageId);
 
 		expect(firstResult).toEqual([null, null]);
 		expect(secondResult).toEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
@@ -207,14 +205,14 @@ describe("package payment confirmation", () => {
 
 	test("allows only one concurrent confirmation to create the paid lifecycle", async () => {
 		const t = createConvexTest();
-		const multiBookingId = await seedPendingPackage(t);
+		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
 		const results = await Promise.all([
-			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId }),
-			admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
+			admin.action(api.packagePayment.confirmPackagePayment, { packageId }),
+			admin.action(api.packagePayment.confirmPackagePayment, { packageId })
 		]);
-		const { packageRecord, scheduledJobs } = await readLifecycleState(t, multiBookingId);
+		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
 
 		expect(results).toContainEqual([null, null]);
 		expect(results).toContainEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
@@ -225,23 +223,23 @@ describe("package payment confirmation", () => {
 
 	test("recovers a failed scheduling email by rotating only the token", async () => {
 		const t = createConvexTest();
-		const multiBookingId = await seedPendingPackage(t);
+		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 		providerFakes.sendScheduleEmail
 			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
 			.mockResolvedValueOnce(ok(null));
 
 		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			multiBookingId
+			packageId
 		});
-		const failedState = await readLifecycleState(t, multiBookingId);
+		const failedState = await readLifecycleState(t, packageId);
 		const firstToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl
 		);
 		const retryResult = await admin.action(api.packagePayment.retryPackageSchedulingEmail, {
-			multiBookingId
+			packageId
 		});
-		const recoveredState = await readLifecycleState(t, multiBookingId);
+		const recoveredState = await readLifecycleState(t, packageId);
 		const retryToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[1]?.[0]?.scheduleUrl
 		);
@@ -249,7 +247,7 @@ describe("package payment confirmation", () => {
 		expect(confirmationResult).toEqual([{ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }, null]);
 		expect(failedState.packageRecord).toMatchObject({
 			paidAt: now,
-			expiresAt: getMultiBookingExpiresAt(now, 4),
+			expiresAt: getPackageExpiresAt(now, 4),
 			status: "schedule_email_failed"
 		});
 		expect(retryResult).toEqual([null, null]);
@@ -277,20 +275,18 @@ describe("package payment confirmation", () => {
 
 	test("marking a package unpaid clears lifecycle state and revokes its token", async () => {
 		const t = createConvexTest();
-		const multiBookingId = await seedPendingPackage(t);
+		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
-		await admin.action(api.packagePayment.confirmPackagePayment, { multiBookingId });
+		await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
 		const token = getScheduleToken(providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl);
 		await t.run((ctx) =>
-			ctx.db.patch(multiBookingId, {
+			ctx.db.patch(packageId, {
 				packageReminderState: { type: "expiry", status: "sent", sentAt: now }
 			})
 		);
 
-		const result = await admin.mutation(api.packages.markPackageUnpaid, {
-			packageId: multiBookingId
-		});
-		const { packageRecord } = await readLifecycleState(t, multiBookingId);
+		const result = await admin.mutation(api.packages.markPackageUnpaid, { packageId: packageId });
+		const { packageRecord } = await readLifecycleState(t, packageId);
 		const tokenResult = await t.query(api.packageScheduling.getPackageByToken, { token });
 
 		expect(result).toEqual([null, null]);
@@ -311,10 +307,7 @@ describe("package request creation", () => {
 		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
-		expect(result).toEqual([
-			null,
-			{ multiBookingId: packages[0]?._id, invoiceEmailStatus: "sent" }
-		]);
+		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "sent" }]);
 		expect(packages).toHaveLength(1);
 		expect(packages[0]).toMatchObject({
 			name: "Test customer",
@@ -338,7 +331,7 @@ describe("package request creation", () => {
 			],
 			status: "pending_payment",
 			createdAt: now,
-			invoiceDueAt: getMultiBookingInvoiceDueAt(now),
+			invoiceDueAt: getPackageInvoiceDueAt(now),
 			invoiceNumber: "VV-20300101-TEST",
 			invoiceEmailStatus: "sent",
 			invoiceEmailSentAt: now,
@@ -384,10 +377,7 @@ describe("package request creation", () => {
 		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
-		expect(result).toEqual([
-			null,
-			{ multiBookingId: packages[0]?._id, invoiceEmailStatus: "failed" }
-		]);
+		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "failed" }]);
 		expect(packages).toHaveLength(1);
 		expect(packages[0]).toMatchObject({
 			status: "invoice_email_failed",
@@ -414,7 +404,7 @@ describe("admin package management", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.mutation(api.packages.updatePackageFromAdmin, {
-				multiBookingId: packageId,
+				packageId: packageId,
 				...editedPackage,
 				packageSize: 4
 			});
@@ -429,7 +419,7 @@ describe("admin package management", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		const calculatedResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
-			multiBookingId: packageId,
+			packageId: packageId,
 			...editedPackage
 		});
 		const calculatedPackage = await readPackage(t, packageId);
@@ -451,7 +441,7 @@ describe("admin package management", () => {
 		});
 
 		const customResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
-			multiBookingId: packageId,
+			packageId: packageId,
 			...editedPackage,
 			totalDueAmount: 2000
 		});
@@ -475,12 +465,12 @@ describe("admin package management", () => {
 });
 
 async function readPackages(t: TestClient) {
-	return await t.run((ctx) => ctx.db.query("multiBookingPackages").collect());
+	return await t.run((ctx) => ctx.db.query("packages").collect());
 }
 
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", {
+		ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400 000 000",
 			accountName: "Test account",
@@ -509,7 +499,7 @@ async function seedPackage(t: TestClient) {
 
 async function seedPackageSession(
 	t: TestClient,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	index: number,
 	status: "confirmed" | "email_failed"
 ) {
@@ -527,12 +517,12 @@ async function seedPackageSession(
 			addons: [],
 			status,
 			pendingPaymentCreatedAt: now,
-			multiBookingPackageId: packageId
+			packageId: packageId
 		})
 	);
 }
 
-async function readPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
+async function readPackage(t: TestClient, packageId: Id<"packages">) {
 	return await t.run((ctx) => ctx.db.get(packageId));
 }
 
@@ -547,7 +537,7 @@ async function seedPendingPackage(t: TestClient) {
 			updatedAt: now
 		});
 
-		return await ctx.db.insert("multiBookingPackages", {
+		return await ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -570,10 +560,10 @@ async function seedPendingPackage(t: TestClient) {
 
 async function readLifecycleState(
 	t: TestClient,
-	multiBookingId: Awaited<ReturnType<typeof seedPendingPackage>>
+	packageId: Awaited<ReturnType<typeof seedPendingPackage>>
 ) {
 	return await t.run(async (ctx) => ({
-		packageRecord: await ctx.db.get(multiBookingId),
+		packageRecord: await ctx.db.get(packageId),
 		scheduledJobs: await ctx.db.system.query("_scheduled_functions").collect()
 	}));
 }

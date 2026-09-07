@@ -141,38 +141,32 @@ function getPackageSessionEndAt(booking: Pick<Doc<"bookings">, "duration" | "ses
 }
 
 export type ProcessPackageAdjustmentArgs =
-	| { trigger: "all_sessions_completed"; multiBookingId: Id<"multiBookingPackages"> }
-	| {
-			trigger: "package_expired";
-			multiBookingId: Id<"multiBookingPackages">;
-			expectedExpiresAt: number;
-	  };
+	| { trigger: "all_sessions_completed"; packageId: Id<"packages"> }
+	| { trigger: "package_expired"; packageId: Id<"packages">; expectedExpiresAt: number };
 
 export async function processPackageAdjustment(
 	ctx: MutationCtx,
 	args: ProcessPackageAdjustmentArgs
 ) {
-	const multiBooking = await getPackageEligibleForAdjustment(ctx, args);
+	const packageRecord = await getPackageEligibleForAdjustment(ctx, args);
 
-	if (!multiBooking) return null;
+	if (!packageRecord) return null;
 
 	const existingAdjustment = await ctx.db
 		.query("packageAdjustments")
-		.withIndex("by_multiBookingId", (indexQuery) =>
-			indexQuery.eq("multiBookingId", args.multiBookingId)
-		)
+		.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
 		.unique();
 
 	if (existingAdjustment) return null;
 
 	const bookings = await getCapacityConsumingPackageSessions(
 		ctx,
-		multiBooking._id,
-		multiBooking.packageSize
+		packageRecord._id,
+		packageRecord.packageSize
 	);
 
 	// Closing before expiry requires every package session to be scheduled.
-	if (args.trigger === "all_sessions_completed" && bookings.length !== multiBooking.packageSize) {
+	if (args.trigger === "all_sessions_completed" && bookings.length !== packageRecord.packageSize) {
 		return null;
 	}
 
@@ -189,23 +183,23 @@ async function getPackageEligibleForAdjustment(
 	ctx: MutationCtx,
 	args: ProcessPackageAdjustmentArgs
 ) {
-	const multiBooking = await ctx.db.get(args.multiBookingId);
+	const packageRecord = await ctx.db.get(args.packageId);
 
-	if (!multiBooking) return null;
+	if (!packageRecord) return null;
 
 	const hasAdjustableStatus =
-		multiBooking.status === "paid" || multiBooking.status === "schedule_email_failed";
+		packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed";
 
 	if (!hasAdjustableStatus) return null;
 
 	if (args.trigger === "package_expired") {
 		// Ignore stale expiry jobs and jobs that run before the package expires.
-		if (multiBooking.expiresAt !== args.expectedExpiresAt || Date.now() < args.expectedExpiresAt) {
+		if (packageRecord.expiresAt !== args.expectedExpiresAt || Date.now() < args.expectedExpiresAt) {
 			return null;
 		}
 	}
 
-	return multiBooking;
+	return packageRecord;
 }
 
 async function handlePackageAdjustmentEvaluation(
@@ -219,7 +213,7 @@ async function handlePackageAdjustmentEvaluation(
 			return schedulePackageAdjustmentReevaluation(ctx, args, evaluation.nextCheckAt);
 		case "invalid_duration":
 			console.error("Package adjustment could not parse a session duration", {
-				multiBookingId: args.multiBookingId
+				packageId: args.packageId
 			});
 			return null;
 		case "ready":
@@ -263,7 +257,7 @@ async function savePackageAdjustment(
 	if (evaluation.quantity === 0) {
 		await ctx.db.insert("packageAdjustments", {
 			outcome: "no_charge",
-			multiBookingId: args.multiBookingId,
+			packageId: args.packageId,
 			trigger: args.trigger,
 			remotePodcastBookingIds: [],
 			quantity: 0,
@@ -276,7 +270,7 @@ async function savePackageAdjustment(
 
 	const adjustmentId = await ctx.db.insert("packageAdjustments", {
 		outcome: "invoice_required",
-		multiBookingId: args.multiBookingId,
+		packageId: args.packageId,
 		trigger: args.trigger,
 		remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
 		quantity: evaluation.quantity,

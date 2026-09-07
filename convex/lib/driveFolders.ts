@@ -193,7 +193,7 @@ export function allocatePackageSessionNumber(
 		});
 }
 
-type PackageBooking = { booking: Doc<"bookings">; packageId: Id<"multiBookingPackages"> };
+type PackageBooking = { booking: Doc<"bookings">; packageId: Id<"packages"> };
 
 function getPackageBooking(
 	ctx: MutationCtx,
@@ -201,10 +201,10 @@ function getPackageBooking(
 ): ResultAsync<PackageBooking, PackageSessionNumberError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-		if (booking.multiBookingPackageId === undefined) {
+		if (booking.packageId === undefined) {
 			return err({ reason: "BOOKING_NOT_PACKAGE" as const });
 		}
-		return ok({ booking, packageId: booking.multiBookingPackageId });
+		return ok({ booking, packageId: booking.packageId });
 	});
 }
 
@@ -300,12 +300,9 @@ function savePackageSessionNumber(
 
 // Numbers of sessions with a saved number stay reserved even when cancelled, because their
 // folders already exist in Drive.
-async function loadSavedPackageSessionNumbers(
-	ctx: MutationCtx,
-	multiBookingId: Id<"multiBookingPackages">
-) {
+async function loadSavedPackageSessionNumbers(ctx: MutationCtx, packageId: Id<"packages">) {
 	const savedNumbers = new Set<number>();
-	const packageBookings = await loadPackageBookings(ctx, multiBookingId);
+	const packageBookings = await loadPackageBookings(ctx, packageId);
 	await Promise.all(
 		packageBookings.map(async (packageBooking) => {
 			const driveSession = await ctx.db
@@ -320,11 +317,8 @@ async function loadSavedPackageSessionNumbers(
 	return savedNumbers;
 }
 
-async function loadPackageSessionsSortedByDate(
-	ctx: MutationCtx,
-	multiBookingId: Id<"multiBookingPackages">
-) {
-	return (await loadPackageBookings(ctx, multiBookingId))
+async function loadPackageSessionsSortedByDate(ctx: MutationCtx, packageId: Id<"packages">) {
+	return (await loadPackageBookings(ctx, packageId))
 		.filter((packageBooking) => packageBooking.status !== "cancelled")
 		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }

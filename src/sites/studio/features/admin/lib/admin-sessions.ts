@@ -11,9 +11,9 @@ import { getBookingStartTimestamp, isUpcomingBooking } from "#studio/lib/booking
 
 export type SessionRecord = Doc<"bookings"> & {
 	hasDriveWorkflowFailure?: boolean;
-	multiBookingInvoiceNumber?: string;
-	multiBookingPackageSize?: 4 | 8 | 12;
-	multiBookingPackageSessionPosition?: number;
+	packageInvoiceNumber?: string;
+	linkedPackageSize?: 4 | 8 | 12;
+	packageSessionPosition?: number;
 };
 
 export function toAdminSessionDuration(
@@ -23,7 +23,7 @@ export function toAdminSessionDuration(
 }
 
 export function isCapacityConsumingPackageSession(session: SessionRecord) {
-	return session.multiBookingPackageId !== undefined && sessionConsumesPackageCapacity(session);
+	return session.packageId !== undefined && sessionConsumesPackageCapacity(session);
 }
 
 export type SessionActionDetails = {
@@ -51,19 +51,19 @@ export function isStaleCleanupSession(session: SessionRecord, now = Date.now()) 
 }
 
 export function getPackageSessionProgressLabel(session: SessionRecord) {
-	if (!session.multiBookingPackageId) {
+	if (!session.packageId) {
 		return null;
 	}
 
 	if (
 		!isCapacityConsumingPackageSession(session) ||
-		!session.multiBookingPackageSize ||
-		!session.multiBookingPackageSessionPosition
+		!session.linkedPackageSize ||
+		!session.packageSessionPosition
 	) {
 		return "Package";
 	}
 
-	return `${session.multiBookingPackageSessionPosition}/${session.multiBookingPackageSize}`;
+	return `${session.packageSessionPosition}/${session.linkedPackageSize}`;
 }
 
 export type SessionSortId = "name" | "session" | "createdAt";

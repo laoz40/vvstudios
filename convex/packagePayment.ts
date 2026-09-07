@@ -31,16 +31,16 @@ export const createPackageRequest = action({
 });
 
 export const resendPackageInvoiceEmail = action({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => resendPackageInvoiceEmailService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const confirmPackagePayment = action({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const retryPackageSchedulingEmail = action({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => retryPackageSchedulingEmailService(ctx, args).match(tupleOk, tupleErr)
 });

@@ -31,8 +31,8 @@ export function getPackageAdjustmentInvoiceInputService(
 	args: { adjustmentId: Id<"packageAdjustments"> }
 ) {
 	return getSentPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) =>
-		getPackageFromDb(ctx, adjustment.multiBookingId)
-			.map((multiBooking) => ({ adjustment, multiBooking }))
+		getPackageFromDb(ctx, adjustment.packageId)
+			.map((packageRecord) => ({ adjustment, packageRecord }))
 			.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const }))
 	);
 }
@@ -48,19 +48,19 @@ export function claimPackageAdjustmentInvoiceEmailService(
 			.andThen((adjustment) => validatePackageAdjustmentEmailClaim(adjustment, args))
 			// Load the package snapshot needed to render and send the adjustment invoice.
 			.andThen((adjustment) =>
-				getPackageFromDb(ctx, adjustment.multiBookingId).map((multiBooking) => ({
+				getPackageFromDb(ctx, adjustment.packageId).map((packageRecord) => ({
 					adjustment,
-					multiBooking
+					packageRecord
 				}))
 			)
 			// Claim the email and schedule recovery if the sender never records a result.
-			.andThen(({ adjustment, multiBooking }) =>
+			.andThen(({ adjustment, packageRecord }) =>
 				okOrThrow(
 					ctx.db
 						.patch(adjustment._id, { invoiceEmailClaimedAt: args.now })
 						// If the sender never records sent or failed, this delayed job releases its claim.
 						.then(scheduleStalledEmailRecovery)
-						.then(() => ({ adjustment, multiBooking }))
+						.then(() => ({ adjustment, packageRecord }))
 				)
 			)
 	);

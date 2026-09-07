@@ -13,7 +13,7 @@ import {
 	formatBookingPriceWithCents,
 	getBookingAddonQuantity,
 	getBookingTotal,
-	isMultiBookingSize
+	isPackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -24,27 +24,27 @@ function formatQuantityLabel(quantity: number, label: string) {
 
 function BookingSummaryTotal({
 	isWaitingForPackage,
-	multiBookingAmounts,
+	packageAmounts,
 	total
 }: {
 	isWaitingForPackage: boolean;
-	multiBookingAmounts: ReturnType<typeof calculatePackageAmounts> | null;
+	packageAmounts: ReturnType<typeof calculatePackageAmounts> | null;
 	total: number;
 }) {
-	if (multiBookingAmounts) {
+	if (packageAmounts) {
 		return (
 			<>
 				<div className="flex items-center justify-between text-muted-foreground">
 					<p>Package subtotal</p>
-					<p>{formatBookingPriceWithCents(multiBookingAmounts.packageSubtotalAmount)}</p>
+					<p>{formatBookingPriceWithCents(packageAmounts.packageSubtotalAmount)}</p>
 				</div>
 				<div className="flex items-center justify-between text-primary">
-					<p>{multiBookingAmounts.discountPercent}% package discount</p>
-					<p>-{formatBookingPriceWithCents(multiBookingAmounts.discountAmount)}</p>
+					<p>{packageAmounts.discountPercent}% package discount</p>
+					<p>-{formatBookingPriceWithCents(packageAmounts.discountAmount)}</p>
 				</div>
 				<div className="flex items-center justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
 					<p>Total</p>
-					<p>{formatBookingPriceWithCents(multiBookingAmounts.totalDueAmount)}</p>
+					<p>{formatBookingPriceWithCents(packageAmounts.totalDueAmount)}</p>
 				</div>
 				<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
 					You can schedule session dates after payment.
@@ -79,20 +79,20 @@ export function BookingSummary() {
 	const [openSummaryItem, setOpenSummaryItem] = useState<string | undefined>();
 	const formApi = useBookingFormContext();
 	const values = useSelector(formApi.store, (state) => state.values);
-	const isMultiBooking = values.bookingMode === "multi";
+	const isPackageBooking = values.bookingMode === "package";
 	const durationCost = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const total = getBookingTotal(values);
-	const multiBookingAmounts =
-		isMultiBooking && isMultiBookingSize(values.packageSize)
+	const packageAmounts =
+		isPackageBooking && isPackageSize(values.packageSize)
 			? calculatePackageAmounts({ ...values, packageSize: values.packageSize })
 			: null;
-	const isWaitingForPackage = isMultiBooking && !multiBookingAmounts;
-	const sessionQuantity = multiBookingAmounts?.packageSize ?? 1;
+	const isWaitingForPackage = isPackageBooking && !packageAmounts;
+	const sessionQuantity = packageAmounts?.packageSize ?? 1;
 	const durationLineTotal = durationCost * sessionQuantity;
-	const bookingLabel = isMultiBooking
+	const bookingLabel = isPackageBooking
 		? `${values.duration} Studio Session`
 		: [values.service, values.duration].filter(Boolean).join(" ");
-	const showBookingLine = isMultiBooking ? Boolean(values.duration) : Boolean(bookingLabel);
+	const showBookingLine = isPackageBooking ? Boolean(values.duration) : Boolean(bookingLabel);
 	return (
 		<div className="space-y-2 text-sm leading-normal tabular-nums">
 			<Accordion
@@ -142,7 +142,7 @@ export function BookingSummary() {
 			<div className="space-y-2 border-border pt-2">
 				<BookingSummaryTotal
 					isWaitingForPackage={isWaitingForPackage}
-					multiBookingAmounts={multiBookingAmounts}
+					packageAmounts={packageAmounts}
 					total={total}
 				/>
 			</div>

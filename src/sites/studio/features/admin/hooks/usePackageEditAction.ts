@@ -8,13 +8,13 @@ import type { PackageEditDraft } from "#studio/features/admin/components/Package
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
 import {
-	multiBookingFormSchema,
+	packageFormSchema,
 	pickBookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
-type ParsedPackageValues = ReturnType<typeof multiBookingFormSchema.parse>;
+type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
 type PackageTotalResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 function buildPackageUpdateInput(
@@ -24,7 +24,7 @@ function buildPackageUpdateInput(
 	totalDueAmountResult: PackageTotalResult
 ) {
 	return {
-		multiBookingId: packageRow.id,
+		packageId: packageRow.id,
 		name: parsedValues.name,
 		phone: parsedValues.phone,
 		accountName: parsedValues.accountName,
@@ -43,7 +43,7 @@ function buildPackageUpdateInput(
 }
 
 function parsePackageEditValues(values: PackageEditDraft) {
-	const parsedValues = multiBookingFormSchema.safeParse({
+	const parsedValues = packageFormSchema.safeParse({
 		name: values.customerName,
 		phone: values.customerPhone,
 		accountName: values.accountName,

@@ -200,7 +200,7 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 							bookingId: session._id,
 							sessionStartAt: session.sessionStartAt,
 							duration: session.duration,
-							multiBookingPackageId: session.multiBookingPackageId
+							packageId: session.packageId
 						})
 					).andThen((scheduled) => scheduled)
 				)

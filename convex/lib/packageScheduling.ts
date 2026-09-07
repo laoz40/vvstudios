@@ -14,8 +14,8 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	getMultiBookingExpiresAt,
-	type MultiBookingSize
+	getPackageExpiresAt,
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { api } from "#convex/_generated/api";
@@ -41,19 +41,19 @@ export async function createPackageScheduleToken() {
 }
 
 export async function createPackageSchedulingDetails(
-	packageFromDb: Doc<"multiBookingPackages">,
+	packageFromDb: Doc<"packages">,
 	paidAt: number
 ) {
 	const scheduleToken = await createPackageScheduleToken();
 
 	return {
 		...scheduleToken,
-		expiresAt: getMultiBookingExpiresAt(paidAt, packageFromDb.packageSize),
+		expiresAt: getPackageExpiresAt(paidAt, packageFromDb.packageSize),
 		packageFromDb
 	};
 }
 
-export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBookingPackages">) {
+export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"packages">) {
 	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
 		return err({ reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" as const });
 	}
@@ -68,7 +68,7 @@ export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"multiBoo
 export function getPackageUpdateValidationError(
 	values: PackageAdminUpdateValues,
 	bookedSessionCount: number,
-	packageSize: MultiBookingSize
+	packageSize: PackageSize
 ) {
 	if (packageSize < bookedSessionCount) {
 		return "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" as const;
@@ -135,7 +135,7 @@ export function sessionConsumesPackageCapacity(session: Pick<Doc<"bookings">, "s
 
 export async function getCapacityConsumingPackageSessions(
 	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	packageSize: 4 | 8 | 12
 ) {
 	const bookings: Doc<"bookings">[] = [];
@@ -143,8 +143,8 @@ export async function getCapacityConsumingPackageSessions(
 		capacityConsumingSessionStatuses.map((status) =>
 			ctx.db
 				.query("bookings")
-				.withIndex("by_multiBookingPackageId_and_status_and_sessionStartAt", (q) =>
-					q.eq("multiBookingPackageId", packageId).eq("status", status)
+				.withIndex("by_packageId_and_status_and_sessionStartAt", (q) =>
+					q.eq("packageId", packageId).eq("status", status)
 				)
 				.take(packageSize)
 		)
@@ -157,12 +157,12 @@ export async function getCapacityConsumingPackageSessions(
 
 export async function getPackageSessionForToken(
 	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	bookingId: Id<"bookings">
 ) {
 	const session = await ctx.db.get(bookingId);
 
-	if (!session || session.multiBookingPackageId !== packageId) {
+	if (!session || session.packageId !== packageId) {
 		return null;
 	}
 
@@ -171,14 +171,14 @@ export async function getPackageSessionForToken(
 
 export function checkPackageSessionAvailability(
 	args: { date: string; time: string },
-	multiBooking: ValidPackage,
+	packageRecord: ValidPackage,
 	settings: SessionAvailabilitySettings,
 	now: number
 ) {
 	return checkSessionMeetsAvailabilitySettings({
 		date: args.date,
-		duration: multiBooking.duration,
-		latestBookableDate: new Date(multiBooking.expiresAt),
+		duration: packageRecord.duration,
+		latestBookableDate: new Date(packageRecord.expiresAt),
 		now,
 		settings,
 		time: args.time,
@@ -205,27 +205,27 @@ export function toPackageCalendarDetails(
 		service: Exclude<BookingFormValues["service"], "">;
 		remotePodcast: boolean;
 	},
-	multiBooking: ValidPackage,
+	packageRecord: ValidPackage,
 	eventBufferMinutes: number
 ) {
-	if (!isDurationOption(multiBooking.duration)) {
+	if (!isDurationOption(packageRecord.duration)) {
 		throw new Error("Package duration is invalid");
 	}
 
 	return {
-		addons: getPackageSessionAddons(multiBooking.addons, args.remotePodcast),
+		addons: getPackageSessionAddons(packageRecord.addons, args.remotePodcast),
 		date: args.date,
-		duration: multiBooking.duration,
-		email: multiBooking.email,
+		duration: packageRecord.duration,
+		email: packageRecord.email,
 		eventBufferMinutes,
-		name: multiBooking.name,
+		name: packageRecord.name,
 		service: args.service,
 		time: args.time
 	};
 }
 
 type EditablePackageSessionDetails = {
-	multiBooking: ValidPackage;
+	packageRecord: ValidPackage;
 	session: Doc<"bookings">;
 	settings: SessionAvailabilitySettings;
 };
@@ -237,20 +237,20 @@ export function getEditablePackageSession(
 	return (
 		getValidPackageByTokenResult(ctx, args.token, args.now)
 			// Load the requested session through the package to enforce ownership.
-			.andThen((multiBooking) =>
-				okOrThrow(getPackageSessionForToken(ctx, multiBooking._id, args.bookingId)).map(
-					(session) => ({ multiBooking, session })
+			.andThen((packageRecord) =>
+				okOrThrow(getPackageSessionForToken(ctx, packageRecord._id, args.bookingId)).map(
+					(session) => ({ packageRecord, session })
 				)
 			)
 			// Reject missing, foreign, and inactive sessions before loading scheduling settings.
-			.andThen(({ multiBooking, session }) => {
+			.andThen(({ packageRecord, session }) => {
 				if (!session || !sessionConsumesPackageCapacity(session)) {
 					return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
 				}
 
 				return okOrThrow<SessionAvailabilitySettings>(
 					ctx.runQuery(api.bookingSettings.get, {})
-				).map((settings) => ({ multiBooking, session, settings }));
+				).map((settings) => ({ packageRecord, session, settings }));
 			})
 			// Enforce the edit cutoff after the session and settings are available.
 			.andThen((details) => {

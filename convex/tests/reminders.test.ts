@@ -121,7 +121,7 @@ describe("daily reminder dispatch", () => {
 		await Promise.all(
 			Array.from({ length: 4 }, (_, index) =>
 				seedBooking(t, {
-					multiBookingPackageId: fullPackageId,
+					packageId: fullPackageId,
 					sessionStartAt: now + index,
 					status: "confirmed"
 				})
@@ -202,7 +202,7 @@ describe("reminder claims and delivery results", () => {
 async function seedBooking(
 	t: TestClient,
 	overrides: Partial<{
-		multiBookingPackageId: Id<"multiBookingPackages">;
+		packageId: Id<"packages">;
 		reminderEmailSentAt: number;
 		sessionStartAt: number;
 		status: "confirmed" | "cancelled";
@@ -239,7 +239,7 @@ async function seedPackage(
 	}
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", {
+		ctx.db.insert("packages", {
 			name: "Package customer",
 			phone: "0400000000",
 			accountName: "Package account",
@@ -265,5 +265,5 @@ async function seedPackage(
 const readBooking = (t: TestClient, bookingId: Id<"bookings">) =>
 	t.run((ctx) => ctx.db.get(bookingId));
 
-const readPackage = (t: TestClient, packageId: Id<"multiBookingPackages">) =>
+const readPackage = (t: TestClient, packageId: Id<"packages">) =>
 	t.run((ctx) => ctx.db.get(packageId));

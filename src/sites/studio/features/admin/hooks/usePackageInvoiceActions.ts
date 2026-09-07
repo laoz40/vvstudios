@@ -16,7 +16,7 @@ export function usePackageInvoiceActions(
 	setPendingAction: SetPackagePendingAction
 ) {
 	const resendInvoice = useAction(api.packagePayment.resendPackageInvoiceEmail);
-	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
+	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 
@@ -24,7 +24,7 @@ export function usePackageInvoiceActions(
 		setPendingAction("download");
 
 		const [error, invoice] = await tryCatch(
-			getAdminPackageInvoicePdf({ multiBookingId: packageRow.id })
+			getAdminPackageInvoicePdf({ packageId: packageRow.id })
 		);
 
 		if (error !== null) {
@@ -67,7 +67,7 @@ export function usePackageInvoiceActions(
 	async function handleResendInvoice() {
 		setPendingAction("invoice");
 
-		const [error] = await tryCatch(resendInvoice({ multiBookingId: packageRow.id }));
+		const [error] = await tryCatch(resendInvoice({ packageId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {

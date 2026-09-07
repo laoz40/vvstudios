@@ -28,8 +28,8 @@ import {
 type SavedFolder = { id: string; url: string };
 
 type SetupPackage = {
-	_id: Id<"multiBookingPackages">;
-	packageSize: Doc<"multiBookingPackages">["packageSize"];
+	_id: Id<"packages">;
+	packageSize: Doc<"packages">["packageSize"];
 	paidAt?: number;
 	createdAt: number;
 };
@@ -43,9 +43,9 @@ export type DriveSetupInfo = {
 		sessionStartAt: number;
 		duration: string;
 		status: Doc<"bookings">["status"];
-		multiBookingPackageId?: Id<"multiBookingPackages">;
+		packageId?: Id<"packages">;
 	};
-	multiBookingPackage: SetupPackage | null;
+	packageRecord: SetupPackage | null;
 	driveClient: {
 		_id: Id<"driveClients">;
 		normalizedEmail: string;
@@ -81,14 +81,14 @@ export type SetupError =
 
 export function areDriveSetupFoldersSaved(setupInfo: DriveSetupInfo | null) {
 	if (setupInfo === null) return false;
-	const { driveClient, driveSession, multiBookingPackage, sharedPackageFolder } = setupInfo;
+	const { driveClient, driveSession, packageRecord, sharedPackageFolder } = setupInfo;
 	if (driveClient?.folderId === undefined || driveClient.assetsFolder === undefined) return false;
 	if (driveSession === null || driveSession.sessionFolder === undefined) return false;
 	if (driveSession.rawMediaFolder === undefined || driveSession.deliverablesFolder === undefined) {
 		return false;
 	}
 	if (
-		multiBookingPackage !== null &&
+		packageRecord !== null &&
 		driveSession.packageFolder === undefined &&
 		sharedPackageFolder === undefined
 	) {
@@ -458,7 +458,7 @@ function allocatePackageSessionNumberIfNeeded(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo
 ): ResultAsync<number | null, SetupError> {
-	if (setupInfo.multiBookingPackage === null) return okAsync(null);
+	if (setupInfo.packageRecord === null) return okAsync(null);
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.allocatePackageSessionNumber, {
 			bookingId: setupInfo.booking._id
@@ -474,7 +474,7 @@ function getOrCreateSessionParentFolder(
 	client: ClientFolderSetup,
 	replaceMissingFolders: boolean
 ): ResultAsync<ClientFolderSetup & { sessionParentId: string }, SetupError> {
-	if (setupInfo.multiBookingPackage === null) {
+	if (setupInfo.packageRecord === null) {
 		return okAsync({ ...client, sessionParentId: client.clientFolderId });
 	}
 
@@ -492,8 +492,8 @@ function getOrCreateSessionParentFolder(
 	}
 
 	const packageFolderName = getPackageFolderName({
-		packageSize: setupInfo.multiBookingPackage.packageSize,
-		purchasedAt: setupInfo.multiBookingPackage.paidAt ?? setupInfo.multiBookingPackage.createdAt
+		packageSize: setupInfo.packageRecord.packageSize,
+		purchasedAt: setupInfo.packageRecord.paidAt ?? setupInfo.packageRecord.createdAt
 	});
 	const sharedPackageFolder = setupInfo.sharedPackageFolder;
 	// A sibling session already created the package folder; link it to this booking.
@@ -523,7 +523,7 @@ function getOrCreateSessionParentFolder(
 		name: packageFolderName,
 		parentId: client.clientFolderId,
 		// The marker is derived from the package so every session of the package finds it.
-		marker: `package:${setupInfo.multiBookingPackage._id}`
+		marker: `package:${setupInfo.packageRecord._id}`
 	})
 		.andThen((folder) =>
 			fromConvexTuple(

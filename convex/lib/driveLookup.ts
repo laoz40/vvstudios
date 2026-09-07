@@ -17,21 +17,16 @@ export async function resolveDriveClientForBooking(
 	return driveClientFromBooking;
 }
 
-export async function loadPackageBookings(
-	ctx: QueryCtx,
-	multiBookingId: Id<"multiBookingPackages">
-) {
+export async function loadPackageBookings(ctx: QueryCtx, packageId: Id<"packages">) {
 	return await ctx.db
 		.query("bookings")
-		.withIndex("by_multiBookingPackageId", (query) =>
-			query.eq("multiBookingPackageId", multiBookingId)
-		)
+		.withIndex("by_packageId", (query) => query.eq("packageId", packageId))
 		.collect();
 }
 
 export async function loadSharedPackageFolder(
 	ctx: QueryCtx,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	currentBookingId: Id<"bookings">
 ) {
 	const packageBookings = await loadPackageBookings(ctx, packageId);
@@ -61,34 +56,29 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
 					.unique(),
-				booking.multiBookingPackageId !== undefined
-					? ctx.db.get(booking.multiBookingPackageId)
-					: Promise.resolve(null)
+				booking.packageId !== undefined ? ctx.db.get(booking.packageId) : Promise.resolve(null)
 			])
-		).andThen(([driveClientFromBooking, driveSession, multiBookingPackage]) =>
+		).andThen(([driveClientFromBooking, driveSession, packageRecord]) =>
 			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(
 				(driveClient) => {
-					if (
-						driveSession?.packageFolder !== undefined ||
-						booking.multiBookingPackageId === undefined
-					) {
+					if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
 						return ok({
 							booking,
 							driveClient,
 							driveSession,
-							multiBookingPackage,
+							packageRecord,
 							sharedPackageFolder: undefined
 						});
 					}
-					return okOrThrow(
-						loadSharedPackageFolder(ctx, booking.multiBookingPackageId, booking._id)
-					).map((sharedPackageFolder) => ({
-						booking,
-						driveClient,
-						driveSession,
-						multiBookingPackage,
-						sharedPackageFolder
-					}));
+					return okOrThrow(loadSharedPackageFolder(ctx, booking.packageId, booking._id)).map(
+						(sharedPackageFolder) => ({
+							booking,
+							driveClient,
+							driveSession,
+							packageRecord,
+							sharedPackageFolder
+						})
+					);
 				}
 			)
 		);

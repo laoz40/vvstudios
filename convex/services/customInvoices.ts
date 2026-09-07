@@ -25,7 +25,7 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 };
 
 export type CreatePackageCustomInvoiceArgs = CustomInvoiceDetails & {
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 	packageSize: 4 | 8 | 12;
 	includePackageDiscount?: boolean;
 };
@@ -47,13 +47,13 @@ export function listCustomInvoicesForBookingService(
 
 export function listCustomInvoicesForPackageService(
 	ctx: QueryCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
+	args: { packageId: Id<"packages"> }
 ) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		okOrThrow(
 			ctx.db
 				.query("customInvoices")
-				.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", args.multiBookingId))
+				.withIndex("by_packageId", (query) => query.eq("packageId", args.packageId))
 				.order("desc")
 				.collect()
 		)
@@ -103,11 +103,11 @@ export function createPackageCustomInvoiceService(
 				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
 			)
 			// Confirm the package still exists before creating its custom invoice.
-			.andThen((identity) => getPackageFromDb(ctx, args.multiBookingId).map(() => identity))
+			.andThen((identity) => getPackageFromDb(ctx, args.packageId).map(() => identity))
 			// Save and number the invoice in the same transaction.
 			.andThen((identity) =>
 				saveNumberedCustomInvoice(ctx, {
-					multiBookingId: args.multiBookingId,
+					packageId: args.packageId,
 					dueDate: args.dueDate,
 					duration: args.duration,
 					addons: args.addons,

@@ -13,7 +13,7 @@ import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob
 
 export function useInvoiceActions(session: SessionRecord) {
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
-	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminMultiBookingInvoicePdfById);
+	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const customInvoicesResult = useQuery(
@@ -37,9 +37,9 @@ export function useInvoiceActions(session: SessionRecord) {
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
 
-		if (session.multiBookingPackageId) {
+		if (session.packageId) {
 			const [packageError, invoice] = await tryCatch(
-				getAdminPackageInvoicePdf({ multiBookingId: session.multiBookingPackageId })
+				getAdminPackageInvoicePdf({ packageId: session.packageId })
 			);
 
 			setIsDownloadingInvoice(false);

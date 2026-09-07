@@ -8,10 +8,7 @@ import {
 	bookingSchema,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	isMultiBookingSize,
-	MULTI_BOOKING_PLANS
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { isPackageSize, PACKAGE_PLANS } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	getCardStateClassName,
 	getRevealMotionProps,
@@ -20,10 +17,10 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 
-const packageSizeOptions = Object.entries(MULTI_BOOKING_PLANS).map(([packageSize, plan]) => {
+const packageSizeOptions = Object.entries(PACKAGE_PLANS).map(([packageSize, plan]) => {
 	const numericPackageSize = Number(packageSize);
 
-	if (!isMultiBookingSize(numericPackageSize)) {
+	if (!isPackageSize(numericPackageSize)) {
 		throw new Error(`Invalid package size: ${packageSize}`);
 	}
 
@@ -40,7 +37,7 @@ export function BookingPackageSection() {
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
-	const isPackageBooking = formValues.bookingMode === "multi";
+	const isPackageBooking = formValues.bookingMode === "package";
 	const shouldReduceMotion = useReducedMotion();
 	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
 
@@ -74,7 +71,7 @@ export function BookingPackageSection() {
 											onValueChange={(value) => {
 												const packageSize = Number(value);
 
-												if (isMultiBookingSize(packageSize)) {
+												if (isPackageSize(packageSize)) {
 													field.handleChange(packageSize);
 													field.handleBlur();
 												}

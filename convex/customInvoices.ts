@@ -29,7 +29,7 @@ export const createCustomInvoice = mutation({
 
 export const createPackageCustomInvoice = mutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		dueDate: v.optional(v.string()),
 		duration: v.optional(v.string()),
 		addons: bookingAddonsValidator,
@@ -50,7 +50,7 @@ export const listCustomInvoicesForBooking = query({
 });
 
 export const listCustomInvoicesForPackage = query({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: async (ctx, args) =>
 		listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr)
 });
@@ -73,16 +73,16 @@ export const getPackageCustomInvoiceInput = internalQuery({
 	handler: async (ctx, args) => {
 		const customInvoice = await ctx.db.get(args.customInvoiceId);
 
-		if (!customInvoice?.multiBookingId) {
+		if (!customInvoice?.packageId) {
 			return null;
 		}
 
-		const multiBooking = await ctx.db.get(customInvoice.multiBookingId);
+		const packageRecord = await ctx.db.get(customInvoice.packageId);
 
-		if (!multiBooking) {
+		if (!packageRecord) {
 			return null;
 		}
 
-		return { customInvoice, multiBooking };
+		return { customInvoice, packageRecord };
 	}
 });

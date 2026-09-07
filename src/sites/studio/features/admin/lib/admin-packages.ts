@@ -9,7 +9,7 @@ export type AdminPackageStatus =
 	| "invoice_email_failed"
 	| "schedule_email_failed";
 
-export type AdminPackageRecord = Doc<"multiBookingPackages"> & {
+export type AdminPackageRecord = Doc<"packages"> & {
 	bookedSessions?: number;
 	areSessionsComplete: boolean;
 	adjustment?: {
@@ -22,7 +22,7 @@ export type AdminPackageRecord = Doc<"multiBookingPackages"> & {
 };
 
 export type AdminPackageRow = {
-	id: Doc<"multiBookingPackages">["_id"];
+	id: Doc<"packages">["_id"];
 	customerName: string;
 	customerEmail: string;
 	customerPhone: string;
@@ -309,50 +309,45 @@ export function getPackageArchiveActionLabel(
 	return "Unarchive";
 }
 
-export function mapPackageToAdminRow(multiBookingPackage: AdminPackageRecord): AdminPackageRow {
-	const bookedSessions = multiBookingPackage.bookedSessions ?? 0;
+export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPackageRow {
+	const bookedSessions = packageRecord.bookedSessions ?? 0;
 
 	return {
-		id: multiBookingPackage._id,
-		customerName: multiBookingPackage.name,
-		customerEmail: multiBookingPackage.email,
-		customerPhone: multiBookingPackage.phone,
-		accountName: multiBookingPackage.accountName,
-		abn: multiBookingPackage.abn,
-		instagramHandle: multiBookingPackage.instagramHandle,
-		notes: multiBookingPackage.notes,
-		packageSize: multiBookingPackage.packageSize,
+		id: packageRecord._id,
+		customerName: packageRecord.name,
+		customerEmail: packageRecord.email,
+		customerPhone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		instagramHandle: packageRecord.instagramHandle,
+		notes: packageRecord.notes,
+		packageSize: packageRecord.packageSize,
 		bookedSessions,
-		duration: multiBookingPackage.duration,
-		addons: multiBookingPackage.addons,
-		clipsPackageQuantity: multiBookingPackage.clipsPackageQuantity,
-		completeEditQuantity: multiBookingPackage.completeEditQuantity,
-		essentialEditQuantity: multiBookingPackage.essentialEditQuantity,
-		handcraftedClipsQuantity: multiBookingPackage.handcraftedClipsQuantity,
-		totalDueLabel: formatPackageAmount(multiBookingPackage.totalDueAmount),
-		totalDueAmount: multiBookingPackage.totalDueAmount,
-		adjustment: multiBookingPackage.adjustment
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+		completeEditQuantity: packageRecord.completeEditQuantity,
+		essentialEditQuantity: packageRecord.essentialEditQuantity,
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+		totalDueLabel: formatPackageAmount(packageRecord.totalDueAmount),
+		totalDueAmount: packageRecord.totalDueAmount,
+		adjustment: packageRecord.adjustment
 			? {
-					id: multiBookingPackage.adjustment._id,
-					amountLabel: formatPackageAmount(multiBookingPackage.adjustment.totalAmount),
-					invoiceDueAt: multiBookingPackage.adjustment.invoiceDueAt,
-					invoiceEmailStatus: multiBookingPackage.adjustment.invoiceEmailStatus,
-					paymentStatus: multiBookingPackage.adjustment.paymentStatus
+					id: packageRecord.adjustment._id,
+					amountLabel: formatPackageAmount(packageRecord.adjustment.totalAmount),
+					invoiceDueAt: packageRecord.adjustment.invoiceDueAt,
+					invoiceEmailStatus: packageRecord.adjustment.invoiceEmailStatus,
+					paymentStatus: packageRecord.adjustment.paymentStatus
 				}
 			: null,
-		isPaid:
-			multiBookingPackage.status === "paid" ||
-			multiBookingPackage.status === "schedule_email_failed",
-		areSessionsComplete: multiBookingPackage.areSessionsComplete,
-		invoiceDueAt: multiBookingPackage.invoiceDueAt,
-		expiresAt: multiBookingPackage.expiresAt,
-		createdAt: multiBookingPackage.createdAt,
-		status: multiBookingPackage.status,
-		invoiceNumber: formatBookingInvoiceNumber(
-			multiBookingPackage._id,
-			multiBookingPackage.createdAt
-		),
-		hiddenAt: multiBookingPackage.hiddenAt
+		isPaid: packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed",
+		areSessionsComplete: packageRecord.areSessionsComplete,
+		invoiceDueAt: packageRecord.invoiceDueAt,
+		expiresAt: packageRecord.expiresAt,
+		createdAt: packageRecord.createdAt,
+		status: packageRecord.status,
+		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
+		hiddenAt: packageRecord.hiddenAt
 	};
 }
 

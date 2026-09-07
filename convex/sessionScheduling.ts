@@ -71,18 +71,18 @@ export const saveClientSessionReschedule = internalMutation({
 		confirmBooking: v.optional(v.boolean()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+		packageId: v.optional(v.id("packages")),
 		reservation: sessionReservationValidator
 	},
 	handler: (ctx, args) =>
 		saveClientSessionRescheduleService(
 			ctx,
 			args,
-			(multiBookingId): Promise<unknown> =>
+			(packageId): Promise<unknown> =>
 				ctx.scheduler.runAfter(
 					0,
 					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-					{ multiBookingId }
+					{ packageId }
 				)
 		).match(tupleOk, tupleErr)
 });

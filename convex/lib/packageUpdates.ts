@@ -1,9 +1,9 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
-import { multiBookingFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { packageFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
-	getMultiBookingInvoiceDueAt,
-	type MultiBookingSize
+	getPackageInvoiceDueAt,
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	createPackageInvoiceLineItemSnapshot,
@@ -23,13 +23,13 @@ export type CreatePendingPackageArgs = {
 	duration: string;
 	addons: BookingAddon[];
 	notes?: string;
-	packageSize: MultiBookingSize;
+	packageSize: PackageSize;
 	singleSessionAmount: number;
 	packageSubtotalAmount: number;
 	discountPercent: number;
 	discountAmount: number;
 	totalDueAmount: number;
-	invoiceLineItems: Doc<"multiBookingPackages">["invoiceLineItems"];
+	invoiceLineItems: Doc<"packages">["invoiceLineItems"];
 } & BookingAddonQuantitiesArgs;
 
 export type CreatePackageRequestArgs = Omit<
@@ -43,7 +43,7 @@ export type CreatePackageRequestArgs = Omit<
 >;
 
 export type UpdatePackageArgs = {
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 	name: string;
 	phone: string;
 	accountName: string;
@@ -52,12 +52,12 @@ export type UpdatePackageArgs = {
 	duration: string;
 	addons: BookingAddon[];
 	notes?: string;
-	packageSize: MultiBookingSize;
+	packageSize: PackageSize;
 	expiresAt?: number;
 	totalDueAmount?: number;
 } & BookingAddonQuantitiesArgs;
 
-type ParsedPackage = ReturnType<typeof multiBookingFormSchema.parse>;
+type ParsedPackage = ReturnType<typeof packageFormSchema.parse>;
 export type ParsedPackageRequest = ParsedPackage;
 
 export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
@@ -91,7 +91,7 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		invoiceLineItems: args.invoiceLineItems,
 		status: "pending_payment" as const,
 		createdAt,
-		invoiceDueAt: getMultiBookingInvoiceDueAt(createdAt),
+		invoiceDueAt: getPackageInvoiceDueAt(createdAt),
 		invoiceEmailStatus: "pending" as const
 	};
 }
@@ -99,7 +99,7 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 export function parsePackageRequest(
 	args: CreatePackageRequestArgs
 ): ResultAsync<ParsedPackageRequest, { reason: "BOOKING_INVALID_INPUT" }> {
-	const parsedPackage = multiBookingFormSchema.safeParse(args);
+	const parsedPackage = packageFormSchema.safeParse(args);
 
 	if (!parsedPackage.success) {
 		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
@@ -109,7 +109,7 @@ export function parsePackageRequest(
 }
 
 export function parsePackageUpdate(args: UpdatePackageArgs) {
-	const parsedPackage = multiBookingFormSchema.safeParse({
+	const parsedPackage = packageFormSchema.safeParse({
 		...args,
 		essentialEditQuantity: args.essentialEditQuantity ?? "",
 		completeEditQuantity: args.completeEditQuantity ?? "",

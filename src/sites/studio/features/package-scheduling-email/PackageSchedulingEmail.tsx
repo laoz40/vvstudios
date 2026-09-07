@@ -13,7 +13,7 @@ import {
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
-export interface MultiBookingSchedulingEmailProps {
+export interface PackageSchedulingEmailProps {
 	addonsLine: string;
 	duration: string;
 	expiresAtLabel: string;
@@ -24,7 +24,7 @@ export interface MultiBookingSchedulingEmailProps {
 	signoffName: string;
 }
 
-export function MultiBookingSchedulingEmail({
+export function PackageSchedulingEmail({
 	addonsLine,
 	duration,
 	expiresAtLabel,
@@ -33,7 +33,7 @@ export function MultiBookingSchedulingEmail({
 	packageSize,
 	scheduleUrl,
 	signoffName
-}: MultiBookingSchedulingEmailProps) {
+}: PackageSchedulingEmailProps) {
 	const noticeWindowLabel = formatNoticeWindowLabel(leadTimeMinutes);
 
 	return (

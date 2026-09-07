@@ -7,10 +7,10 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	createBookingInvoiceArtifactsForBooking,
-	createCustomMultiBookingInvoiceData,
-	createMultiBookingInvoiceArtifacts,
+	createCustomPackageInvoiceData,
+	createPackageInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
-	type CustomMultiBookingInvoiceInput
+	type CustomPackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import {
 	toInvoicePdfPayload,
@@ -34,12 +34,12 @@ type AdminPackageInvoicePdfError =
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "PACKAGE_NOT_FOUND" };
 
-function renderMultiBookingInvoicePdf(
-	multiBooking: Doc<"multiBookingPackages">,
+function renderPackageInvoicePdf(
+	packageRecord: Doc<"packages">,
 	leadTimeMinutes: number
 ): ResultAsync<InvoicePdfPayload, InvoicePdfError> {
 	return (
-		createMultiBookingInvoiceArtifacts(multiBooking, { leadTimeMinutes })
+		createPackageInvoiceArtifacts(packageRecord, { leadTimeMinutes })
 			// Render the validated package invoice into its downloadable PDF payload.
 			.andThen((artifactsResult) =>
 				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
@@ -94,51 +94,51 @@ export function getBookingInvoicePdfByStripeSessionIdService(
 	);
 }
 
-export function getMultiBookingInvoicePdfByIdService(
+export function getPackageInvoicePdfByIdService(
 	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
+	args: { packageId: Id<"packages"> }
 ): ResultAsync<InvoicePdfPayload, PublicPackageInvoicePdfError> {
 	return (
-		getPackageForAction(ctx, args.multiBookingId)
+		getPackageForAction(ctx, args.packageId)
 			// Validate that the package's public download window remains open.
-			.andThen((multiBooking) => validatePackageInvoiceDownload(multiBooking, Date.now()))
+			.andThen((packageRecord) => validatePackageInvoiceDownload(packageRecord, Date.now()))
 			// Load current lead-time guidance used by the package invoice artifact.
-			.andThen((multiBooking) =>
+			.andThen((packageRecord) =>
 				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
 					bookingSettings,
-					multiBooking
+					packageRecord
 				}))
 			)
 			// Render the package's stored commercial snapshot.
-			.andThen(({ bookingSettings, multiBooking }) =>
-				renderMultiBookingInvoicePdf(multiBooking, bookingSettings.leadTimeMinutes)
+			.andThen(({ bookingSettings, packageRecord }) =>
+				renderPackageInvoicePdf(packageRecord, bookingSettings.leadTimeMinutes)
 			)
 	);
 }
 
-export function getAdminMultiBookingInvoicePdfByIdService(
+export function getAdminPackageInvoicePdfByIdService(
 	ctx: ActionCtx,
-	args: { multiBookingId: Id<"multiBookingPackages"> }
+	args: { packageId: Id<"packages"> }
 ): ResultAsync<InvoicePdfPayload, AdminPackageInvoicePdfError> {
 	return (
 		requirePermissionActions(ctx, "view:sensitive-booking-data")
 			// Load the package only after admin authorization succeeds.
-			.andThen(() => getPackageForAction(ctx, args.multiBookingId))
+			.andThen(() => getPackageForAction(ctx, args.packageId))
 			// Load current lead-time guidance used by the package invoice artifact.
-			.andThen((multiBooking) =>
+			.andThen((packageRecord) =>
 				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
 					bookingSettings,
-					multiBooking
+					packageRecord
 				}))
 			)
 			// Render the package invoice without the public expiry restriction.
-			.andThen(({ bookingSettings, multiBooking }) =>
-				renderMultiBookingInvoicePdf(multiBooking, bookingSettings.leadTimeMinutes)
+			.andThen(({ bookingSettings, packageRecord }) =>
+				renderPackageInvoicePdf(packageRecord, bookingSettings.leadTimeMinutes)
 			)
 	);
 }
 
-export function getAdminCustomMultiBookingInvoicePdfByIdService(
+export function getAdminCustomPackageInvoicePdfByIdService(
 	ctx: ActionCtx,
 	args: { customInvoiceId: Id<"customInvoices"> }
 ): ResultAsync<InvoicePdfPayload, AdminPackageInvoicePdfError> {
@@ -146,7 +146,7 @@ export function getAdminCustomMultiBookingInvoicePdfByIdService(
 		requirePermissionActions(ctx, "view:sensitive-booking-data")
 			// Load the custom invoice and package input only after authorization succeeds.
 			.andThen(() =>
-				okOrThrow<CustomMultiBookingInvoiceInput | null>(
+				okOrThrow<CustomPackageInvoiceInput | null>(
 					ctx.runQuery(internal.customInvoices.getPackageCustomInvoiceInput, args)
 				)
 			)
@@ -162,7 +162,7 @@ export function getAdminCustomMultiBookingInvoicePdfByIdService(
 			)
 			// Build the custom invoice data from its stored selections and amounts.
 			.andThen(({ bookingSettings, invoiceSource }) =>
-				createCustomMultiBookingInvoiceData(invoiceSource, bookingSettings.leadTimeMinutes)
+				createCustomPackageInvoiceData(invoiceSource, bookingSettings.leadTimeMinutes)
 			)
 			// Render the custom invoice into its downloadable PDF payload.
 			.andThen((data) =>

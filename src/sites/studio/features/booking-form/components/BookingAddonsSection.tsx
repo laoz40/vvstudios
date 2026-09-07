@@ -120,7 +120,7 @@ export function BookingAddonsSection() {
 	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
-	const isMultiBooking = formValues.bookingMode === "multi";
+	const isPackageBooking = formValues.bookingMode === "package";
 	const availableAddonOptions = new Set(
 		ADDON_OPTIONS.filter((addon) => isAddonAvailableForService(formValues.service, addon))
 	);
@@ -207,7 +207,7 @@ export function BookingAddonsSection() {
 												<BookingAddonCard
 													addon={addon}
 													checked={field.state.value.includes(addon)}
-													disabled={isMultiBooking && isPackageUnavailableAddon(addon)}
+													disabled={isPackageBooking && isPackageUnavailableAddon(addon)}
 													onCheckedChange={handleAddonChange}
 												/>
 												<AnimatePresence initial={false}>
@@ -217,12 +217,12 @@ export function BookingAddonsSection() {
 															formApi={formApi}
 															fieldName={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
 															label={
-																isMultiBooking
+																isPackageBooking
 																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.multi
 																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.single
 															}
 															description={
-																isMultiBooking
+																isPackageBooking
 																	? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.multi
 																	: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.single
 															}

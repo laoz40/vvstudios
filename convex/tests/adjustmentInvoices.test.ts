@@ -73,7 +73,7 @@ describe("package adjustment closeout", () => {
 
 		expect(adjustments).toHaveLength(1);
 		expect(adjustments[0]).toMatchObject({
-			multiBookingId: packageId,
+			packageId: packageId,
 			outcome: "no_charge",
 			quantity: 0,
 			remotePodcastBookingIds: [],
@@ -96,7 +96,7 @@ describe("package adjustment closeout", () => {
 			createdAt: now,
 			invoiceDueAt: now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 			invoiceEmailStatus: "sent",
-			multiBookingId: packageId,
+			packageId: packageId,
 			outcome: "invoice_required",
 			paymentStatus: "unpaid",
 			quantity: 1,
@@ -166,7 +166,7 @@ describe("package adjustment closeout", () => {
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
-			multiBookingId: packageId,
+			packageId: packageId,
 			expectedExpiresAt: now - 1
 		});
 		const scheduledJobs = await t.run((ctx) =>
@@ -246,7 +246,7 @@ describe("package adjustment payment and download", () => {
 		const adjustmentId = await t.run((ctx) =>
 			ctx.db.insert("packageAdjustments", {
 				outcome: "no_charge",
-				multiBookingId: packageId,
+				packageId: packageId,
 				trigger: "package_expired",
 				remotePodcastBookingIds: [],
 				quantity: 0,
@@ -415,7 +415,7 @@ describe("package adjustment invoice delivery", () => {
 
 async function seedPaidPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", {
+		ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -440,7 +440,7 @@ async function seedPaidPackage(t: TestClient) {
 
 async function seedPackageSession(
 	t: TestClient,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	addons: BookingAddon[],
 	overrides: { sessionStartAt?: number; status?: "confirmed" | "cancelled" } = {}
 ) {
@@ -458,21 +458,21 @@ async function seedPackageSession(
 			addons,
 			status: overrides.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
-			multiBookingPackageId: packageId
+			packageId: packageId
 		})
 	);
 }
 
-async function processExpiredPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
+async function processExpiredPackage(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
-		multiBookingId: packageId,
+		packageId: packageId,
 		expectedExpiresAt: now
 	});
 }
 
-async function processCompletedPackage(t: TestClient, packageId: Id<"multiBookingPackages">) {
+async function processCompletedPackage(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete, {
-		multiBookingId: packageId
+		packageId: packageId
 	});
 }
 
@@ -485,7 +485,7 @@ async function seedInvoiceAdjustment(
 	const adjustmentId = await t.run((ctx) =>
 		ctx.db.insert("packageAdjustments", {
 			outcome: "invoice_required",
-			multiBookingId: packageId,
+			packageId: packageId,
 			trigger: "package_expired",
 			remotePodcastBookingIds: [],
 			quantity: 2,
@@ -513,11 +513,11 @@ async function claimInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments"
 	});
 }
 
-async function readAdjustments(t: TestClient, packageId: Id<"multiBookingPackages">) {
+async function readAdjustments(t: TestClient, packageId: Id<"packages">) {
 	return await t.run((ctx) =>
 		ctx.db
 			.query("packageAdjustments")
-			.withIndex("by_multiBookingId", (query) => query.eq("multiBookingId", packageId))
+			.withIndex("by_packageId", (query) => query.eq("packageId", packageId))
 			.collect()
 	);
 }

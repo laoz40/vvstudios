@@ -109,7 +109,7 @@ export default defineSchema({
 		v.union(
 			v.object({
 				outcome: v.literal("no_charge"),
-				multiBookingId: v.id("multiBookingPackages"),
+				packageId: v.id("packages"),
 				trigger: v.union(v.literal("all_sessions_completed"), v.literal("package_expired")),
 				remotePodcastBookingIds: v.array(v.id("bookings")),
 				quantity: v.literal(0),
@@ -119,7 +119,7 @@ export default defineSchema({
 			}),
 			v.object({
 				outcome: v.literal("invoice_required"),
-				multiBookingId: v.id("multiBookingPackages"),
+				packageId: v.id("packages"),
 				trigger: v.union(v.literal("all_sessions_completed"), v.literal("package_expired")),
 				remotePodcastBookingIds: v.array(v.id("bookings")),
 				quantity: v.number(),
@@ -133,11 +133,11 @@ export default defineSchema({
 				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"))
 			})
 		)
-	).index("by_multiBookingId", ["multiBookingId"]),
+	).index("by_packageId", ["packageId"]),
 
 	customInvoices: defineTable({
 		bookingId: v.optional(v.id("bookings")),
-		multiBookingId: v.optional(v.id("multiBookingPackages")),
+		packageId: v.optional(v.id("packages")),
 		invoiceNumber: v.string(),
 		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
@@ -155,7 +155,7 @@ export default defineSchema({
 		createdBy: v.optional(v.string())
 	})
 		.index("by_bookingId", ["bookingId"])
-		.index("by_multiBookingId", ["multiBookingId"]),
+		.index("by_packageId", ["packageId"]),
 
 	bookingRescheduleLinks: defineTable({
 		bookingId: v.id("bookings"),
@@ -249,8 +249,8 @@ export default defineSchema({
 		googleEventId: v.optional(v.string()),
 		googleCalendarId: v.optional(v.string()),
 
-		// Multi-booking package link, when this booking is one scheduled package session
-		multiBookingPackageId: v.optional(v.id("multiBookingPackages")),
+		// Package link, when this booking is one scheduled package session
+		packageId: v.optional(v.id("packages")),
 
 		// Admin-visible Drive setup failure state. A manual retry clears it after setup succeeds.
 		driveSetupFailedAt: v.optional(v.number()),
@@ -272,14 +272,10 @@ export default defineSchema({
 			"assignedEditorTokenIdentifier",
 			"driveClientId"
 		])
-		.index("by_multiBookingPackageId", ["multiBookingPackageId"])
-		.index("by_multiBookingPackageId_and_status_and_sessionStartAt", [
-			"multiBookingPackageId",
-			"status",
-			"sessionStartAt"
-		]),
+		.index("by_packageId", ["packageId"])
+		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"]),
 
-	multiBookingPackages: defineTable({
+	packages: defineTable({
 		// Customer/contact fields
 		name: v.string(),
 		phone: v.string(),

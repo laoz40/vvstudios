@@ -60,7 +60,7 @@ export const createPendingPackage = internalMutation({
 
 export const markPackageInvoiceEmailAttempt = internalMutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		status: v.union(v.literal("sent"), v.literal("failed")),
 		invoiceNumber: v.optional(v.string()),
 		failureCode: v.optional(v.string())
@@ -81,7 +81,7 @@ export const listPackages = query({
 
 export const updatePackageFromAdmin = mutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		name: v.string(),
 		phone: v.string(),
 		accountName: v.string(),
@@ -99,50 +99,47 @@ export const updatePackageFromAdmin = mutation({
 });
 
 export const archivePackage = mutation({
-	args: { multiBookingId: v.id("multiBookingPackages"), archived: v.boolean() },
+	args: { packageId: v.id("packages"), archived: v.boolean() },
 	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageUnpaid = mutation({
-	args: { packageId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
-	args: { multiBookingId: v.id("multiBookingPackages"), paidAt: v.number() },
+	args: { packageId: v.id("packages"), paidAt: v.number() },
 	handler: (
 		ctx,
 		args
 	): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> =>
 		markPackagePaidAndCreateScheduleTokenService(ctx, args, (expiresAt) =>
 			ctx.scheduler.runAt(expiresAt, internal.packageScheduling.processPackageAdjustmentAtExpiry, {
-				multiBookingId: args.multiBookingId,
+				packageId: args.packageId,
 				expectedExpiresAt: expiresAt
 			})
 		).match(tupleOk, tupleErr)
 });
 
 export const refreshPackageScheduleToken = internalMutation({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageScheduleEmailAttempt = internalMutation({
-	args: {
-		multiBookingId: v.id("multiBookingPackages"),
-		status: v.union(v.literal("sent"), v.literal("failed"))
-	},
+	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
 	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const savePackageInstagramHandle = mutation({
-	args: { multiBookingId: v.id("multiBookingPackages"), instagramHandle: v.string() },
+	args: { packageId: v.id("packages"), instagramHandle: v.string() },
 	handler: (ctx, args) => savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getPackageById = internalQuery({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.multiBookingId);
+		return await ctx.db.get(args.packageId);
 	}
 });

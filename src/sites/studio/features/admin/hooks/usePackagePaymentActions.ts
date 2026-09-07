@@ -24,7 +24,7 @@ export function usePackagePaymentActions(
 	async function handleArchiveChange(archived: boolean) {
 		setPendingAction("archive");
 
-		const [error] = await tryCatch(archivePackage({ multiBookingId: packageRow.id, archived }));
+		const [error] = await tryCatch(archivePackage({ packageId: packageRow.id, archived }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -100,7 +100,7 @@ export function usePackagePaymentActions(
 	async function handleConfirmPayment() {
 		setPendingAction("payment");
 
-		const [error] = await tryCatch(confirmPackagePayment({ multiBookingId: packageRow.id }));
+		const [error] = await tryCatch(confirmPackagePayment({ packageId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {
@@ -160,7 +160,7 @@ export function usePackagePaymentActions(
 	async function handleRetrySchedulingEmail() {
 		setPendingAction("scheduleEmail");
 
-		const [error] = await tryCatch(retrySchedulingEmail({ multiBookingId: packageRow.id }));
+		const [error] = await tryCatch(retrySchedulingEmail({ packageId: packageRow.id }));
 
 		if (error !== null) {
 			switch (error.reason) {

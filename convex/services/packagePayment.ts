@@ -26,14 +26,14 @@ import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/
 
 export type { CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 
-type PackageIdArgs = { multiBookingId: Id<"multiBookingPackages"> };
+type PackageIdArgs = { packageId: Id<"packages"> };
 type AuthError = { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" };
 type PackageScheduleEmailError =
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
 export type CreatePackageRequestSuccess = {
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 	invoiceEmailStatus: "sent" | "failed";
 };
 export type CreatePackageRequestError =
@@ -83,7 +83,7 @@ export function createPackageRequestService(
 			// Invoice delivery failure is recorded but does not discard the created request.
 			.andThen((packageFromDb) =>
 				sendPackageInvoice(ctx, packageFromDb).map((invoiceEmailStatus) => ({
-					multiBookingId: packageFromDb._id,
+					packageId: packageFromDb._id,
 					invoiceEmailStatus
 				}))
 			)
@@ -95,7 +95,7 @@ export function resendPackageInvoiceEmailService(
 	args: PackageIdArgs
 ): ResultAsync<ResendPackageInvoiceEmailSuccess, ResendPackageInvoiceEmailError> {
 	return requirePermissionActions(ctx, "send:invoice-emails")
-		.andThen(() => getPackageForAction(ctx, args.multiBookingId))
+		.andThen(() => getPackageForAction(ctx, args.packageId))
 		.andThen((packageFromDb) => {
 			if (
 				packageFromDb.status !== "pending_payment" &&
@@ -120,7 +120,7 @@ export function confirmPackagePaymentService(
 	return (
 		requirePermissionActions(ctx, "update:payment-status")
 			// Mark the package paid and create the token and expiry used by its scheduling link.
-			.andThen(() => markPackagePaid(ctx, args.multiBookingId, Date.now()))
+			.andThen(() => markPackagePaid(ctx, args.packageId, Date.now()))
 			// Load lead time so the email explains how far ahead each session must be scheduled.
 			.andThen((paymentResult) =>
 				okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
@@ -129,18 +129,18 @@ export function confirmPackagePaymentService(
 			)
 			// Send the scheduling link and save its delivery status for admin retries.
 			.andThen(({ bookingSettings, paymentResult }) =>
-				sendAndRecordPackageScheduleEmail(ctx, args.multiBookingId, {
-					addons: paymentResult.multiBooking.addons,
-					clipsPackageQuantity: paymentResult.multiBooking.clipsPackageQuantity,
-					completeEditQuantity: paymentResult.multiBooking.completeEditQuantity,
-					duration: paymentResult.multiBooking.duration,
-					email: paymentResult.multiBooking.email,
-					essentialEditQuantity: paymentResult.multiBooking.essentialEditQuantity,
-					handcraftedClipsQuantity: paymentResult.multiBooking.handcraftedClipsQuantity,
+				sendAndRecordPackageScheduleEmail(ctx, args.packageId, {
+					addons: paymentResult.packageRecord.addons,
+					clipsPackageQuantity: paymentResult.packageRecord.clipsPackageQuantity,
+					completeEditQuantity: paymentResult.packageRecord.completeEditQuantity,
+					duration: paymentResult.packageRecord.duration,
+					email: paymentResult.packageRecord.email,
+					essentialEditQuantity: paymentResult.packageRecord.essentialEditQuantity,
+					handcraftedClipsQuantity: paymentResult.packageRecord.handcraftedClipsQuantity,
 					expiresAt: paymentResult.expiresAt,
 					leadTimeMinutes: bookingSettings.leadTimeMinutes,
-					name: paymentResult.multiBooking.name,
-					packageSize: paymentResult.multiBooking.packageSize,
+					name: paymentResult.packageRecord.name,
+					packageSize: paymentResult.packageRecord.packageSize,
 					bookedAt: paymentResult.paidAt,
 					scheduleUrl: buildPackageScheduleUrl(
 						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
@@ -158,7 +158,7 @@ export function retryPackageSchedulingEmailService(
 	return (
 		requirePermissionActions(ctx, "send:invoice-emails")
 			// Rotate the failed package's scheduling token before exposing a fresh link.
-			.andThen(() => refreshPackageScheduleToken(ctx, args.multiBookingId))
+			.andThen(() => refreshPackageScheduleToken(ctx, args.packageId))
 			// Load lead time so the replacement email contains current scheduling guidance.
 			.andThen((tokenResult) =>
 				okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
@@ -167,18 +167,18 @@ export function retryPackageSchedulingEmailService(
 			)
 			// Send the replacement scheduling link and persist the resulting status.
 			.andThen(({ bookingSettings, tokenResult }) =>
-				sendAndRecordPackageScheduleEmail(ctx, args.multiBookingId, {
-					addons: tokenResult.multiBooking.addons,
-					clipsPackageQuantity: tokenResult.multiBooking.clipsPackageQuantity,
-					completeEditQuantity: tokenResult.multiBooking.completeEditQuantity,
-					duration: tokenResult.multiBooking.duration,
-					email: tokenResult.multiBooking.email,
-					essentialEditQuantity: tokenResult.multiBooking.essentialEditQuantity,
-					handcraftedClipsQuantity: tokenResult.multiBooking.handcraftedClipsQuantity,
+				sendAndRecordPackageScheduleEmail(ctx, args.packageId, {
+					addons: tokenResult.packageRecord.addons,
+					clipsPackageQuantity: tokenResult.packageRecord.clipsPackageQuantity,
+					completeEditQuantity: tokenResult.packageRecord.completeEditQuantity,
+					duration: tokenResult.packageRecord.duration,
+					email: tokenResult.packageRecord.email,
+					essentialEditQuantity: tokenResult.packageRecord.essentialEditQuantity,
+					handcraftedClipsQuantity: tokenResult.packageRecord.handcraftedClipsQuantity,
 					expiresAt: tokenResult.expiresAt,
 					leadTimeMinutes: bookingSettings.leadTimeMinutes,
-					name: tokenResult.multiBooking.name,
-					packageSize: tokenResult.multiBooking.packageSize,
+					name: tokenResult.packageRecord.name,
+					packageSize: tokenResult.packageRecord.packageSize,
 					bookedAt: tokenResult.paidAt,
 					scheduleUrl: buildPackageScheduleUrl(
 						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
