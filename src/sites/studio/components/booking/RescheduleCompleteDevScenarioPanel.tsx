@@ -47,12 +47,18 @@ export function RescheduleCompleteDevScenarioPanel() {
 const devRescheduleCompleteScenarioSchema = z.enum(["success", "loading", "booking_not_found"]);
 const nonEmptySearchStringSchema = z.string().min(1);
 
-export function parseRescheduleCompleteSearch(
-	search: Record<string, unknown>
-): RescheduleCompleteSearch {
+export function parseRescheduleCompleteSearch(search: unknown): RescheduleCompleteSearch {
+	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
+
+	if (!parsedSearch.success) {
+		return {};
+	}
+
+	const { booking_id, dev_scenario } = parsedSearch.data;
+
 	return {
-		booking_id: parseOptionalSearchString(search.booking_id),
-		dev_scenario: parseDevRescheduleCompleteScenario(search.dev_scenario)
+		booking_id: parseOptionalSearchString(booking_id),
+		dev_scenario: parseDevRescheduleCompleteScenario(dev_scenario)
 	};
 }
 

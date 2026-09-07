@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
@@ -85,8 +86,14 @@ export function RescheduleDevScenarioPanel({ token }: RescheduleDevScenarioPanel
 	);
 }
 
-export function parseRescheduleSearch(search: Record<string, unknown>): RescheduleSearch {
-	return { dev_scenario: parseDevRescheduleScenario(search.dev_scenario) };
+export function parseRescheduleSearch(search: unknown): RescheduleSearch {
+	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
+
+	if (!parsedSearch.success) {
+		return {};
+	}
+
+	return { dev_scenario: parseDevRescheduleScenario(parsedSearch.data.dev_scenario) };
 }
 
 export function buildDevRescheduleBooking(

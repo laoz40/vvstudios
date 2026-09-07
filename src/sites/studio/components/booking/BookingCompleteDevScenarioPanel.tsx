@@ -73,12 +73,20 @@ export function BookingCompleteDevScenarioPanel() {
 	);
 }
 
-export function parseBookingCompleteSearch(search: Record<string, unknown>): BookingCompleteSearch {
+export function parseBookingCompleteSearch(search: unknown): BookingCompleteSearch {
+	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
+
+	if (!parsedSearch.success) {
+		return {};
+	}
+
+	const { dev_scenario, package_id, package_size, session_id } = parsedSearch.data;
+
 	return {
-		dev_scenario: parseDevBookingScenario(search.dev_scenario),
-		package_id: parseNonEmptyString(search.package_id),
-		package_size: parsePackageSize(search.package_size),
-		session_id: parseNonEmptyString(search.session_id)
+		dev_scenario: parseDevBookingScenario(dev_scenario),
+		package_id: parseNonEmptyString(package_id),
+		package_size: parsePackageSize(package_size),
+		session_id: parseNonEmptyString(session_id)
 	};
 }
 
