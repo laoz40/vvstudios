@@ -1,12 +1,11 @@
 "use node";
 
 import { google } from "googleapis";
-import { ResultAsync } from "neverthrow";
 
 import { env } from "#convex/env";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
 import {
-	getGoogleCalendarErrorCode,
+	resultAsyncFromGoogleCalendarPromise,
 	type GoogleCalendarFallbackErrorCode
 } from "./googleCalendarErrors";
 
@@ -20,9 +19,9 @@ function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 export function loadGoogleCalendarClient<T extends GoogleCalendarFallbackErrorCode>(
 	fallbackReason: T
 ) {
-	return ResultAsync.fromPromise(
+	return resultAsyncFromGoogleCalendarPromise(
 		Promise.resolve().then(() => getGoogleCalendarClient()),
-		(error) => ({ reason: getGoogleCalendarErrorCode(error, fallbackReason) })
+		fallbackReason
 	);
 }
 

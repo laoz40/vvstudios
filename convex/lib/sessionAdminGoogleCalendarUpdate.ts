@@ -3,7 +3,11 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
+import {
+	googleCalendarErrorFromParseResult,
+	googleCalendarErrorSchema,
+	resultAsyncFromGoogleCalendarPromise
+} from "#convex/lib/googleCalendarErrors";
 import { fromConvexTuple } from "#convex/lib/result";
 import {
 	buildSessionCalendarEventPayload,
@@ -82,21 +86,23 @@ function promoteFailedSessionFromAdmin({
 					timeZone: client.timeZone
 				})
 			),
-			(error) => ({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") })
+			(error) =>
+				googleCalendarErrorFromParseResult(
+					"GOOGLE_CALENDAR_CREATE_FAILED",
+					googleCalendarErrorSchema.safeParse(error)
+				)
 		)
 			.andThen((payloadResult) =>
 				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
 			)
 			.andThen((requestBody) =>
-				ResultAsync.fromPromise(
+				resultAsyncFromGoogleCalendarPromise(
 					client.calendar.events.insert({
 						calendarId: client.calendarId,
 						sendUpdates: "all",
 						requestBody
 					}),
-					(error) => ({
-						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED")
-					})
+					"GOOGLE_CALENDAR_CREATE_FAILED"
 				)
 			)
 			.andThen((createdEvent) => {

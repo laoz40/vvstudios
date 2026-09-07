@@ -1,3 +1,4 @@
+import { ResultAsync } from "neverthrow";
 import { z } from "zod";
 
 export type GoogleCalendarFallbackErrorCode =
@@ -16,24 +17,22 @@ type GoogleCalendarErrorCode<
 	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode
 > = "GOOGLE_CALENDAR_AUTH_FAILED" | "GOOGLE_CALENDAR_RATE_LIMITED" | T;
 
-const googleCalendarErrorSchema = z.object({
+export const googleCalendarErrorSchema = z.object({
 	message: z.string().optional(),
 	response: z.object({ status: z.number().optional() }).optional()
 });
 
-// map raw Google API errors to the app error codes we expose upstream
-export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
-	error: unknown,
+export type ParsedGoogleCalendarError = z.infer<typeof googleCalendarErrorSchema>;
+
+export function googleCalendarErrorCodeFromParsed<T extends GoogleCalendarFallbackErrorCode>(
+	error: ParsedGoogleCalendarError,
 	fallbackCode: T
 ): GoogleCalendarErrorCode<T> {
-	const parsedError = googleCalendarErrorSchema.safeParse(error);
-	if (!parsedError.success) return fallbackCode;
-
-	if (parsedError.data.message?.includes("invalid_grant")) {
+	if (error.message?.includes("invalid_grant")) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
 	}
 
-	const status = parsedError.data.response?.status;
+	const status = error.response?.status;
 
 	if (status === 401 || status === 403) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
@@ -46,10 +45,27 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 	return fallbackCode;
 }
 
-export function isGoogleCalendarEventNotFoundError(error: unknown) {
-	const parsedError = googleCalendarErrorSchema.safeParse(error);
-	if (!parsedError.success) return false;
-
-	const status = parsedError.data.response?.status;
+export function isGoogleCalendarEventNotFoundFromParsed(error: ParsedGoogleCalendarError) {
+	const status = error.response?.status;
 	return status === 404 || status === 410;
+}
+
+export function googleCalendarErrorFromParseResult<T extends GoogleCalendarFallbackErrorCode>(
+	fallbackCode: T,
+	parsedError: ReturnType<typeof googleCalendarErrorSchema.safeParse>
+) {
+	const reason = parsedError.success
+		? googleCalendarErrorCodeFromParsed(parsedError.data, fallbackCode)
+		: fallbackCode;
+
+	return { reason };
+}
+
+export function resultAsyncFromGoogleCalendarPromise<T, F extends GoogleCalendarFallbackErrorCode>(
+	promise: Promise<T>,
+	fallbackCode: F
+) {
+	return ResultAsync.fromPromise(promise, (error) =>
+		googleCalendarErrorFromParseResult(fallbackCode, googleCalendarErrorSchema.safeParse(error))
+	);
 }

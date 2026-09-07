@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
@@ -110,9 +109,8 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 	);
 }
 
-export function customerFilter(row: { original: SessionRecord }, value: unknown) {
-	const parsedValue = z.string().safeParse(value);
-	const query = parsedValue.success ? parsedValue.data.trim().toLowerCase() : "";
+export function customerFilter(row: { original: SessionRecord }, value: string) {
+	const query = value.trim().toLowerCase();
 
 	if (!query) {
 		return true;

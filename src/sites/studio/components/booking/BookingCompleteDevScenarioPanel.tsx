@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
+import { type DevBookingScenario } from "#studio/features/booking-complete/lib/booking-complete-search";
 import { api } from "#convex/_generated/api";
 import { z } from "zod";
 
@@ -16,33 +17,15 @@ const DEV_SCENARIO_OPTIONS = [
 	{ label: "Slot Taken", value: "slot_taken" },
 	{ label: "Calendar Failed", value: "calendar_failed" },
 	{ label: "Not Found", value: "not_found" }
-] as const;
+] as const satisfies ReadonlyArray<{ label: string; value: DevBookingScenario }>;
 
-export type DevBookingScenario = (typeof DEV_SCENARIO_OPTIONS)[number]["value"];
-
-export interface BookingCompleteSearch {
-	dev_scenario?: DevBookingScenario;
-	package_id?: string;
-	package_size?: 4 | 8 | 12;
-	session_id?: string;
-}
+export type { DevBookingScenario };
+export type { BookingCompleteSearch } from "#studio/features/booking-complete/lib/booking-complete-search";
 
 export type BookingStatus = NonNullable<
 	ReturnType<typeof useQuery<typeof api.sessions.getSessionStatusByStripeSessionId>>
 >;
 
-const devBookingScenarioSchema = z.enum([
-	"processing",
-	"confirmed",
-	"email_failed",
-	"package_request",
-	"expired",
-	"slot_taken",
-	"calendar_failed",
-	"not_found"
-]);
-const nonEmptySearchStringSchema = z.string().min(1);
-const packageSizeSchema = z.union([z.literal(4), z.literal(8), z.literal(12)]);
 const devBookingIdSchema = z.custom<BookingStatus["_id"]>(
 	(value) => z.literal("dev-booking").safeParse(value).success
 );
@@ -71,23 +54,6 @@ export function BookingCompleteDevScenarioPanel() {
 			}
 		</FloatingDevMenu>
 	);
-}
-
-export function parseBookingCompleteSearch(search: unknown): BookingCompleteSearch {
-	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
-
-	if (!parsedSearch.success) {
-		return {};
-	}
-
-	const { dev_scenario, package_id, package_size, session_id } = parsedSearch.data;
-
-	return {
-		dev_scenario: parseDevBookingScenario(dev_scenario),
-		package_id: parseNonEmptyString(package_id),
-		package_size: parsePackageSize(package_size),
-		session_id: parseNonEmptyString(session_id)
-	};
 }
 
 export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus | null {
@@ -156,24 +122,4 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		paymentCompletedAt: now,
 		status: "failed"
 	};
-}
-
-function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
-	const parsedScenario = devBookingScenarioSchema.safeParse(value);
-	return parsedScenario.success ? parsedScenario.data : undefined;
-}
-
-function parseNonEmptyString(value: unknown): string | undefined {
-	const parsedValue = nonEmptySearchStringSchema.safeParse(value);
-	return parsedValue.success ? parsedValue.data : undefined;
-}
-
-function parsePackageSize(value: unknown): 4 | 8 | 12 | undefined {
-	const parsedValue = packageSizeSchema.safeParse(value);
-	if (parsedValue.success) {
-		return parsedValue.data;
-	}
-
-	const coercedValue = z.coerce.number().safeParse(value);
-	return coercedValue.success ? packageSizeSchema.safeParse(coercedValue.data).data : undefined;
 }

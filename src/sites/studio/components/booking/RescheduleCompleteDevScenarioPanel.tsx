@@ -1,22 +1,17 @@
 import { Link } from "@tanstack/react-router";
-import { z } from "zod";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
+import type { DevRescheduleCompleteScenario } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
 
 const DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS = [
 	{ label: "Success", value: "success" },
 	{ label: "Loading", value: "loading" },
 	{ label: "Booking Not Found", value: "booking_not_found" }
-] as const;
+] as const satisfies ReadonlyArray<{ label: string; value: DevRescheduleCompleteScenario }>;
 
-export type DevRescheduleCompleteScenario =
-	(typeof DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS)[number]["value"];
-
-export interface RescheduleCompleteSearch {
-	booking_id?: string;
-	dev_scenario?: DevRescheduleCompleteScenario;
-}
+export type { DevRescheduleCompleteScenario };
+export type { RescheduleCompleteSearch } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
 
 export function RescheduleCompleteDevScenarioPanel() {
 	return (
@@ -42,34 +37,4 @@ export function RescheduleCompleteDevScenarioPanel() {
 			}
 		</FloatingDevMenu>
 	);
-}
-
-const devRescheduleCompleteScenarioSchema = z.enum(["success", "loading", "booking_not_found"]);
-const nonEmptySearchStringSchema = z.string().min(1);
-
-export function parseRescheduleCompleteSearch(search: unknown): RescheduleCompleteSearch {
-	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
-
-	if (!parsedSearch.success) {
-		return {};
-	}
-
-	const { booking_id, dev_scenario } = parsedSearch.data;
-
-	return {
-		booking_id: parseOptionalSearchString(booking_id),
-		dev_scenario: parseDevRescheduleCompleteScenario(dev_scenario)
-	};
-}
-
-function parseOptionalSearchString(value: unknown): string | undefined {
-	const parsedValue = nonEmptySearchStringSchema.safeParse(value);
-	return parsedValue.success ? parsedValue.data : undefined;
-}
-
-function parseDevRescheduleCompleteScenario(
-	value: unknown
-): DevRescheduleCompleteScenario | undefined {
-	const parsedScenario = devRescheduleCompleteScenarioSchema.safeParse(value);
-	return parsedScenario.success ? parsedScenario.data : undefined;
 }

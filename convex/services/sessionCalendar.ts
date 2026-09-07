@@ -12,7 +12,7 @@ import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
 } from "#convex/lib/googleCalendarClient";
-import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
+import { resultAsyncFromGoogleCalendarPromise } from "#convex/lib/googleCalendarErrors";
 import {
 	getSessionStartAt,
 	isValidSessionRemainingBalanceAmount,
@@ -63,10 +63,6 @@ export type GetAvailableRescheduleTimesError =
 	| RescheduleLinkLookupError
 	| GoogleCalendarAvailabilityError;
 
-function mapGoogleCalendarAvailabilityError(error: unknown): GoogleCalendarAvailabilityError {
-	return { reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED") };
-}
-
 function getBookableRangeBusyWindowsFromGoogleCalendar({
 	ignoredEvent,
 	settings
@@ -83,7 +79,7 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 			return getDateAvailabilityRange(startDate, endDate, timeZone)
 				.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
 				.asyncAndThen(({ timeMin, timeMax }) =>
-					ResultAsync.fromPromise(
+					resultAsyncFromGoogleCalendarPromise(
 						getBusyWindowsInRange({
 							calendar,
 							calendarIds,
@@ -92,7 +88,7 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 							timeMin,
 							timeZone
 						}),
-						mapGoogleCalendarAvailabilityError
+						"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 					).andThen((busyWindows) =>
 						groupBusyWindowsByDay(busyWindows, timeZone)
 							.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
@@ -116,9 +112,9 @@ export function getAvailableBookingTimesService(
 	return getBookingSettingsService(ctx).andThen((settings) =>
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen(
 			({ calendar, calendarIds, timeZone }) =>
-				ResultAsync.fromPromise(
+				resultAsyncFromGoogleCalendarPromise(
 					getBusyWindows({ calendar, calendarIds, date: args.date, timeZone }),
-					mapGoogleCalendarAvailabilityError
+					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 				).map((busyWindows) => ({
 					timeZone,
 					times: getAvailableTimeOptions({
@@ -173,13 +169,11 @@ export function getAvailableRescheduleTimesService(
 	)
 		.andThen((details) => getBookingSettingsService(ctx).map((settings) => ({ details, settings })))
 		.andThen(({ details, settings }) =>
-			ResultAsync.fromPromise(
+			resultAsyncFromGoogleCalendarPromise(
 				Promise.resolve().then(() => getGoogleCalendarClient()),
-				(error): GoogleCalendarAvailabilityError => ({
-					reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-				})
+				"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 			).andThen(({ calendar, calendarIds, timeZone }) =>
-				ResultAsync.fromPromise(
+				resultAsyncFromGoogleCalendarPromise(
 					getBusyWindows({
 						calendar,
 						calendarIds,
@@ -190,9 +184,7 @@ export function getAvailableRescheduleTimesService(
 						},
 						timeZone
 					}),
-					(error): GoogleCalendarAvailabilityError => ({
-						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-					})
+					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 				).map((busyWindows) => {
 					const calendarAvailableTimes = getAvailableTimeOptions({
 						busyWindows,

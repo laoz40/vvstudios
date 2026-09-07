@@ -78,14 +78,14 @@ function storeAdminDashboardPreferences(preferences: AdminDashboardPreferences) 
 	getAdminDashboardStorage()?.setItem(ADMIN_DASHBOARD_PREFERENCES_KEY, JSON.stringify(preferences));
 }
 
-function parseStoredSorting(value: unknown): SessionSorting | undefined {
-	const parsedSorting = z.array(sessionSortingItemSchema).safeParse(value);
-
-	if (!parsedSorting.success || parsedSorting.data.length === 0) {
+function normalizeStoredSorting(
+	sorting: z.infer<typeof sessionSortingItemSchema>[] | undefined
+): SessionSorting | undefined {
+	if (!sorting || sorting.length === 0) {
 		return undefined;
 	}
 
-	return parsedSorting.data.map((sort) => ({ id: sort.id, desc: sort.desc ?? false }));
+	return sorting.map((sort) => ({ id: sort.id, desc: sort.desc ?? false }));
 }
 
 export function readStoredPackageTableFilters(): AdminPackageFilters {
@@ -113,7 +113,8 @@ export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
 
 	return {
 		sorting:
-			parseStoredSorting(storedPreferences.sorting) ?? DEFAULT_SESSIONS_TABLE_PREFERENCES.sorting,
+			normalizeStoredSorting(storedPreferences.sorting) ??
+			DEFAULT_SESSIONS_TABLE_PREFERENCES.sorting,
 		showArchived: storedPreferences.showArchived ?? false,
 		showStaleBookings: storedPreferences.showStaleBookings ?? true,
 		showUpcomingOnly: storedPreferences.showUpcomingOnly ?? true

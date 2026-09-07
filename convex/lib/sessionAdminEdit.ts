@@ -1,5 +1,5 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result } from "neverthrow";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
@@ -17,7 +17,7 @@ import {
 	type SessionTimeParseError
 } from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
-import { getGoogleCalendarErrorCode } from "./googleCalendarErrors";
+import { resultAsyncFromGoogleCalendarPromise } from "./googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
@@ -311,7 +311,7 @@ export function validateSessionTimingEdit({
 			}).mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }));
 
 	return settingsResult.asyncAndThen(() =>
-		ResultAsync.fromPromise(
+		resultAsyncFromGoogleCalendarPromise(
 			getBusyWindows({
 				calendar,
 				calendarIds,
@@ -328,9 +328,7 @@ export function validateSessionTimingEdit({
 					timeZone
 				})
 			),
-			(error) => ({
-				reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-			})
+			"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 		).andThen((isAvailable) =>
 			isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
 		)

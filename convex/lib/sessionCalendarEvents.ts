@@ -10,8 +10,9 @@ import {
 	formatCalendarEventTime
 } from "./sessionCalendarTime";
 import {
-	getGoogleCalendarErrorCode,
-	isGoogleCalendarEventNotFoundError
+	googleCalendarErrorFromParseResult,
+	googleCalendarErrorSchema,
+	isGoogleCalendarEventNotFoundFromParsed
 } from "./googleCalendarErrors";
 
 export interface SessionCalendarEventDetails {
@@ -177,7 +178,10 @@ async function deleteCalendarEventIfFound(
 
 		return true;
 	} catch (error) {
-		if (isGoogleCalendarEventNotFoundError(error)) return false;
+		const parsedError = googleCalendarErrorSchema.safeParse(error);
+		if (parsedError.success && isGoogleCalendarEventNotFoundFromParsed(parsedError.data)) {
+			return false;
+		}
 
 		throw error;
 	}
@@ -231,11 +235,17 @@ export async function deleteSessionCalendarEvent({
 
 		return ok({ calendarEventDeleted: wasFoundEventDeleted });
 	} catch (error) {
-		if (isGoogleCalendarEventNotFoundError(error)) {
+		const parsedError = googleCalendarErrorSchema.safeParse(error);
+		if (parsedError.success && isGoogleCalendarEventNotFoundFromParsed(parsedError.data)) {
 			return ok({ calendarEventDeleted: false });
 		}
 
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_DELETE_FAILED") });
+		return err(
+			googleCalendarErrorFromParseResult(
+				"GOOGLE_CALENDAR_DELETE_FAILED",
+				googleCalendarErrorSchema.safeParse(error)
+			)
+		);
 	}
 }
 
@@ -308,11 +318,17 @@ export async function updateSessionCalendarEventTiming({
 			requestBody: payloadResult.value
 		});
 	} catch (error) {
-		if (isGoogleCalendarEventNotFoundError(error)) {
+		const parsedError = googleCalendarErrorSchema.safeParse(error);
+		if (parsedError.success && isGoogleCalendarEventNotFoundFromParsed(parsedError.data)) {
 			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_UPDATE_FAILED") });
+		return err(
+			googleCalendarErrorFromParseResult(
+				"GOOGLE_CALENDAR_UPDATE_FAILED",
+				googleCalendarErrorSchema.safeParse(error)
+			)
+		);
 	}
 
 	return ok({});
@@ -352,6 +368,11 @@ export async function createSessionCalendarEvent({
 			outcome: "replacementCreated" as const
 		});
 	} catch (error) {
-		return err({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") });
+		return err(
+			googleCalendarErrorFromParseResult(
+				"GOOGLE_CALENDAR_CREATE_FAILED",
+				googleCalendarErrorSchema.safeParse(error)
+			)
+		);
 	}
 }

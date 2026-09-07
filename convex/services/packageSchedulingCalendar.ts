@@ -5,7 +5,7 @@ import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
-import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
+import { resultAsyncFromGoogleCalendarPromise } from "#convex/lib/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
 import { fromConvexTuple } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
@@ -81,7 +81,7 @@ export function getPackageBusyWindowsService(
 			})
 			// Fetch every Calendar event that can block a package booking.
 			.andThen(({ availabilityRange, client, packageFromDb }) =>
-				ResultAsync.fromPromise(
+				resultAsyncFromGoogleCalendarPromise(
 					getBusyWindowsInRange({
 						calendar: client.calendar,
 						calendarIds: client.calendarIds,
@@ -89,9 +89,7 @@ export function getPackageBusyWindowsService(
 						timeMin: availabilityRange.timeMin,
 						timeZone: client.timeZone
 					}),
-					(error) => ({
-						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-					})
+					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 				).map((busyWindows) => ({ busyWindows, client, packageFromDb }))
 			)
 			// Group busy days by month.
@@ -119,7 +117,7 @@ export function savePackageSessionCalendarEventService(args: {
 					? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
 					: undefined;
 
-				return ResultAsync.fromPromise(
+				return resultAsyncFromGoogleCalendarPromise(
 					getBusyWindows({
 						calendar: client.calendar,
 						calendarIds: client.calendarIds,
@@ -127,9 +125,7 @@ export function savePackageSessionCalendarEventService(args: {
 						ignoredEvent,
 						timeZone: client.timeZone
 					}),
-					(error): PackageCalendarWriteError => ({
-						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_SYNC_FAILED")
-					})
+					"GOOGLE_CALENDAR_SYNC_FAILED"
 				).map((busyWindows) => ({ busyWindows, client }));
 			})
 			.andThen(({ busyWindows, client }) => {

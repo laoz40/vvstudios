@@ -14,7 +14,7 @@ const bookingExpiredSearchSchema = z.object({ session_id: z.string().min(1) });
 
 export const Route = createFileRoute("/_public/_convex/booking-expired")({
 	head: () => buildNoIndexHead("Booking Session Expired | VV Studios"),
-	validateSearch: (search: unknown) => {
+	validateSearch: (search) => {
 		const parsedSearch = bookingExpiredSearchSchema.safeParse(search);
 
 		return { session_id: parsedSearch.success ? parsedSearch.data.session_id : undefined };

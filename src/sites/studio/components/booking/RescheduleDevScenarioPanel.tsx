@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { z } from "zod";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { FunctionReturnType } from "convex/server";
+import { type DevRescheduleScenario } from "#studio/features/reschedule/lib/reschedule-search";
 import { api } from "#convex/_generated/api";
 import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
 
@@ -23,13 +23,10 @@ const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Update Calendar Error", value: "update_calendar_error" },
 	{ label: "Update Rate Limited", value: "update_rate_limited" },
 	{ label: "Update Unexpected", value: "update_unexpected" }
-] as const;
+] as const satisfies ReadonlyArray<{ label: string; value: DevRescheduleScenario }>;
 
-export type DevRescheduleScenario = (typeof DEV_RESCHEDULE_SCENARIO_OPTIONS)[number]["value"];
-
-export interface RescheduleSearch {
-	dev_scenario?: DevRescheduleScenario;
-}
+export type { DevRescheduleScenario };
+export type { RescheduleSearch } from "#studio/features/reschedule/lib/reschedule-search";
 
 export type RescheduleBookingLookup = NonNullable<
 	FunctionReturnType<typeof api.sessionReschedule.getRescheduleSessionByToken>
@@ -84,16 +81,6 @@ export function RescheduleDevScenarioPanel({ token }: RescheduleDevScenarioPanel
 			}
 		</FloatingDevMenu>
 	);
-}
-
-export function parseRescheduleSearch(search: unknown): RescheduleSearch {
-	const parsedSearch = z.record(z.string(), z.unknown()).safeParse(search);
-
-	if (!parsedSearch.success) {
-		return {};
-	}
-
-	return { dev_scenario: parseDevRescheduleScenario(parsedSearch.data.dev_scenario) };
 }
 
 export function buildDevRescheduleBooking(
@@ -224,8 +211,4 @@ export function getDevRescheduleUpdateResult(
 	}
 
 	return tupleOk({ bookingId: "dev-reschedule-booking" });
-}
-
-function parseDevRescheduleScenario(value: unknown): DevRescheduleScenario | undefined {
-	return DEV_RESCHEDULE_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)?.value;
 }

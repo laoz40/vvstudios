@@ -64,7 +64,7 @@ async function seedEditorProfile(t: TestClient, identity: UserIdentity) {
 	});
 }
 
-function jsonResponse(status: number, body: unknown) {
+function jsonResponse(status: number, body: object) {
 	return new Response(JSON.stringify(body), {
 		status,
 		headers: { "Content-Type": "application/json" }

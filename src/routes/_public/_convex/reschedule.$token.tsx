@@ -12,9 +12,9 @@ import { BookingModalHost } from "#studio/features/booking-form/components/Booki
 import {
 	buildDevRescheduleBooking,
 	getDevRescheduleUpdateResult,
-	parseRescheduleSearch,
 	RescheduleDevScenarioPanel
 } from "#studio/components/booking/RescheduleDevScenarioPanel";
+import { rescheduleSearchSchema } from "#studio/features/reschedule/lib/reschedule-search";
 import { RescheduleBookingSummary } from "#studio/components/booking/RescheduleBookingSummary";
 import {
 	closeBookingModal,
@@ -34,7 +34,10 @@ import { cn } from "#/lib/utils";
 import { getRescheduleUpdateToastMessage } from "#studio/features/booking-form/lib/reschedule-errors";
 
 export const Route = createFileRoute("/_public/_convex/reschedule/$token")({
-	validateSearch: parseRescheduleSearch,
+	validateSearch: (search) => {
+		const parsedSearch = rescheduleSearchSchema.safeParse(search);
+		return parsedSearch.success ? parsedSearch.data : {};
+	},
 	head: () => buildNoIndexHead("Reschedule Booking | VV Studios"),
 	component: ReschedulePage
 });
