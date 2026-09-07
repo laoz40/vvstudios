@@ -84,12 +84,14 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 	);
 }
 
-function EditorSelect({
-	activeEditors,
-	session,
-	isSaving,
-	onSelect
-}: SessionEditorAssignmentProps & { isSaving: boolean; onSelect: (value: string) => void }) {
+type EditorSelectProps = {
+	activeEditors: ActiveEditor[];
+	session: SessionRecord;
+	isSaving: boolean;
+	onSelect: (value: string) => void;
+};
+
+function EditorSelect({ activeEditors, session, isSaving, onSelect }: EditorSelectProps) {
 	return (
 		<Select
 			value={session.assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}

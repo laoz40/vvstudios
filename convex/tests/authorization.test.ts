@@ -471,7 +471,10 @@ describe("editor profile access resolution", () => {
 			.withIdentity(adminIdentity)
 			.query(api.auth.getCurrentUserAccess, {});
 
-		expect(result).toEqual([null, { role: "admin", permissions: PERMISSIONS }]);
+		expect(result).toEqual([
+			null,
+			{ role: "admin", permissions: PERMISSIONS, editorProfile: null }
+		]);
 	});
 
 	test("reports an active editor's real role and restricted permissions", async () => {
@@ -630,6 +633,100 @@ describe("editor user creation and detail updates", () => {
 			email: "",
 			isActive: true
 		});
+	});
+});
+
+describe("admin editor enrollment", () => {
+	test("creates an active editor profile for an admin", async () => {
+		const t = createConvexTest();
+		const identity = { ...adminIdentity, name: "Admin Editor", email: "admin-editor@example.com" };
+
+		const result = await t.withIdentity(identity).mutation(api.auth.enrollAdminAsEditor, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, identity.tokenIdentifier)).toMatchObject({
+			tokenIdentifier: identity.tokenIdentifier,
+			displayName: "Admin Editor",
+			email: "admin-editor@example.com",
+			isActive: true,
+			totalEdits: 0
+		});
+	});
+
+	test("reports an admin's editor profile after enrollment", async () => {
+		const t = createConvexTest();
+		const identity = { ...adminIdentity, name: "Admin Editor", email: "admin-editor@example.com" };
+
+		expect(await t.withIdentity(identity).mutation(api.auth.enrollAdminAsEditor, {})).toEqual([
+			null,
+			null
+		]);
+		const result = await t.withIdentity(identity).query(api.auth.getCurrentUserAccess, {});
+
+		expect(result).toEqual([
+			null,
+			{
+				role: "admin",
+				permissions: PERMISSIONS,
+				editorProfile: {
+					tokenIdentifier: identity.tokenIdentifier,
+					displayName: "Admin Editor",
+					isActive: true
+				}
+			}
+		]);
+	});
+
+	test("updates an existing active admin editor profile", async () => {
+		const t = createConvexTest();
+		const identity = { ...adminIdentity, name: "Admin Editor", email: "admin-editor@example.com" };
+
+		expect(await t.withIdentity(identity).mutation(api.auth.enrollAdminAsEditor, {})).toEqual([
+			null,
+			null
+		]);
+		const updatedIdentity = {
+			...identity,
+			name: "Updated Admin Editor",
+			email: "updated-admin@example.com"
+		};
+
+		const result = await t.withIdentity(updatedIdentity).mutation(api.auth.enrollAdminAsEditor, {});
+
+		expect(result).toEqual([null, null]);
+		expect(await findEditorProfile(t, identity.tokenIdentifier)).toMatchObject({
+			displayName: "Updated Admin Editor",
+			email: "updated-admin@example.com",
+			isActive: true
+		});
+	});
+
+	test("rejects enrollment when the admin editor profile is inactive", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, adminIdentity, false);
+
+		const result = await t.withIdentity(adminIdentity).mutation(api.auth.enrollAdminAsEditor, {});
+
+		expect(result).toEqual([{ reason: "EDITOR_PROFILE_INACTIVE" }, null]);
+	});
+
+	test("rejects editor enrollment attempts", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, true);
+
+		const result = await t
+			.withIdentity(editorMetadataIdentity)
+			.mutation(api.auth.enrollAdminAsEditor, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+	});
+
+	test("rejects signed-out admin enrollment", async () => {
+		const t = createConvexTest();
+
+		const result = await t.mutation(api.auth.enrollAdminAsEditor, {});
+
+		expect(result).toEqual([{ reason: "NOT_AUTHENTICATED" }, null]);
 	});
 });
 

@@ -1,15 +1,18 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok, okAsync, type ResultAsync } from "neverthrow";
+import { err, ok, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { hasPermission, ROLE_PERMISSIONS, type Permission, type Role } from "#/lib/permissions";
+import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
 
 export const ADMIN_ROLE = "admin";
 
 type PublicMetadata = { role?: string };
-type UserAccess = { role: Role; permissions: readonly Permission[] };
+type AdminEditorProfile = { tokenIdentifier: string; displayName: string; isActive: boolean };
+type UserAccess =
+	| { role: "admin"; permissions: readonly Permission[]; editorProfile: AdminEditorProfile | null }
+	| { role: "editor"; permissions: readonly Permission[] };
 
 function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
 	const publicMetadata = identity.publicMetadata;
@@ -25,6 +28,22 @@ export function isAdminIdentity(identity: UserIdentity): boolean {
 	return getPublicMetadata(identity)?.role === ADMIN_ROLE;
 }
 
+export function requireAdminIdentity(identity: UserIdentity) {
+	if (!isAdminIdentity(identity)) {
+		return err({ reason: "NOT_AUTHORIZED" as const });
+	}
+
+	return ok(identity);
+}
+
+export function requireEnrollableEditorProfile(editor: Doc<"editorProfiles"> | null) {
+	if (editor !== null && !editor.isActive) {
+		return err({ reason: "EDITOR_PROFILE_INACTIVE" as const });
+	}
+
+	return ok(editor);
+}
+
 function requireAuthenticatedIdentity(identity: UserIdentity | null) {
 	if (identity === null) {
 		return err({ reason: "NOT_AUTHENTICATED" as const });
@@ -37,6 +56,14 @@ export function requireUser(ctx: Pick<QueryCtx, "auth">) {
 	return okOrThrow(ctx.auth.getUserIdentity()).andThen(requireAuthenticatedIdentity);
 }
 
+function buildAdminEditorProfile(editor: Doc<"editorProfiles">): AdminEditorProfile {
+	return {
+		tokenIdentifier: editor.tokenIdentifier,
+		displayName: editor.displayName,
+		isActive: editor.isActive
+	};
+}
+
 export function getUserRoleAndPermissions(
 	identity: UserIdentity,
 	loadEditor: (
@@ -44,7 +71,11 @@ export function getUserRoleAndPermissions(
 	) => ResultAsync<Doc<"editorProfiles"> | null, never>
 ): ResultAsync<UserAccess, { reason: "NOT_AUTHORIZED" }> {
 	if (isAdminIdentity(identity)) {
-		return okAsync({ role: "admin", permissions: ROLE_PERMISSIONS.admin });
+		return loadEditor(identity.tokenIdentifier).map((editor) => ({
+			role: "admin" as const,
+			permissions: ROLE_PERMISSIONS.admin,
+			editorProfile: editor === null ? null : buildAdminEditorProfile(editor)
+		}));
 	}
 
 	return loadEditor(identity.tokenIdentifier).andThen((editor) => {
