@@ -159,9 +159,12 @@ export function useRescheduleAvailability({
 	const [selectedTime, setSelectedTime] = useState("");
 
 	// Derived date range values
-	const selectedDate = parseDateValue(selectedDateValue);
+	const selectedDate = useMemo(() => parseDateValue(selectedDateValue), [selectedDateValue]);
 	const today = useMemo(() => startOfToday(), []);
-	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
+	const lastBookableDate = useMemo(
+		() => getLastBookableDate(today, availabilitySettings.maxDaysAhead),
+		[today, availabilitySettings.maxDaysAhead]
+	);
 	const bookableStartDateValue = formatDateValue(today);
 	const bookableEndDateValue = formatDateValue(lastBookableDate);
 	const bookableMonthKeys = useMemo(() => {
@@ -203,19 +206,35 @@ export function useRescheduleAvailability({
 		setSelectedDateValue(formatDateValue(startOfToday()));
 	}, [activeDevScenario, clearInvalidLinkMessage]);
 
-	const pickerOptions = getReschedulePickerOptions({
-		activeDevScenario,
-		currentTimestamp,
-		duration,
-		isViewingSelectedMonth,
-		lastBookableDate,
-		monthlyBusyWindowsByMonth,
-		selectedDate,
-		selectedDateValue,
-		selectedMonth,
-		settings: availabilitySettings,
-		today
-	});
+	const pickerOptions = useMemo(
+		() =>
+			getReschedulePickerOptions({
+				activeDevScenario,
+				currentTimestamp,
+				duration,
+				isViewingSelectedMonth,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				selectedDate,
+				selectedDateValue,
+				selectedMonth,
+				settings: availabilitySettings,
+				today
+			}),
+		[
+			activeDevScenario,
+			availabilitySettings,
+			currentTimestamp,
+			duration,
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedDate,
+			selectedDateValue,
+			selectedMonth,
+			today
+		]
+	);
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
 		hasDate: Boolean(selectedDateValue),
 		hasDuration: true,

@@ -143,9 +143,12 @@ export function useBookingAvailability({
 
 	// Availability settings and date bounds
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-	const today = startOfToday();
-	const lastBookableDate = getLastBookableDate(today, availabilitySettings.maxDaysAhead);
-	const selectedDate = parseDateValue(date);
+	const today = useMemo(() => startOfToday(), []);
+	const lastBookableDate = useMemo(
+		() => getLastBookableDate(today, availabilitySettings.maxDaysAhead),
+		[today, availabilitySettings.maxDaysAhead]
+	);
+	const selectedDate = useMemo(() => parseDateValue(date), [date]);
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
 	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
 	const bookableStartDateValue = formatDateValue(today);
@@ -175,19 +178,35 @@ export function useBookingAvailability({
 	const isAvailabilityRateLimited =
 		availabilityError === availabilityErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED;
 
-	const pickerOptions = getBookingPickerOptions({
-		availabilitySettings,
-		currentTimestamp,
-		date,
-		duration,
-		isAvailabilityRateLimited,
-		isViewingSelectedMonth,
-		lastBookableDate,
-		monthlyBusyWindowsByMonth,
-		selectedDate,
-		selectedMonth,
-		today
-	});
+	const pickerOptions = useMemo(
+		() =>
+			getBookingPickerOptions({
+				availabilitySettings,
+				currentTimestamp,
+				date,
+				duration,
+				isAvailabilityRateLimited,
+				isViewingSelectedMonth,
+				lastBookableDate,
+				monthlyBusyWindowsByMonth,
+				selectedDate,
+				selectedMonth,
+				today
+			}),
+		[
+			availabilitySettings,
+			currentTimestamp,
+			date,
+			duration,
+			isAvailabilityRateLimited,
+			isViewingSelectedMonth,
+			lastBookableDate,
+			monthlyBusyWindowsByMonth,
+			selectedDate,
+			selectedMonth,
+			today
+		]
+	);
 
 	// Keep time-based availability fresh
 	useEffect(() => {
