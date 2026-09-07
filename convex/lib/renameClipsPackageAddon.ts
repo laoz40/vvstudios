@@ -6,10 +6,6 @@ import {
 export const LEGACY_CLIPS_PACKAGE_ADDON = "Clips Package";
 export const CLIP_VOLUME_PACK_ADDON = "Clip Volume Pack";
 
-function isStoredBookingAddon(value: string): value is BookingAddon {
-	return ADDON_OPTIONS.some((option) => option === value);
-}
-
 export function renameClipsPackageInAddons(addons: readonly string[]) {
 	const nextAddons: BookingAddon[] = [];
 	let changed = false;
@@ -21,15 +17,17 @@ export function renameClipsPackageInAddons(addons: readonly string[]) {
 			changed = true;
 		}
 
-		if (!isStoredBookingAddon(normalizedAddon) || nextAddons.includes(normalizedAddon)) {
-			if (!isStoredBookingAddon(normalizedAddon)) {
+		const bookingAddon = ADDON_OPTIONS.find((option) => option === normalizedAddon);
+
+		if (!bookingAddon || nextAddons.includes(bookingAddon)) {
+			if (!bookingAddon) {
 				changed = true;
 			}
 
 			continue;
 		}
 
-		nextAddons.push(normalizedAddon);
+		nextAddons.push(bookingAddon);
 	}
 
 	if (!changed && nextAddons.length === addons.length) {
