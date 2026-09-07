@@ -1,4 +1,4 @@
-import { MultiBookingSchedulingEmail } from "#studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
+import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
 
 const previewProps = {
 	addonsLine: "4K UHD Recording, 3 x Clip Volume Pack",
@@ -11,8 +11,8 @@ const previewProps = {
 	signoffName: "Joseph"
 };
 
-export default function MultiBookingSchedulingEmailPreview() {
-	return <MultiBookingSchedulingEmail {...previewProps} />;
+export default function PackageSchedulingEmailPreview() {
+	return <PackageSchedulingEmail {...previewProps} />;
 }
 
-MultiBookingSchedulingEmailPreview.PreviewProps = previewProps;
+PackageSchedulingEmailPreview.PreviewProps = previewProps;

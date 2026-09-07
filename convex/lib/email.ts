@@ -9,7 +9,7 @@ import { DeliverablesEmail } from "#studio/features/deliverables-email/Deliverab
 import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
-import { MultiBookingSchedulingEmail } from "#studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
+import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
@@ -431,7 +431,7 @@ export async function sendPackageScheduleEmail({
 
 	try {
 		html = await render(
-			createElement(MultiBookingSchedulingEmail, {
+			createElement(PackageSchedulingEmail, {
 				addonsLine: formatAddonsLine({
 					addons,
 					clipsPackageQuantity,

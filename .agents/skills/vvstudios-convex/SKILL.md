@@ -9,7 +9,7 @@ description: Project specific convex rules. ALWAYS read this skill before any co
 
 - Dont duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Dont suffix internal Convex function names with `Internal` or similar; these things are obvious from looking at the code already
-- `multiBooking` domain concept is now known as `package`, however schema fields haven't renamed to avoid migration
+- Refer to the package domain concept as a package in code names, such as `packageId`, `packageFromDb`, and `packageSessions`. The schema table is `packages`.
 
 - Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask user to clarify.
 
