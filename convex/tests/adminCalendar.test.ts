@@ -263,7 +263,7 @@ describe("admin booking state integrity", () => {
 			addons: ["Essential Edit", "Clip Volume Pack"],
 			essentialEditQuantity: "2",
 			clipsPackageQuantity: "3",
-			remainingBalanceAmount: 684
+			remainingBalanceAmount: 689
 		});
 
 		const overrideResult = await admin.action(
