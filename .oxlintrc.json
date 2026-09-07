@@ -64,7 +64,8 @@
 		"anti-slop/no-runtime-typeof": "error",
 		"anti-slop/require-safety-comment-for-type-assertion": "error",
 		"anti-slop/no-unsafe-dictionary-type": "error",
-		"anti-slop/no-unknown-parameters": "error"
+		"anti-slop/no-unknown-parameters": "error",
+		"anti-slop/no-unknown-returns": "error"
 	},
 	"overrides": [
 		{

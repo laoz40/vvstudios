@@ -44,9 +44,7 @@ import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 type SendInvoiceEmail = typeof import("#convex/lib/email").sendPackageInvoiceEmail;
-type SendScheduleEmail = (
-	args: Parameters<typeof import("#convex/lib/email").sendPackageScheduleEmail>[0]
-) => unknown;
+type SendScheduleEmail = typeof import("#convex/lib/email").sendPackageScheduleEmail;
 
 const providerFakes = vi.hoisted(() => ({
 	resolveMx: vi.fn(),
@@ -226,7 +224,7 @@ describe("package payment confirmation", () => {
 		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 		providerFakes.sendScheduleEmail
-			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" }))
 			.mockResolvedValueOnce(ok(null));
 
 		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {

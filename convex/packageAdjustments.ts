@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "#convex/_generated/server";
 import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/packageAdjustments";
 import {
@@ -29,7 +30,7 @@ export const claimPackageAdjustmentInvoiceEmail = internalMutation({
 		claimPackageAdjustmentInvoiceEmailService(
 			ctx,
 			args,
-			(): Promise<unknown> =>
+			(): Promise<Id<"_scheduled_functions">> =>
 				ctx.scheduler.runAfter(
 					PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 					internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,

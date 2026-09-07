@@ -106,7 +106,7 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 export function saveClientSessionRescheduleService(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs,
-	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<unknown>
+	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<Id<"_scheduled_functions">>
 ) {
 	return (
 		getSessionFromDb(ctx, args.bookingId)

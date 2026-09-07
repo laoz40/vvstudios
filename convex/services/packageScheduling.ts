@@ -411,7 +411,7 @@ export function processPackageAdjustmentWhenSessionsCompleteService(
 export function saveCreatedPackageSessionService(
 	ctx: MutationCtx,
 	args: SaveCreatedPackageSessionArgs,
-	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<unknown>
+	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<Id<"_scheduled_functions">>
 ) {
 	return (
 		getValidPackageByToken(ctx, args.token, args.now)
