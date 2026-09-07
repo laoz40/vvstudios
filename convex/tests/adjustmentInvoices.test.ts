@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { err, ok } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
@@ -437,7 +438,7 @@ async function seedPaidPackage(t: TestClient) {
 async function seedPackageSession(
 	t: TestClient,
 	packageId: Id<"multiBookingPackages">,
-	addons: string[],
+	addons: BookingAddon[],
 	overrides: { sessionStartAt?: number; status?: "confirmed" | "cancelled" } = {}
 ) {
 	return await t.run((ctx) =>

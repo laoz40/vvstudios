@@ -111,6 +111,7 @@ import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createConvexTest } from "#convex/test.setup";
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -166,7 +167,7 @@ type EditorSessionProjection = {
 	time: string;
 	duration: string;
 	service: string;
-	addons: string[];
+	addons: BookingAddon[];
 	essentialEditQuantity?: string;
 	completeEditQuantity?: string;
 	clipsPackageQuantity?: string;
@@ -290,8 +291,7 @@ async function seedBooking(
 				"Clip Volume Pack",
 				"Teleprompter",
 				"4K UHD Recording",
-				"Remote Podcast",
-				"Internal Billing Add-on"
+				"Remote Podcast"
 			],
 			essentialEditQuantity: "2",
 			completeEditQuantity: "3",

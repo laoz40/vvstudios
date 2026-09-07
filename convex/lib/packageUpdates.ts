@@ -11,6 +11,7 @@ import {
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "./packageScheduling";
 
 export type CreatePendingPackageArgs = {
@@ -20,7 +21,7 @@ export type CreatePendingPackageArgs = {
 	abn?: string;
 	email: string;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	notes?: string;
 	packageSize: MultiBookingSize;
 	singleSessionAmount: number;
@@ -49,7 +50,7 @@ export type UpdatePackageArgs = {
 	abn?: string;
 	email: string;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	notes?: string;
 	packageSize: MultiBookingSize;
 	expiresAt?: number;

@@ -5,6 +5,7 @@ import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { Button } from "#/components/ui/button";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
@@ -137,7 +138,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		_id: string;
 		invoiceNumber: string;
 		service?: string;
-		addons: string[];
+		addons: BookingAddon[];
 		dueDate?: string;
 		includeDepositLineItem: boolean;
 		createdAt: number;

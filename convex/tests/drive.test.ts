@@ -149,6 +149,7 @@ import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { shouldRecordDriveSetupFailure } from "#convex/lib/driveSetup";
 import {
 	getClientFolderName,
@@ -1678,7 +1679,7 @@ function adminSessionValues(
 		time: "11:00",
 		duration: "1h",
 		service: "Remote Podcast",
-		addons: [] as string[],
+		addons: [] as BookingAddon[],
 		...overrides
 	};
 }

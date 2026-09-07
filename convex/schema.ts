@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { bookingAddonsValidator } from "./lib/bookingAddons";
 import { SERVICES } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
 
 const bookingInvoiceLineItemsValidator = v.array(
@@ -141,7 +142,7 @@ export default defineSchema({
 		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
 		duration: v.optional(v.string()),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		essentialEditQuantity: v.optional(v.string()),
 		completeEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
@@ -184,7 +185,7 @@ export default defineSchema({
 		// Session booking details
 		duration: v.string(),
 		service: v.string(),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		essentialEditQuantity: v.optional(v.string()),
 		completeEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
@@ -289,7 +290,7 @@ export default defineSchema({
 
 		// Package booking details
 		duration: v.string(),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		essentialEditQuantity: v.optional(v.string()),
 		completeEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),

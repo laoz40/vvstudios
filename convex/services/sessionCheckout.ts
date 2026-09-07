@@ -5,6 +5,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getOrCreateDriveClientId } from "#convex/lib/driveRecords";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
@@ -28,7 +29,7 @@ export type CreatePendingSessionArgs = {
 	time: string;
 	duration: string;
 	service: string;
-	addons: string[];
+	addons: BookingAddon[];
 	notes?: string;
 } & BookingAddonQuantitiesArgs;
 

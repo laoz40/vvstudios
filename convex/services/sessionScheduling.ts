@@ -15,6 +15,7 @@ import {
 	type SessionReservation
 } from "#convex/lib/sessionReservations";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
 
 export type SaveAdminSessionUpdateArgs = AdminSessionUpdateArgs & {
@@ -29,7 +30,7 @@ export type SaveClientSessionRescheduleArgs = {
 	date: string;
 	time: string;
 	service?: string;
-	addons?: string[];
+	addons?: BookingAddon[];
 	notes?: string;
 	sessionStartAt: number;
 	confirmBooking?: boolean;

@@ -1,5 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { err, ok, type Result } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 
@@ -14,7 +15,7 @@ import {
 } from "./googleCalendarErrors";
 
 export interface SessionCalendarEventDetails {
-	addons: string[];
+	addons: BookingAddon[];
 	duration: string;
 	email: string;
 	name: string;

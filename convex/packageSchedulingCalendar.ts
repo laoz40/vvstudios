@@ -11,6 +11,7 @@ import {
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
 } from "./services/packageSchedulingCalendar";
+import { bookingAddonsValidator } from "./lib/bookingAddons";
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),
@@ -23,7 +24,7 @@ const packageCalendarBookingValidator = v.object({
 });
 
 const packageCalendarDetailsValidator = v.object({
-	addons: v.array(v.string()),
+	addons: bookingAddonsValidator,
 	date: v.string(),
 	duration: v.union(...DURATION_OPTIONS.map((duration) => v.literal(duration))),
 	email: v.string(),

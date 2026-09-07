@@ -5,7 +5,7 @@ import { hasUnsentDeliverables } from "#studio/features/admin/lib/session-edit-s
 import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
 import {
 	DURATION_OPTIONS,
-	isAddonOption,
+	type BookingAddon,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { getBookingStartTimestamp, isUpcomingBooking } from "#studio/lib/bookingdatetime";
@@ -17,8 +17,8 @@ export type SessionRecord = Doc<"bookings"> & {
 	multiBookingPackageSessionPosition?: number;
 };
 
-export function toAdminSessionAddons(addons: readonly string[]): BookingFormValues["addons"] {
-	return addons.filter(isAddonOption);
+export function toAdminSessionAddons(addons: readonly BookingAddon[]): BookingFormValues["addons"] {
+	return [...addons];
 }
 
 export function toAdminSessionDuration(

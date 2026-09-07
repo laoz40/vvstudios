@@ -24,6 +24,7 @@ import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bookingAddonQuantities from "../lib/bookingAddonQuantities.js";
+import type * as lib_bookingAddons from "../lib/bookingAddons.js";
 import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
@@ -128,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   "lib/auth": typeof lib_auth;
   "lib/bookingAddonQuantities": typeof lib_bookingAddonQuantities;
+  "lib/bookingAddons": typeof lib_bookingAddons;
   "lib/bookingConfirmation": typeof lib_bookingConfirmation;
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
   "lib/bookingSettings": typeof lib_bookingSettings;

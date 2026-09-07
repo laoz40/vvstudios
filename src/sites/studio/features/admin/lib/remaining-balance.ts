@@ -1,9 +1,10 @@
 import type { Doc } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 
 export type RemainingBalanceSession = {
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	remainingBalanceAmount?: number;
 };
 

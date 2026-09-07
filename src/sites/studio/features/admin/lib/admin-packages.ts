@@ -1,5 +1,6 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 export type AdminPackageStatus =
@@ -32,7 +33,7 @@ export type AdminPackageRow = {
 	packageSize: 4 | 8 | 12;
 	bookedSessions: number;
 	duration: string;
-	addons: string[];
+	addons: BookingAddon[];
 	clipsPackageQuantity?: string;
 	completeEditQuantity?: string;
 	essentialEditQuantity?: string;

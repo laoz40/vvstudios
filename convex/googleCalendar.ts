@@ -15,6 +15,7 @@ import {
 	updateSessionFromAdminService
 } from "./services/sessionCalendar";
 import { bookingAddonQuantitiesValidator } from "./lib/bookingAddonQuantities";
+import { bookingAddonsValidator } from "./lib/bookingAddons";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,
@@ -106,7 +107,7 @@ export const updateSessionFromAdmin = action({
 		time: v.string(),
 		duration: v.string(),
 		service: v.string(),
-		addons: v.array(v.string()),
+		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		remainingBalanceAmount: v.optional(v.number())

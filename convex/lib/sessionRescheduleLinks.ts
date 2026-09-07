@@ -3,6 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { fromConvexTuple } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
@@ -36,7 +37,7 @@ export type LockRescheduleLinkError =
 
 type ClientSessionRescheduleOptionalArgs = {
 	service?: string;
-	addons?: string[];
+	addons?: BookingAddon[];
 	notes?: string;
 	confirmBooking?: boolean;
 	googleCalendarId?: string;
