@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "#/lib/utils";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
+import { AdminPrivacyToggle } from "#studio/features/admin/components/AdminPrivacyToggle";
 import { AdminDashboardMenu } from "#studio/features/admin/components/AdminDashboardMenu";
 import {
 	AdminDashboardTabs,
@@ -40,6 +41,7 @@ export function AdminDashboardShell({
 
 					<div className="hidden md:block">
 						<div className="flex flex-wrap items-center gap-2">
+							<AdminPrivacyToggle />
 							<AdminAvailabilitySettings />
 							<DashboardSignOutButton email={email} />
 						</div>

@@ -7,6 +7,7 @@ import { DashboardLoadingState } from "#studio/features/auth/components/Dashboar
 import type { DashboardRole } from "#studio/features/auth/lib/dashboard-loading-labels";
 import { AdminDashboardShell } from "#studio/features/admin/components/AdminDashboardShell";
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
+import { AdminPrivacyModeProvider } from "#studio/features/admin/components/AdminPrivacyMode";
 import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
@@ -134,26 +135,28 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	}
 
 	return (
-		<AdminDashboardShell
-			activeView={activeView}
-			email={email ?? null}
-			onActiveViewChange={setActiveView}>
-			<AdminDashboardTables
+		<AdminPrivacyModeProvider>
+			<AdminDashboardShell
 				activeView={activeView}
-				activeEditors={activeEditors}
-				editors={editors}
-				sessions={sessions.results}
-				packages={packages.results}
-				canLoadMoreSessions={sessions.status === "CanLoadMore"}
-				isLoadingMoreSessions={sessions.status === "LoadingMore"}
-				canLoadMorePackages={packages.status === "CanLoadMore"}
-				isLoadingMorePackages={packages.status === "LoadingMore"}
-				sessionSearchQuery={sessionSearchQuery}
-				onLoadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
-				onLoadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
-				onSearchQueryChange={setSessionSearchQuery}
-				onViewPackageSessions={viewPackageSessions}
-			/>
-		</AdminDashboardShell>
+				email={email ?? null}
+				onActiveViewChange={setActiveView}>
+				<AdminDashboardTables
+					activeView={activeView}
+					activeEditors={activeEditors}
+					editors={editors}
+					sessions={sessions.results}
+					packages={packages.results}
+					canLoadMoreSessions={sessions.status === "CanLoadMore"}
+					isLoadingMoreSessions={sessions.status === "LoadingMore"}
+					canLoadMorePackages={packages.status === "CanLoadMore"}
+					isLoadingMorePackages={packages.status === "LoadingMore"}
+					sessionSearchQuery={sessionSearchQuery}
+					onLoadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
+					onLoadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+					onSearchQueryChange={setSessionSearchQuery}
+					onViewPackageSessions={viewPackageSessions}
+				/>
+			</AdminDashboardShell>
+		</AdminPrivacyModeProvider>
 	);
 }

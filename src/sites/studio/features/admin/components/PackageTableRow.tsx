@@ -6,6 +6,7 @@ import {
 	CopyableText,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
 import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
@@ -133,20 +134,22 @@ export function PackageTableRow({
 			<TableCell className={inactiveCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium text-foreground">
-						<CopyableText
+						<PrivacySensitiveText
+							rowId={packageRow.id}
 							value={packageRow.customerName}
 							label="customer name">
 							{packageRow.customerName}
-						</CopyableText>
+						</PrivacySensitiveText>
 					</p>
 					{packageRow.accountName || packageRow.abn ? (
 						<p className="text-sm">
 							{packageRow.accountName ? (
-								<CopyableText
+								<PrivacySensitiveText
+									rowId={packageRow.id}
 									value={packageRow.accountName}
 									label="account name">
 									{packageRow.accountName}
-								</CopyableText>
+								</PrivacySensitiveText>
 							) : null}
 							{packageRow.abn ? (
 								<>
@@ -194,26 +197,29 @@ export function PackageTableRow({
 			<TableCell className={inactiveCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="break-all font-medium">
-						<CopyableText
+						<PrivacySensitiveText
+							rowId={packageRow.id}
 							value={packageRow.customerEmail}
 							label="email">
 							{packageRow.customerEmail}
-						</CopyableText>
+						</PrivacySensitiveText>
 					</p>
 					<p className="text-sm">
-						<CopyableText
+						<PrivacySensitiveText
+							rowId={packageRow.id}
 							value={packageRow.customerPhone}
 							label="phone number">
 							{packageRow.customerPhone}
-						</CopyableText>
+						</PrivacySensitiveText>
 						{packageRow.instagramHandle ? (
 							<>
 								{" · "}
-								<CopyableText
+								<PrivacySensitiveText
+									rowId={packageRow.id}
 									value={formatInstagramHandle(packageRow.instagramHandle)}
 									label="Instagram handle">
 									{formatInstagramHandle(packageRow.instagramHandle)}
-								</CopyableText>
+								</PrivacySensitiveText>
 							</>
 						) : null}
 					</p>
@@ -228,14 +234,26 @@ export function PackageTableRow({
 			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
 				<div className="flex flex-col gap-1">
 					<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
-						{packageRow.totalDueLabel}
+						<PrivacySensitiveText
+							rowId={packageRow.id}
+							value={packageRow.totalDueLabel}
+							label="package amount"
+							copyable={false}>
+							{packageRow.totalDueLabel}
+						</PrivacySensitiveText>
 					</p>
 					{packageRow.adjustment ? (
 						<p
 							className={
 								packageRow.adjustment.paymentStatus === "paid" ? "text-green" : "text-destructive"
 							}>
-							{packageRow.adjustment.amountLabel}
+							<PrivacySensitiveText
+								rowId={packageRow.id}
+								value={packageRow.adjustment.amountLabel}
+								label="adjustment amount"
+								copyable={false}>
+								{packageRow.adjustment.amountLabel}
+							</PrivacySensitiveText>
 						</p>
 					) : null}
 				</div>

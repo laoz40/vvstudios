@@ -23,7 +23,12 @@ export async function copyText(value: string, label: string) {
 	}
 }
 
-type CopyableTextProps = { value: string; label: string; children: ReactNode };
+type CopyableTextProps = {
+	children: ReactNode;
+	label: string;
+	onTextClick?: () => void;
+	value: string;
+};
 
 type SortHeaderButtonProps = {
 	isActive: boolean;
@@ -62,10 +67,20 @@ export function SortHeaderButton({
 	);
 }
 
-export function CopyableText({ value, label, children }: CopyableTextProps) {
+export function CopyableText({ value, label, children, onTextClick }: CopyableTextProps) {
 	return (
 		<span className="inline-flex items-center gap-1 align-baseline">
-			<span>{children}</span>
+			{onTextClick ? (
+				<button
+					type="button"
+					className="cursor-pointer text-left"
+					onClick={onTextClick}
+					aria-label={`Hide ${label}`}>
+					{children}
+				</button>
+			) : (
+				<span>{children}</span>
+			)}
 			<AnimatedIconButton
 				type="button"
 				size="icon-sm"

@@ -12,6 +12,7 @@ import {
 	CopyableText,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
 import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	sessionStatusIconClassNameMap,
@@ -48,24 +49,26 @@ type SessionTableRowProps = {
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
 
-function SessionCustomerCell({ session }: { session: SessionRecord }) {
+function SessionCustomerCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	return (
 		<div className="flex flex-col gap-1 whitespace-normal">
 			<p className="font-medium">
-				<CopyableText
+				<PrivacySensitiveText
+					rowId={rowId}
 					value={session.name}
 					label="customer name">
 					{session.name}
-				</CopyableText>
+				</PrivacySensitiveText>
 			</p>
 			{session.accountName || session.abn ? (
 				<p className="text-sm">
 					{session.accountName ? (
-						<CopyableText
+						<PrivacySensitiveText
+							rowId={rowId}
 							value={session.accountName}
 							label="account name">
 							{session.accountName}
-						</CopyableText>
+						</PrivacySensitiveText>
 					) : null}
 					{session.abn ? (
 						<>
@@ -83,34 +86,37 @@ function SessionCustomerCell({ session }: { session: SessionRecord }) {
 	);
 }
 
-function SessionContactCell({ session }: { session: SessionRecord }) {
+function SessionContactCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	return (
 		<div className="flex flex-col gap-1 whitespace-normal">
 			<p className="break-all font-medium">
-				<CopyableText
+				<PrivacySensitiveText
+					rowId={rowId}
 					value={session.email}
 					label="email">
 					{session.email}
-				</CopyableText>
+				</PrivacySensitiveText>
 			</p>
 			<p className="text-sm">
 				{session.phone ? (
-					<CopyableText
+					<PrivacySensitiveText
+						rowId={rowId}
 						value={session.phone}
 						label="phone number">
 						{session.phone}
-					</CopyableText>
+					</PrivacySensitiveText>
 				) : (
 					<span>No phone provided</span>
 				)}
 				{session.instagramHandle ? (
 					<>
 						{" · "}
-						<CopyableText
+						<PrivacySensitiveText
+							rowId={rowId}
 							value={formatInstagramHandle(session.instagramHandle)}
 							label="Instagram handle">
 							{formatInstagramHandle(session.instagramHandle)}
-						</CopyableText>
+						</PrivacySensitiveText>
 					</>
 				) : null}
 			</p>
@@ -200,7 +206,7 @@ function SessionNotesCell({
 	);
 }
 
-function RemainingBalanceCell({ session }: { session: SessionRecord }) {
+function RemainingBalanceCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const showRemainingBalance =
 		!packageSessionProgressLabel &&
@@ -210,8 +216,20 @@ function RemainingBalanceCell({ session }: { session: SessionRecord }) {
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
+	const amountLabel = formatAudAmount(getRemainingBalanceAmount(session));
 	const className = session.paidRemainingBalance === true ? "text-green" : "text-destructive";
-	return <p className={className}>{formatAudAmount(getRemainingBalanceAmount(session))}</p>;
+
+	return (
+		<p className={className}>
+			<PrivacySensitiveText
+				rowId={rowId}
+				value={amountLabel}
+				label="remaining balance"
+				copyable={false}>
+				{amountLabel}
+			</PrivacySensitiveText>
+		</p>
+	);
 }
 
 function PackageSessionProgress({
@@ -270,7 +288,10 @@ export function SessionTableRow({
 				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionCustomerCell session={session} />
+				<SessionCustomerCell
+					rowId={session._id}
+					session={session}
+				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div
@@ -287,7 +308,10 @@ export function SessionTableRow({
 				<SessionDetailsCell session={session} />
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionContactCell session={session} />
+				<SessionContactCell
+					rowId={session._id}
+					session={session}
+				/>
 			</TableCell>
 			<TableCell className={cn("text-center", pastCellClassName)}>
 				<PackageSessionProgress
@@ -303,7 +327,10 @@ export function SessionTableRow({
 				/>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
-				<RemainingBalanceCell session={session} />
+				<RemainingBalanceCell
+					rowId={session._id}
+					session={session}
+				/>
 			</TableCell>
 			<TableCell className="text-center">
 				<div className="flex flex-col items-center gap-1">
@@ -336,7 +363,13 @@ export function SessionTableRow({
 									/>
 								</span>
 							) : null}
-							{assignedEditorDisplayName}
+							<PrivacySensitiveText
+								rowId={session._id}
+								value={assignedEditorDisplayName}
+								label="editor name"
+								copyable={false}>
+								{assignedEditorDisplayName}
+							</PrivacySensitiveText>
 						</p>
 					) : session.hasDriveWorkflowFailure ? (
 						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">

@@ -29,6 +29,7 @@ type SessionsTablePreferences = {
 
 type AdminDashboardPreferences = {
 	packages?: Record<string, unknown>;
+	privacyMode?: boolean;
 	sessions?: Record<string, unknown>;
 };
 
@@ -124,4 +125,12 @@ export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
 
 export function storeSessionsTableFilters(preferences: SessionsTablePreferences) {
 	storeAdminDashboardPreferences({ ...readAdminDashboardPreferences(), sessions: preferences });
+}
+
+export function readStoredPrivacyMode() {
+	return parseStoredBoolean(readAdminDashboardPreferences().privacyMode) ?? false;
+}
+
+export function storePrivacyMode(enabled: boolean) {
+	storeAdminDashboardPreferences({ ...readAdminDashboardPreferences(), privacyMode: enabled });
 }
