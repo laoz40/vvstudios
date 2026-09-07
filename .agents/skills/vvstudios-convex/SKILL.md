@@ -1,6 +1,6 @@
 ---
 name: vvstudios-convex
-description: Project specific convex rules. ALWAYS read this skill before any convex/ work.
+description: Project specific convex rules. ALWAYS read this skill before any convex related work or for any tests.
 ---
 
 # Convex
