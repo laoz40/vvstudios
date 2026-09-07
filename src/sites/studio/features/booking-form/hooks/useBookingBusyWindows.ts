@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import { availabilityErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
@@ -21,16 +22,19 @@ interface BookingBusyWindowsState {
 	monthlyBusyWindowsByMonth: BusyWindowsByMonth;
 }
 
+const bookingBusyWindowsLoadErrorSchema = z.object({
+	reason: z.enum([
+		"GOOGLE_CALENDAR_AUTH_FAILED",
+		"GOOGLE_CALENDAR_AVAILABILITY_FAILED",
+		"GOOGLE_CALENDAR_RATE_LIMITED",
+		"UNEXPECTED_ERROR"
+	])
+});
+
 function isBookingBusyWindowsLoadError(
 	error: unknown
 ): error is { reason: keyof typeof availabilityErrorMessages } {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"reason" in error &&
-		typeof error.reason === "string" &&
-		error.reason in availabilityErrorMessages
-	);
+	return bookingBusyWindowsLoadErrorSchema.safeParse(error).success;
 }
 
 export function useBookingBusyWindows({

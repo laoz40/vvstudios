@@ -50,6 +50,11 @@ type CustomInvoiceGenerationData =
 				};
 	  };
 
+type CustomInvoiceCreateInput = Extract<
+	CustomInvoiceGenerationData,
+	{ status: "ready" }
+>["createInput"];
+
 export function buildCustomInvoiceGenerationData(
 	bookingId: Id<"bookings">,
 	draft: CustomInvoiceDraft
@@ -73,15 +78,22 @@ export function buildCustomInvoiceGenerationData(
 
 	return {
 		status: "ready",
-		createInput: {
-			bookingId,
-			dueDate: draft.dueDate,
-			...selectedSessionInput,
-			addons: draft.addons,
-			...omitEmptyBookingAddonQuantities(draft),
-			includeDepositLineItem: draft.includeDepositLineItem,
-			...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
-		},
+		createInput: (() => {
+			const createInput: CustomInvoiceCreateInput = {
+				bookingId,
+				dueDate: draft.dueDate,
+				...selectedSessionInput,
+				addons: draft.addons,
+				...omitEmptyBookingAddonQuantities(draft),
+				includeDepositLineItem: draft.includeDepositLineItem
+			};
+
+			if (customTotalDueAmount !== undefined) {
+				createInput.customTotalDueAmount = customTotalDueAmount;
+			}
+
+			return createInput;
+		})(),
 		downloadInput: {
 			service: sessionSelection.status === "complete" ? sessionSelection.service : null,
 			duration: sessionSelection.status === "complete" ? sessionSelection.duration : undefined,

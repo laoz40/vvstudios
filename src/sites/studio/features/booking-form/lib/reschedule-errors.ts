@@ -1,5 +1,6 @@
 import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
 import type { FunctionReturnType } from "convex/server";
+import { z } from "zod";
 import { api } from "#convex/_generated/api";
 import type { UnexpectedError } from "#/lib/result";
 import type { DevRescheduleUpdateError } from "#studio/components/booking/RescheduleDevScenarioPanel";
@@ -69,7 +70,7 @@ export type RescheduleBusyWindowsLoadOutcome =
 export function isRescheduleBusyWindowsLoadError(
 	error: unknown
 ): error is RescheduleBusyWindowsLoadError {
-	return typeof error === "object" && error !== null && "reason" in error;
+	return z.object({ reason: z.string() }).safeParse(error).success;
 }
 
 export function resolveRescheduleBusyWindowsLoadError(

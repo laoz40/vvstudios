@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
+import { type DevBookingScenario } from "#studio/features/booking-complete/lib/booking-complete-search";
 import { api } from "#convex/_generated/api";
 import { z } from "zod";
 
@@ -16,23 +17,17 @@ const DEV_SCENARIO_OPTIONS = [
 	{ label: "Slot Taken", value: "slot_taken" },
 	{ label: "Calendar Failed", value: "calendar_failed" },
 	{ label: "Not Found", value: "not_found" }
-] as const;
+] as const satisfies ReadonlyArray<{ label: string; value: DevBookingScenario }>;
 
-export type DevBookingScenario = (typeof DEV_SCENARIO_OPTIONS)[number]["value"];
-
-export interface BookingCompleteSearch {
-	dev_scenario?: DevBookingScenario;
-	package_id?: string;
-	package_size?: 4 | 8 | 12;
-	session_id?: string;
-}
+export type { DevBookingScenario };
+export type { BookingCompleteSearch } from "#studio/features/booking-complete/lib/booking-complete-search";
 
 export type BookingStatus = NonNullable<
 	ReturnType<typeof useQuery<typeof api.sessions.getSessionStatusByStripeSessionId>>
 >;
 
 const devBookingIdSchema = z.custom<BookingStatus["_id"]>(
-	(value) => typeof value === "string" && value.length > 0
+	(value) => z.literal("dev-booking").safeParse(value).success
 );
 
 export function BookingCompleteDevScenarioPanel() {
@@ -59,15 +54,6 @@ export function BookingCompleteDevScenarioPanel() {
 			}
 		</FloatingDevMenu>
 	);
-}
-
-export function parseBookingCompleteSearch(search: Record<string, unknown>): BookingCompleteSearch {
-	return {
-		dev_scenario: parseDevBookingScenario(search.dev_scenario),
-		package_id: parseNonEmptyString(search.package_id),
-		package_size: parsePackageSize(search.package_size),
-		session_id: parseNonEmptyString(search.session_id)
-	};
 }
 
 export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus | null {
@@ -136,22 +122,4 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 		paymentCompletedAt: now,
 		status: "failed"
 	};
-}
-
-function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
-	return DEV_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)?.value;
-}
-
-function parseNonEmptyString(value: unknown): string | undefined {
-	return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function parsePackageSize(value: unknown): 4 | 8 | 12 | undefined {
-	const numericValue = typeof value === "string" ? Number(value) : value;
-
-	if (numericValue === 4 || numericValue === 8 || numericValue === 12) {
-		return numericValue;
-	}
-
-	return undefined;
 }

@@ -65,6 +65,7 @@
 	},
 	"devDependencies": {
 		"@edge-runtime/vm": "^5.0.0",
+		"@oxlint/plugins": "1.68.0",
 		"@react-email/ui": "^6.5.0",
 		"@rolldown/plugin-babel": "^0.2.3",
 		"@tailwindcss/vite": "^4.3.0",

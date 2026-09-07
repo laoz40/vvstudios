@@ -44,9 +44,7 @@ import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 type SendInvoiceEmail = typeof import("#convex/lib/email").sendPackageInvoiceEmail;
-type SendScheduleEmail = (
-	args: Parameters<typeof import("#convex/lib/email").sendPackageScheduleEmail>[0]
-) => unknown;
+type SendScheduleEmail = typeof import("#convex/lib/email").sendPackageScheduleEmail;
 
 const providerFakes = vi.hoisted(() => ({
 	resolveMx: vi.fn(),
@@ -75,7 +73,7 @@ const validRequest = {
 	abn: "12 345 678 901",
 	email: " Customer@gmail.com ",
 	duration: "1h",
-	addons: ["Teleprompter"] as BookingAddon[],
+	addons: ["Teleprompter"] satisfies BookingAddon[],
 	notes: "  Please call on arrival  ",
 	packageSize: 4 as const
 };
@@ -86,7 +84,7 @@ const editedPackage = {
 	accountName: "Updated account",
 	email: "updated@example.com",
 	duration: "2h",
-	addons: ["Teleprompter"] as BookingAddon[],
+	addons: ["Teleprompter"] satisfies BookingAddon[],
 	notes: "Updated notes",
 	packageSize: 8 as const
 };
@@ -226,7 +224,7 @@ describe("package payment confirmation", () => {
 		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 		providerFakes.sendScheduleEmail
-			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
+			.mockResolvedValueOnce(err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" }))
 			.mockResolvedValueOnce(ok(null));
 
 		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
@@ -316,7 +314,7 @@ describe("package request creation", () => {
 			abn: "12345678901",
 			email: "customer@gmail.com",
 			duration: "1h",
-			addons: ["Teleprompter"] as BookingAddon[],
+			addons: ["Teleprompter"] satisfies BookingAddon[],
 			notes: "Please call on arrival",
 			packageSize: 4,
 			singleSessionAmount: 229,
@@ -568,12 +566,13 @@ async function readLifecycleState(
 	}));
 }
 
-function getScheduleToken(scheduleUrl: unknown) {
-	if (typeof scheduleUrl !== "string") {
-		throw new Error("Scheduling email did not contain a URL");
+function getScheduleToken(scheduleUrl: string | undefined) {
+	if (!scheduleUrl) {
+		throw new Error("Scheduling URL was missing");
 	}
 
 	const token = new URL(scheduleUrl).pathname.split("/").at(-1);
+
 	if (!token) {
 		throw new Error("Scheduling URL did not contain a token");
 	}

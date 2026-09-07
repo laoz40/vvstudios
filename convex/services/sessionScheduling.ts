@@ -5,6 +5,7 @@ import { env } from "#convex/env";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import {
 	buildAdminSessionUpdatePatch,
+	type AdminSessionTimingPatch,
 	type AdminSessionUpdateArgs
 } from "#convex/lib/sessionAdminEdit";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
@@ -17,6 +18,17 @@ import {
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
+
+type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
+	googleCalendarId?: string;
+	googleEventId?: string;
+	status?: "confirmed";
+	bookingConfirmedAt?: number;
+	bookingFailureCode?: undefined;
+	reservationCreatedAt?: undefined;
+	reservationSessionStartAt?: undefined;
+	reservationDuration?: undefined;
+};
 
 export type SaveAdminSessionUpdateArgs = AdminSessionUpdateArgs & {
 	googleCalendarId?: string;
@@ -62,23 +74,25 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 				return ok({ session, updatePatch });
 			})
 			// Save the edit, Calendar linkage, confirmation state, and reservation cleanup together.
-			.andThen(({ session, updatePatch }) =>
-				okOrThrow(
-					ctx.db.patch(args.bookingId, {
-						...updatePatch,
-						// Keep the booking linked to the current Calendar event after an edit.
-						...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
-						...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
-						...(args.confirmBooking
-							? {
-									status: "confirmed" as const,
-									bookingConfirmedAt: Date.now(),
-									bookingFailureCode: undefined
-								}
-							: {}),
-						...(args.reservation ? clearedSessionReservationPatch : {})
-					})
-				).andThen(() => {
+			.andThen(({ session, updatePatch }) => {
+				const patch: AdminSessionDatabasePatch = { ...updatePatch };
+
+				if (args.googleCalendarId) {
+					patch.googleCalendarId = args.googleCalendarId;
+				}
+				if (args.googleEventId) {
+					patch.googleEventId = args.googleEventId;
+				}
+				if (args.confirmBooking) {
+					patch.status = "confirmed";
+					patch.bookingConfirmedAt = Date.now();
+					patch.bookingFailureCode = undefined;
+				}
+				if (args.reservation) {
+					Object.assign(patch, clearedSessionReservationPatch);
+				}
+
+				return okOrThrow(ctx.db.patch(args.bookingId, patch)).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
 					const timingChanged =
 						session.sessionStartAt !== updatePatch.sessionStartAt ||
@@ -98,15 +112,15 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 							packageId: session.packageId
 						})
 					).andThen((scheduled) => scheduled);
-				})
-			)
+				});
+			})
 	);
 }
 
 export function saveClientSessionRescheduleService(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs,
-	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<unknown>
+	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<Id<"_scheduled_functions">>
 ) {
 	return (
 		getSessionFromDb(ctx, args.bookingId)

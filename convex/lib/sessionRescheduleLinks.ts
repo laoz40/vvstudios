@@ -44,23 +44,44 @@ type ClientSessionRescheduleOptionalArgs = {
 	googleEventId?: string;
 };
 
+type ClientSessionRescheduleOptionalPatch = {
+	service?: string;
+	addons?: BookingAddon[];
+	notes?: string;
+	googleCalendarId?: string;
+	googleEventId?: string;
+	status?: "confirmed";
+	bookingConfirmedAt?: number;
+	bookingFailureCode?: undefined;
+};
+
 export function buildClientSessionRescheduleOptionalPatch(
 	args: ClientSessionRescheduleOptionalArgs
 ) {
-	return {
-		...(args.service !== undefined ? { service: args.service } : {}),
-		...(args.addons !== undefined ? { addons: args.addons } : {}),
-		...(args.notes !== undefined ? { notes: args.notes } : {}),
-		...(args.googleCalendarId ? { googleCalendarId: args.googleCalendarId } : {}),
-		...(args.googleEventId ? { googleEventId: args.googleEventId } : {}),
-		...(args.confirmBooking
-			? {
-					status: "confirmed" as const,
-					bookingConfirmedAt: Date.now(),
-					bookingFailureCode: undefined
-				}
-			: {})
-	};
+	const patch: ClientSessionRescheduleOptionalPatch = {};
+
+	if (args.service !== undefined) {
+		patch.service = args.service;
+	}
+	if (args.addons !== undefined) {
+		patch.addons = args.addons;
+	}
+	if (args.notes !== undefined) {
+		patch.notes = args.notes;
+	}
+	if (args.googleCalendarId) {
+		patch.googleCalendarId = args.googleCalendarId;
+	}
+	if (args.googleEventId) {
+		patch.googleEventId = args.googleEventId;
+	}
+	if (args.confirmBooking) {
+		patch.status = "confirmed";
+		patch.bookingConfirmedAt = Date.now();
+		patch.bookingFailureCode = undefined;
+	}
+
+	return patch;
 }
 
 function bytesToHex(bytes: Uint8Array) {

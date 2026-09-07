@@ -79,48 +79,109 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_SHARE_TARGET_MISSING";
 };
 
-function getGoogleProviderErrorCode(error: unknown) {
-	const parsedError = googleProviderErrorSchema.safeParse(error);
-	if (!parsedError.success) return null;
-	return parsedError.data.status ?? parsedError.data.response?.status ?? null;
+type ParsedGoogleProviderError = z.infer<typeof googleProviderErrorSchema>;
+type ParsedGoogleShareError = z.infer<typeof googleShareErrorSchema>;
+
+function providerStatus(error: ParsedGoogleProviderError) {
+	return error.status ?? error.response?.status ?? null;
 }
 
-function isMissingGoogleAccountShareError(error: unknown) {
-	const parsedError = googleShareErrorSchema.safeParse(error);
-	if (!parsedError.success) return false;
-
-	const shareErrors = [
-		...(parsedError.data.errors ?? []),
-		...(parsedError.data.response?.data?.error?.errors ?? [])
-	];
+function isMissingGoogleAccountShare(error: ParsedGoogleShareError) {
+	const shareErrors = [...(error.errors ?? []), ...(error.response?.data?.error?.errors ?? [])];
 	if (shareErrors.some((shareError) => shareError.reason === "invalidSharingRequest")) {
 		return true;
 	}
 
 	const messages = [
-		parsedError.data.response?.data?.error?.message,
+		error.response?.data?.error?.message,
 		...shareErrors.map((shareError) => shareError.message)
 	].filter((message): message is string => message !== undefined);
 
 	return messages.some((message) => /does not have a Google Account/i.test(message));
 }
 
-function mapDriveError(error: unknown, fallback: DriveError["reason"]) {
-	const code = getGoogleProviderErrorCode(error);
-	if (code === 401 || code === 403) return { reason: "GOOGLE_DRIVE_AUTH_FAILED" as const };
+function driveErrorReason(
+	fallback: DriveError["reason"],
+	parsedProviderError: ReturnType<typeof googleProviderErrorSchema.safeParse>,
+	parsedShareError?: ReturnType<typeof googleShareErrorSchema.safeParse>
+) {
+	const code = parsedProviderError.success ? providerStatus(parsedProviderError.data) : null;
+
+	if (code === 401 || code === 403) {
+		return { reason: "GOOGLE_DRIVE_AUTH_FAILED" as const };
+	}
+
 	if (
 		fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED" &&
-		isMissingGoogleAccountShareError(error)
+		parsedShareError?.success &&
+		isMissingGoogleAccountShare(parsedShareError.data)
 	) {
 		return { reason: "GOOGLE_DRIVE_SHARE_TARGET_MISSING" as const };
 	}
+
 	return { reason: fallback };
 }
 
+function driveFolderLookupReason(
+	fallback: DriveError["reason"],
+	parsedProviderError: ReturnType<typeof googleProviderErrorSchema.safeParse>
+) {
+	const code = parsedProviderError.success ? providerStatus(parsedProviderError.data) : null;
+
+	if (code === 404) {
+		return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
+	}
+
+	return driveErrorReason(fallback, parsedProviderError);
+}
+
+function drivePermissionDeleteReason(
+	parsedProviderError: ReturnType<typeof googleProviderErrorSchema.safeParse>,
+	parsedShareError: ReturnType<typeof googleShareErrorSchema.safeParse>
+) {
+	const code = parsedProviderError.success ? providerStatus(parsedProviderError.data) : null;
+
+	return {
+		permissionIsMissing: code === 404,
+		reason: driveErrorReason(
+			"GOOGLE_DRIVE_PERMISSION_DELETE_FAILED",
+			parsedProviderError,
+			parsedShareError
+		).reason
+	};
+}
+
+function driveResultAsync<T>(promise: Promise<T>, fallback: DriveError["reason"]) {
+	return ResultAsync.fromPromise(promise, (error) =>
+		driveErrorReason(
+			fallback,
+			googleProviderErrorSchema.safeParse(error),
+			fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
+				? googleShareErrorSchema.safeParse(error)
+				: undefined
+		)
+	);
+}
+
+function driveFolderLookupAsync<T>(promise: Promise<T>, fallback: DriveError["reason"]) {
+	return ResultAsync.fromPromise(promise, (error) =>
+		driveFolderLookupReason(fallback, googleProviderErrorSchema.safeParse(error))
+	);
+}
+
+function drivePermissionDeleteAsync<T>(promise: Promise<T>) {
+	return ResultAsync.fromPromise(promise, (error) =>
+		drivePermissionDeleteReason(
+			googleProviderErrorSchema.safeParse(error),
+			googleShareErrorSchema.safeParse(error)
+		)
+	);
+}
+
 export function loadDriveClient() {
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		Promise.resolve().then(() => google.drive({ version: "v3", auth: getGoogleOAuthClient() })),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_AUTH_FAILED")
+		"GOOGLE_DRIVE_AUTH_FAILED"
 	);
 }
 
@@ -128,7 +189,7 @@ export function createDriveFolder(
 	drive: DriveClient,
 	input: { name: string; parentId: string; marker: string }
 ) {
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		drive.files.create({
 			fields: "id,name,webViewLink",
 			requestBody: {
@@ -140,7 +201,7 @@ export function createDriveFolder(
 				appProperties: { vvWorkspaceMarker: input.marker }
 			}
 		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_FOLDER_CREATE_FAILED")
+		"GOOGLE_DRIVE_FOLDER_CREATE_FAILED"
 	).andThen((response) => {
 		const parsedFolder = driveFolderSchema.safeParse(response.data);
 		return parsedFolder.success
@@ -155,13 +216,13 @@ export function findDriveFolderByMarker(
 ) {
 	const escapedMarker = input.marker.replaceAll("'", "\\'");
 	const escapedParentId = input.parentId.replaceAll("'", "\\'");
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		drive.files.list({
 			fields: "files(id,name,webViewLink)",
 			pageSize: 2,
 			q: `'${escapedParentId}' in parents and trashed = false and appProperties has { key='vvWorkspaceMarker' and value='${escapedMarker}' }`
 		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED")
+		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const folders = z.array(driveFolderSchema).safeParse(response.data.files ?? []);
 		if (!folders.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
@@ -173,19 +234,14 @@ const listedDriveChildSchema = z.object({ id: z.string().min(1) });
 
 export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 	const escapedFolderId = folderId.replaceAll("'", "\\'");
-	return ResultAsync.fromPromise(
+	return driveFolderLookupAsync(
 		drive.files.list({
 			fields: "files(id)",
 			pageSize: 1,
 			q: `'${escapedFolderId}' in parents and trashed = false`,
 			supportsAllDrives: false
 		}),
-		(error) => {
-			if (getGoogleProviderErrorCode(error) === 404) {
-				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
-			}
-			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED");
-		}
+		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const children = z.array(listedDriveChildSchema).safeParse(response.data.files ?? []);
 		if (!children.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
@@ -194,14 +250,9 @@ export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 }
 
 export function verifyDriveFolder(drive: DriveClient, folderId: string) {
-	return ResultAsync.fromPromise(
+	return driveFolderLookupAsync(
 		drive.files.get({ fileId: folderId, fields: "id,name,webViewLink", supportsAllDrives: false }),
-		(error) => {
-			if (getGoogleProviderErrorCode(error) === 404) {
-				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
-			}
-			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED");
-		}
+		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const folder = driveFolderSchema.safeParse(response.data);
 		return folder.success
@@ -211,19 +262,14 @@ export function verifyDriveFolder(drive: DriveClient, folderId: string) {
 }
 
 export function renameDriveFolder(drive: DriveClient, input: { folderId: string; name: string }) {
-	return ResultAsync.fromPromise(
+	return driveFolderLookupAsync(
 		drive.files.update({
 			fileId: input.folderId,
 			fields: "id,name,webViewLink",
 			requestBody: { name: input.name },
 			supportsAllDrives: false
 		}),
-		(error) => {
-			if (getGoogleProviderErrorCode(error) === 404) {
-				return { reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const };
-			}
-			return mapDriveError(error, "GOOGLE_DRIVE_FOLDER_RENAME_FAILED");
-		}
+		"GOOGLE_DRIVE_FOLDER_RENAME_FAILED"
 	).andThen((response) => {
 		const folder = driveFolderSchema.safeParse(response.data);
 		return folder.success
@@ -236,14 +282,14 @@ export function findDrivePermission(
 	drive: DriveClient,
 	input: { email: string; fileId: string; role: SavedDrivePermission["role"] }
 ) {
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		drive.permissions.list({
 			fileId: input.fileId,
 			fields: "permissions(id,emailAddress,role,type)",
 			pageSize: 100,
 			supportsAllDrives: false
 		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED")
+		"GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
 	).andThen((response) => {
 		// The list also contains owner, domain, and public permissions. Only the matching
 		// client permission needs the narrower role and email shape used by this workflow.
@@ -272,7 +318,7 @@ export function createDrivePermission(
 		sendNotificationEmail: boolean;
 	}
 ) {
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		drive.permissions.create({
 			fileId: input.fileId,
 			fields: "id,emailAddress,role",
@@ -280,7 +326,7 @@ export function createDrivePermission(
 			requestBody: { emailAddress: input.email, role: input.role, type: "user" },
 			supportsAllDrives: false
 		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED")
+		"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 	).andThen((response) => {
 		const permission = drivePermissionSchema.safeParse(response.data);
 		return permission.success
@@ -294,14 +340,14 @@ export function ensureAnyonePermission(
 	fileId: string,
 	role: "reader" | "writer"
 ) {
-	return ResultAsync.fromPromise(
+	return driveResultAsync(
 		drive.permissions.list({
 			fileId,
 			fields: "permissions(id,emailAddress,role,type)",
 			pageSize: 100,
 			supportsAllDrives: false
 		}),
-		(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED")
+		"GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
 	).andThen((response) => {
 		const permissions = z
 			.array(listedDrivePermissionSchema)
@@ -317,7 +363,7 @@ export function ensureAnyonePermission(
 			return ok({ id: existingPermission.id, role, type: "anyone" as const });
 		}
 
-		return ResultAsync.fromPromise(
+		return driveResultAsync(
 			drive.permissions.create({
 				fileId,
 				fields: "id,role,type",
@@ -325,7 +371,7 @@ export function ensureAnyonePermission(
 				requestBody: { role, type: "anyone" },
 				supportsAllDrives: false
 			}),
-			(error) => mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED")
+			"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		).andThen((createResponse) => {
 			const permission = anyonePermissionSchema.safeParse(createResponse.data);
 			return permission.success
@@ -343,14 +389,10 @@ export function deleteDrivePermission(
 	drive: DriveClient,
 	input: { fileId: string; permissionId: string }
 ) {
-	return ResultAsync.fromPromise(
+	return drivePermissionDeleteAsync(
 		drive.permissions
 			.delete({ fileId: input.fileId, permissionId: input.permissionId, supportsAllDrives: false })
-			.then(() => null),
-		(error) => ({
-			permissionIsMissing: getGoogleProviderErrorCode(error) === 404,
-			reason: mapDriveError(error, "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED").reason
-		})
+			.then(() => null)
 	).orElse((error) => {
 		// A prior partial attempt may already have removed this permission.
 		if (error.permissionIsMissing) return ok(null);

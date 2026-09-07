@@ -260,11 +260,18 @@ export function markBookingConfirmationFailedService(
 
 		return okOrThrow(
 			ctx.db
-				.patch(args.bookingId, {
-					status: "failed",
-					bookingFailureCode: args.failureCode,
-					...(args.reservation ? clearedSessionReservationPatch : {})
-				})
+				.patch(
+					args.bookingId,
+					(() => {
+						const patch = { status: "failed" as const, bookingFailureCode: args.failureCode };
+
+						if (args.reservation) {
+							return { ...patch, ...clearedSessionReservationPatch };
+						}
+
+						return patch;
+					})()
+				)
 				.then(() => null)
 		);
 	});

@@ -109,12 +109,14 @@ export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 	}
 }
 
+export type AdminPackageStatusDisplay = { className: string; icon: LucideIcon; label: string };
+
 export function getAdminPackageStatusDisplay(
 	packageRow: Pick<
 		AdminPackageRow,
 		"adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid" | "status"
 	>
-): { className: string; icon: LucideIcon; label: string } {
+): AdminPackageStatusDisplay {
 	if (packageRow.adjustment?.invoiceEmailStatus === "failed") {
 		return {
 			className: "size-5 text-destructive",

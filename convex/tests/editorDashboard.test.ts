@@ -547,7 +547,7 @@ describe("editor access management", () => {
 			(editor) => editor.tokenIdentifier === otherEditorIdentity.tokenIdentifier
 		);
 		expect(activeEditor).toMatchObject({ isActive: true, totalEdits: 0, workStatus: "editing" });
-		expect(typeof activeEditor?.lastAssignedAt).toBe("number");
+		expect(activeEditor?.lastAssignedAt).toEqual(expect.any(Number));
 		expect(inactiveEditor).toMatchObject({
 			isActive: false,
 			totalEdits: 0,

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action, internalMutation, mutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { getValidPackageByToken as findValidPackageByToken } from "./lib/packageLookup";
 import {
@@ -101,7 +102,7 @@ export const saveCreatedPackageSession = internalMutation({
 		saveCreatedPackageSessionService(
 			ctx,
 			args,
-			(packageId): Promise<unknown> =>
+			(packageId): Promise<Id<"_scheduled_functions">> =>
 				ctx.scheduler.runAfter(
 					0,
 					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,

@@ -11,6 +11,11 @@ import {
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
+type EmailBookingInvoiceRequest = {
+	bookingId: SessionRecord["_id"];
+	customInvoiceId?: Id<"customInvoices">;
+};
+
 export function useInvoiceActions(session: SessionRecord) {
 	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
@@ -93,10 +98,17 @@ export function useInvoiceActions(session: SessionRecord) {
 		setIsEmailingInvoice(true);
 
 		const [error] = await tryCatch(
-			sendBookingInvoiceForBooking({
-				bookingId: session._id,
-				...(selectedEmailCustomInvoiceId ? { customInvoiceId: selectedEmailCustomInvoiceId } : {})
-			})
+			sendBookingInvoiceForBooking(
+				(() => {
+					const request: EmailBookingInvoiceRequest = { bookingId: session._id };
+
+					if (selectedEmailCustomInvoiceId) {
+						request.customInvoiceId = selectedEmailCustomInvoiceId;
+					}
+
+					return request;
+				})()
+			)
 		);
 
 		setIsEmailingInvoice(false);

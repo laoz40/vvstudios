@@ -1,6 +1,7 @@
+import { ResultAsync } from "neverthrow";
 import { z } from "zod";
 
-export type GoogleCalendarFallbackErrorCode =
+export type CalendarFallbackCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 	| "GOOGLE_CALENDAR_CREATE_FAILED"
 	| "GOOGLE_CALENDAR_DELETE_FAILED"
@@ -12,28 +13,27 @@ export type GoogleCalendarWriteError =
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
 	| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" };
 
-type GoogleCalendarErrorCode<
-	T extends GoogleCalendarFallbackErrorCode = GoogleCalendarFallbackErrorCode
-> = "GOOGLE_CALENDAR_AUTH_FAILED" | "GOOGLE_CALENDAR_RATE_LIMITED" | T;
+type GoogleCalendarErrorCode<T extends CalendarFallbackCode = CalendarFallbackCode> =
+	| "GOOGLE_CALENDAR_AUTH_FAILED"
+	| "GOOGLE_CALENDAR_RATE_LIMITED"
+	| T;
 
-const googleCalendarErrorSchema = z.object({
+export const calendarErrorSchema = z.object({
 	message: z.string().optional(),
 	response: z.object({ status: z.number().optional() }).optional()
 });
 
-// map raw Google API errors to the app error codes we expose upstream
-export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackErrorCode>(
-	error: unknown,
+export type CalendarApiError = z.infer<typeof calendarErrorSchema>;
+
+export function mapCalendarErrorCode<T extends CalendarFallbackCode>(
+	error: CalendarApiError,
 	fallbackCode: T
 ): GoogleCalendarErrorCode<T> {
-	const parsedError = googleCalendarErrorSchema.safeParse(error);
-	if (!parsedError.success) return fallbackCode;
-
-	if (parsedError.data.message?.includes("invalid_grant")) {
+	if (error.message?.includes("invalid_grant")) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
 	}
 
-	const status = parsedError.data.response?.status;
+	const status = error.response?.status;
 
 	if (status === 401 || status === 403) {
 		return "GOOGLE_CALENDAR_AUTH_FAILED";
@@ -46,10 +46,21 @@ export function getGoogleCalendarErrorCode<T extends GoogleCalendarFallbackError
 	return fallbackCode;
 }
 
-export function isGoogleCalendarEventNotFoundError(error: unknown) {
-	const parsedError = googleCalendarErrorSchema.safeParse(error);
-	if (!parsedError.success) return false;
-
-	const status = parsedError.data.response?.status;
+export function isCalendarEventNotFound(error: CalendarApiError) {
+	const status = error.response?.status;
 	return status === 404 || status === 410;
+}
+
+export function calendarResultAsync<T, F extends CalendarFallbackCode>(
+	promise: Promise<T>,
+	fallbackCode: F
+) {
+	return ResultAsync.fromPromise(promise, (error) => {
+		const parsedError = calendarErrorSchema.safeParse(error);
+		const reason = parsedError.success
+			? mapCalendarErrorCode(parsedError.data, fallbackCode)
+			: fallbackCode;
+
+		return { reason };
+	});
 }

@@ -109,8 +109,8 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 	);
 }
 
-export function customerFilter(row: { original: SessionRecord }, value: unknown) {
-	const query = typeof value === "string" ? value.trim().toLowerCase() : "";
+export function customerFilter(row: { original: SessionRecord }, value: string) {
+	const query = value.trim().toLowerCase();
 
 	if (!query) {
 		return true;

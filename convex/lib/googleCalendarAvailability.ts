@@ -114,7 +114,13 @@ function toBusyWindow({
 		return undefined;
 	}
 
-	return { calendarId, end, ...(event.id ? { eventId: event.id } : {}), start };
+	const window: BusyWindow = { calendarId, end, start };
+
+	if (event.id) {
+		window.eventId = event.id;
+	}
+
+	return window;
 }
 
 function shouldIgnoreBusyEvent({

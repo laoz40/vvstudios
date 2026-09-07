@@ -60,28 +60,40 @@ export type UpdatePackageArgs = {
 type ParsedPackage = ReturnType<typeof packageFormSchema.parse>;
 export type ParsedPackageRequest = ParsedPackage;
 
+type PendingPackageRecord = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	duration: string;
+	addons: BookingAddon[];
+	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
+	notes?: string;
+	packageSize: PackageSize;
+	singleSessionAmount: number;
+	packageSubtotalAmount: number;
+	discountPercent: number;
+	discountAmount: number;
+	totalDueAmount: number;
+	invoiceLineItems: Doc<"packages">["invoiceLineItems"];
+	status: "pending_payment";
+	createdAt: number;
+	invoiceDueAt: number;
+	invoiceEmailStatus: "pending";
+};
+
 export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
-	return {
+	const record: PendingPackageRecord = {
 		name: args.name,
 		phone: args.phone,
 		accountName: args.accountName,
-		...(args.abn !== undefined ? { abn: args.abn } : {}),
 		email: args.email.trim().toLowerCase(),
 		duration: args.duration,
 		addons: args.addons,
-		...(args.essentialEditQuantity !== undefined
-			? { essentialEditQuantity: args.essentialEditQuantity }
-			: {}),
-		...(args.completeEditQuantity !== undefined
-			? { completeEditQuantity: args.completeEditQuantity }
-			: {}),
-		...(args.clipsPackageQuantity !== undefined
-			? { clipsPackageQuantity: args.clipsPackageQuantity }
-			: {}),
-		...(args.handcraftedClipsQuantity !== undefined
-			? { handcraftedClipsQuantity: args.handcraftedClipsQuantity }
-			: {}),
-		...(args.notes !== undefined ? { notes: args.notes } : {}),
 		packageSize: args.packageSize,
 		singleSessionAmount: args.singleSessionAmount,
 		packageSubtotalAmount: args.packageSubtotalAmount,
@@ -89,11 +101,32 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		discountAmount: args.discountAmount,
 		totalDueAmount: args.totalDueAmount,
 		invoiceLineItems: args.invoiceLineItems,
-		status: "pending_payment" as const,
+		status: "pending_payment",
 		createdAt,
 		invoiceDueAt: getPackageInvoiceDueAt(createdAt),
-		invoiceEmailStatus: "pending" as const
+		invoiceEmailStatus: "pending"
 	};
+
+	if (args.abn !== undefined) {
+		record.abn = args.abn;
+	}
+	if (args.essentialEditQuantity !== undefined) {
+		record.essentialEditQuantity = args.essentialEditQuantity;
+	}
+	if (args.completeEditQuantity !== undefined) {
+		record.completeEditQuantity = args.completeEditQuantity;
+	}
+	if (args.clipsPackageQuantity !== undefined) {
+		record.clipsPackageQuantity = args.clipsPackageQuantity;
+	}
+	if (args.handcraftedClipsQuantity !== undefined) {
+		record.handcraftedClipsQuantity = args.handcraftedClipsQuantity;
+	}
+	if (args.notes !== undefined) {
+		record.notes = args.notes;
+	}
+
+	return record;
 }
 
 export function parsePackageRequest(
@@ -143,6 +176,29 @@ export function validatePackageUpdate(
 	return ok(updatedPackage);
 }
 
+type PackageUpdatePatch = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn: string | undefined;
+	email: string;
+	duration: ParsedPackage["duration"];
+	addons: ParsedPackage["addons"];
+	essentialEditQuantity: ParsedPackage["essentialEditQuantity"];
+	completeEditQuantity: ParsedPackage["completeEditQuantity"];
+	clipsPackageQuantity: ParsedPackage["clipsPackageQuantity"];
+	handcraftedClipsQuantity: ParsedPackage["handcraftedClipsQuantity"];
+	notes: ParsedPackage["notes"];
+	packageSize: ParsedPackage["packageSize"];
+	expiresAt?: number;
+	singleSessionAmount: number;
+	packageSubtotalAmount: number;
+	discountPercent: number;
+	discountAmount: number;
+	totalDueAmount: number;
+	invoiceLineItems: Doc<"packages">["invoiceLineItems"];
+};
+
 export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage: ParsedPackage) {
 	const amounts = calculatePackageAmounts(updatedPackage);
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
@@ -157,7 +213,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		invoiceLineItems.push(createPriceAdjustmentInvoiceLineItem(priceAdjustmentAmount));
 	}
 
-	return {
+	const patch: PackageUpdatePatch = {
 		name: updatedPackage.name,
 		phone: updatedPackage.phone,
 		accountName: updatedPackage.accountName,
@@ -171,7 +227,6 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		handcraftedClipsQuantity: updatedPackage.handcraftedClipsQuantity,
 		notes: updatedPackage.notes,
 		packageSize: updatedPackage.packageSize,
-		...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {}),
 		singleSessionAmount: amounts.singleSessionAmount,
 		packageSubtotalAmount: amounts.packageSubtotalAmount,
 		discountPercent: amounts.discountPercent,
@@ -179,4 +234,10 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		totalDueAmount,
 		invoiceLineItems
 	};
+
+	if (args.expiresAt !== undefined) {
+		patch.expiresAt = args.expiresAt;
+	}
+
+	return patch;
 }

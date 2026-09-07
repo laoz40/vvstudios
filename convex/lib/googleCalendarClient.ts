@@ -1,14 +1,10 @@
 "use node";
 
 import { google } from "googleapis";
-import { ResultAsync } from "neverthrow";
 
 import { env } from "#convex/env";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
-import {
-	getGoogleCalendarErrorCode,
-	type GoogleCalendarFallbackErrorCode
-} from "./googleCalendarErrors";
+import { calendarResultAsync, type CalendarFallbackCode } from "./googleCalendarErrors";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
@@ -17,12 +13,10 @@ function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 		.filter(Boolean);
 }
 
-export function loadGoogleCalendarClient<T extends GoogleCalendarFallbackErrorCode>(
-	fallbackReason: T
-) {
-	return ResultAsync.fromPromise(
+export function loadGoogleCalendarClient<T extends CalendarFallbackCode>(fallbackReason: T) {
+	return calendarResultAsync(
 		Promise.resolve().then(() => getGoogleCalendarClient()),
-		(error) => ({ reason: getGoogleCalendarErrorCode(error, fallbackReason) })
+		fallbackReason
 	);
 }
 

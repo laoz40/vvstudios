@@ -35,26 +35,18 @@ type ClerkInvitationError = Exclude<
 	| { reason: "NOT_AUTHORIZED" }
 >;
 
-export function parseInviteEmail(email: string) {
-	const parsed = inviteEmailSchema.safeParse(email);
-	if (!parsed.success) {
-		return err({ reason: "INVALID_EMAIL" as const });
-	}
+type ParsedClerkError = z.infer<typeof clerkErrorSchema>;
 
-	return ok(parsed.data.toLowerCase());
-}
-
-function getClerkErrorFields(body: unknown) {
-	const parsed = clerkErrorSchema.safeParse(body);
-	const firstError = parsed.success ? parsed.data.errors?.[0] : undefined;
+function clerkErrorFields(body: ParsedClerkError) {
+	const firstError = body.errors?.[0];
 	return {
 		code: firstError?.code ?? "",
 		text: `${firstError?.message ?? ""} ${firstError?.long_message ?? ""}`.toLowerCase()
 	};
 }
 
-function mapClerkInvitationError(body: unknown): ClerkInvitationError {
-	const { code, text } = getClerkErrorFields(body);
+function mapInvitationError(body: ParsedClerkError): ClerkInvitationError {
+	const { code, text } = clerkErrorFields(body);
 
 	if (code === "duplicate_record" || text.includes("pending invitation")) {
 		return { reason: "INVITATION_PENDING" };
@@ -69,6 +61,15 @@ function mapClerkInvitationError(body: unknown): ClerkInvitationError {
 	}
 
 	return { reason: "CLERK_INVITATION_FAILED" };
+}
+
+export function parseInviteEmail(email: string) {
+	const parsed = inviteEmailSchema.safeParse(email);
+	if (!parsed.success) {
+		return err({ reason: "INVALID_EMAIL" as const });
+	}
+
+	return ok(parsed.data.toLowerCase());
 }
 
 export function createClerkInvitation(email: string) {
@@ -87,11 +88,14 @@ export function createClerkInvitation(email: string) {
 		}),
 		() => ({ reason: "CLERK_INVITATION_FAILED" as const })
 	).andThen((response) =>
-		ResultAsync.fromPromise(response.json() as Promise<unknown>, () => ({
+		ResultAsync.fromPromise(response.json(), () => ({
 			reason: "CLERK_INVITATION_FAILED" as const
 		})).andThen((body) => {
 			if (!response.ok) {
-				return errAsync(mapClerkInvitationError(body));
+				const parsedBody = clerkErrorSchema.safeParse(body);
+				return errAsync(
+					mapInvitationError(parsedBody.success ? parsedBody.data : { errors: undefined })
+				);
 			}
 
 			return ok(null);

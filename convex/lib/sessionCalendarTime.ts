@@ -350,15 +350,22 @@ export function groupBusyWindowsByDay(
 			const segmentEndMs = Math.min(windowEndMs, dayEndMs);
 			const bucket = getOrCreateDayBucket(dayBuckets, localDateKey, timeZone);
 
-			bucket.busyPeriods.push({
-				...(window.calendarId ? { calendarId: window.calendarId } : {}),
+			const busyPeriod: BusyWindow = {
 				end: formatTimeInTimeZone(
 					new Date(segmentEndMs === dayEndMs ? segmentEndMs - 60 * 1000 : segmentEndMs),
 					timeZone
 				),
-				...(window.eventId ? { eventId: window.eventId } : {}),
 				start: formatTimeInTimeZone(segmentStartDate, timeZone)
-			});
+			};
+
+			if (window.calendarId) {
+				busyPeriod.calendarId = window.calendarId;
+			}
+			if (window.eventId) {
+				busyPeriod.eventId = window.eventId;
+			}
+
+			bucket.busyPeriods.push(busyPeriod);
 
 			segmentStartMs = segmentEndMs;
 		}

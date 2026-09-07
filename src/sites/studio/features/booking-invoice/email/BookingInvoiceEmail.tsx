@@ -16,6 +16,8 @@ import { formatAud } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceData } from "#studio/features/booking-invoice/lib/types";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 
+type BookingInvoiceEmailCopy = { introText: string; previewText: string };
+
 export interface BookingInvoiceEmailProps {
 	data: BookingInvoiceData;
 }
@@ -127,7 +129,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	);
 }
 
-function getEmailCopy(data: BookingInvoiceData): { introText: string; previewText: string } {
+function getEmailCopy(data: BookingInvoiceData): BookingInvoiceEmailCopy {
 	const totalDue = formatAud(data.amounts.totalDueAmount);
 
 	if (data.adjustment) {

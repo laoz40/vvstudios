@@ -63,12 +63,12 @@ import type { Id } from "#convex/_generated/dataModel";
 import { requirePermission } from "#convex/lib/auth";
 import { createConvexTest } from "#convex/test.setup";
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
-import { tupleErr, tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
 const paginationOpts = { cursor: null, numItems: 10 };
 const assignSessionEditor = makeFunctionReference<
 	"mutation",
 	{ bookingId: Id<"bookings">; editorTokenIdentifier: string; adminNotes: string },
-	unknown
+	Result<null, { reason: string }>
 >("sessions:assignSessionEditor");
 const listEditorSessions = makeFunctionReference<
 	"query",
@@ -138,7 +138,10 @@ type TestIds = {
 type AdminOperation = {
 	name: string;
 	permissionLevel: "admin-only" | "editor-granted";
-	call: (client: FunctionClient, ids: TestIds) => Promise<unknown>;
+	call: (
+		client: FunctionClient,
+		ids: TestIds
+	) => Promise<Result<null | object, { reason: string }>>;
 };
 
 const bookingEditArgs = {

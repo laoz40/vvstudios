@@ -117,8 +117,11 @@ export function getSavePackageBookingToastMessage(
 	error: SavePackageBookingError,
 	noticeWindowLabel: string
 ) {
-	const message = savePackageBookingMessages[error.reason];
-	return typeof message === "function" ? message(noticeWindowLabel) : message;
+	if (error.reason === "PACKAGE_BOOKING_LOCKED") {
+		return savePackageBookingMessages.PACKAGE_BOOKING_LOCKED(noticeWindowLabel);
+	}
+
+	return savePackageBookingMessages[error.reason];
 }
 
 export function getUnschedulePackageBookingToastMessage(

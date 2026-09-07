@@ -172,7 +172,7 @@ export function markPackageUnpaidService(ctx: MutationCtx, args: MarkPackageUnpa
 export function markPackagePaidAndCreateScheduleTokenService(
 	ctx: MutationCtx,
 	args: MarkPackagePaidArgs,
-	scheduleExpiry: (expiresAt: number) => Promise<unknown>
+	scheduleExpiry: (expiresAt: number) => Promise<Id<"_scheduled_functions">>
 ) {
 	return (
 		getPackageFromDb(ctx, args.packageId)

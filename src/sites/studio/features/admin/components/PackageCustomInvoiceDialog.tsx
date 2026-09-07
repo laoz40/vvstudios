@@ -40,6 +40,21 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
+type CreatePackageCustomInvoiceRequest = {
+	packageId: AdminPackageRow["id"];
+	dueDate?: string;
+	duration?: string;
+	addons: BookingFormValues["addons"];
+	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
+	packageSize: PackageSize;
+	includePackageDiscount?: boolean;
+	includeDepositLineItem: boolean;
+	customTotalDueAmount?: number;
+};
+
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
 type CreatePackageCustomInvoiceResult = FunctionReturnType<
 	typeof api.customInvoices.createPackageCustomInvoice
@@ -227,17 +242,28 @@ export function PackageCustomInvoiceDialog({
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch(
-			createPackageCustomInvoice({
-				packageId: packageRow.id,
-				dueDate: draft.dueDate,
-				...(draft.duration ? { duration: draft.duration } : {}),
-				addons: draft.addons,
-				...omitEmptyBookingAddonQuantities(draft),
-				packageSize: draft.packageSize,
-				includePackageDiscount: draft.includePackageDiscount,
-				includeDepositLineItem: false,
-				...(customTotalDueAmount !== undefined ? { customTotalDueAmount } : {})
-			})
+			createPackageCustomInvoice(
+				(() => {
+					const request: CreatePackageCustomInvoiceRequest = {
+						packageId: packageRow.id,
+						dueDate: draft.dueDate,
+						addons: draft.addons,
+						...omitEmptyBookingAddonQuantities(draft),
+						packageSize: draft.packageSize,
+						includePackageDiscount: draft.includePackageDiscount,
+						includeDepositLineItem: false
+					};
+
+					if (draft.duration) {
+						request.duration = draft.duration;
+					}
+					if (customTotalDueAmount !== undefined) {
+						request.customTotalDueAmount = customTotalDueAmount;
+					}
+
+					return request;
+				})()
+			)
 		);
 
 		if (error !== null) {

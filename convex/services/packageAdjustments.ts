@@ -40,7 +40,7 @@ export function getPackageAdjustmentInvoiceInputService(
 export function claimPackageAdjustmentInvoiceEmailService(
 	ctx: MutationCtx,
 	args: ClaimPackageAdjustmentInvoiceEmailArgs,
-	scheduleStalledEmailRecovery: () => Promise<unknown>
+	scheduleStalledEmailRecovery: () => Promise<Id<"_scheduled_functions">>
 ) {
 	return (
 		getPackageAdjustmentInvoice(ctx, args.adjustmentId)

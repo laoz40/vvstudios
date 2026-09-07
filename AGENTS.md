@@ -14,6 +14,9 @@ If proposed rule change is going to cause a lot of churn, let me know and we can
 - default to shadcn for ui
 - t3env
 
+For convex code, ALWAYS use `vvstudios-convex` skill
+For frontend code, ALWAYS use `vvstudios-frontend` skill
+
 ## Behaviour
 
 - Ask user before making assumptions that change behavior, UX, architecture

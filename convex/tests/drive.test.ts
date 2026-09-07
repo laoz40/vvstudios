@@ -1666,10 +1666,31 @@ function adminSessionValues(
 		time: "11:00",
 		duration: "1h",
 		service: "Remote Podcast",
-		addons: [] as BookingAddon[],
+		addons: [] satisfies BookingAddon[],
 		...overrides
 	};
 }
+
+type SeedBookingInsert = {
+	name: string;
+	phone: string;
+	accountName: string;
+	email: string;
+	date: string;
+	time: string;
+	sessionStartAt: number;
+	duration: string;
+	service: string;
+	addons: [];
+	assignedEditorTokenIdentifier?: string;
+	status: Doc<"bookings">["status"];
+	pendingPaymentCreatedAt: number;
+	packageId?: Id<"packages">;
+	driveClientId: Id<"driveClients">;
+	reservationCreatedAt?: number;
+	reservationSessionStartAt?: number;
+	reservationDuration?: string;
+};
 
 async function seedBooking(
 	t: TestClient,
@@ -1699,7 +1720,7 @@ async function seedBooking(
 				}),
 				createdAt: now
 			}));
-		return await ctx.db.insert("bookings", {
+		const booking: SeedBookingInsert = {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -1714,15 +1735,16 @@ async function seedBooking(
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
 			packageId: options.packageId,
-			driveClientId,
-			...(options.withReservation
-				? {
-						reservationCreatedAt: now,
-						reservationSessionStartAt: bookingStartAt,
-						reservationDuration: "1h"
-					}
-				: {})
-		});
+			driveClientId
+		};
+
+		if (options.withReservation) {
+			booking.reservationCreatedAt = now;
+			booking.reservationSessionStartAt = bookingStartAt;
+			booking.reservationDuration = "1h";
+		}
+
+		return await ctx.db.insert("bookings", booking);
 	});
 }
 

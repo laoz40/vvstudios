@@ -1,5 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import { err, ok, type ResultAsync } from "neverthrow";
+import { z } from "zod";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -14,14 +15,11 @@ type UserAccess =
 	| { role: "admin"; permissions: readonly Permission[]; editorProfile: AdminEditorProfile | null }
 	| { role: "editor"; permissions: readonly Permission[] };
 
+const publicMetadataSchema = z.object({ role: z.string().optional() });
+
 function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
-	const publicMetadata = identity.publicMetadata;
-
-	if (!publicMetadata || typeof publicMetadata !== "object" || Array.isArray(publicMetadata)) {
-		return null;
-	}
-
-	return publicMetadata;
+	const parsedMetadata = publicMetadataSchema.safeParse(identity.publicMetadata);
+	return parsedMetadata.success ? parsedMetadata.data : null;
 }
 
 export function isAdminIdentity(identity: UserIdentity): boolean {

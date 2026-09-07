@@ -187,6 +187,8 @@ type UnlockRescheduleLinkError =
 	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
 	| { reason: "RESCHEDULE_LINK_USED" };
 
+type UnlockRescheduleLinkPatch = { status: "active"; usedAt: undefined; expiresAt?: number };
+
 export function unlockRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
@@ -202,15 +204,13 @@ export function unlockRescheduleLinkService(
 			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_USED" });
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch(args.linkId, {
-					status: "active",
-					usedAt: undefined,
-					...(args.expiresAt !== undefined ? { expiresAt: args.expiresAt } : {})
-				})
-				.then(() => null)
-		);
+		const patch: UnlockRescheduleLinkPatch = { status: "active", usedAt: undefined };
+
+		if (args.expiresAt !== undefined) {
+			patch.expiresAt = args.expiresAt;
+		}
+
+		return okOrThrow(ctx.db.patch(args.linkId, patch).then(() => null));
 	});
 }
 

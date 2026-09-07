@@ -452,7 +452,7 @@ function packageFields(createdAt: number) {
 		accountName: "Package account",
 		email: "package@example.com",
 		duration: "1h",
-		addons: [] as BookingAddon[],
+		addons: [] satisfies BookingAddon[],
 		packageSize: 4 as const,
 		singleSessionAmount: 250,
 		packageSubtotalAmount: 912.34,

@@ -3,8 +3,13 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getGoogleCalendarErrorCode } from "#convex/lib/googleCalendarErrors";
+import {
+	calendarErrorSchema,
+	calendarResultAsync,
+	mapCalendarErrorCode
+} from "#convex/lib/googleCalendarErrors";
 import { fromConvexTuple } from "#convex/lib/result";
+import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
 import {
 	buildSessionCalendarEventPayload,
 	removeOrphanedSessionCalendarEvent,
@@ -82,35 +87,45 @@ function promoteFailedSessionFromAdmin({
 					timeZone: client.timeZone
 				})
 			),
-			(error) => ({ reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED") })
+			(error) => {
+				const parsedError = calendarErrorSchema.safeParse(error);
+				return {
+					reason: parsedError.success
+						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+						: "GOOGLE_CALENDAR_CREATE_FAILED"
+				};
+			}
 		)
 			.andThen((payloadResult) =>
 				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
 			)
 			.andThen((requestBody) =>
-				ResultAsync.fromPromise(
+				calendarResultAsync(
 					client.calendar.events.insert({
 						calendarId: client.calendarId,
 						sendUpdates: "all",
 						requestBody
 					}),
-					(error) => ({
-						reason: getGoogleCalendarErrorCode(error, "GOOGLE_CALENDAR_CREATE_FAILED")
-					})
+					"GOOGLE_CALENDAR_CREATE_FAILED"
 				)
 			)
 			.andThen((createdEvent) => {
 				const googleEventId = createdEvent.data.id ?? undefined;
 
+				const saveArgs: SaveAdminSessionUpdateArgs = {
+					...args,
+					confirmBooking: true,
+					googleCalendarId: client.calendarId,
+					googleEventId
+				};
+
+				if (reservation) {
+					saveArgs.reservation = reservation;
+				}
+
 				// Promote to confirmed and clear the previous failure code in the save mutation.
 				return fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-						...args,
-						confirmBooking: true,
-						googleCalendarId: client.calendarId,
-						googleEventId,
-						...(reservation ? { reservation } : {})
-					})
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 				).orElse((saveError) => {
 					const shouldRemoveOrphanedEvent =
 						saveError.reason === "BOOKING_TIME_UNAVAILABLE" ||
@@ -218,13 +233,18 @@ function updateConfirmedSessionGoogleEventOrCreateReplacement({
 			return ok(null);
 		}
 
+		const saveArgs: SaveAdminSessionUpdateArgs = {
+			...args,
+			googleCalendarId: timingUpdate.googleCalendarId,
+			googleEventId: timingUpdate.googleEventId
+		};
+
+		if (reservation) {
+			saveArgs.reservation = reservation;
+		}
+
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-				...args,
-				googleCalendarId: timingUpdate.googleCalendarId,
-				googleEventId: timingUpdate.googleEventId,
-				...(reservation ? { reservation } : {})
-			})
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 		).map(() => ({ googleOutcome: timingUpdate.outcome }));
 	});
 }
@@ -323,14 +343,17 @@ function applyAdminSessionUpdate({
 			settings,
 			timeZone: client.timeZone
 		})
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-						...args,
-						...(reservation ? { reservation } : {})
-					})
-				)
-			)
+			.andThen(() => {
+				const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+
+				if (reservation) {
+					saveArgs.reservation = reservation;
+				}
+
+				return fromConvexTuple(
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
+				);
+			})
 			.map(() => ({}));
 	}
 
@@ -347,11 +370,14 @@ function applyAdminSessionUpdate({
 			return ok(replacementOutcome);
 		}
 
+		const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+
+		if (reservation) {
+			saveArgs.reservation = reservation;
+		}
+
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-				...args,
-				...(reservation ? { reservation } : {})
-			})
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 		).map(() => ({}));
 	});
 }

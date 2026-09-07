@@ -8,10 +8,10 @@ import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { RescheduleConfirmation } from "#studio/features/booking-complete/components/RescheduleConfirmation";
 import {
-	parseRescheduleCompleteSearch,
 	RescheduleCompleteDevScenarioPanel,
 	type DevRescheduleCompleteScenario
 } from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
+import { rescheduleCompleteSearchSchema } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
 
 type GetPublicRescheduleCompleteSessionResult = FunctionReturnType<
 	typeof api.sessions.getPublicRescheduleCompleteSession
@@ -28,7 +28,10 @@ type RescheduleCompletePageResult = Result<
 >;
 
 export const Route = createFileRoute("/_public/_convex/reschedule-complete")({
-	validateSearch: parseRescheduleCompleteSearch,
+	validateSearch: (search) => {
+		const parsedSearch = rescheduleCompleteSearchSchema.safeParse(search);
+		return parsedSearch.success ? parsedSearch.data : {};
+	},
 	head: () => buildNoIndexHead("Reschedule Complete | VV Studios"),
 	component: RescheduleCompletePage
 });
