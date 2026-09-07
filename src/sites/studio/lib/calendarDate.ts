@@ -4,11 +4,25 @@ const finiteInt = z.number().finite().int();
 
 export const isoDateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-const calendarDateFieldsSchema = z.object({
-	day: finiteInt.min(1).max(31),
-	month: finiteInt.min(1).max(12),
-	year: finiteInt.min(1)
-});
+const calendarDateFieldsSchema = z
+	.object({
+		day: finiteInt.min(1).max(31),
+		month: finiteInt.min(1).max(12),
+		year: finiteInt.min(1)
+	})
+	.refine(
+		({ day, month, year }) => {
+			const date = new Date(0);
+			date.setUTCFullYear(year, month - 1, day);
+
+			return (
+				date.getUTCFullYear() === year &&
+				date.getUTCMonth() === month - 1 &&
+				date.getUTCDate() === day
+			);
+		},
+		{ message: "Invalid calendar date" }
+	);
 
 export const calendarDateSchema = isoDateStringSchema
 	.transform((value) => {
