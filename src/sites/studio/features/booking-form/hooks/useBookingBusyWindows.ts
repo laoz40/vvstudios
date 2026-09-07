@@ -55,7 +55,8 @@ export function useBookingBusyWindows({
 			}
 
 			return mergeBookableRangeBusyWindows({ bookableMonthKeys, current: {}, result });
-		}
+		},
+		staleTime: 60_000
 	});
 
 	// Turn the thrown Convex error into copy for the booking form.
