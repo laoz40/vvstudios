@@ -1,8 +1,14 @@
 import { z } from "zod";
 
 export type EditorWorkStatus = "assigned" | "editing" | "unassigned";
+export type AdminEditorProfile = {
+	tokenIdentifier: string;
+	displayName: string;
+	isActive: boolean;
+};
 export type EditorAccessErrorReason =
 	| "EDITOR_NOT_FOUND"
+	| "EDITOR_PROFILE_INACTIVE"
 	| "NOT_AUTHENTICATED"
 	| "NOT_AUTHORIZED"
 	| "UNEXPECTED_ERROR";
@@ -80,6 +86,8 @@ export function getEditorAccessErrorMessage(reason: EditorAccessErrorReason) {
 	switch (reason) {
 		case "EDITOR_NOT_FOUND":
 			return "This editor no longer exists.";
+		case "EDITOR_PROFILE_INACTIVE":
+			return "Your editor profile is retired. Reactivate it from the employees table.";
 		case "NOT_AUTHENTICATED":
 			return "Your session has expired. Sign in again.";
 		case "NOT_AUTHORIZED":

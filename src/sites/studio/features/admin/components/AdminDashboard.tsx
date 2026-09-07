@@ -9,6 +9,7 @@ import { AdminDashboardShell } from "#studio/features/admin/components/AdminDash
 import type { AdminDashboardView } from "#studio/features/admin/components/AdminDashboardTabs";
 import { AdminPrivacyModeProvider } from "#studio/features/admin/components/AdminPrivacyMode";
 import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable";
+import type { AdminEditorProfile } from "#studio/features/admin/lib/editor-management";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
@@ -26,6 +27,7 @@ type Packages = FunctionReturnType<typeof api.packages.listPackages>["page"];
 type AdminDashboardTablesProps = {
 	activeView: AdminDashboardView;
 	activeEditors: ActiveEditors;
+	adminEditorProfile: AdminEditorProfile | null;
 	editors: Employees;
 	sessions: Sessions;
 	packages: Packages;
@@ -56,6 +58,7 @@ function renderEmployeeListError(error: EmployeeListError) {
 function AdminDashboardTables({
 	activeView,
 	activeEditors,
+	adminEditorProfile,
 	editors,
 	sessions,
 	packages,
@@ -91,7 +94,12 @@ function AdminDashboardTables({
 					onViewPackageSessions={onViewPackageSessions}
 				/>
 			) : null}
-			{activeView === "employees" ? <EmployeesTable editors={editors} /> : null}
+			{activeView === "employees" ? (
+				<EmployeesTable
+					editors={editors}
+					adminEditorProfile={adminEditorProfile}
+				/>
+			) : null}
 		</>
 	);
 }
@@ -109,6 +117,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	);
 	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
 	const editorsResult = useQuery(api.employees.listEmployees, {});
+	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
@@ -120,7 +129,12 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	}
 
 	const isPaginatedDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
-	if (isPaginatedDataLoading || activeEditors === undefined || editorsResult === undefined) {
+	if (
+		isPaginatedDataLoading ||
+		activeEditors === undefined ||
+		editorsResult === undefined ||
+		accessResult === undefined
+	) {
 		return (
 			<DashboardLoadingState
 				dashboardRole={dashboardRole}
@@ -134,6 +148,13 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 		return renderEmployeeListError(editorsError);
 	}
 
+	const [accessError, access] = accessResult;
+	if (accessError !== null) {
+		return renderEmployeeListError(accessError);
+	}
+
+	const adminEditorProfile = access.role === "admin" ? access.editorProfile : null;
+
 	return (
 		<AdminPrivacyModeProvider>
 			<AdminDashboardShell
@@ -143,6 +164,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 				<AdminDashboardTables
 					activeView={activeView}
 					activeEditors={activeEditors}
+					adminEditorProfile={adminEditorProfile}
 					editors={editors}
 					sessions={sessions.results}
 					packages={packages.results}

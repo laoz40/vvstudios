@@ -4,6 +4,8 @@ import {
 	getEditorByToken,
 	getUserRoleAndPermissions,
 	isAdminIdentity,
+	requireAdminIdentity,
+	requireEnrollableEditorProfile,
 	requireUser,
 	saveEditorDetails
 } from "#convex/lib/auth";
@@ -23,4 +25,14 @@ export function createEditorUserService(ctx: MutationCtx) {
 			saveEditorDetails(ctx, identity, editor)
 		);
 	});
+}
+
+export function enrollAdminAsEditorService(ctx: MutationCtx) {
+	return requireUser(ctx)
+		.andThen(requireAdminIdentity)
+		.andThen((identity) =>
+			getEditorByToken(ctx, identity.tokenIdentifier)
+				.andThen(requireEnrollableEditorProfile)
+				.andThen((editor) => saveEditorDetails(ctx, identity, editor))
+		);
 }

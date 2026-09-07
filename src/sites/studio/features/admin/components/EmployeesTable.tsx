@@ -4,11 +4,12 @@ import {
 	LoaderCircleIcon,
 	MoreHorizontalIcon,
 	NotebookPenIcon,
+	UserRoundPlusIcon,
 	UserRoundXIcon
 } from "lucide-react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { tryCatch } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import { Badge } from "#/components/ui/badge";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
@@ -38,21 +39,66 @@ import {
 	editorWorkStatusLabels,
 	formatLastAssignedAt,
 	getEditorAccessErrorMessage,
+	type AdminEditorProfile,
 	type ManagedEditor
 } from "#studio/features/admin/lib/editor-management";
 
-type EmployeesTableProps = { editors: ManagedEditor[] };
+type EmployeesTableProps = {
+	adminEditorProfile: AdminEditorProfile | null;
+	editors: ManagedEditor[];
+};
 type NotesDialogState = { status: "closed" } | { status: "open"; editor: ManagedEditor };
+type EnrollAdminAsEditorError =
+	| { reason: "EDITOR_PROFILE_INACTIVE" }
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| UnexpectedError;
 
-export function EmployeesTable({ editors }: EmployeesTableProps) {
+function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
+	switch (error.reason) {
+		case "EDITOR_PROFILE_INACTIVE":
+			toast.error("Your editor profile is retired. Reactivate it from the employees table.");
+			return;
+		case "NOT_AUTHENTICATED":
+			toast.error("Your session has expired. Sign in again.");
+			return;
+		case "NOT_AUTHORIZED":
+			toast.error("Only admins can enroll as editors.");
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Unable to enroll as an editor.");
+			return;
+		default: {
+			const _exhaustive: never = error;
+			void _exhaustive;
+		}
+	}
+}
+
+export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTableProps) {
+	const enrollAdminAsEditor = useMutation(api.auth.enrollAdminAsEditor);
 	const updateEmployeeAccess = useMutation(api.employees.updateEmployeeAccess);
 	const [showRetired, setShowRetired] = useState(false);
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
+	const [isEnrolling, setIsEnrolling] = useState(false);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
 	const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 	const inviteIconRef = useRef<AnimatedIconHandle | null>(null);
 	const visibleEditors = editors.filter((editor) => editor.isActive !== showRetired);
+
+	async function handleEnrollAsEditor() {
+		setIsEnrolling(true);
+		const [error] = await tryCatch(enrollAdminAsEditor({}));
+		setIsEnrolling(false);
+
+		if (error !== null) {
+			showEnrollAdminAsEditorError(error);
+			return;
+		}
+
+		toast.success("You can now assign yourself to edit sessions.");
+	}
 
 	async function handleAccessChange(editor: ManagedEditor) {
 		setUpdatingEditorToken(editor.tokenIdentifier);
@@ -74,20 +120,40 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 		<>
 			<section className="flex flex-col gap-4">
 				<div className="flex items-center justify-between gap-4">
-					<Button
-						variant="outline"
-						onClick={() => setIsInviteDialogOpen(true)}
-						onPointerEnter={() => inviteIconRef.current?.startAnimation()}
-						onPointerLeave={() => inviteIconRef.current?.stopAnimation()}
-						onFocus={() => inviteIconRef.current?.startAnimation()}
-						onBlur={() => inviteIconRef.current?.stopAnimation()}>
-						<MailFilledIcon
-							ref={inviteIconRef}
-							size={16}
-							aria-hidden
-						/>
-						Invite editor
-					</Button>
+					<div className="flex flex-wrap items-center gap-2">
+						<Button
+							variant="outline"
+							onClick={() => setIsInviteDialogOpen(true)}
+							onPointerEnter={() => inviteIconRef.current?.startAnimation()}
+							onPointerLeave={() => inviteIconRef.current?.stopAnimation()}
+							onFocus={() => inviteIconRef.current?.startAnimation()}
+							onBlur={() => inviteIconRef.current?.stopAnimation()}>
+							<MailFilledIcon
+								ref={inviteIconRef}
+								size={16}
+								aria-hidden
+							/>
+							Invite editor
+						</Button>
+						{adminEditorProfile === null ? (
+							<Button
+								variant="outline"
+								disabled={isEnrolling}
+								onClick={() => void handleEnrollAsEditor()}>
+								{isEnrolling ? (
+									<>
+										<LoaderCircleIcon className="animate-spin" />
+										Enrolling
+									</>
+								) : (
+									<>
+										<UserRoundPlusIcon />
+										Add yourself as editor
+									</>
+								)}
+							</Button>
+						) : null}
+					</div>
 					<div className="flex items-center justify-end gap-2">
 						<label
 							htmlFor="show-retired-employees"
