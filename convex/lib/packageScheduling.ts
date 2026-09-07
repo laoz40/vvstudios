@@ -187,15 +187,22 @@ export function checkPackageSessionAvailability(
 }
 
 export function toPackageCalendarSession(session: Doc<"bookings">): SessionCalendarEventRecord {
-	return {
+	const record: SessionCalendarEventRecord = {
 		date: session.date,
 		duration: session.duration,
 		email: session.email,
 		name: session.name,
-		time: session.time,
-		...(session.googleCalendarId ? { googleCalendarId: session.googleCalendarId } : {}),
-		...(session.googleEventId ? { googleEventId: session.googleEventId } : {})
+		time: session.time
 	};
+
+	if (session.googleCalendarId) {
+		record.googleCalendarId = session.googleCalendarId;
+	}
+	if (session.googleEventId) {
+		record.googleEventId = session.googleEventId;
+	}
+
+	return record;
 }
 
 export function toPackageCalendarDetails(

@@ -17,6 +17,26 @@ type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | Unexpec
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
 type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
+type SessionUpdateInput = {
+	bookingId: SessionRecord["_id"];
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	date: string;
+	time: string;
+	duration: string;
+	service: string;
+	addons: ParsedSessionValues["addons"];
+	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
+	notes?: string;
+	remainingBalanceAmount?: number;
+};
+
 export type ParsedSessionEditDraft =
 	| { status: "booking-invalid"; message: string }
 	| { status: "remaining-balance-invalid" }
@@ -92,24 +112,31 @@ function buildSessionUpdateInput(
 	parsedValues: ParsedSessionValues,
 	remainingBalanceAmountResult: RemainingBalanceResult
 ) {
-	return {
+	const input: SessionUpdateInput = {
 		bookingId: session._id,
 		name: parsedValues.name,
 		phone: parsedValues.phone,
 		accountName: parsedValues.accountName,
-		...(parsedValues.abn ? { abn: parsedValues.abn } : {}),
 		email: parsedValues.email,
 		date: parsedValues.date,
 		time: parsedValues.time,
 		duration: parsedValues.duration,
 		service: parsedValues.service,
 		addons: parsedValues.addons,
-		...pickBookingAddonQuantities(parsedValues),
-		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
-		...(remainingBalanceAmountResult?.status === "valid"
-			? { remainingBalanceAmount: remainingBalanceAmountResult.amount }
-			: {})
+		...pickBookingAddonQuantities(parsedValues)
 	};
+
+	if (parsedValues.abn) {
+		input.abn = parsedValues.abn;
+	}
+	if (parsedValues.notes) {
+		input.notes = parsedValues.notes;
+	}
+	if (remainingBalanceAmountResult?.status === "valid") {
+		input.remainingBalanceAmount = remainingBalanceAmountResult.amount;
+	}
+
+	return input;
 }
 
 export async function performSessionEditSave(

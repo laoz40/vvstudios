@@ -17,29 +17,57 @@ type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updat
 type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
 type PackageTotalResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
+type PackageUpdateInput = {
+	packageId: AdminPackageRow["id"];
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	duration: string;
+	addons: ParsedPackageValues["addons"];
+	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
+	notes?: string;
+	packageSize: ParsedPackageValues["packageSize"];
+	expiresAt?: number;
+	totalDueAmount?: number;
+};
+
 function buildPackageUpdateInput(
 	packageRow: AdminPackageRow,
 	values: PackageEditDraft,
 	parsedValues: ParsedPackageValues,
 	totalDueAmountResult: PackageTotalResult
 ) {
-	return {
+	const input: PackageUpdateInput = {
 		packageId: packageRow.id,
 		name: parsedValues.name,
 		phone: parsedValues.phone,
 		accountName: parsedValues.accountName,
-		...(parsedValues.abn ? { abn: parsedValues.abn } : {}),
 		email: parsedValues.email,
 		duration: parsedValues.duration,
 		addons: parsedValues.addons,
 		...pickBookingAddonQuantities(parsedValues),
-		...(parsedValues.notes ? { notes: parsedValues.notes } : {}),
-		packageSize: parsedValues.packageSize,
-		...(values.expiresAt !== undefined ? { expiresAt: values.expiresAt } : {}),
-		...(totalDueAmountResult?.status === "valid"
-			? { totalDueAmount: totalDueAmountResult.amount }
-			: {})
+		packageSize: parsedValues.packageSize
 	};
+
+	if (parsedValues.abn) {
+		input.abn = parsedValues.abn;
+	}
+	if (parsedValues.notes) {
+		input.notes = parsedValues.notes;
+	}
+	if (values.expiresAt !== undefined) {
+		input.expiresAt = values.expiresAt;
+	}
+	if (totalDueAmountResult?.status === "valid") {
+		input.totalDueAmount = totalDueAmountResult.amount;
+	}
+
+	return input;
 }
 
 function parsePackageEditValues(values: PackageEditDraft) {

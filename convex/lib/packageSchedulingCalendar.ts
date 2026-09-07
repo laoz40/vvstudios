@@ -29,6 +29,11 @@ export type PackageCalendarWriteError =
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }
 	| PackageCalendarSyncError;
 
+type PackageCalendarIdPatch = Pick<
+	SessionCalendarEventRecord,
+	"googleCalendarId" | "googleEventId"
+>;
+
 export function updatePackageCalendarEvent(
 	client: PackageCalendarClient,
 	session: SessionCalendarEventRecord,
@@ -59,11 +64,16 @@ export function updatePackageCalendarEvent(
 		.map((result) => {
 			const googleCalendarId = result.googleCalendarId ?? session.googleCalendarId;
 			const googleEventId = result.googleEventId ?? session.googleEventId;
+			const patch: PackageCalendarIdPatch = {};
 
-			return {
-				...(googleCalendarId ? { googleCalendarId } : {}),
-				...(googleEventId ? { googleEventId } : {})
-			};
+			if (googleCalendarId) {
+				patch.googleCalendarId = googleCalendarId;
+			}
+			if (googleEventId) {
+				patch.googleEventId = googleEventId;
+			}
+
+			return patch;
 		});
 }
 
@@ -91,10 +101,18 @@ export function createPackageCalendarEvent(
 				reason: getPackageCalendarSyncErrorReason(error.reason)
 			})
 		)
-		.map((result) => ({
-			...(result.googleCalendarId ? { googleCalendarId: result.googleCalendarId } : {}),
-			...(result.googleEventId ? { googleEventId: result.googleEventId } : {})
-		}));
+		.map((result) => {
+			const patch: PackageCalendarIdPatch = {};
+
+			if (result.googleCalendarId) {
+				patch.googleCalendarId = result.googleCalendarId;
+			}
+			if (result.googleEventId) {
+				patch.googleEventId = result.googleEventId;
+			}
+
+			return patch;
+		});
 }
 
 export function getPackageCalendarSyncErrorReason(

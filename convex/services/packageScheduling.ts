@@ -89,16 +89,24 @@ export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 			packageSize: packageRecord.packageSize,
 			expiresAt: packageRecord.expiresAt,
 			defaultSpace: packageRecord.defaultSpace,
-			sessions: sessions.map((session) => ({
-				_id: session._id,
-				date: session.date,
-				time: session.time,
-				sessionStartAt: session.sessionStartAt,
-				notes: session.notes ?? "",
-				service: session.service,
-				addons: session.addons,
-				...(session.googleEventId ? { googleEventId: session.googleEventId } : {})
-			}))
+			sessions: sessions.map((session) => {
+				const mappedSession: PackageSessionSummary = {
+					_id: session._id,
+					date: session.date,
+					time: session.time,
+					sessionStartAt: session.sessionStartAt,
+					notes: session.notes ?? "",
+					service: session.service,
+					addons: session.addons
+				};
+
+				if (!session.googleEventId) {
+					return mappedSession;
+				}
+
+				mappedSession.googleEventId = session.googleEventId;
+				return mappedSession;
+			})
 		}));
 }
 
@@ -152,14 +160,18 @@ export function createPackageSessionService(
 				).map((calendar) => ({ calendar, details }))
 			)
 			// Save the booking, deleting an orphaned Calendar event if an expected save check loses a race.
-			.andThen(({ calendar, details }) =>
-				fromConvexTuple(
-					ctx.runMutation(internal.packageScheduling.saveCreatedPackageSession, {
-						...args,
-						now,
-						...(calendar.googleCalendarId ? { googleCalendarId: calendar.googleCalendarId } : {}),
-						...(calendar.googleEventId ? { googleEventId: calendar.googleEventId } : {})
-					})
+			.andThen(({ calendar, details }) => {
+				const saveArgs: SaveCreatedPackageSessionArgs = { ...args, now };
+
+				if (calendar.googleCalendarId) {
+					saveArgs.googleCalendarId = calendar.googleCalendarId;
+				}
+				if (calendar.googleEventId) {
+					saveArgs.googleEventId = calendar.googleEventId;
+				}
+
+				return fromConvexTuple(
+					ctx.runMutation(internal.packageScheduling.saveCreatedPackageSession, saveArgs)
 				).orElse((saveError) => {
 					if (!calendar.googleEventId || !calendar.googleCalendarId) {
 						return err(saveError);
@@ -183,8 +195,8 @@ export function createPackageSessionService(
 							return saveError;
 						})
 						.andThen(() => err(saveError));
-				})
-			)
+				});
+			})
 	);
 }
 
@@ -309,6 +321,17 @@ export function unschedulePackageSessionService(
 export type SaveCreatedPackageSessionArgs = PackageSessionArgs & {
 	now: number;
 	googleCalendarId?: string;
+	googleEventId?: string;
+};
+
+type PackageSessionSummary = {
+	_id: Id<"bookings">;
+	date: string;
+	time: string;
+	sessionStartAt: number;
+	notes: string;
+	service: string;
+	addons: Doc<"bookings">["addons"];
 	googleEventId?: string;
 };
 

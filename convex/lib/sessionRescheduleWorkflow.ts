@@ -9,6 +9,7 @@ import { updateSessionTimingWithGoogleCalendar } from "#convex/lib/sessionAdminG
 import { validateSessionTimingEdit } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { fromConvexTuple } from "#convex/lib/result";
+import type { SaveClientSessionRescheduleArgs } from "#convex/services/sessionScheduling";
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };
 export type ValidRescheduleDetails = {
@@ -160,22 +161,25 @@ export function saveRescheduledSession(
 		timingUpdate: { googleCalendarId?: string; googleEventId?: string; sessionStartAt: number };
 	}
 ) {
+	const saveArgs: SaveClientSessionRescheduleArgs = {
+		bookingId: state.session._id,
+		date: args.date,
+		time: args.time,
+		sessionStartAt: state.timingUpdate.sessionStartAt,
+		confirmBooking: state.session.status === "failed",
+		reservation: state.reservation
+	};
+
+	if (state.timingUpdate.googleCalendarId) {
+		saveArgs.googleCalendarId = state.timingUpdate.googleCalendarId;
+	}
+	if (state.timingUpdate.googleEventId) {
+		saveArgs.googleEventId = state.timingUpdate.googleEventId;
+	}
+
 	return (
 		fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
-				bookingId: state.session._id,
-				date: args.date,
-				time: args.time,
-				sessionStartAt: state.timingUpdate.sessionStartAt,
-				confirmBooking: state.session.status === "failed",
-				reservation: state.reservation,
-				...(state.timingUpdate.googleCalendarId
-					? { googleCalendarId: state.timingUpdate.googleCalendarId }
-					: {}),
-				...(state.timingUpdate.googleEventId
-					? { googleEventId: state.timingUpdate.googleEventId }
-					: {})
-			})
+			ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, saveArgs)
 		)
 			.map(() => state)
 			// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time

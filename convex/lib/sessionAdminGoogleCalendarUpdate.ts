@@ -9,6 +9,7 @@ import {
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendarErrors";
 import { fromConvexTuple } from "#convex/lib/result";
+import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
 import {
 	buildSessionCalendarEventPayload,
 	removeOrphanedSessionCalendarEvent,
@@ -111,15 +112,20 @@ function promoteFailedSessionFromAdmin({
 			.andThen((createdEvent) => {
 				const googleEventId = createdEvent.data.id ?? undefined;
 
+				const saveArgs: SaveAdminSessionUpdateArgs = {
+					...args,
+					confirmBooking: true,
+					googleCalendarId: client.calendarId,
+					googleEventId
+				};
+
+				if (reservation) {
+					saveArgs.reservation = reservation;
+				}
+
 				// Promote to confirmed and clear the previous failure code in the save mutation.
 				return fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-						...args,
-						confirmBooking: true,
-						googleCalendarId: client.calendarId,
-						googleEventId,
-						...(reservation ? { reservation } : {})
-					})
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 				).orElse((saveError) => {
 					const shouldRemoveOrphanedEvent =
 						saveError.reason === "BOOKING_TIME_UNAVAILABLE" ||
@@ -227,13 +233,18 @@ function updateConfirmedSessionGoogleEventOrCreateReplacement({
 			return ok(null);
 		}
 
+		const saveArgs: SaveAdminSessionUpdateArgs = {
+			...args,
+			googleCalendarId: timingUpdate.googleCalendarId,
+			googleEventId: timingUpdate.googleEventId
+		};
+
+		if (reservation) {
+			saveArgs.reservation = reservation;
+		}
+
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-				...args,
-				googleCalendarId: timingUpdate.googleCalendarId,
-				googleEventId: timingUpdate.googleEventId,
-				...(reservation ? { reservation } : {})
-			})
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 		).map(() => ({ googleOutcome: timingUpdate.outcome }));
 	});
 }
@@ -332,14 +343,17 @@ function applyAdminSessionUpdate({
 			settings,
 			timeZone: client.timeZone
 		})
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-						...args,
-						...(reservation ? { reservation } : {})
-					})
-				)
-			)
+			.andThen(() => {
+				const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+
+				if (reservation) {
+					saveArgs.reservation = reservation;
+				}
+
+				return fromConvexTuple(
+					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
+				);
+			})
 			.map(() => ({}));
 	}
 
@@ -356,11 +370,14 @@ function applyAdminSessionUpdate({
 			return ok(replacementOutcome);
 		}
 
+		const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+
+		if (reservation) {
+			saveArgs.reservation = reservation;
+		}
+
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, {
-				...args,
-				...(reservation ? { reservation } : {})
-			})
+			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 		).map(() => ({}));
 	});
 }

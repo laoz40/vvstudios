@@ -156,6 +156,29 @@ export function isValidSessionRemainingBalanceAmount(amount?: number) {
 	return amount === undefined || (Number.isFinite(amount) && amount >= 0);
 }
 
+export type AdminSessionTimingPatch = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn: string | undefined;
+	email: string;
+	date: string;
+	time: string;
+	duration: string;
+	remainingBalanceAmount: number;
+	sessionStartAt: number;
+	service: string;
+	addons: Doc<"bookings">["addons"];
+	essentialEditQuantity: string | undefined;
+	completeEditQuantity: string | undefined;
+	clipsPackageQuantity: string | undefined;
+	handcraftedClipsQuantity: string | undefined;
+	notes: string | undefined;
+	reminderEmailClaimedAt?: undefined;
+	reminderEmailSentAt?: undefined;
+	reminderEmailFailureCode?: undefined;
+};
+
 export function buildAdminSessionUpdatePatch({
 	session,
 	timeZone,
@@ -172,33 +195,36 @@ export function buildAdminSessionUpdatePatch({
 	const changes = getSessionEditFieldChanges(session, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
-	return getSessionStartAt(values.date, values.time, timeZone).map((sessionStartAt) => ({
-		name: values.name,
-		phone: values.phone,
-		accountName: values.accountName,
-		abn: values.abn,
-		email: values.email.trim().toLowerCase(),
-		date: values.date,
-		time: values.time,
-		duration: values.duration,
-		remainingBalanceAmount:
-			values.remainingBalanceAmount ?? calculateSessionRemainingBalanceAmount(values),
-		sessionStartAt,
-		service: values.service,
-		addons: values.addons,
-		essentialEditQuantity: values.essentialEditQuantity,
-		completeEditQuantity: values.completeEditQuantity,
-		clipsPackageQuantity: values.clipsPackageQuantity,
-		handcraftedClipsQuantity: values.handcraftedClipsQuantity,
-		notes: values.notes,
-		...(scheduleChanged
-			? {
-					reminderEmailClaimedAt: undefined,
-					reminderEmailSentAt: undefined,
-					reminderEmailFailureCode: undefined
-				}
-			: {})
-	}));
+	return getSessionStartAt(values.date, values.time, timeZone).map((sessionStartAt) => {
+		const patch: AdminSessionTimingPatch = {
+			name: values.name,
+			phone: values.phone,
+			accountName: values.accountName,
+			abn: values.abn,
+			email: values.email.trim().toLowerCase(),
+			date: values.date,
+			time: values.time,
+			duration: values.duration,
+			remainingBalanceAmount:
+				values.remainingBalanceAmount ?? calculateSessionRemainingBalanceAmount(values),
+			sessionStartAt,
+			service: values.service,
+			addons: values.addons,
+			essentialEditQuantity: values.essentialEditQuantity,
+			completeEditQuantity: values.completeEditQuantity,
+			clipsPackageQuantity: values.clipsPackageQuantity,
+			handcraftedClipsQuantity: values.handcraftedClipsQuantity,
+			notes: values.notes
+		};
+
+		if (scheduleChanged) {
+			patch.reminderEmailClaimedAt = undefined;
+			patch.reminderEmailSentAt = undefined;
+			patch.reminderEmailFailureCode = undefined;
+		}
+
+		return patch;
+	});
 }
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
@@ -228,18 +254,26 @@ interface ValidateSessionTimingEditArgs {
 	timeZone: string;
 }
 
+type FailBookingConfirmationMutationArgs = {
+	bookingId: Id<"bookings">;
+	failureCode: string;
+	reservation?: SessionReservation;
+};
+
 export function failBookingConfirmation(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	failureCode: string,
 	reservation?: SessionReservation
 ) {
+	const mutationArgs: FailBookingConfirmationMutationArgs = { bookingId, failureCode };
+
+	if (reservation) {
+		mutationArgs.reservation = reservation;
+	}
+
 	return fromConvexTuple(
-		ctx.runMutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
-			bookingId,
-			failureCode,
-			...(reservation ? { reservation } : {})
-		})
+		ctx.runMutation(internal.bookingConfirmation.markBookingConfirmationFailed, mutationArgs)
 	);
 }
 

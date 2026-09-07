@@ -54,6 +54,22 @@ export function getHostEmails() {
 		.filter(Boolean);
 }
 
+type ResendEmailHeaders = {
+	Authorization: string;
+	"Content-Type": string;
+	"Idempotency-Key"?: string;
+};
+
+type ResendEmailAttachment = { content: string; contentType: string; filename: string };
+
+type ResendEmailBody = {
+	from: string;
+	to: string[];
+	subject: string;
+	html: string;
+	attachments?: ResendEmailAttachment[];
+};
+
 export function sendEmail(args: {
 	to: string[];
 	subject: string;
@@ -66,22 +82,31 @@ export function sendEmail(args: {
 		content: Buffer.from(attachment.content).toString("base64"),
 		contentType: attachment.contentType
 	}));
+	const headers: ResendEmailHeaders = {
+		Authorization: `Bearer ${env.RESEND_API_KEY}`,
+		"Content-Type": "application/json"
+	};
+
+	if (args.idempotencyKey) {
+		headers["Idempotency-Key"] = args.idempotencyKey;
+	}
+
+	const requestBody: ResendEmailBody = {
+		from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
+		to: args.to,
+		subject: args.subject,
+		html: args.html
+	};
+
+	if (attachments) {
+		requestBody.attachments = attachments;
+	}
 
 	return ResultAsync.fromPromise(
 		fetch("https://api.resend.com/emails", {
 			method: "POST",
-			headers: {
-				Authorization: `Bearer ${env.RESEND_API_KEY}`,
-				"Content-Type": "application/json",
-				...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {})
-			},
-			body: JSON.stringify({
-				from: `VV Studios <${env.RESEND_FROM_EMAIL}>`,
-				to: args.to,
-				subject: args.subject,
-				html: args.html,
-				...(attachments ? { attachments } : {})
-			})
+			headers,
+			body: JSON.stringify(requestBody)
 		}),
 		() => ({ reason: "EMAIL_REQUEST_FAILED" as const })
 	).andThen((response) => {
@@ -89,10 +114,10 @@ export function sendEmail(args: {
 			return ok(null);
 		}
 
-		return ResultAsync.fromSafePromise(response.text()).andThen((body) => {
+		return ResultAsync.fromSafePromise(response.text()).andThen((responseBody) => {
 			console.error("Resend email response failed", {
 				status: response.status,
-				body,
+				body: responseBody,
 				to: args.to,
 				subject: args.subject,
 				attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
