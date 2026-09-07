@@ -1,6 +1,13 @@
 {
 	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": ["node_modules", "dist", "build", "coverage", "convex/_generated", "tools/oxlint/anti-slop"],
+	"exclude": [
+		"node_modules",
+		"dist",
+		"build",
+		"coverage",
+		"convex/_generated",
+		"tools/oxlint/anti-slop"
+	],
 	"compilerOptions": {
 		"target": "ES2023",
 		"jsx": "react-jsx",
