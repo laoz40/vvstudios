@@ -1,5 +1,6 @@
+import { z } from "zod";
 import type { AdminPackageFilters } from "#studio/features/admin/lib/admin-packages";
-import type { SessionSortId, SessionSorting } from "#studio/features/admin/lib/admin-sessions";
+import type { SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 
 const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 
@@ -18,7 +19,32 @@ const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
 	showUpcomingOnly: true
 };
 
-const sortableColumnIds = new Set(["name", "session", "createdAt"]);
+const sessionSortIdSchema = z.enum(["name", "session", "createdAt"]);
+
+const sessionSortingItemSchema = z.object({
+	id: sessionSortIdSchema,
+	desc: z.boolean().optional()
+});
+
+const storedPackageFiltersSchema = z.object({
+	showArchived: z.boolean().optional(),
+	showOverdue: z.boolean().optional(),
+	showPaid: z.boolean().optional(),
+	showUpcoming: z.boolean().optional()
+});
+
+const storedSessionsTablePreferencesSchema = z.object({
+	sorting: z.array(sessionSortingItemSchema).optional(),
+	showArchived: z.boolean().optional(),
+	showStaleBookings: z.boolean().optional(),
+	showUpcomingOnly: z.boolean().optional()
+});
+
+const adminDashboardPreferencesSchema = z.object({
+	packages: storedPackageFiltersSchema.optional(),
+	privacyMode: z.boolean().optional(),
+	sessions: storedSessionsTablePreferencesSchema.optional()
+});
 
 type SessionsTablePreferences = {
 	sorting: SessionSorting;
@@ -27,41 +53,10 @@ type SessionsTablePreferences = {
 	showUpcomingOnly: boolean;
 };
 
-type AdminDashboardPreferences = {
-	packages?: Record<string, unknown>;
-	privacyMode?: boolean;
-	sessions?: Record<string, unknown>;
-};
+type AdminDashboardPreferences = z.infer<typeof adminDashboardPreferencesSchema>;
 
 function getAdminDashboardStorage() {
 	return typeof window === "undefined" ? null : window.localStorage;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function parseStoredBoolean(value: unknown) {
-	return typeof value === "boolean" ? value : undefined;
-}
-
-function parseStoredSorting(value: unknown) {
-	if (!Array.isArray(value)) {
-		return undefined;
-	}
-
-	const storedSorting = value.filter(
-		(sort): sort is SessionSorting[number] =>
-			isRecord(sort) &&
-			isSessionSortId(sort.id) &&
-			("desc" in sort ? typeof sort.desc === "boolean" : true)
-	);
-
-	return storedSorting.length > 0 ? storedSorting : undefined;
-}
-
-function isSessionSortId(id: unknown): id is SessionSortId {
-	return typeof id === "string" && sortableColumnIds.has(id);
 }
 
 function readAdminDashboardPreferences(): AdminDashboardPreferences {
@@ -72,16 +67,8 @@ function readAdminDashboardPreferences(): AdminDashboardPreferences {
 	}
 
 	try {
-		const parsedValue: unknown = JSON.parse(value);
-
-		if (!isRecord(parsedValue)) {
-			return {};
-		}
-
-		return {
-			packages: isRecord(parsedValue.packages) ? parsedValue.packages : undefined,
-			sessions: isRecord(parsedValue.sessions) ? parsedValue.sessions : undefined
-		};
+		const parsedValue = adminDashboardPreferencesSchema.safeParse(JSON.parse(value));
+		return parsedValue.success ? parsedValue.data : {};
 	} catch {
 		return {};
 	}
@@ -91,15 +78,25 @@ function storeAdminDashboardPreferences(preferences: AdminDashboardPreferences) 
 	getAdminDashboardStorage()?.setItem(ADMIN_DASHBOARD_PREFERENCES_KEY, JSON.stringify(preferences));
 }
 
+function parseStoredSorting(value: unknown): SessionSorting | undefined {
+	const parsedSorting = z.array(sessionSortingItemSchema).safeParse(value);
+
+	if (!parsedSorting.success || parsedSorting.data.length === 0) {
+		return undefined;
+	}
+
+	return parsedSorting.data.map((sort) => ({ id: sort.id, desc: sort.desc ?? false }));
+}
+
 export function readStoredPackageTableFilters(): AdminPackageFilters {
 	const storedFilters = readAdminDashboardPreferences().packages;
 
 	return {
 		...DEFAULT_PACKAGE_FILTERS,
-		showArchived: parseStoredBoolean(storedFilters?.showArchived) ?? false,
-		showOverdue: parseStoredBoolean(storedFilters?.showOverdue) ?? false,
-		showPaid: parseStoredBoolean(storedFilters?.showPaid) ?? false,
-		showUpcoming: parseStoredBoolean(storedFilters?.showUpcoming) ?? false
+		showArchived: storedFilters?.showArchived ?? false,
+		showOverdue: storedFilters?.showOverdue ?? false,
+		showPaid: storedFilters?.showPaid ?? false,
+		showUpcoming: storedFilters?.showUpcoming ?? false
 	};
 }
 
@@ -117,9 +114,9 @@ export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
 	return {
 		sorting:
 			parseStoredSorting(storedPreferences.sorting) ?? DEFAULT_SESSIONS_TABLE_PREFERENCES.sorting,
-		showArchived: parseStoredBoolean(storedPreferences.showArchived) ?? false,
-		showStaleBookings: parseStoredBoolean(storedPreferences.showStaleBookings) ?? true,
-		showUpcomingOnly: parseStoredBoolean(storedPreferences.showUpcomingOnly) ?? true
+		showArchived: storedPreferences.showArchived ?? false,
+		showStaleBookings: storedPreferences.showStaleBookings ?? true,
+		showUpcomingOnly: storedPreferences.showUpcomingOnly ?? true
 	};
 }
 
@@ -128,7 +125,7 @@ export function storeSessionsTableFilters(preferences: SessionsTablePreferences)
 }
 
 export function readStoredPrivacyMode() {
-	return parseStoredBoolean(readAdminDashboardPreferences().privacyMode) ?? false;
+	return readAdminDashboardPreferences().privacyMode ?? false;
 }
 
 export function storePrivacyMode(enabled: boolean) {

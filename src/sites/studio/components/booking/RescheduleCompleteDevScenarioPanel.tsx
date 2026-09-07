@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { Button } from "#/components/ui/button";
 import { studioSite } from "#/config/sites";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
@@ -43,6 +44,9 @@ export function RescheduleCompleteDevScenarioPanel() {
 	);
 }
 
+const devRescheduleCompleteScenarioSchema = z.enum(["success", "loading", "booking_not_found"]);
+const nonEmptySearchStringSchema = z.string().min(1);
+
 export function parseRescheduleCompleteSearch(
 	search: Record<string, unknown>
 ): RescheduleCompleteSearch {
@@ -53,12 +57,13 @@ export function parseRescheduleCompleteSearch(
 }
 
 function parseOptionalSearchString(value: unknown): string | undefined {
-	return typeof value === "string" && value.length > 0 ? value : undefined;
+	const parsedValue = nonEmptySearchStringSchema.safeParse(value);
+	return parsedValue.success ? parsedValue.data : undefined;
 }
 
 function parseDevRescheduleCompleteScenario(
 	value: unknown
 ): DevRescheduleCompleteScenario | undefined {
-	return DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)
-		?.value;
+	const parsedScenario = devRescheduleCompleteScenarioSchema.safeParse(value);
+	return parsedScenario.success ? parsedScenario.data : undefined;
 }

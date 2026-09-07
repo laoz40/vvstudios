@@ -31,8 +31,20 @@ export type BookingStatus = NonNullable<
 	ReturnType<typeof useQuery<typeof api.sessions.getSessionStatusByStripeSessionId>>
 >;
 
+const devBookingScenarioSchema = z.enum([
+	"processing",
+	"confirmed",
+	"email_failed",
+	"package_request",
+	"expired",
+	"slot_taken",
+	"calendar_failed",
+	"not_found"
+]);
+const nonEmptySearchStringSchema = z.string().min(1);
+const packageSizeSchema = z.union([z.literal(4), z.literal(8), z.literal(12)]);
 const devBookingIdSchema = z.custom<BookingStatus["_id"]>(
-	(value) => typeof value === "string" && value.length > 0
+	(value) => z.literal("dev-booking").safeParse(value).success
 );
 
 export function BookingCompleteDevScenarioPanel() {
@@ -139,19 +151,21 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 }
 
 function parseDevBookingScenario(value: unknown): DevBookingScenario | undefined {
-	return DEV_SCENARIO_OPTIONS.find((scenario) => scenario.value === value)?.value;
+	const parsedScenario = devBookingScenarioSchema.safeParse(value);
+	return parsedScenario.success ? parsedScenario.data : undefined;
 }
 
 function parseNonEmptyString(value: unknown): string | undefined {
-	return typeof value === "string" && value.length > 0 ? value : undefined;
+	const parsedValue = nonEmptySearchStringSchema.safeParse(value);
+	return parsedValue.success ? parsedValue.data : undefined;
 }
 
 function parsePackageSize(value: unknown): 4 | 8 | 12 | undefined {
-	const numericValue = typeof value === "string" ? Number(value) : value;
-
-	if (numericValue === 4 || numericValue === 8 || numericValue === 12) {
-		return numericValue;
+	const parsedValue = packageSizeSchema.safeParse(value);
+	if (parsedValue.success) {
+		return parsedValue.data;
 	}
 
-	return undefined;
+	const coercedValue = z.coerce.number().safeParse(value);
+	return coercedValue.success ? packageSizeSchema.safeParse(coercedValue.data).data : undefined;
 }

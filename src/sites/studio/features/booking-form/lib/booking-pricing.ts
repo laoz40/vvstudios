@@ -6,6 +6,7 @@ import {
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { z } from "zod";
 
 export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 
@@ -34,8 +35,10 @@ export const PACKAGE_PLANS = {
 
 export type PackageSize = keyof typeof PACKAGE_PLANS;
 
+const packageSizeSchema = z.union([z.literal(4), z.literal(8), z.literal(12)]);
+
 export function isPackageSize(value: unknown): value is PackageSize {
-	return typeof value === "number" && value in PACKAGE_PLANS;
+	return packageSizeSchema.safeParse(value).success;
 }
 
 export type PackageAmounts = {

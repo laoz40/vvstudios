@@ -20,7 +20,7 @@ import { studioSite } from "#/config/sites";
 import { z } from "zod";
 
 const packageIdSchema = z.custom<Id<"packages">>(
-	(value) => typeof value === "string" && value.length > 0
+	(value) => z.string().min(1).safeParse(value).success
 );
 const DEV_PACKAGE_ID = packageIdSchema.parse("dev-package");
 function useBookingCompletePageData(search: BookingCompleteSearch) {

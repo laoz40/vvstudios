@@ -41,6 +41,7 @@
 import type { UserIdentity } from "convex/server";
 import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -275,11 +276,7 @@ describe("feedback email", () => {
 			await vi.importActual<typeof import("#convex/lib/email")>("#convex/lib/email");
 
 		const result = await sendFeedbackEmailForMessage("<script>alert('unsafe')</script>\nNext");
-		const requestBody = fetchFake.mock.calls[0]?.[1]?.body;
-
-		if (typeof requestBody !== "string") {
-			throw new Error("Expected the email request body to be JSON");
-		}
+		const requestBody = z.string().parse(fetchFake.mock.calls[0]?.[1]?.body);
 
 		expect(result.isOk()).toBe(true);
 		expect(requestBody).toContain("&lt;script&gt;alert(&#39;unsafe&#39;)&lt;/script&gt;<br />Next");

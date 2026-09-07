@@ -2,12 +2,33 @@ import { httpRouter } from "convex/server";
 import { httpAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import Stripe from "stripe";
+import { z } from "zod";
 import { env } from "./env";
 import { completeSessionCheckoutService } from "./services/bookingConfirmation";
 
 const http = httpRouter();
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
+
+const stripePaymentIntentIdSchema = z.union([z.string(), z.object({ id: z.string() })]);
+
+function getStripePaymentIntentId(
+	paymentIntent: Stripe.Checkout.Session["payment_intent"]
+): string | undefined {
+	const parsedPaymentIntent = stripePaymentIntentIdSchema.safeParse(paymentIntent);
+
+	if (!parsedPaymentIntent.success) {
+		return undefined;
+	}
+
+	const stringPaymentIntent = z.string().safeParse(parsedPaymentIntent.data);
+	if (stringPaymentIntent.success) {
+		return stringPaymentIntent.data;
+	}
+
+	const objectPaymentIntent = z.object({ id: z.string() }).safeParse(parsedPaymentIntent.data);
+	return objectPaymentIntent.success ? objectPaymentIntent.data.id : undefined;
+}
 
 async function handleCompletedCheckout(
 	ctx: ActionCtx,
@@ -24,10 +45,7 @@ async function handleCompletedCheckout(
 		return new Response("Missing bookingId metadata", { status: 400 });
 	}
 
-	const stripePaymentIntentId =
-		typeof session.payment_intent === "string"
-			? session.payment_intent
-			: session.payment_intent?.id;
+	const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
 	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
 		bookingId,
 		stripeSessionId: session.id,

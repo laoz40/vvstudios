@@ -60,7 +60,8 @@
 		"anti-slop/no-reflect-apply": "error",
 		"anti-slop/no-shape-in-symbol-names": "error",
 		"anti-slop/no-unknown-type-aliases": "error",
-		"anti-slop/no-known-value-widening": "error"
+		"anti-slop/no-known-value-widening": "error",
+		"anti-slop/no-runtime-typeof": "error"
 	},
 	"overrides": [
 		{

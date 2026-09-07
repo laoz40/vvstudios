@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { z } from "zod";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import HomeIcon from "#/components/ui/home-icon";
@@ -9,14 +10,15 @@ import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
+const bookingExpiredSearchSchema = z.object({ session_id: z.string().min(1) });
+
 export const Route = createFileRoute("/_public/_convex/booking-expired")({
 	head: () => buildNoIndexHead("Booking Session Expired | VV Studios"),
-	validateSearch: (search: Record<string, unknown>) => ({
-		session_id:
-			typeof search.session_id === "string" && search.session_id.length > 0
-				? search.session_id
-				: undefined
-	}),
+	validateSearch: (search: Record<string, unknown>) => {
+		const parsedSearch = bookingExpiredSearchSchema.safeParse(search);
+
+		return { session_id: parsedSearch.success ? parsedSearch.data.session_id : undefined };
+	},
 	component: BookingExpiredPage
 });
 

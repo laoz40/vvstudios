@@ -7,7 +7,7 @@ import type { BookingInvoiceBuilderInput } from "#studio/features/booking-invoic
 import { z } from "zod";
 
 const bookingInvoiceIdSchema = z.custom<BookingInvoiceBuilderInput["bookingId"]>(
-	(value) => typeof value === "string" && value.length > 0
+	(value) => z.string().min(1).safeParse(value).success
 );
 
 export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {

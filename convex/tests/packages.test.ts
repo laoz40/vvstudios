@@ -31,6 +31,7 @@
  */
 import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -569,11 +570,9 @@ async function readLifecycleState(
 }
 
 function getScheduleToken(scheduleUrl: unknown) {
-	if (typeof scheduleUrl !== "string") {
-		throw new Error("Scheduling email did not contain a URL");
-	}
+	const scheduleUrlString = z.string().parse(scheduleUrl);
+	const token = new URL(scheduleUrlString).pathname.split("/").at(-1);
 
-	const token = new URL(scheduleUrl).pathname.split("/").at(-1);
 	if (!token) {
 		throw new Error("Scheduling URL did not contain a token");
 	}

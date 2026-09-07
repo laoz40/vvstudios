@@ -475,21 +475,20 @@ export const INITIAL_FORM: BookingFormValues = {
 };
 
 export function toFieldErrorObjects(errors: unknown[]) {
+	const fieldErrorMessageSchema = z.object({ message: z.string() });
+
 	return errors.flatMap((error) => {
 		if (!error) {
 			return [];
 		}
 
-		if (typeof error === "string") {
-			return [{ message: error }];
+		const stringError = z.string().safeParse(error);
+		if (stringError.success) {
+			return [{ message: stringError.data }];
 		}
 
-		if (typeof error === "object" && "message" in error) {
-			const message = error.message;
-			return typeof message === "string" ? [{ message }] : [];
-		}
-
-		return [];
+		const fieldError = fieldErrorMessageSchema.safeParse(error);
+		return fieldError.success ? [fieldError.data] : [];
 	});
 }
 
