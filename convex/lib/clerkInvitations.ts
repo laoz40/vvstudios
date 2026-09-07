@@ -87,9 +87,10 @@ export function createClerkInvitation(email: string) {
 		}),
 		() => ({ reason: "CLERK_INVITATION_FAILED" as const })
 	).andThen((response) =>
-		ResultAsync.fromPromise(response.json() as Promise<unknown>, () => ({
-			reason: "CLERK_INVITATION_FAILED" as const
-		})).andThen((body) => {
+		ResultAsync.fromPromise(
+			response.json().then((body): unknown => body),
+			() => ({ reason: "CLERK_INVITATION_FAILED" as const })
+		).andThen((body) => {
 			if (!response.ok) {
 				return errAsync(mapClerkInvitationError(body));
 			}

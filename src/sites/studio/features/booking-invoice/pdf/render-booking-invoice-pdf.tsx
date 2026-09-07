@@ -13,7 +13,11 @@ const asyncIterableSchema = z.custom<AsyncIterable<unknown>>((value) => {
 		return false;
 	}
 
-	const iteratorCandidate = (value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator];
+	if (!(Symbol.asyncIterator in value)) {
+		return false;
+	}
+
+	const iteratorCandidate = value[Symbol.asyncIterator];
 	return z.function().safeParse(iteratorCandidate).success;
 });
 

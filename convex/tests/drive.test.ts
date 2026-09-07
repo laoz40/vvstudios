@@ -1666,7 +1666,7 @@ function adminSessionValues(
 		time: "11:00",
 		duration: "1h",
 		service: "Remote Podcast",
-		addons: [] as BookingAddon[],
+		addons: [] satisfies BookingAddon[],
 		...overrides
 	};
 }

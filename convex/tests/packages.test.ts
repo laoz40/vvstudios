@@ -76,7 +76,7 @@ const validRequest = {
 	abn: "12 345 678 901",
 	email: " Customer@gmail.com ",
 	duration: "1h",
-	addons: ["Teleprompter"] as BookingAddon[],
+	addons: ["Teleprompter"] satisfies BookingAddon[],
 	notes: "  Please call on arrival  ",
 	packageSize: 4 as const
 };
@@ -87,7 +87,7 @@ const editedPackage = {
 	accountName: "Updated account",
 	email: "updated@example.com",
 	duration: "2h",
-	addons: ["Teleprompter"] as BookingAddon[],
+	addons: ["Teleprompter"] satisfies BookingAddon[],
 	notes: "Updated notes",
 	packageSize: 8 as const
 };
@@ -317,7 +317,7 @@ describe("package request creation", () => {
 			abn: "12345678901",
 			email: "customer@gmail.com",
 			duration: "1h",
-			addons: ["Teleprompter"] as BookingAddon[],
+			addons: ["Teleprompter"] satisfies BookingAddon[],
 			notes: "Please call on arrival",
 			packageSize: 4,
 			singleSessionAmount: 229,

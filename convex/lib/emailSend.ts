@@ -1,6 +1,6 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import { env } from "#convex/env";
 
@@ -44,7 +44,7 @@ export function formatAddonsLine(args: { addons: string[] } & BookingAddonQuanti
 	}
 
 	return args.addons
-		.map((addon) => formatEditingAddonLabel(addon, args as BookingAddonQuantities))
+		.map((addon) => formatEditingAddonLabel(addon, pickBookingAddonQuantities(args)))
 		.join(", ");
 }
 

@@ -1,6 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
-import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -148,7 +148,7 @@ export function calculateSessionRemainingBalanceAmount(
 	return calculateBookingInvoiceAmounts({
 		duration: values.duration,
 		addons: values.addons,
-		...(values as BookingAddonQuantities)
+		...pickBookingAddonQuantities(values)
 	}).totalDueAmount;
 }
 

@@ -88,7 +88,7 @@ const validBooking = {
 	time: "10:00",
 	duration: "1h",
 	service: "Table Setup",
-	addons: [] as BookingAddon[],
+	addons: [] satisfies BookingAddon[],
 	notes: ""
 };
 
