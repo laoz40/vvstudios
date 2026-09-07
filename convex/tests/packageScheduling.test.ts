@@ -263,7 +263,7 @@ describe("package session creation validation", () => {
 			status: "confirmed",
 			googleCalendarId: "primary-calendar",
 			googleEventId: "google-event-1",
-			multiBookingPackageId: packageId
+			packageId: packageId
 		});
 		expect(result).toEqual([null, { bookingId: bookings[0]?._id }]);
 		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
@@ -523,7 +523,7 @@ async function seedPackage(
 ) {
 	const scheduleTokenHash = await hashRescheduleToken(token);
 	const packageId = await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", {
+		ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -552,7 +552,7 @@ async function seedPackage(
 
 async function seedPackageSession(
 	t: TestClient,
-	packageId: Id<"multiBookingPackages">,
+	packageId: Id<"packages">,
 	index: number
 ) {
 	return await t.run((ctx) =>
@@ -574,7 +574,7 @@ async function seedPackageSession(
 			reminderEmailClaimedAt: now - 900,
 			reminderEmailSentAt: now - 800,
 			reminderEmailFailureCode: "previous-failure",
-			multiBookingPackageId: packageId
+			packageId: packageId
 		})
 	);
 }

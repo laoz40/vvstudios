@@ -4,10 +4,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
 import {
-	getAdminCustomMultiBookingInvoicePdfByIdService,
-	getAdminMultiBookingInvoicePdfByIdService,
+	getAdminCustomPackageInvoicePdfByIdService,
+	getAdminPackageInvoicePdfByIdService,
 	getBookingInvoicePdfByStripeSessionIdService,
-	getMultiBookingInvoicePdfByIdService
+	getPackageInvoicePdfByIdService
 } from "#convex/services/invoices";
 
 export const getBookingInvoicePdfByStripeSessionId = action({
@@ -16,19 +16,19 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 		getBookingInvoicePdfByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const getMultiBookingInvoicePdfById = action({
-	args: { multiBookingId: v.id("multiBookingPackages") },
-	handler: (ctx, args) => getMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+export const getPackageInvoicePdfById = action({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => getPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const getAdminMultiBookingInvoicePdfById = action({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+export const getAdminPackageInvoicePdfById = action({
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) =>
-		getAdminMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+		getAdminPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const getAdminCustomMultiBookingInvoicePdfById = action({
+export const getAdminCustomPackageInvoicePdfById = action({
 	args: { customInvoiceId: v.id("customInvoices") },
 	handler: (ctx, args) =>
-		getAdminCustomMultiBookingInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+		getAdminCustomPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });

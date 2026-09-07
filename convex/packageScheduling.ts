@@ -62,12 +62,12 @@ export const getValidPackageByToken = internalQuery({
 });
 
 export const processPackageAdjustmentAtExpiry = internalMutation({
-	args: { multiBookingId: v.id("multiBookingPackages"), expectedExpiresAt: v.number() },
+	args: { packageId: v.id("packages"), expectedExpiresAt: v.number() },
 	handler: (ctx, args) => processPackageAdjustmentAtExpiryService(ctx, args)
 });
 
 export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
-	args: { multiBookingId: v.id("multiBookingPackages") },
+	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => processPackageAdjustmentWhenSessionsCompleteService(ctx, args)
 });
 
@@ -105,7 +105,7 @@ export const saveCreatedPackageSession = internalMutation({
 				ctx.scheduler.runAfter(
 					0,
 					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-					{ multiBookingId: packageId }
+					{ packageId: packageId }
 				)
 		).match(tupleOk, tupleErr)
 });

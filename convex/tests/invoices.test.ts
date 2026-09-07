@@ -30,7 +30,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	createBookingInvoiceArtifactsForBooking,
-	createMultiBookingInvoiceArtifacts
+	createPackageInvoiceArtifacts
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { createConvexTest } from "#convex/test.setup";
 import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -163,10 +163,10 @@ describe("invoice financial integrity", () => {
 	test("uses the package commercial snapshot without recalculating current prices", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t, { createdAt: now });
-		const multiBooking = await t.run((ctx) => ctx.db.get(packageId));
-		if (!multiBooking) throw new Error("Expected seeded package");
+		const packageRecord = await t.run((ctx) => ctx.db.get(packageId));
+		if (!packageRecord) throw new Error("Expected seeded package");
 
-		const result = await createMultiBookingInvoiceArtifacts(multiBooking, { leadTimeMinutes: 60 });
+		const result = await createPackageInvoiceArtifacts(packageRecord, { leadTimeMinutes: 60 });
 
 		if (result.isErr()) throw new Error(`Expected invoice artifacts: ${result.error.reason}`);
 		expect(result.value.artifacts.data.amounts).toMatchObject({
@@ -235,7 +235,7 @@ describe("custom invoice creation", () => {
 			includeDepositLineItem: true
 		});
 		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
-			multiBookingId: packageId,
+			packageId: packageId,
 			addons: [],
 			packageSize: 4,
 			includeDepositLineItem: true
@@ -259,7 +259,7 @@ describe("custom invoice creation", () => {
 			customTotalDueAmount: 321
 		});
 		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
-			multiBookingId: packageId,
+			packageId: packageId,
 			addons: [],
 			packageSize: 4,
 			includeDepositLineItem: true,
@@ -273,7 +273,7 @@ describe("custom invoice creation", () => {
 		expect(invoices).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ bookingId, customTotalDueAmount: 321 }),
-				expect.objectContaining({ multiBookingId: packageId, customTotalDueAmount: 654 })
+				expect.objectContaining({ packageId: packageId, customTotalDueAmount: 654 })
 			])
 		);
 		for (const invoice of invoices) expect(invoice.invoiceNumber).toMatch(/^VV-20300110-/);
@@ -334,27 +334,27 @@ describe("invoice download access", () => {
 		const expiredPackageId = await seedPackage(t, { createdAt: now - oneHour - 1 });
 
 		const missingId = await t.run(async (ctx) => {
-			const id = await ctx.db.insert("multiBookingPackages", packageFields(now));
+			const id = await ctx.db.insert("packages", packageFields(now));
 			await ctx.db.delete(id);
 			return id;
 		});
 		expect(
-			await t.action(api.invoices.getMultiBookingInvoicePdfById, { multiBookingId: missingId })
+			await t.action(api.invoices.getPackageInvoicePdfById, { packageId: missingId })
 		).toEqual([{ reason: "PACKAGE_NOT_FOUND" }, null]);
 		expect(
-			await t.action(api.invoices.getMultiBookingInvoicePdfById, {
-				multiBookingId: expiredPackageId
+			await t.action(api.invoices.getPackageInvoicePdfById, {
+				packageId: expiredPackageId
 			})
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
 
 		const [publicError, publicPayload] = await t.action(
-			api.invoices.getMultiBookingInvoicePdfById,
-			{ multiBookingId: currentPackageId }
+			api.invoices.getPackageInvoicePdfById,
+			{ packageId: currentPackageId }
 		);
 		const [adminError, adminPayload] = await t
 			.withIdentity(adminIdentity)
-			.action(api.invoices.getAdminMultiBookingInvoicePdfById, {
-				multiBookingId: expiredPackageId
+			.action(api.invoices.getAdminPackageInvoicePdfById, {
+				packageId: expiredPackageId
 			});
 		expect(publicError).toBeNull();
 		expect(publicPayload?.content.byteLength).toBeGreaterThan(0);
@@ -478,7 +478,7 @@ function packageFields(createdAt: number) {
 
 async function seedPackage(t: TestClient, options: { createdAt: number }) {
 	return await t.run((ctx) =>
-		ctx.db.insert("multiBookingPackages", packageFields(options.createdAt))
+		ctx.db.insert("packages", packageFields(options.createdAt))
 	);
 }
 

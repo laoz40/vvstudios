@@ -132,7 +132,7 @@ type FunctionClient = ReturnType<TestClient["withIdentity"]>;
 type TestIds = {
 	adjustmentId: Id<"packageAdjustments">;
 	bookingId: Id<"bookings">;
-	multiBookingId: Id<"multiBookingPackages">;
+	packageId: Id<"packages">;
 };
 
 type AdminOperation = {
@@ -166,14 +166,14 @@ const operations: AdminOperation[] = [
 	{
 		name: "mark a package as unpaid",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
-			client.mutation(api.packages.markPackageUnpaid, { packageId: multiBookingId })
+		call: (client, { packageId }) =>
+			client.mutation(api.packages.markPackageUnpaid, { packageId: packageId })
 	},
 	{
 		name: "confirm a package payment",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
-			client.action(api.packagePayment.confirmPackagePayment, { multiBookingId })
+		call: (client, { packageId }) =>
+			client.action(api.packagePayment.confirmPackagePayment, { packageId })
 	},
 	{
 		name: "change a package adjustment payment status",
@@ -204,9 +204,9 @@ const operations: AdminOperation[] = [
 	{
 		name: "edit a package",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
+		call: (client, { packageId }) =>
 			client.mutation(api.packages.updatePackageFromAdmin, {
-				multiBookingId,
+				packageId,
 				name: "Updated name",
 				phone: "0400000000",
 				accountName: "Updated account",
@@ -231,8 +231,8 @@ const operations: AdminOperation[] = [
 	{
 		name: "archive a package",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
-			client.mutation(api.packages.archivePackage, { multiBookingId, archived: true })
+		call: (client, { packageId }) =>
+			client.mutation(api.packages.archivePackage, { packageId, archived: true })
 	},
 	{
 		name: "send a deliverables email",
@@ -249,8 +249,8 @@ const operations: AdminOperation[] = [
 	{
 		name: "send a package invoice email",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
-			client.action(api.packagePayment.resendPackageInvoiceEmail, { multiBookingId })
+		call: (client, { packageId }) =>
+			client.action(api.packagePayment.resendPackageInvoiceEmail, { packageId })
 	},
 	{
 		name: "generate a new reschedule link",
@@ -271,9 +271,9 @@ const operations: AdminOperation[] = [
 	{
 		name: "create a package custom invoice",
 		permissionLevel: "admin-only",
-		call: (client, { multiBookingId }) =>
+		call: (client, { packageId }) =>
 			client.mutation(api.customInvoices.createPackageCustomInvoice, {
-				multiBookingId,
+				packageId,
 				addons: [],
 				packageSize: 4,
 				includeDepositLineItem: false
@@ -330,7 +330,7 @@ describe("admin-only operations reject active editors", () => {
 
 async function createTestRecords(t: TestClient): Promise<TestIds> {
 	return await t.run(async (ctx) => {
-		const multiBookingId = await ctx.db.insert("multiBookingPackages", {
+		const packageId = await ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -367,7 +367,7 @@ async function createTestRecords(t: TestClient): Promise<TestIds> {
 		});
 		const adjustmentId = await ctx.db.insert("packageAdjustments", {
 			outcome: "invoice_required",
-			multiBookingId,
+			packageId,
 			trigger: "all_sessions_completed",
 			remotePodcastBookingIds: [bookingId],
 			quantity: 1,
@@ -380,7 +380,7 @@ async function createTestRecords(t: TestClient): Promise<TestIds> {
 			paymentStatus: "unpaid"
 		});
 
-		return { adjustmentId, bookingId, multiBookingId };
+		return { adjustmentId, bookingId, packageId };
 	});
 }
 
@@ -390,7 +390,7 @@ async function readTestRecords(t: TestClient, ids: TestIds) {
 		booking: await ctx.db.get(ids.bookingId),
 		bookingSettings: await ctx.db.query("bookingSettings").collect(),
 		customInvoices: await ctx.db.query("customInvoices").collect(),
-		multiBooking: await ctx.db.get(ids.multiBookingId),
+		packageRecord: await ctx.db.get(ids.packageId),
 		rescheduleLinks: await ctx.db.query("bookingRescheduleLinks").collect()
 	}));
 }

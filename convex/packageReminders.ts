@@ -22,7 +22,7 @@ export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 
 export const claimPackageReminder = internalMutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
 		now: v.number()
 	},
@@ -31,7 +31,7 @@ export const claimPackageReminder = internalMutation({
 
 export const markPackageReminderSent = internalMutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
 		now: v.number()
 	},
@@ -40,7 +40,7 @@ export const markPackageReminderSent = internalMutation({
 
 export const markPackageReminderFailed = internalMutation({
 	args: {
-		multiBookingId: v.id("multiBookingPackages"),
+		packageId: v.id("packages"),
 		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
 		failureCode: v.string()
 	},

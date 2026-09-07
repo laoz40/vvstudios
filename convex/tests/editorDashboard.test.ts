@@ -822,7 +822,7 @@ describe("restricted editor session query", () => {
 			"calendar-Safe Projection Customer",
 			"remainingBalanceAmount",
 			"paidRemainingBalance",
-			"multiBookingPackageId"
+			"packageId"
 		]) {
 			expect(serializedResult).not.toContain(restrictedValue);
 		}
