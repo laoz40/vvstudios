@@ -1,7 +1,7 @@
 import { MultiBookingSchedulingEmail } from "#studio/features/multi-booking-scheduling-email/MultiBookingSchedulingEmail";
 
 const previewProps = {
-	addonsLine: "4K UHD Recording, 3 x Clips Package",
+	addonsLine: "4K UHD Recording, 3 x Clip Volume Pack",
 	duration: "2h",
 	expiresAtLabel: "Saturday, 2 May 2026",
 	name: "Alex Carter",

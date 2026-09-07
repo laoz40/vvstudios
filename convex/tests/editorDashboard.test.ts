@@ -287,7 +287,7 @@ async function seedBooking(
 			service: "Remote Podcast",
 			addons: [
 				"Essential Edit",
-				"Clips Package",
+				"Clip Volume Pack",
 				"Teleprompter",
 				"4K UHD Recording",
 				"Remote Podcast",
@@ -767,7 +767,7 @@ describe("restricted editor session query", () => {
 					service: "Remote Podcast",
 					addons: [
 						"Essential Edit",
-						"Clips Package",
+						"Clip Volume Pack",
 						"Teleprompter",
 						"4K UHD Recording",
 						"Remote Podcast",

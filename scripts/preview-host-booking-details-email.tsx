@@ -11,7 +11,7 @@ const previewProps = {
 	time: "10:00 AM – 12:00 PM",
 	service: "Table Setup",
 	duration: "2h",
-	addonsLine: "4K UHD Recording, Clips Package",
+	addonsLine: "4K UHD Recording, Clip Volume Pack",
 	notes: "Please have two microphones ready and leave space for a guest camera."
 };
 
