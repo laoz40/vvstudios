@@ -12,7 +12,6 @@ import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import type { PhotoGalleryImage } from "#studio/content/photos";
 import {
-	landingContactActionsStackedClassName,
 	landingSectionContentGapClassName,
 	landingSectionHeadingAfterClassName
 } from "#studio/lib/landing-styles";
@@ -60,9 +59,7 @@ export function LandingFaq({ id = "faq-title" }: LandingFaqProps) {
 						imageClassName="h-full w-full object-cover"
 					/>
 
-					<ContactActions
-						className={cn(landingContactActionsStackedClassName, "md:justify-start")}
-					/>
+					<ContactActions className="mt-0 md:mt-0 md:justify-start" />
 				</div>
 
 				<Accordion
