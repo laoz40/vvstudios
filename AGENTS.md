@@ -15,6 +15,16 @@ For this project, I DONT want these:
 
 They can be harmful and require high maintenance.
 
+Tests to keep:
+
+1. **Races** — double-booking, concurrent webhooks, final package slot
+2. **Idempotency** — webhook replay, send-once reminders/jobs
+3. **Money** — invoice math, stored pricing snapshots
+4. **Background jobs** — reminders, expiry, scheduled Drive setup
+5. **Failure recovery** — orphan Calendar cleanup, retryable states, partial Drive setup
+6. **Auth** — slim to permission model + list guards + a handful of representative mutation tests
+**PII redaction:** one test that editor session query omits sensitive fields; drop the rest of `editorDashboard.test.ts`
+
 ### Switching to E2E tests in CI
 
 - Prioritize E2E for customer-facing flows (booking, checkout, confirmation, reschedule).
