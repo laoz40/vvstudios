@@ -4,9 +4,9 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
-	calendarErrorReason,
 	calendarErrorSchema,
-	calendarResultAsync
+	calendarResultAsync,
+	mapCalendarErrorCode
 } from "#convex/lib/googleCalendarErrors";
 import { fromConvexTuple } from "#convex/lib/result";
 import {
@@ -86,8 +86,14 @@ function promoteFailedSessionFromAdmin({
 					timeZone: client.timeZone
 				})
 			),
-			(error) =>
-				calendarErrorReason("GOOGLE_CALENDAR_CREATE_FAILED", calendarErrorSchema.safeParse(error))
+			(error) => {
+				const parsedError = calendarErrorSchema.safeParse(error);
+				return {
+					reason: parsedError.success
+						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+						: "GOOGLE_CALENDAR_CREATE_FAILED"
+				};
+			}
 		)
 			.andThen((payloadResult) =>
 				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))

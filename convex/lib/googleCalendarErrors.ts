@@ -51,22 +51,16 @@ export function isCalendarEventNotFound(error: CalendarApiError) {
 	return status === 404 || status === 410;
 }
 
-export function calendarErrorReason<T extends CalendarFallbackCode>(
-	fallbackCode: T,
-	parsedError: ReturnType<typeof calendarErrorSchema.safeParse>
-) {
-	const reason = parsedError.success
-		? mapCalendarErrorCode(parsedError.data, fallbackCode)
-		: fallbackCode;
-
-	return { reason };
-}
-
 export function calendarResultAsync<T, F extends CalendarFallbackCode>(
 	promise: Promise<T>,
 	fallbackCode: F
 ) {
-	return ResultAsync.fromPromise(promise, (error) =>
-		calendarErrorReason(fallbackCode, calendarErrorSchema.safeParse(error))
-	);
+	return ResultAsync.fromPromise(promise, (error) => {
+		const parsedError = calendarErrorSchema.safeParse(error);
+		const reason = parsedError.success
+			? mapCalendarErrorCode(parsedError.data, fallbackCode)
+			: fallbackCode;
+
+		return { reason };
+	});
 }
