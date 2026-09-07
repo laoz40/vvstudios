@@ -770,8 +770,7 @@ describe("restricted editor session query", () => {
 						"Clip Volume Pack",
 						"Teleprompter",
 						"4K UHD Recording",
-						"Remote Podcast",
-						"Internal Billing Add-on"
+						"Remote Podcast"
 					],
 					essentialEditQuantity: "2",
 					completeEditQuantity: "3",
