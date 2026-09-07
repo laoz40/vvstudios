@@ -51,6 +51,10 @@ const inviteEmail = "new.editor@example.com";
 
 type TestClient = ReturnType<typeof createConvexTest>;
 
+type ClerkInvitationApiBody =
+	| { id: string; email_address: string }
+	| { errors: Array<{ code: string; long_message?: string; message?: string }> };
+
 async function seedEditorProfile(t: TestClient, identity: UserIdentity) {
 	await t.run(async (ctx) => {
 		await ctx.db.insert("editorProfiles", {
@@ -64,7 +68,7 @@ async function seedEditorProfile(t: TestClient, identity: UserIdentity) {
 	});
 }
 
-function jsonResponse(status: number, body: object) {
+function jsonResponse(status: number, body: ClerkInvitationApiBody) {
 	return new Response(JSON.stringify(body), {
 		status,
 		headers: { "Content-Type": "application/json" }
