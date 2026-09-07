@@ -10,7 +10,7 @@ const previewProps = {
 	abn: "98 765 432 109",
 	service: "Table Setup",
 	duration: "2h",
-	addonsLine: "Essential Edit x 4, Clips Package x 8",
+	addonsLine: "Essential Edit x 4, Clip Volume Pack x 8",
 	notes: "Package is for a monthly client series. Please confirm preferred recurring day.",
 	packageSize: 8 as const,
 	invoiceDueAtLabel: "Friday, 8 May 2026"
