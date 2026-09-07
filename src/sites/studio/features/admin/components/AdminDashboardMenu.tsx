@@ -13,6 +13,7 @@ import {
 	SheetTrigger
 } from "#/components/ui/sheet";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
+import { AdminPrivacyToggle } from "#studio/features/admin/components/AdminPrivacyToggle";
 
 type AdminDashboardMenuProps = { email: string | null };
 
@@ -35,6 +36,7 @@ export function AdminDashboardMenu({ email }: AdminDashboardMenuProps) {
 					<SheetDescription>Signed in as {email ?? "Unknown user"}.</SheetDescription>
 				</SheetHeader>
 				<div className="flex flex-col items-start gap-2 px-4">
+					<AdminPrivacyToggle />
 					<AdminAvailabilitySettings />
 					<SignOutButton redirectUrl={studioSite.routes.login}>
 						<AnimatedIconButton

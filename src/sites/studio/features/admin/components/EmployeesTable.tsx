@@ -32,6 +32,7 @@ import {
 import { api } from "#convex/_generated/api";
 import { EditorNotesDialog } from "#studio/features/admin/components/EditorNotesDialog";
 import { InviteUserDialog } from "#studio/features/admin/components/InviteUserDialog";
+import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
 import {
 	editorWorkStatusBadgeClassNames,
 	editorWorkStatusLabels,
@@ -153,9 +154,23 @@ export function EmployeesTable({ editors }: EmployeesTableProps) {
 												</Badge>
 											</TableCell>
 											<TableCell className="font-medium">
-												{editor.displayName || "Unnamed employee"}
+												<PrivacySensitiveText
+													rowId={editor.tokenIdentifier}
+													value={editor.displayName || "Unnamed employee"}
+													label="employee name"
+													copyable={false}>
+													{editor.displayName || "Unnamed employee"}
+												</PrivacySensitiveText>
 											</TableCell>
-											<TableCell>{editor.email}</TableCell>
+											<TableCell>
+												<PrivacySensitiveText
+													rowId={editor.tokenIdentifier}
+													value={editor.email}
+													label="email"
+													copyable={false}>
+													{editor.email}
+												</PrivacySensitiveText>
+											</TableCell>
 											<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
 											<TableCell>{editor.totalEdits}</TableCell>
 											<TableCell
