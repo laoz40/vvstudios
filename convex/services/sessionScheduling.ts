@@ -114,8 +114,7 @@ export function saveClientSessionRescheduleService(
 			.andThen((session) => {
 				if (
 					args.packageId !== undefined &&
-					(session.packageId !== args.packageId ||
-						!sessionConsumesPackageCapacity(session))
+					(session.packageId !== args.packageId || !sessionConsumesPackageCapacity(session))
 				) {
 					return err({ reason: "BOOKING_NOT_FOUND" as const });
 				}

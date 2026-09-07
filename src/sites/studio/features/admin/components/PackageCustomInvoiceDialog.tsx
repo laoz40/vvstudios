@@ -114,9 +114,7 @@ export function PackageCustomInvoiceDialog({
 	onOpenChange
 }: PackageCustomInvoiceDialogProps) {
 	const createPackageCustomInvoice = useMutation(api.customInvoices.createPackageCustomInvoice);
-	const getCustomPackageInvoicePdf = useAction(
-		api.invoices.getAdminCustomPackageInvoicePdfById
-	);
+	const getCustomPackageInvoicePdf = useAction(api.invoices.getAdminCustomPackageInvoicePdfById);
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForPackage, {
 		packageId: packageRow.id
 	});

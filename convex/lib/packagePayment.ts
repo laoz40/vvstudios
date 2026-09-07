@@ -61,9 +61,7 @@ export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoice
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
 		.andThen((bookingSettings) =>
 			okOrThrow(
-				sendPackageInvoiceEmail(packageFromDb, {
-					leadTimeMinutes: bookingSettings.leadTimeMinutes
-				})
+				sendPackageInvoiceEmail(packageFromDb, { leadTimeMinutes: bookingSettings.leadTimeMinutes })
 			).andThen((emailResult) => emailResult)
 		)
 		.map((emailResult) => ({
@@ -85,10 +83,7 @@ export function sendPackageInvoice(ctx: ActionCtx, packageFromDb: PackageInvoice
 		);
 }
 
-export function refreshPackageScheduleToken(
-	ctx: ActionCtx,
-	packageId: Id<"packages">
-) {
+export function refreshPackageScheduleToken(ctx: ActionCtx, packageId: Id<"packages">) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.packages.refreshPackageScheduleToken, { packageId })
 	);
@@ -100,10 +95,7 @@ export function markPackagePaid(
 	paidAt: number
 ): ResultAsync<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
-			packageId,
-			paidAt
-		})
+		ctx.runMutation(internal.packages.markPackagePaidAndCreateScheduleToken, { packageId, paidAt })
 	);
 }
 

@@ -33,10 +33,7 @@ export function validateBookingInvoiceDownload(booking: Doc<"bookings">, now: nu
 	return ok({ booking, invoiceCreatedAt });
 }
 
-export function validatePackageInvoiceDownload(
-	packageFromDb: Doc<"packages">,
-	now: number
-) {
+export function validatePackageInvoiceDownload(packageFromDb: Doc<"packages">, now: number) {
 	if (now - packageFromDb.createdAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" as const });
 	}

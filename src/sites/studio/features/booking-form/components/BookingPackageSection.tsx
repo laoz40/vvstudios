@@ -8,10 +8,7 @@ import {
 	bookingSchema,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	isPackageSize,
-	PACKAGE_PLANS
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { isPackageSize, PACKAGE_PLANS } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	getCardStateClassName,
 	getRevealMotionProps,

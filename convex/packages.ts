@@ -128,10 +128,7 @@ export const refreshPackageScheduleToken = internalMutation({
 });
 
 export const markPackageScheduleEmailAttempt = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		status: v.union(v.literal("sent"), v.literal("failed"))
-	},
+	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
 	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
 

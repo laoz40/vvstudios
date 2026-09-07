@@ -338,24 +338,19 @@ describe("invoice download access", () => {
 			await ctx.db.delete(id);
 			return id;
 		});
+		expect(await t.action(api.invoices.getPackageInvoicePdfById, { packageId: missingId })).toEqual(
+			[{ reason: "PACKAGE_NOT_FOUND" }, null]
+		);
 		expect(
-			await t.action(api.invoices.getPackageInvoicePdfById, { packageId: missingId })
-		).toEqual([{ reason: "PACKAGE_NOT_FOUND" }, null]);
-		expect(
-			await t.action(api.invoices.getPackageInvoicePdfById, {
-				packageId: expiredPackageId
-			})
+			await t.action(api.invoices.getPackageInvoicePdfById, { packageId: expiredPackageId })
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
 
-		const [publicError, publicPayload] = await t.action(
-			api.invoices.getPackageInvoicePdfById,
-			{ packageId: currentPackageId }
-		);
+		const [publicError, publicPayload] = await t.action(api.invoices.getPackageInvoicePdfById, {
+			packageId: currentPackageId
+		});
 		const [adminError, adminPayload] = await t
 			.withIdentity(adminIdentity)
-			.action(api.invoices.getAdminPackageInvoicePdfById, {
-				packageId: expiredPackageId
-			});
+			.action(api.invoices.getAdminPackageInvoicePdfById, { packageId: expiredPackageId });
 		expect(publicError).toBeNull();
 		expect(publicPayload?.content.byteLength).toBeGreaterThan(0);
 		expect(adminError).toBeNull();
@@ -477,9 +472,7 @@ function packageFields(createdAt: number) {
 }
 
 async function seedPackage(t: TestClient, options: { createdAt: number }) {
-	return await t.run((ctx) =>
-		ctx.db.insert("packages", packageFields(options.createdAt))
-	);
+	return await t.run((ctx) => ctx.db.insert("packages", packageFields(options.createdAt)));
 }
 
 async function seedAndDeleteSources(t: TestClient) {

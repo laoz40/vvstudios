@@ -273,11 +273,7 @@ export default defineSchema({
 			"driveClientId"
 		])
 		.index("by_packageId", ["packageId"])
-		.index("by_packageId_and_status_and_sessionStartAt", [
-			"packageId",
-			"status",
-			"sessionStartAt"
-		]),
+		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"]),
 
 	packages: defineTable({
 		// Customer/contact fields

@@ -87,10 +87,7 @@ export function useBookingSubmit({
 		closeBookingModal();
 		await navigate({
 			to: studioSite.routes.packageComplete,
-			search: {
-				package_id: result.packageId,
-				package_size: packageFormValue.packageSize
-			}
+			search: { package_id: result.packageId, package_size: packageFormValue.packageSize }
 		});
 	};
 

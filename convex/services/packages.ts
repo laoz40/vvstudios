@@ -24,10 +24,7 @@ import {
 } from "#convex/lib/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
 
-type SavePackageInstagramHandleArgs = {
-	packageId: Id<"packages">;
-	instagramHandle: string;
-};
+type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 type PackageIdArgs = { packageId: Id<"packages"> };
 type MarkPackageUnpaidArgs = { packageId: Id<"packages"> };
@@ -56,11 +53,7 @@ export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOpt
 	return requirePermission(ctx, "view:packages")
 		.andThen(() =>
 			okOrThrow(
-				ctx.db
-					.query("packages")
-					.withIndex("by_createdAt")
-					.order("desc")
-					.paginate(paginationOpts)
+				ctx.db.query("packages").withIndex("by_createdAt").order("desc").paginate(paginationOpts)
 			)
 		)
 		.andThen((packagesPage) =>
@@ -119,9 +112,7 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 		)
 		.andThen((updatedPackage) =>
 			okOrThrow(
-				ctx.db
-					.patch(args.packageId, buildPackageUpdatePatch(args, updatedPackage))
-					.then(() => null)
+				ctx.db.patch(args.packageId, buildPackageUpdatePatch(args, updatedPackage)).then(() => null)
 			)
 		);
 }

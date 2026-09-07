@@ -27,7 +27,7 @@ import {
 import {
 	calculatePackageAmounts,
 	isPackageSize,
-	MULTI_BOOKING_PLANS,
+	PACKAGE_PLANS,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
@@ -269,7 +269,7 @@ export function PackageEditDialog({
 								}
 							}}
 							className="grid gap-3 sm:grid-cols-3">
-							{Object.keys(MULTI_BOOKING_PLANS)
+							{Object.keys(PACKAGE_PLANS)
 								.map(Number)
 								.filter(isPackageSize)
 								.map((packageSize) => {

@@ -142,11 +142,7 @@ function getPackageSessionEndAt(booking: Pick<Doc<"bookings">, "duration" | "ses
 
 export type ProcessPackageAdjustmentArgs =
 	| { trigger: "all_sessions_completed"; packageId: Id<"packages"> }
-	| {
-			trigger: "package_expired";
-			packageId: Id<"packages">;
-			expectedExpiresAt: number;
-	  };
+	| { trigger: "package_expired"; packageId: Id<"packages">; expectedExpiresAt: number };
 
 export async function processPackageAdjustment(
 	ctx: MutationCtx,
@@ -158,9 +154,7 @@ export async function processPackageAdjustment(
 
 	const existingAdjustment = await ctx.db
 		.query("packageAdjustments")
-		.withIndex("by_packageId", (indexQuery) =>
-			indexQuery.eq("packageId", args.packageId)
-		)
+		.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
 		.unique();
 
 	if (existingAdjustment) return null;

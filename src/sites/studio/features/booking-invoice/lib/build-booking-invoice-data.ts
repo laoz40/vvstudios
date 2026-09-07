@@ -440,8 +440,7 @@ export function buildPackageInvoiceData(
 		},
 		lineItems: packageLineItems,
 		notes: {
-			cancellationPolicy:
-				BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel),
+			cancellationPolicy: BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel),
 			paymentNote: BOOKING_INVOICE_NOTES.packagePaymentNote
 		},
 		package: { size: input.packageSize },

@@ -189,9 +189,7 @@ describe("package payment confirmation", () => {
 		const packageId = await seedPendingPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			packageId
-		});
+		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
 		const firstState = await readLifecycleState(t, packageId);
 		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			packageId
@@ -287,9 +285,7 @@ describe("package payment confirmation", () => {
 			})
 		);
 
-		const result = await admin.mutation(api.packages.markPackageUnpaid, {
-			packageId: packageId
-		});
+		const result = await admin.mutation(api.packages.markPackageUnpaid, { packageId: packageId });
 		const { packageRecord } = await readLifecycleState(t, packageId);
 		const tokenResult = await t.query(api.packageScheduling.getPackageByToken, { token });
 
@@ -311,10 +307,7 @@ describe("package request creation", () => {
 		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
-		expect(result).toEqual([
-			null,
-			{ packageId: packages[0]?._id, invoiceEmailStatus: "sent" }
-		]);
+		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "sent" }]);
 		expect(packages).toHaveLength(1);
 		expect(packages[0]).toMatchObject({
 			name: "Test customer",
@@ -384,10 +377,7 @@ describe("package request creation", () => {
 		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
 		const packages = await readPackages(t);
 
-		expect(result).toEqual([
-			null,
-			{ packageId: packages[0]?._id, invoiceEmailStatus: "failed" }
-		]);
+		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "failed" }]);
 		expect(packages).toHaveLength(1);
 		expect(packages[0]).toMatchObject({
 			status: "invoice_email_failed",

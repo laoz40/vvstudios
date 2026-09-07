@@ -40,8 +40,7 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 		hasBookingRequest: Boolean(stripeSessionId || activeDevScenario),
 		isLoading: bookingQueryArgs !== "skip" && liveBooking === undefined,
 		isPackageRequest:
-			Boolean(search.package_id && search.package_size) ||
-			activeDevScenario === "package_request",
+			Boolean(search.package_id && search.package_size) || activeDevScenario === "package_request",
 		packageId: search.package_id,
 		packageSize: search.package_size,
 		previewStripeSessionId:
@@ -64,9 +63,7 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 
 	if (isPackageRequest) {
 		const previewPackageSize = packageSize ?? 8;
-		const previewPackageId = packageId
-			? packageIdSchema.parse(packageId)
-			: DEV_PACKAGE_ID;
+		const previewPackageId = packageId ? packageIdSchema.parse(packageId) : DEV_PACKAGE_ID;
 		return (
 			<BookingStatusLayout
 				bookingStatus="confirmed"

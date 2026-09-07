@@ -75,9 +75,7 @@ export function BookingResult({
 		downloadInvoicePdf(invoice);
 	}
 
-	async function downloadPackageInvoice(
-		packageId: Id<"packages">
-	): Promise<void> {
+	async function downloadPackageInvoice(packageId: Id<"packages">): Promise<void> {
 		const [error, invoice] = await tryCatch(getPackageInvoicePdf({ packageId }));
 
 		if (error !== null) {

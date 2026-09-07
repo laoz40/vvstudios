@@ -4,7 +4,7 @@ import { Label } from "#/components/ui/label";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
 import {
 	isPackageSize,
-	MULTI_BOOKING_PLANS,
+	PACKAGE_PLANS,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
@@ -248,9 +248,7 @@ function PackageSizeOptions({
 	onChange: (value: PackageSize) => void;
 	packageSize: PackageSize;
 }) {
-	const packageSizeOptions = Object.keys(MULTI_BOOKING_PLANS)
-		.map(Number)
-		.filter(isPackageSize);
+	const packageSizeOptions = Object.keys(PACKAGE_PLANS).map(Number).filter(isPackageSize);
 
 	return (
 		<section className="grid gap-3">

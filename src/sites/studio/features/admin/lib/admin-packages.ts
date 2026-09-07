@@ -340,18 +340,13 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 					paymentStatus: packageRecord.adjustment.paymentStatus
 				}
 			: null,
-		isPaid:
-			packageRecord.status === "paid" ||
-			packageRecord.status === "schedule_email_failed",
+		isPaid: packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed",
 		areSessionsComplete: packageRecord.areSessionsComplete,
 		invoiceDueAt: packageRecord.invoiceDueAt,
 		expiresAt: packageRecord.expiresAt,
 		createdAt: packageRecord.createdAt,
 		status: packageRecord.status,
-		invoiceNumber: formatBookingInvoiceNumber(
-			packageRecord._id,
-			packageRecord.createdAt
-		),
+		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
 		hiddenAt: packageRecord.hiddenAt
 	};
 }

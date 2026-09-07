@@ -300,10 +300,7 @@ function savePackageSessionNumber(
 
 // Numbers of sessions with a saved number stay reserved even when cancelled, because their
 // folders already exist in Drive.
-async function loadSavedPackageSessionNumbers(
-	ctx: MutationCtx,
-	packageId: Id<"packages">
-) {
+async function loadSavedPackageSessionNumbers(ctx: MutationCtx, packageId: Id<"packages">) {
 	const savedNumbers = new Set<number>();
 	const packageBookings = await loadPackageBookings(ctx, packageId);
 	await Promise.all(
@@ -320,10 +317,7 @@ async function loadSavedPackageSessionNumbers(
 	return savedNumbers;
 }
 
-async function loadPackageSessionsSortedByDate(
-	ctx: MutationCtx,
-	packageId: Id<"packages">
-) {
+async function loadPackageSessionsSortedByDate(ctx: MutationCtx, packageId: Id<"packages">) {
 	return (await loadPackageBookings(ctx, packageId))
 		.filter((packageBooking) => packageBooking.status !== "cancelled")
 		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);

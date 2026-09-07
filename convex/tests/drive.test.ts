@@ -1323,15 +1323,9 @@ describe("Google Drive package workspaces", () => {
 		const dayMs = 24 * 60 * 60 * 1000;
 		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + dayMs;
-		const secondId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		const thirdStartAt = sessionStartAt + 2 * dayMs;
-		const thirdId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: thirdStartAt
-		});
+		const thirdId = await seedBooking(t, { packageId: packageId, sessionStartAt: thirdStartAt });
 
 		await runSetup(t, firstId);
 		await runSetup(t, secondId, secondStartAt);
@@ -1339,10 +1333,7 @@ describe("Google Drive package workspaces", () => {
 		await t.run((ctx) => ctx.db.patch(secondId, { status: "cancelled" }));
 
 		const fourthStartAt = sessionStartAt + 3 * dayMs;
-		const fourthId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: fourthStartAt
-		});
+		const fourthId = await seedBooking(t, { packageId: packageId, sessionStartAt: fourthStartAt });
 		await runSetup(t, fourthId, fourthStartAt);
 
 		// Number 2 stays reserved by the cancelled session's folder, so the replacement is 4.
@@ -1362,10 +1353,7 @@ describe("Google Drive package workspaces", () => {
 		const dayMs = 24 * 60 * 60 * 1000;
 		const secondStartAt = sessionStartAt + dayMs;
 		const firstId = await seedBooking(t, { packageId: packageId });
-		const secondId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 
 		await Promise.all([runSetup(t, firstId), runSetup(t, secondId, secondStartAt)]);
 
@@ -1386,10 +1374,7 @@ describe("Google Drive package workspaces", () => {
 		const dayMs = 24 * 60 * 60 * 1000;
 		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + dayMs;
-		const secondId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		// An ordinary session of the same client must share the client folder and assets library.
 		const ordinaryId = await seedBooking(t, { sessionStartAt: sessionStartAt + 2 * dayMs });
 
@@ -1478,10 +1463,7 @@ describe("Google Drive package workspaces", () => {
 		const packageId = await seedPackage(t);
 		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + 24 * 60 * 60 * 1000;
-		const secondId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 
 		await runSetup(t, firstId);
 		const firstStatus = await t
@@ -1590,10 +1572,7 @@ describe("Google Drive reschedule and identity", () => {
 		const packageId = await seedPackage(t);
 		const firstId = await seedBooking(t, { packageId: packageId });
 		const secondStartAt = sessionStartAt + 7 * dayMs;
-		const secondId = await seedBooking(t, {
-			packageId: packageId,
-			sessionStartAt: secondStartAt
-		});
+		const secondId = await seedBooking(t, { packageId: packageId, sessionStartAt: secondStartAt });
 		const laterStartAt = sessionStartAt + 14 * dayMs;
 
 		await t.mutation(

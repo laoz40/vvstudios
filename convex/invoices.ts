@@ -23,8 +23,7 @@ export const getPackageInvoicePdfById = action({
 
 export const getAdminPackageInvoicePdfById = action({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) =>
-		getAdminPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => getAdminPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getAdminCustomPackageInvoicePdfById = action({

@@ -17,15 +17,10 @@ export async function resolveDriveClientForBooking(
 	return driveClientFromBooking;
 }
 
-export async function loadPackageBookings(
-	ctx: QueryCtx,
-	packageId: Id<"packages">
-) {
+export async function loadPackageBookings(ctx: QueryCtx, packageId: Id<"packages">) {
 	return await ctx.db
 		.query("bookings")
-		.withIndex("by_packageId", (query) =>
-			query.eq("packageId", packageId)
-		)
+		.withIndex("by_packageId", (query) => query.eq("packageId", packageId))
 		.collect();
 }
 
@@ -61,17 +56,12 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
 					.unique(),
-				booking.packageId !== undefined
-					? ctx.db.get(booking.packageId)
-					: Promise.resolve(null)
+				booking.packageId !== undefined ? ctx.db.get(booking.packageId) : Promise.resolve(null)
 			])
 		).andThen(([driveClientFromBooking, driveSession, packageRecord]) =>
 			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(
 				(driveClient) => {
-					if (
-						driveSession?.packageFolder !== undefined ||
-						booking.packageId === undefined
-					) {
+					if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
 						return ok({
 							booking,
 							driveClient,
@@ -80,15 +70,15 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 							sharedPackageFolder: undefined
 						});
 					}
-					return okOrThrow(
-						loadSharedPackageFolder(ctx, booking.packageId, booking._id)
-					).map((sharedPackageFolder) => ({
-						booking,
-						driveClient,
-						driveSession,
-						packageRecord,
-						sharedPackageFolder
-					}));
+					return okOrThrow(loadSharedPackageFolder(ctx, booking.packageId, booking._id)).map(
+						(sharedPackageFolder) => ({
+							booking,
+							driveClient,
+							driveSession,
+							packageRecord,
+							sharedPackageFolder
+						})
+					);
 				}
 			)
 		);

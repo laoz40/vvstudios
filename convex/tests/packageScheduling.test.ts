@@ -550,11 +550,7 @@ async function seedPackage(
 	return { packageId, token };
 }
 
-async function seedPackageSession(
-	t: TestClient,
-	packageId: Id<"packages">,
-	index: number
-) {
+async function seedPackageSession(t: TestClient, packageId: Id<"packages">, index: number) {
 	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Test customer",

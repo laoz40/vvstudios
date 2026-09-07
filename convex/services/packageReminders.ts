@@ -21,10 +21,7 @@ const MAX_PACKAGE_SESSIONS = 12;
 const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-type PackageReminderArgs = {
-	packageId: Doc<"packages">["_id"];
-	reminderType: PackageReminderType;
-};
+type PackageReminderArgs = { packageId: Doc<"packages">["_id"]; reminderType: PackageReminderType };
 
 export async function listPackagesDueForPaymentReminderService(
 	ctx: QueryCtx,

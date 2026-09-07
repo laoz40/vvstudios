@@ -28,10 +28,7 @@ export function validatePackageReminderClaim(
 			}
 			break;
 		case "expiry":
-			if (
-				packageRecord.status !== "paid" &&
-				packageRecord.status !== "schedule_email_failed"
-			) {
+			if (packageRecord.status !== "paid" && packageRecord.status !== "schedule_email_failed") {
 				return err({ reason: "PACKAGE_EXPIRY_REMINDER_NOT_SENDABLE" });
 			}
 			break;
