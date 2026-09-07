@@ -11,19 +11,19 @@ export function renameClipsPackageInAddons(addons: readonly string[]) {
 	let changed = false;
 
 	for (const addon of addons) {
-		const normalizedAddon = addon === LEGACY_CLIPS_PACKAGE_ADDON ? CLIP_VOLUME_PACK_ADDON : addon;
+		const renamedAddon = addon === LEGACY_CLIPS_PACKAGE_ADDON ? CLIP_VOLUME_PACK_ADDON : addon;
 
-		if (normalizedAddon !== addon) {
+		if (renamedAddon !== addon) {
 			changed = true;
 		}
 
-		const bookingAddon = ADDON_OPTIONS.find((option) => option === normalizedAddon);
+		const bookingAddon = ADDON_OPTIONS.find((option) => option === renamedAddon);
+		if (bookingAddon === undefined) {
+			changed = true;
+			continue;
+		}
 
-		if (!bookingAddon || nextAddons.includes(bookingAddon)) {
-			if (!bookingAddon) {
-				changed = true;
-			}
-
+		if (nextAddons.includes(bookingAddon)) {
 			continue;
 		}
 
