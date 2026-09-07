@@ -12,7 +12,7 @@ import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
 } from "#convex/lib/googleCalendarClient";
-import { resultAsyncFromGoogleCalendarPromise } from "#convex/lib/googleCalendarErrors";
+import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 import {
 	getSessionStartAt,
 	isValidSessionRemainingBalanceAmount,
@@ -79,7 +79,7 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 			return getDateAvailabilityRange(startDate, endDate, timeZone)
 				.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
 				.asyncAndThen(({ timeMin, timeMax }) =>
-					resultAsyncFromGoogleCalendarPromise(
+					calendarResultAsync(
 						getBusyWindowsInRange({
 							calendar,
 							calendarIds,
@@ -112,7 +112,7 @@ export function getAvailableBookingTimesService(
 	return getBookingSettingsService(ctx).andThen((settings) =>
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen(
 			({ calendar, calendarIds, timeZone }) =>
-				resultAsyncFromGoogleCalendarPromise(
+				calendarResultAsync(
 					getBusyWindows({ calendar, calendarIds, date: args.date, timeZone }),
 					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 				).map((busyWindows) => ({
@@ -169,11 +169,11 @@ export function getAvailableRescheduleTimesService(
 	)
 		.andThen((details) => getBookingSettingsService(ctx).map((settings) => ({ details, settings })))
 		.andThen(({ details, settings }) =>
-			resultAsyncFromGoogleCalendarPromise(
+			calendarResultAsync(
 				Promise.resolve().then(() => getGoogleCalendarClient()),
 				"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 			).andThen(({ calendar, calendarIds, timeZone }) =>
-				resultAsyncFromGoogleCalendarPromise(
+				calendarResultAsync(
 					getBusyWindows({
 						calendar,
 						calendarIds,

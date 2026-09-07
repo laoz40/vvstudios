@@ -17,7 +17,7 @@ import {
 	type SessionTimeParseError
 } from "./sessionCalendarTime";
 import { getBusyWindows } from "./googleCalendarAvailability";
-import { resultAsyncFromGoogleCalendarPromise } from "./googleCalendarErrors";
+import { calendarResultAsync } from "./googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
@@ -311,7 +311,7 @@ export function validateSessionTimingEdit({
 			}).mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }));
 
 	return settingsResult.asyncAndThen(() =>
-		resultAsyncFromGoogleCalendarPromise(
+		calendarResultAsync(
 			getBusyWindows({
 				calendar,
 				calendarIds,

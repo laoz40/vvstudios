@@ -5,7 +5,7 @@ import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
-import { resultAsyncFromGoogleCalendarPromise } from "#convex/lib/googleCalendarErrors";
+import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
 import { fromConvexTuple } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
@@ -81,7 +81,7 @@ export function getPackageBusyWindowsService(
 			})
 			// Fetch every Calendar event that can block a package booking.
 			.andThen(({ availabilityRange, client, packageFromDb }) =>
-				resultAsyncFromGoogleCalendarPromise(
+				calendarResultAsync(
 					getBusyWindowsInRange({
 						calendar: client.calendar,
 						calendarIds: client.calendarIds,
@@ -117,7 +117,7 @@ export function savePackageSessionCalendarEventService(args: {
 					? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
 					: undefined;
 
-				return resultAsyncFromGoogleCalendarPromise(
+				return calendarResultAsync(
 					getBusyWindows({
 						calendar: client.calendar,
 						calendarIds: client.calendarIds,

@@ -37,7 +37,7 @@ type ClerkInvitationError = Exclude<
 
 type ParsedClerkError = z.infer<typeof clerkErrorSchema>;
 
-function clerkErrorFieldsFromParsed(body: ParsedClerkError) {
+function clerkErrorFields(body: ParsedClerkError) {
 	const firstError = body.errors?.[0];
 	return {
 		code: firstError?.code ?? "",
@@ -45,8 +45,8 @@ function clerkErrorFieldsFromParsed(body: ParsedClerkError) {
 	};
 }
 
-function mapClerkInvitationErrorFromParsed(body: ParsedClerkError): ClerkInvitationError {
-	const { code, text } = clerkErrorFieldsFromParsed(body);
+function mapInvitationError(body: ParsedClerkError): ClerkInvitationError {
+	const { code, text } = clerkErrorFields(body);
 
 	if (code === "duplicate_record" || text.includes("pending invitation")) {
 		return { reason: "INVITATION_PENDING" };
@@ -94,9 +94,7 @@ export function createClerkInvitation(email: string) {
 			if (!response.ok) {
 				const parsedBody = clerkErrorSchema.safeParse(body);
 				return errAsync(
-					mapClerkInvitationErrorFromParsed(
-						parsedBody.success ? parsedBody.data : { errors: undefined }
-					)
+					mapInvitationError(parsedBody.success ? parsedBody.data : { errors: undefined })
 				);
 			}
 
