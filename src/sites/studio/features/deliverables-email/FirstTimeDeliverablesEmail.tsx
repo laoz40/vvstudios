@@ -13,6 +13,7 @@ import {
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { DELIVERABLES_REVIEW_URL } from "#studio/features/deliverables-email/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface FirstTimeDeliverablesEmailProps {
 	bookingDate: string;
@@ -107,6 +108,7 @@ export function FirstTimeDeliverablesEmail({
 					<Text style={signoff}>Cheers,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>

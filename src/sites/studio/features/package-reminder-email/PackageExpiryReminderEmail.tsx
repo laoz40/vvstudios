@@ -10,6 +10,7 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface PackageExpiryReminderEmailProps {
 	expiresAtLabel: string;
@@ -65,6 +66,7 @@ export function PackageExpiryReminderEmail({
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>

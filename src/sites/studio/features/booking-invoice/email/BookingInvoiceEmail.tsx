@@ -14,6 +14,7 @@ import {
 } from "@react-email/components";
 import { formatAud } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceData } from "#studio/features/booking-invoice/lib/types";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface BookingInvoiceEmailProps {
 	data: BookingInvoiceData;
@@ -119,6 +120,7 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{data.branding.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>

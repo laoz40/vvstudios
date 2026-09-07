@@ -69,7 +69,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		labels: { multi: "Number of Essential Edits Per Session", single: "Number of Essential Edits" },
 		descriptions: {
 			multi:
-				"Select how many episodes or projects you want edited for each session. Each Essential Edit adds $99.",
+				"Select how many episodes or projects you want edited for each session. Each Essential Edit adds $100.",
 			single: "Charged per episode or project you want edited from this session."
 		}
 	},
@@ -92,7 +92,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		},
 		descriptions: {
 			multi:
-				"Select how many Clip Volume Packs you want for each session. Each 10-clip pack adds $79.",
+				"Select how many Clip Volume Packs you want for each session. Each 10-clip pack adds $80.",
 			single: "One pack includes 10 edited social media clips. Charged per pack."
 		}
 	},

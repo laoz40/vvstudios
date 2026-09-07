@@ -11,6 +11,7 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface ReminderEmailProps {
 	addonsLine: string;
@@ -138,6 +139,7 @@ export function ReminderEmail({
 					<Text style={signoff}>Enjoy your day,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>

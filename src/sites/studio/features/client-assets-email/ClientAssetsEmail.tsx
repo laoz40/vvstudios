@@ -11,6 +11,7 @@ import {
 	Text
 } from "@react-email/components";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export type ClientAssetsEmailProps = { assetsUrl: string; name: string; signoffName: string };
 
@@ -64,6 +65,7 @@ export function ClientAssetsEmail({ assetsUrl, name, signoffName }: ClientAssets
 					<Text style={signoff}>Cheers,</Text>
 					<Text style={signature}>{signoffName}</Text>
 					<Text style={signature}>{BOOKING_INVOICE_BUSINESS.businessName}</Text>
+					<EmailFooter />
 				</Container>
 			</Body>
 		</Html>
