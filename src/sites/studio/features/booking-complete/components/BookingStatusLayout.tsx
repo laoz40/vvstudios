@@ -7,7 +7,7 @@ import {
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { BookingOutcomeActions } from "#studio/components/booking/BookingOutcomeActions";
 import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -63,7 +63,8 @@ export function BookingStatusLayout({
 			);
 
 			if (error !== null) {
-				switch (error.reason) {
+				const reason = error.reason;
+				switch (reason) {
 					case "BOOKING_NOT_FOUND":
 						toast.error("Unable to find this booking.");
 						return;
@@ -80,11 +81,8 @@ export function BookingStatusLayout({
 					case "UNEXPECTED_ERROR":
 						toast.error("Something went wrong while creating the reschedule link.");
 						return;
-
-					default: {
-						const _exhaustive: never = error;
-						return _exhaustive;
-					}
+					default:
+						return exhaustiveCheck(reason);
 				}
 			}
 

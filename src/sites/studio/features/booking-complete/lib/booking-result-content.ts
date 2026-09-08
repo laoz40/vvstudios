@@ -1,4 +1,5 @@
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
+import { exhaustiveCheck } from "#/lib/result";
 
 export interface BookingResultContent {
 	description: string;
@@ -18,7 +19,8 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 
 	switch (status) {
 		case "failed": {
-			switch (booking.bookingFailureCode) {
+			const bookingFailureCode = booking.bookingFailureCode;
+			switch (bookingFailureCode) {
 				case "BOOKING_TIME_UNAVAILABLE":
 					return {
 						title: "We received your payment and need to adjust your booking time",
@@ -36,13 +38,6 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 					};
 
 				case undefined:
-					return {
-						title: "We received your payment and need to confirm your booking manually",
-						description:
-							"Your payment went through, but the booking could not be completed automatically. Please contact us and we’ll finalise it for you.",
-						isBookingCompletionFailure: true
-					};
-
 				default:
 					return {
 						title: "We received your payment and need to confirm your booking manually",
@@ -91,11 +86,8 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 
 		case "abandoned":
 			throw new Error(`Unhandled booking status: ${status}`);
-
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(status);
 	}
 }
 

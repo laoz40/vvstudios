@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type {
 	AdminPackagePendingAction,
@@ -27,7 +27,8 @@ export function usePackagePaymentActions(
 		const [error] = await tryCatch(archivePackage({ packageId: packageRow.id, archived }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -43,12 +44,8 @@ export function usePackagePaymentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while archiving the package.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);
@@ -65,7 +62,8 @@ export function usePackagePaymentActions(
 		const [error] = await tryCatch(markPackageUnpaid({ packageId: packageRow.id }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -81,12 +79,8 @@ export function usePackagePaymentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating package payment.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);
@@ -103,7 +97,8 @@ export function usePackagePaymentActions(
 		const [error] = await tryCatch(confirmPackagePayment({ packageId: packageRow.id }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -140,12 +135,8 @@ export function usePackagePaymentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while confirming payment.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);
@@ -163,7 +154,8 @@ export function usePackagePaymentActions(
 		const [error] = await tryCatch(retrySchedulingEmail({ packageId: packageRow.id }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -204,12 +196,8 @@ export function usePackagePaymentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while sending the scheduling link.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);

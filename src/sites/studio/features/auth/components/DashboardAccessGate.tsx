@@ -1,3 +1,4 @@
+import { exhaustiveCheck } from "#/lib/result";
 import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
 import { hasPermission } from "#/lib/permissions";
@@ -16,15 +17,14 @@ export function DashboardAccessGate() {
 
 	const [accessError, access] = accessResult;
 	if (accessError !== null) {
-		switch (accessError.reason) {
+		const reason = accessError.reason;
+		switch (reason) {
 			case "NOT_AUTHENTICATED":
 				return <BackendAuthErrorPage />;
 			case "NOT_AUTHORIZED":
 				return <DashboardForbiddenPage />;
-			default: {
-				const _exhaustive: never = accessError;
-				return _exhaustive;
-			}
+			default:
+				return exhaustiveCheck(reason);
 		}
 	}
 

@@ -1,3 +1,4 @@
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
@@ -131,11 +132,8 @@ export function sortAdminSessions(sessions: SessionRecord[], sorting: SessionSor
 			case "createdAt":
 				comparison = firstSession.pendingPaymentCreatedAt - secondSession.pendingPaymentCreatedAt;
 				break;
-
-			default: {
-				const _exhaustive: never = activeSort.id;
-				return _exhaustive;
-			}
+			default:
+				exhaustiveCheck(activeSort.id);
 		}
 
 		return activeSort.desc ? -comparison : comparison;

@@ -8,12 +8,12 @@ import {
 	buildEventWindow,
 	formatCalendarEventDate,
 	formatCalendarEventTime
-} from "./sessionCalendarTime";
+} from "#convex/lib/sessionCalendarTime";
 import {
 	calendarErrorSchema,
 	isCalendarEventNotFound,
 	mapCalendarErrorCode
-} from "./googleCalendarErrors";
+} from "#convex/lib/googleCalendarErrors";
 
 export interface SessionCalendarEventDetails {
 	addons: BookingAddon[];

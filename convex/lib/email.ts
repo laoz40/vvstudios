@@ -23,7 +23,7 @@ import {
 	formatSessionDateShort,
 	formatSessionDateWithoutYear,
 	formatCalendarEventDate
-} from "./sessionCalendarTime";
+} from "#convex/lib/sessionCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createPackageInvoiceArtifacts,
@@ -31,7 +31,7 @@ import {
 	renderBookingInvoicePdfInNode,
 	type PackageInvoiceInput,
 	type PackageAdjustmentInvoiceInput
-} from "./bookingInvoiceArtifacts";
+} from "#convex/lib/bookingInvoiceArtifacts";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -41,7 +41,7 @@ import {
 	formatTimestampDateShort,
 	getHostEmails,
 	sendEmail
-} from "./emailSend";
+} from "#convex/lib/emailSend";
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;

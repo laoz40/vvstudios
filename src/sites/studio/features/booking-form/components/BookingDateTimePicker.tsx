@@ -1,4 +1,5 @@
 import { LoaderCircle } from "lucide-react";
+import { exhaustiveCheck } from "#/lib/result";
 import { Calendar } from "#/components/ui/calendar";
 import {
 	Field,
@@ -358,7 +359,8 @@ function TimeSelectionListItem({
 	item: TimeSelectionItem;
 	selectedTime: string;
 }) {
-	switch (item.kind) {
+	const itemKind = item.kind;
+	switch (itemKind) {
 		case "available":
 			return (
 				<TimeOption
@@ -378,10 +380,8 @@ function TimeSelectionListItem({
 					<Separator className="flex-1" />
 				</div>
 			);
-		default: {
-			const _exhaustive: never = item;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(itemKind);
 	}
 }
 

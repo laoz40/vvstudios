@@ -1,4 +1,5 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { loadPackageBookings } from "#convex/lib/driveLookup";
@@ -331,7 +332,8 @@ export type ClearSavedDriveFolderArgs =
 	| { kind: "child"; bookingId: Id<"bookings">; name: DriveChildFolderName };
 
 export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFolderArgs) {
-	switch (args.kind) {
+	const folderKind = args.kind;
+	switch (folderKind) {
 		case "client":
 			return okOrThrow(
 				ctx.db
@@ -358,10 +360,8 @@ export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFol
 					? { rawMediaFolder: undefined }
 					: { deliverablesFolder: undefined }
 			);
-		default: {
-			const _exhaustive: never = args;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(folderKind);
 	}
 }
 
@@ -413,23 +413,20 @@ export function saveDriveChildFolder(
 			.unique()
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		let folderFields;
-		switch (childFolder.name) {
-			case "Raw Media":
-				folderFields = {
-					rawMediaFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
-				};
-				break;
-			case "Deliverables":
-				folderFields = {
-					deliverablesFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
-				};
-				break;
-			default: {
-				const exhaustiveName: never = childFolder.name;
-				return exhaustiveName;
+		const folderFields = (() => {
+			switch (childFolder.name) {
+				case "Raw Media":
+					return {
+						rawMediaFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
+					};
+				case "Deliverables":
+					return {
+						deliverablesFolder: { id: childFolder.folder.id, url: childFolder.folder.webViewLink }
+					};
+				default:
+					return exhaustiveCheck(childFolder.name);
 			}
-		}
+		})();
 		return okOrThrow(
 			ctx.db
 				.patch(driveSession._id, { ...folderFields, updatedAt: Date.now() })

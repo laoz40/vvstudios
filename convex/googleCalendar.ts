@@ -2,8 +2,8 @@
 
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import { action, internalAction } from "./_generated/server";
-import { type BusyDayWindow } from "./lib/sessionCalendarTime";
+import { action, internalAction } from "#convex/_generated/server";
+import { type BusyDayWindow } from "#convex/lib/sessionCalendarTime";
 import {
 	deleteSessionFromAdminService,
 	getAvailableBookingTimesService,
@@ -13,26 +13,26 @@ import {
 	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService
-} from "./services/sessionCalendar";
+} from "#convex/services/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "./lib/bookingAddonQuantities";
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,
 	setupDriveService,
 	type SetupError
-} from "./services/drive";
+} from "#convex/services/drive";
 import {
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
-} from "./services/driveClientPermissions";
+} from "#convex/services/driveClientPermissions";
 import {
 	completeClaimedSessionService,
 	sendBookingInvoiceForBookingService,
 	sendSessionReminderEmailService
-} from "./services/bookingConfirmationActions";
+} from "#convex/services/bookingConfirmationActions";
 
 export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },

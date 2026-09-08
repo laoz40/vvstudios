@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
@@ -105,7 +105,8 @@ function parsePackageEditValues(values: PackageEditDraft) {
 function showPackageUpdateError(
 	error: NonNullable<UpdatePackageFromAdminResult[0]> | UnexpectedError
 ) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			toast.error("You are not signed in.");
 			break;
@@ -130,10 +131,8 @@ function showPackageUpdateError(
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while updating the package.");
 			break;
-		default: {
-			const _exhaustive: never = error;
-			void _exhaustive;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 

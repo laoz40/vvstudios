@@ -23,7 +23,7 @@ import {
 import { api } from "#convex/_generated/api";
 import { Field, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
@@ -38,7 +38,8 @@ type AssignmentError =
 const UNASSIGNED_VALUE = "__unassigned__";
 
 function showAssignmentError(error: AssignmentError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("This session no longer exists.");
 			return;
@@ -57,10 +58,8 @@ function showAssignmentError(error: AssignmentError) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to update the editor assignment.");
 			return;
-		default: {
-			const _exhaustive: never = error;
-			void _exhaustive;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 

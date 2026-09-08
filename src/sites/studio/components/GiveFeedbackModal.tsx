@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { Modal } from "#studio/components/Modal";
 import { closeModal, openFeedbackModal, useModalStore } from "#studio/lib/modal-store";
 
@@ -43,7 +43,8 @@ export function GiveFeedbackModal() {
 		const [error] = await tryCatch(submitFeedback({ message: feedback }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "INVALID_MESSAGE":
 					toast.error("Please enter some feedback before submitting.");
 					break;
@@ -59,11 +60,8 @@ export function GiveFeedbackModal() {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while sending your feedback.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					return _exhaustive;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsSubmitting(false);

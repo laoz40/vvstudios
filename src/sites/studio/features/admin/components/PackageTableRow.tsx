@@ -1,4 +1,5 @@
 import { Badge } from "#/components/ui/badge";
+import { exhaustiveCheck } from "#/lib/result";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
@@ -37,10 +38,8 @@ function getPackageDashboardDateLabel(
 			return "Package expiry";
 		case "missing_package_expiry":
 			return "Expiry not set";
-		default: {
-			const _exhaustive: never = kind;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(kind);
 	}
 }
 

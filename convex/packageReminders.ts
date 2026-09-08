@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "#convex/_generated/server";
 import {
 	claimPackageReminderService,
 	listPackagesDueForPaymentReminderService,
 	listPackagesPotentiallyDueForExpiryReminderService,
 	markPackageReminderFailedService,
 	markPackageReminderSentService
-} from "./services/packageReminders";
-export { sendDuePackageReminders } from "./services/packageReminders";
+} from "#convex/services/packageReminders";
+export { sendDuePackageReminders } from "#convex/services/packageReminders";
 
 export const listPackagesDueForPaymentReminder = internalQuery({
 	args: { invoiceDueStart: v.number(), invoiceDueEnd: v.number(), limit: v.optional(v.number()) },

@@ -14,6 +14,7 @@ import {
 } from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
 import { fromConvexTuple } from "#convex/lib/result";
+import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
 	if (session.packageId !== undefined) {
@@ -78,7 +79,8 @@ export async function saveConfirmedBooking(
 		return true;
 	}
 
-	switch (completionResult.error.reason) {
+	const reason = completionResult.error.reason;
+	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			console.error("Booking disappeared before confirmation completed", {
 				bookingId: session._id
@@ -94,10 +96,8 @@ export async function saveConfirmedBooking(
 				bookingId: session._id
 			});
 			break;
-		default: {
-			const _exhaustive: never = completionResult.error;
-			return _exhaustive;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 
 	// Confirmation failed, so remove any Calendar event that was created but not recorded.

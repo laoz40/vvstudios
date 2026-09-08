@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { exhaustiveCheck } from "#/lib/result";
 
 import {
 	PackageUnscheduleConfirmation,
@@ -35,7 +36,8 @@ export function BookingModalHost({
 }: BookingModalHostProps) {
 	const bookingModalState = useBookingModalStore((state) => state);
 
-	switch (bookingModalState.modal) {
+	const modal = bookingModalState.modal;
+	switch (modal) {
 		case "clipsPackageRequirement":
 			return <ClipsPackageRequirementDialog reason={bookingModalState.reason} />;
 
@@ -87,10 +89,7 @@ export function BookingModalHost({
 
 		case "none":
 			return null;
-
-		default: {
-			const _exhaustive: never = bookingModalState;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(modal);
 	}
 }

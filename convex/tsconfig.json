@@ -19,12 +19,7 @@
 		"noImplicitOverride": true,
 		"noUncheckedIndexedAccess": true,
 		"types": ["vite/client"],
-		"paths": {
-			"#/*": ["../src/*"],
-			"#convex/*": ["./*"],
-			"#studio/*": ["../src/sites/studio/*"],
-			"@/*": ["../src/*"]
-		},
+		"paths": { "#/*": ["../src/*"], "#convex/*": ["./*"], "#studio/*": ["../src/sites/studio/*"] },
 
 		/* These compiler options are required by Convex */
 		"target": "ESNext",

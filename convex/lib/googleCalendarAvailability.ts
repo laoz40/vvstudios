@@ -1,6 +1,10 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 
-import { getAvailabilityRange, getEventDateTime, type BusyWindow } from "./sessionCalendarTime";
+import {
+	getAvailabilityRange,
+	getEventDateTime,
+	type BusyWindow
+} from "#convex/lib/sessionCalendarTime";
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 

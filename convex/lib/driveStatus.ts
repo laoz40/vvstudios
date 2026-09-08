@@ -1,4 +1,5 @@
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import {
 	getDriveSetup,
@@ -176,10 +177,8 @@ function buildClientDrivePermissionsDisplayStatus(
 			return foldersAreReady && permissionsAreReady ? "ready" : "incomplete";
 		case undefined:
 			return foldersAreReady ? "incomplete" : "not_created";
-		default: {
-			const _exhaustive: never = driveSession.clientDrivePermissionsStatus;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(driveSession.clientDrivePermissionsStatus);
 	}
 }
 
@@ -294,10 +293,8 @@ function buildAssetsEmailStatus(
 			return driveSession.assetsEmailStatus;
 		case undefined:
 			return driveSession.assetsEmailClaimedAt === undefined ? "not_sent" : "pending";
-		default: {
-			const _exhaustive: never = driveSession.assetsEmailStatus;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(driveSession.assetsEmailStatus);
 	}
 }
 

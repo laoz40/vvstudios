@@ -12,7 +12,7 @@ import {
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { getPackageUpdateValidationError } from "./packageScheduling";
+import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
 
 export type CreatePendingPackageArgs = {
 	name: string;

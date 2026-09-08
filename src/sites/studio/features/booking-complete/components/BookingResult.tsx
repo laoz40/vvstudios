@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { CircleX } from "lucide-react";
 import { toast } from "sonner";
 import CheckedIcon from "#/components/ui/checked-icon";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -275,11 +275,8 @@ function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
 			return;
-		default: {
-			const _exhaustive: never = reason;
-			void _exhaustive;
-			return;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 
@@ -301,11 +298,8 @@ function handlePackageInvoiceError(reason: PackageInvoiceErrorReason) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
 			return;
-		default: {
-			const _exhaustive: never = reason;
-			void _exhaustive;
-			return;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 

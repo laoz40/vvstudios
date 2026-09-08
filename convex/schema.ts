@@ -1,7 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { bookingAddonsValidator } from "./lib/bookingAddonQuantities";
-import { SERVICES } from "../src/sites/studio/features/booking-form/lib/booking-form-model";
+import { bookingAddonsValidator } from "#convex/lib/bookingAddonQuantities";
+import { SERVICES } from "#/sites/studio/features/booking-form/lib/booking-form-model";
 
 const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })

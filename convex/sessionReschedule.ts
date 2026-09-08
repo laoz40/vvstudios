@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	createActiveRescheduleLinkService,
 	createAdminRescheduleLinkService,
@@ -10,9 +10,9 @@ import {
 	lockRescheduleLinkService,
 	markActiveRescheduleLinksUsedForSessionService,
 	unlockRescheduleLinkService
-} from "./services/sessionReschedule";
+} from "#convex/services/sessionReschedule";
 
-export type { RescheduleLinkLookupError } from "./services/sessionReschedule";
+export type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
 
 export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },

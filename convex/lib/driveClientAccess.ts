@@ -1,4 +1,5 @@
 import { err, ok } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/driveLookup";
@@ -34,10 +35,8 @@ export function saveClientDrivePermission(
 							.patch(driveClient._id, { assetsClientPermission: args.permission })
 							.then(() => null)
 					);
-				default: {
-					const _exhaustive: never = args.name;
-					return _exhaustive;
-				}
+				default:
+					return exhaustiveCheck(args.name);
 			}
 		});
 	});
@@ -75,10 +74,8 @@ function canClaimClientAssetsEmail(
 			return status === undefined;
 		case "retry":
 			return status === undefined || status === "failed" || !isEmailCurrent;
-		default: {
-			const _exhaustive: never = attempt;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(attempt);
 	}
 }
 

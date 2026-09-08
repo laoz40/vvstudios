@@ -3,7 +3,7 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
@@ -76,18 +76,16 @@ export function useInvoiceActions(session: SessionRecord) {
 		setIsDownloadingInvoice(false);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "INVALID_INVOICE_INPUT":
 					toast.error(error.message);
 					return;
 				case "UNEXPECTED_ERROR":
 					toast.error("Unable to generate invoice.");
 					return;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					return;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 		}
 
@@ -114,7 +112,8 @@ export function useInvoiceActions(session: SessionRecord) {
 		setIsEmailingInvoice(false);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					return;
@@ -133,11 +132,8 @@ export function useInvoiceActions(session: SessionRecord) {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while sending the invoice email.");
 					return;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					return;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 		}
 

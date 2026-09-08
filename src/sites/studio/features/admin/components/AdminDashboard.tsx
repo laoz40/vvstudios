@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/clerk-react";
+import { exhaustiveCheck } from "#/lib/result";
 import { useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -43,15 +44,14 @@ type AdminDashboardTablesProps = {
 };
 
 function renderEmployeeListError(error: EmployeeListError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			return <BackendAuthErrorPage />;
 		case "NOT_AUTHORIZED":
 			return <DashboardForbiddenPage />;
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 

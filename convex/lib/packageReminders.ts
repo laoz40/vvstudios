@@ -1,4 +1,5 @@
 import { err, ok, type Result } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 
 export type PackageReminderType = "payment" | "expiry";
@@ -32,10 +33,8 @@ export function validatePackageReminderClaim(
 				return err({ reason: "PACKAGE_EXPIRY_REMINDER_NOT_SENDABLE" });
 			}
 			break;
-		default: {
-			const exhaustiveReminderType: never = reminderType;
-			return exhaustiveReminderType;
-		}
+		default:
+			return exhaustiveCheck(reminderType);
 	}
 
 	const reminderState = packageRecord.packageReminderState;

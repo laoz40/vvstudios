@@ -1,10 +1,11 @@
 import { httpRouter } from "convex/server";
-import { httpAction, type ActionCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { exhaustiveCheck } from "#/lib/result";
+import { httpAction, type ActionCtx } from "#convex/_generated/server";
+import { internal } from "#convex/_generated/api";
 import Stripe from "stripe";
 import { z } from "zod";
-import { env } from "./env";
-import { completeSessionCheckoutService } from "./services/bookingConfirmation";
+import { env } from "#convex/env";
+import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
 
 const http = httpRouter();
 
@@ -68,14 +69,13 @@ async function handleCompletedCheckout(
 				case "google_calendar_create_failed":
 				case "reservation_lost":
 					return new Response(outcome, { status: 200 });
-				default: {
-					const _exhaustive: never = outcome;
-					return _exhaustive;
-				}
+				default:
+					return exhaustiveCheck(outcome);
 			}
 		},
 		(failure) => {
-			switch (failure.kind) {
+			const failureKind = failure.kind;
+			switch (failureKind) {
 				case "claim_failed":
 					console.error("Booking completion claim failed", {
 						eventId: event.id,
@@ -92,10 +92,8 @@ async function handleCompletedCheckout(
 						completionError: failure.error
 					});
 					return new Response("completion failed", { status: 200 });
-				default: {
-					const _exhaustive: never = failure;
-					return _exhaustive;
-				}
+				default:
+					return exhaustiveCheck(failureKind);
 			}
 		}
 	);

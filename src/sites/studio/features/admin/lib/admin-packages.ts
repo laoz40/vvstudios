@@ -1,4 +1,5 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -101,11 +102,8 @@ function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 
 		case "schedule_email_failed":
 			return "Scheduling link failed";
-
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(status);
 	}
 }
 
@@ -157,11 +155,8 @@ export function getAdminPackageStatusDisplay(
 				icon: MailWarning,
 				label: "Scheduling link failed"
 			};
-
-		default: {
-			const _exhaustive: never = packageRow.status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(packageRow.status);
 	}
 }
 

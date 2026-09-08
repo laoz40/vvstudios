@@ -1,4 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
+import { exhaustiveCheck } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type { UnexpectedError } from "#/lib/result";
 
@@ -20,7 +21,8 @@ type UnschedulePackageSessionError =
 	| UnexpectedError;
 
 export function getPackageLinkInvalidMessage(error: PackageLookupError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 			return {
 				title: "This package link is no longer valid.",
@@ -41,15 +43,14 @@ export function getPackageLinkInvalidMessage(error: PackageLookupError) {
 				title: "This package is not ready for scheduling.",
 				description: "Packages can be scheduled after payment is confirmed."
 			};
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
 export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
 		case "PACKAGE_LINK_INACTIVE":
@@ -63,15 +64,14 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 			return "Availability was checked too many times. Please wait a minute and try again.";
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while loading availability.";
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
 export function getSaveDefaultSpaceToastMessage(error: SaveDefaultSpaceError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
 		case "PACKAGE_LINK_INACTIVE":
@@ -79,10 +79,8 @@ export function getSaveDefaultSpaceToastMessage(error: SaveDefaultSpaceError) {
 			return getPackageLinkInvalidMessage(error).description;
 		case "UNEXPECTED_ERROR":
 			return "Could not save your default recording space. Please try again.";
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
@@ -128,7 +126,8 @@ export function getUnschedulePackageBookingToastMessage(
 	error: UnschedulePackageSessionError,
 	noticeWindowLabel: string
 ) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
 		case "PACKAGE_LINK_INACTIVE":
@@ -146,9 +145,7 @@ export function getUnschedulePackageBookingToastMessage(
 			return "Calendar updates are busy. Please wait a minute and try again.";
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while unscheduling this session.";
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }

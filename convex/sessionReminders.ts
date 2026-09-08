@@ -1,18 +1,18 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "./_generated/api";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "#convex/_generated/api";
+import { internalAction, internalMutation, internalQuery } from "#convex/_generated/server";
 import {
 	getTomorrowTimeZoneDayRange,
 	REMINDER_BATCH_SIZE,
 	REMINDER_TIME_ZONE
-} from "./lib/reminderScheduleTime";
-import { sendDuePackageReminders } from "./packageReminders";
+} from "#convex/lib/reminderScheduleTime";
+import { sendDuePackageReminders } from "#convex/packageReminders";
 import {
 	claimReminderService,
 	markReminderFailedService,
 	markReminderSentService
-} from "./services/sessionReminders";
+} from "#convex/services/sessionReminders";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },

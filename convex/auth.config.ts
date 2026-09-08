@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from "#convex/env";
 
 const clerkIssuerUrl = env.CLERK_FRONTEND_API_URL;
 
