@@ -9,7 +9,10 @@ import {
 	type AdminSessionUpdateArgs
 } from "#convex/lib/sessionAdminEdit";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
-import { buildClientSessionRescheduleOptionalPatch } from "#convex/lib/sessionRescheduleLinks";
+import {
+	buildClientSessionRescheduleOptionalPatch,
+	buildSessionCalendarConfirmationPatch
+} from "#convex/lib/sessionSavePatch";
 import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
@@ -75,19 +78,14 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 			})
 			// Save the edit, Calendar linkage, confirmation state, and reservation cleanup together.
 			.andThen(({ session, updatePatch }) => {
-				const patch: AdminSessionDatabasePatch = { ...updatePatch };
-
-				if (args.googleCalendarId) {
-					patch.googleCalendarId = args.googleCalendarId;
-				}
-				if (args.googleEventId) {
-					patch.googleEventId = args.googleEventId;
-				}
-				if (args.confirmBooking) {
-					patch.status = "confirmed";
-					patch.bookingConfirmedAt = Date.now();
-					patch.bookingFailureCode = undefined;
-				}
+				const patch: AdminSessionDatabasePatch = {
+					...updatePatch,
+					...buildSessionCalendarConfirmationPatch({
+						confirmBooking: args.confirmBooking,
+						googleCalendarId: args.googleCalendarId,
+						googleEventId: args.googleEventId
+					})
+				};
 				if (args.reservation) {
 					Object.assign(patch, clearedSessionReservationPatch);
 				}
