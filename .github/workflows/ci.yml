@@ -82,8 +82,8 @@ jobs:
       - name: Run E2E
         env:
           VITE_CONVEX_URL: ${{ vars.E2E_CONVEX_URL }}
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_FREE_TOUR_URL: ${{ vars.VITE_FREE_TOUR_URL }}
         run: bun run test:e2e
 

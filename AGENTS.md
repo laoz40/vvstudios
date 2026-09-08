@@ -33,7 +33,7 @@ Tests to keep:
 - Dont add new mock/unit/integration tests unless there's a strong reason (e.g. complex failure-mode logic impractical to hit through the UI).
 - Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
 
-- CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only.
+- CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only (`E2E_VITE_STRIPE_PUBLISHABLE_KEY`, `E2E_VITE_CLERK_PUBLISHABLE_KEY` — not prod `pk_live` vars).
 
 ## Stack
 
