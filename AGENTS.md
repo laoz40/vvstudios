@@ -3,7 +3,39 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
-Current Goal: Removing dead code and duplicated code using fallow.
+## Current Goal
+
+There are many tests in this project for convex behaviour. Not all of it is essential.
+
+For this project, I DONT want these:
+- mock tests
+- unit tests
+- integration tests
+- tautological tests
+
+They can be harmful and require high maintenance.
+
+Tests to keep:
+
+1. **Races** — double-booking, concurrent webhooks, final package slot
+2. **Idempotency** — webhook replay, send-once reminders/jobs
+3. **Money** — invoice math, stored pricing snapshots
+4. **Background jobs** — reminders, expiry, scheduled Drive setup
+5. **Failure recovery** — orphan Calendar cleanup, retryable states, partial Drive setup
+6. **Auth** — slim to permission model + list guards + a handful of representative mutation tests
+**PII redaction:** one test that editor session query omits sensitive fields; drop the rest of `editorDashboard.test.ts`
+
+### E2E tests in CI
+
+- Prioritize E2E for customer-facing flows (booking, checkout, confirmation, reschedule).
+- Admin dashboard actions only need E2E if the flow is high-risk or hard to verify. Simple CRUD can rely on existing Convex tests or manual check.
+- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
+- Dont add new mock/unit/integration tests unless there's a strong reason (e.g. complex failure-mode logic impractical to hit through the UI).
+- Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
+
+- CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only (`E2E_VITE_STRIPE_PUBLISHABLE_KEY`, `E2E_VITE_CLERK_PUBLISHABLE_KEY` — not prod `pk_live` vars).
+- CI E2E (`bun run test:e2e`): booking form → terms → payment modal only. Stripe hCaptcha blocks headless Pay in GitHub Actions.
+- Full payment E2E (`bun run test:e2e:payment`): local only. Checkout confirmation/idempotency covered by Convex tests (`stripeCompletion.test.ts`, etc.).
 
 ## Stack
 
@@ -11,7 +43,7 @@ Current Goal: Removing dead code and duplicated code using fallow.
 - default to shadcn for ui
 - t3env
 
-For convex code, ALWAYS use `vvstudios-convex` skill
+For convex code or tests, ALWAYS use `vvstudios-convex` skill
 For frontend code, ALWAYS use `vvstudios-frontend` skill
 
 ## Behaviour
@@ -19,8 +51,7 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Ask user before making assumptions that change behavior, UX, architecture
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
-- If proposed rule change is going to cause a lot of change, let me know and we can discuss it.
-- If a change will result in a massive commit, split into different commits.
+- If a task contains lots of changes which would result in a massive commit, propose splitting into different commits per large change or file changed.
 
 ## File/Change Hygiene
 

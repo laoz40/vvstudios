@@ -43,7 +43,11 @@ export function useBookingBusyWindows({
 	const fetchBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
 
 	// Reuse the same browser key for Google Calendar rate limiting across visits.
-	const [availabilityRateLimitKey] = useState(getAvailabilityRateLimitKey);
+	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState("");
+
+	useEffect(() => {
+		setAvailabilityRateLimitKey(getAvailabilityRateLimitKey());
+	}, []);
 
 	// TanStack Query owns fetch, cache, and loading for this Convex action.
 	const busyWindowsQuery = useQuery({

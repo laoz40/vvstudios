@@ -14,5 +14,10 @@ todos.json
 .vercel
 .fallow/
 
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 tmp/
 CONVEX_NEVERTHROW_REFACTOR_CHECKLIST.md

@@ -99,6 +99,10 @@ export function removeStoredSavedBookingInfo() {
 }
 
 export function getAvailabilityRateLimitKey() {
+	if (typeof window === "undefined") {
+		return "";
+	}
+
 	const nextKey = window.crypto.randomUUID();
 
 	try {
