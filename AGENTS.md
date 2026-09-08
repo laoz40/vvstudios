@@ -3,10 +3,7 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
-Goal: Enforcing stricter linting rules incrementally. Each rule that is fixed should be its own small commit.
-If a rule contains lots of errors which would result in a massive commit,
-split into different commits per large file.
-If proposed rule change is going to cause a lot of churn, let me know and we can discuss it.
+Current Goal: Removing dead code and duplicated code using fallow.
 
 ## Stack
 
@@ -22,6 +19,8 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Ask user before making assumptions that change behavior, UX, architecture
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
+- If proposed rule change is going to cause a lot of change, let me know and we can discuss it.
+- If a change will result in a massive commit, split into different commits.
 
 ## File/Change Hygiene
 
@@ -54,3 +53,4 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Handle every union variant. Use `never` in the default case to force exhaustive switches.
 - Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
 - If a value becomes `any`, stop and trace the source type. Do not patch around it with casts, duplicate aliases, or local unions.
+- Dont write like a python dev

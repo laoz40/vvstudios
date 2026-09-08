@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { searchOptionalField } from "#studio/lib/search-schema";
 
-export const DEV_BOOKING_SCENARIO_VALUES = [
+const DEV_BOOKING_SCENARIO_VALUES = [
 	"processing",
 	"confirmed",
 	"email_failed",

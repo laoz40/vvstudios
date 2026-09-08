@@ -48,7 +48,9 @@ export function EditorDashboardShell({ dashboardRole }: { dashboardRole: Dashboa
 						<TabsTrigger value="history">History</TabsTrigger>
 					</TabsList>
 
-					<DashboardSignOutButton email={email ?? null} />
+					<span title={`Signed in as ${email ?? "Unknown user"}`}>
+						<DashboardSignOutButton />
+					</span>
 				</header>
 
 				<TabsContent value="edits">

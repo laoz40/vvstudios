@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { faqSectionCopy } from "#studio/components/faq/FaqSection";
-import { LandingFaq } from "#studio/components/landing/LandingFaq";
+import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
 import { LandingGallery } from "#studio/components/landing/LandingGallery";
 import { LandingHero } from "#studio/components/landing/LandingHero";
 import { LandingTestimonials } from "#studio/components/landing/LandingTestimonials";
@@ -58,7 +57,7 @@ function HomeRoute() {
 					fadeIn
 					className="text-foreground"
 				/>
-				<LandingFaq />
+				<FaqSection />
 			</div>
 		</main>
 	);

@@ -1,12 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { z } from "zod";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import HomeIcon from "#/components/ui/home-icon";
+import { BookingOutcomeActions } from "#studio/components/booking/BookingOutcomeActions";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { api } from "#convex/_generated/api";
-import { studioSite } from "#/config/sites";
 import { buildNoIndexHead } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
@@ -57,44 +54,10 @@ function BookingExpiredPage() {
 					) : null}
 				</div>
 
-				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-					<AnimatedIconButton
-						size="lg"
-						className={cn(
-							"h-auto w-full sm:w-auto",
-							"px-8 py-3",
-							"text-base font-medium",
-							"shadow-lg shadow-primary/45"
-						)}
-						renderIcon={(iconRef) => (
-							<ArrowNarrowRightIcon
-								ref={iconRef}
-								strokeWidth={3}
-								className="translate-y-px"
-								aria-hidden
-							/>
-						)}>
-						<Link to={studioSite.routes.book}>Try again</Link>
-					</AnimatedIconButton>
-					<AnimatedIconButton
-						size="lg"
-						className={cn(
-							"h-auto w-full sm:w-auto",
-							"px-8 py-3",
-							"text-base font-medium",
-							"border-none shadow-md shadow-background/25"
-						)}
-						variant="outline"
-						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<HomeIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
-						<Link to={studioSite.routes.home}>Return home</Link>
-					</AnimatedIconButton>
-				</div>
+				<BookingOutcomeActions
+					outcome="book-again-home"
+					primaryLabel="Try again"
+				/>
 			</section>
 		</main>
 	);

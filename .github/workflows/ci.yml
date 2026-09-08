@@ -37,6 +37,12 @@ jobs:
       - name: Type-check
         run: bun run typecheck
 
+      - name: Check dead code
+        run: bun run dead-code
+
+      - name: Check duplicates
+        run: bun run dupes
+
       - name: Test
         run: bun run test
 

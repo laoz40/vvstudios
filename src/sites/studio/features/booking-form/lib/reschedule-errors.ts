@@ -20,7 +20,7 @@ type RescheduleUpdateToastError =
 	| NonNullable<FunctionReturnType<typeof api.googleCalendar.rescheduleSession>[0]>
 	| DevRescheduleUpdateError;
 
-export function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {
+function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {
 	switch (error.reason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 			return {

@@ -3,7 +3,6 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { fromConvexTuple } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
@@ -34,55 +33,6 @@ export type LockRescheduleLinkError =
 	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
 	| { reason: "RESCHEDULE_LINK_USED" }
 	| { reason: "RESCHEDULE_LINK_EXPIRED" };
-
-type ClientSessionRescheduleOptionalArgs = {
-	service?: string;
-	addons?: BookingAddon[];
-	notes?: string;
-	confirmBooking?: boolean;
-	googleCalendarId?: string;
-	googleEventId?: string;
-};
-
-type ClientSessionRescheduleOptionalPatch = {
-	service?: string;
-	addons?: BookingAddon[];
-	notes?: string;
-	googleCalendarId?: string;
-	googleEventId?: string;
-	status?: "confirmed";
-	bookingConfirmedAt?: number;
-	bookingFailureCode?: undefined;
-};
-
-export function buildClientSessionRescheduleOptionalPatch(
-	args: ClientSessionRescheduleOptionalArgs
-) {
-	const patch: ClientSessionRescheduleOptionalPatch = {};
-
-	if (args.service !== undefined) {
-		patch.service = args.service;
-	}
-	if (args.addons !== undefined) {
-		patch.addons = args.addons;
-	}
-	if (args.notes !== undefined) {
-		patch.notes = args.notes;
-	}
-	if (args.googleCalendarId) {
-		patch.googleCalendarId = args.googleCalendarId;
-	}
-	if (args.googleEventId) {
-		patch.googleEventId = args.googleEventId;
-	}
-	if (args.confirmBooking) {
-		patch.status = "confirmed";
-		patch.bookingConfirmedAt = Date.now();
-		patch.bookingFailureCode = undefined;
-	}
-
-	return patch;
-}
 
 function bytesToHex(bytes: Uint8Array) {
 	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");

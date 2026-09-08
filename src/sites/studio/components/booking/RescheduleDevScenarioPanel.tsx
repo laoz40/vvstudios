@@ -119,7 +119,7 @@ export function buildDevRescheduleBooking(
 	});
 }
 
-export function getDevRescheduleAvailability(
+function getDevRescheduleAvailability(
 	devScenario: DevRescheduleScenario | undefined
 ): DevRescheduleAvailabilityResult {
 	if (devScenario === "link_not_found") {

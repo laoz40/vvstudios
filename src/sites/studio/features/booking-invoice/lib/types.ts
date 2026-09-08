@@ -2,11 +2,11 @@ import type { GenericId } from "convex/values";
 import type {
 	BookingAddon,
 	BookingAddonQuantities,
-	DURATION_OPTIONS,
-	SERVICES
+	BookingService,
+	DURATION_OPTIONS
 } from "#studio/features/booking-form/lib/booking-form-model";
 
-export type BookingService = (typeof SERVICES)[number];
+export type { BookingService };
 export type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
 export type BookingInvoiceBuilderInput = {

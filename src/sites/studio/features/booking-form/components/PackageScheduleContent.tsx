@@ -37,7 +37,7 @@ type PackageData = NonNullable<
 	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
 >;
 
-export function handlePackageUnscheduleRequest(bookingId: Id<"bookings">, date: string) {
+function handlePackageUnscheduleRequest(bookingId: Id<"bookings">, date: string) {
 	openPackageUnscheduleConfirmationModal({
 		bookingId,
 		dateSummary: formatBookingDateSummary(date),

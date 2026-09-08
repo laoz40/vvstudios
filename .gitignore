@@ -12,6 +12,7 @@ dist-ssr
 __unconfig*
 todos.json
 .vercel
+.fallow/
 
 tmp/
 CONVEX_NEVERTHROW_REFACTOR_CHECKLIST.md

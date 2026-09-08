@@ -22,7 +22,7 @@ export function toAdminSessionDuration(
 	return DURATION_OPTIONS.find((option) => option === duration) ?? "";
 }
 
-export function isCapacityConsumingPackageSession(session: SessionRecord) {
+function isCapacityConsumingPackageSession(session: SessionRecord) {
 	return session.packageId !== undefined && sessionConsumesPackageCapacity(session);
 }
 
@@ -33,13 +33,13 @@ export type SessionActionDetails = {
 	isPastSession: boolean;
 };
 
-export const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 export function isManageableConfirmedSession(session: SessionRecord) {
 	return session.status === "confirmed" || session.status === "email_failed";
 }
 
-export function isStaleCleanupSession(session: SessionRecord, now = Date.now()) {
+function isStaleCleanupSession(session: SessionRecord, now = Date.now()) {
 	if (session.status === "expired" || session.status === "abandoned") {
 		return true;
 	}

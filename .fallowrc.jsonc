@@ -1,0 +1,42 @@
+{
+	"$schema": "./node_modules/fallow/schema.json",
+	"entry": ["nitro.config.ts", "scripts/preview-*.tsx", "scripts/*.mjs"],
+	"ignoreExports": [
+		// shadcn/ui barrels export more than the app uses today
+		{ "file": "src/components/ui/**", "exports": ["*"] },
+		// placeholder for future parent site at /
+		{ "file": "src/config/sites.ts", "exports": ["parentSite"] }
+	],
+	"ignoreFindings": [
+		// convex-test setup intentionally imports test files
+		"convex/test.setup.ts",
+		"convex/tests/**",
+		// local oxlint plugin tooling
+		"tools/oxlint/**"
+	],
+	"ignoreDependencies": [
+		// used by react-email dev preview, not imported from app code
+		"@react-email/ui",
+		// only imported from convex tests
+		"convex-test"
+	],
+	"rules": {
+		"unused-files": "error",
+		"unused-exports": "error",
+		"unused-types": "off",
+		"circular-dependencies": "warn"
+	},
+	"duplicates": {
+		"mode": "mild",
+		"skipLocal": true,
+		"ignore": [
+			// local oxlint plugin tooling
+			"tools/oxlint/**",
+			// email templates repeat layout/copy by design
+			"src/sites/studio/features/**/*email*/**",
+			"src/sites/studio/features/**/email/**",
+			"src/sites/studio/components/email/**",
+			"scripts/preview-*-email.tsx"
+		]
+	}
+}

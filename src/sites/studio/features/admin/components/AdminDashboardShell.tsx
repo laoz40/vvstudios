@@ -43,7 +43,9 @@ export function AdminDashboardShell({
 						<div className="flex flex-wrap items-center gap-2">
 							<AdminPrivacyToggle />
 							<AdminAvailabilitySettings />
-							<DashboardSignOutButton email={email} />
+							<span title={`Signed in as ${email ?? "Unknown user"}`}>
+								<DashboardSignOutButton />
+							</span>
 						</div>
 					</div>
 				</div>
