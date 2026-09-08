@@ -15,8 +15,7 @@
 		"paths": {
 			"#/*": ["./src/*"],
 			"#convex/*": ["./convex/*"],
-			"#studio/*": ["./src/sites/studio/*"],
-			"@/*": ["./src/*"]
+			"#studio/*": ["./src/sites/studio/*"]
 		},
 		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"types": ["vite/client"],

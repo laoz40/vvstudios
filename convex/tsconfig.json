@@ -22,8 +22,7 @@
 		"paths": {
 			"#/*": ["../src/*"],
 			"#convex/*": ["./*"],
-			"#studio/*": ["../src/sites/studio/*"],
-			"@/*": ["../src/*"]
+			"#studio/*": ["../src/sites/studio/*"]
 		},
 
 		/* These compiler options are required by Convex */

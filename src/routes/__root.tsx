@@ -15,8 +15,8 @@ import { StudioErrorPage } from "#studio/components/StudioErrorPage";
 import { studioSite } from "#/config/sites";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
-import appCss from "../styles.css?url";
-import studioCss from "../sites/studio/styles.css?url";
+import appCss from "#/styles.css?url";
+import studioCss from "#/sites/studio/styles.css?url";
 
 export const Route = createRootRoute({
 	notFoundComponent: NotFoundPage,

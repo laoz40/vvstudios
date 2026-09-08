@@ -5,7 +5,13 @@
 	"categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
 	"options": { "typeAware": true, "reportUnusedDisableDirectives": "error" },
 	"env": { "builtin": true },
-	"ignorePatterns": ["out/**", "build/**", "convex/_generated/**", "tools/oxlint/anti-slop/**"],
+	"ignorePatterns": [
+		"out/**",
+		"build/**",
+		"convex/_generated/**",
+		"src/**/*.gen.ts",
+		"tools/oxlint/anti-slop/**"
+	],
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
 		"no-array-constructor": "error",
@@ -134,9 +140,23 @@
 			"env": { "browser": true, "node": true }
 		},
 		{
+			"files": ["src/**"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": [
+							{ "group": ["./**", "../**"], "message": "Use absolute imports with the #/ alias." }
+						]
+					}
+				]
+			}
+		},
+		{
 			"files": ["src/components/ui/**"],
 			"plugins": ["jsx-a11y"],
 			"rules": {
+				"no-restricted-imports": "off",
 				"jsx-a11y/prefer-tag-over-role": "off",
 				"jsx-a11y/no-noninteractive-tabindex": "off",
 				"jsx-a11y/no-noninteractive-element-interactions": "off"
