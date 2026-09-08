@@ -58,6 +58,7 @@ function FailedBookingActions({
 	stripeSessionId
 }: FailedBookingActionsProps): ReactElement {
 	const canReschedule = canCreateRescheduleLink && Boolean(stripeSessionId);
+	const rescheduleLabel = isCreatingRescheduleLink ? "Creating link" : "Reschedule booking";
 
 	return (
 		<>
@@ -69,13 +70,13 @@ function FailedBookingActions({
 					<button
 						type="button"
 						onClick={onReschedule}>
-						{isCreatingRescheduleLink ? (
+						{isCreatingRescheduleLink && (
 							<LoaderCircle
 								data-icon="inline-start"
 								className="animate-spin"
 							/>
-						) : null}
-						{isCreatingRescheduleLink ? "Creating link" : "Reschedule booking"}
+						)}
+						{rescheduleLabel}
 					</button>
 				</BookingActionButton>
 			) : null}
