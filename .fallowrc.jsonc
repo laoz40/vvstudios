@@ -21,8 +21,8 @@
 		"convex-test"
 	],
 	"rules": {
-		"unused-files": "warn",
-		"unused-exports": "warn",
+		"unused-files": "error",
+		"unused-exports": "error",
 		"unused-types": "off",
 		"circular-dependencies": "warn"
 	},
