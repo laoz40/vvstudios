@@ -81,7 +81,7 @@ Extremely important website is accessible, and as fast first paint on marketing 
 - Prefer absolute import aliases over relative imports
 - Dont use nested ternaries and if statements
 - Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
-- Handle every union variant. Use `never` in the default case to force exhaustive switches.
+- Handle every union variant with `exhaustiveCheck` default
 - Parse boundary data once with Zod.
 - Dont write like a python dev
 

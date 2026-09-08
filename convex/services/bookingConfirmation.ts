@@ -1,4 +1,5 @@
 import { err, ok, ResultAsync, type Result } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
@@ -94,10 +95,8 @@ function getBookingClaimStatus(
 			return session.bookingConfirmationClaimedAt
 				? ok({ kind: "already_claimed" })
 				: ok({ kind: "pending", session });
-		default: {
-			const _exhaustive: never = session.status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(session.status);
 	}
 }
 
@@ -124,7 +123,8 @@ export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookin
 			.mapErr((error) => ({ kind: "claim_failed" as const, error }))
 			// Complete provider work only when this webhook acquired the booking claim.
 			.andThen((claim) => {
-				switch (claim.outcome) {
+				const claimOutcome = claim.outcome;
+				switch (claimOutcome) {
 					case "already_confirmed":
 					case "already_claimed":
 						return ok<CompleteSessionCheckoutSuccess>({ outcome: claim.outcome });
@@ -134,10 +134,8 @@ export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookin
 								bookingId: claim.session._id
 							})
 						).mapErr((error) => ({ kind: "completion_failed" as const, error }));
-					default: {
-						const _exhaustive: never = claim;
-						return _exhaustive;
-					}
+					default:
+						return exhaustiveCheck(claimOutcome);
 				}
 			})
 	);

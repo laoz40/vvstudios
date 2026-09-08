@@ -22,7 +22,7 @@
 		"@typescript-eslint/no-unsafe-function-type": "error",
 		"no-unused-expressions": "error",
 		"no-unused-vars": "error",
-		"no-underscore-dangle": ["error", { "allow": ["_id", "_exhaustive"] }],
+		"no-underscore-dangle": ["error", { "allow": ["_id"] }],
 		"@typescript-eslint/no-wrapper-object-types": "error",
 		"@typescript-eslint/prefer-as-const": "error",
 		"@typescript-eslint/prefer-namespace-keyword": "error",

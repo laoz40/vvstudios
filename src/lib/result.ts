@@ -12,6 +12,11 @@ export function tupleErr<const E extends { reason: string }>(error: E): Result<n
 
 export type UnexpectedError = { reason: "UNEXPECTED_ERROR" };
 
+/** Switch default branch: `value` must be `never` or TypeScript reports a missing case. */
+export function exhaustiveCheck(value: never): never {
+	throw new Error(`Unexpected case: ${String(value)}`);
+}
+
 export async function tryCatch<R extends Result<unknown, { reason: string }>>(
 	promise: Promise<R>
 ): Promise<R | Result<never, UnexpectedError>> {

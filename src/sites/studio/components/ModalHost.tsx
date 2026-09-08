@@ -1,11 +1,13 @@
 import { FreeTourModal } from "#studio/components/FreeTourModal";
+import { exhaustiveCheck } from "#/lib/result";
 import { GiveFeedbackModalHost } from "#studio/components/GiveFeedbackModalHost";
 import { useModalStore } from "#studio/lib/modal-store";
 
 export function ModalHost() {
 	const modalState = useModalStore((state) => state);
 
-	switch (modalState.modal) {
+	const modal = modalState.modal;
+	switch (modal) {
 		case "feedback":
 			return <GiveFeedbackModalHost />;
 
@@ -14,10 +16,7 @@ export function ModalHost() {
 
 		case "none":
 			return null;
-
-		default: {
-			const _exhaustive: never = modalState;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(modal);
 	}
 }

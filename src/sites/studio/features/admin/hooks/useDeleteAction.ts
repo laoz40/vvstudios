@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useDeleteAction(session: SessionRecord) {
@@ -18,7 +18,8 @@ export function useDeleteAction(session: SessionRecord) {
 		const [error] = await tryCatch(deleteSessionEvent({ bookingId: session._id }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -40,11 +41,8 @@ export function useDeleteAction(session: SessionRecord) {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while deleting the event. Please try again.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsDeleting(false);
@@ -62,7 +60,8 @@ export function useDeleteAction(session: SessionRecord) {
 		const [error] = await tryCatch(archiveSession({ bookingId: session._id, archived }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -75,11 +74,8 @@ export function useDeleteAction(session: SessionRecord) {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while archiving the session.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsUpdatingArchive(false);

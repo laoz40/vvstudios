@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type {
 	AdminPackagePendingAction,
@@ -35,7 +35,8 @@ export function usePackageAdjustmentActions(
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -56,11 +57,8 @@ export function usePackageAdjustmentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while downloading the adjustment invoice.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);
@@ -81,7 +79,8 @@ export function usePackageAdjustmentActions(
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -101,11 +100,8 @@ export function usePackageAdjustmentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while retrying the adjustment invoice.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);
@@ -126,7 +122,8 @@ export function usePackageAdjustmentActions(
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -142,11 +139,8 @@ export function usePackageAdjustmentActions(
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the adjustment payment.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setPendingAction(null);

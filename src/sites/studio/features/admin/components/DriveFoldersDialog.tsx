@@ -1,4 +1,5 @@
 import { useAction, useQuery } from "convex/react";
+import { exhaustiveCheck } from "#/lib/result";
 import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -48,10 +49,8 @@ function getDriveDescription({
 		case "not_created":
 		case undefined:
 			return "Google Drive folders have not been created. Setup may not have run yet, or it may have been skipped because the session changed or was cancelled.";
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(status);
 	}
 }
 

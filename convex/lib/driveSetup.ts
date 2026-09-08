@@ -1,4 +1,5 @@
 "use node";
+import { exhaustiveCheck } from "#/lib/result";
 
 import { ResultAsync, err, ok, okAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
@@ -376,10 +377,8 @@ function savedChildFolder(setupInfo: DriveSetupInfo, name: DriveChildFolderName)
 			return setupInfo.driveSession?.rawMediaFolder;
 		case "Deliverables":
 			return setupInfo.driveSession?.deliverablesFolder;
-		default: {
-			const _exhaustive: never = name;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(name);
 	}
 }
 

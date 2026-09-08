@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+import { exhaustiveCheck } from "#/lib/result";
 import type { DriveDialogStatus } from "#studio/features/admin/lib/drive-folders-dialog";
 
 function clientDrivePermissionsCompleteLabel(
@@ -12,10 +13,8 @@ function clientDrivePermissionsCompleteLabel(
 		case "incomplete":
 		case "not_created":
 			return "Google Drive permissions set up for client";
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(status);
 	}
 }
 
@@ -30,10 +29,8 @@ function isClientDrivePermissionsComplete(
 		case "incomplete":
 		case "not_created":
 			return false;
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(status);
 	}
 }
 

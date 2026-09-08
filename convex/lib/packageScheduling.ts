@@ -1,4 +1,5 @@
 import { err, ok, type ResultAsync } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
@@ -126,10 +127,8 @@ export function sessionConsumesPackageCapacity(session: Pick<Doc<"bookings">, "s
 		case "expired":
 		case "abandoned":
 			return false;
-		default: {
-			const _exhaustive: never = session.status;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(session.status);
 	}
 }
 

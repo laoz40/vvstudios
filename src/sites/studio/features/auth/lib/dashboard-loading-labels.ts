@@ -1,4 +1,5 @@
 export type DashboardRole = "admin" | "editor";
+import { exhaustiveCheck } from "#/lib/result";
 
 export type DashboardLoadingStage =
 	| "scanning-badge"
@@ -20,9 +21,7 @@ export function getDashboardLoadingLabel(
 		case "loading-data":
 			if (dashboardRole === "admin") return "Decrypting classified files";
 			return "Loading assigned sessions";
-		default: {
-			const _exhaustive: never = stage;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(stage);
 	}
 }

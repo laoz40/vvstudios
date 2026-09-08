@@ -5,7 +5,7 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import {
 	Dialog,
 	DialogContent,
@@ -76,7 +76,8 @@ export function AdminAvailabilitySettings() {
 		const [error] = await tryCatch(updateBookingSettings(toBookingSettingsDraft(draft)));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("Please sign in first.");
 					break;
@@ -92,12 +93,8 @@ export function AdminAvailabilitySettings() {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong with saving availability settings.");
 					break;
-
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsSaving(false);

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { exhaustiveCheck } from "#/lib/result";
 import { Button } from "#/components/ui/button";
 import { FloatingDevMenu } from "#studio/components/booking/FloatingDevMenu";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
@@ -164,7 +165,8 @@ export function getDevRescheduleAvailabilityStatus(devScenario: DevRescheduleSce
 		return { kind: "ready", times: [...availability.times] } as const;
 	}
 
-	switch (availabilityError.reason) {
+	const availabilityReason = availabilityError.reason;
+	switch (availabilityReason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 		case "RESCHEDULE_LINK_USED":
 		case "RESCHEDULE_LINK_EXPIRED":
@@ -175,11 +177,8 @@ export function getDevRescheduleAvailabilityStatus(devScenario: DevRescheduleSce
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return { kind: "availabilityError", error: availabilityError } as const;
-
-		default: {
-			const _exhaustive: never = availabilityError;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(availabilityReason);
 	}
 }
 

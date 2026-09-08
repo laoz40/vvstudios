@@ -14,7 +14,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import { CustomInvoiceFormFields } from "#studio/features/admin/components/CustomInvoiceFormFields";
 import { PreviousCustomInvoices } from "#studio/features/admin/components/PreviousCustomInvoices";
 import type { PreviousCustomInvoiceItem } from "#studio/features/admin/components/PreviousCustomInvoices";
@@ -79,7 +79,8 @@ type PackageCustomInvoiceDialogProps = {
 };
 
 function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			toast.error("Please sign in first.");
 			break;
@@ -95,10 +96,8 @@ function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceEr
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong with creating the custom invoice.");
 			break;
-		default: {
-			const _exhaustive: never = error;
-			void _exhaustive;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 
@@ -193,7 +192,8 @@ export function PackageCustomInvoiceDialog({
 		const [error, invoice] = await tryCatch(getCustomPackageInvoicePdf({ customInvoiceId }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -209,11 +209,8 @@ export function PackageCustomInvoiceDialog({
 				case "UNEXPECTED_ERROR":
 					toast.error("Unable to generate custom package invoice.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setDownloadingInvoiceId(null);

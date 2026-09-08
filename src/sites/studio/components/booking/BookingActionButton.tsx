@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { exhaustiveCheck } from "#/lib/result";
 import { AnimatedIconButton, type AnimatedIconButtonProps } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import HomeIcon from "#/components/ui/home-icon";
@@ -51,11 +52,8 @@ function renderBookingActionIcon(
 					strokeWidth={3}
 				/>
 			);
-
-		default: {
-			const _exhaustive: never = icon;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(icon);
 	}
 }
 

@@ -1,4 +1,5 @@
 import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
+import { exhaustiveCheck } from "#/lib/result";
 import type { FunctionReturnType } from "convex/server";
 import { z } from "zod";
 import { api } from "#convex/_generated/api";
@@ -21,7 +22,8 @@ type RescheduleUpdateToastError =
 	| DevRescheduleUpdateError;
 
 function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 			return {
 				title: "This reschedule link could not be found.",
@@ -51,11 +53,8 @@ function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInva
 				title: "This booking can’t be rescheduled online.",
 				description: "Please contact us and we’ll help you with your booking."
 			};
-
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
@@ -76,7 +75,8 @@ export function isRescheduleBusyWindowsLoadError(
 export function resolveRescheduleBusyWindowsLoadError(
 	error: RescheduleBusyWindowsLoadError
 ): RescheduleBusyWindowsLoadOutcome {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 		case "RESCHEDULE_LINK_USED":
 		case "RESCHEDULE_LINK_EXPIRED":
@@ -89,16 +89,14 @@ export function resolveRescheduleBusyWindowsLoadError(
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 		case "UNEXPECTED_ERROR":
 			return { kind: "availabilityError", message: getAvailabilityErrorMessage(error) };
-
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
 export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError): string {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 			return "Availability could not load right now. Please contact us and we’ll help you find a time.";
@@ -108,11 +106,8 @@ export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError):
 
 		case "UNEXPECTED_ERROR":
 			return "Something went wrong while loading availability. Please try again.";
-
-		default: {
-			const _exhaustive: never = error;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 

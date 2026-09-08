@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useRescheduleAction(session: SessionRecord) {
@@ -17,7 +17,8 @@ export function useRescheduleAction(session: SessionRecord) {
 		const [error, result] = await tryCatch(createAdminRescheduleLink({ bookingId: session._id }));
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -36,11 +37,8 @@ export function useRescheduleAction(session: SessionRecord) {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while creating the reschedule link.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsGeneratingRescheduleLink(false);

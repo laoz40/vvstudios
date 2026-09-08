@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import {
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
@@ -23,7 +23,8 @@ export function useStatusActions(session: SessionRecord) {
 		);
 
 		if (error !== null) {
-			switch (error.reason) {
+			const reason = error.reason;
+			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
 					break;
@@ -44,11 +45,8 @@ export function useStatusActions(session: SessionRecord) {
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the deliverables status.");
 					break;
-				default: {
-					const _exhaustive: never = error;
-					void _exhaustive;
-					break;
-				}
+				default:
+					exhaustiveCheck(reason);
 			}
 
 			setIsUpdatingEditStatus(false);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { exhaustiveCheck } from "#/lib/result";
 
 export type EditorWorkStatus = "assigned" | "editing" | "unassigned";
 export type AdminEditorProfile = {
@@ -75,10 +76,8 @@ export function getInviteUserErrorMessage(reason: InviteUserErrorReason) {
 			return "You don't have permission to invite editors.";
 		case "UNEXPECTED_ERROR":
 			return "The invitation could not be sent. Please try again.";
-		default: {
-			const _exhaustive: never = reason;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 
@@ -94,10 +93,8 @@ export function getEditorAccessErrorMessage(reason: EditorAccessErrorReason) {
 			return "You don't have permission to manage editor access.";
 		case "UNEXPECTED_ERROR":
 			return "Editor access could not be updated.";
-		default: {
-			const _exhaustive: never = reason;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(reason);
 	}
 }
 

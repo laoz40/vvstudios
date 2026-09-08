@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import { Badge } from "#/components/ui/badge";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
@@ -55,7 +55,8 @@ type EnrollAdminAsEditorError =
 	| UnexpectedError;
 
 function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
-	switch (error.reason) {
+	const reason = error.reason;
+	switch (reason) {
 		case "EDITOR_PROFILE_INACTIVE":
 			toast.error("Your editor profile is retired. Reactivate it from the employees table.");
 			return;
@@ -68,10 +69,8 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to enroll as an editor.");
 			return;
-		default: {
-			const _exhaustive: never = error;
-			void _exhaustive;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 

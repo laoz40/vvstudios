@@ -1,4 +1,5 @@
 import { err, ok, ResultAsync } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -208,7 +209,8 @@ async function handlePackageAdjustmentEvaluation(
 	evaluation: ReturnType<typeof evaluatePackageAdjustment>,
 	now: number
 ) {
-	switch (evaluation.kind) {
+	const evaluationKind = evaluation.kind;
+	switch (evaluationKind) {
 		case "wait_for_sessions_to_end":
 			return schedulePackageAdjustmentReevaluation(ctx, args, evaluation.nextCheckAt);
 		case "invalid_duration":
@@ -218,10 +220,8 @@ async function handlePackageAdjustmentEvaluation(
 			return null;
 		case "ready":
 			return savePackageAdjustment(ctx, args, evaluation, now);
-		default: {
-			const _exhaustive: never = evaluation;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(evaluationKind);
 	}
 }
 

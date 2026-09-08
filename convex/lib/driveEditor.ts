@@ -1,4 +1,5 @@
 import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, getDriveSetup } from "#convex/lib/driveLookup";
@@ -313,10 +314,8 @@ export function saveEditorDrivePermission(
 					field: "editorDeliverablesPermission",
 					permission: args.permission
 				});
-			default: {
-				const _exhaustive: never = args.name;
-				return _exhaustive;
-			}
+			default:
+				return exhaustiveCheck(args.name);
 		}
 	});
 }
@@ -422,10 +421,8 @@ function canClaimEditorAssignmentEmail(
 			return true;
 		case "sent":
 			return false;
-		default: {
-			const _exhaustive: never = driveSession.assignmentEmailStatus;
-			return _exhaustive;
-		}
+		default:
+			return exhaustiveCheck(driveSession.assignmentEmailStatus);
 	}
 }
 

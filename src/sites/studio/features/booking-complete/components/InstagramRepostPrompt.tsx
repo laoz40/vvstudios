@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { tryCatch } from "#/lib/result";
+import { exhaustiveCheck, tryCatch } from "#/lib/result";
 
 type InstagramRepostTarget =
 	| { kind: "booking"; stripeSessionId: string }
@@ -129,11 +129,8 @@ function handleBookingSaveError(reason: BookingInstagramSaveErrorReason) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
 			return;
-		default: {
-			const _exhaustive: never = reason;
-			void _exhaustive;
-			return;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
 
@@ -148,10 +145,7 @@ function handlePackageSaveError(reason: PackageInstagramSaveErrorReason) {
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
 			return;
-		default: {
-			const _exhaustive: never = reason;
-			void _exhaustive;
-			return;
-		}
+		default:
+			exhaustiveCheck(reason);
 	}
 }
