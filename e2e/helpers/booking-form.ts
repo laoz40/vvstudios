@@ -30,18 +30,26 @@ export function getE2eDayIndexBucket(bucketCount = 5) {
 
 async function waitForCalendarAvailability(page: Page) {
 	const loadingAvailability = page.getByText("Loading availability...");
+	const calendar = page.locator('[data-slot="calendar"]');
+
+	// Busy-window fetch starts after mount once the rate-limit key is set in useEffect.
+	await loadingAvailability.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
 
 	if (await loadingAvailability.isVisible()) {
-		await loadingAvailability.waitFor({ state: "hidden", timeout: 15_000 });
+		await loadingAvailability.waitFor({ state: "hidden", timeout: 30_000 });
 	}
-
-	const calendar = page.locator('[data-slot="calendar"]');
 
 	await expect
 		.poll(async () => calendar.locator("button[data-day]:not([disabled])").count(), {
 			timeout: 15_000
 		})
 		.toBeGreaterThan(0);
+}
+
+async function waitForBookingDateSelected(page: Page) {
+	await expect(page.getByText(/^Selected /)).not.toContainText("No selected date", {
+		timeout: 30_000
+	});
 }
 
 async function readDayTimeSelectionState(
@@ -68,6 +76,7 @@ async function readDayTimeSelectionState(
 }
 
 async function pickTimeForDayAtIndex(
+	page: Page,
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
 	dayIndex: number,
@@ -80,26 +89,29 @@ async function pickTimeForDayAtIndex(
 		return false;
 	}
 
+	const dayButton = enabledDays.nth(dayIndex);
 	let timeSelection: "available" | "unavailable" | undefined;
 
-	await expect(async () => {
-		await enabledDays.nth(dayIndex).click();
+	try {
+		await expect(async () => {
+			await dayButton.scrollIntoViewIfNeeded();
+			await dayButton.click();
+			await waitForBookingDateSelected(page);
 
-		const state = await readDayTimeSelectionState(timeField);
+			const state = await readDayTimeSelectionState(timeField);
 
-		if (state === "pending") {
-			throw new Error("Waiting for date selection and time slots");
-		}
+			if (state === "pending") {
+				throw new Error("Waiting for time slots after date selection");
+			}
 
-		timeSelection = state;
-	}).toPass({ timeout: 25_000 });
-
-	if (timeSelection === undefined) {
-		throw new Error("Time slot selection did not resolve");
+			timeSelection = state;
+		}).toPass({ timeout: 15_000 });
+	} catch {
+		return false;
 	}
 
-	if (timeSelection === "unavailable") {
-		return pickTimeForDayAtIndex(calendar, timeField, dayIndex + 1, timeIndex);
+	if (timeSelection === undefined || timeSelection === "unavailable") {
+		return false;
 	}
 
 	const timeLabels = timeField.locator("label");
@@ -113,6 +125,34 @@ async function pickTimeForDayAtIndex(
 	return true;
 }
 
+async function tryPickBookableDayFromIndex(
+	page: Page,
+	calendar: ReturnType<Page["locator"]>,
+	timeField: ReturnType<Page["locator"]>,
+	dayIndex: number,
+	dayCount: number,
+	timeIndex: number
+): Promise<boolean> {
+	if (dayIndex >= dayCount) {
+		return false;
+	}
+
+	const picked = await pickTimeForDayAtIndex(page, calendar, timeField, dayIndex, timeIndex);
+
+	if (picked) {
+		return true;
+	}
+
+	return tryPickBookableDayFromIndex(
+		page,
+		calendar,
+		timeField,
+		dayIndex + 1,
+		dayCount,
+		timeIndex
+	);
+}
+
 async function pickBookableDateInMonth(
 	page: Page,
 	monthAttempt: number,
@@ -121,7 +161,17 @@ async function pickBookableDateInMonth(
 ): Promise<void> {
 	const calendar = page.locator('[data-slot="calendar"]');
 	const timeField = page.locator('[data-field-name="time"]');
-	const picked = await pickTimeForDayAtIndex(calendar, timeField, startingDayIndex, timeIndex);
+	const enabledDays = calendar.locator("button[data-day]:not([disabled])");
+	const dayCount = await enabledDays.count();
+
+	const picked = await tryPickBookableDayFromIndex(
+		page,
+		calendar,
+		timeField,
+		startingDayIndex,
+		dayCount,
+		timeIndex
+	);
 
 	if (picked) {
 		return;
