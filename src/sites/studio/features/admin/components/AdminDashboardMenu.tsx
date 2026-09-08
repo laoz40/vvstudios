@@ -1,9 +1,6 @@
-import { SignOutButton } from "@clerk/clerk-react";
 import { Menu } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import LogoutIcon from "#/components/ui/logout-icon";
-import { studioSite } from "#/config/sites";
+import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
 import {
 	Sheet,
 	SheetContent,
@@ -38,21 +35,7 @@ export function AdminDashboardMenu({ email }: AdminDashboardMenuProps) {
 				<div className="flex flex-col items-start gap-2 px-4">
 					<AdminPrivacyToggle />
 					<AdminAvailabilitySettings />
-					<SignOutButton redirectUrl={studioSite.routes.login}>
-						<AnimatedIconButton
-							type="button"
-							variant="ghost"
-							size="sm"
-							iconPosition="before"
-							renderIcon={(iconRef) => (
-								<LogoutIcon
-									ref={iconRef}
-									aria-hidden
-								/>
-							)}>
-							<button type="button">Sign out</button>
-						</AnimatedIconButton>
-					</SignOutButton>
+					<DashboardSignOutButton />
 				</div>
 			</SheetContent>
 		</Sheet>
