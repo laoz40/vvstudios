@@ -226,38 +226,35 @@ export async function completeStripePayment(page: Page) {
 
 	await expect(checkout.getByText("TEST MODE")).toBeVisible({ timeout: 60_000 });
 
-	await expect(async () => {
-		const cardNumber = checkout.getByRole("textbox", { name: "Card number" });
-		await expect(cardNumber).toBeVisible({ timeout: 5_000 });
-		await cardNumber.fill("4242 4242 4242 4242");
-		await checkout.getByRole("textbox", { name: "Expiration" }).fill("12 / 34");
-		await checkout.getByRole("textbox", { name: "Credit or debit card CVC/CVV" }).fill("123");
+	const cardNumber = checkout.getByRole("textbox", { name: "Card number" });
+	await expect(cardNumber).toBeEditable({ timeout: 30_000 });
+	await cardNumber.fill("4242 4242 4242 4242");
+	await checkout.getByRole("textbox", { name: "Expiration" }).fill("12 / 34");
+	await checkout.getByRole("textbox", { name: "Credit or debit card CVC/CVV" }).fill("123");
 
-		const cardholderName = checkout.locator('input[autocomplete="cc-name"]');
-		if (await cardholderName.isVisible()) {
-			await cardholderName.fill("Alex Tester");
-		}
+	const cardholderName = checkout.locator('input[autocomplete="cc-name"]');
+	if (await cardholderName.isVisible()) {
+		await cardholderName.fill("Alex Tester");
+	}
 
-		const phoneNumber = checkout.getByRole("textbox", { name: "Phone number" });
-		if (await phoneNumber.isVisible()) {
-			await phoneNumber.fill("0400 000 000");
-		}
+	const phoneNumber = checkout.getByRole("textbox", { name: "Phone number" });
+	if (await phoneNumber.isVisible()) {
+		await phoneNumber.fill("0400 000 000");
+	}
 
-		const payButton = checkout.getByRole("button", { name: /^Pay/i });
-		await expect(payButton).toBeEnabled({ timeout: 10_000 });
-		await payButton.click();
-	}).toPass({ timeout: 60_000 });
+	const payButton = checkout.getByRole("button", { name: /^Pay/i });
+	await expect(payButton).toBeEnabled({ timeout: 10_000 });
+
+	await Promise.all([
+		page.waitForURL(/\/booking-complete/, { timeout: 120_000 }),
+		payButton.click()
+	]);
 }
 
 export async function expectBookingConfirmed(page: Page) {
-	await expect(page).toHaveURL(/\/booking-complete/, { timeout: 120_000 });
 	await expect(page).toHaveURL(/session_id=/, { timeout: 10_000 });
 
-	await expect
-		.poll(
-			async () =>
-				await page.getByRole("heading", { name: "Your booking is confirmed!" }).isVisible(),
-			{ timeout: 120_000, intervals: [500, 1_000, 2_000] }
-		)
-		.toBe(true);
+	await expect(page.getByRole("heading", { name: "Your booking is confirmed!" })).toBeVisible({
+		timeout: 120_000
+	});
 }
