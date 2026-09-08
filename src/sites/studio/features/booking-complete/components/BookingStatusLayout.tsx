@@ -1,17 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
-import HomeIcon from "#/components/ui/home-icon";
-import PhoneVolume from "#/components/ui/phone-volume";
 import {
 	type BookingStatus,
 	BookingCompleteDevScenarioPanel
 } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
+import { BookingOutcomeActions } from "#studio/components/booking/BookingOutcomeActions";
 import { InstagramRepostPrompt } from "#studio/features/booking-complete/components/InstagramRepostPrompt";
-import { studioSite } from "#/config/sites";
 import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
@@ -140,117 +135,24 @@ interface BookingActionsProps {
 }
 
 function BookingActions(props: BookingActionsProps): ReactNode {
-	return (
-		<div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-			{props.isFailedBooking ? <FailedBookingActions {...props} /> : <SuccessfulBookingActions />}
-		</div>
-	);
-}
-
-function FailedBookingActions({
-	canCreateRescheduleLink,
-	isCreatingRescheduleLink,
-	onReschedule,
-	stripeSessionId
-}: BookingActionsProps): ReactNode {
-	const canReschedule = canCreateRescheduleLink && Boolean(stripeSessionId);
+	if (props.isFailedBooking) {
+		return (
+			<BookingOutcomeActions
+				outcome="failed"
+				className="mt-4"
+				canCreateRescheduleLink={props.canCreateRescheduleLink}
+				isCreatingRescheduleLink={props.isCreatingRescheduleLink}
+				onReschedule={props.onReschedule}
+				stripeSessionId={props.stripeSessionId}
+			/>
+		);
+	}
 
 	return (
-		<>
-			{canReschedule ? (
-				<AnimatedIconButton
-					size="lg"
-					className={cn(
-						"h-auto w-full sm:w-auto",
-						"px-8 py-3",
-						"text-base font-medium",
-						"shadow-lg shadow-primary/45"
-					)}
-					disabled={isCreatingRescheduleLink}
-					renderIcon={(iconRef) => (
-						<ArrowNarrowRightIcon
-							ref={iconRef}
-							strokeWidth={3}
-							className="translate-y-px"
-							aria-hidden
-						/>
-					)}>
-					<button
-						type="button"
-						onClick={onReschedule}>
-						{isCreatingRescheduleLink ? "Creating link..." : "Reschedule booking"}
-					</button>
-				</AnimatedIconButton>
-			) : null}
-			<AnimatedIconButton
-				size="lg"
-				className={cn(
-					"h-auto w-full sm:w-auto",
-					"px-8 py-3",
-					"text-base font-medium",
-					canReschedule
-						? "border-none shadow-md shadow-background/25"
-						: "shadow-lg shadow-primary/45"
-				)}
-				variant={canReschedule ? "outline" : undefined}
-				iconPosition="before"
-				renderIcon={(iconRef) => (
-					<PhoneVolume
-						ref={iconRef}
-						aria-hidden
-						strokeWidth={3}
-					/>
-				)}>
-				<a
-					href={studioSite.routes.contact}
-					rel="noreferrer"
-					target="_blank">
-					Contact us
-				</a>
-			</AnimatedIconButton>
-		</>
-	);
-}
-
-function SuccessfulBookingActions(): ReactNode {
-	return (
-		<>
-			<AnimatedIconButton
-				size="lg"
-				className={cn(
-					"h-auto w-full sm:w-auto",
-					"px-8 py-3",
-					"text-base font-medium",
-					"shadow-lg shadow-primary/45"
-				)}
-				renderIcon={(iconRef) => (
-					<ArrowNarrowRightIcon
-						ref={iconRef}
-						strokeWidth={3}
-						className="translate-y-px"
-						aria-hidden
-					/>
-				)}>
-				<Link to={studioSite.routes.book}>Make a new booking</Link>
-			</AnimatedIconButton>
-			<AnimatedIconButton
-				size="lg"
-				className={cn(
-					"h-auto w-full sm:w-auto",
-					"px-8 py-3",
-					"text-base font-medium",
-					"border-none shadow-md shadow-background/25"
-				)}
-				variant="outline"
-				iconPosition="before"
-				renderIcon={(iconRef) => (
-					<HomeIcon
-						ref={iconRef}
-						aria-hidden
-					/>
-				)}>
-				<Link to={studioSite.routes.home}>Return home</Link>
-			</AnimatedIconButton>
-		</>
+		<BookingOutcomeActions
+			outcome="book-again-home"
+			className="mt-4"
+			primaryLabel="Make a new booking"
+		/>
 	);
 }
