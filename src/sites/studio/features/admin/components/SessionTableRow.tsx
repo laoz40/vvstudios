@@ -13,7 +13,6 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
-import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
 	sessionStatusIconClassNameMap,
 	sessionStatusIconMap,
@@ -24,6 +23,7 @@ import {
 	getDeliverableStatus,
 	isDeliverableSession
 } from "#studio/features/admin/lib/session-edit-status";
+import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import {
 	getPackageSessionProgressLabel,
@@ -120,27 +120,6 @@ function SessionContactCell({ rowId, session }: { rowId: string; session: Sessio
 					</>
 				) : null}
 			</p>
-		</div>
-	);
-}
-
-function SessionDetailsCell({ session }: { session: SessionRecord }) {
-	return (
-		<div className="flex min-w-48 flex-col gap-2 whitespace-normal">
-			<p className="font-medium">{session.service}</p>
-			{session.addons.length > 0 ? (
-				<div className="flex flex-wrap gap-1">
-					{session.addons.map((addon) => (
-						<Badge
-							key={addon}
-							variant="outline">
-							{formatDashboardAddonLabel(addon, session)}
-						</Badge>
-					))}
-				</div>
-			) : (
-				<p className="text-sm text-muted-foreground">No add-ons</p>
-			)}
 		</div>
 	);
 }
@@ -298,14 +277,18 @@ export function SessionTableRow({
 					className="flex cursor-help flex-col gap-1 whitespace-normal"
 					title={relativeDateLabel}>
 					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-					<p className="text-sm">
-						{formatBookingTimeLabel(session.time)}
-						{session.duration ? ` · ${session.duration}` : ""}
+					<p className="text-sm text-muted-foreground">
+						{session.duration
+							? `${formatBookingTimeLabel(session.time)} · ${session.duration}`
+							: formatBookingTimeLabel(session.time)}
 					</p>
 				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<SessionDetailsCell session={session} />
+				<SessionServiceCell
+					className="min-w-48"
+					session={session}
+				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<SessionContactCell
