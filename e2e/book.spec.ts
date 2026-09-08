@@ -2,8 +2,6 @@ import { expect, test } from "@playwright/test";
 import {
 	agreeToTerms,
 	closePaymentModal,
-	completeStripePayment,
-	expectBookingConfirmed,
 	expectPaymentModal,
 	expectTermsDialog,
 	fillSingleSessionBookingForm,
@@ -45,27 +43,6 @@ test.describe("book page", () => {
 			await expectPaymentModal(page);
 		} finally {
 			await closePaymentModal(page);
-		}
-	});
-
-	test("single session payment completes booking", async ({ page }) => {
-		test.setTimeout(180_000);
-
-		await page.goto("/book");
-
-		try {
-			// Next month avoids slots consumed by earlier serial tests in the current month.
-			await fillSingleSessionBookingForm(page, { monthOffset: 1 });
-			await submitBookingForm(page);
-			await expectTermsDialog(page);
-			await agreeToTerms(page);
-			await expectPaymentModal(page);
-			await completeStripePayment(page);
-			await expectBookingConfirmed(page);
-		} finally {
-			if (page.url().includes("/book")) {
-				await closePaymentModal(page);
-			}
 		}
 	});
 });

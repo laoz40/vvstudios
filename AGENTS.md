@@ -34,6 +34,8 @@ Tests to keep:
 - Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
 
 - CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only (`E2E_VITE_STRIPE_PUBLISHABLE_KEY`, `E2E_VITE_CLERK_PUBLISHABLE_KEY` — not prod `pk_live` vars).
+- CI E2E (`bun run test:e2e`): booking form → terms → payment modal only. Stripe hCaptcha blocks headless Pay in GitHub Actions.
+- Full payment E2E (`bun run test:e2e:payment`): local only. Checkout confirmation/idempotency covered by Convex tests (`stripeCompletion.test.ts`, etc.).
 
 ## Stack
 

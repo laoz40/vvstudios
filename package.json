@@ -21,7 +21,8 @@
 		"test": "vitest run",
 		"dead-code": "fallow dead-code",
 		"dupes": "fallow dupes",
-		"test:e2e": "playwright test",
+		"test:e2e": "playwright test e2e/book.spec.ts e2e/home.spec.ts",
+		"test:e2e:payment": "playwright test e2e/book-payment.spec.ts",
 		"test:e2e:ui": "playwright test --ui",
 		"email:preview": "email dev --dir ./scripts",
 		"pdf:preview": "bun run scripts/preview-booking-invoice-pdf.ts"
