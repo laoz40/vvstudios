@@ -23,6 +23,11 @@ function createDefaultContactDetails(): BookingContactDetails {
 	};
 }
 
+/** Spread E2E bookings across bookable days so reruns don't fight the same Google Calendar slot. */
+export function getE2eDayIndexBucket(bucketCount = 5) {
+	return Math.floor(Date.now() / 60_000) % bucketCount;
+}
+
 async function waitForCalendarAvailability(page: Page) {
 	const loadingAvailability = page.getByText("Loading availability...");
 
@@ -71,7 +76,8 @@ async function waitForDayTimeSelection(
 async function pickTimeForDayAtIndex(
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
-	dayIndex: number
+	dayIndex: number,
+	timeIndex = 0
 ): Promise<boolean> {
 	const enabledDays = calendar.locator("button[data-day]:not([disabled])");
 	const dayCount = await enabledDays.count();
@@ -85,21 +91,29 @@ async function pickTimeForDayAtIndex(
 	const timeSelection = await waitForDayTimeSelection(timeField);
 
 	if (timeSelection === "unavailable") {
-		return pickTimeForDayAtIndex(calendar, timeField, dayIndex + 1);
+		return pickTimeForDayAtIndex(calendar, timeField, dayIndex + 1, timeIndex);
 	}
 
-	await timeField.locator("label").first().click();
+	const timeLabels = timeField.locator("label");
+	const timeCount = await timeLabels.count();
+
+	if (timeCount === 0) {
+		return false;
+	}
+
+	await timeLabels.nth(Math.min(timeIndex, timeCount - 1)).click();
 	return true;
 }
 
 async function pickBookableDateInMonth(
 	page: Page,
 	monthAttempt: number,
-	startingDayIndex: number
+	startingDayIndex: number,
+	timeIndex: number
 ): Promise<void> {
 	const calendar = page.locator('[data-slot="calendar"]');
 	const timeField = page.locator('[data-field-name="time"]');
-	const picked = await pickTimeForDayAtIndex(calendar, timeField, startingDayIndex);
+	const picked = await pickTimeForDayAtIndex(calendar, timeField, startingDayIndex, timeIndex);
 
 	if (picked) {
 		return;
@@ -111,7 +125,7 @@ async function pickBookableDateInMonth(
 
 	await calendar.getByRole("button", { name: "Go to the Next Month" }).click();
 	await waitForCalendarAvailability(page);
-	await pickBookableDateInMonth(page, monthAttempt + 1, 0);
+	await pickBookableDateInMonth(page, monthAttempt + 1, 0, timeIndex);
 }
 
 async function advanceCalendarMonths(page: Page, monthOffset: number) {
@@ -128,11 +142,12 @@ async function advanceCalendarMonths(page: Page, monthOffset: number) {
 export async function pickFirstBookableDateAndTime(
 	page: Page,
 	startingDayIndex = 0,
-	monthOffset = 0
+	monthOffset = 0,
+	timeIndex = 0
 ) {
 	await waitForCalendarAvailability(page);
 	await advanceCalendarMonths(page, monthOffset);
-	await pickBookableDateInMonth(page, 0, startingDayIndex);
+	await pickBookableDateInMonth(page, 0, startingDayIndex, timeIndex);
 }
 
 async function selectBookingRadio(page: Page, labelSelector: string, radioSelector: string) {
@@ -149,7 +164,7 @@ async function selectBookingRadio(page: Page, labelSelector: string, radioSelect
 export async function fillSingleSessionBookingForm(
 	page: Page,
 	options: FillBookingFormOptions = {}
-) {
+): Promise<BookingContactDetails> {
 	const contactDetails = options.contactDetails ?? createDefaultContactDetails();
 	const startingDayIndex = options.startingDayIndex ?? 0;
 	const monthOffset = options.monthOffset ?? 0;
@@ -176,6 +191,8 @@ export async function fillSingleSessionBookingForm(
 	await page.getByLabel("Mobile Number *").fill(contactDetails.phone);
 	await page.getByLabel("Account Name *").fill(contactDetails.accountName);
 	await page.getByLabel("Email *").fill(contactDetails.email);
+
+	return contactDetails;
 }
 
 export async function submitBookingForm(page: Page) {
@@ -253,6 +270,16 @@ export async function completeStripePayment(page: Page) {
 
 export async function expectBookingConfirmed(page: Page) {
 	await expect(page).toHaveURL(/session_id=/, { timeout: 10_000 });
+
+	const paymentReceivedHeading = page.getByRole("heading", { name: /We received your payment/ });
+
+	if (await paymentReceivedHeading.isVisible()) {
+		throw new Error(
+			"Checkout finished but the slot was taken (Google Calendar still busy). " +
+				"Delete test events from calendars in GOOGLE_CALENDAR_AVAILABILITY_IDS, or rerun — " +
+				"the test rotates startingDayIndex to spread bookings."
+		);
+	}
 
 	await expect(page.getByRole("heading", { name: "Your booking is confirmed!" })).toBeVisible({
 		timeout: 120_000
