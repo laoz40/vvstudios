@@ -34,7 +34,7 @@ export const ADDON_SECTIONS = [
 	description: string;
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
-export const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
+const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
 const QUANTITY_TRACKED_ADDONS = [
 	"Essential Edit",
 	"Complete Edit",

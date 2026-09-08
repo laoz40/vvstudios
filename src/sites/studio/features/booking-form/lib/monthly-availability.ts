@@ -34,13 +34,6 @@ export function getBookableMonthKeys(startDate: Date, endDate: Date) {
 	return monthKeys;
 }
 
-export function getUncachedMonthKeys(
-	bookableMonthKeys: string[],
-	monthlyBusyWindowsByMonth: BusyWindowsByMonth
-) {
-	return bookableMonthKeys.filter((month) => !monthlyBusyWindowsByMonth[month]);
-}
-
 export function mergeBookableRangeBusyWindows({
 	bookableMonthKeys,
 	current,

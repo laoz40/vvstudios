@@ -16,8 +16,8 @@ import {
 import { parseCalendarDate, parseTimeOfDay, parseYearMonth } from "#studio/lib/calendarDate";
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
-export const BOOKING_TIME_ZONE = "Australia/Sydney";
-export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
+const BOOKING_TIME_ZONE = "Australia/Sydney";
+const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
 
 export interface BusyPeriod {
 	calendarId?: string;
@@ -147,12 +147,6 @@ export function formatBookingDateSummaryWithoutYear(dateValue: string) {
 		weekday: "short"
 	}).format(date);
 }
-
-const bookingSydneyDateTimeFormatter = new Intl.DateTimeFormat("en-AU", {
-	dateStyle: "medium",
-	timeStyle: "short",
-	timeZone: BOOKING_TIME_ZONE
-});
 
 const shortMonthFullDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
@@ -328,10 +322,6 @@ export function formatBookingTimestampDateLong(timestamp: number) {
 		timeZone: BOOKING_TIME_ZONE,
 		year: "numeric"
 	}).format(timestamp);
-}
-
-export function formatBookingTimestamp(timestamp: number) {
-	return bookingSydneyDateTimeFormatter.format(timestamp);
 }
 
 export function formatBookingDateMedium(dateValue: string) {

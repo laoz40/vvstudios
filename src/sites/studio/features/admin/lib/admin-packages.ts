@@ -88,7 +88,7 @@ export type AdminPackageFilters = {
 	searchQuery: string;
 };
 
-export function getAdminPackageStatusLabel(status: AdminPackageStatus) {
+function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 	switch (status) {
 		case "pending_payment":
 			return "Pending";
@@ -165,7 +165,7 @@ export function getAdminPackageStatusDisplay(
 	}
 }
 
-export function isAdminPackageOverdue(
+function isAdminPackageOverdue(
 	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "status"> & {
 		adjustment: Pick<
 			NonNullable<AdminPackageRow["adjustment"]>,
@@ -184,7 +184,7 @@ export function isAdminPackageOverdue(
 	return Date.now() > packageRow.invoiceDueAt;
 }
 
-export function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "isPaid">) {
+function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "isPaid">) {
 	return (
 		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
 	);
@@ -239,7 +239,7 @@ export function isAdminPackageExpiryClose(
 	);
 }
 
-export function isAdminPackageUpcoming(
+function isAdminPackageUpcoming(
 	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid">
 ) {
 	if (packageRow.adjustment) {

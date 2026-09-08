@@ -72,13 +72,6 @@ export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, strin
 	completed: "bg-green text-primary-foreground"
 };
 
-export const deliverableStatusDotClassNameMap: Record<DeliverableStatus, string> = {
-	to_edit: "bg-destructive",
-	editing: "bg-primary",
-	review: "bg-blue-400",
-	completed: "bg-green"
-};
-
 export const deliverableStatusIconMap: Record<DeliverableStatusAction, LucideIcon> = {
 	to_edit: CircleX,
 	editing: Pencil,

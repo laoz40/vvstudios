@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { searchOptionalField } from "#studio/lib/search-schema";
 
-export const DEV_RESCHEDULE_SCENARIO_VALUES = [
+const DEV_RESCHEDULE_SCENARIO_VALUES = [
 	"ready",
 	"link_not_found",
 	"link_used",
