@@ -3,48 +3,27 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
-## Current Goal
+## Current Goals
 
-There are many tests in this project for convex behaviour. Not all of it is essential.
+### Convex Tests
 
-For this project, I DONT want these:
-- mock tests
-- unit tests
-- integration tests
-- tautological tests
+- Keep tests for races, idempotency, money, background jobs, failure recovery, and auth.
+- Auth: keep the permission model, list-query guards, and a few representative mutation deny tests. Trim per-endpoint matrix in `authorization.test.ts` — every admin mutation uses the same `requirePermission` guard
+- One PII redaction test in `editorDashboard.test.ts`;
+- Drop the rest. No mock, unit, integration, or tautological tests. Don't expand `convex/tests` unless E2E can't cover it.
 
-They can be harmful and require high maintenance.
+### E2E
 
-Tests to keep:
-
-1. **Races** — double-booking, concurrent webhooks, final package slot
-2. **Idempotency** — webhook replay, send-once reminders/jobs
-3. **Money** — invoice math, stored pricing snapshots
-4. **Background jobs** — reminders, expiry, scheduled Drive setup
-5. **Failure recovery** — orphan Calendar cleanup, retryable states, partial Drive setup
-6. **Auth** — slim to permission model + list guards + a handful of representative mutation tests
-**PII redaction:** one test that editor session query omits sensitive fields; drop the rest of `editorDashboard.test.ts`
-
-### E2E tests in CI
-
-- Prioritize E2E for customer-facing flows (booking, checkout, confirmation, reschedule).
-- Admin dashboard actions only need E2E if the flow is high-risk or hard to verify. Simple CRUD can rely on existing Convex tests or manual check.
+- Customer success paths only. Failures belong in Convex.
 - Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
-- Dont add new mock/unit/integration tests unless there's a strong reason (e.g. complex failure-mode logic impractical to hit through the UI).
-- Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
-
-- CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only (`E2E_VITE_STRIPE_PUBLISHABLE_KEY`, `E2E_VITE_CLERK_PUBLISHABLE_KEY` — not prod `pk_live` vars).
-- CI E2E (`bun run test:e2e`): booking form → terms → payment modal only. Stripe hCaptcha blocks headless Pay in GitHub Actions.
-- Local payment E2E (`bun run test:e2e:payment`, `bun run test:e2e:reschedule`): not run in CI. Prerequisites and flow notes live in each spec file header under `e2e/`.
+- CI stops before checkout; local specs cover payment and reschedule happy paths.
+- Admin: E2E only for high-risk flows.
 
 ## Stack
 
 - Bun
 - default to shadcn for ui
 - t3env
-
-For convex code or tests, ALWAYS use `vvstudios-convex` skill
-For frontend code, ALWAYS use `vvstudios-frontend` skill
 
 ## Behaviour
 
@@ -53,7 +32,24 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - If a problem can be solved in a simpler way, propose it
 - If a task contains lots of changes which would result in a massive commit, propose splitting into different commits per large change or file changed.
 
-## File/Change Hygiene
+## Code Style Guidelines
+
+### Naming Conventions
+
+- component files: `PascalCase.tsx`.
+
+### Components and pages
+
+- Extract major or self-contained UI sections into separate component files instead of growing a single large component file
+- Group related React setup/state in clear sections, use short section comments for group
+- Add short comments before `useEffect` blocks that explain what effect does
+
+### Tailwind
+
+- Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
+- Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
+- Do not add classes that already exist in the parent component
+- For loading, show animated Lucide spinner alongside concise state label (eg. `Saving`), not just trailing-ellipsis label eg. `Saving...`.
 
 ### Good Practices
 
@@ -69,9 +65,13 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Preserve existing comments during refactors; do not delete comments just because code moved.
 - Update comments when behavior changes so they stay accurate.
 
+- At top of every test file, maintain one file-level comment that describes each test.
+    - Format each test with short subheading, description on next line.
+    - Dont place comments immediately above individual tests.
+
 ### Verify changes
 
-- Run format, lint and typecheck once changes are complete
+- Run format, lint, test and typecheck once changes are complete. (e2e only if relevant)
 - dont run build or convex codegen unless asked to
 - never use eslint ignore to bypass linter
 
@@ -82,6 +82,21 @@ For frontend code, ALWAYS use `vvstudios-frontend` skill
 - Dont use nested ternaries and if statements
 - Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
 - Handle every union variant. Use `never` in the default case to force exhaustive switches.
-- Parse boundary data once with a runtime schema, such as Zod. Do not trust `as SomeType`.
-- If a value becomes `any`, stop and trace the source type. Do not patch around it with casts, duplicate aliases, or local unions.
+- Parse boundary data once with Zod.
 - Dont write like a python dev
+
+## Convex
+
+- For Convex code, always read `convex/_generated/ai/guidelines.md` first.
+
+- Dont duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
+- Dont suffix internal Convex function names with `Internal` or similar; these things are obvious from looking at the code already
+
+- Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask user to clarify.
+
+### Neverthrow
+
+- Keep Convex handlers as boundary adapters: each handler should call one service function and use `.match(tupleOk, tupleErr)` to convert service `Result` into tuple returned to client.
+- `convex/services` should only contain service chain functions, a readable neverthrow `andThen` chain of domain operations.
+- Put domain operations used by service chains in nearest appropriate file under `convex/lib`. Do not define helper operations in service files
+
