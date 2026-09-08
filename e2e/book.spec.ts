@@ -1,3 +1,20 @@
+/**
+ * CI-safe E2E for the public booking form through terms and the payment modal.
+ * Does not complete Stripe checkout (hCaptcha blocks headless Pay in GitHub Actions).
+ *
+ * Prerequisites
+ * Shared dev/e2e Convex deployment and test Clerk/Stripe publishable keys (see `AGENTS.md`).
+ * Run with `bun run test:e2e`.
+ *
+ * 1. Loads booking form sections
+ *    Assert core form headings and fields render on `/book`.
+ *
+ * 2. Single session form opens terms dialog
+ *    Fill a single-session booking and submit; terms dialog appears.
+ *
+ * 3. Single session checkout opens payment modal
+ *    Agree to terms and assert the Stripe payment modal opens (modal closed in `finally`).
+ */
 import { expect, test } from "@playwright/test";
 import {
 	agreeToTerms,
