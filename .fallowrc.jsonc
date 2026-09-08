@@ -35,6 +35,8 @@
 		"mode": "mild",
 		"skipLocal": true,
 		"ignore": [
+			// local oxlint plugin tooling
+			"tools/oxlint/**",
 			// email templates repeat layout/copy by design
 			"src/sites/studio/features/**/*email*/**",
 			"src/sites/studio/features/**/email/**",
