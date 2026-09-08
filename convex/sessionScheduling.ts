@@ -1,21 +1,21 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { internalMutation } from "./_generated/server";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
+import { internalMutation } from "#convex/_generated/server";
 import {
 	sessionReservationValidator,
 	reserveSessionTime,
 	unreserveSessionTime
-} from "./lib/sessionReservations";
+} from "#convex/lib/sessionReservations";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "./lib/bookingAddonQuantities";
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService
-} from "./services/sessionScheduling";
+} from "#convex/services/sessionScheduling";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every session workflow in the same transaction.

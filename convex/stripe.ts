@@ -1,16 +1,16 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "./lib/bookingAddonQuantities";
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	closeEmbeddedCheckoutSessionService,
 	createEmbeddedCheckoutSessionService
-} from "./services/stripe";
+} from "#convex/services/stripe";
 
 // Creates a pending booking, opens a Stripe checkout session, then links both records.
 export const createEmbeddedCheckoutSession = action({

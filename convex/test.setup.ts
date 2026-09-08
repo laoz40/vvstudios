@@ -2,7 +2,7 @@
 
 import { register } from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
-import schema from "./schema";
+import schema from "#convex/schema";
 
 const modules = import.meta.glob("./**/*.ts");
 

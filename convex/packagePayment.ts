@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
@@ -12,7 +12,7 @@ import {
 	createPackageRequestService,
 	resendPackageInvoiceEmailService,
 	retryPackageSchedulingEmailService
-} from "./services/packagePayment";
+} from "#convex/services/packagePayment";
 
 export const createPackageRequest = action({
 	args: {

@@ -6,9 +6,9 @@ import type { PackageLookupError, PaidPackageResult } from "#convex/services/pac
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { ParsedPackageRequest } from "./packageUpdates";
-import { fromConvexTuple, okOrThrow } from "./result";
-import { sendPackageInvoiceEmail, sendPackageScheduleEmail } from "./email";
+import type { ParsedPackageRequest } from "#convex/lib/packageUpdates";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { sendPackageInvoiceEmail, sendPackageScheduleEmail } from "#convex/lib/email";
 
 type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
 type PackageScheduleEmailResult = ResultAsync<

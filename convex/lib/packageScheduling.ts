@@ -4,11 +4,11 @@ import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
-} from "./sessionCalendarTime";
-import { checkSessionMeetsAvailabilitySettings } from "./sessionCalendarTime";
-import type { GoogleCalendarWriteError } from "./googleCalendarErrors";
-import type { BookingSubmitRateLimitError } from "./rateLimits";
-import type { SessionCalendarEventRecord } from "./sessionCalendarEvents";
+} from "#convex/lib/sessionCalendarTime";
+import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
+import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendarErrors";
+import type { BookingSubmitRateLimitError } from "#convex/lib/rateLimits";
+import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEvents";
 import {
 	getPackageSessionAddons,
 	isDurationOption,
@@ -27,10 +27,10 @@ import {
 	getValidPackageByToken as getValidPackageByTokenResult,
 	type ValidPackage,
 	type ValidPackageByTokenError
-} from "./packageLookup";
-import { generateRescheduleToken, hashRescheduleToken } from "./sessionRescheduleLinks";
+} from "#convex/lib/packageLookup";
+import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 
-export type { ValidPackage, ValidPackageByTokenError } from "./packageLookup";
+export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packageLookup";
 
 type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
 

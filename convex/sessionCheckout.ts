@@ -1,16 +1,16 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { checkBookingSubmitRateLimit } from "./lib/rateLimits";
+import { internalMutation, internalQuery } from "#convex/_generated/server";
+import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "./lib/bookingAddonQuantities";
+} from "#convex/lib/bookingAddonQuantities";
 import {
 	createPendingSessionService,
 	deletePendingSessionService,
 	markSessionExpiredByStripeSessionIdService
-} from "./services/sessionCheckout";
+} from "#convex/services/sessionCheckout";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },

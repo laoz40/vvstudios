@@ -1,10 +1,16 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { action, internalMutation, mutation, internalQuery, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import {
+	action,
+	internalMutation,
+	mutation,
+	internalQuery,
+	query
+} from "#convex/_generated/server";
+import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
-import { getValidPackageByToken as findValidPackageByToken } from "./lib/packageLookup";
+import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packageLookup";
 import {
 	cancelPackageSessionService,
 	createPackageSessionService,
@@ -18,7 +24,7 @@ import {
 	validatePackageRescheduleRequestService,
 	validatePackageSessionRequestService,
 	validatePackageUnscheduleRequestService
-} from "./services/packageScheduling";
+} from "#convex/services/packageScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },

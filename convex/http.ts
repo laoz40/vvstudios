@@ -1,11 +1,11 @@
 import { httpRouter } from "convex/server";
 import { exhaustiveCheck } from "#/lib/result";
-import { httpAction, type ActionCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { httpAction, type ActionCtx } from "#convex/_generated/server";
+import { internal } from "#convex/_generated/api";
 import Stripe from "stripe";
 import { z } from "zod";
-import { env } from "./env";
-import { completeSessionCheckoutService } from "./services/bookingConfirmation";
+import { env } from "#convex/env";
+import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
 
 const http = httpRouter();
 

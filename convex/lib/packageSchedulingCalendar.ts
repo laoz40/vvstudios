@@ -1,13 +1,13 @@
 "use node";
 
 import { ResultAsync } from "neverthrow";
-import { getGoogleCalendarClient } from "./googleCalendarClient";
+import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import {
 	createSessionCalendarEvent,
 	updateSessionCalendarEventTiming,
 	type SessionCalendarEventDetails,
 	type SessionCalendarEventRecord
-} from "./sessionCalendarEvents";
+} from "#convex/lib/sessionCalendarEvents";
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {
 	date: string;

@@ -3,15 +3,15 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
-import { action, internalAction } from "./_generated/server";
-import type { SessionCalendarEventRecord } from "./lib/sessionCalendarEvents";
+import { action, internalAction } from "#convex/_generated/server";
+import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEvents";
 import {
 	deletePackageSessionCalendarEventService,
 	getPackageBusyWindowsService,
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
-} from "./services/packageSchedulingCalendar";
-import { bookingAddonsValidator } from "./lib/bookingAddonQuantities";
+} from "#convex/services/packageSchedulingCalendar";
+import { bookingAddonsValidator } from "#convex/lib/bookingAddonQuantities";
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),

@@ -2,11 +2,11 @@
 
 import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import { v } from "convex/values";
-import { action, type ActionCtx } from "./_generated/server";
+import { action, type ActionCtx } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { sendFeedbackEmailForMessage } from "./lib/email";
-import { rateLimiter } from "./lib/rateLimits";
-import { okOrThrow } from "./lib/result";
+import { sendFeedbackEmailForMessage } from "#convex/lib/email";
+import { rateLimiter } from "#convex/lib/rateLimits";
+import { okOrThrow } from "#convex/lib/result";
 
 type SubmitFeedbackArgs = { message: string };
 type SubmitFeedbackError =

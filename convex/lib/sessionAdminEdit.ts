@@ -8,16 +8,16 @@ import type { ActionCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { fromConvexTuple } from "#convex/lib/result";
-import type { SessionReservation } from "./sessionReservations";
+import type { SessionReservation } from "#convex/lib/sessionReservations";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
 	isTimeSlotAvailable,
 	type SessionAvailabilitySettings,
 	type SessionTimeParseError
-} from "./sessionCalendarTime";
-import { getBusyWindows } from "./googleCalendarAvailability";
-import { calendarResultAsync } from "./googleCalendarErrors";
+} from "#convex/lib/sessionCalendarTime";
+import { getBusyWindows } from "#convex/lib/googleCalendarAvailability";
+import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
