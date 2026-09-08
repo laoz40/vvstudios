@@ -4,11 +4,6 @@
 	"ignoreExports": [
 		// shadcn/ui barrels export more than the app uses today
 		{ "file": "src/components/ui/**", "exports": ["*"] },
-		{
-			"file": "src/sites/studio/features/booking-form/lib/booking-form-model.ts",
-			"exports": ["*"]
-		},
-		{ "file": "src/sites/studio/features/booking-invoice/lib/types.ts", "exports": ["*"] },
 		// placeholder for future parent site at /
 		{ "file": "src/config/sites.ts", "exports": ["parentSite"] }
 	],
