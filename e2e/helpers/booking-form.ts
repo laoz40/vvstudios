@@ -44,33 +44,27 @@ async function waitForCalendarAvailability(page: Page) {
 		.toBeGreaterThan(0);
 }
 
-async function waitForDayTimeSelection(
+async function readDayTimeSelectionState(
 	timeField: ReturnType<Page["locator"]>
-): Promise<"available" | "unavailable"> {
+): Promise<"available" | "unavailable" | "pending"> {
 	const firstTimeLabel = timeField.locator("label").first();
 	const noTimesMessage = timeField.getByText("No times available for this date.");
+	const selectDateMessage = timeField.getByText("Select a date to view times.");
+	const loadingAvailability = timeField.getByText("Loading availability...");
 
-	let outcome: "available" | "unavailable" | undefined;
-
-	await expect(async () => {
-		if (await firstTimeLabel.isVisible()) {
-			outcome = "available";
-			return;
-		}
-
-		if (await noTimesMessage.isVisible()) {
-			outcome = "unavailable";
-			return;
-		}
-
-		throw new Error("Waiting for time slots to load");
-	}).toPass({ timeout: 10_000 });
-
-	if (outcome === undefined) {
-		throw new Error("Time slot selection did not resolve");
+	if (await firstTimeLabel.isVisible()) {
+		return "available";
 	}
 
-	return outcome;
+	if (await noTimesMessage.isVisible()) {
+		return "unavailable";
+	}
+
+	if ((await selectDateMessage.isVisible()) || (await loadingAvailability.isVisible())) {
+		return "pending";
+	}
+
+	return "pending";
 }
 
 async function pickTimeForDayAtIndex(
@@ -86,9 +80,23 @@ async function pickTimeForDayAtIndex(
 		return false;
 	}
 
-	await enabledDays.nth(dayIndex).click();
+	let timeSelection: "available" | "unavailable" | undefined;
 
-	const timeSelection = await waitForDayTimeSelection(timeField);
+	await expect(async () => {
+		await enabledDays.nth(dayIndex).click();
+
+		const state = await readDayTimeSelectionState(timeField);
+
+		if (state === "pending") {
+			throw new Error("Waiting for date selection and time slots");
+		}
+
+		timeSelection = state;
+	}).toPass({ timeout: 25_000 });
+
+	if (timeSelection === undefined) {
+		throw new Error("Time slot selection did not resolve");
+	}
 
 	if (timeSelection === "unavailable") {
 		return pickTimeForDayAtIndex(calendar, timeField, dayIndex + 1, timeIndex);
@@ -185,6 +193,7 @@ export async function fillSingleSessionBookingForm(
 		"#service-table-setup"
 	);
 
+	await waitForCalendarAvailability(page);
 	await pickFirstBookableDateAndTime(page, startingDayIndex, monthOffset);
 
 	await page.getByLabel("Full Name *").fill(contactDetails.name);
