@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { ContactCard } from "#studio/components/contact/ContactCard";
-import { LandingFaq } from "#studio/components/landing/LandingFaq";
+import { FaqSection } from "#studio/components/faq/FaqSection";
 
 export const Route = createFileRoute("/_public/contact")({
 	head: () => buildSeoHead(seoMetadata.contact),
@@ -15,7 +15,7 @@ function ContactRoute() {
 				<ContactCard />
 			</div>
 			<div className="mt-16">
-				<LandingFaq id="contact-faq-title" />
+				<FaqSection />
 			</div>
 		</section>
 	);
