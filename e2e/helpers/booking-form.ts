@@ -143,14 +143,7 @@ async function tryPickBookableDayFromIndex(
 		return true;
 	}
 
-	return tryPickBookableDayFromIndex(
-		page,
-		calendar,
-		timeField,
-		dayIndex + 1,
-		dayCount,
-		timeIndex
-	);
+	return tryPickBookableDayFromIndex(page, calendar, timeField, dayIndex + 1, dayCount, timeIndex);
 }
 
 async function pickBookableDateInMonth(
