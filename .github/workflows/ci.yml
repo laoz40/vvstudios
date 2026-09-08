@@ -85,7 +85,6 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_FREE_TOUR_URL: ${{ vars.VITE_FREE_TOUR_URL }}
-          E2E_STRIPE_WEBHOOK: "1"
         run: bun run test:e2e
 
   deploy:

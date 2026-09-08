@@ -49,10 +49,6 @@ test.describe("book page", () => {
 	});
 
 	test("single session payment completes booking", async ({ page }) => {
-		test.skip(
-			!process.env.E2E_STRIPE_WEBHOOK,
-			"Set E2E_STRIPE_WEBHOOK=1 when Stripe webhooks target the Convex deployment in use"
-		);
 		test.setTimeout(180_000);
 
 		await page.goto("/book");

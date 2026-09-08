@@ -25,18 +25,15 @@ Tests to keep:
 6. **Auth** — slim to permission model + list guards + a handful of representative mutation tests
 **PII redaction:** one test that editor session query omits sensitive fields; drop the rest of `editorDashboard.test.ts`
 
-### Switching to E2E tests in CI
+### E2E tests in CI
 
 - Prioritize E2E for customer-facing flows (booking, checkout, confirmation, reschedule).
-- Admin dashboard actions only need E2E the flow is high-risk or hard to verify. Simple CRUD can rely on existing Convex tests or manual check.
+- Admin dashboard actions only need E2E if the flow is high-risk or hard to verify. Simple CRUD can rely on existing Convex tests or manual check.
 - Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
 - Dont add new mock/unit/integration tests unless there's a strong reason (e.g. complex failure-mode logic impractical to hit through the UI).
 - Existing convex/tests are legacy: don't expand; keep only if essential and not E2E-able.
 
-- E2E runs against Convex preview deployments in CI, never prod.
-- Preview deployments use test env vars only (`sk_test`, sandbox Google calendar/Drive, test Resend addresses).
-- Prod credentials must never appear in CI E2E jobs.
-- Delete test data after each run where possible (Convex records, sandbox calendar events, Drive folders).
+- CI uses shared `dev/e2e` Convex deployment (not prod, not per-PR previews). Test credentials only.
 
 ## Stack
 
