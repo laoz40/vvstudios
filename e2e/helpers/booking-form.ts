@@ -9,6 +9,7 @@ export interface BookingContactDetails {
 
 export interface FillBookingFormOptions {
 	contactDetails?: BookingContactDetails;
+	monthOffset?: number;
 	startingDayIndex?: number;
 }
 
@@ -17,7 +18,8 @@ function createDefaultContactDetails(): BookingContactDetails {
 		name: "Alex Tester",
 		phone: "0400 000 000",
 		accountName: "Alex Test Account",
-		email: `e2e.booking+${Date.now()}@gmail.com`
+		// Resend test sink: passes MX checks, never delivers to a real mailbox.
+		email: `delivered+e2e.booking.${Date.now()}@resend.dev`
 	};
 }
 
@@ -37,6 +39,35 @@ async function waitForCalendarAvailability(page: Page) {
 		.toBeGreaterThan(0);
 }
 
+async function waitForDayTimeSelection(
+	timeField: ReturnType<Page["locator"]>
+): Promise<"available" | "unavailable"> {
+	const firstTimeLabel = timeField.locator("label").first();
+	const noTimesMessage = timeField.getByText("No times available for this date.");
+
+	let outcome: "available" | "unavailable" | undefined;
+
+	await expect(async () => {
+		if (await firstTimeLabel.isVisible()) {
+			outcome = "available";
+			return;
+		}
+
+		if (await noTimesMessage.isVisible()) {
+			outcome = "unavailable";
+			return;
+		}
+
+		throw new Error("Waiting for time slots to load");
+	}).toPass({ timeout: 10_000 });
+
+	if (outcome === undefined) {
+		throw new Error("Time slot selection did not resolve");
+	}
+
+	return outcome;
+}
+
 async function pickTimeForDayAtIndex(
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
@@ -51,15 +82,14 @@ async function pickTimeForDayAtIndex(
 
 	await enabledDays.nth(dayIndex).click();
 
-	const firstTimeLabel = timeField.locator("label").first();
+	const timeSelection = await waitForDayTimeSelection(timeField);
 
-	try {
-		await expect(firstTimeLabel).toBeVisible({ timeout: 3_000 });
-		await firstTimeLabel.click();
-		return true;
-	} catch {
+	if (timeSelection === "unavailable") {
 		return pickTimeForDayAtIndex(calendar, timeField, dayIndex + 1);
 	}
+
+	await timeField.locator("label").first().click();
+	return true;
 }
 
 async function pickBookableDateInMonth(
@@ -84,8 +114,24 @@ async function pickBookableDateInMonth(
 	await pickBookableDateInMonth(page, monthAttempt + 1, 0);
 }
 
-export async function pickFirstBookableDateAndTime(page: Page, startingDayIndex = 0) {
+async function advanceCalendarMonths(page: Page, monthOffset: number) {
+	if (monthOffset <= 0) {
+		return;
+	}
+
+	const calendar = page.locator('[data-slot="calendar"]');
+	await calendar.getByRole("button", { name: "Go to the Next Month" }).click();
 	await waitForCalendarAvailability(page);
+	await advanceCalendarMonths(page, monthOffset - 1);
+}
+
+export async function pickFirstBookableDateAndTime(
+	page: Page,
+	startingDayIndex = 0,
+	monthOffset = 0
+) {
+	await waitForCalendarAvailability(page);
+	await advanceCalendarMonths(page, monthOffset);
 	await pickBookableDateInMonth(page, 0, startingDayIndex);
 }
 
@@ -106,6 +152,7 @@ export async function fillSingleSessionBookingForm(
 ) {
 	const contactDetails = options.contactDetails ?? createDefaultContactDetails();
 	const startingDayIndex = options.startingDayIndex ?? 0;
+	const monthOffset = options.monthOffset ?? 0;
 
 	await expect(page.getByRole("heading", { name: "Studio Hire Booking" })).toBeVisible();
 	await expect(page.getByRole("radio", { name: /Single Session/ })).toBeChecked({
@@ -123,7 +170,7 @@ export async function fillSingleSessionBookingForm(
 		"#service-table-setup"
 	);
 
-	await pickFirstBookableDateAndTime(page, startingDayIndex);
+	await pickFirstBookableDateAndTime(page, startingDayIndex, monthOffset);
 
 	await page.getByLabel("Full Name *").fill(contactDetails.name);
 	await page.getByLabel("Mobile Number *").fill(contactDetails.phone);
@@ -166,4 +213,51 @@ export async function closePaymentModal(page: Page) {
 
 	await closeButton.click();
 	await expect(closeButton).toBeHidden({ timeout: 15_000 });
+}
+
+function stripeCheckoutFrame(page: Page) {
+	const paymentDialog = page.getByRole("dialog");
+
+	return paymentDialog.frameLocator("iframe").first();
+}
+
+export async function completeStripePayment(page: Page) {
+	const checkout = stripeCheckoutFrame(page);
+
+	await expect(checkout.getByText("TEST MODE")).toBeVisible({ timeout: 60_000 });
+
+	await expect(async () => {
+		const cardNumber = checkout.getByRole("textbox", { name: "Card number" });
+		await expect(cardNumber).toBeVisible({ timeout: 5_000 });
+		await cardNumber.fill("4242 4242 4242 4242");
+		await checkout.getByRole("textbox", { name: "Expiration" }).fill("12 / 34");
+		await checkout.getByRole("textbox", { name: "Credit or debit card CVC/CVV" }).fill("123");
+
+		const cardholderName = checkout.locator('input[autocomplete="cc-name"]');
+		if (await cardholderName.isVisible()) {
+			await cardholderName.fill("Alex Tester");
+		}
+
+		const phoneNumber = checkout.getByRole("textbox", { name: "Phone number" });
+		if (await phoneNumber.isVisible()) {
+			await phoneNumber.fill("0400 000 000");
+		}
+
+		const payButton = checkout.getByRole("button", { name: /^Pay/i });
+		await expect(payButton).toBeEnabled({ timeout: 10_000 });
+		await payButton.click();
+	}).toPass({ timeout: 60_000 });
+}
+
+export async function expectBookingConfirmed(page: Page) {
+	await expect(page).toHaveURL(/\/booking-complete/, { timeout: 120_000 });
+	await expect(page).toHaveURL(/session_id=/, { timeout: 10_000 });
+
+	await expect
+		.poll(
+			async () =>
+				await page.getByRole("heading", { name: "Your booking is confirmed!" }).isVisible(),
+			{ timeout: 120_000, intervals: [500, 1_000, 2_000] }
+		)
+		.toBe(true);
 }

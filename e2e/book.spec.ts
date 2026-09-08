@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import {
 	agreeToTerms,
 	closePaymentModal,
+	completeStripePayment,
+	expectBookingConfirmed,
 	expectPaymentModal,
 	expectTermsDialog,
 	fillSingleSessionBookingForm,
@@ -36,15 +38,38 @@ test.describe("book page", () => {
 		await page.goto("/book");
 
 		try {
-			const startingDayIndex = 8 + (Date.now() % 12);
-
-			await fillSingleSessionBookingForm(page, { startingDayIndex });
+			await fillSingleSessionBookingForm(page);
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
 			await agreeToTerms(page);
 			await expectPaymentModal(page);
 		} finally {
 			await closePaymentModal(page);
+		}
+	});
+
+	test("single session payment completes booking", async ({ page }) => {
+		test.skip(
+			!process.env.E2E_STRIPE_WEBHOOK,
+			"Set E2E_STRIPE_WEBHOOK=1 with stripe listen forwarding webhooks to Convex"
+		);
+		test.setTimeout(180_000);
+
+		await page.goto("/book");
+
+		try {
+			// Next month avoids slots consumed by earlier serial tests in the current month.
+			await fillSingleSessionBookingForm(page, { monthOffset: 1 });
+			await submitBookingForm(page);
+			await expectTermsDialog(page);
+			await agreeToTerms(page);
+			await expectPaymentModal(page);
+			await completeStripePayment(page);
+			await expectBookingConfirmed(page);
+		} finally {
+			if (page.url().includes("/book")) {
+				await closePaymentModal(page);
+			}
 		}
 	});
 });
