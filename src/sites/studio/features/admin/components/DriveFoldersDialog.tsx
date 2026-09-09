@@ -16,7 +16,6 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { DrivePermissionsDetails } from "#studio/features/admin/components/DriveFoldersPermissionsDetails";
-import { DriveRetryActions } from "#studio/features/admin/components/DriveFoldersRetryActions";
 import { SavedFolderLinks } from "#studio/features/admin/components/DriveFoldersSavedFolderLinks";
 import type { DriveDialogStatus } from "#studio/features/admin/lib/drive-folders-dialog";
 import {
@@ -215,7 +214,9 @@ function DriveFoldersDialogBody({
 				deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 			/>
 			<DrivePermissionsDetails
+				bookingId={bookingId}
 				clientDrivePermissions={driveStatus?.clientDrivePermissions}
+				driveFoldersReady={driveStatus?.status === "ready"}
 				editorDrivePermissions={driveStatus?.editorDrivePermissions}
 				previousEditorRemovalFailed={driveStatus?.previousEditorRemovalFailed ?? false}
 			/>
@@ -230,10 +231,6 @@ function DriveFoldersDialogBody({
 					bookingId={bookingId}
 					hasClientAssetsLibrary={hasClientAssetsLibrary}
 					status={driveStatus?.status}
-				/>
-				<DriveRetryActions
-					bookingId={bookingId}
-					driveStatus={driveStatus}
 				/>
 			</DialogFooter>
 		</>

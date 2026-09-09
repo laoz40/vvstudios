@@ -25,6 +25,7 @@ import {
 	type SetupError
 } from "#convex/services/drive";
 import {
+	retryClientAssetsEmailService,
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
 } from "#convex/services/driveClientPermissions";
@@ -50,6 +51,12 @@ export const retryClientDrivePermissions = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
 		retryClientDrivePermissionsService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryClientAssetsEmail = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
+		retryClientAssetsEmailService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const runScheduledDriveSetup = internalAction({

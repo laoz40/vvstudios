@@ -15,10 +15,10 @@
 
  *
  * 5. Permission retry
- *    Retries failed permissions without recreating folders or resending email.
+ *    Retries failed permissions without recreating folders or sending the email.
  *
  * 6. Assets email retry
- *    Tracks a failed email separately and sends it once on retry.
+ *    Tracks a failed email separately and sends it once from its own retry action.
  *
  * 7. Cancelled booking
  *    Skips setup without recording a failure.
@@ -563,7 +563,7 @@ describe("Google Drive scheduled workspace setup", () => {
 		);
 	});
 
-	test("retries failed client permissions without recreating folders or resending the email", async () => {
+	test("retries failed client permissions without recreating folders or sending the email", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 		driveFake.failPermissionRoleOnce = "writer";
@@ -579,11 +579,17 @@ describe("Google Drive scheduled workspace setup", () => {
 			.action(api.googleCalendar.retryClientDrivePermissions, { bookingId });
 		const recoveredState = await readDriveState(t, bookingId);
 		expect(retryResult).toEqual([null, null]);
-		expect(recoveredState.driveSession).toMatchObject({
-			assetsEmailStatus: "sent",
-			clientDrivePermissionsStatus: "ready"
-		});
+		expect(recoveredState.driveSession).toMatchObject({ clientDrivePermissionsStatus: "ready" });
+		expect(recoveredState.driveSession?.assetsEmailStatus).toBeUndefined();
 		expect(driveFake.create).toHaveBeenCalledTimes(5);
+		expect(emailFake.sendClientAssetsEmail).not.toHaveBeenCalled();
+
+		const emailRetryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryClientAssetsEmail, { bookingId });
+		const emailedState = await readDriveState(t, bookingId);
+		expect(emailRetryResult).toEqual([null, null]);
+		expect(emailedState.driveSession).toMatchObject({ assetsEmailStatus: "sent" });
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
 
 		await runSetup(t, bookingId);
@@ -599,11 +605,14 @@ describe("Google Drive scheduled workspace setup", () => {
 
 		await runSetup(t, bookingId);
 		const failedState = await readDriveState(t, bookingId);
-		expect(failedState.driveSession).toMatchObject({ assetsEmailStatus: "failed" });
+		expect(failedState.driveSession).toMatchObject({
+			assetsEmailStatus: "failed",
+			clientDrivePermissionsStatus: "ready"
+		});
 
 		const retryResult = await t
 			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.retryClientDrivePermissions, { bookingId });
+			.action(api.googleCalendar.retryClientAssetsEmail, { bookingId });
 		const recoveredState = await readDriveState(t, bookingId);
 		expect(retryResult).toEqual([null, null]);
 		expect(recoveredState.driveSession).toMatchObject({ assetsEmailStatus: "sent" });
