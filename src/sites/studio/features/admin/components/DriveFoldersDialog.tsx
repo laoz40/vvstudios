@@ -1,4 +1,4 @@
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { exhaustiveCheck } from "#/lib/result";
 import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
@@ -16,7 +16,6 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { DrivePermissionsDetails } from "#studio/features/admin/components/DriveFoldersPermissionsDetails";
-import { DriveRetryActions } from "#studio/features/admin/components/DriveFoldersRetryActions";
 import { SavedFolderLinks } from "#studio/features/admin/components/DriveFoldersSavedFolderLinks";
 import type { DriveDialogStatus } from "#studio/features/admin/lib/drive-folders-dialog";
 import {
@@ -91,6 +90,46 @@ function getDriveSetupButtonLabel({
 		return "Retry Google Drive folders";
 	}
 	return "Set up Google Drive folders";
+}
+
+function ClearDriveWorkflowFailureButton({
+	bookingId,
+	hasDriveWorkflowFailure
+}: {
+	bookingId: Id<"bookings">;
+	hasDriveWorkflowFailure: boolean;
+}) {
+	const clearDriveWorkflowFailure = useMutation(api.sessions.clearDriveWorkflowFailure);
+	const [isClearing, setIsClearing] = useState(false);
+
+	if (!hasDriveWorkflowFailure) return null;
+
+	async function handleClear() {
+		setIsClearing(true);
+		const [error] = await tryCatch(clearDriveWorkflowFailure({ bookingId }));
+		setIsClearing(false);
+		if (error !== null) {
+			toast.error("Drive errors could not be hidden.");
+			return;
+		}
+		toast.success("Drive errors hidden.");
+	}
+
+	return (
+		<Button
+			type="button"
+			variant="destructive"
+			disabled={isClearing}
+			onClick={() => void handleClear()}>
+			{isClearing ? (
+				<LoaderCircle
+					className="animate-spin"
+					aria-hidden
+				/>
+			) : null}
+			{isClearing ? "Hiding" : "Hide errors (doesn't fix)"}
+		</Button>
+	);
 }
 
 function DriveSetupButton({
@@ -215,7 +254,9 @@ function DriveFoldersDialogBody({
 				deliverablesFolderName={formatDriveSessionMediaFolderName("Deliverables", sessionStartAt)}
 			/>
 			<DrivePermissionsDetails
+				bookingId={bookingId}
 				clientDrivePermissions={driveStatus?.clientDrivePermissions}
+				driveFoldersReady={driveStatus?.status === "ready"}
 				editorDrivePermissions={driveStatus?.editorDrivePermissions}
 				previousEditorRemovalFailed={driveStatus?.previousEditorRemovalFailed ?? false}
 			/>
@@ -226,14 +267,14 @@ function DriveFoldersDialogBody({
 					onClick={() => onOpenChange(false)}>
 					Close
 				</Button>
+				<ClearDriveWorkflowFailureButton
+					bookingId={bookingId}
+					hasDriveWorkflowFailure={driveStatus?.hasDriveWorkflowFailure ?? false}
+				/>
 				<DriveSetupButton
 					bookingId={bookingId}
 					hasClientAssetsLibrary={hasClientAssetsLibrary}
 					status={driveStatus?.status}
-				/>
-				<DriveRetryActions
-					bookingId={bookingId}
-					driveStatus={driveStatus}
 				/>
 			</DialogFooter>
 		</>

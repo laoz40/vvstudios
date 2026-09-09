@@ -33,10 +33,20 @@ export function retryClientDrivePermissionsService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
+	return requirePermissionActions(ctx, "edit:sessions")
+		.andThen(() => loadReadyBookingDriveFolders(ctx, args.bookingId))
+		.andThen((setup) =>
+			requireClientDrivePermissions(ctx, setup).orElse((error) =>
+				saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(() =>
+					errAsync(error)
+				)
+			)
+		)
+		.map(() => null);
+}
+
+export function retryClientAssetsEmailService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
-			bookingId: args.bookingId,
-			attempt: "retry"
-		})
+		sendClientAssetsFolderEmail(ctx, args.bookingId, "retry")
 	);
 }
