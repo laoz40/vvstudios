@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 const INVOICE_SUBJECT_PREFIX = "Your Studio Booking Invoice -";
+const PACKAGE_SCHEDULE_SUBJECT_PREFIX = "Schedule Your ";
 const RESCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/reschedule\/[a-f0-9]{64}/i;
+const PACKAGE_SCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/package-schedule\/[a-f0-9]{64}/i;
 
 const resendEmailListItemSchema = z.object({
 	created_at: z.string(),
@@ -41,16 +43,35 @@ function recipientMatches(recipients: string[], recipient: string) {
 	return recipients.some((address) => address.toLowerCase() === recipient.toLowerCase());
 }
 
-function isInvoiceEmail(email: ResendEmailListItem, recipient: string, since: Date) {
+function isEmailSince(email: ResendEmailListItem, recipient: string, since: Date) {
 	if (!recipientMatches(email.to, recipient)) {
 		return false;
 	}
 
-	if (!email.subject.startsWith(INVOICE_SUBJECT_PREFIX)) {
+	return parseResendTimestamp(email.created_at) >= since;
+}
+
+function isInvoiceEmail(email: ResendEmailListItem, recipient: string, since: Date) {
+	if (!isEmailSince(email, recipient, since)) {
 		return false;
 	}
 
-	return parseResendTimestamp(email.created_at) >= since;
+	return email.subject.startsWith(INVOICE_SUBJECT_PREFIX);
+}
+
+function isPackageScheduleEmail(
+	email: ResendEmailListItem,
+	recipient: string,
+	since: Date,
+	packageSize: number
+) {
+	if (!isEmailSince(email, recipient, since)) {
+		return false;
+	}
+
+	return email.subject.startsWith(
+		`${PACKAGE_SCHEDULE_SUBJECT_PREFIX}${packageSize} Pack Studio Sessions`
+	);
 }
 
 async function parseResendResponse<T>(response: Response, schema: z.ZodType<T>) {
@@ -88,21 +109,19 @@ async function fetchEmailDetail(apiKey: string, emailId: string) {
 	return parseResendResponse(response, resendEmailDetailResponseSchema);
 }
 
-async function findInvoiceEmailInPages({
+async function findMatchingEmailInPages({
 	after,
 	apiKey,
-	recipient,
-	since
+	isMatch
 }: {
 	after?: string;
 	apiKey: string;
-	recipient: string;
-	since: Date;
+	isMatch: (email: ResendEmailListItem) => boolean;
 }): Promise<ResendEmailListItem | null> {
 	const page = await listSentEmails(apiKey, after);
 
 	for (const email of page.data) {
-		if (isInvoiceEmail(email, recipient, since)) {
+		if (isMatch(email)) {
 			return email;
 		}
 	}
@@ -117,17 +136,20 @@ async function findInvoiceEmailInPages({
 		return null;
 	}
 
-	return findInvoiceEmailInPages({ after: nextAfter, apiKey, recipient, since });
+	return findMatchingEmailInPages({ after: nextAfter, apiKey, isMatch });
 }
 
-function extractRescheduleUrl(html: string) {
-	const match = html.match(RESCHEDULE_URL_PATTERN);
+function extractUrlFromHtml(html: string, pattern: RegExp) {
+	const match = html.match(pattern);
 	return match?.[0] ?? null;
 }
 
-async function pollForRescheduleUrl({
+async function pollForEmailUrl({
 	apiKey,
 	deadline,
+	extractUrl,
+	findEmail,
+	notFoundMessage,
 	pollIntervalMs,
 	recipient,
 	since,
@@ -135,31 +157,42 @@ async function pollForRescheduleUrl({
 }: {
 	apiKey: string;
 	deadline: number;
+	extractUrl: (html: string) => string | null;
+	findEmail: () => Promise<ResendEmailListItem | null>;
+	notFoundMessage: string;
 	pollIntervalMs: number;
 	recipient: string;
 	since: Date;
 	timeoutMs: number;
 }) {
-	const email = await findInvoiceEmailInPages({ apiKey, recipient, since });
+	const email = await findEmail();
 
 	if (email) {
 		const detail = await fetchEmailDetail(apiKey, email.id);
-		const rescheduleUrl = detail.html ? extractRescheduleUrl(detail.html) : null;
+		const url = detail.html ? extractUrl(detail.html) : null;
 
-		if (rescheduleUrl) {
-			return rescheduleUrl;
+		if (url) {
+			return url;
 		}
 	}
 
 	if (Date.now() >= deadline) {
-		throw new Error(
-			`Invoice email with reschedule link not found for ${recipient} within ${timeoutMs}ms`
-		);
+		throw new Error(notFoundMessage);
 	}
 
 	await sleep(pollIntervalMs);
 
-	return pollForRescheduleUrl({ apiKey, deadline, pollIntervalMs, recipient, since, timeoutMs });
+	return pollForEmailUrl({
+		apiKey,
+		deadline,
+		extractUrl,
+		findEmail,
+		notFoundMessage,
+		pollIntervalMs,
+		recipient,
+		since,
+		timeoutMs
+	});
 }
 
 export async function waitForInvoiceRescheduleUrl({
@@ -175,9 +208,48 @@ export async function waitForInvoiceRescheduleUrl({
 	since: Date;
 	timeoutMs?: number;
 }) {
-	return pollForRescheduleUrl({
+	return pollForEmailUrl({
 		apiKey,
 		deadline: Date.now() + timeoutMs,
+		extractUrl: (html) => extractUrlFromHtml(html, RESCHEDULE_URL_PATTERN),
+		findEmail: () =>
+			findMatchingEmailInPages({
+				apiKey,
+				isMatch: (email) => isInvoiceEmail(email, recipient, since)
+			}),
+		notFoundMessage: `Invoice email with reschedule link not found for ${recipient} within ${timeoutMs}ms`,
+		pollIntervalMs,
+		recipient,
+		since,
+		timeoutMs
+	});
+}
+
+export async function waitForPackageScheduleUrl({
+	apiKey,
+	packageSize,
+	recipient,
+	since,
+	timeoutMs = 120_000,
+	pollIntervalMs = 3_000
+}: {
+	apiKey: string;
+	packageSize: number;
+	pollIntervalMs?: number;
+	recipient: string;
+	since: Date;
+	timeoutMs?: number;
+}) {
+	return pollForEmailUrl({
+		apiKey,
+		deadline: Date.now() + timeoutMs,
+		extractUrl: (html) => extractUrlFromHtml(html, PACKAGE_SCHEDULE_URL_PATTERN),
+		findEmail: () =>
+			findMatchingEmailInPages({
+				apiKey,
+				isMatch: (email) => isPackageScheduleEmail(email, recipient, since, packageSize)
+			}),
+		notFoundMessage: `Package scheduling email not found for ${recipient} within ${timeoutMs}ms`,
 		pollIntervalMs,
 		recipient,
 		since,

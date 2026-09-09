@@ -95,6 +95,9 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_CLERK_PUBLISHABLE_KEY }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_FREE_TOUR_URL: ${{ vars.VITE_FREE_TOUR_URL }}
+          E2E_RESEND_API_KEY: ${{ secrets.E2E_RESEND_API_KEY }}
+          E2E_CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
         run: bun run test:e2e
 
       - name: Upload Playwright report

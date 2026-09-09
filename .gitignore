@@ -18,6 +18,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+playwright/.clerk/
 
 tmp/
 CONVEX_NEVERTHROW_REFACTOR_CHECKLIST.md
