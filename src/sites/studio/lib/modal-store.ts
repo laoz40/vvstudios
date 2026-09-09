@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type ModalState = { modal: "none" } | { modal: "feedback" } | { modal: "freeTour" };
+type ModalState = { modal: "none" } | { modal: "feedback" } | { modal: "freeTour" };
 
 const initialState: ModalState = { modal: "none" };
 

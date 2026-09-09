@@ -13,7 +13,7 @@ function clientDrivePermissionsCompleteLabel(
 ) {
 	switch (status) {
 		case "skipped":
-			return "Google Drive not shared with client";
+			return "Client email is not a Google account (folder sharing skipped)";
 		case "ready":
 		case "failed":
 		case "incomplete":

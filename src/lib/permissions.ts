@@ -17,7 +17,7 @@ export const PERMISSIONS = [
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
-export type Role = "admin" | "editor";
+type Role = "admin" | "editor";
 
 export const ROLE_PERMISSIONS = {
 	admin: PERMISSIONS,

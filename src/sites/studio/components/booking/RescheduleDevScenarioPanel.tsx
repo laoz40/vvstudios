@@ -27,7 +27,6 @@ const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 ] as const satisfies ReadonlyArray<{ label: string; value: DevRescheduleScenario }>;
 
 export type { DevRescheduleScenario };
-export type { RescheduleSearch } from "#studio/features/reschedule/lib/reschedule-search";
 
 export type RescheduleBookingLookup = NonNullable<
 	FunctionReturnType<typeof api.sessionReschedule.getRescheduleSessionByToken>

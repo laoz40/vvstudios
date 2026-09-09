@@ -448,8 +448,6 @@ export const packageFormSchema = z
 		validatePackageAddonAvailability(values, ctx);
 	});
 
-export type PackageFormValues = z.input<typeof packageFormSchema>;
-
 export const INITIAL_FORM: BookingFormValues = {
 	name: "",
 	phone: "",
