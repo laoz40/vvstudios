@@ -23,9 +23,6 @@
  * 6. Assets email retry
  *    Tracks a failed email separately and sends it once from its own retry action.
  *
- * 6b. Clear workflow failure
- *    Lets admins dismiss Drive workflow errors when folders are already ready.
- *
  * 7. Cancelled booking
  *    Skips setup without recording a failure.
  *
@@ -1269,39 +1266,6 @@ describe("Google Drive deletion recovery and list status", () => {
 
 		expect(status[1]?.folders?.find((folder) => folder.name === "Assets")?.url).toBe(assetsUrl);
 		expect(status[1]).toMatchObject({ status: "ready", hasDriveWorkflowFailure: false });
-	});
-
-	test("clears Drive workflow failures when folders are ready", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
-		driveFake.failPermissionRoleOnce = "writer";
-
-		await runSetup(t, bookingId);
-		const failedStatus = await t
-			.withIdentity(adminIdentity)
-			.query(api.sessions.getDriveStatus, { bookingId });
-		expect(failedStatus[1]).toMatchObject({ status: "ready", hasDriveWorkflowFailure: true });
-
-		const clearResult = await t
-			.withIdentity(adminIdentity)
-			.mutation(api.sessions.clearDriveWorkflowFailure, { bookingId });
-		expect(clearResult).toEqual([null, null]);
-
-		const clearedStatus = await t
-			.withIdentity(adminIdentity)
-			.query(api.sessions.getDriveStatus, { bookingId });
-		expect(clearedStatus[1]).toMatchObject({
-			status: "ready",
-			hasDriveWorkflowFailure: false,
-			clientDrivePermissions: { status: "ready", assetsEmailStatus: "not_sent" }
-		});
-
-		const listed = await t
-			.withIdentity(adminIdentity)
-			.query(api.sessions.listSessions, { paginationOpts: { cursor: null, numItems: 10 } });
-		expect(listed.page.find((session) => session._id === bookingId)?.hasDriveWorkflowFailure).toBe(
-			false
-		);
 	});
 
 	test("flags Drive workflow failures on the admin sessions list", async () => {

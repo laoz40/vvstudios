@@ -27,7 +27,6 @@ import {
 	getDriveWorkflowFailureForBooking,
 	getEditorSessionDriveFolders
 } from "#convex/lib/driveStatus";
-import { clearDriveWorkflowFailure } from "#convex/lib/driveWorkflow";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -57,15 +56,6 @@ type AssignSessionEditorArgs = {
 export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		getDriveStatus(ctx, args.bookingId)
-	);
-}
-
-export function clearDriveWorkflowFailureService(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
-	return requirePermission(ctx, "edit:sessions").andThen(() =>
-		clearDriveWorkflowFailure(ctx, args.bookingId)
 	);
 }
 
