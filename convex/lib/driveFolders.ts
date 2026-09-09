@@ -6,6 +6,41 @@ import { loadPackageBookings } from "#convex/lib/driveLookup";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
+export type BackfillBookingDriveClientIdError = {
+	reason: "BOOKING_NOT_FOUND" | "DRIVE_RECORD_NOT_FOUND";
+};
+
+export function ensureBookingDriveClientId(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	driveClientId: Id<"driveClients">
+): ResultAsync<null, BackfillBookingDriveClientIdError> {
+	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+		if (booking.driveClientId !== undefined) return ok(null);
+		return okOrThrow(ctx.db.patch(booking._id, { driveClientId }).then(() => null));
+	});
+}
+
+export function backfillBookingDriveClientIdFromSession(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<null, BackfillBookingDriveClientIdError> {
+	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+		if (booking.driveClientId !== undefined) return ok(null);
+		return okOrThrow(
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
+				.unique()
+		).andThen((driveSession) => {
+			if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+			return ensureBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
+		});
+	});
+}
+
 // The row starts without a folder; Drive setup creates and saves the client folder later.
 export function getOrCreateDriveClientId(
 	ctx: MutationCtx,
@@ -108,32 +143,38 @@ export function saveDriveSessionFolder(
 			.query("driveSessions")
 			.withIndex("by_bookingId", (query) => query.eq("bookingId", sessionFolder.bookingId))
 			.unique()
-	).andThen((existingSession) => {
-		// A repeated save must keep using the folder that won the first database write.
-		if (existingSession?.sessionFolder !== undefined) return ok(existingSession.sessionFolder.id);
-		// A previous attempt may have created the record before it saved the session folder.
-		if (existingSession !== null) {
+	)
+		.andThen((existingSession) => {
+			// A repeated save must keep using the folder that won the first database write.
+			if (existingSession?.sessionFolder !== undefined) return ok(existingSession.sessionFolder.id);
+			// A previous attempt may have created the record before it saved the session folder.
+			if (existingSession !== null) {
+				return okOrThrow(
+					ctx.db
+						.patch(existingSession._id, {
+							sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
+							updatedAt: Date.now()
+						})
+						.then(() => sessionFolder.folder.id)
+				);
+			}
 			return okOrThrow(
 				ctx.db
-					.patch(existingSession._id, {
+					.insert("driveSessions", {
+						bookingId: sessionFolder.bookingId,
+						driveClientId: sessionFolder.driveClientId,
 						sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
+						createdAt: Date.now(),
 						updatedAt: Date.now()
 					})
 					.then(() => sessionFolder.folder.id)
 			);
-		}
-		return okOrThrow(
-			ctx.db
-				.insert("driveSessions", {
-					bookingId: sessionFolder.bookingId,
-					driveClientId: sessionFolder.driveClientId,
-					sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
-					createdAt: Date.now(),
-					updatedAt: Date.now()
-				})
-				.then(() => sessionFolder.folder.id)
+		})
+		.andThen((folderId) =>
+			ensureBookingDriveClientId(ctx, sessionFolder.bookingId, sessionFolder.driveClientId).map(
+				() => folderId
+			)
 		);
-	});
 }
 
 export function saveDrivePackageFolder(

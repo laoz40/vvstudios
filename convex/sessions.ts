@@ -11,6 +11,7 @@ import {
 } from "#convex/lib/driveClientAccess";
 import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
+	backfillBookingDriveClientIdFromSession as backfillBookingDriveClientIdFromSessionRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
@@ -78,6 +79,12 @@ export const saveDriveSessionFolder = internalMutation({
 		folder: savedDriveFolderValidator
 	},
 	handler: (ctx, args) => saveDriveSessionFolderRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const backfillBookingDriveClientId = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) =>
+		backfillBookingDriveClientIdFromSessionRecord(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const saveDrivePackageFolder = internalMutation({

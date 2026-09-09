@@ -1,6 +1,8 @@
+import { exhaustiveCheck } from "#/lib/result";
 import { errAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { ensureBookingDriveClientId } from "#convex/lib/driveFolders";
 import { getDriveSetup } from "#convex/lib/driveLookup";
 import { buildClientDrivePermissionsStatus, getDriveStatus } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
@@ -110,6 +112,7 @@ export function clearDriveWorkflowFailure(
 			if (setupInfo.driveSession === null) {
 				return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 			}
+			const driveSession = setupInfo.driveSession;
 
 			const bookingPatches: Partial<Doc<"bookings">> = {};
 			// Folder setup failed earlier but folders were created or fixed later.
@@ -117,16 +120,11 @@ export function clearDriveWorkflowFailure(
 				bookingPatches.driveSetupFailedAt = undefined;
 				bookingPatches.driveSetupFailureCode = undefined;
 			}
-			// Permission retries read booking.driveClientId. Older bookings only got that id on
-			// driveSessions when an admin first ran folder setup.
-			if (setupInfo.booking.driveClientId === undefined) {
-				bookingPatches.driveClientId = setupInfo.driveSession.driveClientId;
-			}
 
 			const driveSessionPatches = getDismissedDriveSessionPatches({
 				booking: setupInfo.booking,
 				driveClient: setupInfo.driveClient,
-				driveSession: setupInfo.driveSession,
+				driveSession,
 				clientDrivePermissionsStatus: driveStatus.clientDrivePermissions.status,
 				clientAssetsEmailStatus: driveStatus.clientDrivePermissions.assetsEmailStatus,
 				editorDrivePermissionsStatus: driveStatus.editorDrivePermissions.status,
@@ -135,19 +133,32 @@ export function clearDriveWorkflowFailure(
 			const driveClientPatches =
 				setupInfo.driveClient === null ? {} : getDismissedClientPermissions(setupInfo.driveClient);
 
-			return okOrThrow(
-				Promise.all([
-					Object.keys(bookingPatches).length > 0
-						? ctx.db.patch(setupInfo.booking._id, bookingPatches)
-						: Promise.resolve(),
-					Object.keys(driveSessionPatches).length > 1
-						? ctx.db.patch(setupInfo.driveSession._id, driveSessionPatches)
-						: Promise.resolve(),
-					setupInfo.driveClient !== null && Object.keys(driveClientPatches).length > 0
-						? ctx.db.patch(setupInfo.driveClient._id, driveClientPatches)
-						: Promise.resolve()
-				]).then(() => null)
-			);
+			return ensureBookingDriveClientId(ctx, setupInfo.booking._id, driveSession.driveClientId)
+				.mapErr((error) => {
+					switch (error.reason) {
+						case "BOOKING_NOT_FOUND":
+							return { reason: "BOOKING_NOT_FOUND" as const };
+						case "DRIVE_RECORD_NOT_FOUND":
+							return { reason: "DRIVE_FOLDERS_NOT_READY" as const };
+						default:
+							return exhaustiveCheck(error.reason);
+					}
+				})
+				.andThen(() =>
+				okOrThrow(
+					Promise.all([
+						Object.keys(bookingPatches).length > 0
+							? ctx.db.patch(setupInfo.booking._id, bookingPatches)
+							: Promise.resolve(),
+						Object.keys(driveSessionPatches).length > 1
+							? ctx.db.patch(driveSession._id, driveSessionPatches)
+							: Promise.resolve(),
+						setupInfo.driveClient !== null && Object.keys(driveClientPatches).length > 0
+							? ctx.db.patch(setupInfo.driveClient._id, driveClientPatches)
+							: Promise.resolve()
+					]).then(() => null)
+				)
+				);
 		});
 	});
 }
