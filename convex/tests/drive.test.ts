@@ -17,6 +17,9 @@
  * 5. Permission retry
  *    Retries failed permissions without recreating folders or sending the email.
  *
+ * 5b. Legacy booking drive client link
+ *    Links booking.driveClientId during setup and before permission retries.
+ *
  * 6. Assets email retry
  *    Tracks a failed email separately and sends it once from its own retry action.
  *
@@ -597,6 +600,37 @@ describe("Google Drive scheduled workspace setup", () => {
 
 		await runSetup(t, bookingId);
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(1);
+	});
+
+	test("links booking.driveClientId during folder setup for bookings created before Drive", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, { linkDriveClient: false });
+
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(state.booking?.driveClientId).toBe(state.driveSession?.driveClientId);
+		expect(state.driveSession).toMatchObject({ clientDrivePermissionsStatus: "ready" });
+	});
+
+	test("retries client permissions when booking.driveClientId is missing", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		driveFake.failPermissionRoleOnce = "writer";
+
+		await runSetup(t, bookingId);
+		await t.run(async (ctx) => {
+			await ctx.db.patch(bookingId, { driveClientId: undefined });
+		});
+
+		const retryResult = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.retryClientDrivePermissions, { bookingId });
+		const recoveredState = await readDriveState(t, bookingId);
+
+		expect(retryResult).toEqual([null, null]);
+		expect(recoveredState.booking?.driveClientId).toBe(recoveredState.driveSession?.driveClientId);
+		expect(recoveredState.driveSession).toMatchObject({ clientDrivePermissionsStatus: "ready" });
 	});
 
 	test("tracks a failed assets email separately and retries it once", async () => {
@@ -1746,7 +1780,7 @@ type SeedBookingInsert = {
 	status: Doc<"bookings">["status"];
 	pendingPaymentCreatedAt: number;
 	packageId?: Id<"packages">;
-	driveClientId: Id<"driveClients">;
+	driveClientId?: Id<"driveClients">;
 	reservationCreatedAt?: number;
 	reservationSessionStartAt?: number;
 	reservationDuration?: string;
@@ -1757,6 +1791,7 @@ async function seedBooking(
 	options: {
 		addons?: BookingAddon[];
 		assignedEditorTokenIdentifier?: string;
+		linkDriveClient?: boolean;
 		status?: Doc<"bookings">["status"];
 		withReservation?: boolean;
 		sessionStartAt?: number;
@@ -1764,23 +1799,27 @@ async function seedBooking(
 	} = {}
 ) {
 	const bookingStartAt = options.sessionStartAt ?? sessionStartAt;
+	const linkDriveClient = options.linkDriveClient ?? true;
 	return await t.run(async (ctx) => {
-		// Mirror booking creation: reuse or insert a driveClients row without a folder and link it.
-		const normalizedEmail = "customer@example.com";
-		const existingClient = await ctx.db
-			.query("driveClients")
-			.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
-			.unique();
-		const driveClientId =
-			existingClient?._id ??
-			(await ctx.db.insert("driveClients", {
-				normalizedEmail,
-				displayName: getClientFolderName({
-					accountName: "Test account",
-					contactName: "Test customer"
-				}),
-				createdAt: now
-			}));
+		let driveClientId: Id<"driveClients"> | undefined;
+		if (linkDriveClient) {
+			// Mirror booking creation: reuse or insert a driveClients row without a folder and link it.
+			const normalizedEmail = "customer@example.com";
+			const existingClient = await ctx.db
+				.query("driveClients")
+				.withIndex("by_normalizedEmail", (query) => query.eq("normalizedEmail", normalizedEmail))
+				.unique();
+			driveClientId =
+				existingClient?._id ??
+				(await ctx.db.insert("driveClients", {
+					normalizedEmail,
+					displayName: getClientFolderName({
+						accountName: "Test account",
+						contactName: "Test customer"
+					}),
+					createdAt: now
+				}));
+		}
 		const booking: SeedBookingInsert = {
 			name: "Test customer",
 			phone: "0400000000",
