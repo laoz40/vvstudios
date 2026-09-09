@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "#/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -23,6 +22,7 @@ import {
 	readStoredPackageTableFilters,
 	storePackageTableFilters
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
+import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
 type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
 
@@ -159,17 +159,11 @@ export function PackagesTable({
 				</Table>
 			</div>
 
-			{canLoadMorePackages || isLoadingMorePackages ? (
-				<div className="flex justify-end">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={loadMorePackages}
-						disabled={isLoadingMorePackages}>
-						{isLoadingMorePackages ? "Loading..." : "Load more"}
-					</Button>
-				</div>
-			) : null}
+			<InfiniteScrollSentinel
+				canLoadMore={canLoadMorePackages}
+				isLoadingMore={isLoadingMorePackages}
+				onLoadMore={loadMorePackages}
+			/>
 		</section>
 	);
 }
