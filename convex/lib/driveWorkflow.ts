@@ -145,19 +145,19 @@ export function clearDriveWorkflowFailure(
 					}
 				})
 				.andThen(() =>
-				okOrThrow(
-					Promise.all([
-						Object.keys(bookingPatches).length > 0
-							? ctx.db.patch(setupInfo.booking._id, bookingPatches)
-							: Promise.resolve(),
-						Object.keys(driveSessionPatches).length > 1
-							? ctx.db.patch(driveSession._id, driveSessionPatches)
-							: Promise.resolve(),
-						setupInfo.driveClient !== null && Object.keys(driveClientPatches).length > 0
-							? ctx.db.patch(setupInfo.driveClient._id, driveClientPatches)
-							: Promise.resolve()
-					]).then(() => null)
-				)
+					okOrThrow(
+						Promise.all([
+							Object.keys(bookingPatches).length > 0
+								? ctx.db.patch(setupInfo.booking._id, bookingPatches)
+								: Promise.resolve(),
+							Object.keys(driveSessionPatches).length > 1
+								? ctx.db.patch(driveSession._id, driveSessionPatches)
+								: Promise.resolve(),
+							setupInfo.driveClient !== null && Object.keys(driveClientPatches).length > 0
+								? ctx.db.patch(setupInfo.driveClient._id, driveClientPatches)
+								: Promise.resolve()
+						]).then(() => null)
+					)
 				);
 		});
 	});
