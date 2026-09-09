@@ -14,6 +14,7 @@ import {
 	type DriveError,
 	type SavedDrivePermission
 } from "#convex/lib/googleDrive";
+import { dismissedClientFolderPermission } from "#convex/lib/driveClientAccess";
 import { sendClientAssetsEmail } from "#convex/lib/email";
 import { fromConvexTuple } from "#convex/lib/result";
 
@@ -165,7 +166,14 @@ export function requireClientDrivePermissions(
 				return errAsync(error);
 			}
 
-			return saveClientDrivePermissionsStatus(ctx, setup.booking._id, "skipped").map(() => setup);
+			return saveClientDrivePermission(
+				ctx,
+				setup.booking._id,
+				"Client folder",
+				dismissedClientFolderPermission
+			)
+				.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "skipped"))
+				.map(() => setup);
 		});
 }
 

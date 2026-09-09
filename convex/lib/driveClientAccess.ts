@@ -9,6 +9,11 @@ import type { SavedDrivePermission } from "#convex/lib/googleDrive";
 
 type ClientDrivePermissionsStatus = "failed" | "ready" | "skipped";
 
+export const dismissedClientFolderPermission: SavedDrivePermission = {
+	id: "dismissed",
+	role: "reader"
+};
+
 export function saveClientDrivePermission(
 	ctx: MutationCtx,
 	args: {
@@ -17,11 +22,14 @@ export function saveClientDrivePermission(
 		permission: SavedDrivePermission;
 	}
 ) {
-	return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
-		if (booking === null || booking.driveClientId === undefined) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
-		return okOrThrow(ctx.db.get(booking.driveClientId)).andThen((driveClient) => {
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		return okOrThrow(ctx.db.get(driveSession.driveClientId)).andThen((driveClient) => {
 			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 			switch (args.name) {
 				case "Client folder":

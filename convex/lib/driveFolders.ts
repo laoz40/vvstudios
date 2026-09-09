@@ -17,7 +17,7 @@ export function ensureBookingDriveClientId(
 ): ResultAsync<null, BackfillBookingDriveClientIdError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-		if (booking.driveClientId !== undefined) return ok(null);
+		if (booking.driveClientId === driveClientId) return ok(null);
 		return okOrThrow(ctx.db.patch(booking._id, { driveClientId }).then(() => null));
 	});
 }
@@ -28,7 +28,6 @@ export function backfillBookingDriveClientIdFromSession(
 ): ResultAsync<null, BackfillBookingDriveClientIdError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-		if (booking.driveClientId !== undefined) return ok(null);
 		return okOrThrow(
 			ctx.db
 				.query("driveSessions")
