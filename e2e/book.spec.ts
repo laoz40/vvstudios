@@ -14,13 +14,19 @@
  *
  * 3. Single session checkout opens payment modal
  *    Agree to terms and assert the Stripe payment modal opens (modal closed in `finally`).
+ *
+ * 4. Package request reaches package-complete
+ *    Fill a package booking, agree to terms, and assert `/package-complete` without opening the Stripe payment modal.
  */
 import { expect, test } from "@playwright/test";
 import {
 	agreeToTerms,
 	closePaymentModal,
+	expectNoPaymentModal,
+	expectPackageRequestComplete,
 	expectPaymentModal,
 	expectTermsDialog,
+	fillPackageBookingForm,
 	fillSingleSessionBookingForm,
 	submitBookingForm
 } from "./helpers/booking-form";
@@ -61,5 +67,18 @@ test.describe("book page", () => {
 		} finally {
 			await closePaymentModal(page);
 		}
+	});
+
+	test("package request reaches package-complete", async ({ page }) => {
+		test.setTimeout(120_000);
+
+		await page.goto("/book");
+
+		await fillPackageBookingForm(page);
+		await submitBookingForm(page);
+		await expectTermsDialog(page);
+		await agreeToTerms(page);
+		await expectPackageRequestComplete(page, 4);
+		await expectNoPaymentModal(page);
 	});
 });

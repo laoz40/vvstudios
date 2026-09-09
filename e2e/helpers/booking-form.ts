@@ -13,6 +13,13 @@ export interface FillBookingFormOptions {
 	startingDayIndex?: number;
 }
 
+export type PackageSizeOption = 4 | 8 | 12;
+
+export interface FillPackageBookingFormOptions {
+	contactDetails?: BookingContactDetails;
+	packageSize?: PackageSizeOption;
+}
+
 function createDefaultContactDetails(): BookingContactDetails {
 	return {
 		name: "Alex Tester",
@@ -247,6 +254,40 @@ export async function fillSingleSessionBookingForm(
 	return contactDetails;
 }
 
+export async function fillPackageBookingForm(
+	page: Page,
+	options: FillPackageBookingFormOptions = {}
+): Promise<BookingContactDetails> {
+	const contactDetails = options.contactDetails ?? createDefaultContactDetails();
+	const packageSize = options.packageSize ?? 4;
+
+	await expect(page.getByRole("heading", { name: "Studio Hire Booking" })).toBeVisible();
+
+	await selectBookingRadio(
+		page,
+		'[data-field-name="bookingMode"] label[for="booking-mode-package"]',
+		"#booking-mode-package"
+	);
+	await expect(page.getByText("Package size *")).toBeVisible({ timeout: 15_000 });
+	await selectBookingRadio(
+		page,
+		`[data-field-name="packageSize"] label[for="package-size-${packageSize}"]`,
+		`#package-size-${packageSize}`
+	);
+	await selectBookingRadio(
+		page,
+		'[data-field-name="duration"] label[for="duration-2h"]',
+		"#duration-2h"
+	);
+
+	await page.getByLabel("Full Name *").fill(contactDetails.name);
+	await page.getByLabel("Mobile Number *").fill(contactDetails.phone);
+	await page.getByLabel("Account Name *").fill(contactDetails.accountName);
+	await page.getByLabel("Email *").fill(contactDetails.email);
+
+	return contactDetails;
+}
+
 export async function submitBookingForm(page: Page) {
 	await page.getByRole("button", { name: "COMPLETE BOOKING" }).click();
 }
@@ -271,6 +312,22 @@ export async function expectPaymentModal(page: Page) {
 		timeout: 45_000
 	});
 	await expect(paymentDialog.locator("iframe").first()).toBeVisible({ timeout: 30_000 });
+}
+
+export async function expectNoPaymentModal(page: Page) {
+	await expect(page.getByRole("button", { name: "Close payment modal" })).toBeHidden({
+		timeout: 5_000
+	});
+}
+
+export async function expectPackageRequestComplete(page: Page, packageSize: PackageSizeOption = 4) {
+	await expect(page).toHaveURL(/\/package-complete/, { timeout: 45_000 });
+	await expect(page).toHaveURL(new RegExp(`package_size=${packageSize}`));
+	await expect(
+		page.getByRole("heading", { name: `${packageSize}-Session Package requested.` })
+	).toBeVisible();
+	await expect(page.getByText("Next Steps:")).toBeVisible();
+	await expect(page.getByText("Pay your invoice")).toBeVisible();
 }
 
 export async function closePaymentModal(page: Page) {
