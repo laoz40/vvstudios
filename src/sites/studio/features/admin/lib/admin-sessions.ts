@@ -88,6 +88,14 @@ export type AdminSessionFilters = {
 	showUpcomingOnly: boolean;
 };
 
+// Leo: Currently client filters paginated data. Fine at current volume. Prefetches when
+// filters hide every loaded row. Won't scale as bookings grow.
+//
+// Server-side filtering probably needed in the future. Idea to explore:
+// - Split upcoming (future sessions) and needs action (unpaid or deliverables
+//   not sent) into separate views instead of one toggle
+// - Upfront payment may simplify the unpaid case
+// - might not be necessary to even filter for unpaid as deliverables won't be sent until payment is received
 export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSessionFilters) {
 	return sessions.filter((session) => {
 		if (!filters.showArchived && session.hiddenAt !== undefined) {
