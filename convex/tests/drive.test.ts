@@ -143,6 +143,9 @@
  * 47. Missing Google account
  *     Skips client-folder user sharing without failing setup, and still sends the assets guest link.
  *
+ * 48. Assets email eligibility
+ *     Skips the assets email when the booking has no Complete Edit or Handcrafted Clips add-on.
+ *
  * Google Drive is replaced with an in-memory fake, so no real folders are created.
  */
 import { errAsync, okAsync } from "neverthrow";
@@ -605,6 +608,18 @@ describe("Google Drive scheduled workspace setup", () => {
 		expect(retryResult).toEqual([null, null]);
 		expect(recoveredState.driveSession).toMatchObject({ assetsEmailStatus: "sent" });
 		expect(emailFake.sendClientAssetsEmail).toHaveBeenCalledTimes(2);
+	});
+
+	test("skips the assets email when the booking has no editing add-on that needs assets", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, { addons: [] });
+
+		await runSetup(t, bookingId);
+		const state = await readDriveState(t, bookingId);
+
+		expect(state.driveSession).toMatchObject({ clientDrivePermissionsStatus: "ready" });
+		expect(state.driveSession?.assetsEmailStatus).toBeUndefined();
+		expect(emailFake.sendClientAssetsEmail).not.toHaveBeenCalled();
 	});
 
 	test("skips a cancelled booking without recording a setup failure", async () => {
@@ -1681,7 +1696,7 @@ type SeedBookingInsert = {
 	sessionStartAt: number;
 	duration: string;
 	service: string;
-	addons: [];
+	addons: BookingAddon[];
 	assignedEditorTokenIdentifier?: string;
 	status: Doc<"bookings">["status"];
 	pendingPaymentCreatedAt: number;
@@ -1695,6 +1710,7 @@ type SeedBookingInsert = {
 async function seedBooking(
 	t: TestClient,
 	options: {
+		addons?: BookingAddon[];
 		assignedEditorTokenIdentifier?: string;
 		status?: Doc<"bookings">["status"];
 		withReservation?: boolean;
@@ -1730,7 +1746,7 @@ async function seedBooking(
 			sessionStartAt: bookingStartAt,
 			duration: "1h",
 			service: "Remote Podcast",
-			addons: [],
+			addons: options.addons ?? ["Complete Edit"],
 			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,

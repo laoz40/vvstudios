@@ -1,9 +1,18 @@
 import { v } from "convex/values";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	ADDON_OPTIONS,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
 
 export const bookingAddonsValidator = v.array(bookingAddonValidator);
+
+const CLIENT_ASSETS_EMAIL_ADDONS = new Set<BookingAddon>(["Complete Edit", "Handcrafted Clips"]);
+
+export function bookingRequiresClientAssetsEmail(addons: readonly BookingAddon[]) {
+	return addons.some((addon) => CLIENT_ASSETS_EMAIL_ADDONS.has(addon));
+}
 
 export const bookingAddonQuantitiesValidator = {
 	essentialEditQuantity: v.optional(v.string()),
