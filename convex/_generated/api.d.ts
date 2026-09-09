@@ -39,7 +39,6 @@ import type * as lib_driveLookup from "../lib/driveLookup.js";
 import type * as lib_driveScheduling from "../lib/driveScheduling.js";
 import type * as lib_driveSetup from "../lib/driveSetup.js";
 import type * as lib_driveStatus from "../lib/driveStatus.js";
-import type * as lib_driveWorkflow from "../lib/driveWorkflow.js";
 import type * as lib_editorAccess from "../lib/editorAccess.js";
 import type * as lib_editorAssignments from "../lib/editorAssignments.js";
 import type * as lib_editorSessions from "../lib/editorSessions.js";
@@ -149,7 +148,6 @@ declare const fullApi: ApiFromModules<{
   "lib/driveScheduling": typeof lib_driveScheduling;
   "lib/driveSetup": typeof lib_driveSetup;
   "lib/driveStatus": typeof lib_driveStatus;
-  "lib/driveWorkflow": typeof lib_driveWorkflow;
   "lib/editorAccess": typeof lib_editorAccess;
   "lib/editorAssignments": typeof lib_editorAssignments;
   "lib/editorSessions": typeof lib_editorSessions;
