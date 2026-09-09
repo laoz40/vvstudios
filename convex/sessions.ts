@@ -36,7 +36,6 @@ import {
 	archiveSessionService,
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
-	clearDriveWorkflowFailureService,
 	getDeliverablesCustomerTypeService,
 	getDriveStatusService,
 	getPublicRescheduleCompleteSessionService,
@@ -271,11 +270,6 @@ export const getSessionById = internalQuery({
 export const getDriveStatus = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) => getDriveStatusService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const clearDriveWorkflowFailure = mutation({
-	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => clearDriveWorkflowFailureService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getDeliverablesCustomerType = query({

@@ -1,11 +1,12 @@
-import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { google } from "googleapis";
+import { loadLocalEnvFiles } from "./load-env.ts";
 
-loadEnvFiles();
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+loadLocalEnvFiles(path.resolve(scriptDirectory, ".."));
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -80,54 +81,4 @@ try {
 	process.exitCode = 1;
 } finally {
 	readline.close();
-}
-
-function loadEnvFiles() {
-	const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-	const projectRoot = path.resolve(scriptDirectory, "..");
-
-	for (const fileName of [".env.local", ".env"]) {
-		loadEnvFile(path.join(projectRoot, fileName));
-	}
-}
-
-/** @param {string} filePath */
-function loadEnvFile(filePath) {
-	if (!fs.existsSync(filePath)) {
-		return;
-	}
-
-	const fileContents = fs.readFileSync(filePath, "utf8");
-
-	for (const line of fileContents.split(/\r?\n/u)) {
-		const trimmedLine = line.trim();
-		if (!trimmedLine || trimmedLine.startsWith("#")) {
-			continue;
-		}
-
-		const equalsIndex = trimmedLine.indexOf("=");
-		if (equalsIndex === -1) {
-			continue;
-		}
-
-		const key = trimmedLine.slice(0, equalsIndex).trim();
-		const rawValue = trimmedLine.slice(equalsIndex + 1).trim();
-		if (!key || process.env[key] !== undefined) {
-			continue;
-		}
-
-		process.env[key] = stripWrappingQuotes(rawValue);
-	}
-}
-
-/** @param {string} value */
-function stripWrappingQuotes(value) {
-	if (
-		(value.startsWith('"') && value.endsWith('"')) ||
-		(value.startsWith("'") && value.endsWith("'"))
-	) {
-		return value.slice(1, -1);
-	}
-
-	return value;
 }
