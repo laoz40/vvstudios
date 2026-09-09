@@ -1,12 +1,12 @@
 /**
- * Local-only E2E for the package approve-and-schedule happy path.
+ * E2E for the package approve-and-schedule happy path.
  * Uses live Convex, Clerk admin auth, Google Calendar, and Resend (no seeding).
  *
  * Prerequisites
  * `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` (same Resend account Convex uses to send).
  * `E2E_ADMIN_EMAIL` for an admin user on the e2e Clerk instance (`publicMetadata.role` = `admin`).
  * `E2E_CLERK_SECRET_KEY` or `CLERK_SECRET_KEY` for `@clerk/testing` (same Clerk instance as `VITE_CLERK_PUBLISHABLE_KEY`).
- * Run with `bun run test:e2e:package-schedule` (`--workers=1` avoids slot/email collisions).
+ * Runs in CI via `bun run test:e2e`. Run alone with `bun run test:e2e:package-schedule`.
  *
  * 1. Package request, admin payment confirmation, and first session scheduling
  *    Submit a package booking, confirm payment in the admin dashboard, poll Resend for the scheduling link,
