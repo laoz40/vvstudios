@@ -19,10 +19,10 @@ const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
 	showUpcomingOnly: true
 };
 
-const sessionSortIdSchema = z.enum(["name", "session", "createdAt"]);
+const storedSessionSortIdSchema = z.enum(["name", "session", "createdAt"]);
 
 const sessionSortingItemSchema = z.object({
-	id: sessionSortIdSchema,
+	id: storedSessionSortIdSchema,
 	desc: z.boolean().optional()
 });
 
@@ -85,7 +85,10 @@ function normalizeStoredSorting(
 		return undefined;
 	}
 
-	return sorting.map((sort) => ({ id: sort.id, desc: sort.desc ?? false }));
+	return sorting.map((sort) => ({
+		id: sort.id === "name" ? "session" : sort.id,
+		desc: sort.desc ?? false
+	}));
 }
 
 export function readStoredPackageTableFilters(): AdminPackageFilters {
