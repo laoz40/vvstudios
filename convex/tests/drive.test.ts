@@ -1195,10 +1195,7 @@ describe("Google Drive deletion recovery and list status", () => {
 		const failedStatus = await t
 			.withIdentity(adminIdentity)
 			.query(api.sessions.getDriveStatus, { bookingId });
-		expect(failedStatus[1]).toMatchObject({
-			status: "ready",
-			hasDriveWorkflowFailure: true
-		});
+		expect(failedStatus[1]).toMatchObject({ status: "ready", hasDriveWorkflowFailure: true });
 
 		const clearResult = await t
 			.withIdentity(adminIdentity)
@@ -1211,10 +1208,7 @@ describe("Google Drive deletion recovery and list status", () => {
 		expect(clearedStatus[1]).toMatchObject({
 			status: "ready",
 			hasDriveWorkflowFailure: false,
-			clientDrivePermissions: {
-				status: "ready",
-				assetsEmailStatus: "not_sent"
-			}
+			clientDrivePermissions: { status: "ready", assetsEmailStatus: "not_sent" }
 		});
 
 		const listed = await t
