@@ -2,7 +2,7 @@ import { errAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getDriveSetup } from "#convex/lib/driveLookup";
-import { getDriveStatus } from "#convex/lib/driveStatus";
+import { buildClientDrivePermissionsStatus, getDriveStatus } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import type { SavedDrivePermission } from "#convex/lib/googleDrive";
 
@@ -24,12 +24,14 @@ function getDismissedClientPermissions(driveClient: Doc<"driveClients">) {
 	return patches;
 }
 
+type ClientDrivePermissionsDisplay = ReturnType<typeof buildClientDrivePermissionsStatus>;
+
 function getDismissedDriveSessionPatches(args: {
 	booking: Doc<"bookings">;
 	driveClient: Doc<"driveClients"> | null;
 	driveSession: Doc<"driveSessions">;
-	clientDrivePermissionsStatus: "failed" | "incomplete" | "not_created" | "ready" | "skipped";
-	clientAssetsEmailStatus: "failed" | "not_sent" | "pending" | "sent";
+	clientDrivePermissionsStatus: ClientDrivePermissionsDisplay["status"];
+	clientAssetsEmailStatus: ClientDrivePermissionsDisplay["assetsEmailStatus"];
 	editorDrivePermissionsStatus: "failed" | "not_assigned" | "pending" | "ready";
 	editorAssignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent";
 }) {
@@ -85,10 +87,7 @@ function getDismissedDriveSessionPatches(args: {
 }
 
 export type ClearDriveWorkflowFailureError = {
-	reason:
-		| "BOOKING_NOT_FOUND"
-		| "DRIVE_FOLDERS_NOT_READY"
-		| "DRIVE_WORKFLOW_NOT_FAILED";
+	reason: "BOOKING_NOT_FOUND" | "DRIVE_FOLDERS_NOT_READY" | "DRIVE_WORKFLOW_NOT_FAILED";
 };
 
 export function clearDriveWorkflowFailure(
@@ -120,10 +119,7 @@ export function clearDriveWorkflowFailure(
 			}
 			// Permission retries read booking.driveClientId. Older bookings only got that id on
 			// driveSessions when an admin first ran folder setup.
-			if (
-				setupInfo.booking.driveClientId === undefined &&
-				setupInfo.driveSession.driveClientId !== undefined
-			) {
+			if (setupInfo.booking.driveClientId === undefined) {
 				bookingPatches.driveClientId = setupInfo.driveSession.driveClientId;
 			}
 
