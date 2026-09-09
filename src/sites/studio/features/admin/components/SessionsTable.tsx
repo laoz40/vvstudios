@@ -87,10 +87,9 @@ export function SessionsTable({
 		[activeEditors]
 	);
 
-	// Prefetch another page when the due filter hides every loaded session.
+	// Prefetch another page when client-side filters hide every loaded session.
 	useEffect(() => {
 		if (
-			showUpcomingOnly &&
 			filteredSessions.length === 0 &&
 			canLoadMoreSessions &&
 			!isLoadingSessions &&
@@ -99,7 +98,6 @@ export function SessionsTable({
 			loadMoreSessions();
 		}
 	}, [
-		showUpcomingOnly,
 		filteredSessions.length,
 		canLoadMoreSessions,
 		isLoadingSessions,
