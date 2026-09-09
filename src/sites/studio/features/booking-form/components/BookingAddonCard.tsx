@@ -39,20 +39,22 @@ const addonCardCopy = {
 		icon: ScrollText
 	},
 	"Essential Edit": {
-		description: "Camera switching with synchronised audio and basic colour correction.",
+		description:
+			"Mistakes removed, clean cuts between cameras. Ready to post, no B-roll or graphics.",
 		icon: Scissors
 	},
 	"Complete Edit": {
 		description:
-			"Dynamic episode teaser, lower thirds & B-roll, filler words and silences removed with clean cuts.",
+			"Opens strong and keeps people watching. Intro snippet with subtitles & b-roll. Filler words and silences are cut.",
 		icon: WandSparkles
 	},
 	"Clip Volume Pack": {
-		description: "10 basic clips with subtitles and vertical cropping for social media.",
+		description: "10 clips with basic subtitles and vertical cropping. Nothing fancy.",
 		icon: Smartphone
 	},
 	"Handcrafted Clips": {
-		description: "5 premium clips with animated subtitles, B-roll, and custom graphics.",
+		description:
+			"Five clips cut to stand out in the feed. Animated subtitles, B-roll, and custom graphics.",
 		icon: Sparkles
 	},
 	"Remote Podcast": {
