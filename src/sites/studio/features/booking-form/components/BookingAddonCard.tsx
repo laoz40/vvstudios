@@ -13,6 +13,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	formatBookingPrice
@@ -38,20 +39,22 @@ const addonCardCopy = {
 		icon: ScrollText
 	},
 	"Essential Edit": {
-		description: "Camera switching with synchronised audio and basic colour correction.",
+		description:
+			"Mistakes removed, clean cuts between cameras. Ready to post, no B-roll or graphics.",
 		icon: Scissors
 	},
 	"Complete Edit": {
 		description:
-			"Dynamic episode teaser, lower thirds & B-roll, filler words and silences removed with clean cuts.",
+			"Opens strong and keeps people watching. Intro snippet with subtitles & b-roll. Filler words and silences are cut.",
 		icon: WandSparkles
 	},
 	"Clip Volume Pack": {
-		description: "10 basic clips with subtitles and vertical cropping for social media.",
+		description: "10 clips with basic subtitles and vertical cropping. Nothing fancy.",
 		icon: Smartphone
 	},
 	"Handcrafted Clips": {
-		description: "5 premium clips with animated subtitles, B-roll, and custom graphics.",
+		description:
+			"Five clips cut to stand out in the feed. Animated subtitles, B-roll, and custom graphics.",
 		icon: Sparkles
 	},
 	"Remote Podcast": {
@@ -79,6 +82,7 @@ export function BookingAddonCard({
 	const addonCopy = addonCardCopy[addon];
 	const Icon = addonCopy.icon;
 	const addonId = `addon-${toOptionId(addon)}`;
+	const addonLabel = getCustomerAddonDisplayLabel(addon);
 
 	return (
 		<FieldLabel
@@ -96,12 +100,12 @@ export function BookingAddonCard({
 			)}>
 			<Field
 				orientation="horizontal"
-				className="relative items-center justify-between gap-4 rounded-lg px-4 py-6">
+				className="items-center justify-between gap-4 rounded-lg px-4 py-6">
 				<input
 					id={addonId}
 					type="checkbox"
 					checked={checked}
-					aria-label={addon}
+					aria-label={addonLabel}
 					disabled={disabled}
 					onChange={(event) => onCheckedChange(addon, event.target.checked)}
 					className="sr-only"
@@ -110,31 +114,37 @@ export function BookingAddonCard({
 					<div className="flex shrink-0 items-center justify-center text-primary">
 						<Icon className="size-8" />
 					</div>
-					<FieldContent className="min-w-0 gap-1 pr-12 sm:pr-0">
-						<FieldTitle className="relative inline-flex w-fit whitespace-nowrap text-base">
-							{addon}
-							{checked ? (
-								<span
-									className={cn(
-										"absolute left-full top-1/2 ml-2 -translate-y-1/2",
-										"inline-flex items-center justify-center rounded-lg border",
-										"px-2.5 py-0.5",
-										"text-xs font-medium tracking-wider",
-										"shadow-md transition-all duration-200 ease-in sm:hidden",
-										getPillStateClassName(true)
-									)}>
-									SELECTED
-								</span>
-							) : null}
-						</FieldTitle>
+					<FieldContent className="min-w-0 gap-1">
+						<div className="flex w-full min-w-0 items-center justify-between gap-2 sm:contents">
+							<div className="flex min-w-0 items-center gap-2 sm:contents">
+								<FieldTitle className="text-base sm:w-fit sm:whitespace-nowrap">
+									{addonLabel}
+								</FieldTitle>
+								{checked ? (
+									<span
+										className={cn(
+											"inline-flex shrink-0 items-center justify-center rounded-lg border",
+											"px-2.5 py-0.5",
+											"text-xs font-medium tracking-wider",
+											"shadow-md transition-all duration-200 ease-in sm:hidden",
+											getPillStateClassName(true)
+										)}>
+										SELECTED
+									</span>
+								) : null}
+							</div>
+							<span className="shrink-0 text-lg font-semibold text-primary sm:hidden">
+								+{formatBookingPrice(ADDON_PRICES[addon])}
+							</span>
+						</div>
 						<FieldDescription className="text-pretty">{addonCopy.description}</FieldDescription>
 					</FieldContent>
 				</div>
-				<div className="flex shrink-0 items-center gap-2">
+				<div className="hidden shrink-0 items-center gap-2 sm:flex">
 					{checked ? (
 						<span
 							className={cn(
-								"hidden items-center justify-center rounded-lg border sm:inline-flex",
+								"inline-flex items-center justify-center rounded-lg border",
 								"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
 								"text-xs font-medium tracking-wider",
 								"shadow-md transition-all duration-200 ease-in",
@@ -143,11 +153,7 @@ export function BookingAddonCard({
 							SELECTED
 						</span>
 					) : null}
-					<span
-						className={cn(
-							"absolute right-4 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0",
-							"text-lg font-semibold text-primary"
-						)}>
+					<span className="text-lg font-semibold text-primary">
 						+{formatBookingPrice(ADDON_PRICES[addon])}
 					</span>
 				</div>

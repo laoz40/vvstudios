@@ -13,6 +13,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
+import { BookingAddonSectionDescription } from "#studio/features/booking-form/components/BookingAddonSectionDescription";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	openClipsPackageDeselectedModal,
@@ -198,7 +199,9 @@ export function BookingAddonsSection() {
 							return (
 								<FieldSet key={section.title}>
 									<FieldLegend className={sectionHeadingClassName}>{section.title}</FieldLegend>
-									<FieldDescription>{section.description}</FieldDescription>
+									<FieldDescription>
+										<BookingAddonSectionDescription sectionTitle={section.title} />
+									</FieldDescription>
 									<div className="flex flex-col gap-4">
 										{sectionAddons.map((addon) => (
 											<div

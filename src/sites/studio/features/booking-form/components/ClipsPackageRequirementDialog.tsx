@@ -15,14 +15,14 @@ export function ClipsPackageRequirementDialog({ reason }: ClipsPackageRequiremen
 					closeBookingModal();
 				}
 			}}
-			title={isClipsPackageDeselected ? "Clip Volume Pack removed" : "Essential Edit required"}
+			title={isClipsPackageDeselected ? "Clip Volume Pack removed" : "Rough Cut required"}
 			description={
 				<div className="flex flex-col gap-2">
 					<p>
-						The Clip Volume Pack requires the Essential Edit add-on. This is because the footage
-						must be combined before creating clips.
+						The Clip Volume Pack requires the Rough Cut add-on. This is because the footage must be
+						combined before creating clips.
 					</p>
-					<p>{"Handcrafted Clips don't require an Essential Edit."}</p>
+					<p>{"Handcrafted Clips don't require a Rough Cut."}</p>
 				</div>
 			}
 			closeLabel="Close dialog"

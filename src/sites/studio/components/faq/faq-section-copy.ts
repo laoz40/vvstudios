@@ -73,23 +73,24 @@ export const faqSectionCopy: FaqSectionCopy = {
 			question: "Do you offer editing and post-production?",
 			answerParts: [
 				{
-					heading: "Essential Edit ($100) - ",
+					heading: "Rough Cut ($100) - ",
 					value:
-						"Syncs audio to video, enhances sound to a broadcast-ready level, and includes multi-camera switching based on the active speaker."
+						"The minimum needed to make it postable. Mistakes removed, clean cuts between camera angles, no hook, no B-roll, no graphics."
 				},
 				{
 					heading: "Complete Edit ($249) - ",
 					value:
-						"Adds a dynamic episode teaser, lower thirds and B-roll, and removes filler words and silences with clean cuts."
+						"Opens strong and keeps people watching. Intro snippet with animated subtitles and B-roll, lower third graphics, and every filler word and silence cut for tight pacing."
 				},
 				{
 					heading: "Clip Volume Pack ($80) - ",
 					value:
-						"10 curated clips (15-60s), selected for engagement potential, delivered in vertical format with subtitles for social media."
+						"Quick, ready-to-post clips, nothing fancy. 10 clips from your session with basic subtitles and vertical cropping. No B-roll, no animated subtitles, no custom graphics."
 				},
 				{
 					heading: "Handcrafted Clips ($199) - ",
-					value: "5 premium clips with animated subtitles, B-roll, and custom graphics."
+					value:
+						"Five clips cut to stand out in the feed. Edited one at a time with animated subtitles, B-roll, and custom graphics."
 				}
 			]
 		},

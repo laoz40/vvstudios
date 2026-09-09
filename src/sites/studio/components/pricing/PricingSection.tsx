@@ -102,31 +102,31 @@ const productionAddOns: readonly PricingAddOn[] = [
 
 const editingAddOns: readonly PricingAddOn[] = [
 	{
-		label: "Essential Edit",
+		label: "Rough Cut",
 		price: formatBookingPrice(ADDON_PRICES["Essential Edit"]),
 		description:
-			"A clean edit of your full episode. We synchronise the audio and cut between camera angles so the final video feels smooth and ready to publish.",
+			"The minimum needed to make it postable. Mistakes removed, clean cuts between camera angles, no hook, no B-roll, no graphics.",
 		icon: Scissors
 	},
 	{
 		label: "Complete Edit",
 		price: formatBookingPrice(ADDON_PRICES["Complete Edit"]),
 		description:
-			"A fuller episode edit. We add a dynamic teaser, lower thirds and B-roll, and cut filler words and silences so the episode is closer to publish-ready.",
+			"Opens strong and keeps audiences watching. Intro snippet with animated subtitles & b-roll, lower third graphics, and every filler word and silence cut for tight pacing.",
 		icon: WandSparkles
 	},
 	{
 		label: "Clip Volume Pack",
 		price: formatBookingPrice(ADDON_PRICES["Clip Volume Pack"]),
 		description:
-			"Get 10 edited clips from your session, formatted for social media. Each clip includes subtitles and vertical cropping, so you can share key moments from the episode quickly.",
+			"Quick, ready-to-post clips, nothing fancy. 10 clips from your session with basic subtitles and vertical cropping. No B-roll, no animated subtitles, no custom graphics.",
 		icon: Smartphone
 	},
 	{
 		label: "Handcrafted Clips",
 		price: formatBookingPrice(ADDON_PRICES["Handcrafted Clips"]),
 		description:
-			"Get 5 premium clips from your session. Each clip includes animated subtitles, B-roll, and custom graphics for social posts that need more polish than the volume pack.",
+			"Five clips cut to stand out in the feed. Premium clips made one by one with animated subtitles, B-roll, and custom graphics for a professional look.",
 		icon: Sparkles
 	}
 ];
@@ -146,24 +146,31 @@ const editingAddOnsImage: PhotoGalleryImage = {
 };
 
 type PricingAddonFeatureSectionProps = {
-	title: string;
 	addOns: readonly PricingAddOn[];
 	image: PhotoGalleryImage;
 	imageSide: "left" | "right";
 	onSelectImage: (image: PhotoGalleryImage) => void;
+	sectionId?: string;
+	title: string;
 };
 
 function PricingAddonFeatureSection({
-	title,
 	addOns,
 	image,
 	imageSide,
-	onSelectImage
+	onSelectImage,
+	sectionId,
+	title
 }: PricingAddonFeatureSectionProps) {
 	const imageOnLeft = imageSide === "left";
 
 	return (
-		<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+		<section
+			id={sectionId}
+			className={cn(
+				"grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left",
+				sectionId && "scroll-mt-20 md:scroll-mt-28"
+			)}>
 			<ImageViewerTrigger
 				image={image}
 				className={cn(
@@ -346,6 +353,7 @@ export function PricingSection({
 						image={editingAddOnsImage}
 						imageSide="right"
 						onSelectImage={setPreviewImage}
+						sectionId="editing-services"
 					/>
 				</div>
 			</motion.div>

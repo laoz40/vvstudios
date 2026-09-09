@@ -20,7 +20,7 @@ function isBookingDuration(value: string): value is keyof typeof DURATION_PRICES
 
 export function getAddonQuantity(addon: BookingAddon, quantities: BookingAddonQuantities = {}) {
 	// Non-editing add-ons are one-time charges. Quantity-tracked add-ons are charged
-	// by their own selected quantity, e.g. 1 Essential Edit and 2 Clip Volume Packs.
+	// by their own selected quantity, e.g. 1 Rough Cut and 2 Clip Volume Packs.
 	if (!hasEditingAddon([addon])) {
 		return 1;
 	}

@@ -5,6 +5,7 @@ import {
 	DURATION_PRICES
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
+	getCustomerAddonDisplayLabel,
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -95,7 +96,7 @@ export function createPackageInvoiceLineItemSnapshot(
 
 		return {
 			amount: getAddonAmount(addon, addonQuantities) * input.packageSize,
-			description: `${addon} add-on`,
+			description: `${getCustomerAddonDisplayLabel(addon)} add-on`,
 			quantity: totalQuantity,
 			rate: ADDON_PRICES[addon]
 		};
@@ -163,8 +164,9 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 					.map((addon) => {
 						const quantity = getAddonQuantity(addon, addonQuantities);
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
+						const displayLabel = getCustomerAddonDisplayLabel(addon);
 
-						return `${addon}${quantityLabel} (${getAddonAmount(addon, addonQuantities).toFixed(2)})`;
+						return `${displayLabel}${quantityLabel} (${getAddonAmount(addon, addonQuantities).toFixed(2)})`;
 					})
 					.join(", ")
 			: "No add-ons selected";
@@ -182,7 +184,7 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 			: []),
 		...input.addons.map((addon) => ({
 			amount: getAddonAmount(addon, addonQuantities),
-			description: addon,
+			description: getCustomerAddonDisplayLabel(addon),
 			quantity: getAddonQuantity(addon, addonQuantities),
 			rate: ADDON_PRICES[addon]
 		})),
@@ -385,8 +387,9 @@ export function buildPackageInvoiceData(
 					.map((addon) => {
 						const quantity = getAddonQuantity(addon, addonQuantities);
 						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
+						const displayLabel = getCustomerAddonDisplayLabel(addon);
 
-						return `${addon}${quantityLabel}`;
+						return `${displayLabel}${quantityLabel}`;
 					})
 					.join(", ")
 			: "No add-ons selected";

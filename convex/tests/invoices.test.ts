@@ -93,7 +93,7 @@ describe("invoice financial integrity", () => {
 		});
 		expect(data.lineItems).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ description: "Essential Edit", quantity: 2, amount: 200 }),
+				expect.objectContaining({ description: "Rough Cut", quantity: 2, amount: 200 }),
 				expect.objectContaining({ description: "Clip Volume Pack", quantity: 3, amount: 240 }),
 				expect.objectContaining({ description: "Deposit paid", amount: -50 }),
 				expect.objectContaining({ description: "Manual price adjustment", amount: -18 })
