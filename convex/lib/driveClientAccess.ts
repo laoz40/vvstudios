@@ -2,6 +2,7 @@ import { err, ok } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { bookingRequiresClientAssetsEmail } from "#convex/lib/bookingAddonQuantities";
 import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/driveLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { SavedDrivePermission } from "#convex/lib/googleDrive";
@@ -111,7 +112,11 @@ export function claimClientAssetsEmail(
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
 ) {
 	return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
-		if (booking === null || booking.driveClientId === undefined) {
+		if (
+			booking === null ||
+			booking.driveClientId === undefined ||
+			!bookingRequiresClientAssetsEmail(booking.addons)
+		) {
 			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
 		}
 		return okOrThrow(

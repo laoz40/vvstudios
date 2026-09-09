@@ -1,6 +1,7 @@
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
+import { bookingRequiresClientAssetsEmail } from "#convex/lib/bookingAddonQuantities";
 import {
 	getDriveSetup,
 	loadSharedPackageFolder,
@@ -20,7 +21,7 @@ type ClientDrivePermissionsDisplayStatus =
 	| "not_created"
 	| "ready"
 	| "skipped";
-type AssetsEmailDisplayStatus = "failed" | "not_sent" | "pending" | "sent";
+type AssetsEmailDisplayStatus = "failed" | "not_applicable" | "not_sent" | "pending" | "sent";
 type DriveStatusFolderName = "Assets" | "Package" | "Session" | DriveChildFolderName;
 
 // Package session folders live inside their package folder; ordinary sessions sit directly
@@ -150,10 +151,11 @@ function getDriveIdentityStatus(
 
 export function buildClientDrivePermissionsStatus(
 	driveClient: Doc<"driveClients"> | null,
-	driveSession: Doc<"driveSessions"> | null
+	driveSession: Doc<"driveSessions"> | null,
+	booking: Doc<"bookings"> | null
 ) {
 	return {
-		assetsEmailStatus: buildAssetsEmailStatus(driveClient, driveSession),
+		assetsEmailStatus: buildAssetsEmailStatus(driveClient, driveSession, booking),
 		status: buildClientDrivePermissionsDisplayStatus(driveClient, driveSession)
 	};
 }
@@ -244,7 +246,8 @@ function computeHasDriveWorkflowFailure(args: DriveWorkflowFailureInputs) {
 	});
 	const clientDrivePermissions = buildClientDrivePermissionsStatus(
 		args.driveClient,
-		args.driveSession
+		args.driveSession,
+		args.booking
 	);
 	const editorDrivePermissions = buildEditorDrivePermissionsStatus(args.booking, args.driveSession);
 	return hasDriveWorkflowFailure({
@@ -277,8 +280,12 @@ function areClientDrivePermissionsReady(driveClient: Doc<"driveClients">) {
 
 function buildAssetsEmailStatus(
 	driveClient: Doc<"driveClients"> | null,
-	driveSession: Doc<"driveSessions"> | null
+	driveSession: Doc<"driveSessions"> | null,
+	booking: Doc<"bookings"> | null
 ): AssetsEmailDisplayStatus {
+	if (booking !== null && !bookingRequiresClientAssetsEmail(booking.addons)) {
+		return "not_applicable";
+	}
 	if (driveSession === null) return "not_sent";
 	if (
 		driveSession.assetsEmailStatus === "sent" &&
@@ -350,7 +357,11 @@ function buildDriveStatusFromSetup(
 		driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
 		sharedPackageFolder
 	});
-	const clientDrivePermissions = buildClientDrivePermissionsStatus(driveClient, driveSession);
+	const clientDrivePermissions = buildClientDrivePermissionsStatus(
+		driveClient,
+		driveSession,
+		booking
+	);
 	const editorDrivePermissions = buildEditorDrivePermissionsStatus(booking, driveSession);
 	const previousEditorRemovalFailed =
 		driveSession?.failedRemovalEditorTokenIdentifier !== undefined;

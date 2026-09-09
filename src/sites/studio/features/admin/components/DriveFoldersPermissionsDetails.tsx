@@ -18,6 +18,39 @@ function clientDrivePermissionsCompleteLabel(
 	}
 }
 
+function isClientAssetsEmailComplete(
+	status: NonNullable<DriveDialogStatus["clientDrivePermissions"]>["assetsEmailStatus"]
+) {
+	switch (status) {
+		case "sent":
+		case "not_applicable":
+			return true;
+		case "failed":
+		case "not_sent":
+		case "pending":
+			return false;
+		default:
+			return exhaustiveCheck(status);
+	}
+}
+
+function clientAssetsEmailCompleteLabel(
+	status: NonNullable<DriveDialogStatus["clientDrivePermissions"]>["assetsEmailStatus"]
+) {
+	switch (status) {
+		case "sent":
+			return "Assets email sent to client";
+		case "not_applicable":
+			return "Assets email not required for this booking";
+		case "failed":
+		case "not_sent":
+		case "pending":
+			return "Assets email sent to client";
+		default:
+			return exhaustiveCheck(status);
+	}
+}
+
 function isClientDrivePermissionsComplete(
 	status: NonNullable<DriveDialogStatus["clientDrivePermissions"]>["status"]
 ) {
@@ -88,8 +121,8 @@ export function DrivePermissionsDetails({
 						attentionLabel="Google Drive permissions for client need attention"
 					/>
 					<DriveStatusRow
-						isComplete={clientDrivePermissions.assetsEmailStatus === "sent"}
-						completeLabel="Assets email sent to client"
+						isComplete={isClientAssetsEmailComplete(clientDrivePermissions.assetsEmailStatus)}
+						completeLabel={clientAssetsEmailCompleteLabel(clientDrivePermissions.assetsEmailStatus)}
 						attentionLabel="Assets email not sent to client"
 					/>
 				</>
