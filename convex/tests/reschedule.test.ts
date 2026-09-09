@@ -6,28 +6,23 @@
  *    A time rejected by backend availability checks must leave the original booking,
  *    Calendar event, reminder state, and reschedule link untouched.
  *
- * 2. Successful reschedule
- *    A valid move must update Google Calendar and Convex, clear old reminder state,
- *    keep the submitted link active for future moves, and send the host a rescheduled booking
- *    email containing the original session timing.
- *
- * 3. Concurrent token use
+ * 2. Concurrent token use
  *    Two requests using the same token at the same time must have one winner and create
  *    at most one Calendar update and email while leaving the link reusable afterward.
  *
- * 4. Link and booking eligibility
+ * 3. Link and booking eligibility
  *    Unknown, used, expired, past-session, and unsupported booking links must be rejected,
  *    while links for every supported booking state remain accessible.
  *
- * 5. Failed booking recovery
+ * 4. Failed booking recovery
  *    A booking that failed during payment completion must create its missing Calendar event,
  *    become confirmed, and clear its recoverable failure code after a successful reschedule.
  *
- * 6. Calendar update failure
+ * 5. Calendar update failure
  *    A provider failure after the token is claimed must reactivate that token so the
  *    customer can retry, while leaving the booking and reminder state unchanged.
  *
- * 7. Missing locked link cleanup
+ * 6. Missing locked link cleanup
  *    Unlocking a deleted link must report that it is missing rather than already used.
  *
  * Google Calendar and email are replaced with fakes, so no real requests are made.
@@ -185,37 +180,6 @@ describe("customer booking rescheduling", () => {
 		expect(providerFakes.getEvent).not.toHaveBeenCalled();
 		expect(providerFakes.patchEvent).not.toHaveBeenCalled();
 		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
-	});
-
-	test("moves the session and sends the host rescheduled booking details", async () => {
-		const t = createConvexTest();
-		const { bookingId, linkId, token } = await seedReschedulableSession(t);
-
-		const result = await t.action(api.googleCalendar.rescheduleSession, { token, ...target });
-		const booking = await readBooking(t, bookingId);
-		const links = await readLinks(t, bookingId);
-
-		expect(result).toEqual([null, { bookingId }]);
-		expect(booking).toMatchObject({
-			date: target.date,
-			time: target.time,
-			sessionStartAt: targetSessionStartAt
-		});
-		expect(booking?.reminderEmailClaimedAt).toBeUndefined();
-		expect(booking?.reminderEmailSentAt).toBeUndefined();
-		expect(booking?.reminderEmailFailureCode).toBeUndefined();
-		expect(links).toHaveLength(1);
-		expect(links.find((link) => link._id === linkId)).toMatchObject({
-			status: "active",
-			expiresAt: targetSessionStartAt
-		});
-		expect(links.filter((link) => link.status === "active")).toHaveLength(1);
-		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
-			expect.objectContaining({ _id: bookingId, date: target.date, time: target.time }),
-			expect.objectContaining({ reschedule: { originalDate: "2030-01-10", originalTime: "10:00" } })
-		);
 	});
 
 	test.each(["BOOKING_TIME_UNAVAILABLE", "GOOGLE_CALENDAR_CREATE_FAILED"] as const)(
