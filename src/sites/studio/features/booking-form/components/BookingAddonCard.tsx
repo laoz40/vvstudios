@@ -13,6 +13,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	formatBookingPrice
@@ -79,6 +80,7 @@ export function BookingAddonCard({
 	const addonCopy = addonCardCopy[addon];
 	const Icon = addonCopy.icon;
 	const addonId = `addon-${toOptionId(addon)}`;
+	const addonLabel = getCustomerAddonDisplayLabel(addon);
 
 	return (
 		<FieldLabel
@@ -101,7 +103,7 @@ export function BookingAddonCard({
 					id={addonId}
 					type="checkbox"
 					checked={checked}
-					aria-label={addon}
+					aria-label={addonLabel}
 					disabled={disabled}
 					onChange={(event) => onCheckedChange(addon, event.target.checked)}
 					className="sr-only"
@@ -112,7 +114,7 @@ export function BookingAddonCard({
 					</div>
 					<FieldContent className="min-w-0 gap-1 pr-12 sm:pr-0">
 						<FieldTitle className="relative inline-flex w-fit whitespace-nowrap text-base">
-							{addon}
+							{addonLabel}
 							{checked ? (
 								<span
 									className={cn(

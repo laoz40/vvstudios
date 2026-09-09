@@ -102,7 +102,7 @@ const productionAddOns: readonly PricingAddOn[] = [
 
 const editingAddOns: readonly PricingAddOn[] = [
 	{
-		label: "Essential Edit",
+		label: "Rough Cut",
 		price: formatBookingPrice(ADDON_PRICES["Essential Edit"]),
 		description:
 			"A clean edit of your full episode. We synchronise the audio and cut between camera angles so the final video feels smooth and ready to publish.",

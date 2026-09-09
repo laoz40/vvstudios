@@ -65,11 +65,11 @@ export type BookingAddonQuantities = {
 export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 	"Essential Edit": {
 		fieldName: "essentialEditQuantity",
-		requiredMessage: "Number of essential edits is required.",
-		labels: { multi: "Number of Essential Edits Per Session", single: "Number of Essential Edits" },
+		requiredMessage: "Number of rough cuts is required.",
+		labels: { multi: "Number of Rough Cuts Per Session", single: "Number of Rough Cuts" },
 		descriptions: {
 			multi:
-				"Select how many episodes or projects you want edited for each session. Each Essential Edit adds $100.",
+				"Select how many episodes or projects you want edited for each session. Each Rough Cut adds $100.",
 			single: "Charged per episode or project you want edited from this session."
 		}
 	},
@@ -158,6 +158,15 @@ export function forEachClearedAddonQuantityField(
 
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
 export type BookingService = (typeof SERVICES)[number];
+
+// Customer-facing name for Essential Edit is Rough Cut. Internal addon key stays "Essential Edit".
+export function getCustomerAddonDisplayLabel(addon: string) {
+	if (addon === "Essential Edit") {
+		return "Rough Cut";
+	}
+
+	return addon;
+}
 
 export function isPackageUnavailableAddon(addon: BookingAddon) {
 	return addon === "Remote Podcast";
@@ -386,7 +395,7 @@ function validateEditingAddonQuantities(
 	) {
 		ctx.addIssue({
 			code: "custom",
-			message: "Essential Edit or Complete Edit is required with the Clip Volume Pack.",
+			message: "Rough Cut or Complete Edit is required with the Clip Volume Pack.",
 			path: ["addons"]
 		});
 	}

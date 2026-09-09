@@ -1,5 +1,6 @@
 import {
 	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
+	getCustomerAddonDisplayLabel,
 	hasEditingAddon,
 	type BookingAddon,
 	type BookingAddonQuantities
@@ -81,8 +82,9 @@ export function formatDashboardAddonLabel(addon: string, quantities: EditingAddo
 
 export function formatEditingAddonLabel(addon: string, quantities: EditingAddonQuantities) {
 	const quantity = getEditingAddonQuantity(addon, quantities, 1);
+	const label = getCustomerAddonDisplayLabel(addon);
 
-	return quantity > 1 ? `${quantity} x ${addon}` : addon;
+	return quantity > 1 ? `${quantity} x ${label}` : label;
 }
 
 export function formatEditingAddonList(
