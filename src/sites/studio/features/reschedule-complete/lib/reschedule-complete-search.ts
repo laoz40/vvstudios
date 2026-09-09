@@ -10,11 +10,6 @@ const DEV_RESCHEDULE_COMPLETE_SCENARIO_VALUES = [
 export type DevRescheduleCompleteScenario =
 	(typeof DEV_RESCHEDULE_COMPLETE_SCENARIO_VALUES)[number];
 
-export type RescheduleCompleteSearch = {
-	booking_id?: string;
-	dev_scenario?: DevRescheduleCompleteScenario;
-};
-
 const devRescheduleCompleteScenarioSchema = z.enum(DEV_RESCHEDULE_COMPLETE_SCENARIO_VALUES);
 const nonEmptySearchStringSchema = z.string().min(1);
 

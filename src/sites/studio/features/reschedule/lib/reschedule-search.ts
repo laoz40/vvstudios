@@ -21,8 +21,6 @@ const DEV_RESCHEDULE_SCENARIO_VALUES = [
 
 export type DevRescheduleScenario = (typeof DEV_RESCHEDULE_SCENARIO_VALUES)[number];
 
-export type RescheduleSearch = { dev_scenario?: DevRescheduleScenario };
-
 const devRescheduleScenarioSchema = z.enum(DEV_RESCHEDULE_SCENARIO_VALUES);
 
 export const rescheduleSearchSchema = z.object({

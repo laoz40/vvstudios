@@ -2,7 +2,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 
 type SessionRecord = Doc<"bookings">;
-export type SessionEditWarningField = keyof SessionEditDraft;
+type SessionEditWarningField = keyof SessionEditDraft;
 
 const googleEventFields: readonly SessionEditWarningField[] = [
 	"name",

@@ -11,8 +11,6 @@ const DEV_RESCHEDULE_COMPLETE_SCENARIO_OPTIONS = [
 ] as const satisfies ReadonlyArray<{ label: string; value: DevRescheduleCompleteScenario }>;
 
 export type { DevRescheduleCompleteScenario };
-export type { RescheduleCompleteSearch } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
-
 export function RescheduleCompleteDevScenarioPanel() {
 	return (
 		<FloatingDevMenu

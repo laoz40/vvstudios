@@ -3,7 +3,7 @@ import type { PackageEditDraft } from "#studio/features/admin/components/Package
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
-export type PackageEditWarningField = keyof PackageEditDraft;
+type PackageEditWarningField = keyof PackageEditDraft;
 
 const pricingFields: readonly PackageEditWarningField[] = [
 	"addons",
