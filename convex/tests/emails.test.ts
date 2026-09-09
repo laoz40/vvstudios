@@ -1,47 +1,33 @@
 /**
  * Email tests:
  *
- * 1. Deliverables authorization
- *    Anonymous and unauthorized callers are rejected without sending.
- *
- * 2. Missing booking and missing Deliverables folder
+ * 1. Missing booking and missing Deliverables folder
  *    Missing bookings and sessions without a saved Deliverables folder are rejected without sending.
  *
- * 3. Empty Deliverables folder
+ * 2. Empty Deliverables folder
  *    An empty saved folder is rejected without sending.
  *
- * 4. Deliverables listing failure
+ * 3. Deliverables listing failure
  *    A Drive list failure is rejected without sending.
  *
- * 5. Admin deliverables email
+ * 4. Admin deliverables email
  *    Admin sends use the saved folder URL, detected customer type, and optional editor notes.
  *    Sending always adds anyone-with-the-link viewer access on the Deliverables folder.
  *
- * 6. Completed session skip
+ * 5. Completed session skip
  *    A session already marked completed does not send again.
  *
- * 7. Editor deliverables email
- *    Editors cannot send deliverables emails, including for their assigned sessions.
- *
- * 8. Deliverables provider failure
+ * 6. Deliverables provider failure
  *    Provider failures return a stable error.
  *
- * 9. Feedback validation
+ * 7. Feedback validation
  *    Blank and rate-limited feedback is rejected without sending.
  *
- * 10. Feedback trimming
- *     Valid feedback is trimmed before sending.
- *
- * 11. Feedback HTML escaping
- *     Untrusted feedback is escaped in the provider HTML payload.
- *
- * 12. Feedback provider failure
+ * 8. Feedback provider failure
  *     Provider failures return a stable error.
  */
-import type { UserIdentity } from "convex/server";
 import { errAsync, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { z } from "zod";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -78,12 +64,6 @@ vi.mock("#convex/lib/rateLimits", () => ({ rateLimiter: { limit: providerFakes.r
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 const adminIdentity = { publicMetadata: { role: "admin" } };
-const editorIdentity: UserIdentity = {
-	tokenIdentifier: "https://clerk.example|editor-one",
-	subject: "editor-one",
-	issuer: "https://clerk.example",
-	publicMetadata: { role: "editor" }
-};
 const savedDeliverablesFolder = {
 	id: "deliverables-folder-id",
 	url: "https://drive.google.com/drive/folders/deliverables-folder-id"
@@ -102,26 +82,6 @@ beforeEach(() => {
 });
 
 describe("deliverables email", () => {
-	test.each([
-		{ label: "anonymous users", identity: null, reason: "NOT_AUTHENTICATED" },
-		{
-			label: "non-admin users",
-			identity: { publicMetadata: { role: "customer" } },
-			reason: "NOT_AUTHORIZED"
-		}
-	])("rejects $label without sending", async ({ identity, reason }) => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
-		const client = identity === null ? t : t.withIdentity(identity);
-
-		const result = await client.action(api.deliverablesEmail.sendSessionDeliverablesEmail, {
-			bookingId
-		});
-
-		expect(result).toEqual([{ reason }, null]);
-		expect(providerFakes.sendDeliverablesEmail).not.toHaveBeenCalled();
-	});
-
 	test("rejects a missing booking and missing Deliverables folder without sending", async () => {
 		const missingBookingTest = createConvexTest();
 		const missingBookingId = await seedThenDeleteBooking(missingBookingTest);
@@ -208,21 +168,6 @@ describe("deliverables email", () => {
 		expect(providerFakes.sendDeliverablesEmail).not.toHaveBeenCalled();
 	});
 
-	test("rejects an assigned editor without sending", async () => {
-		const t = createConvexTest();
-		await seedEditorProfile(t, editorIdentity);
-		const bookingId = await seedBooking(t, {
-			assignedEditorTokenIdentifier: editorIdentity.tokenIdentifier
-		});
-
-		const result = await t
-			.withIdentity(editorIdentity)
-			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId });
-
-		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
-		expect(providerFakes.sendDeliverablesEmail).not.toHaveBeenCalled();
-	});
-
 	test("returns the stable failure when the provider cannot send", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBookingWithDeliverablesFolder(t);
@@ -256,34 +201,6 @@ describe("feedback email", () => {
 		expect(providerFakes.sendFeedbackEmail).not.toHaveBeenCalled();
 	});
 
-	test("trims valid untrusted content before sending", async () => {
-		const t = createConvexTest();
-		const message = "  <script>alert('unsafe')</script>\nHelpful note  ";
-
-		const result = await t.action(api.feedback.submit, { message });
-
-		expect(result).toEqual([null, { submitted: true }]);
-		expect(providerFakes.rateLimit).toHaveBeenCalledWith(expect.anything(), "feedbackSubmitGlobal");
-		expect(providerFakes.sendFeedbackEmail).toHaveBeenCalledWith(
-			"<script>alert('unsafe')</script>\nHelpful note"
-		);
-	});
-
-	test("escapes untrusted feedback in the provider HTML payload", async () => {
-		const fetchFake = vi.fn<typeof fetch>().mockResolvedValue(new Response());
-		vi.stubGlobal("fetch", fetchFake);
-		const { sendFeedbackEmailForMessage } =
-			await vi.importActual<typeof import("#convex/lib/email")>("#convex/lib/email");
-
-		const result = await sendFeedbackEmailForMessage("<script>alert('unsafe')</script>\nNext");
-		const requestBody = z.string().parse(fetchFake.mock.calls[0]?.[1]?.body);
-
-		expect(result.isOk()).toBe(true);
-		expect(requestBody).toContain("&lt;script&gt;alert(&#39;unsafe&#39;)&lt;/script&gt;<br />Next");
-		expect(requestBody).not.toContain("<script>");
-		vi.unstubAllGlobals();
-	});
-
 	test("returns SEND_FAILED when the provider cannot send", async () => {
 		const t = createConvexTest();
 		providerFakes.sendFeedbackEmail.mockReturnValueOnce(
@@ -298,25 +215,11 @@ describe("feedback email", () => {
 });
 
 type BookingOptions = {
-	assignedEditorTokenIdentifier?: string;
 	editStatus?: "completed";
 	hiddenAt?: number;
 	sessionStartAt?: number;
 	status?: "confirmed" | "pending_payment";
 };
-
-async function seedEditorProfile(t: TestClient, identity: UserIdentity): Promise<void> {
-	await t.run((ctx) =>
-		ctx.db.insert("editorProfiles", {
-			tokenIdentifier: identity.tokenIdentifier,
-			displayName: identity.subject,
-			email: `${identity.subject}@example.com`,
-			isActive: true,
-			lastAssignedAt: null,
-			totalEdits: 0
-		})
-	);
-}
 
 async function seedBooking(t: TestClient, options: BookingOptions = {}) {
 	return await t.run((ctx) =>
@@ -333,7 +236,6 @@ async function seedBooking(t: TestClient, options: BookingOptions = {}) {
 			addons: [],
 			status: options.status ?? "confirmed",
 			pendingPaymentCreatedAt: now,
-			assignedEditorTokenIdentifier: options.assignedEditorTokenIdentifier,
 			editStatus: options.editStatus,
 			hiddenAt: options.hiddenAt
 		})

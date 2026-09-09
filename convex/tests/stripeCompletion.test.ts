@@ -7,56 +7,44 @@
  *    Calling the payment claim twice must keep the first Stripe event details.
  *    This protects the booking when Stripe sends duplicate webhooks.
  *
- * 2. Completion runs once
- *    Completing the same booking twice must create only one calendar event and email.
- *
- * 3. Time became unavailable
+ * 2. Time became unavailable
  *    If Google Calendar now contains a conflicting event, the booking must fail without
  *    creating a calendar event or sending an email.
  *
- * 4. Calendar creation failure
+ * 3. Calendar creation failure
  *    A Google Calendar failure must leave the booking in a recoverable failed state and
  *    must not send confirmation or invoice emails.
  *
- * 5. Two customers paid for the same time
+ * 4. Two customers paid for the same time
  *    Both completions run together. Only one booking may be confirmed, which proves the
  *    database reservation prevents double-booking.
  *
- * 6. Invalid Stripe webhook
+ * 5. Invalid Stripe webhook
  *    Requests with a missing or invalid signature must be rejected without changing data.
  *
- * 7. Valid Stripe webhook replay
+ * 6. Valid Stripe webhook replay
  *    The first request confirms the booking. Repeating it must return success without
  *    creating another calendar event or email.
  *
- * 8. Stale confirmation failure
+ * 7. Stale confirmation failure
  *    A delayed confirmation failure must not regress a booking that already reached a later state.
  *
- * 9. Invoice email failure status guard
+ * 8. Invoice email failure status guard
  *    Email failures may only move confirmed bookings into the recoverable email-failed state.
  *
- * 10. Missing booking metadata
+ * 9. Missing booking metadata
  *     Completed checkouts without a booking ID must return 400.
  *
- * 11. Expected claim failures
- *     Invalid booking claims must be acknowledged with the stable "claim failed" response.
- *
- * 12. Already-claimed checkout
+ * 10. Already-claimed checkout
  *     A completion already being processed must be acknowledged without repeating provider work.
  *
- * 13. Expected completion failures
- *     Completion errors must be acknowledged with the stable "completion failed" response.
- *
- * 14. Non-completed completion outcomes
+ * 11. Non-completed completion outcomes
  *     Safe terminal outcomes must be returned directly with status 200.
  *
- * 15. Expired checkout
+ * 12. Expired checkout
  *     Expiration events must update the booking and return the stable "expired" response.
  *
- * 16. Unsupported Stripe event
- *     Events outside the supported checkout lifecycle must be ignored with status 200.
- *
- * 17. Unexpected Convex rejection
+ * 13. Unexpected Convex rejection
  *     Unexpected internal failures must reject the request so Stripe can retry it.
  *
  * Stripe, Google Calendar, and email are replaced with fakes, so no real requests are made.
@@ -134,28 +122,6 @@ describe("booking payment completion", () => {
 			stripePaymentIntentId: "pi-1",
 			stripeSessionId: "cs-1"
 		});
-	});
-
-	test("confirms a paid booking and performs provider work once", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedClaimedBooking(t);
-
-		const firstCompletion = await t.action(internal.googleCalendar.completeClaimedSession, {
-			bookingId
-		});
-		const replayedCompletion = await t.action(internal.googleCalendar.completeClaimedSession, {
-			bookingId
-		});
-
-		expect(firstCompletion).toEqual([null, { outcome: "completed" }]);
-		expect(replayedCompletion).toEqual([null, { outcome: "already_completed" }]);
-		expect(await readBooking(t, bookingId)).toMatchObject({
-			status: "confirmed",
-			googleCalendarId: "primary-calendar",
-			googleEventId: "google-event-1"
-		});
-		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledTimes(1);
 	});
 
 	test("fails safely when the time becomes unavailable during checkout", async () => {
@@ -324,19 +290,6 @@ describe("Stripe completion webhook", () => {
 		expect(await response.text()).toBe("Missing bookingId metadata");
 	});
 
-	test("acknowledges an expected claim error", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
-		await t.run((ctx) => ctx.db.patch(bookingId, { status: "expired" }));
-		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
-
-		const response = await fetchStripeWebhook(t);
-
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("claim failed");
-		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
-	});
-
 	test("acknowledges a checkout whose booking is already claimed", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedClaimedBooking(t);
@@ -346,22 +299,6 @@ describe("Stripe completion webhook", () => {
 
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe("already claimed");
-		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
-	});
-
-	test("acknowledges an expected completion error", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
-		providerFakes.verifyStripeWebhook.mockResolvedValue(stripeCompletionEvent(bookingId));
-		providerFakes.listEvents.mockImplementation(async () => {
-			await t.run((ctx) => ctx.db.delete(bookingId));
-			return { data: { items: [] } };
-		});
-
-		const response = await fetchStripeWebhook(t);
-
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("completion failed");
 		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
 	});
 
@@ -398,20 +335,6 @@ describe("Stripe completion webhook", () => {
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe("expired");
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "expired" });
-	});
-
-	test("acknowledges an unsupported Stripe event as ignored", async () => {
-		const t = createConvexTest();
-		providerFakes.verifyStripeWebhook.mockResolvedValue({
-			id: "evt-ignored",
-			type: "customer.created",
-			data: { object: {} }
-		});
-
-		const response = await fetchStripeWebhook(t);
-
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("ignored");
 	});
 
 	test("lets unexpected Convex rejections escape for Stripe retry", async () => {

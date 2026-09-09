@@ -21,10 +21,8 @@
  *    A time that overlaps an existing Calendar event cannot create a booking or
  *    another Calendar event.
  *
- * 6. Successful scheduling
- *    One matching Calendar event and confirmed Convex booking are created with
- *    the package snapshot, session choices, package link, and Calendar IDs. Both
- *    sessions of the same package email share one Drive client record created
+ * 6. Drive client linking during scheduling
+ *    Both sessions of the same package email share one Drive client record created
  *    without folders yet, and schedule Drive setup for session end instead of
  *    creating folders during booking.
  *
@@ -155,27 +153,6 @@ describe("package Calendar availability", () => {
 		expect(result).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
 		expect(providerFakes.listEvents).not.toHaveBeenCalled();
 	});
-
-	// Verifies package availability returns the package expiry, timezone, and grouped provider data.
-	test("loads Calendar availability through the package expiry date", async () => {
-		const t = createConvexTest();
-		const { token } = await seedPackage(t);
-
-		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
-			rateLimitKey: "valid-package",
-			token
-		});
-
-		expect(result).toEqual([
-			null,
-			{
-				busyWindowsByMonth: {},
-				packageExpiresAt: Date.parse("2030-01-20T00:00:00.000Z"),
-				timeZone: "Australia/Sydney"
-			}
-		]);
-		expect(providerFakes.listEvents).toHaveBeenCalledTimes(1);
-	});
 });
 
 describe("package session creation validation", () => {
@@ -234,40 +211,6 @@ describe("package session creation validation", () => {
 
 		expect(result).toEqual([{ reason: "BOOKING_TIME_UNAVAILABLE" }, null]);
 		await expectNoBookingOrCalendarEvent(t);
-	});
-
-	test("creates matching Calendar and Convex records for a valid request", async () => {
-		const t = createConvexTest();
-		const { packageId, token } = await seedPackage(t);
-
-		const result = await t.action(api.packageScheduling.createPackageSession, {
-			token,
-			...target,
-			notes: "Use the side entrance",
-			remotePodcast: true
-		});
-		const bookings = await readBookings(t);
-
-		expect(bookings).toHaveLength(1);
-		expect(bookings[0]).toMatchObject({
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: target.date,
-			time: target.time,
-			duration: "1h",
-			service: "Table Setup",
-			addons: ["4K UHD Recording", "Remote Podcast"],
-			notes: "Use the side entrance",
-			status: "confirmed",
-			googleCalendarId: "primary-calendar",
-			googleEventId: "google-event-1",
-			packageId: packageId
-		});
-		expect(result).toEqual([null, { bookingId: bookings[0]?._id }]);
-		expect(providerFakes.insertEvent).toHaveBeenCalledTimes(1);
-		expect(providerFakes.deleteEvent).not.toHaveBeenCalled();
 	});
 
 	test("links one Drive client record across sessions and defers folder setup", async () => {

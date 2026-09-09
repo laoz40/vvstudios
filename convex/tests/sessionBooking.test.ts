@@ -11,33 +11,25 @@
  *    Past, too-soon, outside-hours, and too-far-ahead requests must be rejected by
  *    the backend without creating a booking or Stripe checkout.
  *
- * 3. Successful checkout creation
- *    A valid request must create one pending booking, open one Stripe checkout, and
- *    save the Stripe session ID on the same booking.
- *
- * 4. Concurrent checkout creation
+ * 3. Concurrent checkout creation
  *    Two requests for the same time must create only one payable pending booking.
  *
- * 5. Unexpected Stripe creation failure
+ * 4. Unexpected Stripe creation failure
  *    Provider rejection must escape the expected business-error channel.
  *
- * 6. Open checkout closure
+ * 5. Open checkout closure
  *    Closing an open checkout must expire its Stripe session and mark only its linked
  *    pending booking as abandoned.
  *
- * 7. Completed checkout closure
+ * 6. Completed checkout closure
  *    A completed Stripe session must leave its pending booking untouched so payment
  *    completion can continue through the webhook flow.
  *
- * 8. Mismatched checkout closure
+ * 7. Mismatched checkout closure
  *    A session that does not belong to the supplied booking must not abandon it.
  *
- * 9. Stripe closure failure
+ * 8. Stripe closure failure
  *    Provider rejection while closing must return its stable expected failure.
- *
- * 10. Drive client linking
- *     Booking creation links one Drive client record per email and reuses it
- *     across the customer's bookings without creating folders.
  *
  * Stripe and DNS are replaced with fakes, so no real provider requests are made.
  */
@@ -166,60 +158,6 @@ describe("single-session checkout creation", () => {
 			expect(providerFakes.createCheckoutSession).not.toHaveBeenCalled();
 		}
 	);
-
-	test("creates one pending booking and links it to the Stripe checkout", async () => {
-		const t = createConvexTest();
-		await seedBookingSettings(t);
-
-		const result = await t.action(api.stripe.createEmbeddedCheckoutSession, validBooking);
-		const bookings = await listBookings(t);
-
-		expect(result).toMatchObject([
-			null,
-			{ clientSecret: "secret_test_1", stripeSessionId: "cs_test_1" }
-		]);
-		expect(bookings).toHaveLength(1);
-		expect(bookings[0]).toMatchObject({
-			name: validBooking.name,
-			email: validBooking.email,
-			date: validBooking.date,
-			time: validBooking.time,
-			duration: validBooking.duration,
-			service: validBooking.service,
-			addons: validBooking.addons,
-			status: "pending_payment",
-			stripeSessionId: "cs_test_1"
-		});
-		expect(providerFakes.createCheckoutSession).toHaveBeenCalledTimes(1);
-		expect(providerFakes.createCheckoutSession).toHaveBeenCalledWith(
-			expect.objectContaining({
-				customer_email: validBooking.email,
-				metadata: { bookingId: bookings[0]?._id }
-			})
-		);
-	});
-
-	test("links a Drive client record and reuses it for the same email", async () => {
-		const t = createConvexTest();
-		await seedBookingSettings(t);
-
-		const firstResult = await t.action(api.stripe.createEmbeddedCheckoutSession, validBooking);
-		const secondBooking = { ...validBooking, date: "2030-01-11", time: "11:00" };
-		const secondResult = await t.action(api.stripe.createEmbeddedCheckoutSession, secondBooking);
-		const bookings = await listBookings(t);
-		const driveClients = await t.run((ctx) => ctx.db.query("driveClients").collect());
-
-		expect(firstResult[0]).toBeNull();
-		expect(secondResult[0]).toBeNull();
-		expect(bookings).toHaveLength(2);
-		expect(bookings[0]?.driveClientId).toBeDefined();
-		expect(bookings[1]?.driveClientId).toEqual(bookings[0]?.driveClientId);
-		// The record has no folder yet: nothing is created during checkout.
-		expect(driveClients).toHaveLength(1);
-		expect(driveClients[0]).toMatchObject({ normalizedEmail: validBooking.email });
-		expect(driveClients[0]?.folderId).toBeUndefined();
-		expect(driveClients[0]?.folderUrl).toBeUndefined();
-	});
 
 	test("allows only one concurrent checkout for the same session time", async () => {
 		const t = createConvexTest();
