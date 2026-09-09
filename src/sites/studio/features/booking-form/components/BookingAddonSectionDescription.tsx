@@ -6,10 +6,8 @@ type BookingAddonSectionTitle = (typeof ADDON_SECTIONS)[number]["title"];
 
 const sectionDescriptions = {
 	"Production Add-ons": "Enhance your recording session.",
-	"Editing Services":
-		"Choose long-form editing services for your content.",
-	"Clip Services":
-		"Choose short-form clip services for your social media content."
+	"Editing Services": "Select which long-form editing service you want for your content.",
+	"Clip Services": "Decide on the style of short-form clips for your social media content."
 } as const satisfies Record<BookingAddonSectionTitle, string>;
 
 type BookingAddonSectionDescriptionProps = { sectionTitle: BookingAddonSectionTitle };
