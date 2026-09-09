@@ -23,8 +23,9 @@
 	"rules": {
 		"unused-files": "error",
 		"unused-exports": "error",
-		"unused-types": "off",
-		"circular-dependencies": "warn"
+		"unused-types": "error",
+		"circular-dependencies": "error",
+		"re-export-cycle": "error"
 	},
 	"duplicates": {
 		"mode": "mild",
