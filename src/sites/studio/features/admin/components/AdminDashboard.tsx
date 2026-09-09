@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-react";
 import { exhaustiveCheck } from "#/lib/result";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
@@ -15,8 +15,16 @@ import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
-
-const ADMIN_PAGE_SIZE = 500;
+import {
+	toPackageListQuerySort,
+	type AdminPackageSort
+} from "#studio/features/admin/lib/admin-packages";
+import {
+	toSessionListQuerySort,
+	type SessionSorting
+} from "#studio/features/admin/lib/admin-sessions";
+import { readStoredSessionsTablePreferences } from "#studio/features/admin/lib/admin-dashboard-preferences";
+import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
 
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
@@ -34,14 +42,51 @@ type AdminDashboardTablesProps = {
 	packages: Packages;
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
+	isLoadingSessions: boolean;
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
+	isLoadingPackages: boolean;
+	packageSorting: AdminPackageSort;
 	sessionSearchQuery: string;
+	sessionSorting: SessionSorting;
 	onLoadMoreSessions: () => void;
 	onLoadMorePackages: () => void;
+	onPackageSortingChange: (sorting: AdminPackageSort) => void;
 	onSearchQueryChange: (query: string) => void;
+	onSessionSortingChange: (sorting: SessionSorting) => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
 };
+
+function usePaginatedPackagesTable(packageSorting: AdminPackageSort) {
+	const packageListSort = toPackageListQuerySort(packageSorting);
+	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
+		initialNumItems: DASHBOARD_PAGE_SIZE
+	});
+	const packagesForTable = useDisplayedWhileRefetching(
+		packages.results,
+		packages.status === "LoadingFirstPage"
+	);
+
+	return { packages, packagesForTable };
+}
+
+function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
+	const displayedResultsRef = useRef(results);
+
+	const displayedResults =
+		isLoadingFirstPage && displayedResultsRef.current.length > 0
+			? displayedResultsRef.current
+			: results;
+
+	// Keep the previous page visible while a refetch is in flight.
+	useEffect(() => {
+		if (!isLoadingFirstPage) {
+			displayedResultsRef.current = results;
+		}
+	}, [isLoadingFirstPage, results]);
+
+	return displayedResults;
+}
 
 function renderEmployeeListError(error: EmployeeListError) {
 	const reason = error.reason;
@@ -64,12 +109,18 @@ function AdminDashboardTables({
 	packages,
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
+	isLoadingSessions,
 	canLoadMorePackages,
 	isLoadingMorePackages,
+	isLoadingPackages,
+	packageSorting,
 	sessionSearchQuery,
+	sessionSorting,
 	onLoadMoreSessions,
 	onLoadMorePackages,
+	onPackageSortingChange,
 	onSearchQueryChange,
+	onSessionSortingChange,
 	onViewPackageSessions
 }: AdminDashboardTablesProps) {
 	return (
@@ -80,9 +131,12 @@ function AdminDashboardTables({
 					sessions={sessions}
 					canLoadMoreSessions={canLoadMoreSessions}
 					isLoadingMoreSessions={isLoadingMoreSessions}
+					isLoadingSessions={isLoadingSessions}
 					loadMoreSessions={onLoadMoreSessions}
 					searchQuery={sessionSearchQuery}
+					sorting={sessionSorting}
 					onSearchQueryChange={onSearchQueryChange}
+					onSortingChange={onSessionSortingChange}
 				/>
 			) : null}
 			{activeView === "packages" ? (
@@ -90,7 +144,10 @@ function AdminDashboardTables({
 					packages={packages}
 					canLoadMorePackages={canLoadMorePackages}
 					isLoadingMorePackages={isLoadingMorePackages}
+					isLoadingPackages={isLoadingPackages}
 					loadMorePackages={onLoadMorePackages}
+					sorting={packageSorting}
+					onSortingChange={onPackageSortingChange}
 					onViewPackageSessions={onViewPackageSessions}
 				/>
 			) : null}
@@ -105,15 +162,17 @@ function AdminDashboardTables({
 }
 
 export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
-	const sessions = usePaginatedQuery(
-		api.sessions.listSessions,
-		{},
-		{ initialNumItems: ADMIN_PAGE_SIZE }
-	);
-	const packages = usePaginatedQuery(
-		api.packages.listPackages,
-		{},
-		{ initialNumItems: ADMIN_PAGE_SIZE }
+	const initialSessionPreferences = useMemo(readStoredSessionsTablePreferences, []);
+	const [sessionSorting, setSessionSorting] = useState(initialSessionPreferences.sorting);
+	const [packageSorting, setPackageSorting] = useState<AdminPackageSort>({ isDescending: true });
+	const sessionListSort = toSessionListQuerySort(sessionSorting);
+	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
+		initialNumItems: DASHBOARD_PAGE_SIZE
+	});
+	const { packages, packagesForTable } = usePaginatedPackagesTable(packageSorting);
+	const sessionsForTable = useDisplayedWhileRefetching(
+		sessions.results,
+		sessions.status === "LoadingFirstPage"
 	);
 	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
 	const editorsResult = useQuery(api.employees.listEmployees, {});
@@ -128,13 +187,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 		setActiveView("bookings");
 	}
 
-	const isPaginatedDataLoading = [sessions.status, packages.status].includes("LoadingFirstPage");
-	if (
-		isPaginatedDataLoading ||
-		activeEditors === undefined ||
-		editorsResult === undefined ||
-		accessResult === undefined
-	) {
+	if (activeEditors === undefined || editorsResult === undefined || accessResult === undefined) {
 		return (
 			<DashboardLoadingState
 				dashboardRole={dashboardRole}
@@ -166,16 +219,22 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 					activeEditors={activeEditors}
 					adminEditorProfile={adminEditorProfile}
 					editors={editors}
-					sessions={sessions.results}
-					packages={packages.results}
+					sessions={sessionsForTable}
+					packages={packagesForTable}
 					canLoadMoreSessions={sessions.status === "CanLoadMore"}
 					isLoadingMoreSessions={sessions.status === "LoadingMore"}
+					isLoadingSessions={sessions.status === "LoadingFirstPage"}
 					canLoadMorePackages={packages.status === "CanLoadMore"}
 					isLoadingMorePackages={packages.status === "LoadingMore"}
+					isLoadingPackages={packages.status === "LoadingFirstPage"}
 					sessionSearchQuery={sessionSearchQuery}
-					onLoadMoreSessions={() => sessions.loadMore(ADMIN_PAGE_SIZE)}
-					onLoadMorePackages={() => packages.loadMore(ADMIN_PAGE_SIZE)}
+					sessionSorting={sessionSorting}
+					packageSorting={packageSorting}
+					onLoadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
+					onLoadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
 					onSearchQueryChange={setSessionSearchQuery}
+					onSessionSortingChange={setSessionSorting}
+					onPackageSortingChange={setPackageSorting}
 					onViewPackageSessions={viewPackageSessions}
 				/>
 			</AdminDashboardShell>

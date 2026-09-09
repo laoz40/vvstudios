@@ -1,4 +1,3 @@
-import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
@@ -8,7 +7,7 @@ import {
 	DURATION_OPTIONS,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { getBookingStartTimestamp, isUpcomingBooking } from "#studio/lib/bookingdatetime";
+import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionRecord = Doc<"bookings"> & {
 	hasDriveWorkflowFailure?: boolean;
@@ -67,8 +66,20 @@ export function getPackageSessionProgressLabel(session: SessionRecord) {
 	return `${session.packageSessionPosition}/${session.linkedPackageSize}`;
 }
 
-export type SessionSortId = "name" | "session" | "createdAt";
+export type SessionSortId = "session" | "createdAt";
 export type SessionSorting = { id: SessionSortId; desc: boolean }[];
+export type SessionListSortDirection = "asc" | "desc";
+
+export type SessionListQuerySort = {
+	sortBy: SessionSortId;
+	sortDirection: SessionListSortDirection;
+};
+
+export function toSessionListQuerySort(sorting: SessionSorting): SessionListQuerySort {
+	const activeSort = sorting.at(0) ?? { id: "session", desc: false };
+
+	return { sortBy: activeSort.id, sortDirection: activeSort.desc ? "desc" : "asc" };
+}
 
 export type AdminSessionFilters = {
 	searchQuery: string;
@@ -77,6 +88,14 @@ export type AdminSessionFilters = {
 	showUpcomingOnly: boolean;
 };
 
+// Leo: Currently client filters paginated data. Fine at current volume. Prefetches when
+// filters hide every loaded row. Won't scale as bookings grow.
+//
+// Server-side filtering probably needed in the future. Idea to explore:
+// - Split upcoming (future sessions) and needs action (unpaid or deliverables
+//   not sent) into separate views instead of one toggle
+// - Upfront payment may simplify the unpaid case
+// - might not be necessary to even filter for unpaid as deliverables won't be sent until payment is received
 export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSessionFilters) {
 	return sessions.filter((session) => {
 		if (!filters.showArchived && session.hiddenAt !== undefined) {
@@ -105,37 +124,5 @@ export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSes
 		}
 
 		return true;
-	});
-}
-
-export function sortAdminSessions(sessions: SessionRecord[], sorting: SessionSorting) {
-	const activeSort = sorting.at(0);
-
-	if (!activeSort) {
-		return sessions;
-	}
-
-	return sessions.toSorted((firstSession, secondSession) => {
-		let comparison = 0;
-
-		switch (activeSort.id) {
-			case "name":
-				comparison = firstSession.name.localeCompare(secondSession.name);
-				break;
-
-			case "session":
-				comparison =
-					getBookingStartTimestamp(firstSession.date, firstSession.time) -
-					getBookingStartTimestamp(secondSession.date, secondSession.time);
-				break;
-
-			case "createdAt":
-				comparison = firstSession.pendingPaymentCreatedAt - secondSession.pendingPaymentCreatedAt;
-				break;
-			default:
-				exhaustiveCheck(activeSort.id);
-		}
-
-		return activeSort.desc ? -comparison : comparison;
 	});
 }

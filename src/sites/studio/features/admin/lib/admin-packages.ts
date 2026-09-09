@@ -64,7 +64,13 @@ export type AdminPackageDashboardDate =
 	| { kind: "payment_due"; timestamp: number }
 	| { kind: "missing_package_expiry" };
 
-export type AdminPackageSort = { column: "created" | "customer"; isDescending: boolean };
+export type AdminPackageSort = { isDescending: boolean };
+export type PackageListSortDirection = "asc" | "desc";
+export type PackageListQuerySort = { sortDirection: PackageListSortDirection };
+
+export function toPackageListQuerySort(sort: AdminPackageSort): PackageListQuerySort {
+	return { sortDirection: sort.isDescending ? "desc" : "asc" };
+}
 
 export type AdminPackagePendingAction =
 	| "adjustmentDownload"
@@ -264,31 +270,6 @@ export function getAdminPackageDashboardDate(
 	}
 
 	return { kind: "package_expiry", timestamp: packageRow.expiresAt };
-}
-
-export function sortAdminPackages(rows: AdminPackageRow[], sort: AdminPackageSort) {
-	return rows.toSorted((firstPackage, secondPackage) => {
-		if (sort.column === "customer") {
-			return comparePackageNames(firstPackage, secondPackage, sort.isDescending);
-		}
-
-		const createdComparison = firstPackage.createdAt - secondPackage.createdAt;
-
-		if (createdComparison === 0) {
-			return firstPackage.customerName.localeCompare(secondPackage.customerName);
-		}
-
-		return sort.isDescending ? -createdComparison : createdComparison;
-	});
-}
-
-function comparePackageNames(
-	firstPackage: AdminPackageRow,
-	secondPackage: AdminPackageRow,
-	isDescending: boolean
-) {
-	const nameComparison = firstPackage.customerName.localeCompare(secondPackage.customerName);
-	return isDescending ? -nameComparison : nameComparison;
 }
 
 export function getPackageArchiveActionLabel(

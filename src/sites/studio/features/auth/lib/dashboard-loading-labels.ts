@@ -1,5 +1,8 @@
-export type DashboardRole = "admin" | "editor";
 import { exhaustiveCheck } from "#/lib/result";
+
+export const DASHBOARD_PAGE_SIZE = 20;
+
+export type DashboardRole = "admin" | "editor";
 
 export type DashboardLoadingStage =
 	| "scanning-badge"

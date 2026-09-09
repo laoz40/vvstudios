@@ -32,7 +32,12 @@ import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessi
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
-type ListSessionsArgs = PaginationArgs;
+type SessionListSortBy = "session" | "createdAt";
+type SessionListSortDirection = "asc" | "desc";
+type ListSessionsArgs = PaginationArgs & {
+	sortBy?: SessionListSortBy;
+	sortDirection?: SessionListSortDirection;
+};
 type ListEditorSessionsArgs = PaginationArgs;
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
 type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
@@ -115,11 +120,20 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
 	// Auth failures throw above so the hook can keep native cursor/page handling.
-	const bookingsPage = await ctx.db
-		.query("bookings")
-		.withIndex("by_pendingPaymentCreatedAt")
-		.order("desc")
-		.paginate(args.paginationOpts);
+	const sortBy = args.sortBy ?? "session";
+	const sortDirection = args.sortDirection ?? "asc";
+	const bookingsPage =
+		sortBy === "createdAt"
+			? await ctx.db
+					.query("bookings")
+					.withIndex("by_pendingPaymentCreatedAt")
+					.order(sortDirection)
+					.paginate(args.paginationOpts)
+			: await ctx.db
+					.query("bookings")
+					.withIndex("by_sessionStartAt")
+					.order(sortDirection)
+					.paginate(args.paginationOpts);
 
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
@@ -33,6 +33,7 @@ type CopyableTextProps = {
 type SortHeaderButtonProps = {
 	isActive: boolean;
 	isDescending: boolean;
+	isLoading?: boolean;
 	label: string;
 	onClick: () => void;
 };
@@ -48,6 +49,7 @@ function getSortHeaderIcon(isActive: boolean, isDescending: boolean) {
 export function SortHeaderButton({
 	isActive,
 	isDescending,
+	isLoading = false,
 	label,
 	onClick
 }: SortHeaderButtonProps) {
@@ -57,12 +59,21 @@ export function SortHeaderButton({
 		<Button
 			variant="ghost"
 			className={cn("px-0!", "text-foreground")}
+			disabled={isLoading}
 			onClick={onClick}>
 			<span>{label}</span>
-			<SortIcon
-				data-icon="inline-end"
-				className={cn(isActive ? "opacity-100" : "opacity-60")}
-			/>
+			{isLoading ? (
+				<LoaderCircle
+					data-icon="inline-end"
+					className="size-4 animate-spin"
+					aria-hidden
+				/>
+			) : (
+				<SortIcon
+					data-icon="inline-end"
+					className={cn(isActive ? "opacity-100" : "opacity-60")}
+				/>
+			)}
 		</Button>
 	);
 }

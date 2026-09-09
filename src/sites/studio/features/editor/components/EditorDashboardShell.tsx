@@ -4,18 +4,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { api } from "#convex/_generated/api";
 import { cn } from "#/lib/utils";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
+import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
 import type { DashboardRole } from "#studio/features/auth/lib/dashboard-loading-labels";
 import { EditorSessionsTable } from "#studio/features/editor/components/EditorSessionsTable";
-
-const EDITOR_DASHBOARD_PAGE_SIZE = 100;
+import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
 
 export function EditorDashboardShell({ dashboardRole }: { dashboardRole: DashboardRole }) {
 	const { user } = useUser();
 	const sessions = usePaginatedQuery(
 		api.sessions.listEditorSessions,
 		{},
-		{ initialNumItems: EDITOR_DASHBOARD_PAGE_SIZE }
+		{ initialNumItems: DASHBOARD_PAGE_SIZE }
 	);
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 	const activeSessions = sessions.results.filter((session) => session.editStatus !== "completed");
@@ -66,6 +66,12 @@ export function EditorDashboardShell({ dashboardRole }: { dashboardRole: Dashboa
 					/>
 				</TabsContent>
 			</Tabs>
+
+			<InfiniteScrollSentinel
+				canLoadMore={sessions.status === "CanLoadMore"}
+				isLoadingMore={sessions.status === "LoadingMore"}
+				onLoadMore={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
+			/>
 		</main>
 	);
 }

@@ -278,7 +278,11 @@ export const getDeliverablesCustomerType = query({
 });
 
 export const listSessions = query({
-	args: { paginationOpts: paginationOptsValidator },
+	args: {
+		paginationOpts: paginationOptsValidator,
+		sortBy: v.optional(v.union(v.literal("session"), v.literal("createdAt"))),
+		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc")))
+	},
 	handler: (ctx, args) => listSessionsService(ctx, args)
 });
 

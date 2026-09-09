@@ -15,39 +15,42 @@ import { SessionsTableFooter } from "#studio/features/admin/components/SessionsT
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	filterAdminSessions,
-	sortAdminSessions,
-	type SessionSortId
+	type SessionSortId,
+	type SessionSorting
 } from "#studio/features/admin/lib/admin-sessions";
 import {
 	readStoredSessionsTablePreferences,
 	storeSessionsTableFilters
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
+import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
 type SessionsTableProps = {
 	activeEditors: ActiveEditor[];
 	sessions: SessionRecord[];
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
+	isLoadingSessions: boolean;
 	loadMoreSessions: () => void;
 	onSearchQueryChange: (searchQuery: string) => void;
+	onSortingChange: (sorting: SessionSorting) => void;
 	searchQuery: string;
+	sorting: SessionSorting;
 };
-
-const pageSize = 10;
 
 export function SessionsTable({
 	activeEditors,
 	sessions,
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
+	isLoadingSessions,
 	loadMoreSessions,
 	onSearchQueryChange,
-	searchQuery
+	onSortingChange,
+	searchQuery,
+	sorting
 }: SessionsTableProps) {
 	// Table setup and persisted filters
 	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
-	const [sorting, setSorting] = useState(initialTablePreferences.sorting);
-	const [pageIndex, setPageIndex] = useState(0);
 	const [showArchived, setShowArchived] = useState(initialTablePreferences.showArchived);
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
 		initialTablePreferences.showUpcomingOnly
@@ -76,10 +79,6 @@ export function SessionsTable({
 		});
 	}, [sessions, searchQuery, showArchived, showStaleSessions, showUpcomingOnly]);
 
-	const sortedSessions = useMemo(() => {
-		return sortAdminSessions(filteredSessions, sorting);
-	}, [filteredSessions, sorting]);
-
 	const editorDisplayNameByToken = useMemo(
 		() =>
 			new Map(
@@ -88,40 +87,46 @@ export function SessionsTable({
 		[activeEditors]
 	);
 
-	const pageCount = Math.max(1, Math.ceil(sortedSessions.length / pageSize));
-
-	const paginatedSessions = sortedSessions.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
-
-	// Reset pagination when another dashboard view changes the controlled search.
+	// Prefetch another page when client-side filters hide every loaded session.
 	useEffect(() => {
-		setPageIndex(0);
-	}, [searchQuery]);
-
-	function applyTableControlChange<T>(onChange: (value: T) => void, value: T) {
-		setPageIndex(0);
-		onChange(value);
-	}
+		if (
+			filteredSessions.length === 0 &&
+			canLoadMoreSessions &&
+			!isLoadingSessions &&
+			!isLoadingMoreSessions
+		) {
+			loadMoreSessions();
+		}
+	}, [
+		filteredSessions.length,
+		canLoadMoreSessions,
+		isLoadingSessions,
+		isLoadingMoreSessions,
+		loadMoreSessions
+	]);
 
 	function updateSorting(id: SessionSortId) {
-		applyTableControlChange(setSorting, (currentSorting) => {
-			const currentSort = currentSorting.at(0);
+		const currentSort = sorting.at(0);
 
-			if (currentSort?.id === id) {
-				return [{ id, desc: !currentSort.desc }];
-			}
+		if (currentSort?.id === id) {
+			onSortingChange([{ id, desc: !currentSort.desc }]);
+		} else {
+			onSortingChange([{ id, desc: false }]);
+		}
 
-			return [{ id, desc: false }];
-		});
+		window.scrollTo({ top: 0 });
 	}
 
 	function renderSortButton(label: string, id: SessionSortId) {
 		const activeSort = sorting.at(0);
+		const isActiveSortColumn = activeSort?.id === id;
 
 		return (
 			<SortHeaderButton
 				label={label}
-				isActive={activeSort?.id === id}
+				isActive={isActiveSortColumn}
 				isDescending={activeSort?.desc ?? false}
+				isLoading={isLoadingSessions && isActiveSortColumn}
 				onClick={() => updateSorting(id)}
 			/>
 		);
@@ -134,10 +139,10 @@ export function SessionsTable({
 				showArchived={showArchived}
 				showStaleSessions={showStaleSessions}
 				showUpcomingOnly={showUpcomingOnly}
-				onSearchQueryChange={(value) => applyTableControlChange(onSearchQueryChange, value)}
-				onShowArchivedChange={(value) => applyTableControlChange(setShowArchived, value)}
-				onShowStaleSessionsChange={(value) => applyTableControlChange(setShowStaleSessions, value)}
-				onShowUpcomingOnlyChange={(value) => applyTableControlChange(setShowUpcomingOnly, value)}
+				onSearchQueryChange={onSearchQueryChange}
+				onShowArchivedChange={setShowArchived}
+				onShowStaleSessionsChange={setShowStaleSessions}
+				onShowUpcomingOnlyChange={setShowUpcomingOnly}
 			/>
 
 			<div className="overflow-x-auto border-y">
@@ -158,7 +163,7 @@ export function SessionsTable({
 					<TableHeader>
 						<TableRow>
 							<TableHead className="text-center">Status</TableHead>
-							<TableHead>{renderSortButton("Customer", "name")}</TableHead>
+							<TableHead>Customer</TableHead>
 							<TableHead>{renderSortButton("Session", "session")}</TableHead>
 							<TableHead>Service</TableHead>
 							<TableHead>Contact</TableHead>
@@ -171,8 +176,8 @@ export function SessionsTable({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{paginatedSessions.length > 0 ? (
-							paginatedSessions.map((session) => (
+						{filteredSessions.length > 0 ? (
+							filteredSessions.map((session) => (
 								<SessionTableRow
 									key={session._id}
 									activeEditors={activeEditors}
@@ -202,15 +207,12 @@ export function SessionsTable({
 			<SessionsTableFooter
 				filteredSessionsCount={filteredSessions.length}
 				totalSessionsCount={sessions.length}
-				canLoadMoreSessions={canLoadMoreSessions}
-				isLoadingMoreSessions={isLoadingMoreSessions}
-				pageIndex={pageIndex}
-				pageCount={pageCount}
-				onLoadMoreSessions={loadMoreSessions}
-				onPreviousPage={() => setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1))}
-				onNextPage={() =>
-					setPageIndex((currentPageIndex) => Math.min(pageCount - 1, currentPageIndex + 1))
-				}
+			/>
+
+			<InfiniteScrollSentinel
+				canLoadMore={!isLoadingSessions && canLoadMoreSessions}
+				isLoadingMore={isLoadingMoreSessions}
+				onLoadMore={loadMoreSessions}
 			/>
 		</section>
 	);
