@@ -1,4 +1,4 @@
-import { err, ok } from "neverthrow";
+import { errAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getDriveSetup } from "#convex/lib/driveLookup";
@@ -84,22 +84,32 @@ function getDismissedDriveSessionPatches(args: {
 	return patches;
 }
 
-export function clearDriveWorkflowFailure(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(getDriveStatus(ctx, bookingId)).andThen((driveStatus) => {
+export type ClearDriveWorkflowFailureError = {
+	reason:
+		| "BOOKING_NOT_FOUND"
+		| "DRIVE_FOLDERS_NOT_READY"
+		| "DRIVE_WORKFLOW_NOT_FAILED";
+};
+
+export function clearDriveWorkflowFailure(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<null, ClearDriveWorkflowFailureError> {
+	return getDriveStatus(ctx, bookingId).andThen((driveStatus) => {
 		if (!driveStatus.hasDriveWorkflowFailure) {
-			return err({ reason: "DRIVE_WORKFLOW_NOT_FAILED" as const });
+			return errAsync({ reason: "DRIVE_WORKFLOW_NOT_FAILED" as const });
 		}
 		// Refuse to clear while this session is still missing folder links.
 		if (driveStatus.status !== "ready") {
-			return err({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
+			return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 		}
 
-		return okOrThrow(getDriveSetup(ctx, bookingId)).andThen((setupInfo) => {
-			if (setupInfo === null || setupInfo.booking === null) {
-				return err({ reason: "BOOKING_NOT_FOUND" as const });
+		return getDriveSetup(ctx, bookingId).andThen((setupInfo) => {
+			if (setupInfo === null) {
+				return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 			}
 			if (setupInfo.driveSession === null) {
-				return err({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
+				return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 			}
 
 			const bookingPatches: Partial<Doc<"bookings">> = {};
