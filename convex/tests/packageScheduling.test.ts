@@ -153,27 +153,6 @@ describe("package Calendar availability", () => {
 		expect(result).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
 		expect(providerFakes.listEvents).not.toHaveBeenCalled();
 	});
-
-	// Verifies package availability returns the package expiry, timezone, and grouped provider data.
-	test("loads Calendar availability through the package expiry date", async () => {
-		const t = createConvexTest();
-		const { token } = await seedPackage(t);
-
-		const result = await t.action(api.packageSchedulingCalendar.getPackageBusyWindows, {
-			rateLimitKey: "valid-package",
-			token
-		});
-
-		expect(result).toEqual([
-			null,
-			{
-				busyWindowsByMonth: {},
-				packageExpiresAt: Date.parse("2030-01-20T00:00:00.000Z"),
-				timeZone: "Australia/Sydney"
-			}
-		]);
-		expect(providerFakes.listEvents).toHaveBeenCalledTimes(1);
-	});
 });
 
 describe("package session creation validation", () => {

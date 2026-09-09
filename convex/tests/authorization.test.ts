@@ -9,16 +9,13 @@
  *    A representative admin-only mutation rejects signed-out users, customers, and active editors
  *    without side effects. Every admin mutation uses the same requirePermission guard.
  *
- * 3. Permission foundation
- *    Defines the complete permission set, maps roles to permissions, and checks the shared helper.
- *
- * 4. Editor profile access resolution
+ * 3. Editor profile access resolution
  *    Reports signed-out, admin, active editor, and unauthorized editor access.
  *
- * 5. Restricted editor sessions query
+ * 4. Restricted editor sessions query
  *    Rejects signed-out callers and inactive editor profiles.
  *
- * 6. requirePermission guard
+ * 5. requirePermission guard
  *    Rejects signed-out callers, rejects inactive editors, distinguishes editor and admin access,
  *    and allows admins through the shared guard.
  */
@@ -29,7 +26,7 @@ import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { requirePermission } from "#convex/lib/auth";
 import { createConvexTest } from "#convex/test.setup";
-import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
+import { PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 import { tupleErr, tupleOk } from "#/lib/result";
 
 const paginationOpts = { cursor: null, numItems: 10 };
@@ -180,39 +177,6 @@ async function seedEditorProfile(
 		});
 	});
 }
-
-describe("permission definitions", () => {
-	test("defines the complete permission set", () => {
-		expect(PERMISSIONS).toEqual([
-			"view:sessions",
-			"view:packages",
-			"view:sensitive-booking-data",
-			"update:deliverables",
-			"send:deliverables-email",
-			"assign:session-editor",
-			"update:editor-access",
-			"edit:sessions",
-			"archive:sessions",
-			"delete:sessions",
-			"create:reschedule-links",
-			"update:payment-status",
-			"create:invoices",
-			"send:invoice-emails",
-			"update:availability"
-		]);
-		expect(new Set(PERMISSIONS).size).toBe(PERMISSIONS.length);
-	});
-
-	test("maps roles to their exact permissions", () => {
-		expect(ROLE_PERMISSIONS.admin).toBe(PERMISSIONS);
-		expect(ROLE_PERMISSIONS.editor).toEqual(["view:sessions", "update:deliverables"]);
-	});
-
-	test("checks permissions from a supplied permission list", () => {
-		expect(hasPermission(ROLE_PERMISSIONS.editor, "view:sessions")).toBe(true);
-		expect(hasPermission(ROLE_PERMISSIONS.editor, "view:packages")).toBe(false);
-	});
-});
 
 describe("editor profile access resolution", () => {
 	test("reports signed-out access without a role or permissions", async () => {

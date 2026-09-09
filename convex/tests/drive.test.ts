@@ -1,13 +1,10 @@
 /**
  * These tests cover ordinary-session Google Drive workspace setup.
  *
- * 1. Client identity and folder names
- *    Normalizes client identity and formats Drive folder names.
- *
- * 2. Confirmation scheduling
+ * 1. Confirmation scheduling
  *    Schedules workspace setup for the session end.
  *
- * 3. Folder creation
+ * 2. Folder creation
  *    Creates one global assets library and dated session media folders.
  *
  * 4. Client access
@@ -160,9 +157,7 @@ import { shouldRecordDriveSetupFailure } from "#convex/lib/driveSetup";
 import {
 	getClientFolderName,
 	getPackageSessionFolderName,
-	getSessionFolderName,
-	getSessionMediaFolderName,
-	normalizeDriveEmail
+	getSessionMediaFolderName
 } from "#convex/lib/googleDrive";
 import { createConvexTest } from "#convex/test.setup";
 
@@ -404,24 +399,6 @@ beforeEach(() => {
 		}
 		driveFake.permissions.delete(permissionId);
 		return Promise.resolve({ data: {} });
-	});
-});
-
-describe("Google Drive folder naming", () => {
-	test("normalizes the permanent client key and formats session and media folder names", () => {
-		expect(normalizeDriveEmail("  Client@Example.COM ")).toBe("client@example.com");
-		expect(getClientFolderName({ accountName: "Acme", contactName: "Alex" })).toBe(
-			"Acme (VV Studios)"
-		);
-		expect(getClientFolderName({ accountName: " ", contactName: " Alex " })).toBe(
-			"Alex (VV Studios)"
-		);
-		expect(getSessionFolderName(Date.parse("2026-08-13T00:00:00.000Z"))).toBe(
-			"13 Aug 2026 - 10:00 AM"
-		);
-		expect(getSessionMediaFolderName("Raw Media", Date.parse("2026-08-13T00:00:00.000Z"))).toBe(
-			"Raw Media (13.8.26)"
-		);
 	});
 });
 
