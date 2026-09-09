@@ -146,24 +146,31 @@ const editingAddOnsImage: PhotoGalleryImage = {
 };
 
 type PricingAddonFeatureSectionProps = {
-	title: string;
 	addOns: readonly PricingAddOn[];
 	image: PhotoGalleryImage;
 	imageSide: "left" | "right";
 	onSelectImage: (image: PhotoGalleryImage) => void;
+	sectionId?: string;
+	title: string;
 };
 
 function PricingAddonFeatureSection({
-	title,
 	addOns,
 	image,
 	imageSide,
-	onSelectImage
+	onSelectImage,
+	sectionId,
+	title
 }: PricingAddonFeatureSectionProps) {
 	const imageOnLeft = imageSide === "left";
 
 	return (
-		<section className="grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left">
+		<section
+			id={sectionId}
+			className={cn(
+				"grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left",
+				sectionId && "scroll-mt-20 md:scroll-mt-28"
+			)}>
 			<ImageViewerTrigger
 				image={image}
 				className={cn(
@@ -346,6 +353,7 @@ export function PricingSection({
 						image={editingAddOnsImage}
 						imageSide="right"
 						onSelectImage={setPreviewImage}
+						sectionId="editing-services"
 					/>
 				</div>
 			</motion.div>

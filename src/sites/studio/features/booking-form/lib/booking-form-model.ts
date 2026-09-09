@@ -14,24 +14,11 @@ export const ADDON_OPTIONS = [
 ] as const;
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
 export const ADDON_SECTIONS = [
-	{
-		title: "Production Add-ons",
-		description: "Enhance your recording session.",
-		addons: ["Remote Podcast", "4K UHD Recording", "Teleprompter"]
-	},
-	{
-		title: "Editing Services",
-		description: "Choose long-form editing services for your content.",
-		addons: ["Essential Edit", "Complete Edit"]
-	},
-	{
-		title: "Clip Services",
-		description: "Choose short-form clips services for your social media content.",
-		addons: ["Clip Volume Pack", "Handcrafted Clips"]
-	}
+	{ title: "Production Add-ons", addons: ["Remote Podcast", "4K UHD Recording", "Teleprompter"] },
+	{ title: "Editing Services", addons: ["Essential Edit", "Complete Edit"] },
+	{ title: "Clip Services", addons: ["Clip Volume Pack", "Handcrafted Clips"] }
 ] as const satisfies ReadonlyArray<{
 	title: string;
-	description: string;
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
 const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
