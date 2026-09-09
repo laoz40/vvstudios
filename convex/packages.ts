@@ -69,9 +69,12 @@ export const markPackageInvoiceEmailAttempt = internalMutation({
 });
 
 export const listPackages = query({
-	args: { paginationOpts: paginationOptsValidator },
+	args: {
+		paginationOpts: paginationOptsValidator,
+		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc")))
+	},
 	handler: (ctx, args) =>
-		listPackagesService(ctx, args.paginationOpts).match(
+		listPackagesService(ctx, args).match(
 			(packagesPage) => packagesPage,
 			(error) => {
 				throw new ConvexError(error);

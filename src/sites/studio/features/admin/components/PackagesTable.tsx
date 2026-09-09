@@ -13,7 +13,6 @@ import { PackagesTableFilters } from "#studio/features/admin/components/Packages
 import {
 	filterAdminPackages,
 	mapPackageToAdminRow,
-	sortAdminPackages,
 	type AdminPackageFilters,
 	type AdminPackageRecord,
 	type AdminPackageSort
@@ -29,21 +28,26 @@ type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery"
 export function PackagesTable({
 	canLoadMorePackages,
 	isLoadingMorePackages,
+	isLoadingPackages,
 	loadMorePackages,
+	onSortingChange,
 	onViewPackageSessions,
-	packages
+	packages,
+	sorting
 }: {
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
+	isLoadingPackages: boolean;
 	loadMorePackages: () => void;
+	onSortingChange: (sorting: AdminPackageSort) => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
 	packages: AdminPackageRecord[];
+	sorting: AdminPackageSort;
 }) {
 	// Package filters
 	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
 		return readStoredPackageTableFilters();
 	});
-	const [sort, setSort] = useState<AdminPackageSort>({ column: "created", isDescending: true });
 	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
 
 	// Persist package filters.
@@ -59,16 +63,12 @@ export function PackagesTable({
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
-		const rows = filterAdminPackages(packages.map(mapPackageToAdminRow), filters);
-		return sortAdminPackages(rows, sort);
-	}, [filters, packages, sort]);
+		return filterAdminPackages(packages.map(mapPackageToAdminRow), filters);
+	}, [filters, packages]);
 
-	function updateSort(column: AdminPackageSort["column"]) {
-		setSort((currentSort) => ({
-			column,
-			isDescending:
-				currentSort.column === column ? !currentSort.isDescending : column !== "customer"
-		}));
+	function updateCreatedSort() {
+		onSortingChange({ isDescending: !sorting.isDescending });
+		window.scrollTo({ top: 0 });
 	}
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
@@ -113,14 +113,7 @@ export function PackagesTable({
 					<TableHeader>
 						<TableRow>
 							<TableHead className="text-center">Status</TableHead>
-							<TableHead>
-								<SortHeaderButton
-									label="Customer"
-									isActive={sort.column === "customer"}
-									isDescending={sort.isDescending}
-									onClick={() => updateSort("customer")}
-								/>
-							</TableHead>
+							<TableHead>Customer</TableHead>
 							<TableHead>Package</TableHead>
 							<TableHead>Add-ons (Fixed)</TableHead>
 							<TableHead>Contact</TableHead>
@@ -129,9 +122,10 @@ export function PackagesTable({
 							<TableHead>
 								<SortHeaderButton
 									label="Created"
-									isActive={sort.column === "created"}
-									isDescending={sort.isDescending}
-									onClick={() => updateSort("created")}
+									isActive
+									isDescending={sorting.isDescending}
+									isLoading={isLoadingPackages}
+									onClick={updateCreatedSort}
 								/>
 							</TableHead>
 							<TableHead />
@@ -160,7 +154,7 @@ export function PackagesTable({
 			</div>
 
 			<InfiniteScrollSentinel
-				canLoadMore={canLoadMorePackages}
+				canLoadMore={!isLoadingPackages && canLoadMorePackages}
 				isLoadingMore={isLoadingMorePackages}
 				onLoadMore={loadMorePackages}
 			/>

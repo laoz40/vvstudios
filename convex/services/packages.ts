@@ -49,11 +49,23 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 		.then((packageId) => ({ packageRecord: { _id: packageId, ...packageRecord } }));
 }
 
-export function listPackagesService(ctx: QueryCtx, paginationOpts: PaginationOptions) {
+type PackageListSortDirection = "asc" | "desc";
+type ListPackagesArgs = {
+	paginationOpts: PaginationOptions;
+	sortDirection?: PackageListSortDirection;
+};
+
+export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
+	const sortDirection = args.sortDirection ?? "desc";
+
 	return requirePermission(ctx, "view:packages")
 		.andThen(() =>
 			okOrThrow(
-				ctx.db.query("packages").withIndex("by_createdAt").order("desc").paginate(paginationOpts)
+				ctx.db
+					.query("packages")
+					.withIndex("by_createdAt")
+					.order(sortDirection)
+					.paginate(args.paginationOpts)
 			)
 		)
 		.andThen((packagesPage) =>

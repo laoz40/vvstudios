@@ -16,6 +16,10 @@ import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
+	toPackageListQuerySort,
+	type AdminPackageSort
+} from "#studio/features/admin/lib/admin-packages";
+import {
 	toSessionListQuerySort,
 	type SessionSorting
 } from "#studio/features/admin/lib/admin-sessions";
@@ -41,14 +45,30 @@ type AdminDashboardTablesProps = {
 	isLoadingSessions: boolean;
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
+	isLoadingPackages: boolean;
+	packageSorting: AdminPackageSort;
 	sessionSearchQuery: string;
 	sessionSorting: SessionSorting;
 	onLoadMoreSessions: () => void;
 	onLoadMorePackages: () => void;
+	onPackageSortingChange: (sorting: AdminPackageSort) => void;
 	onSearchQueryChange: (query: string) => void;
 	onSessionSortingChange: (sorting: SessionSorting) => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
 };
+
+function usePaginatedPackagesTable(packageSorting: AdminPackageSort) {
+	const packageListSort = toPackageListQuerySort(packageSorting);
+	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
+		initialNumItems: DASHBOARD_PAGE_SIZE
+	});
+	const packagesForTable = useDisplayedWhileRefetching(
+		packages.results,
+		packages.status === "LoadingFirstPage"
+	);
+
+	return { packages, packagesForTable };
+}
 
 function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
 	const displayedResultsRef = useRef(results);
@@ -92,10 +112,13 @@ function AdminDashboardTables({
 	isLoadingSessions,
 	canLoadMorePackages,
 	isLoadingMorePackages,
+	isLoadingPackages,
+	packageSorting,
 	sessionSearchQuery,
 	sessionSorting,
 	onLoadMoreSessions,
 	onLoadMorePackages,
+	onPackageSortingChange,
 	onSearchQueryChange,
 	onSessionSortingChange,
 	onViewPackageSessions
@@ -121,7 +144,10 @@ function AdminDashboardTables({
 					packages={packages}
 					canLoadMorePackages={canLoadMorePackages}
 					isLoadingMorePackages={isLoadingMorePackages}
+					isLoadingPackages={isLoadingPackages}
 					loadMorePackages={onLoadMorePackages}
+					sorting={packageSorting}
+					onSortingChange={onPackageSortingChange}
 					onViewPackageSessions={onViewPackageSessions}
 				/>
 			) : null}
@@ -138,15 +164,12 @@ function AdminDashboardTables({
 export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
 	const initialSessionPreferences = useMemo(readStoredSessionsTablePreferences, []);
 	const [sessionSorting, setSessionSorting] = useState(initialSessionPreferences.sorting);
+	const [packageSorting, setPackageSorting] = useState<AdminPackageSort>({ isDescending: true });
 	const sessionListSort = toSessionListQuerySort(sessionSorting);
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
-	const packages = usePaginatedQuery(
-		api.packages.listPackages,
-		{},
-		{ initialNumItems: DASHBOARD_PAGE_SIZE }
-	);
+	const { packages, packagesForTable } = usePaginatedPackagesTable(packageSorting);
 	const sessionsForTable = useDisplayedWhileRefetching(
 		sessions.results,
 		sessions.status === "LoadingFirstPage"
@@ -197,18 +220,21 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 					adminEditorProfile={adminEditorProfile}
 					editors={editors}
 					sessions={sessionsForTable}
-					packages={packages.results}
+					packages={packagesForTable}
 					canLoadMoreSessions={sessions.status === "CanLoadMore"}
 					isLoadingMoreSessions={sessions.status === "LoadingMore"}
 					isLoadingSessions={sessions.status === "LoadingFirstPage"}
 					canLoadMorePackages={packages.status === "CanLoadMore"}
 					isLoadingMorePackages={packages.status === "LoadingMore"}
+					isLoadingPackages={packages.status === "LoadingFirstPage"}
 					sessionSearchQuery={sessionSearchQuery}
 					sessionSorting={sessionSorting}
+					packageSorting={packageSorting}
 					onLoadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
 					onLoadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
 					onSearchQueryChange={setSessionSearchQuery}
 					onSessionSortingChange={setSessionSorting}
+					onPackageSortingChange={setPackageSorting}
 					onViewPackageSessions={viewPackageSessions}
 				/>
 			</AdminDashboardShell>
