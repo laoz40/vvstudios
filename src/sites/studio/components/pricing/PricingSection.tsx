@@ -150,6 +150,7 @@ const editingAddOnsImage: PhotoGalleryImage = {
 
 type PricingAddonFeatureSectionProps = {
 	addOns: readonly PricingAddOn[];
+	fadeInAnimation: ReturnType<typeof useFadeInAnimation>;
 	image: PhotoGalleryImage;
 	imageSide: "left" | "right";
 	onSelectImage: (image: PhotoGalleryImage) => void;
@@ -159,6 +160,7 @@ type PricingAddonFeatureSectionProps = {
 
 function PricingAddonFeatureSection({
 	addOns,
+	fadeInAnimation,
 	image,
 	imageSide,
 	onSelectImage,
@@ -168,7 +170,8 @@ function PricingAddonFeatureSection({
 	const imageOnLeft = imageSide === "left";
 
 	return (
-		<section
+		<motion.section
+			{...fadeInAnimation}
 			id={sectionId}
 			className={cn(
 				"grid w-full gap-10 md:grid-cols-2 md:items-stretch md:text-left",
@@ -223,7 +226,7 @@ function PricingAddonFeatureSection({
 					})}
 				</div>
 			</div>
-		</section>
+		</motion.section>
 	);
 }
 
@@ -342,25 +345,27 @@ export function PricingSection({
 				<p className="self-stretch text-left text-base leading-snug text-muted-foreground italic md:text-center">
 					{pricingPageCopy.bookingDepositNote}
 				</p>
-
-				<div className="mt-8 flex w-full flex-col gap-16 md:mt-24 md:gap-24">
-					<PricingAddonFeatureSection
-						title={pricingPageCopy.addOnsTitle}
-						addOns={productionAddOns}
-						image={productionAddOnsImage}
-						imageSide="left"
-						onSelectImage={setPreviewImage}
-					/>
-					<PricingAddonFeatureSection
-						title={pricingPageCopy.editingServicesTitle}
-						addOns={editingAddOns}
-						image={editingAddOnsImage}
-						imageSide="right"
-						onSelectImage={setPreviewImage}
-						sectionId="editing-services"
-					/>
-				</div>
 			</motion.div>
+
+			<div className="mt-8 flex w-full flex-col gap-16 md:mt-24 md:gap-24">
+				<PricingAddonFeatureSection
+					fadeInAnimation={fadeInAnimation}
+					title={pricingPageCopy.addOnsTitle}
+					addOns={productionAddOns}
+					image={productionAddOnsImage}
+					imageSide="left"
+					onSelectImage={setPreviewImage}
+				/>
+				<PricingAddonFeatureSection
+					fadeInAnimation={fadeInAnimation}
+					title={pricingPageCopy.editingServicesTitle}
+					addOns={editingAddOns}
+					image={editingAddOnsImage}
+					imageSide="right"
+					onSelectImage={setPreviewImage}
+					sectionId="editing-services"
+				/>
+			</div>
 			<ImageViewer
 				image={previewImage}
 				onClose={() => {

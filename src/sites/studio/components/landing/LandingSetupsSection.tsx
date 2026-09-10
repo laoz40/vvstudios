@@ -22,16 +22,19 @@ const setupPanelTitleClassName = cn(
 );
 
 function SetupShowcasePanel({
+	fadeInAnimation,
 	image,
 	loading,
 	onPreview
 }: {
+	fadeInAnimation: ReturnType<typeof useFadeInAnimation>;
 	image: PhotoGalleryImage;
 	loading: "eager" | "lazy";
 	onPreview: (image: PhotoGalleryImage) => void;
 }) {
 	return (
-		<figure
+		<motion.figure
+			{...fadeInAnimation}
 			className={cn(
 				marketingPageHorizontalPaddingClassName,
 				"group relative w-full md:px-0 md:h-dvh"
@@ -70,7 +73,7 @@ function SetupShowcasePanel({
 					onSelect={onPreview}
 				/>
 			</div>
-		</figure>
+		</motion.figure>
 	);
 }
 
@@ -80,31 +83,33 @@ export function LandingSetupsSection() {
 
 	return (
 		<section className="pb-16">
+			<motion.div
+				{...fadeInAnimation}
+				className={cn(
+					marketingPageHorizontalPaddingClassName,
+					"mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8 md:gap-10 md:pb-10"
+				)}>
+				<div className="space-y-4 text-left md:text-center">
+					<h2 className={landingSectionHeadingClassName}>{photosPageContent.title}</h2>
+					<p className="mx-auto max-w-5xl text-pretty text-base leading-7 text-muted-foreground md:text-lg">
+						{photosPageContent.lead}
+					</p>
+				</div>
+			</motion.div>
+
+			<div className="flex flex-col gap-6 md:gap-0">
+				{landingSetupImages.map((image, index) => (
+					<SetupShowcasePanel
+						key={image.src}
+						fadeInAnimation={fadeInAnimation}
+						image={image}
+						loading={index === 0 ? "eager" : "lazy"}
+						onPreview={setPreviewImage}
+					/>
+				))}
+			</div>
+
 			<motion.div {...fadeInAnimation}>
-				<div
-					className={cn(
-						marketingPageHorizontalPaddingClassName,
-						"mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8 md:gap-10 md:pb-10"
-					)}>
-					<div className="space-y-4 text-left md:text-center">
-						<h2 className={landingSectionHeadingClassName}>{photosPageContent.title}</h2>
-						<p className="mx-auto max-w-5xl text-pretty text-base leading-7 text-muted-foreground md:text-lg">
-							{photosPageContent.lead}
-						</p>
-					</div>
-				</div>
-
-				<div className="flex flex-col gap-6 md:gap-0">
-					{landingSetupImages.map((image, index) => (
-						<SetupShowcasePanel
-							key={image.src}
-							image={image}
-							loading={index === 0 ? "eager" : "lazy"}
-							onPreview={setPreviewImage}
-						/>
-					))}
-				</div>
-
 				<ContactActions
 					className={cn(
 						marketingPageHorizontalPaddingClassName,
