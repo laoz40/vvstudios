@@ -103,9 +103,9 @@ function getChangedFieldLabels(
 	changedFields: PackageEditWarningField[],
 	warningFields: readonly PackageEditWarningField[]
 ) {
-	return changedFields
-		.filter((field) => warningFields.includes(field))
-		.map((field) => packageEditFieldLabels[field]);
+	return changedFields.flatMap((field) =>
+		warningFields.includes(field) ? [packageEditFieldLabels[field]] : []
+	);
 }
 
 export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: PackageEditDraft) {

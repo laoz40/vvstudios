@@ -100,9 +100,9 @@ function getChangedFieldLabels(
 	changedFields: SessionEditWarningField[],
 	warningFields: readonly SessionEditWarningField[]
 ) {
-	return changedFields
-		.filter((field) => warningFields.includes(field))
-		.map((field) => sessionEditFieldLabels[field]);
+	return changedFields.flatMap((field) =>
+		warningFields.includes(field) ? [sessionEditFieldLabels[field]] : []
+	);
 }
 
 export function getSessionEditWarningState(session: SessionRecord, draft: SessionEditDraft) {

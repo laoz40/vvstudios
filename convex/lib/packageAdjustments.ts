@@ -115,9 +115,9 @@ export function evaluatePackageAdjustment(
 		return { kind: "wait_for_sessions_to_end", nextCheckAt: latestOngoingSessionEndAt };
 	}
 
-	const remotePodcastBookingIds = completedBookings
-		.filter((booking) => booking.addons.includes("Remote Podcast"))
-		.map((booking) => booking._id);
+	const remotePodcastBookingIds = completedBookings.flatMap((booking) =>
+		booking.addons.includes("Remote Podcast") ? [booking._id] : []
+	);
 	const quantity = remotePodcastBookingIds.length;
 
 	return {
