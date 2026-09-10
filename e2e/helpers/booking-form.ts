@@ -53,10 +53,8 @@ async function waitForCalendarAvailability(page: Page) {
 		.toBeGreaterThan(0);
 }
 
-async function waitForBookingDateSelected(page: Page) {
-	await expect(page.getByText(/^Selected /)).not.toContainText("No selected date", {
-		timeout: 30_000
-	});
+async function waitForBookingDateSelected(timeField: ReturnType<Page["locator"]>) {
+	await expect(timeField.getByText("Select a date to view times.")).toBeHidden({ timeout: 30_000 });
 }
 
 async function readDayTimeSelectionState(
@@ -83,7 +81,6 @@ async function readDayTimeSelectionState(
 }
 
 async function pickTimeForDayAtIndex(
-	page: Page,
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
 	dayIndex: number,
@@ -103,7 +100,7 @@ async function pickTimeForDayAtIndex(
 		await expect(async () => {
 			await dayButton.scrollIntoViewIfNeeded();
 			await dayButton.click();
-			await waitForBookingDateSelected(page);
+			await waitForBookingDateSelected(timeField);
 
 			const state = await readDayTimeSelectionState(timeField);
 
@@ -133,7 +130,6 @@ async function pickTimeForDayAtIndex(
 }
 
 async function tryPickBookableDayFromIndex(
-	page: Page,
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
 	dayIndex: number,
@@ -144,13 +140,13 @@ async function tryPickBookableDayFromIndex(
 		return false;
 	}
 
-	const picked = await pickTimeForDayAtIndex(page, calendar, timeField, dayIndex, timeIndex);
+	const picked = await pickTimeForDayAtIndex(calendar, timeField, dayIndex, timeIndex);
 
 	if (picked) {
 		return true;
 	}
 
-	return tryPickBookableDayFromIndex(page, calendar, timeField, dayIndex + 1, dayCount, timeIndex);
+	return tryPickBookableDayFromIndex(calendar, timeField, dayIndex + 1, dayCount, timeIndex);
 }
 
 async function pickBookableDateInMonth(
@@ -165,7 +161,6 @@ async function pickBookableDateInMonth(
 	const dayCount = await enabledDays.count();
 
 	const picked = await tryPickBookableDayFromIndex(
-		page,
 		calendar,
 		timeField,
 		startingDayIndex,

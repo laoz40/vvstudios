@@ -8,9 +8,9 @@ import {
 	isPackageUnavailableAddon,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import {
 	getCardStateClassName,
-	getPillStateClassName,
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -86,17 +86,7 @@ export function BookingModeSection() {
 												{option.description}
 											</p>
 										</div>
-										{isSelected ? (
-											<span
-												className={cn(
-													"inline-flex shrink-0 items-center justify-center rounded-lg border",
-													"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
-													"text-xs font-medium tracking-wider shadow-md",
-													getPillStateClassName(true)
-												)}>
-												SELECTED
-											</span>
-										) : null}
+										{isSelected ? <BookingSelectionCheck /> : null}
 									</label>
 								</div>
 							);

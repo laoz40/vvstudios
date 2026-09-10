@@ -9,10 +9,10 @@ import {
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { isPackageSize, PACKAGE_PLANS } from "#studio/features/booking-form/lib/booking-pricing";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import {
 	getCardStateClassName,
 	getRevealMotionProps,
-	getPillStateClassName,
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -108,16 +108,7 @@ export function BookingPackageSection() {
 																		SAVE {discountLabel}
 																	</p>
 																</div>
-																{isSelected ? (
-																	<span
-																		className={cn(
-																			"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
-																			"text-xs font-medium tracking-wider shadow-md",
-																			getPillStateClassName(true)
-																		)}>
-																		SELECTED
-																	</span>
-																) : null}
+																{isSelected ? <BookingSelectionCheck /> : null}
 															</div>
 														</label>
 													</div>

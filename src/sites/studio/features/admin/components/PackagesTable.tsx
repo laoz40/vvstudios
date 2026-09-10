@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow
-} from "#/components/ui/table";
+import { TableCell, TableRow } from "#/components/ui/table";
+import { FixedDataTable } from "#studio/components/FixedDataTable";
 import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageTableRow } from "#studio/features/admin/components/PackageTableRow";
 import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
@@ -98,28 +92,30 @@ export function PackagesTable({
 			/>
 
 			<div className="overflow-x-auto border-y">
-				<Table className="w-full min-w-7xl table-fixed">
-					<colgroup>
-						<col className="w-8 md:w-6" />
-						<col className="w-42 md:w-36" />
-						<col className="w-20 md:w-16" />
-						<col className="w-36 md:w-28" />
-						<col className="w-48" />
-						<col className="w-16 md:w-12" />
-						<col className="w-20 md:w-8" />
-						<col className="w-20 md:w-12" />
-						<col className="w-6" />
-					</colgroup>
-					<TableHeader>
-						<TableRow>
-							<TableHead className="text-center">Status</TableHead>
-							<TableHead>Customer</TableHead>
-							<TableHead>Package</TableHead>
-							<TableHead>Add-ons (Fixed)</TableHead>
-							<TableHead>Contact</TableHead>
-							<TableHead>Due / Expiry</TableHead>
-							<TableHead className="text-right">Amount</TableHead>
-							<TableHead>
+				<FixedDataTable
+					minWidthClassName="min-w-7xl"
+					columns={[
+						{
+							key: "status",
+							colClassName: "w-8 md:w-6",
+							header: "Status",
+							headerClassName: "text-center"
+						},
+						{ key: "customer", colClassName: "w-42 md:w-36", header: "Customer" },
+						{ key: "package", colClassName: "w-20 md:w-16", header: "Package" },
+						{ key: "addons", colClassName: "w-36 md:w-28", header: "Add-ons (Fixed)" },
+						{ key: "contact", colClassName: "w-48", header: "Contact" },
+						{ key: "due", colClassName: "w-16 md:w-12", header: "Due / Expiry" },
+						{
+							key: "amount",
+							colClassName: "w-20 md:w-8",
+							header: "Amount",
+							headerClassName: "text-right"
+						},
+						{
+							key: "created",
+							colClassName: "w-20 md:w-12",
+							header: (
 								<SortHeaderButton
 									label="Created"
 									isActive
@@ -127,30 +123,28 @@ export function PackagesTable({
 									isLoading={isLoadingPackages}
 									onClick={updateCreatedSort}
 								/>
-							</TableHead>
-							<TableHead />
+							)
+						},
+						{ key: "actions", colClassName: "w-6", header: null }
+					]}>
+					{visiblePackages.length > 0 ? (
+						visiblePackages.map((packageRow) => (
+							<PackageTableRow
+								key={packageRow.id}
+								onViewPackageSessions={onViewPackageSessions}
+								packageRow={packageRow}
+							/>
+						))
+					) : (
+						<TableRow>
+							<TableCell
+								colSpan={9}
+								className="h-24 text-center text-muted-foreground">
+								No packages. L business.
+							</TableCell>
 						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{visiblePackages.length > 0 ? (
-							visiblePackages.map((packageRow) => (
-								<PackageTableRow
-									key={packageRow.id}
-									onViewPackageSessions={onViewPackageSessions}
-									packageRow={packageRow}
-								/>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={9}
-									className="h-24 text-center text-muted-foreground">
-									No packages. L business.
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
+					)}
+				</FixedDataTable>
 			</div>
 
 			<InfiniteScrollSentinel

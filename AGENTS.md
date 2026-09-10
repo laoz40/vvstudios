@@ -71,7 +71,7 @@ Extremely important website is accessible, and as fast first paint on marketing 
 
 ### Verify changes
 
-- Run format, lint, test and typecheck once changes are complete. (e2e only if relevant)
+- Run format, lint, test, typecheck, dead-code, dupes (bun scripts) once changes are complete and before creating any PRs. (e2e only if relevant)
 - dont run build or convex codegen unless asked to
 - never use eslint ignore to bypass linter
 

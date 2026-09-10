@@ -1,14 +1,12 @@
 import { useSelector } from "@tanstack/react-store";
 import { FieldError } from "#/components/ui/field";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
-import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getBookingTimeSelectionMessage,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
-import { formatBookingDateSummary, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export interface BookingDateTimeSectionProps {
 	availability: BookingAvailabilityPickerState;
@@ -24,18 +22,6 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 		hasDuration: Boolean(formValues.duration),
 		isViewingSelectedMonth: availability.isViewingSelectedMonth
 	});
-	const bookingDateSummary = formValues.date
-		? formatBookingDateSummary(formValues.date)
-		: "No selected date";
-	let bookingTimeSummary = "No selected time";
-
-	if (formValues.time) {
-		bookingTimeSummary = "No selected duration";
-	}
-
-	if (formValues.time && formValues.duration) {
-		bookingTimeSummary = formatBookingTimeRange(formValues.time, formValues.duration);
-	}
 	return (
 		<section className="mt-0 flex flex-col gap-4">
 			<formApi.Field name="date">
@@ -49,6 +35,7 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 										<FieldError errors={toFieldErrorObjects(dateField.state.meta.errors)} />
 									) : null
 								}
+								duration={formValues.duration}
 								onDateChange={(dateValue) => {
 									dateField.handleChange(dateValue);
 									dateField.handleBlur();
@@ -69,10 +56,6 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 					</formApi.Field>
 				)}
 			</formApi.Field>
-			<BookingSessionSummary
-				dateSummary={bookingDateSummary}
-				timeSummary={bookingTimeSummary}
-			/>
 		</section>
 	);
 }

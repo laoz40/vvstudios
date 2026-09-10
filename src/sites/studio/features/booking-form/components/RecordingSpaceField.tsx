@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import musicSetupImage from "#studio/assets/gallery/music-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import { Button } from "#/components/ui/button";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
@@ -107,16 +108,15 @@ export function RecordingSpaceField({
 										"shadow-lg shadow-background/25",
 										"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
 										"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-										"md:hover:bg-primary/5",
 										transitionClassName,
 										getCardStateClassName(value === option.value),
-										value === option.value && "md:bg-primary/5 shadow-primary/20",
+										value === option.value && "shadow-primary/20",
 										disabled && "cursor-not-allowed opacity-50"
 									)}>
 									<label
 										htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
 										className={cn("block cursor-pointer", disabled && "cursor-not-allowed")}>
-										<div className="relative w-full overflow-hidden">
+										<div className="overflow-hidden">
 											<Image
 												src={option.image}
 												alt={option.imageAlt}
@@ -127,41 +127,43 @@ export function RecordingSpaceField({
 													value === option.value && "scale-[1.02]"
 												)}
 											/>
-											<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
 										</div>
 										<div
 											className={cn(
-												"pointer-events-none absolute inset-x-0 bottom-0 z-10",
-												"flex items-center justify-between gap-2",
-												"px-3 py-1 md:static md:px-3 md:py-1.5",
-												"backdrop-blur-[3px] md:group-hover:bg-primary/10",
-												getFooterStateClassName(value === option.value),
-												value === option.value && "md:bg-primary/10"
+												"flex items-center justify-between gap-2 px-3 py-1.5",
+												transitionClassName,
+												getFooterStateClassName(value === option.value)
 											)}>
 											<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
 												{option.title}
 												{"capacity" in option ? (
 													<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
-														1-{option.capacity}
-														<span className="sr-only"> people</span>
 														<Users
 															aria-hidden="true"
 															className="size-4"
 														/>
+														1-{option.capacity}
+														<span className="sr-only"> people</span>
 													</span>
 												) : null}
 											</p>
-											<span
-												className={cn(
-													"inline-flex items-center justify-center rounded-lg border",
-													"px-3 py-0.5",
-													"text-xs font-medium tracking-wider",
-													"shadow-md transition-all duration-200 ease-in",
-													getPillStateClassName(value === option.value),
-													selectionIndicatorVisibility === "mobile" && "md:hidden"
-												)}>
-												{value === option.value ? "SELECTED" : "SELECT"}
-											</span>
+											{value === option.value ? (
+												<BookingSelectionCheck
+													className={cn(selectionIndicatorVisibility === "mobile" && "md:hidden")}
+												/>
+											) : (
+												<span
+													className={cn(
+														"inline-flex items-center justify-center rounded-lg border",
+														"px-3 py-0.5",
+														"text-xs font-medium tracking-wider",
+														"shadow-md transition-all duration-200 ease-in",
+														getPillStateClassName(false),
+														selectionIndicatorVisibility === "mobile" && "md:hidden"
+													)}>
+													Select
+												</span>
+											)}
 										</div>
 									</label>
 									<Button
