@@ -1,11 +1,11 @@
 import { useSelector } from "@tanstack/react-store";
 import { FieldDescription, FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import { RecordingSpaceField } from "#studio/features/booking-form/components/RecordingSpaceField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	getCardStateClassName,
-	getPillStateClassName,
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
@@ -135,16 +135,7 @@ export function BookingRecordingSpaceDurationSection() {
 														) : null}
 													</div>
 												</div>
-												{isSelected ? (
-													<span
-														className={cn(
-															"inline-flex items-center justify-center rounded-lg border px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
-															"text-xs font-medium tracking-wider shadow-md",
-															getPillStateClassName(true)
-														)}>
-														SELECTED
-													</span>
-												) : null}
+												{isSelected ? <BookingSelectionCheck /> : null}
 											</label>
 										</div>
 									);

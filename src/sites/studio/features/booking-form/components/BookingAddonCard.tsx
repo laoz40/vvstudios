@@ -7,9 +7,9 @@ import {
 	FieldTitle
 } from "#/components/ui/field";
 import { cn } from "#/lib/utils";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import {
 	getCardStateClassName,
-	getPillStateClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -121,16 +121,7 @@ export function BookingAddonCard({
 									{addonLabel}
 								</FieldTitle>
 								{checked ? (
-									<span
-										className={cn(
-											"inline-flex shrink-0 items-center justify-center rounded-lg border",
-											"px-2.5 py-0.5",
-											"text-xs font-medium tracking-wider",
-											"shadow-md transition-all duration-200 ease-in sm:hidden",
-											getPillStateClassName(true)
-										)}>
-										SELECTED
-									</span>
+									<BookingSelectionCheck className="sm:hidden" />
 								) : null}
 							</div>
 							<span className="shrink-0 text-lg font-semibold text-primary sm:hidden">
@@ -141,18 +132,7 @@ export function BookingAddonCard({
 					</FieldContent>
 				</div>
 				<div className="hidden shrink-0 items-center gap-2 sm:flex">
-					{checked ? (
-						<span
-							className={cn(
-								"inline-flex items-center justify-center rounded-lg border",
-								"px-2.5 py-0.5 md:min-h-8 md:px-3 md:py-1",
-								"text-xs font-medium tracking-wider",
-								"shadow-md transition-all duration-200 ease-in",
-								getPillStateClassName(true)
-							)}>
-							SELECTED
-						</span>
-					) : null}
+					{checked ? <BookingSelectionCheck /> : null}
 					<span className="text-lg font-semibold text-primary">
 						+{formatBookingPrice(ADDON_PRICES[addon])}
 					</span>

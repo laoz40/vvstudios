@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
 import musicSetupImage from "#studio/assets/gallery/music-setup.webp";
 import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import { Button } from "#/components/ui/button";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
@@ -151,17 +152,23 @@ export function RecordingSpaceField({
 													</span>
 												) : null}
 											</p>
-											<span
-												className={cn(
-													"inline-flex items-center justify-center rounded-lg border",
-													"px-3 py-0.5",
-													"text-xs font-medium tracking-wider",
-													"shadow-md transition-all duration-200 ease-in",
-													getPillStateClassName(value === option.value),
-													selectionIndicatorVisibility === "mobile" && "md:hidden"
-												)}>
-												{value === option.value ? "SELECTED" : "SELECT"}
-											</span>
+											{value === option.value ? (
+												<BookingSelectionCheck
+													className={cn(selectionIndicatorVisibility === "mobile" && "md:hidden")}
+												/>
+											) : (
+												<span
+													className={cn(
+														"inline-flex items-center justify-center rounded-lg border",
+														"px-3 py-0.5",
+														"text-xs font-medium tracking-wider",
+														"shadow-md transition-all duration-200 ease-in",
+														getPillStateClassName(false),
+														selectionIndicatorVisibility === "mobile" && "md:hidden"
+													)}>
+													SELECT
+												</span>
+											)}
 										</div>
 									</label>
 									<Button
