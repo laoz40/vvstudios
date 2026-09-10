@@ -108,16 +108,15 @@ export function RecordingSpaceField({
 										"shadow-lg shadow-background/25",
 										"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
 										"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-										"md:hover:bg-primary/5",
 										transitionClassName,
 										getCardStateClassName(value === option.value),
-										value === option.value && "md:bg-primary/5 shadow-primary/20",
+										value === option.value && "shadow-primary/20",
 										disabled && "cursor-not-allowed opacity-50"
 									)}>
 									<label
 										htmlFor={`${idPrefix}-${toOptionId(option.value)}`}
 										className={cn("block cursor-pointer", disabled && "cursor-not-allowed")}>
-										<div className="relative w-full overflow-hidden">
+										<div className="overflow-hidden">
 											<Image
 												src={option.image}
 												alt={option.imageAlt}
@@ -128,16 +127,12 @@ export function RecordingSpaceField({
 													value === option.value && "scale-[1.02]"
 												)}
 											/>
-											<div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background/95 via-background/65 to-transparent md:hidden" />
 										</div>
 										<div
 											className={cn(
-												"pointer-events-none absolute inset-x-0 bottom-0 z-10",
-												"flex items-center justify-between gap-2",
-												"px-3 py-1 md:static md:px-3 md:py-1.5",
-												"backdrop-blur-[3px] md:group-hover:bg-primary/10",
-												getFooterStateClassName(value === option.value),
-												value === option.value && "md:bg-primary/10"
+												"flex items-center justify-between gap-2 px-3 py-1.5",
+												transitionClassName,
+												getFooterStateClassName(value === option.value)
 											)}>
 											<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
 												{option.title}

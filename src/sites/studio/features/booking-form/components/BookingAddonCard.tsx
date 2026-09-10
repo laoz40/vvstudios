@@ -120,9 +120,7 @@ export function BookingAddonCard({
 								<FieldTitle className="text-base sm:w-fit sm:whitespace-nowrap">
 									{addonLabel}
 								</FieldTitle>
-								{checked ? (
-									<BookingSelectionCheck className="sm:hidden" />
-								) : null}
+								{checked ? <BookingSelectionCheck className="sm:hidden" /> : null}
 							</div>
 							<span className="shrink-0 text-lg font-semibold text-primary sm:hidden">
 								+{formatBookingPrice(ADDON_PRICES[addon])}
