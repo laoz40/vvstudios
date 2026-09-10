@@ -10,6 +10,7 @@ import type { PhotoGalleryImage } from "#studio/content/photos";
 import {
 	landingSectionHeadingClassName,
 	landingSectionIntroGapClassName,
+	landingSectionLeadClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
@@ -79,7 +80,7 @@ function TestimonialReviewCard({
 				className
 			)}>
 			<CardContent className="px-4">
-				<blockquote className="text-base leading-6 text-pretty md:text-lg md:leading-7">
+				<blockquote className={cn(landingSectionLeadClassName, "text-pretty text-foreground")}>
 					“{review.quote}”
 				</blockquote>
 			</CardContent>

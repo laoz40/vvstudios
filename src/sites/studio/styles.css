@@ -197,6 +197,14 @@
 	overflow-x: clip;
 }
 
+/* Safari 26+ shortens every line for text-wrap: pretty/balance, so body copy and
+   headings stop short of the right edge. Reset to normal wrapping on iOS WebKit. */
+@supports (text-wrap: pretty) and (-webkit-touch-callout: none) {
+	.studio-site :is(.text-pretty, .text-balance) {
+		text-wrap: wrap;
+	}
+}
+
 .landing-hero-scroll-space {
 	min-height: 200dvh;
 }

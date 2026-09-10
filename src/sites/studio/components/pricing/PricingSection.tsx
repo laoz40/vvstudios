@@ -24,6 +24,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	landingSectionHeadingClassName,
+	landingSectionLeadClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
@@ -267,9 +268,7 @@ export function PricingSection({
 					<HeadingTag className={landingSectionHeadingClassName}>
 						{pricingPageCopy.title}
 					</HeadingTag>
-					<p className="max-w-4xl text-base leading-7 text-pretty text-muted-foreground md:text-lg">
-						{pricingPageCopy.lead}
-					</p>
+					<p className={cn("max-w-4xl", landingSectionLeadClassName)}>{pricingPageCopy.lead}</p>
 				</div>
 
 				<div className="grid w-full gap-8 md:gap-6 lg:grid-cols-3">
@@ -342,7 +341,11 @@ export function PricingSection({
 					))}
 				</div>
 
-				<p className="self-stretch text-left text-base leading-snug text-muted-foreground italic md:text-center">
+				<p
+					className={cn(
+						landingSectionLeadClassName,
+						"self-stretch text-left italic md:text-center"
+					)}>
 					{pricingPageCopy.bookingDepositNote}
 				</p>
 			</motion.div>
