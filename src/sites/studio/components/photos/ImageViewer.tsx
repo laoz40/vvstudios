@@ -154,7 +154,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 				event.stopPropagation();
 			}}>
 			<div
-				className="relative flex h-dvh w-dvw items-center justify-center p-0 sm:p-4"
+				className="relative flex h-dvh w-dvw items-center justify-center p-0"
 				data-image-viewer-background>
 				<h2
 					id={titleId}
@@ -168,7 +168,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 						layout="constrained"
 						width={image.width}
 						height={image.height}
-						className="block max-h-full max-w-full object-contain sm:max-h-9/10 sm:max-w-9/10"
+						className="block max-h-full max-w-full object-contain"
 					/>
 				) : null}
 				<Button
