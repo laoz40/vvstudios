@@ -6,8 +6,7 @@ import {
 	FieldDescription,
 	FieldLabel,
 	FieldLegend,
-	FieldSet,
-	FieldTitle
+	FieldSet
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Separator } from "#/components/ui/separator";
@@ -17,9 +16,11 @@ import {
 	sectionHeadingClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
+import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import {
+	formatBookingTimeRange,
 	formatDateValue,
 	formatTimeValue,
 	getTimeValueMinutes,
@@ -43,6 +44,7 @@ export interface BookingDateTimePickerProps {
 	availability: BookingAvailabilityPickerState;
 	dateError?: React.ReactNode;
 	disabled?: boolean;
+	duration: string;
 	onDateChange: (dateValue: string) => void;
 	onTimeChange: (time: string) => void;
 	selectedTime: string;
@@ -54,6 +56,7 @@ export function BookingDateTimePicker({
 	availability,
 	dateError,
 	disabled = false,
+	duration,
 	onDateChange,
 	onTimeChange,
 	selectedTime,
@@ -161,6 +164,7 @@ export function BookingDateTimePicker({
 				availabilityError={availabilityError}
 				availableTimes={availableTimes}
 				disabled={disabled}
+				duration={duration}
 				isLoadingMonthAvailability={isLoadingMonthAvailability}
 				selectedBusyPeriods={selectedBusyPeriods}
 				isSelectedDateInPast={isSelectedDateInPast}
@@ -178,6 +182,7 @@ interface TimeSelectionFieldProps {
 	availabilityError: string | null;
 	availableTimes: string[];
 	disabled: boolean;
+	duration: string;
 	isLoadingMonthAvailability: boolean;
 	selectedBusyPeriods: BookingAvailabilityPickerState["selectedBusyPeriods"];
 	isSelectedDateInPast: boolean;
@@ -192,6 +197,7 @@ function TimeSelectionField({
 	availabilityError,
 	availableTimes,
 	disabled,
+	duration,
 	isLoadingMonthAvailability,
 	selectedBusyPeriods,
 	isSelectedDateInPast,
@@ -250,6 +256,7 @@ function TimeSelectionField({
 												? item.time
 												: `${item.period.start}-${item.period.end}`
 										}
+										duration={duration}
 										item={item}
 										selectedTime={selectedTime}
 									/>
@@ -327,6 +334,7 @@ function NoAvailableTimesMessage({
 }: Omit<
 	TimeSelectionFieldProps,
 	| "disabled"
+	| "duration"
 	| "selectedBusyPeriods"
 	| "selectedDate"
 	| "onTimeChange"
@@ -353,9 +361,11 @@ type TimeSelectionItem =
 	| { kind: "unavailable"; period: BusyPeriod };
 
 function TimeSelectionListItem({
+	duration,
 	item,
 	selectedTime
 }: {
+	duration: string;
 	item: TimeSelectionItem;
 	selectedTime: string;
 }) {
@@ -364,6 +374,7 @@ function TimeSelectionListItem({
 		case "available":
 			return (
 				<TimeOption
+					duration={duration}
 					isSelected={selectedTime === item.time}
 					time={item.time}
 				/>
@@ -385,7 +396,15 @@ function TimeSelectionListItem({
 	}
 }
 
-function TimeOption({ isSelected, time }: { isSelected: boolean; time: string }) {
+function TimeOption({
+	duration,
+	isSelected,
+	time
+}: {
+	duration: string;
+	isSelected: boolean;
+	time: string;
+}) {
 	const timeOptionId = `time-${toOptionId(time)}`;
 
 	return (
@@ -406,21 +425,18 @@ function TimeOption({ isSelected, time }: { isSelected: boolean; time: string })
 					getCardStateClassName(isSelected),
 					isSelected && "shadow-primary/20"
 				)}>
-				<Field
-					orientation="horizontal"
-					className={cn(
-						"relative h-14 w-full items-center justify-center",
-						"rounded-lg px-3.5 py-2"
-					)}>
-					<FieldTitle
+				<div className="relative flex h-14 w-full items-center justify-center rounded-lg px-3.5 py-2">
+					<span
 						className={cn(
-							"w-full justify-center text-center",
 							"whitespace-nowrap text-base font-semibold text-card-foreground",
 							getTextStateClassName(isSelected)
 						)}>
-						{formatTimeValue(time)}
-					</FieldTitle>
-				</Field>
+						{formatBookingTimeRange(time, duration)}
+					</span>
+					{isSelected ? (
+						<BookingSelectionCheck className="absolute right-3.5 top-1/2 -translate-y-1/2" />
+					) : null}
+				</div>
 			</FieldLabel>
 		</div>
 	);

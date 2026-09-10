@@ -16,14 +16,12 @@ import {
 	type BookingDateTimePickerProps
 } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
-import { BookingSessionSummary } from "#studio/features/booking-form/components/BookingSessionSummary";
 import { PackageSessionRecordingSpaceField } from "#studio/features/booking-form/components/PackageSessionRecordingSpaceField";
 import { PackageSessionRemotePodcastField } from "#studio/features/booking-form/components/PackageSessionRemotePodcastField";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	formatBookingDateCompact,
-	formatBookingDateSummaryWithoutYear,
 	formatBookingTimeRange,
 	formatBookingTimestampDateLong
 } from "#studio/lib/bookingdatetime";
@@ -419,12 +417,6 @@ function PackageSessionEditor({
 	sessionKey,
 	timeSelectionMessage
 }: PackageSessionEditorProps) {
-	const selectedDateSummary = selection.dateValue
-		? formatBookingDateSummaryWithoutYear(selection.dateValue)
-		: "No selected date";
-	const selectedTimeSummary = selection.time
-		? formatBookingTimeRange(selection.time, duration)
-		: "No selected time";
 	const isSelectionIncomplete = !selection.dateValue || !selection.service || !selection.time;
 	const isSaveDisabled =
 		!hasActiveSession ||
@@ -445,14 +437,11 @@ function PackageSessionEditor({
 				<BookingDateTimePicker
 					availability={availability}
 					disabled={savingSessionKey !== null}
+					duration={duration}
 					onDateChange={actions.onDateChange}
 					onTimeChange={actions.onTimeChange}
 					selectedTime={selection.time}
 					timeSelectionMessage={timeSelectionMessage}
-				/>
-				<BookingSessionSummary
-					dateSummary={selectedDateSummary}
-					timeSummary={selectedTimeSummary}
 				/>
 			</div>
 			<div className="flex flex-col gap-4">

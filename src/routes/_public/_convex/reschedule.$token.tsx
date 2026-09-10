@@ -210,6 +210,7 @@ function ReschedulePage() {
 				<div className="mt-12">
 					<BookingDateTimePicker
 						availability={availability}
+						duration={booking.duration}
 						onDateChange={(dateValue) => {
 							setSelectedDateValue(dateValue);
 
