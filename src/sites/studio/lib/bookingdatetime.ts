@@ -135,19 +135,6 @@ export function formatBookingDateSummary(dateValue: string) {
 	}).format(date);
 }
 
-export function formatBookingDateSummaryWithoutYear(dateValue: string) {
-	const date = parseDateValue(dateValue);
-	if (!date) {
-		return dateValue;
-	}
-
-	return new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		weekday: "short"
-	}).format(date);
-}
-
 const shortMonthFullDateFormatter = new Intl.DateTimeFormat("en-AU", {
 	dateStyle: "medium",
 	timeZone: BOOKING_TIME_ZONE
