@@ -43,6 +43,7 @@ import { useCompleteBookingShortcut } from "#studio/features/booking-form/hooks/
 import { useSavedBookingInfo } from "#studio/features/booking-form/hooks/useSavedBookingInfo";
 import { scrollToFirstBookingFormError } from "#studio/features/booking-form/lib/form-error-scroll";
 import { cn } from "#/lib/utils";
+import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
 
 export const Route = createFileRoute("/_public/_convex/book")({
 	head: () => buildSeoHead(seoMetadata.book),
@@ -108,9 +109,7 @@ function BookingPage() {
 		<main
 			className={cn("mx-auto flex min-h-dvh max-w-4xl flex-col", "gap-8 px-4 pt-8 pb-12 sm:pt-10")}>
 			<div>
-				<h1 className="text-center font-brand text-[2.5rem] leading-none uppercase md:text-6xl">
-					Studio Hire Booking
-				</h1>
+				<h1 className={cn(landingSectionHeadingClassName, "text-center")}>Studio Hire Booking</h1>
 			</div>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
 			{savedBookingInfo.savedBookingInfo ? (
