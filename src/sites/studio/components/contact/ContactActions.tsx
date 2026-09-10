@@ -7,19 +7,24 @@ import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 
 const contactActionCopy = { bookCta: "Book session", tourCta: "Take free tour" } as const;
 
-type ContactActionsProps = { className?: string };
+type ContactActionsProps = { className?: string; layout?: "default" | "inline" };
 
-export function ContactActions({ className }: ContactActionsProps) {
+export function ContactActions({ className, layout = "default" }: ContactActionsProps) {
+	const isInline = layout === "inline";
+
 	return (
 		<div
 			className={cn(
-				"mx-auto mt-7 flex w-full max-w-4xl flex-wrap justify-center",
-				"gap-4 md:mt-12 md:gap-6",
+				"mt-6 flex flex-wrap gap-4 md:gap-6",
+				isInline
+					? "mx-0 w-auto max-w-none justify-start"
+					: "mx-auto w-full max-w-4xl justify-center",
 				className
 			)}>
 			<AnimatedIconButton
 				className={cn(
-					"h-auto min-w-56 flex-1 basis-full justify-center md:basis-0",
+					"h-auto min-w-56 justify-center",
+					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0",
 					"gap-1.5 px-8 py-3",
 					"text-base font-medium",
 					"shadow-lg shadow-primary/45"
@@ -37,7 +42,8 @@ export function ContactActions({ className }: ContactActionsProps) {
 			<FreeTourModalButton
 				label={contactActionCopy.tourCta}
 				className={cn(
-					"h-auto min-w-56 flex-1 basis-full md:basis-0",
+					"h-auto min-w-56",
+					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0",
 					"px-8 py-3",
 					"text-base font-medium!",
 					"border-0 shadow-md shadow-background/25"
