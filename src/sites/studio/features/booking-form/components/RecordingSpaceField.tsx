@@ -138,12 +138,12 @@ export function RecordingSpaceField({
 												{option.title}
 												{"capacity" in option ? (
 													<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
-														1-{option.capacity}
-														<span className="sr-only"> people</span>
 														<Users
 															aria-hidden="true"
 															className="size-4"
 														/>
+														1-{option.capacity}
+														<span className="sr-only"> people</span>
 													</span>
 												) : null}
 											</p>
