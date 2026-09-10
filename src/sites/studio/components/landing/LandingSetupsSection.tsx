@@ -57,16 +57,22 @@ function SetupShowcasePanel({
 					aria-hidden
 					className="absolute inset-0 bg-linear-to-t from-background/90 via-background/25 to-background/10"
 				/>
-				{image.caption ? (
-					<figcaption
-						className={cn(
-							setupPanelTitleClassName,
-							"absolute inset-x-4 bottom-2 text-left md:inset-x-0 md:bottom-28",
-							"md:px-6 lg:px-12 xl:px-16 2xl:px-24"
-						)}>
-						{image.caption}
-					</figcaption>
-				) : null}
+				<div
+					className={cn(
+						"absolute inset-x-4 bottom-2 text-left",
+						"md:inset-x-0 md:bottom-28",
+						"md:px-6 lg:px-12 xl:px-16 2xl:px-24"
+					)}>
+					<div className="flex flex-col items-start gap-4">
+						{image.caption ? (
+							<figcaption className={setupPanelTitleClassName}>{image.caption}</figcaption>
+						) : null}
+						<ContactActions
+							layout="inline"
+							className="mt-0 hidden gap-3 md:flex md:gap-4"
+						/>
+					</div>
+				</div>
 				<ImageViewerOpenButton
 					className="right-2 bottom-2 md:right-6 md:bottom-6"
 					image={image}
@@ -109,7 +115,9 @@ export function LandingSetupsSection() {
 				))}
 			</div>
 
-			<motion.div {...fadeInAnimation}>
+			<motion.div
+				{...fadeInAnimation}
+				className="md:hidden">
 				<ContactActions
 					className={cn(
 						marketingPageHorizontalPaddingClassName,
@@ -118,6 +126,7 @@ export function LandingSetupsSection() {
 					)}
 				/>
 			</motion.div>
+
 			<ImageViewer
 				image={previewImage}
 				onClose={() => {
