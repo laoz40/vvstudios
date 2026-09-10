@@ -16,7 +16,8 @@ import { cn } from "#/lib/utils";
 
 const heroCopy = {
 	eyebrow: "Brought to you by Vertigo Visuals.",
-	title: "Hire The Top Studio in South West Sydney",
+	titleLineOne: "Hire The Top Studio",
+	titleLineTwo: "South West Sydney",
 	lead: "A space to focus on your business or craft. You bring the idea, and we'll make it a reality.",
 	bookCta: "Book session",
 	tourCta: "Take free tour",
@@ -105,29 +106,35 @@ export function LandingHero() {
 					<motion.div
 						className={cn(
 							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-10 lg:left-12 xl:left-25 xl:bottom-60",
-							"max-w-xl will-change-transform"
+							"max-w-xl md:max-w-3xl will-change-transform"
 						)}
 						style={{
 							filter: prefersReducedMotion || !isDesktopViewport ? "blur(0px)" : heroTextBlur,
 							opacity: prefersReducedMotion ? 1 : heroTextOpacity,
 							y: prefersReducedMotion || !isDesktopViewport ? 0 : heroTextY
 						}}>
-						<div className="landing-hero-reveal flex flex-col md:max-w-xl">
+						<div className="landing-hero-reveal flex flex-col">
 							<h1
 								id="landing-hero-title"
-								className="font-brand text-[2.625rem] leading-11 tracking-tight uppercase text-balance md:text-7xl md:leading-18">
-								{heroCopy.title}
+								className="font-brand text-[2.9rem] leading-11 tracking-tight uppercase text-balance md:text-8xl md:leading-none">
+								<span className="block">
+									{heroCopy.titleLineOne}
+									<span className="hidden md:inline"> in</span>
+								</span>
+								<span className="block">
+									<span className="md:hidden">in </span>
+									{heroCopy.titleLineTwo}
+								</span>
 							</h1>
 							<p
 								className={cn(
-									"md:max-w-lg",
 									"mt-2",
 									"text-muted-foreground text-sm leading-relaxed text-pretty md:text-base"
 								)}>
 								{heroCopy.lead}
 							</p>
 
-							<div className="mt-8 flex w-full flex-wrap gap-3">
+							<div className="mt-6 flex w-full flex-wrap gap-3">
 								<AnimatedIconButton
 									className={cn(
 										"flex-1 gap-1.5 md:flex-none",
@@ -165,7 +172,7 @@ export function LandingHero() {
 							</p>
 */}
 
-							<div className="mt-8 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
+							<div className="mt-16 inline-flex items-start gap-2 text-sm text-muted-foreground md:hidden">
 								<MapPin
 									className="text-primary"
 									aria-hidden
