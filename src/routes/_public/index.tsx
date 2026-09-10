@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { faqSectionCopy, FaqSection } from "#studio/components/faq/FaqSection";
-import { LandingGallery } from "#studio/components/landing/LandingGallery";
+import { LandingSetupsSection } from "#studio/components/landing/LandingSetupsSection";
 import { LandingHero } from "#studio/components/landing/LandingHero";
 import { LandingTestimonials } from "#studio/components/landing/LandingTestimonials";
 import { PricingSection } from "#studio/components/pricing/PricingSection";
@@ -51,7 +51,7 @@ function HomeRoute() {
 					landingPageSectionsGapClassName
 				)}>
 				<LandingTestimonials />
-				<LandingGallery />
+				<LandingSetupsSection />
 				<PricingSection
 					compact
 					fadeIn

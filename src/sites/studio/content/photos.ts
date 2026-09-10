@@ -107,27 +107,27 @@ const galleryImages: PhotoGalleryImage[] = [
 	}
 ];
 
-export const landingGalleryImages: PhotoGalleryImage[] = [
+export const landingSetupImages: PhotoGalleryImage[] = [
 	{
 		src: armchairSetupImage,
 		alt: "Podcast studio hire Sydney armchair setup at VV Studios",
 		width: 1885,
 		height: 1060,
-		caption: "Armchair Setup"
+		caption: "The Armchair Setup"
 	},
 	{
 		src: tableSetupImage,
 		alt: "Podcast studio table setup for hire at VV Studios Sydney",
 		width: 1885,
 		height: 1060,
-		caption: "Table Setup"
+		caption: "The Table Setup"
 	},
 	{
 		src: musicSetupImage,
 		alt: "Music production setup inside VV Studios podcast studio in Sydney",
 		width: 1920,
 		height: 1080,
-		caption: "Music Setup"
+		caption: "The Music Setup"
 	}
 ];
 
