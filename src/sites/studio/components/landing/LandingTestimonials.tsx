@@ -8,7 +8,6 @@ import { ContactActions } from "#studio/components/contact/ContactActions";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import type { PhotoGalleryImage } from "#studio/content/photos";
 import {
-	landingSectionContentGapClassName,
 	landingSectionHeadingClassName,
 	landingSectionIntroGapClassName,
 	marketingPageHorizontalPaddingClassName
@@ -122,7 +121,7 @@ export function LandingTestimonials() {
 					{testimonialCopy.title}
 				</h2>
 
-				<div className={cn("flex flex-col", landingSectionContentGapClassName, "w-full text-left")}>
+				<div className={cn("flex flex-col", "w-full text-left")}>
 					<div className="grid gap-4 md:grid-cols-2 md:items-stretch md:gap-6">
 						<ImageViewerTrigger
 							image={testimonialImage}
