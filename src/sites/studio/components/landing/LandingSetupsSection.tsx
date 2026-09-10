@@ -18,7 +18,7 @@ import {
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 
-const setupParallaxTravelPx = 100;
+const setupParallaxTravelPx = 90;
 
 const setupPanelTitleClassName = cn(
 	"font-brand text-2xl leading-none tracking-tight uppercase text-balance",
@@ -46,35 +46,33 @@ function SetupShowcasePanel({
 		[-setupParallaxTravelPx, setupParallaxTravelPx]
 	);
 	const shouldParallax = isDesktopViewport && prefersReducedMotion === false;
+	const parallaxWindowHeight = `calc(100cqw * ${image.height} / ${image.width} - ${2 * setupParallaxTravelPx}px)`;
 
 	return (
 		<motion.figure
 			ref={panelRef}
 			{...fadeInAnimation}
-			className={cn(
-				marketingPageHorizontalPaddingClassName,
-				"group relative w-full md:px-0 md:h-dvh"
-			)}>
+			className="@container group relative w-full px-4 md:px-0">
 			<div
-				className={cn(
-					"relative w-full overflow-hidden rounded-2xl",
-					"md:rounded-none md:absolute md:inset-0"
-				)}>
+				className="relative w-full overflow-hidden rounded-2xl md:rounded-none"
+				style={
+					shouldParallax
+						? { height: parallaxWindowHeight }
+						: { aspectRatio: `${image.width} / ${image.height}` }
+				}>
 				<motion.div
-					className={cn("md:absolute md:inset-x-0", shouldParallax ? undefined : "md:inset-y-0")}
-					style={
-						shouldParallax
-							? { y: imageY, top: -setupParallaxTravelPx, bottom: -setupParallaxTravelPx }
-							: undefined
-					}>
+					className={shouldParallax ? "absolute inset-x-0" : undefined}
+					style={shouldParallax ? { y: imageY, top: -setupParallaxTravelPx } : undefined}>
 					<Image
 						src={image.src}
 						alt={image.alt}
+						unstyled
 						layout="constrained"
 						width={image.width}
 						height={image.height}
+						sizes="100vw"
 						loading={loading}
-						className="block w-full md:h-full md:object-cover"
+						className="block h-auto w-full"
 					/>
 				</motion.div>
 				<div
@@ -84,7 +82,7 @@ function SetupShowcasePanel({
 				<div
 					className={cn(
 						"absolute inset-x-4 bottom-2 text-left",
-						"md:inset-x-0 md:bottom-28",
+						"md:inset-x-0 md:bottom-16",
 						"md:px-6 lg:px-12 xl:px-16 2xl:px-24"
 					)}>
 					<div className="flex flex-col items-start gap-4">
