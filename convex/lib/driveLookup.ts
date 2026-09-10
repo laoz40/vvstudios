@@ -12,8 +12,10 @@ export async function resolveDriveClientForBooking(
 ): Promise<Doc<"driveClients"> | null> {
 	if (driveSession?.driveClientId !== undefined) {
 		const sessionClient = await ctx.db.get(driveSession.driveClientId);
+
 		if (sessionClient !== null) return sessionClient;
 	}
+
 	return driveClientFromBooking;
 }
 
@@ -30,6 +32,7 @@ export async function loadSharedPackageFolder(
 	currentBookingId: Id<"bookings">
 ) {
 	const packageBookings = await loadPackageBookings(ctx, packageId);
+
 	const sharedFolders = await Promise.all(
 		packageBookings
 			.filter((packageBooking) => packageBooking._id !== currentBookingId)
@@ -38,15 +41,18 @@ export async function loadSharedPackageFolder(
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
 					.unique();
+
 				return driveSession?.packageFolder;
 			})
 	);
+
 	return sharedFolders.find((packageFolder) => packageFolder !== undefined);
 }
 
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
+
 		return okOrThrow(
 			Promise.all([
 				booking.driveClientId !== undefined
@@ -70,6 +76,7 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 							sharedPackageFolder: undefined
 						});
 					}
+
 					return okOrThrow(loadSharedPackageFolder(ctx, booking.packageId, booking._id)).map(
 						(sharedPackageFolder) => ({
 							booking,

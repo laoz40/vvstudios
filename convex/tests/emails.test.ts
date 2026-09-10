@@ -63,7 +63,9 @@ vi.mock("#convex/lib/googleDrive", () => ({
 vi.mock("#convex/lib/rateLimits", () => ({ rateLimiter: { limit: providerFakes.rateLimit } }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const adminIdentity = { publicMetadata: { role: "admin" } };
+
 const savedDeliverablesFolder = {
 	id: "deliverables-folder-id",
 	url: "https://drive.google.com/drive/folders/deliverables-folder-id"
@@ -91,6 +93,7 @@ describe("deliverables email", () => {
 		const missingResult = await missingBookingTest
 			.withIdentity(adminIdentity)
 			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId: missingBookingId });
+
 		const missingFolderResult = await missingFolderTest
 			.withIdentity(adminIdentity)
 			.action(api.deliverablesEmail.sendSessionDeliverablesEmail, { bookingId });
@@ -191,6 +194,7 @@ describe("feedback email", () => {
 
 		const blankResult = await blankTest.action(api.feedback.submit, { message: "   \n " });
 		providerFakes.rateLimit.mockResolvedValueOnce({ ok: false });
+
 		const rateLimitedResult = await rateLimitedTest.action(api.feedback.submit, {
 			message: "Useful feedback"
 		});
@@ -250,6 +254,7 @@ async function seedBookingWithDeliverablesFolder(t: TestClient, options: Booking
 			displayName: "Deliverables account (VV Studios)",
 			createdAt: now
 		});
+
 		await ctx.db.patch(bookingId, { driveClientId });
 		await ctx.db.insert("driveSessions", {
 			bookingId,
@@ -259,11 +264,13 @@ async function seedBookingWithDeliverablesFolder(t: TestClient, options: Booking
 			updatedAt: now
 		});
 	});
+
 	return bookingId;
 }
 
 async function seedThenDeleteBooking(t: TestClient): Promise<Id<"bookings">> {
 	const bookingId = await seedBooking(t);
 	await t.run((ctx) => ctx.db.delete(bookingId));
+
 	return bookingId;
 }

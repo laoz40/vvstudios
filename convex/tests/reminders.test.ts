@@ -46,8 +46,11 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 const now = Date.parse("2030-01-01T23:00:00.000Z");
+
 const tomorrowSessionStartAt = Date.parse("2030-01-03T00:00:00.000Z");
+
 const paymentDueAt = Date.parse("2030-01-03T13:00:00.000Z");
+
 const expiryAt = Date.parse("2030-01-19T13:00:00.000Z");
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -69,10 +72,12 @@ describe("daily reminder dispatch", () => {
 	test("sends all due booking, package payment, and package expiry reminders", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const paymentPackageId = await seedPackage(t, {
 			invoiceDueAt: paymentDueAt,
 			status: "pending_payment"
 		});
+
 		const expiryPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
 
 		await t.action(internal.sessionReminders.sendDueReminders, {});
@@ -140,6 +145,7 @@ describe("reminder claims and delivery results", () => {
 	test("allows only one concurrent or replayed send per reminder", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const packageId = await seedPackage(t, {
 			invoiceDueAt: paymentDueAt,
 			status: "pending_payment"
@@ -162,10 +168,12 @@ describe("reminder claims and delivery results", () => {
 	test("persists provider failures and allows a later retry", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const packageId = await seedPackage(t, {
 			invoiceDueAt: paymentDueAt,
 			status: "pending_payment"
 		});
+
 		providerFakes.sendBookingReminder
 			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
 			.mockResolvedValueOnce(ok(null));

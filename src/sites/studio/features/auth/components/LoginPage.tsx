@@ -53,6 +53,7 @@ function hasClerkInvitationTicket() {
 	const ticketInSearch = new URLSearchParams(window.location.search).has("__clerk_ticket");
 	const hash = window.location.hash;
 	const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
+
 	return ticketInSearch || new URLSearchParams(hashQuery).has("__clerk_ticket");
 }
 

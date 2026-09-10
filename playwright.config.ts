@@ -4,6 +4,7 @@ import { loadLocalEnvFilesFromModule } from "./scripts/load-env.ts";
 loadLocalEnvFilesFromModule(import.meta.url);
 
 const port = 3000;
+
 const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({

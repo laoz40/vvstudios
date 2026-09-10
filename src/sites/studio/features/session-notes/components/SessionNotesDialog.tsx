@@ -58,6 +58,7 @@ export function SessionNotesDialog({
 
 		if (error !== null) {
 			toast.error(saveErrorMessage);
+
 			return;
 		}
 

@@ -13,6 +13,7 @@ export function useCompleteBookingShortcut(isDateTimeIncomplete: boolean) {
 
 			if (!completeBookingButton) {
 				setHasReachedCompleteBooking(false);
+
 				return;
 			}
 

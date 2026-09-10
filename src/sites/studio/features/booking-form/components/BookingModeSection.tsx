@@ -44,6 +44,7 @@ export function BookingModeSection() {
 						value={field.state.value}
 						onValueChange={(value) => {
 							const bookingMode = BOOKING_MODES.find((mode) => mode === value);
+
 							if (!bookingMode) return;
 							field.handleChange(bookingMode);
 							field.handleBlur();

@@ -27,6 +27,7 @@ export function useSavedBookingInfo({
 
 		if (!nextSavedBookingInfo) {
 			removeStoredSavedBookingInfo();
+
 			return;
 		}
 
@@ -40,6 +41,7 @@ export function useSavedBookingInfo({
 				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
 				storeSavedBookingInfo(nextSavedBookingInfo);
 				setSavedBookingInfo(nextSavedBookingInfo);
+
 				return;
 			}
 

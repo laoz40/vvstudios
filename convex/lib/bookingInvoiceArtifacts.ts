@@ -28,6 +28,7 @@ export type MarkPackageInvoiceEmailAttemptArgs = {
 	invoiceNumber?: string;
 	failureCode?: string;
 };
+
 export type PackageInvoiceEmailAttemptError =
 	| { reason: "INVOICE_NUMBER_REQUIRED" }
 	| { reason: "INVOICE_FAILURE_CODE_REQUIRED" };
@@ -115,6 +116,7 @@ function resolveCustomInvoiceQuantity(
 function parseCustomPackageInvoice(invoiceInput: CustomPackageInvoiceInput) {
 	const { customInvoice, packageRecord } = invoiceInput;
 	const packageSize = customInvoice.packageSize ?? packageRecord.packageSize;
+
 	const parsedCustomInvoice = packageFormSchema.safeParse({
 		name: packageRecord.name,
 		phone: packageRecord.phone,
@@ -172,6 +174,7 @@ function createCustomInvoiceLineItems(
 		handcraftedClipsQuantity: customInvoiceData.handcraftedClipsQuantity || undefined,
 		packageSize
 	});
+
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
 
 	if (priceAdjustmentAmount !== 0) {
@@ -188,14 +191,17 @@ export function createCustomPackageInvoiceData(
 	return parseCustomPackageInvoice(invoiceInput).map(({ customInvoiceData, packageSize }) => {
 		// An omitted custom duration intentionally produces an add-ons-only invoice.
 		const customDuration = toCustomDuration(invoiceInput.customInvoice.duration);
+
 		const amounts = calculatePackageAmounts({
 			...customInvoiceData,
 			duration: customDuration,
 			includeDiscount: invoiceInput.customInvoice.includePackageDiscount !== false,
 			packageSize
 		});
+
 		const totalDueAmount =
 			invoiceInput.customInvoice.customTotalDueAmount ?? amounts.totalDueAmount;
+
 		const invoiceLineItems = createCustomInvoiceLineItems(
 			customInvoiceData,
 			customDuration,
@@ -203,6 +209,7 @@ export function createCustomPackageInvoiceData(
 			amounts,
 			totalDueAmount
 		);
+
 		const invoiceDueAt = invoiceInput.customInvoice.dueDate
 			? new Date(`${invoiceInput.customInvoice.dueDate}T00:00:00`).getTime()
 			: invoiceInput.packageRecord.invoiceDueAt;
@@ -339,6 +346,7 @@ export function createBookingInvoiceArtifactsForBooking(
 	}
 ) {
 	const customInvoice = options.customInvoice;
+
 	const parsedBooking = bookingSchema.safeParse(
 		getBookingInvoiceParseInput(booking, customInvoice)
 	);
@@ -402,6 +410,7 @@ export function createPackageAdjustmentInvoiceArtifacts(
 	{ reason: "INVALID_BOOKING_DATA" } | { reason: "INVOICE_EMAIL_RENDER_FAILED" }
 > {
 	const { adjustment, packageRecord } = invoiceInput;
+
 	const parsedPackage = packageFormSchema.safeParse({
 		name: packageRecord.name,
 		phone: packageRecord.phone,
@@ -438,6 +447,7 @@ export function createPackageAdjustmentInvoiceArtifacts(
 		rate: adjustment.rate,
 		totalAmount: adjustment.totalAmount
 	});
+
 	return renderBookingInvoiceEmail(data).map((emailHtml) => ({
 		artifacts: {
 			data,
@@ -486,6 +496,7 @@ export function createPackageInvoiceArtifacts(
 			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
 			singleSessionAmount: packageRecord.singleSessionAmount
 		});
+
 	const data = buildPackageInvoiceData({
 		bookingId: packageRecord._id,
 		name: packageFormData.name,
@@ -510,6 +521,7 @@ export function createPackageInvoiceArtifacts(
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes
 	});
+
 	return renderBookingInvoiceEmail(data).map((emailHtml) => ({
 		artifacts: {
 			data,

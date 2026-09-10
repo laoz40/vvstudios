@@ -73,8 +73,11 @@ vi.mock("#convex/lib/rateLimits", () => ({
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
 const targetSessionStartAt = Date.parse("2030-01-10T23:00:00.000Z");
+
 const target = { date: "2030-01-11", time: "10:00" };
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -112,12 +115,15 @@ describe("customer booking rescheduling", () => {
 						if (testCase.kind === "used") {
 							await ctx.db.patch(seeded.linkId, { status: "used", usedAt: now });
 						}
+
 						if (testCase.kind === "expired") {
 							await ctx.db.patch(seeded.linkId, { status: "expired" });
 						}
+
 						if (testCase.kind === "past-session") {
 							await ctx.db.patch(seeded.bookingId, { sessionStartAt: now - 1 });
 						}
+
 						if (testCase.kind === "unsupported-status") {
 							await ctx.db.patch(seeded.bookingId, { status: "cancelled" });
 						}
@@ -128,6 +134,7 @@ describe("customer booking rescheduling", () => {
 					token,
 					now
 				});
+
 				expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
 			})
 		);
@@ -149,6 +156,7 @@ describe("customer booking rescheduling", () => {
 					token: seeded.token,
 					now
 				});
+
 				expect(result[0]).toBeNull();
 				expect(result[1]?.session._id).toBe(seeded.bookingId);
 			})
@@ -252,13 +260,17 @@ describe("customer booking rescheduling", () => {
 		const { bookingId, token } = await seedReschedulableSession(t);
 		let availabilityChecks = 0;
 		let releaseChecks: (() => void) | undefined;
+
 		const bothChecking = new Promise<void>((resolve) => {
 			releaseChecks = resolve;
 		});
+
 		providerFakes.listEvents.mockImplementation(async () => {
 			availabilityChecks += 1;
+
 			if (availabilityChecks === 2) releaseChecks?.();
 			await bothChecking;
+
 			return { data: { items: [] } };
 		});
 
@@ -266,6 +278,7 @@ describe("customer booking rescheduling", () => {
 			t.action(api.googleCalendar.rescheduleSession, { token, ...target }),
 			t.action(api.googleCalendar.rescheduleSession, { token, ...target })
 		]);
+
 		const links = await readLinks(t, bookingId);
 
 		expect(results.filter(([error]) => error === null)).toHaveLength(1);
@@ -286,6 +299,7 @@ async function seedReschedulableSession(t: TestClient) {
 			weekSchedule: Array.from({ length: 7 }, () => ({ startTime: "09:00", endTime: "17:00" })),
 			updatedAt: now
 		});
+
 		return await ctx.db.insert("bookings", {
 			name: "Test customer",
 			phone: "0400000000",
@@ -306,11 +320,13 @@ async function seedReschedulableSession(t: TestClient) {
 			reminderEmailFailureCode: "SEND_FAILED"
 		});
 	});
+
 	const linkResult = await t.mutation(internal.sessionReschedule.createActiveRescheduleLink, {
 		bookingId,
 		expiresAt: originalSessionStartAt,
 		now
 	});
+
 	if (linkResult[0] !== null) throw new Error("Failed to seed reschedule link");
 
 	return { bookingId, linkId: linkResult[1].linkId, token: linkResult[1].token };

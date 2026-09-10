@@ -112,6 +112,7 @@ export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: P
 	const changedFields = Object.keys(draft)
 		.filter(isPackageEditWarningField)
 		.filter((field) => didPackageEditFieldChange(packageRow, draft, field));
+
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
 	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;

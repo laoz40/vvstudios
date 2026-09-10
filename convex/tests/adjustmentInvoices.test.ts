@@ -46,7 +46,9 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
+
 const completedSessionStartAt = now - 2 * 60 * 60 * 1000;
+
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -104,9 +106,11 @@ describe("package adjustment closeout", () => {
 			remotePodcastBookingIds: [bookingId],
 			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
 		});
+
 		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			throw new Error("Expected an invoice-required adjustment");
 		}
+
 		expect(adjustment.invoiceNumber).not.toBe("pending");
 		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(1);
 	});
@@ -169,6 +173,7 @@ describe("package adjustment closeout", () => {
 			packageId: packageId,
 			expectedExpiresAt: now - 1
 		});
+
 		const scheduledJobs = await t.run((ctx) =>
 			ctx.db.system.query("_scheduled_functions").collect()
 		);
@@ -207,6 +212,7 @@ describe("package adjustment payment and download", () => {
 				api.packageAdjustments.markPackageAdjustmentPaymentStatus,
 				{ adjustmentId, paid: true }
 			);
+
 			const downloadResult = await admin.action(
 				api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf,
 				{ adjustmentId }
@@ -243,6 +249,7 @@ describe("package adjustment payment and download", () => {
 	test("rejects payment changes and downloads for a no-charge adjustment", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
+
 		const adjustmentId = await t.run((ctx) =>
 			ctx.db.insert("packageAdjustments", {
 				outcome: "no_charge",
@@ -255,6 +262,7 @@ describe("package adjustment payment and download", () => {
 				createdAt: now
 			})
 		);
+
 		const admin = t.withIdentity(adminIdentity);
 
 		expect(
@@ -333,6 +341,7 @@ describe("package adjustment invoice delivery", () => {
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
+
 		const staleResult = await t.mutation(
 			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent,
 			{ adjustmentId, claimedAt: firstClaimedAt }
@@ -357,6 +366,7 @@ describe("package adjustment invoice delivery", () => {
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
+
 		const staleResult = await t.mutation(
 			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed,
 			{ adjustmentId, claimedAt: firstClaimedAt }
@@ -376,7 +386,9 @@ describe("package adjustment invoice delivery", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
+
 		const invoiceInput = providerFakes.sendAdjustmentInvoice.mock.calls[0]?.[0];
+
 		if (!invoiceInput) {
 			throw new Error("Expected sendAdjustmentInvoice to be called");
 		}
@@ -396,16 +408,20 @@ describe("package adjustment invoice delivery", () => {
 		const firstResult = await t
 			.withIdentity(adminIdentity)
 			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
+
 		const failedAdjustment = await readAdjustment(t, adjustmentId);
+
 		const retryResult = await t
 			.withIdentity(adminIdentity)
 			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
 
 		expect(firstResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" }, null]);
 		expect(failedAdjustment).toMatchObject({ invoiceEmailStatus: "failed" });
+
 		if (!failedAdjustment || failedAdjustment.outcome !== "invoice_required") {
 			throw new Error("Expected an invoice-required adjustment");
 		}
+
 		expect(failedAdjustment.invoiceEmailClaimedAt).toBeUndefined();
 		expect(retryResult).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });
@@ -482,6 +498,7 @@ async function seedInvoiceAdjustment(
 	invoiceDueAt = now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS
 ) {
 	const packageId = await seedPaidPackage(t);
+
 	const adjustmentId = await t.run((ctx) =>
 		ctx.db.insert("packageAdjustments", {
 			outcome: "invoice_required",
@@ -498,6 +515,7 @@ async function seedInvoiceAdjustment(
 			paymentStatus: "unpaid"
 		})
 	);
+
 	return { adjustmentId, packageId };
 }
 

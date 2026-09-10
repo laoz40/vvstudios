@@ -11,16 +11,23 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from "#/components/ui/she
 import { cn } from "#/lib/utils";
 
 const BRAND_LABEL = "VV STUDIOS";
+
 const HOME_ARIA_LABEL = "VV Studios home";
+
 const PRIMARY_NAV_ARIA_LABEL = "Primary navigation";
 
 const MOBILE_NAV_ARIA_LABEL = "Navigation Menu";
+
 const OPEN_NAV_ARIA_LABEL = "Open navigation menu";
+
 const CLOSE_NAV_ARIA_LABEL = "Close navigation menu";
+
 const OPEN_MENU_SR_TEXT = "Open menu";
+
 const CLOSE_MENU_SR_TEXT = "Close menu";
 
 const BOOK_LINK = { href: studioSite.routes.book, label: "Book session" } as const;
+
 const BACK_HOME_LINK = { href: studioSite.routes.home, label: "Back to home" } as const;
 
 const CONTACT_FAQ_HASH = "contact-faq-title";
@@ -33,6 +40,7 @@ const DESKTOP_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.contact, hash: CONTACT_FAQ_HASH, label: "FAQ" },
 	{ href: studioSite.routes.contact, label: "Contact" }
 ] as const;
+
 const MOBILE_LINKS: readonly NavLinkItem[] = [
 	{ href: studioSite.routes.home, label: "Home" },
 	{ href: studioSite.routes.gallery, label: "Gallery" },

@@ -36,6 +36,7 @@ import { getRescheduleUpdateToastMessage } from "#studio/features/booking-form/l
 export const Route = createFileRoute("/_public/_convex/reschedule/$token")({
 	validateSearch: (search) => {
 		const parsedSearch = rescheduleSearchSchema.safeParse(search);
+
 		return parsedSearch.success ? parsedSearch.data : {};
 	},
 	head: () => buildNoIndexHead("Reschedule Booking | VV Studios"),
@@ -51,6 +52,7 @@ function ReschedulePage() {
 
 	// Convex reads and actions
 	const rescheduleSession = useAction(api.googleCalendar.rescheduleSession);
+
 	const liveRescheduleBooking = useQuery(
 		api.sessionReschedule.getRescheduleSessionByToken,
 		activeDevScenario ? "skip" : { token }
@@ -60,7 +62,9 @@ function ReschedulePage() {
 	const getRescheduleBooking = activeDevScenario
 		? buildDevRescheduleBooking(activeDevScenario)
 		: liveRescheduleBooking;
+
 	const bookingDuration = getRescheduleBooking?.[1]?.session.duration ?? "";
+
 	const {
 		availability,
 		hasCompleteSelection,
@@ -115,6 +119,7 @@ function ReschedulePage() {
 	}
 
 	const booking = data.session;
+
 	async function navigateToRescheduleComplete(bookingId: string): Promise<void> {
 		await navigate({
 			to: studioSite.routes.rescheduleComplete,
@@ -126,6 +131,7 @@ function ReschedulePage() {
 	function handleRequestUpdateBooking(): void {
 		if (!selectedDateValue || !selectedTime) {
 			toast.error("Please choose a new date and time first.");
+
 			return;
 		}
 
@@ -153,11 +159,13 @@ function ReschedulePage() {
 
 				if (devUpdateError !== null) {
 					toast.error(getRescheduleUpdateToastMessage(devUpdateError));
+
 					return;
 				}
 
 				closeBookingModal();
 				await navigateToRescheduleComplete(devUpdate.bookingId);
+
 				return;
 			}
 
@@ -167,6 +175,7 @@ function ReschedulePage() {
 
 			if (rescheduleError !== null) {
 				toast.error(getRescheduleUpdateToastMessage(rescheduleError));
+
 				return;
 			}
 
@@ -189,6 +198,7 @@ function ReschedulePage() {
 			</BookingStatusLayout>
 		);
 	}
+
 	return (
 		<BookingStatusLayout
 			showActions={false}

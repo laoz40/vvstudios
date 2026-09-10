@@ -12,6 +12,7 @@ import { fromConvexTuple } from "#convex/lib/result";
 import type { SaveClientSessionRescheduleArgs } from "#convex/services/sessionScheduling";
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };
+
 export type ValidRescheduleDetails = {
 	session: Doc<"bookings">;
 	link: Doc<"bookingRescheduleLinks">;
@@ -103,6 +104,7 @@ function releaseRescheduleLink(
 	).orElse((error) => {
 		// Cleanup failures must not replace the workflow's original error.
 		console.error("Reschedule link unlock failed", { linkId, error });
+
 		return okAsync(null);
 	});
 }
@@ -120,6 +122,7 @@ function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
 				bookingId: state.session._id,
 				error
 			});
+
 			return okAsync(null);
 		})
 		.andThen(() => releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
@@ -173,6 +176,7 @@ export function saveRescheduledSession(
 	if (state.timingUpdate.googleCalendarId) {
 		saveArgs.googleCalendarId = state.timingUpdate.googleCalendarId;
 	}
+
 	if (state.timingUpdate.googleEventId) {
 		saveArgs.googleEventId = state.timingUpdate.googleEventId;
 	}

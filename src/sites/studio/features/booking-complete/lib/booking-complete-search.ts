@@ -22,7 +22,9 @@ export type BookingCompleteSearch = {
 };
 
 const devBookingScenarioSchema = z.enum(DEV_BOOKING_SCENARIO_VALUES);
+
 const nonEmptySearchStringSchema = z.string().min(1);
+
 const packageSizeSchema = z.union([z.literal(4), z.literal(8), z.literal(12)]);
 
 export const bookingCompleteSearchSchema = z.object({

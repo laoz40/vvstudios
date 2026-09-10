@@ -23,6 +23,7 @@ type RescheduleUpdateToastError =
 
 function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 			return {
@@ -76,6 +77,7 @@ export function resolveRescheduleBusyWindowsLoadError(
 	error: RescheduleBusyWindowsLoadError
 ): RescheduleBusyWindowsLoadOutcome {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 		case "RESCHEDULE_LINK_USED":
@@ -96,6 +98,7 @@ export function resolveRescheduleBusyWindowsLoadError(
 
 export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError): string {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":

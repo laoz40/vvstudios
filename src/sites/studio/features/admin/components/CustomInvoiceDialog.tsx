@@ -39,7 +39,9 @@ import {
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 type SessionRecord = Doc<"bookings">;
+
 type CustomInvoiceRecord = Doc<"customInvoices">;
+
 type CreateCustomInvoiceResult = FunctionReturnType<typeof api.customInvoices.createCustomInvoice>;
 
 export type CustomInvoiceDialogProps = {
@@ -62,6 +64,7 @@ function showCreateCustomInvoiceError(
 		INVALID_CUSTOM_TOTAL_DUE_AMOUNT: "Enter a valid custom invoice price.",
 		UNEXPECTED_ERROR: "Something went wrong with creating the custom invoice."
 	};
+
 	toast.error(messages[error.reason]);
 }
 
@@ -70,6 +73,7 @@ function showInvoiceDownloadError(
 ) {
 	if (error.reason === "INVALID_INVOICE_INPUT") {
 		toast.error(error.message);
+
 		return;
 	}
 
@@ -78,11 +82,14 @@ function showInvoiceDownloadError(
 
 export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoiceDialogProps) {
 	const createCustomInvoice = useMutation(api.customInvoices.createCustomInvoice);
+
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForBooking, {
 		bookingId: session._id
 	});
+
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const customInvoices: CustomInvoiceRecord[] | undefined = customInvoicesResult?.[1] ?? undefined;
+
 	const [draft, setDraft] = useState<CustomInvoiceDraft>({
 		service: "",
 		duration: "",
@@ -95,10 +102,12 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		includeDepositLineItem: false,
 		customTotalDueAmount: ""
 	});
+
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 	const hasCompleteSessionSelection = Boolean(draft.service) && draft.duration !== "";
 	const hasPartialSessionSelection = Boolean(draft.service) !== (draft.duration !== "");
+
 	const hasInvoiceSelection =
 		hasCompleteSessionSelection ||
 		draft.addons.length > 0 ||
@@ -148,8 +157,10 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 	}) {
 		if (!bookingSettings) {
 			toast.error("Booking settings are still loading.");
+
 			return;
 		}
+
 		setDownloadingInvoiceId(input._id);
 
 		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
@@ -177,6 +188,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		if (error !== null) {
 			showInvoiceDownloadError(error);
 			setDownloadingInvoiceId(null);
+
 			return;
 		}
 
@@ -191,6 +203,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 
 		if (!bookingSettings) {
 			toast.error("Booking settings are still loading.");
+
 			return;
 		}
 
@@ -198,6 +211,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 
 		if (generationData.status === "invalidTotal") {
 			toast.error("Enter a valid custom invoice price.");
+
 			return;
 		}
 
@@ -208,6 +222,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		if (error !== null) {
 			showCreateCustomInvoiceError(error);
 			setIsGenerating(false);
+
 			return;
 		}
 
@@ -224,6 +239,7 @@ export function CustomInvoiceDialog({ open, session, onOpenChange }: CustomInvoi
 		if (downloadError !== null) {
 			showInvoiceDownloadError(downloadError);
 			setIsGenerating(false);
+
 			return;
 		}
 

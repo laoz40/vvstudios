@@ -41,6 +41,7 @@ export function EditorDeliverablesActions({
 
 		if (error !== null) {
 			toast.error("Unable to update this session's deliverables status.");
+
 			return;
 		}
 

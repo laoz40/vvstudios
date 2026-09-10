@@ -78,4 +78,5 @@ const HashtagIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 HashtagIcon.displayName = "HashtagIcon";
+
 export default HashtagIcon;

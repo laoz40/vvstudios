@@ -11,6 +11,7 @@ type PackageUnscheduleConfirmationState = Extract<
 	BookingModalState,
 	{ modal: "packageUnscheduleConfirmation" }
 >;
+
 type RescheduleConfirmationState = Extract<BookingModalState, { modal: "rescheduleConfirmation" }>;
 
 interface PackageUnscheduleConfirmationProps {

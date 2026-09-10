@@ -7,6 +7,7 @@ import type {
 } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type { BookingService };
+
 export type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
 export type BookingInvoiceBuilderInput = {

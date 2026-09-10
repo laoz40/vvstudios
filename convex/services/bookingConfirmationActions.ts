@@ -97,6 +97,7 @@ export async function sendSessionReminderEmailService(
 	args: { bookingId: Id<"bookings"> }
 ): Promise<Result<null, never>> {
 	const now = Date.now();
+
 	return await fromConvexTuple(
 		ctx.runMutation(internal.sessionReminders.claimReminder, { bookingId: args.bookingId, now })
 	)
@@ -167,6 +168,7 @@ async function completeClaimedSession(
 	settings: SessionAvailabilitySettings
 ) {
 	const calendarClient = getGoogleCalendarClient();
+
 	const canBeScheduled = await verifySessionCanBeScheduled({
 		session,
 		calendar: calendarClient.calendar,
@@ -204,6 +206,7 @@ async function completeClaimedSession(
 	}
 
 	const reservation = reservationResult.reservation;
+
 	const payloadResult = buildSessionCalendarEventPayload({
 		date: session.date,
 		time: session.time,
@@ -227,12 +230,14 @@ async function completeClaimedSession(
 	}
 
 	let googleEventId: string | undefined;
+
 	try {
 		const createdEvent = await calendarClient.calendar.events.insert({
 			calendarId: calendarClient.calendarId,
 			sendUpdates: "all",
 			requestBody: payloadResult.value
 		});
+
 		googleEventId = createdEvent.data.id ?? undefined;
 	} catch {
 		return await failBookingConfirmation(
@@ -256,5 +261,6 @@ async function completeClaimedSession(
 	}
 
 	await sendConfirmedBookingInvoice(ctx, session, settings);
+
 	return ok({ outcome: "completed" as const });
 }

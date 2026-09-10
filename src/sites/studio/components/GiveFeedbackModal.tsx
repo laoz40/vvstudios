@@ -44,6 +44,7 @@ export function GiveFeedbackModal() {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "INVALID_MESSAGE":
 					toast.error("Please enter some feedback before submitting.");
@@ -65,6 +66,7 @@ export function GiveFeedbackModal() {
 			}
 
 			setIsSubmitting(false);
+
 			return;
 		}
 

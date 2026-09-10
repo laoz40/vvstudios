@@ -11,6 +11,7 @@ export type DevRescheduleCompleteScenario =
 	(typeof DEV_RESCHEDULE_COMPLETE_SCENARIO_VALUES)[number];
 
 const devRescheduleCompleteScenarioSchema = z.enum(DEV_RESCHEDULE_COMPLETE_SCENARIO_VALUES);
+
 const nonEmptySearchStringSchema = z.string().min(1);
 
 export const rescheduleCompleteSearchSchema = z.object({

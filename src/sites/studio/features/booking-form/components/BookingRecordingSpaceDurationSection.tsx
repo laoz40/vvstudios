@@ -63,10 +63,12 @@ const durationOptions: DurationOption[] = [
 export function BookingRecordingSpaceDurationSection() {
 	const formApi = useBookingFormContext();
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
+
 	const isPackageBooking = useSelector(
 		formApi.store,
 		(state) => state.values.bookingMode === "package"
 	);
+
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	return (

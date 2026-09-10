@@ -39,6 +39,7 @@ export function useRescheduleBusyWindows({
 	token
 }: UseRescheduleBusyWindowsOptions): RescheduleBusyWindowsState {
 	const queryClient = useQueryClient();
+
 	const fetchRescheduleBusyWindows = useAction(
 		api.googleCalendar.getRescheduleBookableRangeBusyWindows
 	);
@@ -72,12 +73,15 @@ export function useRescheduleBusyWindows({
 	useEffect(() => {
 		if (!activeDevScenario) {
 			setDevAvailabilityError("");
+
 			return;
 		}
 
 		const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
+
 		if (devAvailabilityStatus.kind !== "availabilityError") {
 			setDevAvailabilityError("");
+
 			return;
 		}
 
@@ -95,6 +99,7 @@ export function useRescheduleBusyWindows({
 
 	const invalidLinkMessage =
 		fetchErrorOutcome?.kind === "invalidLink" ? fetchErrorOutcome.content : null;
+
 	const fetchAvailabilityError =
 		fetchErrorOutcome?.kind === "availabilityError" ? fetchErrorOutcome.message : "";
 

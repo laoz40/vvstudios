@@ -69,6 +69,7 @@ export function updatePackageCalendarEvent(
 			if (googleCalendarId) {
 				patch.googleCalendarId = googleCalendarId;
 			}
+
 			if (googleEventId) {
 				patch.googleEventId = googleEventId;
 			}
@@ -107,6 +108,7 @@ export function createPackageCalendarEvent(
 			if (result.googleCalendarId) {
 				patch.googleCalendarId = result.googleCalendarId;
 			}
+
 			if (result.googleEventId) {
 				patch.googleEventId = result.googleEventId;
 			}
@@ -119,6 +121,7 @@ export function getPackageCalendarSyncErrorReason(
 	reason: string
 ): PackageCalendarSyncError["reason"] {
 	if (reason === "GOOGLE_CALENDAR_AUTH_FAILED") return "GOOGLE_CALENDAR_AUTH_FAILED";
+
 	if (reason === "GOOGLE_CALENDAR_RATE_LIMITED") return "GOOGLE_CALENDAR_RATE_LIMITED";
 
 	return "GOOGLE_CALENDAR_SYNC_FAILED";

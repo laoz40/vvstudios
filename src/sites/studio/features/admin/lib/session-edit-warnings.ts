@@ -2,6 +2,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 
 type SessionRecord = Doc<"bookings">;
+
 type SessionEditWarningField = keyof SessionEditDraft;
 
 const googleEventFields: readonly SessionEditWarningField[] = [
@@ -109,6 +110,7 @@ export function getSessionEditWarningState(session: SessionRecord, draft: Sessio
 	const changedFields = Object.keys(draft)
 		.filter(isSessionEditWarningField)
 		.filter((field) => didSessionEditFieldChange(session, draft, field));
+
 	const googleEventFieldLabels = getChangedFieldLabels(changedFields, googleEventFields);
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 	const driveIdentityFieldLabels = getChangedFieldLabels(changedFields, driveIdentityFields);

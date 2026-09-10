@@ -47,6 +47,7 @@ export function calculateBookingInvoiceAmounts({
 }: CalculateBookingInvoiceAmountsInput): BookingInvoiceMoneyAmounts {
 	const baseAmount =
 		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
+
 	const addonQuantities = pickBookingAddonQuantities(quantityValues);
 	const addonsAmount = sumMoney(addons.map((addon) => getAddonAmount(addon, addonQuantities)));
 	const subtotalAmount = baseAmount + addonsAmount;

@@ -90,6 +90,7 @@ export function SavedFolderLinks({
 	const assetsFolder = folders.find((folder) => folder.name === "Assets");
 	const packageFolder = folders.find((folder) => folder.name === "Package");
 	const sessionFolder = folders.find((folder) => folder.name === "Session");
+
 	const sessionChildFolders = folders.filter(
 		(folder) => folder.name !== "Session" && folder.name !== "Assets" && folder.name !== "Package"
 	);
@@ -143,6 +144,7 @@ export function SavedFolderLinks({
 								rawMediaFolderName,
 								deliverablesFolderName
 							});
+
 							return (
 								<FolderLink
 									key={folder.name}

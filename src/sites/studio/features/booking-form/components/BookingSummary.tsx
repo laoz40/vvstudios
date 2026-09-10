@@ -83,17 +83,22 @@ export function BookingSummary() {
 	const isPackageBooking = values.bookingMode === "package";
 	const durationCost = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const total = getBookingTotal(values);
+
 	const packageAmounts =
 		isPackageBooking && isPackageSize(values.packageSize)
 			? calculatePackageAmounts({ ...values, packageSize: values.packageSize })
 			: null;
+
 	const isWaitingForPackage = isPackageBooking && !packageAmounts;
 	const sessionQuantity = packageAmounts?.packageSize ?? 1;
 	const durationLineTotal = durationCost * sessionQuantity;
+
 	const bookingLabel = isPackageBooking
 		? `${values.duration} Studio Session`
 		: [values.service, values.duration].filter(Boolean).join(" ");
+
 	const showBookingLine = isPackageBooking ? Boolean(values.duration) : Boolean(bookingLabel);
+
 	return (
 		<div className="space-y-2 text-sm leading-normal tabular-nums">
 			<Accordion

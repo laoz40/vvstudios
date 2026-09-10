@@ -68,6 +68,7 @@ function readAdminDashboardPreferences(): AdminDashboardPreferences {
 
 	try {
 		const parsedValue = adminDashboardPreferencesSchema.safeParse(JSON.parse(value));
+
 		return parsedValue.success ? parsedValue.data : {};
 	} catch {
 		return {};

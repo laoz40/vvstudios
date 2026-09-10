@@ -18,6 +18,7 @@ const asyncIterableSchema = z.custom<AsyncIterable<unknown>>((value) => {
 	}
 
 	const iteratorCandidate = value[Symbol.asyncIterator];
+
 	return z.function().safeParse(iteratorCandidate).success;
 });
 
@@ -49,6 +50,7 @@ async function readStream(stream: AsyncIterable<unknown>) {
 
 	const output = new Uint8Array(totalLength);
 	let offset = 0;
+
 	for (const chunk of chunks) {
 		output.set(chunk, offset);
 		offset += chunk.byteLength;

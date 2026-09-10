@@ -26,6 +26,7 @@ export function validateBookingInvoiceDownload(booking: Doc<"bookings">, now: nu
 
 	const invoiceCreatedAt =
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt;
+
 	if (!invoiceCreatedAt || now - invoiceCreatedAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
 		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" as const });
 	}

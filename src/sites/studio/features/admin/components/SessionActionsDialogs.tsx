@@ -230,6 +230,7 @@ export function SessionActionsDialogs({
 				}}
 				onOpenChange={(nextOpen) => {
 					editAction.setIsEditConfirmationDialogOpen(nextOpen);
+
 					if (!nextOpen) {
 						editAction.closeEditConfirmationDialog();
 					}

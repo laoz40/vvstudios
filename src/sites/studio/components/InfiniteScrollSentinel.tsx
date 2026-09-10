@@ -32,6 +32,7 @@ export function InfiniteScrollSentinel({
 		);
 
 		observer.observe(element);
+
 		return () => observer.disconnect();
 	}, [canLoadMore, isLoadingMore, onLoadMore]);
 

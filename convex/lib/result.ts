@@ -21,6 +21,7 @@ type ConvexSuccess<R> = R extends readonly [infer Error, infer Success]
 		? Success
 		: never
 	: never;
+
 type ConvexError<R> = R extends readonly [infer Error, unknown]
 	? Error extends { reason: string }
 		? Error

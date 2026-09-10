@@ -34,6 +34,7 @@ function formatCalendarDate(value: string) {
 
 export function formatBookingInvoiceNumber(invoiceId: string, invoiceDate: number) {
 	const datePart = format(invoiceDate, "yyyyMMdd");
+
 	const suffix = invoiceId
 		.replace(/[^a-zA-Z0-9]/g, "")
 		.toUpperCase()
@@ -90,6 +91,7 @@ export function createPackageInvoiceLineItemSnapshot(
 	} & BookingAddonQuantities
 ): BookingInvoiceLineItem[] {
 	const addonQuantities = pickBookingAddonQuantities(input);
+
 	const addonLineItems = input.addons.map((addon) => {
 		const quantityPerSession = getAddonQuantity(addon, addonQuantities);
 		const totalQuantity = input.packageSize * quantityPerSession;
@@ -144,20 +146,25 @@ export function buildBookingInvoiceData(input: BookingInvoiceBuilderInput): Book
 		includeBaseAmount: Boolean(input.service),
 		includeDepositLineItem: input.includeDepositLineItem !== false
 	});
+
 	const customTotalDueAmount = input.customTotalDueAmount;
+
 	const manualPriceAdjustmentAmount =
 		customTotalDueAmount === undefined ? 0 : customTotalDueAmount - computedAmounts.totalDueAmount;
+
 	const amounts = {
 		...computedAmounts,
 		subtotalAmount: computedAmounts.subtotalAmount + manualPriceAdjustmentAmount,
 		totalDueAmount: customTotalDueAmount ?? computedAmounts.totalDueAmount
 	};
+
 	const bookingDateLabel = formatCalendarDate(input.date);
 	const dueDate = input.dueDate ?? input.date;
 	const invoiceDate = input.createdAt ?? Date.now();
 	const invoiceDateLabel = format(invoiceDate, "d MMMM yyyy");
 	const dueDateLabel = formatCalendarDate(dueDate);
 	const addonQuantities = pickBookingAddonQuantities(input);
+
 	const addonsSummary =
 		input.addons.length > 0
 			? input.addons
@@ -381,6 +388,7 @@ export function buildPackageInvoiceData(
 	const invoiceDateLabel = format(input.createdAt, "d MMMM yyyy");
 	const dueDate = format(input.invoiceDueAt, "yyyy-MM-dd");
 	const dueDateLabel = format(input.invoiceDueAt, "d MMMM yyyy");
+
 	const addonsSummary =
 		input.addons.length > 0
 			? input.addons
@@ -393,6 +401,7 @@ export function buildPackageInvoiceData(
 					})
 					.join(", ")
 			: "No add-ons selected";
+
 	const packageLineItems = input.invoiceLineItems;
 
 	const noticeWindowLabel = formatNoticeWindowLabel(input.leadTimeMinutes);

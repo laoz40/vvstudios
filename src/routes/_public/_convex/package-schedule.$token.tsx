@@ -28,6 +28,7 @@ function PackageSchedulePage() {
 
 	if (packageError !== null) {
 		const invalidMessage = getPackageLinkInvalidMessage(packageError);
+
 		return (
 			<BookingStatusLayout bookingStatus="failed">
 				<div>

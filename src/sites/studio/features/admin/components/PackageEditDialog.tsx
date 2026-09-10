@@ -78,6 +78,7 @@ function parseDateTimeLocalValue(value: string) {
 	}
 
 	const timestamp = new Date(value).getTime();
+
 	return Number.isFinite(timestamp) ? timestamp : undefined;
 }
 
@@ -109,6 +110,7 @@ export function PackageEditDialog({
 	onSave
 }: PackageEditDialogProps) {
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
+
 	const defaultTotalDueAmount = calculatePackageAmounts({
 		addons: draft.addons,
 		duration: draft.duration,

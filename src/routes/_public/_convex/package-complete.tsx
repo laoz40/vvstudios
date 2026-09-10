@@ -6,6 +6,7 @@ import { buildNoIndexHead } from "#/lib/seo";
 export const Route = createFileRoute("/_public/_convex/package-complete")({
 	validateSearch: (search) => {
 		const parsedSearch = bookingCompleteSearchSchema.safeParse(search);
+
 		return parsedSearch.success ? parsedSearch.data : {};
 	},
 	head: () => buildNoIndexHead("Package Complete | VV Studios"),

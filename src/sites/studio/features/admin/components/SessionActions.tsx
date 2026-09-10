@@ -33,6 +33,7 @@ export function SessionActions({
 	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
+
 	const details: SessionActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
 		customerSessionId:

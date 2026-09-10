@@ -38,6 +38,7 @@ import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 type SendInvoiceEmail = typeof import("#convex/lib/email").sendPackageInvoiceEmail;
+
 type SendScheduleEmail = typeof import("#convex/lib/email").sendPackageScheduleEmail;
 
 const providerFakes = vi.hoisted(() => ({
@@ -58,6 +59,7 @@ vi.mock("#convex/lib/email", () => ({
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
 const validRequest = {
@@ -104,11 +106,14 @@ describe("package payment confirmation", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.action(api.packagePayment.confirmPackagePayment, { packageId });
+
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
 		const emailCall = providerFakes.sendScheduleEmail.mock.calls[0];
+
 		if (!emailCall) {
 			throw new Error("Expected sendScheduleEmail to be called");
 		}
+
 		const emailArgs = emailCall[0];
 		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
 
@@ -144,9 +149,11 @@ describe("package payment confirmation", () => {
 
 		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
 		const firstState = await readLifecycleState(t, packageId);
+
 		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			packageId
 		});
+
 		const secondState = await readLifecycleState(t, packageId);
 
 		expect(firstResult).toEqual([null, null]);
@@ -165,6 +172,7 @@ describe("package payment confirmation", () => {
 			admin.action(api.packagePayment.confirmPackagePayment, { packageId }),
 			admin.action(api.packagePayment.confirmPackagePayment, { packageId })
 		]);
+
 		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
 
 		expect(results).toContainEqual([null, null]);
@@ -185,14 +193,19 @@ describe("package payment confirmation", () => {
 		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
 			packageId
 		});
+
 		const failedState = await readLifecycleState(t, packageId);
+
 		const firstToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl
 		);
+
 		const retryResult = await admin.action(api.packagePayment.retryPackageSchedulingEmail, {
 			packageId
 		});
+
 		const recoveredState = await readLifecycleState(t, packageId);
+
 		const retryToken = getScheduleToken(
 			providerFakes.sendScheduleEmail.mock.calls[1]?.[0]?.scheduleUrl
 		);
@@ -375,7 +388,9 @@ describe("admin package management", () => {
 			packageId: packageId,
 			...editedPackage
 		});
+
 		const calculatedPackage = await readPackage(t, packageId);
+
 		if (!calculatedPackage?.invoiceLineItems) throw new Error("Expected package invoice snapshot");
 
 		expect(calculatedResult).toEqual([null, null]);
@@ -398,6 +413,7 @@ describe("admin package management", () => {
 			...editedPackage,
 			totalDueAmount: 2000
 		});
+
 		const customPackage = await readPackage(t, packageId);
 
 		expect(customResult).toEqual([null, null]);

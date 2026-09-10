@@ -27,6 +27,7 @@ export function scrollToFirstBookingFormError(formRef: BookingFormRef) {
 			const fieldContainer = formRef.current?.querySelector<HTMLElement>(
 				`[data-field-name="${fieldName}"]`
 			);
+
 			const fieldError = fieldContainer?.querySelector<HTMLElement>('[data-slot="field-error"]');
 
 			if (fieldContainer && fieldError) {
@@ -34,6 +35,7 @@ export function scrollToFirstBookingFormError(formRef: BookingFormRef) {
 					behavior: prefersReducedMotion ? "auto" : "smooth",
 					block: "center"
 				});
+
 				return;
 			}
 		}

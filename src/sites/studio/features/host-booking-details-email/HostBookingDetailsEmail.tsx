@@ -147,6 +147,7 @@ export function HostBookingDetailsEmail({
 	if (selectedQuote === undefined) {
 		throw new Error("Expected booking quote");
 	}
+
 	const emailCopy = getHostBookingEmailCopy(name, bookingDetails);
 
 	return (

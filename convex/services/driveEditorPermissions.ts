@@ -49,6 +49,7 @@ export function runEditorDriveAccessUpdateService(
 						access,
 						previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
 					});
+
 		// A removal failure is recorded for manual retry; it never blocks the replacement editor's setup.
 		return removal
 			.orElse((error) =>
@@ -71,6 +72,7 @@ export function retryPreviousEditorRemovalService(
 			if (removal === null) {
 				return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
 			}
+
 			return removeFailedEditorDriveAccess(ctx, removal);
 		})
 	);

@@ -29,5 +29,6 @@ export function getPackageSchedulingProgressMessage(
 	}
 
 	const sessionLabel = sessionsRemaining === 1 ? "session" : "sessions";
+
 	return `Schedule ${sessionsRemaining} more ${sessionLabel} to complete your booking.`;
 }

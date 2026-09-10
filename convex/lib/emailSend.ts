@@ -82,6 +82,7 @@ export function sendEmail(args: {
 		content: Buffer.from(attachment.content).toString("base64"),
 		contentType: attachment.contentType
 	}));
+
 	const headers: ResendEmailHeaders = {
 		Authorization: `Bearer ${env.RESEND_API_KEY}`,
 		"Content-Type": "application/json"
@@ -122,6 +123,7 @@ export function sendEmail(args: {
 				subject: args.subject,
 				attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
 			});
+
 			return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
 		});
 	});

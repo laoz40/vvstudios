@@ -22,6 +22,7 @@ type RescheduleCompleteBooking = Omit<
 	NonNullable<GetPublicRescheduleCompleteSessionResult[1]>,
 	"_id"
 > & { _id: string };
+
 type RescheduleCompletePageResult = Result<
 	RescheduleCompleteBooking,
 	NonNullable<GetPublicRescheduleCompleteSessionResult[0]>
@@ -30,6 +31,7 @@ type RescheduleCompletePageResult = Result<
 export const Route = createFileRoute("/_public/_convex/reschedule-complete")({
 	validateSearch: (search) => {
 		const parsedSearch = rescheduleCompleteSearchSchema.safeParse(search);
+
 		return parsedSearch.success ? parsedSearch.data : {};
 	},
 	head: () => buildNoIndexHead("Reschedule Complete | VV Studios"),
@@ -39,10 +41,12 @@ export const Route = createFileRoute("/_public/_convex/reschedule-complete")({
 function RescheduleCompletePage() {
 	const { booking_id: bookingId, dev_scenario: devScenario } = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
+
 	const liveBookingResult: GetPublicRescheduleCompleteSessionResult | undefined = useQuery(
 		api.sessions.getPublicRescheduleCompleteSession,
 		bookingId && !activeDevScenario ? { bookingId } : "skip"
 	);
+
 	const bookingResult = activeDevScenario
 		? buildDevRescheduleCompleteBookingResult(activeDevScenario)
 		: liveBookingResult;

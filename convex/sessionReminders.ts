@@ -52,6 +52,7 @@ export const sendDueReminders = internalAction({
 		await sendDuePackageReminders(ctx, nowDate);
 
 		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
+
 		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
 			dayEnd,
 			dayStart,

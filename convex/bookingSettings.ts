@@ -11,6 +11,7 @@ export const get = query({
 			.query("bookingSettings")
 			.withIndex("by_key", (q) => q.eq("key", "main"))
 			.unique();
+
 		return settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	}
 });

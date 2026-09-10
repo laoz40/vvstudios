@@ -20,6 +20,7 @@ export function usePaymentActions(session: SessionRecord) {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -38,6 +39,7 @@ export function usePaymentActions(session: SessionRecord) {
 			}
 
 			setIsUpdatingPaidRemainingBalance(false);
+
 			return;
 		}
 

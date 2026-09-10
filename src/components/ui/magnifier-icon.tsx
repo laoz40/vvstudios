@@ -61,4 +61,5 @@ const MagnifierIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 MagnifierIcon.displayName = "MagnifierIcon";
+
 export default MagnifierIcon;

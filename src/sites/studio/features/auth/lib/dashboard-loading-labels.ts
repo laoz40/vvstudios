@@ -23,6 +23,7 @@ export function getDashboardLoadingLabel(
 			return "Preparing your account";
 		case "loading-data":
 			if (dashboardRole === "admin") return "Decrypting classified files";
+
 			return "Loading assigned sessions";
 		default:
 			return exhaustiveCheck(stage);

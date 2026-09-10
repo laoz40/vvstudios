@@ -89,6 +89,7 @@ function promoteFailedSessionFromAdmin({
 			),
 			(error) => {
 				const parsedError = calendarErrorSchema.safeParse(error);
+
 				return {
 					reason: parsedError.success
 						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
@@ -130,6 +131,7 @@ function promoteFailedSessionFromAdmin({
 					const shouldRemoveOrphanedEvent =
 						saveError.reason === "BOOKING_TIME_UNAVAILABLE" ||
 						saveError.reason === "BOOKING_NOT_FOUND";
+
 					if (!shouldRemoveOrphanedEvent || googleEventId === undefined) {
 						return err(saveError);
 					}
@@ -286,6 +288,7 @@ export function updateSessionFromAdminWithGoogleCalendar({
 
 				// Pass the reservation through so the save can prove it owns the time.
 				const reservation = reservationResult.reservation;
+
 				return applyAdminSessionUpdate({
 					args,
 					session,

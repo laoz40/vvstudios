@@ -10,6 +10,7 @@ export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {
 	const isUnconfirmedBooking = booking.status === "failed";
 	const detailTone = isUnconfirmedBooking ? "destructive" : "default";
 	const dateValue = isUnconfirmedBooking ? "Unconfirmed" : formatBookingDate(booking.date);
+
 	const timeValue = isUnconfirmedBooking
 		? "Unconfirmed"
 		: formatBookingTimeRange(booking.time, booking.duration);

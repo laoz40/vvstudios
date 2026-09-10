@@ -70,8 +70,10 @@ export async function downloadAdminBookingInvoice(
 	input: DownloadAdminBookingInvoiceInput
 ): Promise<DownloadAdminBookingInvoiceResult> {
 	const { session } = input;
+
 	const { downloadBookingInvoicePdf } =
 		await import("#studio/features/booking-invoice/pdf/download-booking-invoice-pdf");
+
 	const parsedBooking = bookingSchema.safeParse(getInvoiceFormValues(input));
 
 	if (!parsedBooking.success) {

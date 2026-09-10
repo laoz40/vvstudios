@@ -4,8 +4,11 @@ import { Textarea } from "#/components/ui/textarea";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
 const fieldSetClassName = "gap-5 md:gap-6";
+
 const fieldStackClassName = "gap-1 md:gap-2";
+
 const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
+
 const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 interface BookingNotesFieldProps {

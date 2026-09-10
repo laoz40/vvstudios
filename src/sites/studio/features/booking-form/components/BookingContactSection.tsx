@@ -7,8 +7,11 @@ import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booki
 import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-form-model";
 
 const fieldSetClassName = "gap-5 md:gap-6";
+
 const fieldStackClassName = "gap-1 md:gap-2";
+
 const sectionLegendClassName = `${sectionHeadingClassName} mb-2 md:mb-3`;
+
 const formControlShadowClassName = "shadow-lg shadow-background/25";
 
 const sectionCopy = {

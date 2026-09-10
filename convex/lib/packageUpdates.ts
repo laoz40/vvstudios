@@ -58,6 +58,7 @@ export type UpdatePackageArgs = {
 } & BookingAddonQuantitiesArgs;
 
 type ParsedPackage = ReturnType<typeof packageFormSchema.parse>;
+
 export type ParsedPackageRequest = ParsedPackage;
 
 type PendingPackageRecord = {
@@ -110,18 +111,23 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 	if (args.abn !== undefined) {
 		record.abn = args.abn;
 	}
+
 	if (args.essentialEditQuantity !== undefined) {
 		record.essentialEditQuantity = args.essentialEditQuantity;
 	}
+
 	if (args.completeEditQuantity !== undefined) {
 		record.completeEditQuantity = args.completeEditQuantity;
 	}
+
 	if (args.clipsPackageQuantity !== undefined) {
 		record.clipsPackageQuantity = args.clipsPackageQuantity;
 	}
+
 	if (args.handcraftedClipsQuantity !== undefined) {
 		record.handcraftedClipsQuantity = args.handcraftedClipsQuantity;
 	}
+
 	if (args.notes !== undefined) {
 		record.notes = args.notes;
 	}
@@ -201,11 +207,13 @@ type PackageUpdatePatch = {
 
 export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage: ParsedPackage) {
 	const amounts = calculatePackageAmounts(updatedPackage);
+
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		...updatedPackage,
 		discountAmount: amounts.discountAmount,
 		discountPercent: amounts.discountPercent
 	});
+
 	const totalDueAmount = args.totalDueAmount ?? amounts.totalDueAmount;
 	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
 

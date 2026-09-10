@@ -78,6 +78,7 @@ const body = {
 	margin: "0",
 	padding: "16px 16px"
 };
+
 const container = {
 	backgroundColor: "#2d2d2d",
 	border: "1px solid #454545",
@@ -86,6 +87,7 @@ const container = {
 	maxWidth: "560px",
 	padding: "24px"
 };
+
 const heading = {
 	color: "#fafafa",
 	fontSize: "22px",
@@ -93,9 +95,13 @@ const heading = {
 	lineHeight: "28px",
 	margin: "0 0 16px"
 };
+
 const logo = { display: "block", margin: "0 auto 16px" };
+
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
+
 const section = { margin: "0 0 24px" };
+
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
@@ -103,12 +109,14 @@ const sectionTitle = {
 	margin: "0 0 8px",
 	textTransform: "uppercase" as const
 };
+
 const detailsCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
 	borderRadius: "12px",
 	padding: "16px"
 };
+
 const remainingSessionsDetail = {
 	color: "#fafafa",
 	fontSize: "22px",
@@ -117,6 +125,7 @@ const remainingSessionsDetail = {
 	margin: "0 0 8px",
 	textAlign: "center" as const
 };
+
 const expiryDate = {
 	color: "#ed434b",
 	fontSize: "22px",
@@ -124,7 +133,9 @@ const expiryDate = {
 	margin: "0",
 	textAlign: "center" as const
 };
+
 const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "24px 0 4px" };
+
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",

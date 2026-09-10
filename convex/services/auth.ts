@@ -9,6 +9,7 @@ import {
 	requireUser,
 	saveEditorDetails
 } from "#convex/lib/auth";
+
 export function getCurrentUserAccessService(ctx: QueryCtx) {
 	return requireUser(ctx).andThen((identity) =>
 		getUserRoleAndPermissions(identity, (token) => getEditorByToken(ctx, token))

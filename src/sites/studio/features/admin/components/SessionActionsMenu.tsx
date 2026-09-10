@@ -97,11 +97,14 @@ function DeliverablesControls({
 					<TabsList className="w-full bg-background/60">
 						{EDIT_STATUS_OPTIONS.map((option) => {
 							const Icon = deliverableStatusIconMap[option];
+
 							const tabLabel =
 								option === statusActions.deliverableStatus
 									? deliverableStatusLabelMap[option]
 									: deliverableStatusTabLabelMap[option];
+
 							const isDeliverAction = option === "completed";
+
 							const isDisabled =
 								statusActions.isUpdatingEditStatus ||
 								(isDeliverAction
@@ -117,6 +120,7 @@ function DeliverablesControls({
 									onClick={() => {
 										if (isDeliverAction) {
 											deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
+
 											return;
 										}
 

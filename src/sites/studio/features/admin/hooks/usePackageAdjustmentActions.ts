@@ -18,24 +18,29 @@ export function usePackageAdjustmentActions(
 	const getAdjustmentInvoicePdf = useAction(
 		api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf
 	);
+
 	const retryAdjustmentInvoiceEmail = useAction(
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
+
 	const markAdjustmentPaymentStatus = useMutation(
 		api.packageAdjustments.markPackageAdjustmentPaymentStatus
 	);
+
 	const [isAdjustmentInvoiceDialogOpen, setIsAdjustmentInvoiceDialogOpen] = useState(false);
 
 	async function handleDownloadAdjustmentInvoice() {
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentDownload");
+
 		const [error, invoice] = await tryCatch(
 			getAdjustmentInvoicePdf({ adjustmentId: packageRow.adjustment.id })
 		);
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -62,6 +67,7 @@ export function usePackageAdjustmentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -74,12 +80,14 @@ export function usePackageAdjustmentActions(
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentEmail");
+
 		const [error] = await tryCatch(
 			retryAdjustmentInvoiceEmail({ adjustmentId: packageRow.adjustment.id })
 		);
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -105,6 +113,7 @@ export function usePackageAdjustmentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -117,12 +126,14 @@ export function usePackageAdjustmentActions(
 		if (!packageRow.adjustment) return;
 
 		setPendingAction("adjustmentPayment");
+
 		const [error] = await tryCatch(
 			markAdjustmentPaymentStatus({ adjustmentId: packageRow.adjustment.id, paid })
 		);
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -144,6 +155,7 @@ export function usePackageAdjustmentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 

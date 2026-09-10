@@ -1,9 +1,11 @@
 import { parseTimeZoneDate, type TimeZoneDate } from "#studio/lib/calendarDate";
 
 const HOURS_PER_DAY = 24;
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const REMINDER_BATCH_SIZE = 50;
+
 export const REMINDER_TIME_ZONE = "Australia/Sydney";
 
 export type { TimeZoneDate };
@@ -12,6 +14,7 @@ const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 
 const getDateTimeFormatter = (timeZone: string) => {
 	const cachedFormatter = dateTimeFormatters.get(timeZone);
+
 	if (cachedFormatter) {
 		return cachedFormatter;
 	}
@@ -59,6 +62,7 @@ export const getUtcTimeForTimeZoneDate = (
 	const utcGuess = Date.UTC(year, month - 1, day, hour);
 	const actualDate = getTimeZoneDate(new Date(utcGuess), timeZone);
 	const targetAsUtc = Date.UTC(year, month - 1, day, hour);
+
 	const actualAsUtc = Date.UTC(
 		actualDate.year,
 		actualDate.month - 1,
@@ -71,9 +75,11 @@ export const getUtcTimeForTimeZoneDate = (
 
 export const getTimeZoneDayRange = (date: Date, timeZone: string, dayOffset = 0) => {
 	const currentDay = getTimeZoneDate(date, timeZone);
+
 	const targetDate = new Date(
 		Date.UTC(currentDay.year, currentDay.month - 1, currentDay.day) + dayOffset * MS_PER_DAY
 	);
+
 	const nextDate = new Date(targetDate.getTime() + MS_PER_DAY);
 	const targetDay = getTimeZoneDate(targetDate, timeZone);
 	const nextDay = getTimeZoneDate(nextDate, timeZone);

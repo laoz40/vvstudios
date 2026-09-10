@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 const INVOICE_SUBJECT_PREFIX = "Your Studio Booking Invoice -";
+
 const PACKAGE_SCHEDULE_SUBJECT_PREFIX = "Schedule Your ";
+
 const RESCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/reschedule\/[a-f0-9]{64}/i;
+
 const PACKAGE_SCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/package-schedule\/[a-f0-9]{64}/i;
 
 const resendEmailListItemSchema = z.object({
@@ -76,6 +79,7 @@ function isPackageScheduleEmail(
 
 async function parseResendResponse<T>(response: Response, schema: z.ZodType<T>) {
 	const json: unknown = await response.json();
+
 	return schema.parse(json);
 }
 
@@ -141,6 +145,7 @@ async function findMatchingEmailInPages({
 
 function extractUrlFromHtml(html: string, pattern: RegExp) {
 	const match = html.match(pattern);
+
 	return match?.[0] ?? null;
 }
 

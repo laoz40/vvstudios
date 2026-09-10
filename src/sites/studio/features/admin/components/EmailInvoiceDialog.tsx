@@ -64,6 +64,7 @@ export function EmailInvoiceDialog({
 	function handleInvoiceSelection(value: string) {
 		if (value === "original") {
 			onSelectedCustomInvoiceIdChange(null);
+
 			return;
 		}
 

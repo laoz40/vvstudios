@@ -16,9 +16,11 @@ export function useEditAction(session: SessionRecord) {
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
+
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
 		typeof getSessionEditWarningState
 	> | null>(null);
+
 	const [isSaving, setIsSaving] = useState(false);
 
 	async function saveSessionEdit(
@@ -33,6 +35,7 @@ export function useEditAction(session: SessionRecord) {
 			} else {
 				toast.error("Enter a valid remaining balance.");
 			}
+
 			return;
 		}
 
@@ -43,6 +46,7 @@ export function useEditAction(session: SessionRecord) {
 				setPendingEditDraft(values);
 				setPendingEditWarningState(warningState);
 				setIsEditConfirmationDialogOpen(true);
+
 				return;
 			}
 		}
@@ -59,6 +63,7 @@ export function useEditAction(session: SessionRecord) {
 			setIsEditDialogOpen(false);
 			setIsReplacementEventDialogOpen(true);
 			toast.success("Booking updated. Replacement Calendar event created.");
+
 			return;
 		}
 
@@ -79,6 +84,7 @@ export function useEditAction(session: SessionRecord) {
 	async function handleConfirmEditBooking() {
 		if (!pendingEditDraft) {
 			closeEditConfirmationDialog();
+
 			return;
 		}
 

@@ -18,9 +18,11 @@ import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 export const EDIT_STATUS_OPTIONS = ["to_edit", "editing", "completed"] as const;
 
 type DeliverableStatusAction = (typeof EDIT_STATUS_OPTIONS)[number];
+
 export type DeliverableStatus = NonNullable<Doc<"bookings">["editStatus"]>;
 
 type SessionRecord = Doc<"bookings">;
+
 type SessionStatus = SessionRecord["status"];
 
 export const sessionStatusLabelMap: Record<SessionStatus, string> = {

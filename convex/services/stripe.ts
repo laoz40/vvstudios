@@ -39,6 +39,7 @@ export type CreateEmbeddedCheckoutSessionError =
 export type CloseEmbeddedCheckoutSessionError =
 	| { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" }
 	| { reason: "STRIPE_SESSION_MISMATCH" };
+
 type CloseEmbeddedCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };

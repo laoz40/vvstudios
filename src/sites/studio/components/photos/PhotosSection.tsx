@@ -45,6 +45,7 @@ export function PhotosSection({
 	}, []);
 
 	const galleryImages = isMobile && mobileImages ? mobileImages : images;
+
 	const heading =
 		headingLevel === "h1" ? (
 			<h1 className={landingSectionHeadingClassName}>{photosPageContent.title}</h1>

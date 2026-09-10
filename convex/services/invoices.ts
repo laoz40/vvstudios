@@ -20,14 +20,18 @@ import {
 } from "#convex/lib/invoiceDownloads";
 import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
+
 type BookingInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
 	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+
 type InvoicePdfError = BookingInvoicePdfError | { reason: "INVOICE_EMAIL_RENDER_FAILED" };
+
 type PublicPackageInvoicePdfError =
 	| InvoicePdfError
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 	| { reason: "PACKAGE_NOT_FOUND" };
+
 type AdminPackageInvoicePdfError =
 	| InvoicePdfError
 	| { reason: "NOT_AUTHENTICATED" }

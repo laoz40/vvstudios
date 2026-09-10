@@ -4,6 +4,7 @@ import { z } from "zod";
 export function searchOptionalField<T extends z.ZodType>(schema: T) {
 	return z.preprocess((value) => {
 		const parsed = schema.safeParse(value);
+
 		return parsed.success ? parsed.data : undefined;
 	}, schema.optional());
 }

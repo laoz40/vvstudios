@@ -1,5 +1,7 @@
 import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from "#/config/contact";
+
 export const BOOKING_INVOICE_TITLE = "Tax Invoice";
+
 export const BOOKING_DEPOSIT_AMOUNT = 50;
 
 export const BOOKING_INVOICE_BUSINESS = {

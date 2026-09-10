@@ -13,8 +13,11 @@ import {
 type UpdateSessionFromAdminResult = FunctionReturnType<
 	typeof api.googleCalendar.updateSessionFromAdmin
 >;
+
 type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
+
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
+
 type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 type SessionUpdateInput = {
@@ -96,6 +99,7 @@ export function parseSessionEditDraft(values: SessionEditDraft): ParsedSessionEd
 	}
 
 	const remainingBalanceDraft = values.remainingBalanceAmount.trim();
+
 	const remainingBalanceAmountResult = remainingBalanceDraft
 		? parseRemainingBalanceAmountDraft(remainingBalanceDraft)
 		: null;
@@ -129,9 +133,11 @@ function buildSessionUpdateInput(
 	if (parsedValues.abn) {
 		input.abn = parsedValues.abn;
 	}
+
 	if (parsedValues.notes) {
 		input.notes = parsedValues.notes;
 	}
+
 	if (remainingBalanceAmountResult?.status === "valid") {
 		input.remainingBalanceAmount = remainingBalanceAmountResult.amount;
 	}
@@ -151,10 +157,12 @@ export async function performSessionEditSave(
 		parsedDraft.parsedValues,
 		parsedDraft.remainingBalanceAmountResult
 	);
+
 	const [error, result] = await tryCatch(updateSession(updateInput));
 
 	if (error !== null) {
 		showSessionUpdateError(error);
+
 		return "error";
 	}
 

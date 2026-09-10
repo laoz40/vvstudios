@@ -4,6 +4,7 @@ import { env } from "#/env";
 import { Modal } from "#studio/components/Modal";
 
 const stripePromise = loadStripe(env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 const closeButtonLabel = "Close payment modal";
 
 export interface BookingPaymentModalProps {

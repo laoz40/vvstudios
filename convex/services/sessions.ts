@@ -32,26 +32,41 @@ import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessi
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
+
 type SessionListSortBy = "session" | "createdAt";
+
 type SessionListSortDirection = "asc" | "desc";
+
 type ListSessionsArgs = PaginationArgs & {
 	sortBy?: SessionListSortBy;
 	sortDirection?: SessionListSortDirection;
 };
+
 type ListEditorSessionsArgs = PaginationArgs;
+
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
+
 type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
+
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
+
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
+
 type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
+
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "review" | "completed";
 };
+
 type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
+
 type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: string };
+
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
+
 type GetDriveStatusArgs = { bookingId: Id<"bookings"> };
+
 type AssignSessionEditorArgs = {
 	bookingId: Id<"bookings">;
 	editorTokenIdentifier: string | null;
@@ -100,6 +115,7 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 		)
 		.andThen((bookingsPage) => {
 			const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
+
 			return okOrThrow(
 				Promise.all(
 					visibleSessions.map(async (session) =>
@@ -122,6 +138,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	// Auth failures throw above so the hook can keep native cursor/page handling.
 	const sortBy = args.sortBy ?? "session";
 	const sortDirection = args.sortDirection ?? "asc";
+
 	const bookingsPage =
 		sortBy === "createdAt"
 			? await ctx.db
@@ -144,7 +161,9 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 			}
 
 			const packageRecord = await ctx.db.get(session.packageId);
+
 			if (!packageRecord) return { ...session, hasDriveWorkflowFailure };
+
 			const packageSessions = await getCapacityConsumingPackageSessions(
 				ctx,
 				packageRecord._id,
@@ -217,6 +236,7 @@ export function saveSessionInstagramHandleService(
 			if (session.status !== "confirmed" && session.status !== "email_failed") {
 				return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
 			}
+
 			return ok(session);
 		})
 		.andThen((session) =>

@@ -52,9 +52,11 @@ export function SessionsTable({
 	// Table setup and persisted filters
 	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
 	const [showArchived, setShowArchived] = useState(initialTablePreferences.showArchived);
+
 	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
 		initialTablePreferences.showUpcomingOnly
 	);
+
 	const [showStaleSessions, setShowStaleSessions] = useState(
 		initialTablePreferences.showStaleBookings
 	);

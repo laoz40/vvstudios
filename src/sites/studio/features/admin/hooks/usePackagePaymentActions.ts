@@ -28,6 +28,7 @@ export function usePackagePaymentActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -49,6 +50,7 @@ export function usePackagePaymentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -63,6 +65,7 @@ export function usePackagePaymentActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -84,6 +87,7 @@ export function usePackagePaymentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -98,6 +102,7 @@ export function usePackagePaymentActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -140,6 +145,7 @@ export function usePackagePaymentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -155,6 +161,7 @@ export function usePackagePaymentActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -201,6 +208,7 @@ export function usePackagePaymentActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 

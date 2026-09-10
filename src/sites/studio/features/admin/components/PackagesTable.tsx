@@ -42,6 +42,7 @@ export function PackagesTable({
 	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
 		return readStoredPackageTableFilters();
 	});
+
 	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
 
 	// Persist package filters.

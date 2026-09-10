@@ -10,7 +10,9 @@ import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissi
 export const ADMIN_ROLE = "admin";
 
 type PublicMetadata = { role?: string };
+
 type AdminEditorProfile = { tokenIdentifier: string; displayName: string; isActive: boolean };
+
 type UserAccess =
 	| { role: "admin"; permissions: readonly Permission[]; editorProfile: AdminEditorProfile | null }
 	| { role: "editor"; permissions: readonly Permission[] };
@@ -19,6 +21,7 @@ const publicMetadataSchema = z.object({ role: z.string().optional() });
 
 function getPublicMetadata(identity: UserIdentity): PublicMetadata | null {
 	const parsedMetadata = publicMetadataSchema.safeParse(identity.publicMetadata);
+
 	return parsedMetadata.success ? parsedMetadata.data : null;
 }
 
@@ -121,6 +124,7 @@ export function saveEditorDetails(
 	editor: Doc<"editorProfiles"> | null
 ) {
 	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
+
 	if (editor !== null) {
 		return okOrThrow(ctx.db.patch(editor._id, details).then(() => null));
 	}

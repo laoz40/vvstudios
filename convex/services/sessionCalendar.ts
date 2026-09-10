@@ -51,7 +51,9 @@ import { getBookingSettingsService } from "#convex/services/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
 
 export type { RescheduleSessionArgs } from "#convex/lib/sessionRescheduleWorkflow";
+
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
+
 type GoogleCalendarAvailabilityError = {
 	reason:
 		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
@@ -193,7 +195,9 @@ export function getAvailableRescheduleTimesService(
 						eventBufferMinutes: settings.eventBufferMinutes,
 						timeZone
 					});
+
 					const now = Date.now();
+
 					const times = calendarAvailableTimes.filter((time) =>
 						checkSessionMeetsAvailabilitySettings({
 							date: args.date,
@@ -252,6 +256,7 @@ async function finishRescheduledSession(
 		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
 		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
 	};
+
 	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		reschedule: { originalDate: session.date, originalTime: session.time },

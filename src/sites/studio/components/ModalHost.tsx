@@ -7,6 +7,7 @@ export function ModalHost() {
 	const modalState = useModalStore((state) => state);
 
 	const modal = modalState.modal;
+
 	switch (modal) {
 		case "feedback":
 			return <GiveFeedbackModalHost />;

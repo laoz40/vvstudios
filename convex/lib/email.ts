@@ -149,6 +149,7 @@ export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEm
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
+
 	const bookingDetails = {
 		invoiceNumber: args.invoiceNumber,
 		name: args.name,
@@ -163,6 +164,7 @@ export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEm
 		addonsLine,
 		notes: args.notes
 	};
+
 	const emailElement = args.reschedule
 		? createElement(HostBookingDetailsEmail, {
 				...bookingDetails,
@@ -171,6 +173,7 @@ export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEm
 				originalTime: formatBookingTimeRange(args.reschedule.originalTime, args.duration)
 			})
 		: createElement(HostBookingDetailsEmail, bookingDetails);
+
 	const html = await render(emailElement);
 
 	const subjectPrefix = args.reschedule ? "Studio Booking Rescheduled" : "New Studio Booking";
@@ -246,6 +249,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 
 	if (pdfResult.isErr()) {
 		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -264,6 +268,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 			bookingEmail: booking.email,
 			reason: invoiceEmailResult.error.reason
 		});
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -314,6 +319,7 @@ export async function sendPackageAdjustmentInvoiceEmail(
 		console.error("Package adjustment invoice PDF render failed", {
 			adjustmentId: invoiceInput.adjustment._id
 		});
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -330,6 +336,7 @@ export async function sendPackageAdjustmentInvoiceEmail(
 			adjustmentId: invoiceInput.adjustment._id,
 			reason: invoiceEmailResult.error.reason
 		});
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -356,6 +363,7 @@ export async function sendPackageInvoiceEmail(
 
 	if (pdfResult.isErr()) {
 		console.error("Multi-booking invoice PDF render failed", { packageId: packageRecord._id });
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -377,6 +385,7 @@ export async function sendPackageInvoiceEmail(
 			packageId: packageRecord._id,
 			reason: invoiceEmailResult.error.reason
 		});
+
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
@@ -404,6 +413,7 @@ export async function sendPackageInvoiceEmail(
 			reason: hostEmailResult.error.reason
 		});
 	}
+
 	return ok({ invoiceNumber: artifacts.data.invoice.number });
 }
 
@@ -463,6 +473,7 @@ export async function sendPackageScheduleEmail({
 			email,
 			reason: scheduleEmailResult.error.reason
 		});
+
 		return err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" });
 	}
 
@@ -477,6 +488,7 @@ export async function sendPackagePaymentReminderEmail({
 }: SendPackagePaymentReminderEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
 	const html = await render(
 		createElement(PackagePaymentReminderEmail, {
 			invoiceDueAtLabel: formatTimestampDateLong(invoiceDueAt),
@@ -501,6 +513,7 @@ export async function sendPackageExpiryReminderEmail({
 }: SendPackageExpiryReminderEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
 	const html = await render(
 		createElement(PackageExpiryReminderEmail, {
 			expiresAtLabel: formatTimestampDateLong(expiresAt),
@@ -558,6 +571,7 @@ export function sendEditorAssignmentEmail({
 }: SendEditorAssignmentEmailArgs) {
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
 	const sessionDate = formatTimestampDateLong(sessionStartAt);
 	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(sessionStartAt));
 
@@ -630,8 +644,10 @@ export async function sendSessionReminderEmail({
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatBookingTimeRange(time, duration);
+
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
 	const html = await render(
 		createElement(ReminderEmail, {
 			addonsLine,

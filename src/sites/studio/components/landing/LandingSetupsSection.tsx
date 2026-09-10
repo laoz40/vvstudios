@@ -40,11 +40,13 @@ function SetupShowcasePanel({
 	const prefersReducedMotion = useReducedMotion();
 	const isDesktopViewport = useIsDesktopViewport();
 	const { scrollYProgress } = useScroll({ target: panelRef, offset: ["start end", "end start"] });
+
 	const imageY = useTransform(
 		scrollYProgress,
 		[0, 1],
 		[-setupParallaxTravelPx, setupParallaxTravelPx]
 	);
+
 	const shouldParallax = isDesktopViewport && prefersReducedMotion === false;
 	const parallaxWindowHeight = `calc(100cqw * ${image.height} / ${image.width} - ${2 * setupParallaxTravelPx}px)`;
 

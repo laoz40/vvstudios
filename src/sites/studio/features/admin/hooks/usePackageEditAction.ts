@@ -14,7 +14,9 @@ import {
 import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
+
 type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
+
 type PackageTotalResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 type PackageUpdateInput = {
@@ -57,12 +59,15 @@ function buildPackageUpdateInput(
 	if (parsedValues.abn) {
 		input.abn = parsedValues.abn;
 	}
+
 	if (parsedValues.notes) {
 		input.notes = parsedValues.notes;
 	}
+
 	if (values.expiresAt !== undefined) {
 		input.expiresAt = values.expiresAt;
 	}
+
 	if (totalDueAmountResult?.status === "valid") {
 		input.totalDueAmount = totalDueAmountResult.amount;
 	}
@@ -86,16 +91,19 @@ function parsePackageEditValues(values: PackageEditDraft) {
 
 	if (!parsedValues.success) {
 		toast.error(parsedValues.error.issues[0]?.message ?? "Please check the package details.");
+
 		return null;
 	}
 
 	const totalDueDraft = values.totalDueAmount.trim();
+
 	const totalDueAmountResult = totalDueDraft
 		? parseRemainingBalanceAmountDraft(totalDueDraft)
 		: null;
 
 	if (totalDueAmountResult?.status === "invalid") {
 		toast.error("Enter a valid package total due.");
+
 		return null;
 	}
 
@@ -106,6 +114,7 @@ function showPackageUpdateError(
 	error: NonNullable<UpdatePackageFromAdminResult[0]> | UnexpectedError
 ) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			toast.error("You are not signed in.");
@@ -141,9 +150,11 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<PackageEditDraft | null>(null);
+
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
 		typeof getPackageEditWarningState
 	> | null>(null);
+
 	const [isSaving, setIsSaving] = useState(false);
 
 	async function saveEditPackage(
@@ -151,6 +162,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 		options?: { skipConfirmation?: boolean }
 	) {
 		const parsedEditValues = parsePackageEditValues(values);
+
 		if (!parsedEditValues) {
 			return;
 		}
@@ -164,6 +176,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 				setPendingEditDraft(values);
 				setPendingEditWarningState(warningState);
 				setIsEditConfirmationDialogOpen(true);
+
 				return;
 			}
 		}
@@ -176,11 +189,13 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			parsedValues,
 			totalDueAmountResult
 		);
+
 		const [error] = await tryCatch(updatePackage(updateInput));
 
 		if (error !== null) {
 			showPackageUpdateError(error);
 			setIsSaving(false);
+
 			return;
 		}
 
@@ -202,6 +217,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 	async function handleConfirmEditPackage() {
 		if (!pendingEditDraft) {
 			closeEditConfirmationDialog();
+
 			return;
 		}
 

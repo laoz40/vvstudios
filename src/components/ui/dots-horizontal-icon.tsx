@@ -77,4 +77,5 @@ const DotsHorizontalIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 DotsHorizontalIcon.displayName = "DotsHorizontalIcon";
+
 export default DotsHorizontalIcon;

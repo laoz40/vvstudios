@@ -5,6 +5,7 @@ import type { MutationCtx } from "#convex/_generated/server";
 import { doSessionWindowsOverlap } from "#convex/lib/sessionCalendarTime";
 
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
+
 const MAX_BOOKING_DURATION_MINUTES = 180;
 
 export const sessionReservationValidator = v.object({
@@ -74,9 +75,11 @@ export async function reserveSessionTime(
 	const searchStartAt = args.sessionStartAt - searchPaddingMs;
 	const searchEndAt = args.sessionStartAt + searchPaddingMs;
 	const confirmedStatuses = ["confirmed", "email_failed"] as const;
+
 	const confirmedBookingsByStatus = await Promise.all(
 		confirmedStatuses.map(async (status) => {
 			const bookingsForStatus: Doc<"bookings">[] = [];
+
 			const nearbyBookings = ctx.db
 				.query("bookings")
 				.withIndex("by_status_and_sessionStartAt", (query) =>
@@ -85,17 +88,21 @@ export async function reserveSessionTime(
 						.gte("sessionStartAt", searchStartAt)
 						.lte("sessionStartAt", searchEndAt)
 				);
+
 			for await (const confirmedBooking of nearbyBookings) {
 				bookingsForStatus.push(confirmedBooking);
 			}
+
 			return bookingsForStatus;
 		})
 	);
+
 	const confirmedBookings = confirmedBookingsByStatus.flat();
 
 	// Find new times reserved by session updates that are still running.
 	// Expired reservations are ignored.
 	const activeReservations: Doc<"bookings">[] = [];
+
 	for await (const candidate of ctx.db
 		.query("bookings")
 		.withIndex("by_reservationCreatedAt", (query) =>
@@ -117,10 +124,12 @@ export async function reserveSessionTime(
 				eventBufferMinutes: args.eventBufferMinutes
 			})
 	);
+
 	// Check whether another session update already reserved the requested time.
 	const conflictingReservation = activeReservations.some((candidate) => {
 		if (candidate._id === session._id) return false;
 		const target = getReservedTarget(candidate);
+
 		if (target === null) return false;
 
 		return doSessionWindowsOverlap({
@@ -160,10 +169,12 @@ export async function unreserveSessionTime(
 	const session = await ctx.db.get(bookingId);
 
 	if (session === null) return ok({ cleared: false as const });
+
 	if (!sessionHasReservation(session, expected)) {
 		return ok({ cleared: false as const });
 	}
 
 	await ctx.db.patch(bookingId, clearedSessionReservationPatch);
+
 	return ok({ cleared: true as const });
 }

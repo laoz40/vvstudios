@@ -2,6 +2,7 @@ import { CalendarClock } from "lucide-react";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
 import { EditorSessionTableRow } from "#studio/features/editor/components/EditorSessionTableRow";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
+
 type EditorSessionsEmptyState = "edits" | "history";
 
 const emptyStateCopy: Record<EditorSessionsEmptyState, { title: string; description: string }> = {

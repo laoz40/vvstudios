@@ -65,4 +65,5 @@ const HomeIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 HomeIcon.displayName = "HomeIcon";
+
 export default HomeIcon;

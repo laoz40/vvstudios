@@ -38,13 +38,16 @@ export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDia
 
 	async function handleSave() {
 		setIsSaving(true);
+
 		const [error] = await tryCatch(
 			updateEmployeeNotes({ tokenIdentifier: editor.tokenIdentifier, notes })
 		);
+
 		setIsSaving(false);
 
 		if (error !== null) {
 			toast.error(getEditorAccessErrorMessage(error.reason));
+
 			return;
 		}
 

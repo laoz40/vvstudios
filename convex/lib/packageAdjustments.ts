@@ -8,9 +8,12 @@ import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
+
 // Prevent concurrent sends; a stalled send becomes failed so an admin can retry it.
 export const PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+
 export const PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS = 7 * 24 * MILLISECONDS_PER_HOUR;
+
 export const REMOTE_PODCAST_ADJUSTMENT_RATE = ADDON_PRICES["Remote Podcast"];
 
 export type PackageAdjustmentEmailClaim = { attempt: "automatic" | "retry"; now: number };
@@ -118,6 +121,7 @@ export function evaluatePackageAdjustment(
 	const remotePodcastBookingIds = completedBookings.flatMap((booking) =>
 		booking.addons.includes("Remote Podcast") ? [booking._id] : []
 	);
+
 	const quantity = remotePodcastBookingIds.length;
 
 	return {
@@ -172,6 +176,7 @@ export async function processPackageAdjustment(
 	}
 
 	const now = Date.now();
+
 	return handlePackageAdjustmentEvaluation(
 		ctx,
 		args,
@@ -210,6 +215,7 @@ async function handlePackageAdjustmentEvaluation(
 	now: number
 ) {
 	const evaluationKind = evaluation.kind;
+
 	switch (evaluationKind) {
 		case "wait_for_sessions_to_end":
 			return schedulePackageAdjustmentReevaluation(ctx, args, evaluation.nextCheckAt);
@@ -217,6 +223,7 @@ async function handlePackageAdjustmentEvaluation(
 			console.error("Package adjustment could not parse a session duration", {
 				packageId: args.packageId
 			});
+
 			return null;
 		case "ready":
 			return savePackageAdjustment(ctx, args, evaluation, now);
@@ -237,6 +244,7 @@ async function schedulePackageAdjustmentReevaluation(
 			internal.packageScheduling.processPackageAdjustmentAtExpiry,
 			args
 		);
+
 		return null;
 	}
 
@@ -245,6 +253,7 @@ async function schedulePackageAdjustmentReevaluation(
 		internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
 		args
 	);
+
 	return null;
 }
 
@@ -265,6 +274,7 @@ async function savePackageAdjustment(
 			totalAmount: 0,
 			createdAt
 		});
+
 		return null;
 	}
 
@@ -290,5 +300,6 @@ async function savePackageAdjustment(
 		adjustmentId,
 		attempt: "automatic"
 	});
+
 	return null;
 }

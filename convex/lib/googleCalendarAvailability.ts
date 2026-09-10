@@ -72,6 +72,7 @@ export async function getBusyWindowsInRange({
 			});
 
 			const pageBusyWindows: BusyWindow[] = [];
+
 			for (const event of response.data.items ?? []) {
 				const busyWindow = toBusyWindow({ calendarId, event, ignoredEvent, timeZone });
 
@@ -79,6 +80,7 @@ export async function getBusyWindowsInRange({
 			}
 
 			const nextPageToken = response.data.nextPageToken ?? undefined;
+
 			if (!nextPageToken) {
 				return pageBusyWindows;
 			}

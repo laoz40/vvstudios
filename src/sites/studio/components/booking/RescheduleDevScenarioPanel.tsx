@@ -165,6 +165,7 @@ export function getDevRescheduleAvailabilityStatus(devScenario: DevRescheduleSce
 	}
 
 	const availabilityReason = availabilityError.reason;
+
 	switch (availabilityReason) {
 		case "RESCHEDULE_LINK_NOT_FOUND":
 		case "RESCHEDULE_LINK_USED":

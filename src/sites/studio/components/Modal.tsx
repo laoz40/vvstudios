@@ -70,12 +70,14 @@ export function Modal({
 			requestAnimationFrame(() => {
 				if (initialFocus === "close") {
 					closeButtonRef.current?.focus();
+
 					return;
 				}
 
 				const firstContentElement = getFocusableElements(dialog).find(
 					(element) => element !== closeButtonRef.current
 				);
+
 				firstContentElement?.focus();
 			});
 
@@ -131,12 +133,14 @@ export function Modal({
 
 				if (!firstElement || !lastElement) {
 					event.preventDefault();
+
 					return;
 				}
 
 				if (event.shiftKey && document.activeElement === firstElement) {
 					event.preventDefault();
 					lastElement.focus();
+
 					return;
 				}
 

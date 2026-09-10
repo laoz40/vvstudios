@@ -7,11 +7,14 @@ import type { BookingFormValues } from "#studio/features/booking-form/lib/bookin
 type PackageData = NonNullable<
 	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
 >;
+
 export type PackageSession = PackageData["sessions"][number];
+
 type SavePackageBookingError =
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.createPackageSession>[0]>
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.reschedulePackageSession>[0]>
 	| UnexpectedError;
+
 type UnschedulePackageSessionError =
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.unschedulePackageSession>[0]>
 	| UnexpectedError;
@@ -46,6 +49,7 @@ export async function performPackageSessionSave(
 	const saveOutcome = activeBooking
 		? await tryCatch(reschedulePackageSession({ bookingId: activeBooking._id, ...sessionInput }))
 		: await tryCatch(createPackageSession(sessionInput));
+
 	const [saveError, saveResult] = saveOutcome;
 
 	if (saveError !== null) {

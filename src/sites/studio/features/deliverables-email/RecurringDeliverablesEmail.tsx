@@ -121,6 +121,7 @@ const noteText = {
 	lineHeight: "20px",
 	margin: "12px 0 24px"
 };
+
 const section = { margin: "0 0 20px" };
 
 const sectionTitle = {

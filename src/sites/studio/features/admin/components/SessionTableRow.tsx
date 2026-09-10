@@ -146,6 +146,7 @@ function SessionNotesCell({
 }) {
 	const hasEditorNotes = Boolean(session.editorNotes?.trim());
 	const canToggleNotes = isPastSession && hasEditorNotes;
+
 	const [notesView, setNotesView] = useState<SessionNotesView>(() =>
 		getDefaultSessionNotesView(isPastSession, hasEditorNotes)
 	);
@@ -187,6 +188,7 @@ function SessionNotesCell({
 
 function RemainingBalanceCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
+
 	const showRemainingBalance =
 		!packageSessionProgressLabel &&
 		(session.status === "confirmed" || session.status === "email_failed");

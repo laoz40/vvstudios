@@ -17,9 +17,11 @@ export async function scheduleDriveSetup(
 	}
 ): Promise<Result<null, DriveSchedulingError>> {
 	const durationResult = parseDurationMinutes(booking.duration);
+
 	if (durationResult.isErr()) return err(durationResult.error);
 
 	const runAt = booking.sessionStartAt + durationResult.value * 60_000;
+
 	return await okOrThrow(
 		ctx.scheduler
 			.runAt(Math.max(runAt, Date.now()), internal.googleCalendar.runScheduledDriveSetup, {

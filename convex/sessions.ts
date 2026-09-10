@@ -55,6 +55,7 @@ const savedDriveFolderValidator = v.object({
 	name: v.string(),
 	webViewLink: v.string()
 });
+
 const savedDrivePermissionValidator = v.object({
 	id: v.string(),
 	emailAddress: v.optional(v.string()),
@@ -252,6 +253,7 @@ export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
 		const session = await ctx.db.get(args.bookingId);
+
 		if (session === null) {
 			return tupleErr({ reason: "BOOKING_NOT_FOUND" as const });
 		}

@@ -58,6 +58,7 @@ export type PackagePricingValues = {
 } & BookingAddonQuantities;
 
 const PACKAGE_INVOICE_DUE_DAYS = 7;
+
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function roundMoneyAmount(amount: number) {
@@ -85,6 +86,7 @@ export function getBookingTotal(
 ) {
 	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const addonQuantities = pickBookingAddonQuantities(values);
+
 	const addonsTotal = values.addons.reduce((total, addon) => {
 		return total + ADDON_PRICES[addon] * getBookingAddonQuantityForForm(addon, addonQuantities);
 	}, 0);
@@ -96,6 +98,7 @@ export function calculatePackageAmounts(values: PackagePricingValues): PackageAm
 	const plan = PACKAGE_PLANS[values.packageSize];
 	const singleSessionAmount = getBookingTotal(values);
 	const packageSubtotalAmount = singleSessionAmount * values.packageSize;
+
 	const discountAmount =
 		values.includeDiscount === false
 			? 0

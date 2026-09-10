@@ -75,6 +75,7 @@ function saveSessionEditorAssignment(
 			}
 
 			const editorChanged = previousEditorTokenIdentifier !== editor?.tokenIdentifier;
+
 			const previousEditorNeedsAccessRemoved =
 				previousEditorTokenIdentifier !== undefined && editorChanged;
 
@@ -87,6 +88,7 @@ function saveSessionEditorAssignment(
 			}
 
 			const isFirstAssignment = previousEditorTokenIdentifier === undefined && editor !== undefined;
+
 			// A first assignment has no old Drive access to remove.
 			if (isFirstAssignment) {
 				await ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, {

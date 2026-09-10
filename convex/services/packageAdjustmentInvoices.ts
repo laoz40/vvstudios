@@ -23,9 +23,11 @@ type PackageAdjustmentClaimError =
 	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
 	| { reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" }
 	| { reason: "PACKAGE_NOT_FOUND" };
+
 type SendPackageAdjustmentInvoiceError =
 	| PackageAdjustmentClaimError
 	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" };
+
 type PackageAdjustmentInvoicePdfError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
@@ -34,12 +36,14 @@ type PackageAdjustmentInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
 	| { reason: "INVOICE_EMAIL_RENDER_FAILED" }
 	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+
 type PackageAdjustmentInvoiceInputQueryResult = Promise<
 	ConvexResult<
 		PackageAdjustmentInvoiceInput,
 		{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" } | { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
 	>
 >;
+
 type InvoicePdfPayload = { content: ArrayBuffer; contentType: string; filename: string };
 
 function markPackageAdjustmentInvoiceEmailFailed(
@@ -58,6 +62,7 @@ export function sendPackageAdjustmentInvoiceService(
 	args: SendPackageAdjustmentInvoiceArgs
 ): NeverthrowResultAsync<null, SendPackageAdjustmentInvoiceError> {
 	const claimedAt = Date.now();
+
 	return (
 		fromConvexTuple<
 			Promise<ConvexResult<PackageAdjustmentInvoiceInput, PackageAdjustmentClaimError>>

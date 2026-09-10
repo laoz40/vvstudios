@@ -36,7 +36,9 @@ const SESSION_STATUS_DETAILS = {
 type PackageData = NonNullable<
 	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
 >;
+
 type PackageBooking = PackageData["sessions"][number];
+
 type PackageSession =
 	| { booking: PackageBooking; key: string; status: "completed" | "upcoming" }
 	| { booking: null; key: string; status: "dateRequired" };
@@ -98,12 +100,15 @@ export function PackageSessionAccordionItem({
 	timeSelectionMessage
 }: PackageSessionAccordionItemProps) {
 	const booking = session.booking;
+
 	const isSessionLocked =
 		booking !== null &&
 		isPackageSessionLocked(booking.sessionStartAt, leadTimeMinutes, currentTimestamp);
+
 	const isActive = activeSessionKey === session.key;
 	const canEdit = !isSessionLocked;
 	const isHighlighted = highlightedBookingId === booking?._id;
+
 	const isSelectedBookingSaved =
 		booking !== null &&
 		booking.date === selection.dateValue &&
@@ -330,6 +335,7 @@ function PackageSessionActions({
 							onSelect={() => {
 								if (isActive) {
 									actions.onSessionClose();
+
 									return;
 								}
 
@@ -418,11 +424,13 @@ function PackageSessionEditor({
 	timeSelectionMessage
 }: PackageSessionEditorProps) {
 	const isSelectionIncomplete = !selection.dateValue || !selection.service || !selection.time;
+
 	const isSaveDisabled =
 		!hasActiveSession ||
 		isSelectionIncomplete ||
 		isSelectedBookingSaved ||
 		savingSessionKey !== null;
+
 	let saveButtonText = "SAVE SESSION";
 
 	if (savingSessionKey === sessionKey) {

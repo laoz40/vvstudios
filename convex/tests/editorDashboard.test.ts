@@ -13,12 +13,15 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 import { createConvexTest } from "#convex/test.setup";
 
 type TestClient = ReturnType<typeof createConvexTest>;
+
 type AssignSessionEditorArgs = {
 	bookingId: Id<"bookings">;
 	editorTokenIdentifier: string | null;
 	adminNotes: string;
 };
+
 type AssignmentResult = [{ reason: string } | null, null];
+
 type EditorSessionProjection = {
 	_id: Id<"bookings">;
 	name: string;
@@ -40,6 +43,7 @@ type EditorSessionProjection = {
 	editStatus?: "to_edit" | "editing" | "review" | "completed";
 	driveFolders: null;
 };
+
 type EditorSessionsResult = {
 	page: EditorSessionProjection[];
 	isDone: boolean;
@@ -51,11 +55,13 @@ const assignSessionEditor = makeFunctionReference<
 	AssignSessionEditorArgs,
 	AssignmentResult
 >("sessions:assignSessionEditor");
+
 const listEditorSessions = makeFunctionReference<
 	"query",
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	EditorSessionsResult
 >("sessions:listEditorSessions");
+
 const paginationOpts = { cursor: null, numItems: 20 };
 
 const adminIdentity: UserIdentity = {
@@ -64,6 +70,7 @@ const adminIdentity: UserIdentity = {
 	issuer: "https://clerk.example",
 	publicMetadata: { role: "admin" }
 };
+
 const editorIdentity: UserIdentity = {
 	tokenIdentifier: "https://clerk.example|editor-one",
 	subject: "editor-one",
@@ -150,6 +157,7 @@ describe("restricted editor session query", () => {
 		const result = await t
 			.withIdentity(editorIdentity)
 			.query(listEditorSessions, { paginationOpts });
+
 		expect(result).toMatchObject({
 			page: [
 				{
@@ -183,6 +191,7 @@ describe("restricted editor session query", () => {
 		});
 		expect(result.page).toHaveLength(1);
 		const session = result.page.at(0);
+
 		if (session === undefined) throw new Error("Expected one editor session");
 		expect(Object.keys(session).toSorted()).toEqual(
 			[
@@ -209,6 +218,7 @@ describe("restricted editor session query", () => {
 		);
 
 		const serializedResult = JSON.stringify(result);
+
 		for (const restrictedValue of [
 			"0400 000 000",
 			"12 345 678 901",

@@ -59,6 +59,7 @@ function BookingAddonQuantityField({
 	const FormField = formApi.Field;
 	const shouldReduceMotion = useReducedMotion();
 	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
+
 	return (
 		<motion.div
 			key={fieldName}
@@ -122,9 +123,11 @@ export function BookingAddonsSection() {
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 	const isPackageBooking = formValues.bookingMode === "package";
+
 	const availableAddonOptions = new Set(
 		ADDON_OPTIONS.filter((addon) => isAddonAvailableForService(formValues.service, addon))
 	);
+
 	const FormField = formApi.Field;
 
 	// Remove add-ons that become unavailable when the recording space changes.
@@ -154,6 +157,7 @@ export function BookingAddonsSection() {
 						!satisfiesClipVolumePackEditRequirement(field.state.value)
 					) {
 						openClipsPackageRequirementModal();
+
 						return;
 					}
 

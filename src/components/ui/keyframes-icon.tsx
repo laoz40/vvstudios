@@ -59,4 +59,5 @@ const KeyframesIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 KeyframesIcon.displayName = "KeyframesIcon";
+
 export default KeyframesIcon;

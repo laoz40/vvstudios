@@ -29,6 +29,7 @@ export function usePackageInvoiceActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -53,6 +54,7 @@ export function usePackageInvoiceActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 
@@ -68,6 +70,7 @@ export function usePackageInvoiceActions(
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -99,6 +102,7 @@ export function usePackageInvoiceActions(
 			}
 
 			setPendingAction(null);
+
 			return;
 		}
 

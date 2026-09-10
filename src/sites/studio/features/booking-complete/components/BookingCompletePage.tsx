@@ -22,17 +22,22 @@ import { z } from "zod";
 const packageIdSchema = z.custom<Id<"packages">>(
 	(value) => z.string().min(1).safeParse(value).success
 );
+
 const DEV_PACKAGE_ID = packageIdSchema.parse("dev-package");
+
 function useBookingCompletePageData(search: BookingCompleteSearch) {
 	const activeDevScenario = import.meta.env.DEV ? search.dev_scenario : undefined;
 	const stripeSessionId = search.session_id;
+
 	const usableStripeSessionId = [undefined, "", "{CHECKOUT_SESSION_ID}"].includes(stripeSessionId)
 		? null
 		: stripeSessionId;
+
 	const bookingQueryArgs: "skip" | { stripeSessionId: string } =
 		usableStripeSessionId && !activeDevScenario
 			? { stripeSessionId: usableStripeSessionId }
 			: "skip";
+
 	const liveBooking = useQuery(api.sessions.getSessionStatusByStripeSessionId, bookingQueryArgs);
 
 	return {
@@ -64,6 +69,7 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 	if (isPackageRequest) {
 		const previewPackageSize = packageSize ?? 8;
 		const previewPackageId = packageId ? packageIdSchema.parse(packageId) : DEV_PACKAGE_ID;
+
 		return (
 			<BookingStatusLayout
 				bookingStatus="confirmed"
@@ -138,6 +144,7 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 
 	const resultContent = getBookingResultContent(booking);
 	const canCreateRescheduleLink = canCreateFailedBookingRescheduleLink(booking);
+
 	return (
 		<BookingStatusLayout
 			bookingStatus={booking.status}

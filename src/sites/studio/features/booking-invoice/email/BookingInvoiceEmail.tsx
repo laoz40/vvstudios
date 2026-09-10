@@ -29,9 +29,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const isAdjustmentInvoice = adjustmentDetails !== undefined;
 	const isPackageInvoice = packageDetails !== undefined;
 	const isPackageRelatedInvoice = isPackageInvoice || isAdjustmentInvoice;
+
 	const paymentInstruction = isPackageRelatedInvoice
 		? data.notes.paymentNote
 		: data.notes.paymentNote.replace(` ${receiptNote}`, "");
+
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 	const { introText, previewText } = getEmailCopy(data);
 

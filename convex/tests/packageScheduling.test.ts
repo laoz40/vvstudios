@@ -88,6 +88,7 @@ vi.mock("#convex/lib/rateLimits", () => ({
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const target = {
 	date: "2030-01-11",
 	time: "10:00",
@@ -221,10 +222,12 @@ describe("package session creation validation", () => {
 			token,
 			...target
 		});
+
 		const secondResult = await t.action(api.packageScheduling.createPackageSession, {
 			token,
 			...target
 		});
+
 		const bookings = await readBookings(t);
 		const driveClients = await t.run((ctx) => ctx.db.query("driveClients").collect());
 		const driveSessions = await t.run((ctx) => ctx.db.query("driveSessions").collect());
@@ -251,6 +254,7 @@ describe("package session creation validation", () => {
 		let nextEventNumber = 0;
 		providerFakes.insertEvent.mockImplementation(() => {
 			nextEventNumber += 1;
+
 			return Promise.resolve({ data: { id: `google-event-${nextEventNumber}` } });
 		});
 
@@ -273,16 +277,21 @@ describe("package session creation validation", () => {
 			Array.from({ length: 3 }, (_, index) => seedPackageSession(t, packageId, index))
 		);
 		let releaseCalendarCreation: (() => void) | undefined;
+
 		const calendarCreationBlocked = new Promise<void>((resolve) => {
 			releaseCalendarCreation = resolve;
 		});
+
 		let notifyCalendarCreationStarted: (() => void) | undefined;
+
 		const calendarCreationStarted = new Promise<void>((resolve) => {
 			notifyCalendarCreationStarted = resolve;
 		});
+
 		providerFakes.insertEvent.mockImplementation(async () => {
 			notifyCalendarCreationStarted?.();
 			await calendarCreationBlocked;
+
 			return { data: { id: "orphaned-event" } };
 		});
 
@@ -290,6 +299,7 @@ describe("package session creation validation", () => {
 			token,
 			...target
 		});
+
 		await calendarCreationStarted;
 		await seedPackageSession(t, packageId, 3);
 		releaseCalendarCreation?.();
@@ -319,7 +329,9 @@ describe("package session rescheduling", () => {
 			token: other.token,
 			...target
 		});
+
 		await t.run((ctx) => ctx.db.patch(bookingId, { sessionStartAt: now + 30 * 60_000 }));
+
 		const lockedResult = await t.action(api.packageScheduling.reschedulePackageSession, {
 			bookingId,
 			token: owner.token,
@@ -372,6 +384,7 @@ describe("package session rescheduling", () => {
 			remotePodcast: true,
 			notes: "Moved session"
 		});
+
 		const state = await t.run(async (ctx) => ({
 			booking: await ctx.db.get(bookingId),
 			jobs: await ctx.db.system.query("_scheduled_functions").collect()
@@ -438,10 +451,12 @@ describe("package session unscheduling", () => {
 			bookingId,
 			token
 		});
+
 		const replacement = await t.action(api.packageScheduling.createPackageSession, {
 			token,
 			...target
 		});
+
 		const cancelled = await t.run((ctx) => ctx.db.get(bookingId));
 
 		expect(result).toEqual([null, { cancelled: true, bookingId }]);
@@ -465,6 +480,7 @@ async function seedPackage(
 	token = "package-scheduling-token"
 ) {
 	const scheduleTokenHash = await hashRescheduleToken(token);
+
 	const packageId = await t.run((ctx) =>
 		ctx.db.insert("packages", {
 			name: "Test customer",

@@ -99,4 +99,5 @@ const DownloadIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 DownloadIcon.displayName = "DownloadIcon";
+
 export default DownloadIcon;

@@ -2,11 +2,13 @@ import { z } from "zod";
 import { exhaustiveCheck } from "#/lib/result";
 
 export type EditorWorkStatus = "assigned" | "editing" | "unassigned";
+
 export type AdminEditorProfile = {
 	tokenIdentifier: string;
 	displayName: string;
 	isActive: boolean;
 };
+
 export type EditorAccessErrorReason =
 	| "EDITOR_NOT_FOUND"
 	| "EDITOR_PROFILE_INACTIVE"

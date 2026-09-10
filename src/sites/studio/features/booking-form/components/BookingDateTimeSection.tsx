@@ -17,11 +17,13 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 	const formValues = useSelector(formApi.store, (state) => state.values);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
+
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
 		hasDate: Boolean(formValues.date),
 		hasDuration: Boolean(formValues.duration),
 		isViewingSelectedMonth: availability.isViewingSelectedMonth
 	});
+
 	return (
 		<section className="mt-0 flex flex-col gap-4">
 			<formApi.Field name="date">

@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 export const BOOKING_MODES = ["single", "package"] as const;
+
 export const SERVICES = ["Table Setup", "Armchair Setup", "Music Setup"] as const;
+
 export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
+
 export const ADDON_OPTIONS = [
 	"Remote Podcast",
 	"4K UHD Recording",
@@ -12,7 +15,9 @@ export const ADDON_OPTIONS = [
 	"Clip Volume Pack",
 	"Handcrafted Clips"
 ] as const;
+
 export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
+
 export const ADDON_SECTIONS = [
 	{ title: "Production Add-ons", addons: ["Remote Podcast", "4K UHD Recording", "Teleprompter"] },
 	{ title: "Editing Services", addons: ["Essential Edit", "Complete Edit"] },
@@ -21,14 +26,18 @@ export const ADDON_SECTIONS = [
 	title: string;
 	addons: readonly (typeof ADDON_OPTIONS)[number][];
 }>;
+
 const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
+
 const QUANTITY_TRACKED_ADDONS = [
 	"Essential Edit",
 	"Complete Edit",
 	"Clip Volume Pack",
 	"Handcrafted Clips"
 ] as const;
+
 const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
+
 export type BookingAddonQuantityFieldName =
 	| "clipsPackageQuantity"
 	| "completeEditQuantity"
@@ -144,6 +153,7 @@ export function forEachClearedAddonQuantityField(
 }
 
 export type BookingAddon = (typeof ADDON_OPTIONS)[number];
+
 export type BookingService = (typeof SERVICES)[number];
 
 // Customer-facing name for Essential Edit is Rough Cut. Internal addon key stays "Essential Edit".
@@ -306,6 +316,7 @@ const email = z
 const bookingMode = z
 	.union([z.literal(""), z.enum(BOOKING_MODES)])
 	.refine((value) => value !== "", { message: "Booking type is required." });
+
 const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
@@ -315,16 +326,21 @@ export function isDurationOption(value: string): value is (typeof DURATION_OPTIO
 }
 
 export const recordingSpaceSchema = z.enum(SERVICES);
+
 const service = z.union([z.literal(""), recordingSpaceSchema]);
 
 const deliverableCountOption = z.union([z.literal(""), z.enum(DELIVERABLE_COUNT_OPTIONS)]);
+
 const addons = z
 	.array(z.enum(ADDON_OPTIONS))
 	.refine((value) => new Set(value).size === value.length, {
 		message: "Duplicate add-ons are not allowed."
 	});
+
 const notes = z.string().trim().max(200, "Please keep this under 200 characters.");
+
 const requiredPackageSize = z.union([z.literal(4), z.literal(8), z.literal(12)]);
+
 const optionalPackageSize = z.union([z.literal(""), requiredPackageSize]);
 
 const sharedBookingFields = {
@@ -477,11 +493,13 @@ export function toFieldErrorObjects(errors: unknown[]) {
 		}
 
 		const stringError = z.string().safeParse(error);
+
 		if (stringError.success) {
 			return [{ message: stringError.data }];
 		}
 
 		const fieldError = fieldErrorMessageSchema.safeParse(error);
+
 		return fieldError.success ? [fieldError.data] : [];
 	});
 }

@@ -119,6 +119,7 @@ const body = {
 	margin: "0",
 	padding: "16px"
 };
+
 const container = {
 	backgroundColor: "#2d2d2d",
 	border: "1px solid #454545",
@@ -127,7 +128,9 @@ const container = {
 	maxWidth: "560px",
 	padding: "24px"
 };
+
 const logo = { display: "block", margin: "0 auto 16px" };
+
 const heading = {
 	color: "#fafafa",
 	fontSize: "22px",
@@ -135,8 +138,11 @@ const heading = {
 	lineHeight: "28px",
 	margin: "0 0 16px"
 };
+
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
+
 const buttonWrapper = { margin: "24px 0", textAlign: "center" as const };
+
 const button = {
 	backgroundColor: "#f5c400",
 	borderRadius: "12px",
@@ -146,6 +152,7 @@ const button = {
 	padding: "12px 18px",
 	textDecoration: "none"
 };
+
 const dueDateCard = {
 	backgroundColor: "#383838",
 	border: "1px solid #454545",
@@ -153,6 +160,7 @@ const dueDateCard = {
 	margin: "0 0 20px",
 	padding: "16px"
 };
+
 const dueDate = {
 	color: "#ed434b",
 	fontSize: "22px",
@@ -161,7 +169,9 @@ const dueDate = {
 	margin: "0",
 	textAlign: "center" as const
 };
+
 const workflow = { margin: "0 0 24px" };
+
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
@@ -169,10 +179,17 @@ const sectionTitle = {
 	margin: "0 0 12px",
 	textTransform: "uppercase" as const
 };
+
 const step = { ...paragraph, margin: "0 0 16px" };
+
 const stepHeading = { ...paragraph, margin: "0 0 8px" };
+
 const substep = { ...paragraph, margin: "0 0 8px", paddingLeft: "16px" };
+
 const lastSubstep = { ...paragraph, margin: "0 0 16px", paddingLeft: "16px" };
+
 const lastStep = { ...paragraph, margin: "0" };
+
 const signoff = { ...paragraph, margin: "0 0 4px" };
+
 const signature = { ...paragraph, fontWeight: "700", margin: "0" };

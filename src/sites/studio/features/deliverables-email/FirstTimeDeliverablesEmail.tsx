@@ -155,6 +155,7 @@ const section = { margin: "0 0 20px" };
 const compactSection = { margin: "0 0 16px" };
 
 const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
+
 const editorNotesText = { ...paragraph, margin: "4px 0 12px", whiteSpace: "pre-line" as const };
 
 const sectionTitle = {

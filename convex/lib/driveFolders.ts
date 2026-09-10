@@ -17,7 +17,9 @@ export function ensureBookingDriveClientId(
 ): ResultAsync<null, BackfillBookingDriveClientIdError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+
 		if (booking.driveClientId === driveClientId) return ok(null);
+
 		return okOrThrow(ctx.db.patch(booking._id, { driveClientId }).then(() => null));
 	});
 }
@@ -28,6 +30,7 @@ export function backfillBookingDriveClientIdFromSession(
 ): ResultAsync<null, BackfillBookingDriveClientIdError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+
 		return okOrThrow(
 			ctx.db
 				.query("driveSessions")
@@ -35,6 +38,7 @@ export function backfillBookingDriveClientIdFromSession(
 				.unique()
 		).andThen((driveSession) => {
 			if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 			return ensureBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
 		});
 	});
@@ -46,6 +50,7 @@ export function getOrCreateDriveClientId(
 	client: { email: string; displayName: string }
 ): ResultAsync<Id<"driveClients">, never> {
 	const normalizedEmail = client.email.trim().toLowerCase();
+
 	return okOrThrow(
 		ctx.db
 			.query("driveClients")
@@ -53,6 +58,7 @@ export function getOrCreateDriveClientId(
 			.unique()
 	).andThen((existingClient) => {
 		if (existingClient !== null) return ok(existingClient._id);
+
 		return okOrThrow(
 			ctx.db.insert("driveClients", {
 				normalizedEmail,
@@ -91,12 +97,14 @@ export function saveDriveClientFolder(
 					assetsFolder: existingClient.assetsFolder
 				}));
 			}
+
 			return ok({
 				driveClientId: existingClient._id,
 				folderId: existingClient.folderId,
 				assetsFolder: existingClient.assetsFolder
 			});
 		}
+
 		return okOrThrow(
 			ctx.db
 				.insert("driveClients", {
@@ -122,9 +130,11 @@ export function saveDriveClientAssetsFolder(
 	return okOrThrow(ctx.db.get(args.driveClientId)).andThen((driveClient) => {
 		if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 		const assetsFolder = { id: args.folder.id, url: args.folder.webViewLink };
+
 		if (driveClient.assetsFolder !== undefined && driveClient.assetsFolder.id === assetsFolder.id) {
 			return ok(driveClient.assetsFolder);
 		}
+
 		return okOrThrow(ctx.db.patch(driveClient._id, { assetsFolder }).then(() => assetsFolder));
 	});
 }
@@ -146,6 +156,7 @@ export function saveDriveSessionFolder(
 		.andThen((existingSession) => {
 			// A repeated save must keep using the folder that won the first database write.
 			if (existingSession?.sessionFolder !== undefined) return ok(existingSession.sessionFolder.id);
+
 			// A previous attempt may have created the record before it saved the session folder.
 			if (existingSession !== null) {
 				return okOrThrow(
@@ -157,6 +168,7 @@ export function saveDriveSessionFolder(
 						.then(() => sessionFolder.folder.id)
 				);
 			}
+
 			return okOrThrow(
 				ctx.db
 					.insert("driveSessions", {
@@ -188,6 +200,7 @@ export function saveDrivePackageFolder(
 	).andThen((driveSession) => {
 		// A repeated save must keep the package folder that won the first database write.
 		if (driveSession?.packageFolder !== undefined) return ok(driveSession.packageFolder.id);
+
 		if (driveSession !== null) {
 			return okOrThrow(
 				ctx.db
@@ -198,10 +211,12 @@ export function saveDrivePackageFolder(
 					.then(() => packageFolder.folder.id)
 			);
 		}
+
 		return okOrThrow(ctx.db.get(packageFolder.bookingId)).andThen((booking) => {
 			if (booking === null || booking.driveClientId === undefined) {
 				return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 			}
+
 			return okOrThrow(
 				ctx.db
 					.insert("driveSessions", {
@@ -230,6 +245,7 @@ export function allocatePackageSessionNumber(
 		.andThen((allocation) => {
 			// A retry re-enters with its number already saved; only fresh allocations write.
 			if (allocation.kind === "already_saved") return okAsync(allocation.number);
+
 			return savePackageSessionNumber(ctx, allocation);
 		});
 }
@@ -242,9 +258,11 @@ function getPackageBooking(
 ): ResultAsync<PackageBooking, PackageSessionNumberError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+
 		if (booking.packageId === undefined) {
 			return err({ reason: "BOOKING_NOT_PACKAGE" as const });
 		}
+
 		return ok({ booking, packageId: booking.packageId });
 	});
 }
@@ -276,6 +294,7 @@ function resolvePackageSessionNumber(
 				number: existingSession.packageSessionNumber
 			});
 		}
+
 		return loadNextPackageSessionNumber(ctx, packageBooking).map((number) => ({
 			kind: "new" as const,
 			booking: packageBooking.booking,
@@ -294,14 +313,18 @@ function loadNextPackageSessionNumber(
 			const sessionIndex = scheduledSessions.findIndex(
 				(item) => item._id === packageBooking.booking._id
 			);
+
 			if (sessionIndex === -1) {
 				return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 			}
+
 			return okOrThrow(loadSavedPackageSessionNumbers(ctx, packageBooking.packageId)).map(
 				(savedNumbers) => {
 					// Start at the session's date-order position and step past numbers already in use.
 					let number = sessionIndex + 1;
+
 					while (savedNumbers.has(number)) number += 1;
+
 					return number;
 				}
 			);
@@ -323,9 +346,11 @@ function savePackageSessionNumber(
 				.then(() => allocation.number)
 		);
 	}
+
 	if (allocation.booking.driveClientId === undefined) {
 		return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 	}
+
 	return okOrThrow(
 		ctx.db
 			.insert("driveSessions", {
@@ -350,11 +375,13 @@ async function loadSavedPackageSessionNumbers(ctx: MutationCtx, packageId: Id<"p
 				.query("driveSessions")
 				.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
 				.unique();
+
 			if (driveSession?.packageSessionNumber !== undefined) {
 				savedNumbers.add(driveSession.packageSessionNumber);
 			}
 		})
 	);
+
 	return savedNumbers;
 }
 
@@ -373,6 +400,7 @@ export type ClearSavedDriveFolderArgs =
 
 export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFolderArgs) {
 	const folderKind = args.kind;
+
 	switch (folderKind) {
 		case "client":
 			return okOrThrow(
@@ -422,6 +450,7 @@ function clearDriveSessionFields(
 			.unique()
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 		return okOrThrow(
 			ctx.db.patch(driveSession._id, { ...fields, updatedAt: Date.now() }).then(() => null)
 		);
@@ -453,6 +482,7 @@ export function saveDriveChildFolder(
 			.unique()
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 		const folderFields = (() => {
 			switch (childFolder.name) {
 				case "Raw Media":
@@ -467,6 +497,7 @@ export function saveDriveChildFolder(
 					return exhaustiveCheck(childFolder.name);
 			}
 		})();
+
 		return okOrThrow(
 			ctx.db
 				.patch(driveSession._id, { ...folderFields, updatedAt: Date.now() })

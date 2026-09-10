@@ -135,19 +135,25 @@ export function getValidRescheduleLinkAndSessionService(
 		)
 		.andThen((link) => {
 			if (link === null) return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" as const });
+
 			if (link.status === "used") return err({ reason: "RESCHEDULE_LINK_USED" as const });
+
 			if (link.status === "expired") return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
+
 			return ok(link);
 		})
 		.andThen((link) => okOrThrow(ctx.db.get(link.bookingId)).map((session) => ({ link, session })))
 		.andThen(({ link, session }) => {
 			if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+
 			if (isRescheduleLinkExpired(link, session, args.now)) {
 				return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
 			}
+
 			if (!isSessionReschedulable(session)) {
 				return err({ reason: "BOOKING_NOT_RESCHEDULABLE" as const });
 			}
+
 			return ok({ session, link });
 		});
 }

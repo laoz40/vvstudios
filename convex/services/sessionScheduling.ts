@@ -86,15 +86,18 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 						googleEventId: args.googleEventId
 					})
 				};
+
 				if (args.reservation) {
 					Object.assign(patch, clearedSessionReservationPatch);
 				}
 
 				return okOrThrow(ctx.db.patch(args.bookingId, patch)).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
+
 					const timingChanged =
 						session.sessionStartAt !== updatePatch.sessionStartAt ||
 						session.duration !== args.duration;
+
 					if (
 						(nextStatus !== "confirmed" && nextStatus !== "email_failed") ||
 						(!timingChanged && !args.confirmBooking)
@@ -156,6 +159,7 @@ export function saveClientSessionRescheduleService(
 					})
 				).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
+
 					if (nextStatus !== "confirmed" && nextStatus !== "email_failed") {
 						return ok(null);
 					}
