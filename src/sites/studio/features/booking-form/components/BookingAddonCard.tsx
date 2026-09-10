@@ -122,7 +122,7 @@ export function BookingAddonCard({
 								</FieldTitle>
 								{checked ? <BookingSelectionCheck className="sm:hidden" /> : null}
 							</div>
-							<span className="shrink-0 text-lg font-semibold text-primary sm:hidden">
+							<span className="shrink-0 text-base font-semibold text-primary sm:hidden">
 								+{formatBookingPrice(ADDON_PRICES[addon])}
 							</span>
 						</div>
@@ -131,7 +131,7 @@ export function BookingAddonCard({
 				</div>
 				<div className="hidden shrink-0 items-center gap-2 sm:flex">
 					{checked ? <BookingSelectionCheck /> : null}
-					<span className="text-lg font-semibold text-primary">
+					<span className="text-base font-semibold text-primary">
 						+{formatBookingPrice(ADDON_PRICES[addon])}
 					</span>
 				</div>

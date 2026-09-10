@@ -123,13 +123,13 @@ export function BookingRecordingSpaceDurationSection() {
 													</span>
 												) : null}
 												<div>
-													<p className="text-lg font-semibold text-foreground">{option.label}</p>
+													<p className="text-base font-semibold text-foreground">{option.label}</p>
 													<div className="flex items-baseline gap-1.5 whitespace-nowrap">
-														<p className="text-sm font-semibold text-primary">
+														<p className="text-base font-semibold text-primary">
 															{option.discountedPrice}
 														</p>
 														{hasDiscount ? (
-															<p className="text-sm font-light text-muted-foreground line-through">
+															<p className="text-base font-light text-muted-foreground line-through">
 																{option.originalPrice}
 															</p>
 														) : null}
