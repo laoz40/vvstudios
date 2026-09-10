@@ -50,11 +50,7 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 						landingSectionHeadingAfterClassName,
 						"w-full"
 					)}>
-					<div
-						className={cn(
-							"order-2 flex flex-col md:order-1",
-							"w-full"
-						)}>
+					<div className={cn("order-2 flex flex-col md:order-1", "w-full")}>
 						<ImageViewerTrigger
 							image={faqImage}
 							onSelect={setPreviewImage}
