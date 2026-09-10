@@ -19,7 +19,7 @@ const testimonialCopy = {
 	reviews: [
 		{
 			quote:
-				"I am so thankful I found VV Studios and Joseph. He made me feel so supported and relaxed about recording and answered all my questions. I would recommend him to anyone looking for similar services.",
+				"I am so thankful I found Vertigo Visuals and Joseph. He made me feel so supported and relaxed about recording and answered all my questions. The space is beautiful and he was very professional. I would recommend him to anyone looking for similar services.",
 			author: "Breanna Sada"
 		},
 		{
@@ -79,7 +79,7 @@ function TestimonialReviewCard({
 				className
 			)}>
 			<CardContent className="px-4">
-				<blockquote className="text-base leading-6 text-pretty italic md:text-lg md:leading-7">
+				<blockquote className="text-base leading-6 text-pretty md:text-lg md:leading-7">
 					“{review.quote}”
 				</blockquote>
 			</CardContent>
