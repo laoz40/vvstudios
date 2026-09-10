@@ -4,7 +4,10 @@ import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
-import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
+import {
+	landingSectionHeadingClassName,
+	marketingPageHorizontalPaddingClassName
+} from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
 export interface PhotosSectionProps {
@@ -49,7 +52,7 @@ export function PhotosSection({
 		);
 
 	return (
-		<section className={cn("px-4 pb-16 md:px-12 lg:px-24 xl:px-32 2xl:px-48", className)}>
+		<section className={cn(marketingPageHorizontalPaddingClassName, "pb-16", className)}>
 			<motion.div {...fadeInAnimation}>
 				<div className="mx-auto flex w-full flex-col items-center gap-8 md:gap-10">
 					<div className="max-w-4xl space-y-4 text-left md:text-center">

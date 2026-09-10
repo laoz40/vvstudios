@@ -10,7 +10,8 @@ import type { PhotoGalleryImage } from "#studio/content/photos";
 import {
 	landingSectionContentGapClassName,
 	landingSectionHeadingClassName,
-	landingSectionIntroGapClassName
+	landingSectionIntroGapClassName,
+	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 
@@ -106,7 +107,7 @@ export function LandingTestimonials() {
 	return (
 		<section
 			aria-labelledby="landing-testimonials-title"
-			className="px-4 pt-20 pb-16 md:px-12 md:pt-40 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
+			className={cn(marketingPageHorizontalPaddingClassName, "pt-20 pb-16 md:pt-40 md:pb-20")}>
 			<motion.div
 				className={cn(
 					"flex flex-col items-start md:items-center",

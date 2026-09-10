@@ -104,7 +104,7 @@ export function LandingHero() {
 				<div className="absolute inset-0 z-10">
 					<motion.div
 						className={cn(
-							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-20 lg:left-24 xl:left-50 xl:bottom-60",
+							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-10 lg:left-12 xl:left-25 xl:bottom-60",
 							"max-w-xl will-change-transform"
 						)}
 						style={{
@@ -188,7 +188,7 @@ export function LandingHero() {
 						className={cn(
 							// Hero reveal animation
 							"landing-hero-reveal landing-hero-reveal--delayed",
-							"absolute right-8 bottom-8 left-auto",
+							"absolute right-4 bottom-8 left-auto",
 							"hidden items-center gap-2 md:inline-flex",
 							"py-2",
 							"text-sm text-muted-foreground md:text-base"
