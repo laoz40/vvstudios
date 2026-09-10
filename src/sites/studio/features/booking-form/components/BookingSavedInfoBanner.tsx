@@ -25,9 +25,9 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 		<section
 			className={cn(
 				"relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-				"rounded-lg border border-primary/80 bg-card",
+				"rounded-lg bg-card",
 				"px-4 py-4 sm:px-6",
-				"shadow-lg shadow-primary/20"
+				"shadow-lg shadow-background/25"
 			)}>
 			<Button
 				type="button"
