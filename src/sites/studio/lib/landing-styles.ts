@@ -9,4 +9,7 @@ export const landingSectionIntroGapClassName = "gap-4 md:gap-10";
 
 export const landingSectionHeadingAfterClassName = "mt-4 md:mt-10";
 
+export const landingSectionLeadClassName =
+	"text-sm leading-relaxed text-muted-foreground sm:text-base";
+
 export const landingContactActionsClassName = "mt-8 md:mt-12";

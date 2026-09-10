@@ -6,6 +6,7 @@ import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/Image
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
 import {
 	landingSectionHeadingClassName,
+	landingSectionLeadClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
@@ -57,9 +58,7 @@ export function PhotosSection({
 				<div className="mx-auto flex w-full flex-col items-center gap-8 md:gap-10">
 					<div className="max-w-4xl space-y-4 text-left md:text-center">
 						{heading}
-						<p className="text-pretty text-base leading-7 text-muted-foreground md:text-lg">
-							{photosPageContent.lead}
-						</p>
+						<p className={landingSectionLeadClassName}>{photosPageContent.lead}</p>
 					</div>
 					<div
 						className={cn(

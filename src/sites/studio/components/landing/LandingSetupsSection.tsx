@@ -14,6 +14,7 @@ import { useIsDesktopViewport } from "#studio/hooks/useIsDesktopViewport";
 import {
 	landingContactActionsClassName,
 	landingSectionHeadingClassName,
+	landingSectionLeadClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 
@@ -120,7 +121,7 @@ export function LandingSetupsSection() {
 				)}>
 				<div className="space-y-4 text-left md:text-center">
 					<h2 className={landingSectionHeadingClassName}>{photosPageContent.title}</h2>
-					<p className="mx-auto max-w-5xl text-pretty text-base leading-7 text-muted-foreground md:text-lg">
+					<p className={cn("mx-auto max-w-5xl", landingSectionLeadClassName)}>
 						{photosPageContent.lead}
 					</p>
 				</div>
