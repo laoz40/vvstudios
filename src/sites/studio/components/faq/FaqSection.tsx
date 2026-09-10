@@ -9,9 +9,9 @@ import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/Image
 import type { PhotoGalleryImage } from "#studio/content/photos";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 import {
-	landingSectionContentGapClassName,
 	landingSectionHeadingAfterClassName,
-	landingSectionHeadingClassName
+	landingSectionHeadingClassName,
+	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
 
 export { faqSectionCopy } from "#studio/components/faq/faq-section-copy";
@@ -32,7 +32,7 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 	return (
 		<section
 			aria-labelledby="faq-title"
-			className="px-4 pb-16 md:px-12 md:pb-20 lg:px-24 xl:px-32 2xl:px-48">
+			className={cn(marketingPageHorizontalPaddingClassName, "pb-16 md:pb-20")}>
 			<motion.div
 				className="w-full"
 				{...fadeInAnimation}>
@@ -46,17 +46,11 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 
 				<div
 					className={cn(
-						"grid md:grid-cols-2 md:items-start",
-						landingSectionContentGapClassName,
+						"grid md:grid-cols-2 md:items-start gap-10",
 						landingSectionHeadingAfterClassName,
 						"w-full"
 					)}>
-					<div
-						className={cn(
-							"order-2 flex flex-col md:order-1",
-							landingSectionContentGapClassName,
-							"w-full"
-						)}>
+					<div className={cn("order-2 flex flex-col md:order-1", "w-full")}>
 						<ImageViewerTrigger
 							image={faqImage}
 							onSelect={setPreviewImage}
@@ -69,7 +63,7 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 							imageClassName="h-full w-full object-cover"
 						/>
 
-						<ContactActions className="mt-0 md:mt-0 md:justify-start" />
+						<ContactActions className="mt-4 md:mt-4 md:justify-start" />
 					</div>
 
 					<FaqItemsAccordion className="order-1 w-full md:order-2" />

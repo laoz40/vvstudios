@@ -5,6 +5,34 @@ import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 import type { PhotoGalleryImage } from "#studio/content/photos";
 
+const imageViewerOpenButtonClassName =
+	"absolute right-6 bottom-6 rounded-full bg-background/80 opacity-100 shadow-md backdrop-blur transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100";
+
+export interface ImageViewerOpenButtonProps {
+	className?: string;
+	image: PhotoGalleryImage;
+	onSelect: (image: PhotoGalleryImage) => void;
+}
+
+export function ImageViewerOpenButton({ className, image, onSelect }: ImageViewerOpenButtonProps) {
+	return (
+		<Button
+			type="button"
+			variant="secondary"
+			size="icon"
+			className={cn(imageViewerOpenButtonClassName, className)}
+			aria-label={`View larger image of ${image.caption ?? image.alt}`}
+			onClick={() => {
+				onSelect(image);
+			}}>
+			<Maximize2
+				aria-hidden="true"
+				className="size-5"
+			/>
+		</Button>
+	);
+}
+
 export interface ImageViewerTriggerProps {
 	className?: string;
 	image: PhotoGalleryImage;
@@ -41,11 +69,13 @@ export function ImageViewerTrigger({
 				loading={loading}
 				className={imageClassName}
 			/>
-			<span className="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-background/80 text-foreground opacity-100 shadow-md backdrop-blur transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100">
-				<Maximize2
-					aria-hidden="true"
-					className="size-5"
-				/>
+			<span
+				aria-hidden="true"
+				className={cn(
+					imageViewerOpenButtonClassName,
+					"pointer-events-none flex size-9 items-center justify-center text-foreground"
+				)}>
+				<Maximize2 className="size-5" />
 			</span>
 		</button>
 	);
@@ -124,7 +154,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 				event.stopPropagation();
 			}}>
 			<div
-				className="relative flex h-dvh w-dvw items-center justify-center p-0 sm:p-4"
+				className="relative flex h-dvh w-dvw items-center justify-center p-0"
 				data-image-viewer-background>
 				<h2
 					id={titleId}
@@ -138,7 +168,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 						layout="constrained"
 						width={image.width}
 						height={image.height}
-						className="block max-h-full max-w-full object-contain sm:max-h-9/10 sm:max-w-9/10"
+						className="block max-h-full max-w-full object-contain"
 					/>
 				) : null}
 				<Button

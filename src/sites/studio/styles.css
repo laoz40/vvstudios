@@ -273,7 +273,7 @@
 	}
 
 	.footer-image-reveal__cta {
-		top: calc(100svh - (min(42svh, 94.1938vw) / 2));
+		top: calc(100svh - (min(42svh, 94.1938vw) * 0.38));
 	}
 }
 

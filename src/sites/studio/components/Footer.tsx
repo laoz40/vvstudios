@@ -9,6 +9,7 @@ import {
 	STUDIO_ADDRESS_URL
 } from "#/config/contact";
 import { cn } from "#/lib/utils";
+import { marketingPageHorizontalPaddingClassName } from "#studio/lib/landing-styles";
 import { GiveFeedbackModalButton } from "#studio/components/GiveFeedbackModal";
 
 const footerContent = {
@@ -31,7 +32,8 @@ export function Footer() {
 		<footer
 			className={cn(
 				"relative z-20",
-				"px-4 py-10 sm:py-12 md:px-12 lg:px-24 xl:px-32 2xl:px-48",
+				marketingPageHorizontalPaddingClassName,
+				"py-10 sm:py-12",
 				"bg-neutral-950"
 			)}>
 			<div className="flex w-full flex-col gap-6">

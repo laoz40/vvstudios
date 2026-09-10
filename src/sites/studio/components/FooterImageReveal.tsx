@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
+import { cn } from "#/lib/utils";
 
 export type FooterImageRevealProps = { showCta?: boolean };
 
@@ -11,7 +12,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 	const revealRef = useRef<HTMLDivElement>(null);
 	const prefersReducedMotion = useReducedMotion();
 	const { scrollYProgress } = useScroll({ target: revealRef, offset: ["start end", "end end"] });
-	const scale = useTransform(scrollYProgress, [0, 1], [0.5, 1]);
+	const scale = useTransform(scrollYProgress, [0, 1], [0.8, 1]);
 
 	return (
 		<div
@@ -22,17 +23,22 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					className="footer-image-reveal__cta"
 					style={{ scale: prefersReducedMotion ? 1 : scale }}>
 					<AnimatedIconButton
-						variant="outline"
-						className="bg-accent/70 border-primary! text-primary hover:text-primary h-auto gap-1.5 px-8! py-3 text-xl shadow-lg text-shadow-lg backdrop-blur-xs md:bg-accent/50"
+						variant="ghost"
+						className={cn(
+							"font-brand h-auto gap-3 uppercase tracking-tight",
+							"border-0 bg-transparent text-foreground shadow-none",
+							"hover:bg-transparent! hover:text-primary",
+							"px-6 py-2 text-5xl sm:text-6xl",
+							"md:gap-4 md:px-10 md:py-3 md:text-9xl"
+						)}
 						renderIcon={(iconRef) => (
 							<ArrowNarrowRightIcon
 								ref={iconRef}
-								size={16}
-								strokeWidth={3}
-								className="translate-y-px"
+								strokeWidth={2}
+								className="size-8 translate-y-px md:size-20"
 							/>
 						)}>
-						<Link to={studioSite.routes.book}>Book session</Link>
+						<Link to={studioSite.routes.book}>Book your session</Link>
 					</AnimatedIconButton>
 				</motion.div>
 			) : null}
