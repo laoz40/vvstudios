@@ -161,7 +161,7 @@ export function RecordingSpaceField({
 														getPillStateClassName(false),
 														selectionIndicatorVisibility === "mobile" && "md:hidden"
 													)}>
-													SELECT
+													Select
 												</span>
 											)}
 										</div>
