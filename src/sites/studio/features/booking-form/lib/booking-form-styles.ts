@@ -5,8 +5,8 @@ export const sectionHeadingClassName = "text-base font-semibold text-primary";
 export const transitionClassName =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
 
-const cardHoverClassName = "hover:border-primary hover:bg-primary/10";
-const cardSelectedClassName = "border-primary bg-primary/10";
+const cardHoverClassName = "hover:border-primary/40 hover:bg-primary/10";
+const cardSelectedClassName = "border-primary/40 bg-primary/10";
 
 const textIdleClassName = "text-foreground/80";
 const textSelectedClassName = "text-foreground";
