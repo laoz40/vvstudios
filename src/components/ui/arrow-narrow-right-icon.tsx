@@ -3,7 +3,10 @@ import type { AnimatedIconHandle, AnimatedIconProps } from "./types";
 import { motion, useAnimate } from "motion/react";
 
 const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-	({ size = 24, color = "currentColor", strokeWidth = 2, className = "", ...props }, ref) => {
+	(
+		{ size = 24, color = "currentColor", strokeWidth = 2, className = "", style, ...props },
+		ref
+	) => {
 		const [scope, animate] = useAnimate();
 
 		const start = async () => {
@@ -22,7 +25,7 @@ const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 			<motion.div
 				data-slot="animated-icon"
 				ref={scope}
-				className={`inline-flex cursor-pointer items-center justify-center ${className}`}>
+				className="inline-flex cursor-pointer items-center justify-center">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width={size}
@@ -33,6 +36,8 @@ const ArrowNarrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 					strokeWidth={strokeWidth}
 					strokeLinecap="round"
 					strokeLinejoin="round"
+					className={className}
+					style={style}
 					{...props}>
 					<motion.g className="arrow-group">
 						<path
