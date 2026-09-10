@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Image } from "@unpic/react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { ImageViewer, ImageViewerOpenButton } from "#studio/components/photos/ImageViewer";
@@ -10,11 +10,14 @@ import {
 	type PhotoGalleryImage
 } from "#studio/content/photos";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
+import { useIsDesktopViewport } from "#studio/hooks/useIsDesktopViewport";
 import {
 	landingContactActionsClassName,
 	landingSectionHeadingClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
+
+const setupParallaxTravelPx = 100;
 
 const setupPanelTitleClassName = cn(
 	"font-brand text-2xl leading-none tracking-tight uppercase text-balance",
@@ -32,8 +35,20 @@ function SetupShowcasePanel({
 	loading: "eager" | "lazy";
 	onPreview: (image: PhotoGalleryImage) => void;
 }) {
+	const panelRef = useRef<HTMLElement>(null);
+	const prefersReducedMotion = useReducedMotion();
+	const isDesktopViewport = useIsDesktopViewport();
+	const { scrollYProgress } = useScroll({ target: panelRef, offset: ["start end", "end start"] });
+	const imageY = useTransform(
+		scrollYProgress,
+		[0, 1],
+		[-setupParallaxTravelPx, setupParallaxTravelPx]
+	);
+	const shouldParallax = isDesktopViewport && prefersReducedMotion === false;
+
 	return (
 		<motion.figure
+			ref={panelRef}
 			{...fadeInAnimation}
 			className={cn(
 				marketingPageHorizontalPaddingClassName,
@@ -44,15 +59,23 @@ function SetupShowcasePanel({
 					"relative w-full overflow-hidden rounded-2xl",
 					"md:rounded-none md:absolute md:inset-0"
 				)}>
-				<Image
-					src={image.src}
-					alt={image.alt}
-					layout="constrained"
-					width={image.width}
-					height={image.height}
-					loading={loading}
-					className="block w-full md:absolute md:inset-0 md:h-full md:object-cover"
-				/>
+				<motion.div
+					className={cn("md:absolute md:inset-x-0", shouldParallax ? undefined : "md:inset-y-0")}
+					style={
+						shouldParallax
+							? { y: imageY, top: -setupParallaxTravelPx, bottom: -setupParallaxTravelPx }
+							: undefined
+					}>
+					<Image
+						src={image.src}
+						alt={image.alt}
+						layout="constrained"
+						width={image.width}
+						height={image.height}
+						loading={loading}
+						className="block w-full md:h-full md:object-cover"
+					/>
+				</motion.div>
 				<div
 					aria-hidden
 					className="absolute inset-0 bg-linear-to-t from-background/90 via-background/25 to-background/10"

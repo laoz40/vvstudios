@@ -1,4 +1,4 @@
-import { useRef, useSyncExternalStore, type CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
@@ -13,6 +13,7 @@ import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 import { STUDIO_ADDRESS_URL } from "#/config/contact";
 import { cn } from "#/lib/utils";
+import { useIsDesktopViewport } from "#studio/hooks/useIsDesktopViewport";
 
 const heroCopy = {
 	eyebrow: "Brought to you by Vertigo Visuals.",
@@ -27,23 +28,6 @@ const heroCopy = {
 const mobileBackgroundStyle: CSSProperties & { "--landing-hero-mobile-background": string } = {
 	"--landing-hero-mobile-background": `url(${heroMobile})`
 };
-
-const desktopMediaQuery = "(min-width: 768px)";
-
-function subscribeToDesktopViewport(onChange: () => void) {
-	const mediaQuery = window.matchMedia(desktopMediaQuery);
-	mediaQuery.addEventListener("change", onChange);
-
-	return () => mediaQuery.removeEventListener("change", onChange);
-}
-
-function useIsDesktopViewport() {
-	return useSyncExternalStore(
-		subscribeToDesktopViewport,
-		() => window.matchMedia(desktopMediaQuery).matches,
-		() => false
-	);
-}
 
 export function LandingHero() {
 	const heroRef = useRef<HTMLElement>(null);
