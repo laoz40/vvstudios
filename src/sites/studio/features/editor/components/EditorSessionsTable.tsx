@@ -1,5 +1,5 @@
 import { CalendarClock } from "lucide-react";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+import { FixedDataTable } from "#studio/components/FixedDataTable";
 import { EditorSessionTableRow } from "#studio/features/editor/components/EditorSessionTableRow";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 type EditorSessionsEmptyState = "edits" | "history";
@@ -40,37 +40,35 @@ export function EditorSessionsTable({
 
 	return (
 		<section className="overflow-x-auto border-y">
-			<Table className="w-full min-w-5xl table-fixed">
-				<colgroup>
-					<col className="w-24 md:w-16" />
-					<col className="w-64" />
-					<col className="w-32 md:w-24" />
-					<col className="w-60 md:w-48" />
-					<col className="w-84" />
-					<col className="w-84" />
-					<col className="md:w-12" />
-				</colgroup>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="text-center">Deliverables</TableHead>
-						<TableHead>Customer</TableHead>
-						<TableHead>Session</TableHead>
-						<TableHead>Service</TableHead>
-						<TableHead>Admin Notes</TableHead>
-						<TableHead>Editor Notes</TableHead>
-						<TableHead className="text-right">Actions</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{sessions.map((session) => (
-						<EditorSessionTableRow
-							key={session._id}
-							session={session}
-							view={emptyState}
-						/>
-					))}
-				</TableBody>
-			</Table>
+			<FixedDataTable
+				minWidthClassName="min-w-5xl"
+				columns={[
+					{
+						key: "deliverables",
+						colClassName: "w-24 md:w-16",
+						header: "Deliverables",
+						headerClassName: "text-center"
+					},
+					{ key: "customer", colClassName: "w-64", header: "Customer" },
+					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
+					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
+					{ key: "admin-notes", colClassName: "w-84", header: "Admin Notes" },
+					{ key: "editor-notes", colClassName: "w-84", header: "Editor Notes" },
+					{
+						key: "actions",
+						colClassName: "md:w-12",
+						header: "Actions",
+						headerClassName: "text-right"
+					}
+				]}>
+				{sessions.map((session) => (
+					<EditorSessionTableRow
+						key={session._id}
+						session={session}
+						view={emptyState}
+					/>
+				))}
+			</FixedDataTable>
 		</section>
 	);
 }
