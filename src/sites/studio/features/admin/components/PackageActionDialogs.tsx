@@ -46,6 +46,7 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				}}
 				onOpenChange={(nextOpen) => {
 					editAction.setIsEditConfirmationDialogOpen(nextOpen);
+
 					if (!nextOpen) {
 						editAction.closeEditConfirmationDialog();
 					}

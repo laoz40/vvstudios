@@ -65,6 +65,7 @@ export function PackageSessionsAccordion({
 		{ length: packageData.packageSize - packageData.sessions.length },
 		(_, index) => ({ booking: null, key: `empty-${index}`, status: "dateRequired" as const })
 	);
+
 	const scheduledSessions = packageData.sessions
 		.toSorted(
 			(firstBooking, secondBooking) => firstBooking.sessionStartAt - secondBooking.sessionStartAt
@@ -75,8 +76,10 @@ export function PackageSessionsAccordion({
 			status:
 				booking.sessionStartAt < currentTimestamp ? ("completed" as const) : ("upcoming" as const)
 		}));
+
 	const sessions = [...scheduledSessions, ...dateRequiredSessions];
 	const hasActiveSession = sessions.some((session) => session.key === activeSessionKey);
+
 	const selection = {
 		dateValue: selectedDateValue,
 		notes: selectedNotes,
@@ -84,6 +87,7 @@ export function PackageSessionsAccordion({
 		service: selectedService,
 		time: selectedTime
 	};
+
 	const actions = {
 		onDateChange,
 		onMakeDefaultSpace,
@@ -110,6 +114,7 @@ export function PackageSessionsAccordion({
 			onValueChange={(value) => {
 				if (!value) {
 					onSessionClose();
+
 					return;
 				}
 

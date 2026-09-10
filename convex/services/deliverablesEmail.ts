@@ -39,6 +39,7 @@ function mapFolderListError(error: DriveError): SendDeliverablesError {
 	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
 		return { reason: "DELIVERABLES_FOLDER_MISSING" };
 	}
+
 	return { reason: "DELIVERABLES_FOLDER_LIST_FAILED" };
 }
 
@@ -46,6 +47,7 @@ function mapLinkShareError(error: DriveError): SendDeliverablesError {
 	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
 		return { reason: "DELIVERABLES_FOLDER_MISSING" };
 	}
+
 	return { reason: "DELIVERABLES_LINK_SHARE_FAILED" };
 }
 
@@ -60,9 +62,11 @@ function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCt
 	return fromConvexTuple(ctx.runQuery(internal.sessions.getDriveSetup, { bookingId })).andThen(
 		(setupInfo) => {
 			const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
+
 			if (deliverablesFolder === undefined) {
 				return errAsync({ reason: "DELIVERABLES_FOLDER_MISSING" as const });
 			}
+
 			return okAsync(deliverablesFolder);
 		}
 	);
@@ -76,6 +80,7 @@ function requireDeliverablesFolderContents(folder: { id: string; url: string }) 
 			if (children.length === 0) {
 				return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
 			}
+
 			return okAsync(folder);
 		});
 }
@@ -105,6 +110,7 @@ function sendDeliverablesEmailForSession(
 				bookingId: session._id,
 				reason: emailError.reason
 			});
+
 			return { reason: "DELIVERABLES_SEND_FAILED" as const };
 		});
 }

@@ -39,11 +39,13 @@ export function saveNumberedCustomInvoice(ctx: MutationCtx, invoice: CustomInvoi
 	return okOrThrow(
 		(async () => {
 			const createdAt = Date.now();
+
 			const customInvoiceId = await ctx.db.insert("customInvoices", {
 				...invoice,
 				invoiceNumber: "pending",
 				createdAt
 			});
+
 			const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
 
 			await ctx.db.patch(customInvoiceId, { invoiceNumber });

@@ -29,8 +29,10 @@ export function saveClientDrivePermission(
 			.unique()
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 		return okOrThrow(ctx.db.get(driveSession.driveClientId)).andThen((driveClient) => {
 			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 			switch (args.name) {
 				case "Client folder":
 					return okOrThrow(
@@ -62,6 +64,7 @@ export function saveClientDrivePermissionsStatus(
 			.unique()
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
 		return okOrThrow(
 			ctx.db
 				.patch(driveSession._id, {
@@ -100,9 +103,11 @@ function canClaimClientAssetsEmailSend(args: {
 	}
 
 	const { driveSession } = args;
+
 	const permissionsReady =
 		driveSession.clientDrivePermissionsStatus === "ready" ||
 		driveSession.clientDrivePermissionsStatus === "skipped";
+
 	const claimStillActive =
 		driveSession.assetsEmailClaimedAt !== undefined &&
 		args.now - driveSession.assetsEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS;
@@ -127,6 +132,7 @@ export function claimClientAssetsEmail(
 		) {
 			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
 		}
+
 		return okOrThrow(
 			Promise.all([
 				ctx.db.get(booking.driveClientId),
@@ -137,9 +143,11 @@ export function claimClientAssetsEmail(
 			])
 		).andThen(([driveClient, driveSession]) => {
 			const assetsFolder = driveClient?.assetsFolder;
+
 			const isEmailCurrent =
 				driveSession?.assetsEmailStatus === "sent" &&
 				driveSession.assetsEmailFolderId === assetsFolder?.id;
+
 			if (
 				!canClaimClientAssetsEmailSend({
 					attempt: args.attempt,
@@ -191,6 +199,7 @@ export function saveClientAssetsEmailResult(
 		if (driveSession === null || driveSession.assetsEmailClaimedAt !== args.claimedAt) {
 			return ok(null);
 		}
+
 		return okOrThrow(
 			ctx.db
 				.patch(driveSession._id, {

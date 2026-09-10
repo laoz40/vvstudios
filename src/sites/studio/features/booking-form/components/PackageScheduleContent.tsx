@@ -69,6 +69,7 @@ export function PackageScheduleContent({
 
 	async function handleMakeDefaultSpace() {
 		const service = recordingSpaceSchema.safeParse(scheduling.selectedService).data;
+
 		if (!service) {
 			return;
 		}
@@ -79,6 +80,7 @@ export function PackageScheduleContent({
 
 		if (saveError !== null) {
 			toast.error(getSaveDefaultSpaceToastMessage(saveError));
+
 			return;
 		}
 
@@ -88,11 +90,13 @@ export function PackageScheduleContent({
 	function handleRequestSaveSession() {
 		if (scheduling.activeSessionKey === null) {
 			toast.error("Choose a session first.");
+
 			return;
 		}
 
 		if (!scheduling.selectedDateValue || !scheduling.selectedTime || !scheduling.selectedService) {
 			toast.error("Please choose a date, time, and recording space first.");
+
 			return;
 		}
 
@@ -115,6 +119,7 @@ export function PackageScheduleContent({
 		}
 
 		const service = recordingSpaceSchema.safeParse(scheduling.selectedService).data;
+
 		if (!service) {
 			return;
 		}
@@ -129,6 +134,7 @@ export function PackageScheduleContent({
 			remotePodcast: scheduling.selectedRemotePodcast,
 			token
 		};
+
 		const saveOutcome = await performPackageSessionSave(
 			scheduling.activeBooking,
 			sessionInput,
@@ -142,6 +148,7 @@ export function PackageScheduleContent({
 			toast.error(
 				getSavePackageBookingToastMessage(saveOutcome.error, scheduling.noticeWindowLabel)
 			);
+
 			return;
 		}
 
@@ -158,11 +165,13 @@ export function PackageScheduleContent({
 
 	async function handleUnschedule(bookingId: Id<"bookings">) {
 		setUnschedulingBookingId(bookingId);
+
 		const unscheduleOutcome = await performPackageSessionUnschedule(
 			bookingId,
 			token,
 			unschedulePackageSession
 		);
+
 		setUnschedulingBookingId(null);
 
 		if (unscheduleOutcome.status === "error") {
@@ -172,6 +181,7 @@ export function PackageScheduleContent({
 					scheduling.noticeWindowLabel
 				)
 			);
+
 			return;
 		}
 

@@ -25,20 +25,29 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 
 type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };
+
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
+
 type PackageIdArgs = { packageId: Id<"packages"> };
+
 type MarkPackageUnpaidArgs = { packageId: Id<"packages"> };
+
 type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
+
 type MarkPackageScheduleEmailAttemptArgs = PackageIdArgs & { status: "sent" | "failed" };
+
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
+
 export type PaidPackageResult = {
 	expiresAt: number;
 	paidAt: number;
 	packageRecord: Doc<"packages">;
 	token: string;
 };
+
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
 	const createdAt = Date.now();
+
 	const packageRecord = buildPendingPackageRecord(
 		{ ...args, email: args.email.trim().toLowerCase() },
 		createdAt
@@ -50,6 +59,7 @@ export function createPendingPackageService(ctx: MutationCtx, args: CreatePendin
 }
 
 type PackageListSortDirection = "asc" | "desc";
+
 type ListPackagesArgs = {
 	paginationOpts: PaginationOptions;
 	sortDirection?: PackageListSortDirection;
@@ -138,6 +148,7 @@ export function savePackageInstagramHandleService(
 			if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
 				return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
 			}
+
 			return ok(packageFromDb);
 		})
 		.andThen((packageFromDb) =>
@@ -270,6 +281,7 @@ export function markPackageInvoiceEmailAttemptService(
 ) {
 	return validatePackageInvoiceEmailAttempt(args).asyncAndThen(() => {
 		const now = Date.now();
+
 		const patch =
 			args.status === "sent"
 				? {

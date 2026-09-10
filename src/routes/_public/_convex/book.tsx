@@ -69,8 +69,10 @@ function BookingPage() {
 
 	// Derived form values and availability
 	const formValues = useSelector(formApi.store, (state) => state.values);
+
 	const isDateTimeIncomplete =
 		formValues.bookingMode === "single" && (!formValues.date || !formValues.time);
+
 	const handleSelectedTimeInvalidated = useCallback(() => {
 		formApi.setFieldValue("time", "");
 	}, [formApi]);
@@ -81,6 +83,7 @@ function BookingPage() {
 		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
 		selectedTime: formValues.time
 	});
+
 	const completeBookingShortcut = useCompleteBookingShortcut(isDateTimeIncomplete);
 
 	const savedBookingInfo = useSavedBookingInfo({
@@ -139,6 +142,7 @@ function BookingPage() {
 										submissionError instanceof Error
 											? submissionError.message
 											: "Something went wrong.";
+
 									toast.error(message);
 								}
 							});

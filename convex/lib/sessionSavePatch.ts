@@ -22,9 +22,11 @@ export function buildSessionCalendarConfirmationPatch(
 	if (args.googleCalendarId) {
 		patch.googleCalendarId = args.googleCalendarId;
 	}
+
 	if (args.googleEventId) {
 		patch.googleEventId = args.googleEventId;
 	}
+
 	if (args.confirmBooking) {
 		patch.status = "confirmed";
 		patch.bookingConfirmedAt = Date.now();
@@ -46,9 +48,11 @@ export function buildClientRescheduleFieldPatch(
 	if (args.service !== undefined) {
 		patch.service = args.service;
 	}
+
 	if (args.addons !== undefined) {
 		patch.addons = args.addons;
 	}
+
 	if (args.notes !== undefined) {
 		patch.notes = args.notes;
 	}

@@ -68,4 +68,5 @@ const Stack3Icon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 Stack3Icon.displayName = "Stack3Icon";
+
 export default Stack3Icon;

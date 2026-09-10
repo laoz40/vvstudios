@@ -20,9 +20,13 @@ import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const originalStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
 const targetStartAt = Date.parse("2030-01-10T23:00:00.000Z");
+
 const laterTargetStartAt = Date.parse("2030-01-11T23:00:00.000Z");
+
 const eventBufferMinutes = 15;
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -31,6 +35,7 @@ describe("booking time reservations", () => {
 	test("atomically blocks another workflow from an overlapping buffered target", async () => {
 		const t = createConvexTest();
 		const firstBookingId = await seedBooking(t, "confirmed", "first@example.com");
+
 		const secondBookingId = await seedBooking(
 			t,
 			"email_failed",
@@ -39,6 +44,7 @@ describe("booking time reservations", () => {
 		);
 
 		const firstReservationResult = await createReservation(t, firstBookingId, targetStartAt, now);
+
 		const overlappingReservationResult = await createReservation(
 			t,
 			secondBookingId,
@@ -54,11 +60,13 @@ describe("booking time reservations", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t, "confirmed", "customer@example.com");
 		const firstReservationResult = await createReservation(t, bookingId, targetStartAt, now);
+
 		if (firstReservationResult[0] !== null || firstReservationResult[1].outcome !== "reserved") {
 			throw new Error("Failed to create first reservation");
 		}
 
 		const secondReservationResult = await createReservation(t, bookingId, laterTargetStartAt, now);
+
 		if (secondReservationResult[0] !== null || secondReservationResult[1].outcome !== "reserved") {
 			throw new Error("Failed to replace reservation");
 		}
@@ -67,6 +75,7 @@ describe("booking time reservations", () => {
 			bookingId,
 			reservation: firstReservationResult[1].reservation
 		});
+
 		const staleSaveResult = await t.mutation(
 			internal.sessionScheduling.saveClientSessionReschedule,
 			{
@@ -77,6 +86,7 @@ describe("booking time reservations", () => {
 				reservation: firstReservationResult[1].reservation
 			}
 		);
+
 		const booking = await readBooking(t, bookingId);
 
 		expect(staleClearResult).toEqual([null, { cleared: false }]);
@@ -93,6 +103,7 @@ describe("booking time reservations", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t, "confirmed", "customer@example.com");
 		const reservationResult = await createReservation(t, bookingId, targetStartAt, now);
+
 		if (reservationResult[0] !== null || reservationResult[1].outcome !== "reserved") {
 			throw new Error("Failed to reserve target");
 		}
@@ -104,6 +115,7 @@ describe("booking time reservations", () => {
 			sessionStartAt: targetStartAt,
 			reservation: reservationResult[1].reservation
 		});
+
 		const booking = await readBooking(t, bookingId);
 
 		expect(saveResult).toEqual([null, null]);

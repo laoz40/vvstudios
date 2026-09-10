@@ -9,5 +9,6 @@ const modules = import.meta.glob("./**/*.ts");
 export function createConvexTest() {
 	const testClient = convexTest(schema, modules);
 	register(testClient);
+
 	return testClient;
 }

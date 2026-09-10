@@ -17,6 +17,7 @@ import { parseCalendarDate, parseTimeOfDay, parseYearMonth } from "#studio/lib/c
 import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
+
 const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
 
 export interface BusyPeriod {
@@ -28,6 +29,7 @@ export interface BusyPeriod {
 
 export function getCurrentMonthKey() {
 	const today = new Date();
+
 	return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -47,6 +49,7 @@ function getAvailableTimesForBusyPeriods({
 	const durationMinutes = getDurationMinutes(duration);
 	const dayStartMinutes = parseTimeToMinutes(startTime);
 	const dayEndMinutes = parseTimeToMinutes(endTime);
+
 	const busyRanges = busyPeriods.map((period) => ({
 		endMinutes: Math.min(24 * 60, parseReadableTimeToMinutes(period.end) + eventBufferMinutes),
 		startMinutes: Math.max(0, parseReadableTimeToMinutes(period.start) - eventBufferMinutes)
@@ -92,6 +95,7 @@ export function parseDateValue(value: string) {
 	}
 
 	const calendarDate = parseCalendarDate(value);
+
 	if (!calendarDate) {
 		return undefined;
 	}
@@ -101,6 +105,7 @@ export function parseDateValue(value: string) {
 
 export function formatBookingDate(dateValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return dateValue;
 	}
@@ -110,6 +115,7 @@ export function formatBookingDate(dateValue: string) {
 
 export function formatBookingDateCompact(dateValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return dateValue;
 	}
@@ -123,6 +129,7 @@ export function formatBookingDateCompact(dateValue: string) {
 
 export function formatBookingDateSummary(dateValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return dateValue;
 	}
@@ -169,9 +176,11 @@ export function getSydneyDateValue(date = new Date()) {
 
 export function getEditorEditDueAt(sessionStartAt: number) {
 	const { day, month, year } = getCalendarDateInSydney(new Date(sessionStartAt));
+
 	const dueCalendarDate = new Date(
 		Date.UTC(year, month - 1, day + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION)
 	);
+
 	return getUtcDateForZonedParts({
 		day: dueCalendarDate.getUTCDate(),
 		hours: 12,
@@ -187,6 +196,7 @@ export function getEditorEditDueAt(sessionStartAt: number) {
 
 function getDateUtcTimestamp(dateValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return null;
 	}
@@ -203,10 +213,12 @@ function formatRelativeDateDistance(dayDifference: number) {
 
 	if (absoluteDays < 365) {
 		const months = Math.max(1, Math.round(absoluteDays / 30));
+
 		return `${months} ${months === 1 ? "month" : "months"}`;
 	}
 
 	const years = Math.max(1, Math.round(absoluteDays / 365));
+
 	return `${years} ${years === 1 ? "year" : "years"}`;
 }
 
@@ -216,12 +228,14 @@ export function startOfMonth(date: Date) {
 
 export function startOfToday() {
 	const today = new Date();
+
 	return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
 function addDays(date: Date, days: number) {
 	const result = new Date(date);
 	result.setDate(result.getDate() + days);
+
 	return result;
 }
 
@@ -247,11 +261,13 @@ export function getAvailableTimesForDate({
 	settings?: BookingAvailabilitySettings;
 }) {
 	const bookingDate = parseDateValue(dateValue);
+
 	if (!bookingDate) {
 		return [];
 	}
 
 	const daySchedule = settings.weekSchedule.at(bookingDate.getDay());
+
 	if (!daySchedule) {
 		return [];
 	}
@@ -263,10 +279,12 @@ export function getAvailableTimesForDate({
 		endTime: daySchedule.endTime,
 		startTime: daySchedule.startTime
 	});
+
 	const earliestStartTimestamp = currentTimestamp + settings.leadTimeMinutes * 60 * 1000;
 
 	return availableTimes.filter((time) => {
 		const bookingStart = parseDateTimeValue(dateValue, time);
+
 		return bookingStart !== null && bookingStart.getTime() >= earliestStartTimestamp;
 	});
 }
@@ -313,6 +331,7 @@ export function formatBookingTimestampDateLong(timestamp: number) {
 
 export function formatBookingDateMedium(dateValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return dateValue;
 	}
@@ -351,6 +370,7 @@ export function formatBookingRelativeDate(dateValue: string, now = new Date()) {
 	}
 
 	const distance = formatRelativeDateDistance(dayDifference);
+
 	return dayDifference > 0 ? `In ${distance}` : `${distance} ago`;
 }
 
@@ -371,6 +391,7 @@ export function formatBookingTimeRange(timeValue: string, duration: string) {
 
 export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
 	const utcDate = getUtcDateForZonedDateTime(dateValue, timeValue, BOOKING_TIME_ZONE);
+
 	if (!utcDate) {
 		return 0;
 	}
@@ -385,7 +406,9 @@ export function formatDriveSessionFolderName(sessionStartAt: number) {
 		month: "short",
 		year: "numeric"
 	}).formatToParts(sessionStartAt);
+
 	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+
 	const time = new Intl.DateTimeFormat("en-AU", {
 		timeZone: BOOKING_TIME_ZONE,
 		hour: "numeric",
@@ -411,6 +434,7 @@ export function formatDrivePackageFolderName({
 		month: "short",
 		year: "numeric"
 	}).formatToParts(purchasedAt);
+
 	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
 
 	return `${packageSize}-Session Package - Ordered on ${valueByType.day} ${valueByType.month} ${valueByType.year}`;
@@ -422,6 +446,7 @@ export function formatDrivePackageSessionFolderName(sessionNumber: number, sessi
 
 export function formatDriveClientFolderName(input: { accountName: string; contactName: string }) {
 	const clientName = input.accountName.trim() || input.contactName.trim();
+
 	return `${clientName} (VV Studios)`;
 }
 
@@ -435,6 +460,7 @@ export function formatDriveSessionMediaFolderName(
 		month: "numeric",
 		year: "2-digit"
 	}).formatToParts(sessionStartAt);
+
 	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
 
 	return `${folderType} (${valueByType.day}.${valueByType.month}.${valueByType.year})`;
@@ -450,16 +476,19 @@ export function toOptionId(value: string) {
 
 function parseDateTimeValue(dateValue: string, timeValue: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return null;
 	}
 
 	const timeOfDay = parseTimeOfDay(timeValue);
+
 	if (!timeOfDay) {
 		return null;
 	}
 
 	date.setHours(timeOfDay.hours, timeOfDay.minutes, 0, 0);
+
 	return date;
 }
 
@@ -483,8 +512,11 @@ function formatMinutesToTime(totalMinutes: number) {
 
 function getDurationMinutes(duration: string) {
 	if (duration === "1h") return 60;
+
 	if (duration === "2h") return 120;
+
 	if (duration === "3h") return 180;
+
 	// Fall back to 1 hour so the calendar can still render date availability before a duration is selected.
 	// The form validation still requires a real duration before showing accurate times or submitting.
 	return 60;
@@ -492,11 +524,13 @@ function getDurationMinutes(duration: string) {
 
 function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZone: string) {
 	const date = parseDateValue(dateValue);
+
 	if (!date) {
 		return null;
 	}
 
 	const timeOfDay = parseTimeOfDay(timeValue);
+
 	if (!timeOfDay) {
 		return null;
 	}
@@ -515,6 +549,7 @@ function getUtcDateForZonedDateTime(dateValue: string, timeValue: string, timeZo
 
 function parseReadableTimeToMinutes(time: string) {
 	const match = time.trim().match(/^(\d{1,2}):(\d{2})\s([AP]M)$/i);
+
 	if (!match) {
 		return 0;
 	}
@@ -522,6 +557,7 @@ function parseReadableTimeToMinutes(time: string) {
 	const hours = Number(match[1]);
 	const minutes = Number(match[2]);
 	const meridiem = match[3];
+
 	if (!meridiem) {
 		return 0;
 	}

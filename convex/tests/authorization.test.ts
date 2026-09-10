@@ -30,6 +30,7 @@ import { PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 import { tupleErr, tupleOk } from "#/lib/result";
 
 const paginationOpts = { cursor: null, numItems: 10 };
+
 const listEditorSessions = makeFunctionReference<
 	"query",
 	{ paginationOpts: { cursor: string | null; numItems: number } },
@@ -267,6 +268,7 @@ describe("requirePermission", () => {
 		const editorPermission = await editor.run((ctx) =>
 			requirePermission(ctx, "view:sessions").match(tupleOk, tupleErr)
 		);
+
 		expect(editorPermission).toMatchObject([null, editorMetadataIdentity]);
 		await expect(editor.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
 			{ data: { reason: "NOT_AUTHORIZED" } }

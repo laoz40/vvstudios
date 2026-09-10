@@ -17,6 +17,7 @@ type InstagramPromptTarget =
 	| { kind: "package"; packageId: Id<"packages"> };
 
 const defaultDevPanel = <BookingCompleteDevScenarioPanel />;
+
 export interface BookingStatusLayoutProps {
 	bookingStatus?: BookingStatus["status"];
 	canCreateRescheduleLink?: boolean;
@@ -39,10 +40,13 @@ export function BookingStatusLayout({
 	devPanel = defaultDevPanel
 }: BookingStatusLayoutProps): ReactNode {
 	const [isCreatingRescheduleLink, setIsCreatingRescheduleLink] = useState(false);
+
 	const createFailedSessionRescheduleLink = useMutation(
 		api.sessionReschedule.createPublicFailedSessionRescheduleLink
 	);
+
 	const isFailedBooking = bookingStatus === "failed";
+
 	const resolvedInstagramPromptTarget =
 		instagramPromptTarget ??
 		((bookingStatus === "confirmed" || bookingStatus === "email_failed") && stripeSessionId
@@ -52,6 +56,7 @@ export function BookingStatusLayout({
 	async function handleRescheduleClick(): Promise<void> {
 		if (!stripeSessionId) {
 			toast.error("Unable to create a reschedule link for this booking.");
+
 			return;
 		}
 
@@ -64,22 +69,27 @@ export function BookingStatusLayout({
 
 			if (error !== null) {
 				const reason = error.reason;
+
 				switch (reason) {
 					case "BOOKING_NOT_FOUND":
 						toast.error("Unable to find this booking.");
+
 						return;
 
 					case "BOOKING_NOT_FAILED":
 					case "BOOKING_NOT_RESCHEDULABLE":
 						toast.error("This booking cannot be rescheduled from this page.");
+
 						return;
 
 					case "RESCHEDULE_LINK_EXPIRED":
 						toast.error("This booking can no longer be rescheduled online.");
+
 						return;
 
 					case "UNEXPECTED_ERROR":
 						toast.error("Something went wrong while creating the reschedule link.");
+
 						return;
 					default:
 						return exhaustiveCheck(reason);
@@ -91,6 +101,7 @@ export function BookingStatusLayout({
 			setIsCreatingRescheduleLink(false);
 		}
 	}
+
 	function startReschedule(): void {
 		void handleRescheduleClick();
 	}

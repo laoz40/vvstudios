@@ -28,17 +28,21 @@ export const SAMPLE_BOOKING_INVOICE_INPUT: BookingInvoiceBuilderInput = {
 };
 
 const SAMPLE_PACKAGE_CREATED_AT = Date.UTC(2026, 3, 19, 2, 0, 0);
+
 const SAMPLE_PACKAGE_ADDONS: BookingInvoiceBuilderInput["addons"] = [
 	"4K UHD Recording",
 	"Clip Volume Pack"
 ];
+
 const SAMPLE_PACKAGE_PRICING = {
 	duration: "2h" as const,
 	addons: SAMPLE_PACKAGE_ADDONS,
 	clipsPackageQuantity: "2" as const,
 	packageSize: 8 as const
 };
+
 const SAMPLE_PACKAGE_AMOUNTS = calculatePackageAmounts(SAMPLE_PACKAGE_PRICING);
+
 const SAMPLE_PACKAGE_LINE_ITEMS = createPackageInvoiceLineItemSnapshot({
 	...SAMPLE_PACKAGE_PRICING,
 	discountAmount: SAMPLE_PACKAGE_AMOUNTS.discountAmount,

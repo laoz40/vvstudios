@@ -70,8 +70,11 @@ vi.mock("#convex/lib/googleCalendarClient", () => {
 });
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
 const updatedSessionStartAt = Date.parse("2030-01-10T23:00:00.000Z");
+
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -215,10 +218,12 @@ describe("admin booking state integrity", () => {
 	test("resets reminders for timing edits and preserves them for ordinary edits", async () => {
 		const timingTest = createConvexTest();
 		const timingBookingId = await seedConfirmedBooking(timingTest);
+
 		const timingResult = await timingTest.mutation(
 			internal.sessionScheduling.saveAdminSessionUpdate,
 			adminBookingValues(timingBookingId, { date: "2030-01-11" })
 		);
+
 		const timingBooking = await readBooking(timingTest, timingBookingId);
 
 		expect(timingResult).toEqual([null, null]);
@@ -228,10 +233,12 @@ describe("admin booking state integrity", () => {
 
 		const ordinaryTest = createConvexTest();
 		const ordinaryBookingId = await seedConfirmedBooking(ordinaryTest);
+
 		const ordinaryResult = await ordinaryTest.mutation(
 			internal.sessionScheduling.saveAdminSessionUpdate,
 			adminBookingValues(ordinaryBookingId, { name: "Ordinary edit" })
 		);
+
 		const ordinaryBooking = await readBooking(ordinaryTest, ordinaryBookingId);
 
 		expect(ordinaryResult).toEqual([null, null]);
@@ -380,6 +387,7 @@ async function seedFailedBooking(t: TestClient, bookingFailureCode: string) {
 			googleEventId: undefined
 		})
 	);
+
 	return bookingId;
 }
 

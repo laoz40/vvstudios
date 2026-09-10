@@ -44,6 +44,7 @@ function getDriveDescription({
 			return "Google Drive folders could not be created. Retry the setup manually.";
 		case "incomplete":
 			if (hasClientAssetsLibrary) return "Folder not created for this session.";
+
 			return "Google Drive folders not created completely.";
 		case "not_created":
 		case undefined:
@@ -68,6 +69,7 @@ function getSavedFolderSections(driveStatus: DriveDialogStatus | null) {
 function getDriveSetupButtonMode(status: DriveDialogStatus["status"] | undefined) {
 	const shouldRetry = status === "incomplete" || status === "failed";
 	const canSetUp = status === "not_created" || shouldRetry || status === "ready";
+
 	return { canSetUp, shouldRetry };
 }
 
@@ -83,12 +85,15 @@ function getDriveSetupButtonLabel({
 	if (isSettingUp) {
 		return hasClientAssetsLibrary ? "Creating" : "Setting up";
 	}
+
 	if (shouldRetry && hasClientAssetsLibrary) {
 		return "Create Google Drive folders";
 	}
+
 	if (shouldRetry) {
 		return "Retry Google Drive folders";
 	}
+
 	return "Set up Google Drive folders";
 }
 
@@ -116,8 +121,10 @@ function DriveSetupButton({
 
 		if (error !== null) {
 			toast.error("Google Drive folders could not be created.");
+
 			return;
 		}
+
 		toast.success("Google Drive folders created.");
 	}
 
@@ -261,6 +268,7 @@ export function DriveFoldersDialog({
 	const hasClientAssetsLibrary = hasSavedAssetsFolder(savedFolders);
 	const sessionStartAt = getBookingStartTimestamp(sessionDate, sessionTime);
 	const sessionFolderName = getSessionFolderLabel(driveStatus, sessionStartAt);
+
 	return (
 		<Dialog
 			open={open}

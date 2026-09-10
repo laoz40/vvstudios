@@ -60,6 +60,7 @@
 		"class-methods-use-this": "error",
 		"no-undef": "error",
 		"no-unreachable": "error",
+		"anti-slop/no-array-filter-map": "error",
 		"anti-slop/no-chained-type-assertions": "error",
 		"anti-slop/no-widen-then-assert": "error",
 		"anti-slop/no-reflect-get": "error",
@@ -73,7 +74,9 @@
 		"anti-slop/no-unknown-parameters": "error",
 		"anti-slop/no-unknown-returns": "error",
 		"anti-slop/no-object-parameters": "error",
-		"anti-slop/no-conditional-empty-object-spread": "error"
+		"anti-slop/no-conditional-empty-object-spread": "error",
+		"anti-slop/no-reduce-accumulator-copy": "error",
+		"anti-slop/require-readable-spacing": "error"
 	},
 	"overrides": [
 		{

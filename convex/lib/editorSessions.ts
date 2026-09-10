@@ -6,6 +6,7 @@ import { isAdminIdentity } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
 
 export type DeliverablesSessionAccess = { identity: UserIdentity; session: Doc<"bookings"> };
+
 export type DeliverablesCustomerType = "first-time" | "recurring";
 
 export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"bookings">) {
@@ -26,6 +27,7 @@ export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"book
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
 	const hasEligibleStatus = session.status === "confirmed" || session.status === "email_failed";
+
 	return hasEligibleStatus && session.hiddenAt === undefined;
 }
 
@@ -42,6 +44,7 @@ export function requireDeliverablesOwnership(access: DeliverablesSessionAccess) 
 
 export function requireDeliverablesEligibility(access: DeliverablesSessionAccess) {
 	const { session } = access;
+
 	if (session.status !== "confirmed" && session.status !== "email_failed") {
 		return err({ reason: "SESSION_NOT_CONFIRMED" as const });
 	}
@@ -92,6 +95,7 @@ export function saveSessionEditStatus(
 	return okOrThrow(
 		(async () => {
 			const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
+
 			// Credit each transition into Completed. A duplicate credit requires an unlikely manual
 			// Completed → Editing → Completed cycle, so we avoid adding persistent tracking for it.
 			const shouldIncrementTotal =
@@ -101,14 +105,17 @@ export function saveSessionEditStatus(
 
 			if (!shouldIncrementTotal) {
 				await ctx.db.patch(session._id, { editStatus });
+
 				return null;
 			}
 
 			const editor = await getAssignedEditor(ctx, editorTokenIdentifier);
 			await ctx.db.patch(session._id, { editStatus });
+
 			if (editor !== null) {
 				await ctx.db.patch(editor._id, { totalEdits: editor.totalEdits + 1 });
 			}
+
 			return null;
 		})()
 	);

@@ -6,22 +6,27 @@ import type { UnexpectedError } from "#/lib/result";
 type PackageLookupError = NonNullable<
 	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[0]
 >;
+
 type PackageBusyWindowsError =
 	| NonNullable<FunctionReturnType<typeof api.packageSchedulingCalendar.getPackageBusyWindows>[0]>
 	| UnexpectedError;
+
 type SaveDefaultSpaceError =
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.setDefaultSpace>[0]>
 	| UnexpectedError;
+
 type SavePackageBookingError =
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.createPackageSession>[0]>
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.reschedulePackageSession>[0]>
 	| UnexpectedError;
+
 type UnschedulePackageSessionError =
 	| NonNullable<FunctionReturnType<typeof api.packageScheduling.unschedulePackageSession>[0]>
 	| UnexpectedError;
 
 export function getPackageLinkInvalidMessage(error: PackageLookupError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 			return {
@@ -50,6 +55,7 @@ export function getPackageLinkInvalidMessage(error: PackageLookupError) {
 
 export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
@@ -71,6 +77,7 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 
 export function getSaveDefaultSpaceToastMessage(error: SaveDefaultSpaceError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":
@@ -127,6 +134,7 @@ export function getUnschedulePackageBookingToastMessage(
 	noticeWindowLabel: string
 ) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "PACKAGE_LINK_INVALID":
 		case "PACKAGE_LINK_EXPIRED":

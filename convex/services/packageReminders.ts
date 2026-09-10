@@ -18,7 +18,9 @@ import {
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const MAX_PACKAGE_SESSIONS = 12;
+
 const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type PackageReminderArgs = { packageId: Doc<"packages">["_id"]; reminderType: PackageReminderType };
@@ -28,6 +30,7 @@ export async function listPackagesDueForPaymentReminderService(
 	args: { invoiceDueStart: number; invoiceDueEnd: number; limit?: number }
 ) {
 	const limit = args.limit ?? REMINDER_BATCH_SIZE;
+
 	const packagesByStatus = await Promise.all(
 		(["pending_payment", "invoice_email_failed"] as const).map((status) =>
 			ctx.db
@@ -55,6 +58,7 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 	args: { expiresAfter: number; expiresBefore: number; limit?: number }
 ) {
 	const limit = args.limit ?? REMINDER_BATCH_SIZE;
+
 	const packagesByStatus = await Promise.all(
 		(["paid", "schedule_email_failed"] as const).map((status) =>
 			ctx.db
@@ -68,6 +72,7 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 				.take(limit)
 		)
 	);
+
 	const eligiblePackages = packagesByStatus
 		.flat()
 		.filter(
@@ -157,16 +162,19 @@ function ensurePackageExists(ctx: MutationCtx, packageId: Doc<"packages">["_id"]
 
 const getSydneyCalendarDayNumber = (timestamp: number) => {
 	const { year, month, day } = getTimeZoneDate(new Date(timestamp), REMINDER_TIME_ZONE);
+
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
 
 async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
 	const now = nowDate.getTime();
+
 	const paymentDueDay = getTimeZoneDayRange(
 		nowDate,
 		REMINDER_TIME_ZONE,
 		PAYMENT_REMINDER_DAYS_BEFORE_DUE
 	);
+
 	const paymentPackages = await ctx.runQuery(
 		internal.packageReminders.listPackagesDueForPaymentReminder,
 		{
@@ -187,6 +195,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 						reminderType: "payment"
 					})
 				);
+
 				if (claimResult.isErr()) return;
 
 				const sendResult = await sendPackagePaymentReminderEmail({
@@ -195,6 +204,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 					name: packageRecord.name,
 					requestDate: packageRecord.createdAt
 				});
+
 				if (sendResult.isOk()) {
 					await fromConvexTuple(
 						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
@@ -203,6 +213,7 @@ async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date
 							reminderType: "payment"
 						})
 					);
+
 					return;
 				}
 
@@ -224,6 +235,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	const now = nowDate.getTime();
 	const today = getTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
 	const expiryRange = getTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE, MAX_PACKAGE_SESSIONS * 7);
+
 	const expiryPackages = await ctx.runQuery(
 		internal.packageReminders.listPackagesPotentiallyDueForExpiryReminder,
 		{ expiresAfter: today.dayStart, expiresBefore: expiryRange.dayEnd, limit: REMINDER_BATCH_SIZE }
@@ -234,6 +246,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 		expiryPackages.map(async (packageRecord) => {
 			try {
 				const { expiresAt, remainingSessions } = packageRecord;
+
 				if (
 					expiresAt === undefined ||
 					remainingSessions === 0 ||
@@ -250,6 +263,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 						reminderType: "expiry"
 					})
 				);
+
 				if (claimResult.isErr()) return;
 
 				const sendResult = await sendPackageExpiryReminderEmail({
@@ -258,6 +272,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 					name: packageRecord.name,
 					remainingSessions
 				});
+
 				if (sendResult.isOk()) {
 					await fromConvexTuple(
 						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
@@ -266,6 +281,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 							reminderType: "expiry"
 						})
 					);
+
 					return;
 				}
 

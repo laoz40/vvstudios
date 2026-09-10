@@ -37,10 +37,12 @@ export function updateBookingSettingsService(
 
 					if (existing) {
 						await ctx.db.patch(existing._id, value);
+
 						return null;
 					}
 
 					await ctx.db.insert("bookingSettings", value);
+
 					return null;
 				})()
 			)

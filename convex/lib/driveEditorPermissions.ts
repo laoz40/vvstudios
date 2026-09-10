@@ -76,6 +76,7 @@ function requireEditorPermission(
 		role: requirement.role
 	}).andThen((existingPermission) => {
 		if (existingPermission !== null) return ok(existingPermission);
+
 		return createDrivePermission(drive, {
 			email: normalizeDriveEmail(editorEmail),
 			fileId: requirement.fileId,
@@ -122,6 +123,7 @@ function ensureEditorDrivePermissions(
 	const sessionFolder = setup.driveSession.sessionFolder;
 	const assetsFolder = setup.driveClient.assetsFolder;
 	const deliverablesFolder = setup.driveSession.deliverablesFolder;
+
 	if (
 		sessionFolder === undefined ||
 		assetsFolder === undefined ||
@@ -242,7 +244,9 @@ export function setupEditorAccessIfAssigned(
 		ctx.runQuery(internal.sessions.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setup) => {
 		if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+
 		if (setup.booking.assignedEditorTokenIdentifier === undefined) return okAsync(null);
+
 		return setupEditorAccess(ctx, args);
 	});
 }
@@ -253,6 +257,7 @@ function removeSavedPermission(
 	permission: SavedDrivePermission | null
 ) {
 	if (fileId === null || permission === null) return okAsync(null);
+
 	return deleteDrivePermission(drive, { fileId, permissionId: permission.id });
 }
 
@@ -262,6 +267,7 @@ export function removePreviousEditorDriveAccess(
 ): ResultAsync<null, DriveEditorPermissionsError> {
 	if (args.access === null) return okAsync(null);
 	const access = args.access;
+
 	return loadDriveClient()
 		.andThen((drive) =>
 			// Revoke session-specific access before shared client assets access.
@@ -327,6 +333,7 @@ function findAndDeleteEditorPermission(
 	role: "reader" | "writer"
 ) {
 	if (fileId === null) return okAsync(null);
+
 	return findDrivePermission(drive, {
 		email: normalizeDriveEmail(editorEmail),
 		fileId,

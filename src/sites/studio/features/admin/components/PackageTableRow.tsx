@@ -61,6 +61,7 @@ function PackageTableDateCell({
 		dashboardDate.kind === "package_expiry"
 			? isAdminPackageExpiryClose(packageRow)
 			: isAdminPackagePaymentDueClose(packageRow);
+
 	const relativeDateLabel = formatBookingRelativeDate(
 		getSydneyDateValue(new Date(dashboardDate.timestamp))
 	);
@@ -88,8 +89,10 @@ function hasOutstandingPackagePayment(packageRow: AdminPackageRow) {
 function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
 	const isInactive = isAdminPackageRowDimmed(packageRow);
 	const dashboardDate = getAdminPackageDashboardDate(packageRow);
+
 	const isDashboardDateOutstanding =
 		dashboardDate.kind !== "adjustment_due" || packageRow.adjustment?.paymentStatus === "unpaid";
+
 	const isDashboardDatePastDue =
 		dashboardDate.kind !== "missing_package_expiry" &&
 		isDashboardDateOutstanding &&
@@ -119,6 +122,7 @@ export function PackageTableRow({
 		isDashboardDatePastDue,
 		rowClassName
 	} = getAdminPackageTableRowState(packageRow);
+
 	const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
 
 	return (

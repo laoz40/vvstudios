@@ -107,6 +107,7 @@ function getPackageDatePickerOptions({
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
+
 	const availableTimes = getBookableAvailableTimes({
 		currentTimestamp,
 		duration,
@@ -120,6 +121,7 @@ function getPackageDatePickerOptions({
 		settings,
 		today
 	});
+
 	const nextAvailableDate = getNextAvailableBookingDate({
 		currentTimestamp,
 		duration,
@@ -128,6 +130,7 @@ function getPackageDatePickerOptions({
 		selectedDate,
 		settings
 	});
+
 	const selectedBusyPeriods = selectedBusyDay?.busyPeriods ?? [];
 
 	function disabledDates(date: Date) {
@@ -167,10 +170,13 @@ export function usePackageSchedule({
 }: UsePackageScheduleOptions): PackageScheduleState {
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
+
 	const [calendarMonth, setCalendarMonth] = useState(() =>
 		parseMonthKey(formatMonthKey(startOfToday()))
 	);
+
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
+
 	const [sessionSelection, setSessionSelection] = useState<SessionSelectionState>({
 		activeSessionKey: null,
 		highlightedBookingId: null,
@@ -188,6 +194,7 @@ export function usePackageSchedule({
 		const lastBookableDate = parseDateValue(expiresDateValue) ?? today;
 		const bookableMonthKeys = getBookableMonthKeys(today, lastBookableDate);
 		const visibleMonth = formatMonthKey(calendarMonth);
+
 		const selectedMonth = sessionSelection.selectedDateValue
 			? sessionSelection.selectedDateValue.slice(0, 7)
 			: visibleMonth;
@@ -205,8 +212,10 @@ export function usePackageSchedule({
 	const activeBooking = packageData.sessions.find(
 		(booking) => booking._id === sessionSelection.activeSessionKey
 	);
+
 	const { busyWindowsByMonth, calendarLoadError, invalidateCalendarCache, isLoadingCalendar } =
 		usePackageCalendarBusyWindows({ bookableMonthKeys: calendarView.bookableMonthKeys, token });
+
 	const busyWindowsForPicker = useMemo(
 		() => excludeBusyEvent(busyWindowsByMonth, activeBooking?.googleEventId),
 		[activeBooking?.googleEventId, busyWindowsByMonth]
@@ -250,11 +259,13 @@ export function usePackageSchedule({
 		settings: availabilitySettings,
 		today: calendarView.today
 	});
+
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
 		hasDate: Boolean(sessionSelection.selectedDateValue),
 		hasDuration: true,
 		isViewingSelectedMonth: calendarView.isViewingSelectedMonth
 	});
+
 	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
 
 	function clearSessionSelection() {

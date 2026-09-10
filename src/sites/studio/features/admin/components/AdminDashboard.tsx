@@ -27,10 +27,15 @@ import { readStoredSessionsTablePreferences } from "#studio/features/admin/lib/a
 import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
 
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
+
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
+
 type Employees = NonNullable<EmployeeListResult[1]>;
+
 type ActiveEditors = FunctionReturnType<typeof api.sessions.listActiveEditors>;
+
 type Sessions = FunctionReturnType<typeof api.sessions.listSessions>["page"];
+
 type Packages = FunctionReturnType<typeof api.packages.listPackages>["page"];
 
 type AdminDashboardTablesProps = {
@@ -59,9 +64,11 @@ type AdminDashboardTablesProps = {
 
 function usePaginatedPackagesTable(packageSorting: AdminPackageSort) {
 	const packageListSort = toPackageListQuerySort(packageSorting);
+
 	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
+
 	const packagesForTable = useDisplayedWhileRefetching(
 		packages.results,
 		packages.status === "LoadingFirstPage"
@@ -90,6 +97,7 @@ function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolea
 
 function renderEmployeeListError(error: EmployeeListError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			return <BackendAuthErrorPage />;
@@ -166,14 +174,18 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	const [sessionSorting, setSessionSorting] = useState(initialSessionPreferences.sorting);
 	const [packageSorting, setPackageSorting] = useState<AdminPackageSort>({ isDescending: true });
 	const sessionListSort = toSessionListQuerySort(sessionSorting);
+
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
+
 	const { packages, packagesForTable } = usePaginatedPackagesTable(packageSorting);
+
 	const sessionsForTable = useDisplayedWhileRefetching(
 		sessions.results,
 		sessions.status === "LoadingFirstPage"
 	);
+
 	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
 	const editorsResult = useQuery(api.employees.listEmployees, {});
 	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
@@ -197,11 +209,13 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	}
 
 	const [editorsError, editors] = editorsResult;
+
 	if (editorsError !== null) {
 		return renderEmployeeListError(editorsError);
 	}
 
 	const [accessError, access] = accessResult;
+
 	if (accessError !== null) {
 		return renderEmployeeListError(accessError);
 	}

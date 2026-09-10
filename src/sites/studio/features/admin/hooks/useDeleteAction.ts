@@ -19,6 +19,7 @@ export function useDeleteAction(session: SessionRecord) {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -46,6 +47,7 @@ export function useDeleteAction(session: SessionRecord) {
 			}
 
 			setIsDeleting(false);
+
 			return;
 		}
 
@@ -61,6 +63,7 @@ export function useDeleteAction(session: SessionRecord) {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -79,6 +82,7 @@ export function useDeleteAction(session: SessionRecord) {
 			}
 
 			setIsUpdatingArchive(false);
+
 			return;
 		}
 

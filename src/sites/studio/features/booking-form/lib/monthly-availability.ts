@@ -188,12 +188,14 @@ export function isBookingDateUnavailable({
 	}
 
 	const busyDays = monthlyBusyWindowsByMonth[formatMonthKey(date)];
+
 	if (!busyDays) {
 		return false;
 	}
 
 	const dateValue = formatDateValue(date);
 	const busyDay = busyDays.find((day) => day.date === dateValue);
+
 	return (
 		getAvailableTimesForDate({
 			busyPeriods: busyDay?.busyPeriods ?? [],
@@ -234,12 +236,14 @@ export function getNextAvailableBookingDate({
 		date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
 	) {
 		const busyDays = monthlyBusyWindowsByMonth[formatMonthKey(date)];
+
 		if (!busyDays) {
 			continue;
 		}
 
 		const dateValue = formatDateValue(date);
 		const busyDay = busyDays.find((day) => day.date === dateValue);
+
 		const availableTimes = getAvailableTimesForDate({
 			busyPeriods: busyDay?.busyPeriods ?? [],
 			currentTimestamp,
@@ -247,6 +251,7 @@ export function getNextAvailableBookingDate({
 			duration,
 			settings
 		});
+
 		if (availableTimes.length > 0) {
 			return date;
 		}

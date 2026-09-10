@@ -21,12 +21,15 @@ export function useInvoiceActions(session: SessionRecord) {
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
+
 	const customInvoicesResult = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
 		isEmailInvoiceDialogOpen ? { bookingId: session._id } : "skip"
 	);
+
 	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
 		useState<Id<"customInvoices"> | null>(null);
+
 	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
@@ -51,17 +54,20 @@ export function useInvoiceActions(session: SessionRecord) {
 
 			if (packageError !== null) {
 				toast.error("Unable to generate package invoice.");
+
 				return;
 			}
 
 			downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
 			toast.success("Package invoice download started.");
+
 			return;
 		}
 
 		if (!bookingSettings) {
 			setIsDownloadingInvoice(false);
 			toast.error("Booking settings are still loading.");
+
 			return;
 		}
 
@@ -77,12 +83,15 @@ export function useInvoiceActions(session: SessionRecord) {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "INVALID_INVOICE_INPUT":
 					toast.error(error.message);
+
 					return;
 				case "UNEXPECTED_ERROR":
 					toast.error("Unable to generate invoice.");
+
 					return;
 				default:
 					exhaustiveCheck(reason);
@@ -113,24 +122,31 @@ export function useInvoiceActions(session: SessionRecord) {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
+
 					return;
 				case "NOT_AUTHORIZED":
 					toast.error("You do not have access to send invoice emails.");
+
 					return;
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
+
 					return;
 				case "CUSTOM_INVOICE_NOT_FOUND":
 					toast.error("That custom invoice no longer exists.");
+
 					return;
 				case "INVOICE_SEND_FAILED":
 					toast.error("Unable to send invoice email.");
+
 					return;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while sending the invoice email.");
+
 					return;
 				default:
 					exhaustiveCheck(reason);

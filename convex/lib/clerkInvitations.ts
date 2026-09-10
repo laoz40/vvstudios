@@ -6,7 +6,9 @@ import { studioSite } from "#/config/sites";
 import { env } from "#convex/env";
 
 const clerkInvitationsUrl = "https://api.clerk.com/v1/invitations";
+
 const inviteEmailSchema = z.string().trim().pipe(z.email());
+
 const clerkErrorSchema = z.object({
 	errors: z
 		.array(
@@ -39,6 +41,7 @@ type ParsedClerkError = z.infer<typeof clerkErrorSchema>;
 
 function clerkErrorFields(body: ParsedClerkError) {
 	const firstError = body.errors?.[0];
+
 	return {
 		code: firstError?.code ?? "",
 		text: `${firstError?.message ?? ""} ${firstError?.long_message ?? ""}`.toLowerCase()
@@ -65,6 +68,7 @@ function mapInvitationError(body: ParsedClerkError): ClerkInvitationError {
 
 export function parseInviteEmail(email: string) {
 	const parsed = inviteEmailSchema.safeParse(email);
+
 	if (!parsed.success) {
 		return err({ reason: "INVALID_EMAIL" as const });
 	}
@@ -93,6 +97,7 @@ export function createClerkInvitation(email: string) {
 		})).andThen((body) => {
 			if (!response.ok) {
 				const parsedBody = clerkErrorSchema.safeParse(body);
+
 				return errAsync(
 					mapInvitationError(parsedBody.success ? parsedBody.data : { errors: undefined })
 				);

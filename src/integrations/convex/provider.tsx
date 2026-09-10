@@ -9,10 +9,12 @@ import { createQueryClient } from "#/integrations/tanstack-query/client";
 const CONVEX_URL = env.VITE_CONVEX_URL;
 
 const convex = new ConvexReactClient(CONVEX_URL);
+
 const queryClient = createQueryClient();
 
 function useConvexClerkAuth() {
 	const { getToken, isLoaded, isSignedIn } = useAuth();
+
 	const fetchAccessToken = useCallback(
 		async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
 			try {

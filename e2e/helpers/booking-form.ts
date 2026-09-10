@@ -126,6 +126,7 @@ async function pickTimeForDayAtIndex(
 	}
 
 	await timeLabels.nth(Math.min(timeIndex, timeCount - 1)).click();
+
 	return true;
 }
 
@@ -354,11 +355,13 @@ export async function completeStripePayment(page: Page) {
 	await checkout.getByRole("textbox", { name: "Credit or debit card CVC/CVV" }).fill("123");
 
 	const cardholderName = checkout.locator('input[autocomplete="cc-name"]');
+
 	if (await cardholderName.isVisible()) {
 		await cardholderName.fill("Alex Tester");
 	}
 
 	const phoneNumber = checkout.getByRole("textbox", { name: "Phone number" });
+
 	if (await phoneNumber.isVisible()) {
 		await phoneNumber.fill("0400 000 000");
 	}

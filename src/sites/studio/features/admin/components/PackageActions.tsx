@@ -28,6 +28,7 @@ import {
 
 export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
 	const actions = usePackageActions(packageRow);
+
 	const {
 		editAction,
 		handleAdjustmentPaymentChange,
@@ -37,6 +38,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 		pendingAction,
 		setIsPaymentDialogOpen
 	} = actions;
+
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);

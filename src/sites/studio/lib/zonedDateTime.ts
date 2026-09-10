@@ -76,6 +76,7 @@ export function getUtcDateForZonedParts({
 
 	for (let iteration = 0; iteration < 3; iteration += 1) {
 		const zonedParts = getTimeZoneParts(new Date(guessUtcMs), timeZone);
+
 		const currentUtcMs = Date.UTC(
 			zonedParts.year,
 			zonedParts.month - 1,
@@ -85,6 +86,7 @@ export function getUtcDateForZonedParts({
 			0,
 			0
 		);
+
 		const diffMs = targetUtcMs - currentUtcMs;
 
 		guessUtcMs += diffMs;

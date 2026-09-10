@@ -59,6 +59,7 @@ export function EditorDriveFoldersDialog({
 	const sessionStartAt = getBookingStartTimestamp(session.date, session.time);
 	const clientName = session.name.trim();
 	const accountName = session.accountName.trim();
+
 	const clientLabel =
 		accountName && accountName !== clientName ? `${clientName} · ${accountName}` : clientName;
 

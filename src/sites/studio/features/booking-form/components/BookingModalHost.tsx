@@ -17,6 +17,7 @@ export const loadBookingPaymentModal = () =>
 	import("#studio/features/booking-form/components/PaymentModal").then((module) => ({
 		default: module.BookingPaymentModal
 	}));
+
 const BookingPaymentModal = lazy(loadBookingPaymentModal);
 
 interface BookingModalHostProps {
@@ -37,6 +38,7 @@ export function BookingModalHost({
 	const bookingModalState = useBookingModalStore((state) => state);
 
 	const modal = bookingModalState.modal;
+
 	switch (modal) {
 		case "clipsPackageRequirement":
 			return <ClipsPackageRequirementDialog reason={bookingModalState.reason} />;

@@ -49,4 +49,5 @@ const DownChevron = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 DownChevron.displayName = "DownChevron";
+
 export default DownChevron;

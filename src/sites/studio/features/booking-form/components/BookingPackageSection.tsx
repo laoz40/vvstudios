@@ -54,9 +54,11 @@ export function BookingPackageSection() {
 								const selectedPackageOption = packageSizeOptions.find(
 									(option) => option.packageSize === field.state.value
 								);
+
 								const packageSizeNote = selectedPackageOption
 									? `The ${selectedPackageOption.packageSize} session package will be valid for ${selectedPackageOption.validityMonths} months.`
 									: "Package size affects how long you have to select and use your session dates.";
+
 								const zodErrors = shouldShowFieldError
 									? (bookingSchema
 											.safeParse(formValues)

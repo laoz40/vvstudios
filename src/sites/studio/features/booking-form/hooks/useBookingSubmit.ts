@@ -25,6 +25,7 @@ import { tryCatch } from "#/lib/result";
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
 >;
+
 type CreatePackageRequestAction = ReturnType<
 	typeof useAction<typeof api.packagePayment.createPackageRequest>
 >;
@@ -74,11 +75,13 @@ export function useBookingSubmit({
 				packageSize: packageFormValue.packageSize
 			})
 		);
+
 		isSubmittingRef.current = false;
 		setIsSubmitting(false);
 
 		if (error !== null) {
 			toast.error(createPackageToastMessages[error.reason]);
+
 			return;
 		}
 
@@ -115,12 +118,14 @@ export function useBookingSubmit({
 				notes: parsedValue.notes
 			})
 		);
+
 		isSubmittingRef.current = false;
 		setIsSubmitting(false);
 		submitAfterTermsRef.current = false;
 
 		if (error !== null) {
 			toast.error(startCheckoutToastMessages[error.reason]);
+
 			return;
 		}
 
@@ -149,6 +154,7 @@ export function useBookingSubmit({
 
 		if (parsedValue.bookingMode === "package") {
 			await submitPackageBooking(parsedValue);
+
 			return;
 		}
 

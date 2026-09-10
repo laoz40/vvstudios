@@ -9,6 +9,7 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 
 type UpdateEmployeeAccessArgs = { tokenIdentifier: string; isActive: boolean };
+
 type UpdateEmployeeNotesArgs = { tokenIdentifier: string; notes: string };
 
 export function listEmployeesService(ctx: QueryCtx) {

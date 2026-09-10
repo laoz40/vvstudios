@@ -20,6 +20,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 	switch (status) {
 		case "failed": {
 			const bookingFailureCode = booking.bookingFailureCode;
+
 			switch (bookingFailureCode) {
 				case "BOOKING_TIME_UNAVAILABLE":
 					return {

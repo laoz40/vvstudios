@@ -8,6 +8,7 @@ export const bookingDayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 export const bookingTimeOptions = BOOKING_TIME_OPTIONS;
 
 export type BookingSettings = typeof DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
+
 export type NumberSettingKey = "eventBufferMinutes" | "leadTimeMinutes" | "maxDaysAhead";
 
 export function toBookingSettingsDraft(settings: BookingSettings): BookingSettings {

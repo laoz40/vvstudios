@@ -3,8 +3,11 @@ import { Button } from "#/components/ui/button";
 import { Modal } from "#studio/components/Modal";
 
 const dialogTitle = "Terms & Conditions";
+
 const dialogDescription = "Please review these terms before completing your booking.";
+
 const cancelButtonLabel = "Cancel";
+
 const confirmButtonLabel = "Agree & Book";
 
 export const terms = [

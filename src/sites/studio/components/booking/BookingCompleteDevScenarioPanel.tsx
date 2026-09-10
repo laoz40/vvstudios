@@ -20,6 +20,7 @@ const DEV_SCENARIO_OPTIONS = [
 ] as const satisfies ReadonlyArray<{ label: string; value: DevBookingScenario }>;
 
 export type { DevBookingScenario };
+
 export type { BookingCompleteSearch } from "#studio/features/booking-complete/lib/booking-complete-search";
 
 export type BookingStatus = NonNullable<
@@ -62,6 +63,7 @@ export function buildDevBooking(devScenario: DevBookingScenario): BookingStatus 
 	}
 
 	const now = Date.now();
+
 	const baseBooking: BookingStatus = {
 		_id: devBookingIdSchema.parse("dev-booking"),
 		addons: [...ADDON_OPTIONS],

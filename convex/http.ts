@@ -23,11 +23,13 @@ function getStripePaymentIntentId(
 	}
 
 	const stringPaymentIntent = z.string().safeParse(parsedPaymentIntent.data);
+
 	if (stringPaymentIntent.success) {
 		return stringPaymentIntent.data;
 	}
 
 	const objectPaymentIntent = z.object({ id: z.string() }).safeParse(parsedPaymentIntent.data);
+
 	return objectPaymentIntent.success ? objectPaymentIntent.data.id : undefined;
 }
 
@@ -43,10 +45,12 @@ async function handleCompletedCheckout(
 			eventId: event.id,
 			sessionId: session.id
 		});
+
 		return new Response("Missing bookingId metadata", { status: 400 });
 	}
 
 	const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
+
 	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
 		bookingId,
 		stripeSessionId: session.id,
@@ -75,6 +79,7 @@ async function handleCompletedCheckout(
 		},
 		(failure) => {
 			const failureKind = failure.kind;
+
 			switch (failureKind) {
 				case "claim_failed":
 					console.error("Booking completion claim failed", {
@@ -83,6 +88,7 @@ async function handleCompletedCheckout(
 						bookingId,
 						claimError: failure.error
 					});
+
 					return new Response("claim failed", { status: 200 });
 				case "completion_failed":
 					console.error("Booking completion failed", {
@@ -91,6 +97,7 @@ async function handleCompletedCheckout(
 						bookingId,
 						completionError: failure.error
 					});
+
 					return new Response("completion failed", { status: 200 });
 				default:
 					return exhaustiveCheck(failureKind);
@@ -108,6 +115,7 @@ async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
 		await ctx.runMutation(internal.sessionCheckout.markSessionExpiredByStripeSessionId, {
 			stripeSessionId: event.data.object.id
 		});
+
 		return new Response("expired", { status: 200 });
 	}
 
@@ -131,6 +139,7 @@ http.route({
 			event = await stripe.webhooks.constructEventAsync(body, signature, env.STRIPE_WEBHOOK_SECRET);
 		} catch (error) {
 			console.error("Invalid Stripe webhook signature", error);
+
 			return new Response("Invalid Stripe webhook signature", { status: 400 });
 		}
 

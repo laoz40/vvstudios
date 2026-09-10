@@ -51,12 +51,14 @@ type ClientDrivePermissionRequirement = { fileId: string; name: "Client folder";
 
 function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
 	const { driveClient, driveSession } = setupInfo;
+
 	if (driveClient === null || driveSession === null) return null;
 	const assetsFolder = driveClient.assetsFolder;
 	const clientFolderId = driveClient.folderId;
 	const sessionFolder = driveSession.sessionFolder;
 	const rawMediaFolder = driveSession.rawMediaFolder;
 	const deliverablesFolder = driveSession.deliverablesFolder;
+
 	if (
 		clientFolderId === undefined ||
 		assetsFolder === undefined ||
@@ -66,6 +68,7 @@ function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
 	) {
 		return null;
 	}
+
 	return {
 		driveClient: {
 			_id: driveClient._id,
@@ -86,9 +89,11 @@ export function loadReadyBookingDriveFolders(
 		.andThen((setupInfo) => validateDriveSetup(setupInfo))
 		.andThen((setupInfo) => {
 			const readyFolders = getReadyBookingFolders(setupInfo);
+
 			if (readyFolders === null) {
 				return err({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
 			}
+
 			return ok({ ...setupInfo, ...readyFolders });
 		});
 }
@@ -99,12 +104,14 @@ function requireClientDrivePermission(
 	requirement: ClientDrivePermissionRequirement
 ): ResultAsync<SavedDrivePermission, DriveClientPermissionsError> {
 	const clientEmail = setup.driveClient.normalizedEmail;
+
 	return findDrivePermission(drive, {
 		email: clientEmail,
 		fileId: requirement.fileId,
 		role: requirement.role
 	}).andThen((existingPermission) => {
 		if (existingPermission !== null) return ok(existingPermission);
+
 		return createDrivePermission(drive, {
 			email: clientEmail,
 			fileId: requirement.fileId,

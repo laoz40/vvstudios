@@ -70,6 +70,7 @@ export function BookingDateTimePicker({
 		selectedDate,
 		setCalendarMonth
 	} = availability;
+
 	return (
 		<div className="grid max-w-7xl gap-6 xl:grid-cols-3 xl:items-start xl:gap-4">
 			<div className="xl:col-span-2">
@@ -202,15 +203,19 @@ function TimeSelectionField({
 	timeSelectionMessage
 }: TimeSelectionFieldProps) {
 	const hasAvailableTimes = availableTimes.length > 0;
+
 	const timeSelectionItems: TimeSelectionItem[] = [
 		...availableTimes.map((time) => ({ kind: "available" as const, time })),
 		...selectedBusyPeriods.map((period) => ({ kind: "unavailable" as const, period }))
 	].toSorted((left, right) => {
 		const leftStart = left.kind === "available" ? left.time : left.period.start;
 		const rightStart = right.kind === "available" ? right.time : right.period.start;
+
 		return getTimeValueMinutes(leftStart) - getTimeValueMinutes(rightStart);
 	});
+
 	const isTimeSelectionReady = !timeSelectionMessage;
+
 	const isTimePickerDisabled =
 		disabled || !isTimeSelectionReady || !isViewingSelectedMonth || isLoadingMonthAvailability;
 
@@ -364,6 +369,7 @@ function TimeSelectionListItem({
 	selectedTime: string;
 }) {
 	const itemKind = item.kind;
+
 	switch (itemKind) {
 		case "available":
 			return (

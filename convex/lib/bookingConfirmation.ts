@@ -53,6 +53,7 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 							bookingId: session._id,
 							reason: emailError.reason
 						});
+
 						return { reason: "RESEND_SEND_FAILED" as const };
 					})
 			)
@@ -80,6 +81,7 @@ export async function saveConfirmedBooking(
 	}
 
 	const reason = completionResult.error.reason;
+
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			console.error("Booking disappeared before confirmation completed", {
@@ -145,6 +147,7 @@ export async function sendConfirmedBookingInvoice(
 			message: "Booking invoice reschedule link create failed",
 			reason: linkResult.error.reason
 		});
+
 		return;
 	}
 

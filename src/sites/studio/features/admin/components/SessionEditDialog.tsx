@@ -89,6 +89,7 @@ export function SessionEditDialog({
 	isSaving
 }: SessionEditDialogProps) {
 	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(session));
+
 	const defaultRemainingBalanceAmount = calculateBookingInvoiceAmounts({
 		duration: draft.duration,
 		addons: draft.addons,

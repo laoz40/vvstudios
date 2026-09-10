@@ -17,6 +17,7 @@ export function AdminPage() {
 	const { isLoaded: isClerkLoaded, userId } = useAuth();
 	const { isLoading: isConvexLoading, isAuthenticated: isConvexAuthenticated } = useConvexAuth();
 	const createEditorUser = useMutation(api.auth.createEditorUser);
+
 	const [editorProvisioningState, setEditorProvisioningState] = useState<EditorProvisioningState>({
 		status: "pending"
 	});
@@ -30,10 +31,13 @@ export function AdminPage() {
 		void createEditorUser({}).then(
 			([error]) => {
 				if (!isCurrent) return;
+
 				if (error !== null) {
 					setEditorProvisioningState({ status: "failed" });
+
 					return;
 				}
+
 				setEditorProvisioningState({ status: "complete" });
 			},
 			() => {

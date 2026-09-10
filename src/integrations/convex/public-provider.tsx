@@ -8,6 +8,7 @@ import { createQueryClient } from "#/integrations/tanstack-query/client";
 const CONVEX_URL = env.VITE_CONVEX_URL;
 
 const convex = new ConvexReactClient(CONVEX_URL);
+
 const queryClient = createQueryClient();
 
 const PublicConvexAvailableContext = createContext(false);

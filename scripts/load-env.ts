@@ -15,17 +15,20 @@ function loadEnvFile(filePath: string) {
 
 	for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/u)) {
 		const trimmedLine = line.trim();
+
 		if (!trimmedLine || trimmedLine.startsWith("#")) {
 			continue;
 		}
 
 		const equalsIndex = trimmedLine.indexOf("=");
+
 		if (equalsIndex === -1) {
 			continue;
 		}
 
 		const key = trimmedLine.slice(0, equalsIndex).trim();
 		const rawValue = trimmedLine.slice(equalsIndex + 1).trim();
+
 		if (!key || process.env[key] !== undefined) {
 			continue;
 		}

@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
 const EDITOR_LIMIT = 200;
+
 const ASSIGNED_SESSION_LIMIT = 500;
 
 type EditorWorkStatus = "assigned" | "editing" | "unassigned";
@@ -31,9 +32,11 @@ export async function getEditorWorkStatus(
 		.take(ASSIGNED_SESSION_LIMIT);
 
 	let hasAssignedSession = false;
+
 	for (const booking of assignedBookings) {
 		if (!isCurrentAssignedSession(booking)) continue;
 		hasAssignedSession = true;
+
 		if (booking.editStatus === "editing") return "editing";
 	}
 
@@ -66,6 +69,7 @@ function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {
 			.unique()
 	).andThen((editor) => {
 		if (editor === null) return err({ reason: "EDITOR_NOT_FOUND" as const });
+
 		return ok(editor);
 	});
 }

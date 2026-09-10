@@ -87,6 +87,7 @@ function getReschedulePickerOptions({
 	const selectedBusyDay = selectedDateValue
 		? getSelectedBusyDay({ date: selectedDateValue, monthlyBusyWindowsByMonth, selectedMonth })
 		: null;
+
 	const devAvailabilityStatus = getDevRescheduleAvailabilityStatus(activeDevScenario);
 	let availableTimes: string[];
 
@@ -149,9 +150,11 @@ export function useRescheduleAvailability({
 
 	// Availability settings
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
+
 	const [calendarMonth, setCalendarMonth] = useState(() =>
 		parseMonthKey(formatMonthKey(startOfToday()))
 	);
+
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 
 	// Date and time selection
@@ -161,17 +164,22 @@ export function useRescheduleAvailability({
 	// Derived date range values
 	const selectedDate = useMemo(() => parseDateValue(selectedDateValue), [selectedDateValue]);
 	const today = useMemo(() => startOfToday(), []);
+
 	const lastBookableDate = useMemo(
 		() => getLastBookableDate(today, availabilitySettings.maxDaysAhead),
 		[today, availabilitySettings.maxDaysAhead]
 	);
+
 	const bookableStartDateValue = formatDateValue(today);
 	const bookableEndDateValue = formatDateValue(lastBookableDate);
+
 	const bookableMonthKeys = useMemo(() => {
 		const startDate = parseDateValue(bookableStartDateValue);
 		const endDate = parseDateValue(bookableEndDateValue);
+
 		return startDate && endDate ? getBookableMonthKeys(startDate, endDate) : [];
 	}, [bookableStartDateValue, bookableEndDateValue]);
+
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = selectedDateValue ? selectedDateValue.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !selectedDateValue || selectedMonth === visibleMonth;
@@ -235,6 +243,7 @@ export function useRescheduleAvailability({
 			today
 		]
 	);
+
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
 		hasDate: Boolean(selectedDateValue),
 		hasDuration: true,

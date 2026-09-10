@@ -22,6 +22,7 @@ type BookingInvoiceErrorReason =
 			FunctionReturnType<typeof api.invoices.getBookingInvoicePdfByStripeSessionId>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
+
 type PackageInvoiceErrorReason =
 	| NonNullable<FunctionReturnType<typeof api.invoices.getPackageInvoicePdfById>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
@@ -54,6 +55,7 @@ export function BookingResult({
 			try {
 				if (invoiceDownloadTarget.kind === "package") {
 					await downloadPackageInvoice(invoiceDownloadTarget.packageId);
+
 					return;
 				}
 
@@ -69,6 +71,7 @@ export function BookingResult({
 
 		if (error !== null) {
 			handleBookingInvoiceError(error.reason);
+
 			return;
 		}
 
@@ -80,6 +83,7 @@ export function BookingResult({
 
 		if (error !== null) {
 			handlePackageInvoiceError(error.reason);
+
 			return;
 		}
 
@@ -116,8 +120,10 @@ function BookingResultContentView({
 	onDownloadInvoice
 }: BookingResultContentViewProps): ReactNode {
 	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
+
 	const showInvoiceDownloadLink =
 		Boolean(invoiceDownloadTarget) && invoiceDownloadTarget?.kind !== "package";
+
 	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "package";
 
 	return (
@@ -259,21 +265,26 @@ function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("Unable to find this booking.");
+
 			return;
 		case "BOOKING_NOT_CONFIRMED":
 			toast.error("Invoice is only available for confirmed bookings.");
+
 			return;
 		case "INVOICE_DOWNLOAD_EXPIRED":
 			toast.error(
 				"Download link expired. Your invoice should be in your email — please check there."
 			);
+
 			return;
 		case "INVALID_BOOKING_DATA":
 			toast.error("Unable to generate invoice.");
+
 			return;
 		case "INVOICE_DOWNLOAD_FAILED":
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);
@@ -284,19 +295,23 @@ function handlePackageInvoiceError(reason: PackageInvoiceErrorReason) {
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("Unable to find this package request.");
+
 			return;
 		case "INVOICE_DOWNLOAD_EXPIRED":
 			toast.error(
 				"Download link expired. Your invoice should be in your email — please check there."
 			);
+
 			return;
 		case "INVALID_BOOKING_DATA":
 			toast.error("Unable to generate invoice.");
+
 			return;
 		case "INVOICE_DOWNLOAD_FAILED":
 		case "INVOICE_EMAIL_RENDER_FAILED":
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate invoice.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);

@@ -65,7 +65,9 @@ export type AdminPackageDashboardDate =
 	| { kind: "missing_package_expiry" };
 
 export type AdminPackageSort = { isDescending: boolean };
+
 export type PackageListSortDirection = "asc" | "desc";
+
 export type PackageListQuerySort = { sortDirection: PackageListSortDirection };
 
 export function toPackageListQuerySort(sort: AdminPackageSort): PackageListQuerySort {
@@ -84,7 +86,9 @@ export type AdminPackagePendingAction =
 	| null;
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
+
 const PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION = 7;
 
 export type AdminPackageFilters = {
@@ -210,9 +214,11 @@ export function isAdminPackagePaymentDueClose(
 	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "isPaid">
 ) {
 	const dueAt = packageRow.adjustment?.invoiceDueAt ?? packageRow.invoiceDueAt;
+
 	const isPaymentOutstanding = packageRow.adjustment
 		? packageRow.adjustment.paymentStatus === "unpaid"
 		: !packageRow.isPaid;
+
 	const millisecondsUntilDue = dueAt - Date.now();
 
 	return (

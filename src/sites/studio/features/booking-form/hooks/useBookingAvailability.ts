@@ -144,10 +144,12 @@ export function useBookingAvailability({
 	// Availability settings and date bounds
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 	const today = useMemo(() => startOfToday(), []);
+
 	const lastBookableDate = useMemo(
 		() => getLastBookableDate(today, availabilitySettings.maxDaysAhead),
 		[today, availabilitySettings.maxDaysAhead]
 	);
+
 	const selectedDate = useMemo(() => parseDateValue(date), [date]);
 	const isSelectedDateInPast = selectedDate ? selectedDate < today : false;
 	const isSelectedDateTooFarInFuture = selectedDate ? selectedDate > lastBookableDate : false;
@@ -169,12 +171,14 @@ export function useBookingAvailability({
 
 	const { fetchAvailabilityError, isLoadingMonthAvailability, monthlyBusyWindowsByMonth } =
 		useBookingBusyWindows({ bookableMonthKeys });
+
 	const availabilityError = manualAvailabilityError || fetchAvailabilityError;
 
 	// Visible month state
 	const visibleMonth = formatMonthKey(calendarMonth);
 	const selectedMonth = date ? date.slice(0, 7) : visibleMonth;
 	const isViewingSelectedMonth = !date || selectedMonth === visibleMonth;
+
 	const isAvailabilityRateLimited =
 		availabilityError === availabilityErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED;
 
@@ -225,6 +229,7 @@ export function useBookingAvailability({
 			if (selectedTime) {
 				onSelectedTimeInvalidated();
 			}
+
 			return;
 		}
 
@@ -240,6 +245,7 @@ export function useBookingAvailability({
 			if (selectedTime) {
 				onSelectedTimeInvalidated();
 			}
+
 			return;
 		}
 

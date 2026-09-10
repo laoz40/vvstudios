@@ -107,6 +107,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 			requestAnimationFrame(() => {
 				closeButtonRef.current?.focus();
 			});
+
 			return;
 		}
 
@@ -143,6 +144,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 			}}
 			onMouseDown={(event) => {
 				const target = event.target;
+
 				const clickedViewerBackground =
 					target instanceof HTMLElement && target.dataset.imageViewerBackground !== undefined;
 

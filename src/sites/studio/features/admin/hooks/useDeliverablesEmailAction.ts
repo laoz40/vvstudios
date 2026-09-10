@@ -31,22 +31,29 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	const sendSessionDeliverablesEmail = useAction(
 		api.deliverablesEmail.sendSessionDeliverablesEmail
 	);
+
 	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
+
 	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState(
 		session.deliverablesClientNotes ?? ""
 	);
+
 	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
 		useState(false);
+
 	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
 		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
+
 	const driveStatusResult = useQuery(
 		api.sessions.getDriveStatus,
 		isDeliverablesEmailDialogOpen ? { bookingId: session._id } : "skip"
 	);
+
 	const sessionStartAt = getBookingStartTimestamp(session.date, session.time);
 	const deliverablesFolderName = formatDriveSessionMediaFolderName("Deliverables", sessionStartAt);
+
 	const deliverablesFolderUrl = driveStatusResult?.[1]?.folders?.find(
 		(folder) => folder.name === "Deliverables"
 	)?.url;
@@ -63,6 +70,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 
 		if (deliverablesEmailSendState.status === "status-repair") {
 			await repairDeliverablesStatusAfterEmailSent("Deliverables status updated.");
+
 			return;
 		}
 
@@ -76,6 +84,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		if (emailError !== null) {
 			toast.error(deliverablesEmailErrorMessage[emailError.reason]);
 			setIsEmailingDeliverables(false);
+
 			return;
 		}
 
@@ -83,6 +92,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 			resetDeliverablesEmailDialog();
 			toast.success(`Deliverables email sent to ${session.email}.`);
 			setIsEmailingDeliverables(false);
+
 			return;
 		}
 
@@ -98,6 +108,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 			toast.error("Deliverables email sent, but status couldn't be updated. Please let us know.");
 			setDeliverablesEmailSendState({ status: "status-repair" });
 			setIsEmailingDeliverables(false);
+
 			return;
 		}
 

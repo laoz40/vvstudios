@@ -9,6 +9,7 @@ import { rateLimiter } from "#convex/lib/rateLimits";
 import { okOrThrow } from "#convex/lib/result";
 
 type SubmitFeedbackArgs = { message: string };
+
 type SubmitFeedbackError =
 	| { reason: "INVALID_MESSAGE" }
 	| { reason: "FEEDBACK_RATE_LIMITED" }
@@ -40,6 +41,7 @@ function submitFeedbackService(
 		.mapErr((emailError) => {
 			if (emailError.reason !== "FEEDBACK_RATE_LIMITED") {
 				console.error("Feedback email send failed", { reason: emailError.reason });
+
 				return { reason: "SEND_FAILED" as const };
 			}
 

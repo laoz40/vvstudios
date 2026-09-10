@@ -12,13 +12,16 @@ import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading
 
 export function EditorDashboardShell({ dashboardRole }: { dashboardRole: DashboardRole }) {
 	const { user } = useUser();
+
 	const sessions = usePaginatedQuery(
 		api.sessions.listEditorSessions,
 		{},
 		{ initialNumItems: DASHBOARD_PAGE_SIZE }
 	);
+
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 	const activeSessions = sessions.results.filter((session) => session.editStatus !== "completed");
+
 	const completedSessions = sessions.results.filter(
 		(session) => session.editStatus === "completed"
 	);

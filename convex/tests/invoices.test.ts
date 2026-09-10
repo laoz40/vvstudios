@@ -48,8 +48,11 @@ vi.mock("#convex/lib/sessionRescheduleLinks", () => ({
 }));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
+
 const oneHour = 60 * 60 * 1000;
+
 const adminIdentity = { email: "admin@example.com", publicMetadata: { role: "admin" } };
+
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
@@ -66,6 +69,7 @@ afterEach(() => {
 describe("invoice financial integrity", () => {
 	test("builds a balanced session invoice from quantities, deposit, and an admin override", async () => {
 		const bookingId = await seedBooking(createConvexTest());
+
 		const data = buildBookingInvoiceData({
 			bookingId,
 			name: "Test customer",
@@ -106,6 +110,7 @@ describe("invoice financial integrity", () => {
 
 	test("clamps an ordinary session invoice total at zero", async () => {
 		const bookingId = await seedBooking(createConvexTest());
+
 		const data = buildBookingInvoiceData({
 			bookingId,
 			name: "Test customer",
@@ -126,6 +131,7 @@ describe("invoice financial integrity", () => {
 	test("builds a selected custom invoice from its stored number and total", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const { booking, customInvoice } = await t.run(async (ctx) => {
 			const customInvoiceId = await ctx.db.insert("customInvoices", {
 				bookingId,
@@ -143,6 +149,7 @@ describe("invoice financial integrity", () => {
 				customInvoice: await ctx.db.get(customInvoiceId)
 			};
 		});
+
 		if (!booking || !customInvoice) throw new Error("Expected invoice input records");
 
 		const result = createBookingInvoiceArtifactsForBooking(booking, now, {
@@ -164,6 +171,7 @@ describe("invoice financial integrity", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t, { createdAt: now });
 		const packageRecord = await t.run((ctx) => ctx.db.get(packageId));
+
 		if (!packageRecord) throw new Error("Expected seeded package");
 
 		const result = await createPackageInvoiceArtifacts(packageRecord, { leadTimeMinutes: 60 });
@@ -234,6 +242,7 @@ describe("custom invoice creation", () => {
 			addons: [],
 			includeDepositLineItem: true
 		});
+
 		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
 			packageId: packageId,
 			addons: [],
@@ -258,6 +267,7 @@ describe("custom invoice creation", () => {
 			includeDepositLineItem: false,
 			customTotalDueAmount: 321
 		});
+
 		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
 			packageId: packageId,
 			addons: [],
@@ -265,6 +275,7 @@ describe("custom invoice creation", () => {
 			includeDepositLineItem: true,
 			customTotalDueAmount: 654
 		});
+
 		const invoices = await readCustomInvoices(t);
 
 		expect(bookingResult[0]).toBeNull();
@@ -276,6 +287,7 @@ describe("custom invoice creation", () => {
 				expect.objectContaining({ packageId: packageId, customTotalDueAmount: 654 })
 			])
 		);
+
 		for (const invoice of invoices) expect(invoice.invoiceNumber).toMatch(/^VV-20300110-/);
 	});
 });
@@ -283,13 +295,16 @@ describe("custom invoice creation", () => {
 describe("invoice download access", () => {
 	test("rejects missing, unconfirmed, and expired public session invoices", async () => {
 		const t = createConvexTest();
+
 		const missing = await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
 			stripeSessionId: "missing"
 		});
+
 		const pendingId = await seedBooking(t, {
 			status: "pending_payment",
 			stripeSessionId: "pending"
 		});
+
 		const expiredId = await seedBooking(t, {
 			status: "confirmed",
 			stripeSessionId: "expired",
@@ -321,6 +336,7 @@ describe("invoice download access", () => {
 					api.invoices.getBookingInvoicePdfByStripeSessionId,
 					{ stripeSessionId }
 				);
+
 				expect(error).toBeNull();
 				expect(payload).toMatchObject({ contentType: "application/pdf" });
 				expect(payload?.content.byteLength).toBeGreaterThan(0);
@@ -336,8 +352,10 @@ describe("invoice download access", () => {
 		const missingId = await t.run(async (ctx) => {
 			const id = await ctx.db.insert("packages", packageFields(now));
 			await ctx.db.delete(id);
+
 			return id;
 		});
+
 		expect(await t.action(api.invoices.getPackageInvoicePdfById, { packageId: missingId })).toEqual(
 			[{ reason: "PACKAGE_NOT_FOUND" }, null]
 		);
@@ -348,9 +366,11 @@ describe("invoice download access", () => {
 		const [publicError, publicPayload] = await t.action(api.invoices.getPackageInvoicePdfById, {
 			packageId: currentPackageId
 		});
+
 		const [adminError, adminPayload] = await t
 			.withIdentity(adminIdentity)
 			.action(api.invoices.getAdminPackageInvoicePdfById, { packageId: expiredPackageId });
+
 		expect(publicError).toBeNull();
 		expect(publicPayload?.content.byteLength).toBeGreaterThan(0);
 		expect(adminError).toBeNull();
@@ -386,9 +406,11 @@ describe("session invoice email selection", () => {
 			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
 
 		const invoiceCall = providerFakes.sendInvoiceEmails.mock.calls[0];
+
 		if (!invoiceCall) {
 			throw new Error("Expected sendInvoiceEmails to be called");
 		}
+
 		const [sentBooking, sentOptions] = invoiceCall;
 
 		expect(result).toEqual([null, null]);
@@ -482,6 +504,7 @@ async function seedAndDeleteSources(t: TestClient) {
 		await ctx.db.delete(bookingId);
 		await ctx.db.delete(packageId);
 	});
+
 	return { bookingId, packageId };
 }
 
@@ -504,6 +527,7 @@ async function seedEmailCustomInvoice(t: TestClient, bookingId: Id<"bookings">) 
 async function ensureBookingSettings(t: TestClient) {
 	await t.run(async (ctx) => {
 		const settings = await ctx.db.query("bookingSettings").first();
+
 		if (settings) return;
 
 		await ctx.db.insert("bookingSettings", {

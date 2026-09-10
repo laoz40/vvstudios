@@ -103,15 +103,16 @@ function getChangedFieldLabels(
 	changedFields: PackageEditWarningField[],
 	warningFields: readonly PackageEditWarningField[]
 ) {
-	return changedFields
-		.filter((field) => warningFields.includes(field))
-		.map((field) => packageEditFieldLabels[field]);
+	return changedFields.flatMap((field) =>
+		warningFields.includes(field) ? [packageEditFieldLabels[field]] : []
+	);
 }
 
 export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: PackageEditDraft) {
 	const changedFields = Object.keys(draft)
 		.filter(isPackageEditWarningField)
 		.filter((field) => didPackageEditFieldChange(packageRow, draft, field));
+
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
 	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;

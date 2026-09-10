@@ -71,6 +71,7 @@ vi.mock("stripe", () => ({
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const validBooking = {
 	name: "Test Customer",
 	phone: "0400000000",

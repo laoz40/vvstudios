@@ -27,6 +27,7 @@ export async function emailDomainCanReceiveMail(email: string) {
 
 	try {
 		const mxRecords = await resolveMx(domain);
+
 		return mxRecords.length > 0;
 	} catch {
 		return false;

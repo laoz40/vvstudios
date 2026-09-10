@@ -69,6 +69,7 @@ function isSessionEditField(field: string): field is SessionEditField {
 
 // Timing field changes need availability checks.
 const sessionTimingFields: readonly SessionEditField[] = ["date", "time", "duration"];
+
 // Google event field changes will later update the calendar event.
 const sessionGoogleEventFields: readonly SessionEditField[] = [
 	"name",
@@ -84,6 +85,7 @@ const sessionGoogleEventFields: readonly SessionEditField[] = [
 	"handcraftedClipsQuantity",
 	"notes"
 ];
+
 // Pricing field changes may recalculate the remaining balance.
 const sessionPricingFields: readonly SessionEditField[] = [
 	"addons",
@@ -128,6 +130,7 @@ export function getSessionEditFieldChanges(
 	values: SessionEditValues
 ): SessionFieldChangeSummary {
 	const valueFields = Object.keys(values).filter(isSessionEditField);
+
 	const changedFields = valueFields.filter((field) =>
 		didSessionEditFieldChange(session, values, field)
 	);

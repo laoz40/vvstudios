@@ -16,8 +16,10 @@ export function DashboardAccessGate() {
 	}
 
 	const [accessError, access] = accessResult;
+
 	if (accessError !== null) {
 		const reason = accessError.reason;
+
 		switch (reason) {
 			case "NOT_AUTHENTICATED":
 				return <BackendAuthErrorPage />;

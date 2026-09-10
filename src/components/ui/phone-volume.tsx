@@ -74,4 +74,5 @@ const PhoneVolume = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 PhoneVolume.displayName = "PhoneVolume";
+
 export default PhoneVolume;

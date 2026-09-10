@@ -90,8 +90,11 @@ vi.mock("stripe", () => ({
 }));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
+
 const sessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
 const bookingDate = "2030-01-10";
+
 const bookingTime = "10:00";
 
 type TestClient = ReturnType<typeof createConvexTest>;
@@ -194,6 +197,7 @@ describe("booking payment completion", () => {
 			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
 			{ bookingId: confirmedBookingId }
 		);
+
 		const cancelledResult = await t.mutation(
 			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
 			{ bookingId: cancelledBookingId }
@@ -210,19 +214,25 @@ describe("booking payment completion", () => {
 
 	test("allows only one concurrent completion for the same time", async () => {
 		const t = createConvexTest();
+
 		const [firstBookingId, secondBookingId] = await Promise.all([
 			seedClaimedBooking(t, "first@example.com"),
 			seedClaimedBooking(t, "second@example.com")
 		]);
+
 		let availabilityChecks = 0;
 		let releaseChecks: (() => void) | undefined;
+
 		const bothChecking = new Promise<void>((resolve) => {
 			releaseChecks = resolve;
 		});
+
 		providerFakes.listEvents.mockImplementation(async () => {
 			availabilityChecks += 1;
+
 			if (availabilityChecks === 2) releaseChecks?.();
 			await bothChecking;
+
 			return { data: { items: [] } };
 		});
 
@@ -230,6 +240,7 @@ describe("booking payment completion", () => {
 			t.action(internal.googleCalendar.completeClaimedSession, { bookingId: firstBookingId }),
 			t.action(internal.googleCalendar.completeClaimedSession, { bookingId: secondBookingId })
 		]);
+
 		const bookings = await Promise.all([
 			readBooking(t, firstBookingId),
 			readBooking(t, secondBookingId)
@@ -250,6 +261,7 @@ describe("Stripe completion webhook", () => {
 		providerFakes.verifyStripeWebhook.mockRejectedValue(new Error("invalid signature"));
 
 		const missingSignature = await t.fetch("/stripe/webhook", { method: "POST", body: "{}" });
+
 		const invalidSignature = await t.fetch("/stripe/webhook", {
 			method: "POST",
 			headers: { "stripe-signature": "invalid" },
@@ -349,6 +361,7 @@ describe("Stripe completion webhook", () => {
 async function seedBooking(t: TestClient, email = "customer@example.com") {
 	return await t.run(async (ctx) => {
 		await ensureBookingSettings(ctx);
+
 		return await ctx.db.insert("bookings", {
 			name: "Test customer",
 			phone: "0400000000",
@@ -370,6 +383,7 @@ async function seedBooking(t: TestClient, email = "customer@example.com") {
 async function seedClaimedBooking(t: TestClient, email?: string) {
 	const bookingId = await seedBooking(t, email);
 	await claimBooking(t, bookingId, `evt-${bookingId}`);
+
 	return bookingId;
 }
 
@@ -391,6 +405,7 @@ async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"
 		.query("bookingSettings")
 		.withIndex("by_key", (query) => query.eq("key", "main"))
 		.unique();
+
 	if (existing) return;
 
 	await ctx.db.insert("bookingSettings", {

@@ -77,6 +77,7 @@ export function AdminAvailabilitySettings() {
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("Please sign in first.");
@@ -98,6 +99,7 @@ export function AdminAvailabilitySettings() {
 			}
 
 			setIsSaving(false);
+
 			return;
 		}
 

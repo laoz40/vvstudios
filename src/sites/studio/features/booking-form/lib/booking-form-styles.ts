@@ -6,17 +6,22 @@ export const transitionClassName =
 	"transform-gpu transition-[transform,border-color,background-color,color] duration-200 ease-in";
 
 const cardHoverClassName = "hover:border-primary/40 hover:bg-primary/10";
+
 const cardSelectedClassName = "border-primary/40 bg-primary/10";
 
 const textIdleClassName = "text-foreground/80";
+
 const textSelectedClassName = "text-foreground";
 
 const footerBaseClassName = "bg-input/30";
+
 const footerHoverClassName = "group-hover:bg-primary/10";
+
 const footerSelectedClassName = "bg-primary/10";
 
 const pillIdleClassName =
 	"min-w-16 border-border bg-input/30 text-foreground/85 group-hover:text-primary group-hover:bg-secondary";
+
 const pillSelectedClassName = "min-w-20 border-foreground/15 bg-background/30 text-primary";
 
 export function getCardStateClassName(isSelected: boolean) {

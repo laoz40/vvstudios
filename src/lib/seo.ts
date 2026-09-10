@@ -2,7 +2,9 @@ import { CONTACT_EMAIL, INSTAGRAM_URL } from "#/config/contact";
 import { studioSite } from "#/config/sites";
 
 const siteUrl = "https://vertigovisuals.au";
+
 const siteName = studioSite.name;
+
 const defaultOgImage = "/icons/studio/android-chrome-512x512.png";
 
 type SeoMetadata = { title: string; description: string; path: string; ogImage?: string };

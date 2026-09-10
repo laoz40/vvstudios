@@ -134,4 +134,5 @@ const TrashIcon = forwardRef<AnimatedIconHandle, TrashIconProps>(
 );
 
 TrashIcon.displayName = "TrashIcon";
+
 export default TrashIcon;

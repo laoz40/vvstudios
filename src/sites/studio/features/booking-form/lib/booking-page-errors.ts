@@ -38,9 +38,11 @@ type StartCheckoutToastError =
 type CloseCheckoutToastError =
 	| NonNullable<FunctionReturnType<typeof api.stripe.closeEmbeddedCheckoutSession>[0]>
 	| UnexpectedError;
+
 type AvailabilityToastError =
 	| NonNullable<FunctionReturnType<typeof api.googleCalendar.getBookableRangeBusyWindows>[0]>
 	| UnexpectedError;
+
 type CreatePackageToastError =
 	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageRequest>[0]>
 	| UnexpectedError;

@@ -64,6 +64,7 @@ type BookingClaimOutcome =
 function normalizeBookingId(ctx: MutationCtx, bookingId: string) {
 	// Stripe metadata provides a plain string, so validate it before database access.
 	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
+
 	return normalizedBookingId
 		? ok(normalizedBookingId)
 		: err({ reason: "BOOKING_NOT_FOUND" as const });
@@ -124,6 +125,7 @@ export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookin
 			// Complete provider work only when this webhook acquired the booking claim.
 			.andThen((claim) => {
 				const claimOutcome = claim.outcome;
+
 				switch (claimOutcome) {
 					case "already_confirmed":
 					case "already_claimed":
@@ -156,6 +158,7 @@ export function claimBookingConfirmationService(
 
 			const { session } = status;
 			const now = Date.now();
+
 			return okOrThrow<BookingClaimOutcome>(
 				ctx.db
 					.patch(session._id, {

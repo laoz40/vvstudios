@@ -14,6 +14,7 @@ export {
 } from "#studio/lib/bookingdatetime";
 
 export const GOOGLE_DRIVE_CHILD_FOLDER_NAMES = ["Raw Media", "Deliverables"] as const;
+
 export type DriveChildFolderName = (typeof GOOGLE_DRIVE_CHILD_FOLDER_NAMES)[number];
 
 const driveFolderSchema = z.object({
@@ -21,26 +22,31 @@ const driveFolderSchema = z.object({
 	name: z.string().min(1),
 	webViewLink: z.url()
 });
+
 const drivePermissionSchema = z.object({
 	id: z.string().min(1),
 	emailAddress: z.string().email().optional(),
 	role: z.union([z.literal("reader"), z.literal("writer"), z.literal("commenter")])
 });
+
 const listedDrivePermissionSchema = z.object({
 	id: z.string().min(1),
 	emailAddress: z.string().email().optional(),
 	role: z.string().min(1),
 	type: z.string().optional()
 });
+
 const anyonePermissionSchema = z.object({
 	id: z.string().min(1),
 	role: z.union([z.literal("reader"), z.literal("writer")]),
 	type: z.literal("anyone")
 });
+
 const googleProviderErrorSchema = z.object({
 	status: z.number().optional(),
 	response: z.object({ status: z.number().optional() }).optional()
 });
+
 const googleShareErrorSchema = z.object({
 	errors: z.array(z.object({ reason: z.string(), message: z.string().optional() })).optional(),
 	response: z
@@ -62,8 +68,11 @@ const googleShareErrorSchema = z.object({
 });
 
 export type DriveClient = drive_v3.Drive;
+
 export type SavedDriveFolder = z.infer<typeof driveFolderSchema>;
+
 export type SavedDrivePermission = z.infer<typeof drivePermissionSchema>;
+
 export type DriveError = {
 	reason:
 		| "GOOGLE_DRIVE_AUTH_FAILED"
@@ -80,6 +89,7 @@ export type DriveError = {
 };
 
 type ParsedGoogleProviderError = z.infer<typeof googleProviderErrorSchema>;
+
 type ParsedGoogleShareError = z.infer<typeof googleShareErrorSchema>;
 
 function providerStatus(error: ParsedGoogleProviderError) {
@@ -88,6 +98,7 @@ function providerStatus(error: ParsedGoogleProviderError) {
 
 function isMissingGoogleAccountShare(error: ParsedGoogleShareError) {
 	const shareErrors = [...(error.errors ?? []), ...(error.response?.data?.error?.errors ?? [])];
+
 	if (shareErrors.some((shareError) => shareError.reason === "invalidSharingRequest")) {
 		return true;
 	}
@@ -204,6 +215,7 @@ export function createDriveFolder(
 		"GOOGLE_DRIVE_FOLDER_CREATE_FAILED"
 	).andThen((response) => {
 		const parsedFolder = driveFolderSchema.safeParse(response.data);
+
 		return parsedFolder.success
 			? ok(parsedFolder.data)
 			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
@@ -216,6 +228,7 @@ export function findDriveFolderByMarker(
 ) {
 	const escapedMarker = input.marker.replaceAll("'", "\\'");
 	const escapedParentId = input.parentId.replaceAll("'", "\\'");
+
 	return driveResultAsync(
 		drive.files.list({
 			fields: "files(id,name,webViewLink)",
@@ -225,7 +238,9 @@ export function findDriveFolderByMarker(
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const folders = z.array(driveFolderSchema).safeParse(response.data.files ?? []);
+
 		if (!folders.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
+
 		return ok(folders.data.at(0) ?? null);
 	});
 }
@@ -234,6 +249,7 @@ const listedDriveChildSchema = z.object({ id: z.string().min(1) });
 
 export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 	const escapedFolderId = folderId.replaceAll("'", "\\'");
+
 	return driveFolderLookupAsync(
 		drive.files.list({
 			fields: "files(id)",
@@ -244,7 +260,9 @@ export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const children = z.array(listedDriveChildSchema).safeParse(response.data.files ?? []);
+
 		if (!children.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
+
 		return ok(children.data);
 	});
 }
@@ -255,6 +273,7 @@ export function verifyDriveFolder(drive: DriveClient, folderId: string) {
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 	).andThen((response) => {
 		const folder = driveFolderSchema.safeParse(response.data);
+
 		return folder.success
 			? ok(folder.data)
 			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
@@ -272,6 +291,7 @@ export function renameDriveFolder(drive: DriveClient, input: { folderId: string;
 		"GOOGLE_DRIVE_FOLDER_RENAME_FAILED"
 	).andThen((response) => {
 		const folder = driveFolderSchema.safeParse(response.data);
+
 		return folder.success
 			? ok(folder.data)
 			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
@@ -296,15 +316,19 @@ export function findDrivePermission(
 		const permissions = z
 			.array(listedDrivePermissionSchema)
 			.safeParse(response.data.permissions ?? []);
+
 		if (!permissions.success) {
 			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
 		}
+
 		const permission = permissions.data.find(
 			(candidate) =>
 				candidate.emailAddress?.toLowerCase() === input.email.toLowerCase() &&
 				candidate.role === input.role
 		);
+
 		if (permission === undefined || permission.emailAddress === undefined) return ok(null);
+
 		return ok({ id: permission.id, emailAddress: permission.emailAddress, role: input.role });
 	});
 }
@@ -329,6 +353,7 @@ export function createDrivePermission(
 		"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 	).andThen((response) => {
 		const permission = drivePermissionSchema.safeParse(response.data);
+
 		return permission.success
 			? ok(permission.data)
 			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
@@ -352,6 +377,7 @@ export function ensureAnyonePermission(
 		const permissions = z
 			.array(listedDrivePermissionSchema)
 			.safeParse(response.data.permissions ?? []);
+
 		if (!permissions.success) {
 			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
 		}
@@ -359,6 +385,7 @@ export function ensureAnyonePermission(
 		const existingPermission = permissions.data.find(
 			(candidate) => candidate.type === "anyone" && candidate.role === role
 		);
+
 		if (existingPermission !== undefined) {
 			return ok({ id: existingPermission.id, role, type: "anyone" as const });
 		}
@@ -374,6 +401,7 @@ export function ensureAnyonePermission(
 			"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		).andThen((createResponse) => {
 			const permission = anyonePermissionSchema.safeParse(createResponse.data);
+
 			return permission.success
 				? ok(permission.data)
 				: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
@@ -396,6 +424,7 @@ export function deleteDrivePermission(
 	).orElse((error) => {
 		// A prior partial attempt may already have removed this permission.
 		if (error.permissionIsMissing) return ok(null);
+
 		return err({ reason: error.reason });
 	});
 }

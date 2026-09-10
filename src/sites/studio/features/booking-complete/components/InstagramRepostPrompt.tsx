@@ -15,6 +15,7 @@ type InstagramRepostTarget =
 type BookingInstagramSaveErrorReason =
 	| NonNullable<FunctionReturnType<typeof api.sessions.saveSessionInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
+
 type PackageInstagramSaveErrorReason =
 	| NonNullable<FunctionReturnType<typeof api.packages.savePackageInstagramHandle>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
@@ -45,6 +46,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 
 		if (!wasSaved) {
 			setIsSubmitting(false);
+
 			return;
 		}
 
@@ -64,6 +66,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 
 			if (error !== null) {
 				handlePackageSaveError(error.reason);
+
 				return false;
 			}
 
@@ -79,6 +82,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 
 		if (error !== null) {
 			handleBookingSaveError(error.reason);
+
 			return false;
 		}
 
@@ -122,12 +126,15 @@ function handleBookingSaveError(reason: BookingInstagramSaveErrorReason) {
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("We could not find this booking. Please contact us if you need help.");
+
 			return;
 		case "BOOKING_NOT_CONFIRMED":
 			toast.error("We can only save Instagram handles for confirmed bookings.");
+
 			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);
@@ -138,12 +145,15 @@ function handlePackageSaveError(reason: PackageInstagramSaveErrorReason) {
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("We could not find this package request. Please contact us if you need help.");
+
 			return;
 		case "PACKAGE_NOT_ACTIVE":
 			toast.error("We can only save Instagram handles for active package requests.");
+
 			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while saving your Instagram handle.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);

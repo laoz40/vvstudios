@@ -77,6 +77,7 @@ const body = {
 	margin: "0",
 	padding: "16px"
 };
+
 const container = {
 	backgroundColor: "#2d2d2d",
 	border: "1px solid #454545",
@@ -85,7 +86,9 @@ const container = {
 	maxWidth: "560px",
 	padding: "24px"
 };
+
 const logo = { display: "block", margin: "0 auto 16px" };
+
 const heading = {
 	color: "#fafafa",
 	fontSize: "22px",
@@ -93,10 +96,15 @@ const heading = {
 	lineHeight: "28px",
 	margin: "0 0 16px"
 };
+
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
+
 const sessionNotice = { margin: "20px 0" };
+
 const sessionNoticeText = { color: "#d4d4d4", fontSize: "14px", lineHeight: "22px", margin: "0" };
+
 const buttonWrapper = { margin: "24px 0", textAlign: "center" as const };
+
 const button = {
 	backgroundColor: "#f5c400",
 	borderRadius: "12px",
@@ -106,8 +114,11 @@ const button = {
 	padding: "12px 18px",
 	textDecoration: "none"
 };
+
 const contactSection = { margin: "0 0 20px" };
+
 const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
+
 const sectionTitle = {
 	color: "#f5c400",
 	fontSize: "13px",
@@ -115,7 +126,9 @@ const sectionTitle = {
 	margin: "0 0 8px",
 	textTransform: "uppercase" as const
 };
+
 const signoff = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 4px" };
+
 const signature = {
 	color: "#fafafa",
 	fontSize: "15px",

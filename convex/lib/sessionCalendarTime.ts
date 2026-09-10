@@ -51,8 +51,11 @@ export function parseDurationMinutes(
 	duration: string
 ): Result<number, { reason: "BOOKING_INVALID_DURATION" }> {
 	if (duration === "1h") return ok(60);
+
 	if (duration === "2h") return ok(120);
+
 	if (duration === "3h") return ok(180);
+
 	return err({ reason: "BOOKING_INVALID_DURATION" });
 }
 
@@ -97,6 +100,7 @@ export function buildEventWindow(
 	return parseDurationMinutes(duration).andThen((durationMinutes) =>
 		getUtcDateForZonedDateTime(date, time, timeZone).map((startUtc) => {
 			const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000);
+
 			return { startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() };
 		})
 	);
@@ -215,6 +219,7 @@ function startOfToday(now = new Date()) {
 function addDays(date: Date, days: number) {
 	const result = new Date(date);
 	result.setDate(result.getDate() + days);
+
 	return result;
 }
 
@@ -361,6 +366,7 @@ export function groupBusyWindowsByDay(
 			if (window.calendarId) {
 				busyPeriod.calendarId = window.calendarId;
 			}
+
 			if (window.eventId) {
 				busyPeriod.eventId = window.eventId;
 			}
@@ -458,6 +464,7 @@ function getOrCreateDayBucket(
 	timeZone: string
 ) {
 	const existingBucket = dayBuckets.get(date);
+
 	if (existingBucket) {
 		return existingBucket;
 	}
@@ -533,6 +540,7 @@ export function formatSessionDateWithoutYear(date: string) {
 
 	const { day, month } = calendarDate;
 	const suffix = getOrdinalSuffix(day);
+
 	const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long" }).format(
 		new Date(2000, month - 1, day)
 	);

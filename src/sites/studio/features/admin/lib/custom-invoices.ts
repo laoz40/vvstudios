@@ -67,10 +67,12 @@ export function buildCustomInvoiceGenerationData(
 
 	const customTotalDueAmount =
 		customTotalResult.status === "valid" ? customTotalResult.amount : undefined;
+
 	const sessionSelection =
 		draft.service === "" || draft.duration === ""
 			? ({ status: "empty" } as const)
 			: ({ status: "complete", service: draft.service, duration: draft.duration } as const);
+
 	const selectedSessionInput =
 		sessionSelection.status === "complete"
 			? { service: sessionSelection.service, duration: sessionSelection.duration }
@@ -148,10 +150,12 @@ export function formatCustomInvoiceTotal(
 ) {
 	const serviceAmount =
 		input.service && isBookingDuration(input.duration) ? DURATION_PRICES[input.duration] : 0;
+
 	const addonsAmount = input.addons.reduce(
 		(total, addon) => total + getAddonAmount(addon, input),
 		0
 	);
+
 	const depositAmount = input.includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 	const computedTotal = Math.max(serviceAmount + addonsAmount - depositAmount, 0);
 

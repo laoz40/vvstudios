@@ -146,6 +146,7 @@ function PackageInvoiceActions({
 export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherActionsMenuProps) {
 	const canSendInvoice =
 		packageRow.status === "pending_payment" || packageRow.status === "invoice_email_failed";
+
 	const canSendNewSchedulingLink = packageRow.isPaid;
 	const invoiceNumber = formatBookingInvoiceNumber(packageRow.id, packageRow.createdAt);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);

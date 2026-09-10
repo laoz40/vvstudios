@@ -11,9 +11,13 @@ export interface BookingAvailabilitySettings {
 }
 
 export const DEFAULT_BOOKING_START_TIME = "08:00";
+
 export const DEFAULT_BOOKING_END_TIME = "22:00";
+
 const BOOKING_LEAD_TIME_MINUTES = 12 * 60;
+
 export const BOOKING_EVENT_BUFFER_MINUTES = 30;
+
 export const BOOKING_MAX_DAYS_AHEAD = 60;
 
 export const BOOKING_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {

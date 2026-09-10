@@ -73,4 +73,5 @@ const PenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 PenIcon.displayName = "PenIcon";
+
 export default PenIcon;

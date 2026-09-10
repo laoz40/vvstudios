@@ -54,6 +54,7 @@ test.describe("reschedule", () => {
 				monthOffset: 1,
 				startingDayIndex: bookingDayIndex
 			});
+
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
 			await agreeToTerms(page);

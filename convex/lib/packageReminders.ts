@@ -3,6 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 
 export type PackageReminderType = "payment" | "expiry";
+
 export type PackageReminderClaimError =
 	| { reason: "PACKAGE_PAYMENT_REMINDER_NOT_SENDABLE" }
 	| { reason: "PACKAGE_EXPIRY_REMINDER_NOT_SENDABLE" }
@@ -27,17 +28,20 @@ export function validatePackageReminderClaim(
 			) {
 				return err({ reason: "PACKAGE_PAYMENT_REMINDER_NOT_SENDABLE" });
 			}
+
 			break;
 		case "expiry":
 			if (packageRecord.status !== "paid" && packageRecord.status !== "schedule_email_failed") {
 				return err({ reason: "PACKAGE_EXPIRY_REMINDER_NOT_SENDABLE" });
 			}
+
 			break;
 		default:
 			return exhaustiveCheck(reminderType);
 	}
 
 	const reminderState = packageRecord.packageReminderState;
+
 	if (reminderState?.status === "claimed" || hasSentPackageReminder(reminderState, reminderType)) {
 		return err({ reason: "PACKAGE_REMINDER_ALREADY_CLAIMED_OR_SENT" });
 	}

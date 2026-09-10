@@ -58,4 +58,5 @@ const MailFilledIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 MailFilledIcon.displayName = "MailFilledIcon";
+
 export default MailFilledIcon;

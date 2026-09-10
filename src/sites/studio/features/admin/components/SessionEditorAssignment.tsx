@@ -27,10 +27,13 @@ import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
+
 type SessionEditorAssignmentProps = { activeEditors: ActiveEditor[]; session: SessionRecord };
+
 type AssignmentConfirmation =
 	| { status: "closed" }
 	| { status: "open"; nextEditor: ActiveEditor | null };
+
 type AssignmentError =
 	| NonNullable<FunctionReturnType<typeof api.sessions.assignSessionEditor>[0]>
 	| UnexpectedError;
@@ -39,24 +42,31 @@ const UNASSIGNED_VALUE = "__unassigned__";
 
 function showAssignmentError(error: AssignmentError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("This session no longer exists.");
+
 			return;
 		case "EDITOR_NOT_ACTIVE":
 			toast.error("That editor is no longer active.");
+
 			return;
 		case "SESSION_NOT_ASSIGNABLE":
 			toast.error("Editors can only be assigned to confirmed, non-archived sessions.");
+
 			return;
 		case "NOT_AUTHENTICATED":
 			toast.error("Please sign in again.");
+
 			return;
 		case "NOT_AUTHORIZED":
 			toast.error("You do not have permission to assign editors.");
+
 			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to update the editor assignment.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);
@@ -130,6 +140,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 	const [isSaving, setIsSaving] = useState(false);
 	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
+
 	const currentEditor = activeEditors.find(
 		(editor) => editor.tokenIdentifier === session.assignedEditorTokenIdentifier
 	);
@@ -147,6 +158,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 
 		if (selectedValue !== UNASSIGNED_VALUE && nextEditor === null) {
 			toast.error("That editor is no longer available.");
+
 			return;
 		}
 
@@ -158,14 +170,17 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 
 		setIsSaving(true);
 		const editorTokenIdentifier = confirmation.nextEditor?.tokenIdentifier ?? null;
+
 		const [error] = await tryCatch(
 			assignSessionEditor({ bookingId: session._id, editorTokenIdentifier, adminNotes })
 		);
+
 		setIsSaving(false);
 
 		if (error === null) {
 			setConfirmation({ status: "closed" });
 			toast.success(editorTokenIdentifier === null ? "Editor unassigned." : "Editor assigned.");
+
 			return;
 		}
 
@@ -175,6 +190,7 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 	const nextEditor = confirmation.status === "open" ? confirmation.nextEditor : null;
 	const isReassignment = currentEditor !== undefined;
 	let dialogTitle = "Assign editor?";
+
 	if (isReassignment) dialogTitle = nextEditor === null ? "Unassign editor?" : "Reassign editor?";
 	const confirmButtonLabel = nextEditor === null ? "Confirm unassignment" : "Confirm assignment";
 

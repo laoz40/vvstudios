@@ -56,9 +56,11 @@ type CreatePackageCustomInvoiceRequest = {
 };
 
 type PackageCustomInvoiceRecord = Doc<"customInvoices">;
+
 type CreatePackageCustomInvoiceResult = FunctionReturnType<
 	typeof api.customInvoices.createPackageCustomInvoice
 >;
+
 type CreatePackageCustomInvoiceError =
 	| Exclude<CreatePackageCustomInvoiceResult[0], null>
 	| UnexpectedError;
@@ -80,6 +82,7 @@ type PackageCustomInvoiceDialogProps = {
 
 function showCreatePackageCustomInvoiceError(error: CreatePackageCustomInvoiceError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "NOT_AUTHENTICATED":
 			toast.error("Please sign in first.");
@@ -129,12 +132,16 @@ export function PackageCustomInvoiceDialog({
 }: PackageCustomInvoiceDialogProps) {
 	const createPackageCustomInvoice = useMutation(api.customInvoices.createPackageCustomInvoice);
 	const getCustomPackageInvoicePdf = useAction(api.invoices.getAdminCustomPackageInvoicePdfById);
+
 	const customInvoicesResult = useQuery(api.customInvoices.listCustomInvoicesForPackage, {
 		packageId: packageRow.id
 	});
+
 	const customInvoices: PackageCustomInvoiceRecord[] | undefined =
 		customInvoicesResult?.[1] ?? undefined;
+
 	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
+
 	const [draft, setDraft] = useState<PackageCustomInvoiceDraft>({
 		duration: "",
 		addons: [],
@@ -147,8 +154,10 @@ export function PackageCustomInvoiceDialog({
 		dueDate: defaultDueDate,
 		customTotalDueAmount: ""
 	});
+
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+
 	const hasInvoiceSelection =
 		draft.duration !== "" ||
 		draft.addons.length > 0 ||
@@ -193,6 +202,7 @@ export function PackageCustomInvoiceDialog({
 
 		if (error !== null) {
 			const reason = error.reason;
+
 			switch (reason) {
 				case "NOT_AUTHENTICATED":
 					toast.error("You are not signed in.");
@@ -214,6 +224,7 @@ export function PackageCustomInvoiceDialog({
 			}
 
 			setDownloadingInvoiceId(null);
+
 			return;
 		}
 
@@ -231,11 +242,13 @@ export function PackageCustomInvoiceDialog({
 
 		if (customTotalDueAmountResult.status === "invalid") {
 			toast.error("Enter a valid custom invoice price.");
+
 			return;
 		}
 
 		const customTotalDueAmount =
 			customTotalDueAmountResult.status === "valid" ? customTotalDueAmountResult.amount : undefined;
+
 		setIsGenerating(true);
 
 		const [error, customInvoice] = await tryCatch(
@@ -254,6 +267,7 @@ export function PackageCustomInvoiceDialog({
 					if (draft.duration) {
 						request.duration = draft.duration;
 					}
+
 					if (customTotalDueAmount !== undefined) {
 						request.customTotalDueAmount = customTotalDueAmount;
 					}
@@ -266,6 +280,7 @@ export function PackageCustomInvoiceDialog({
 		if (error !== null) {
 			showCreatePackageCustomInvoiceError(error);
 			setIsGenerating(false);
+
 			return;
 		}
 
@@ -293,6 +308,7 @@ export function PackageCustomInvoiceDialog({
 					)
 				})
 			});
+
 			const packageSize = invoice.packageSize ?? packageRow.packageSize;
 			const duration = invoice.duration ?? "Add-ons only";
 

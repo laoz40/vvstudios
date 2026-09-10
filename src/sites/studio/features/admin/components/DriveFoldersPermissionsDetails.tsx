@@ -83,6 +83,7 @@ function shouldRetryClientAssetsEmail(
 	client: DriveDialogStatus["clientDrivePermissions"] | undefined
 ) {
 	if (client === undefined || client.assetsEmailStatus === "sent") return false;
+
 	return client.status === "ready" || client.status === "skipped";
 }
 
@@ -112,10 +113,13 @@ function DriveInlineRetryButton({
 		setIsRunning(true);
 		const [error] = await tryCatch(run());
 		setIsRunning(false);
+
 		if (error !== null) {
 			toast.error(errorMessage);
+
 			return;
 		}
+
 		toast.success(successMessage);
 	}
 
@@ -190,8 +194,10 @@ export function DrivePermissionsDetails({
 
 	const showClientStatus =
 		clientDrivePermissions !== undefined && clientDrivePermissions.status !== "not_created";
+
 	const showEditorStatus =
 		editorDrivePermissions !== undefined && editorDrivePermissions.status !== "not_assigned";
+
 	const showRemovalStatus = previousEditorRemovalFailed;
 
 	if (!showClientStatus && !showEditorStatus && !showRemovalStatus) return null;

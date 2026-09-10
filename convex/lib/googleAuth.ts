@@ -8,6 +8,8 @@ export function getGoogleOAuthClient() {
 		clientId: env.GOOGLE_CLIENT_ID,
 		clientSecret: env.GOOGLE_CLIENT_SECRET
 	});
+
 	oauth2Client.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
+
 	return oauth2Client;
 }

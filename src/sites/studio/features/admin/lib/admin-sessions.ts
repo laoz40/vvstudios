@@ -67,7 +67,9 @@ export function getPackageSessionProgressLabel(session: SessionRecord) {
 }
 
 export type SessionSortId = "session" | "createdAt";
+
 export type SessionSorting = { id: SessionSortId; desc: boolean }[];
+
 export type SessionListSortDirection = "asc" | "desc";
 
 export type SessionListQuerySort = {

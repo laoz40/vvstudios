@@ -35,8 +35,11 @@ import {
 import { waitForPackageScheduleUrl } from "./helpers/resend";
 
 const resendApiKey = process.env.E2E_RESEND_API_KEY ?? process.env.RESEND_API_KEY;
+
 const adminEmail = getE2eAdminEmail();
+
 const clerkSecretKey = getE2eClerkSecretKey();
+
 const packageSize = 4;
 
 test.describe("package schedule", () => {

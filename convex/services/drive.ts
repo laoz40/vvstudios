@@ -79,6 +79,7 @@ function setupFoldersAndRecordResult(
 			// Only folder setup errors are saved on the booking here.
 			.orElse((setupError) => {
 				if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
+
 				return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
 					errAsync(setupError)
 				);

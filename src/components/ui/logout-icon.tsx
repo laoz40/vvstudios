@@ -66,4 +66,5 @@ const LogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 );
 
 LogoutIcon.displayName = "LogoutIcon";
+
 export default LogoutIcon;

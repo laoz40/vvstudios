@@ -1,4 +1,5 @@
 const studioBasePath = "";
+
 const parentBasePath = "/";
 
 function withBasePath(basePath: string, path: string) {

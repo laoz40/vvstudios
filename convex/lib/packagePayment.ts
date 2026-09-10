@@ -11,6 +11,7 @@ import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { sendPackageInvoiceEmail, sendPackageScheduleEmail } from "#convex/lib/email";
 
 type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
+
 type PackageScheduleEmailResult = ResultAsync<
 	null,
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
@@ -20,6 +21,7 @@ type PackageScheduleEmailResult = ResultAsync<
 
 export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/package-schedule/${encodeURIComponent(token)}`, baseUrl);
+
 	return url.toString();
 }
 
@@ -30,6 +32,7 @@ export function createPendingPackage(
 	args: ParsedPackageRequest
 ): ResultAsync<PackageInvoiceInput, never> {
 	const amounts = calculatePackageAmounts(args);
+
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
 		addons: args.addons,
 		clipsPackageQuantity: args.clipsPackageQuantity || undefined,

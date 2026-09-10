@@ -30,11 +30,13 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 	const adjustmentDetails = data.adjustment;
 	const isPackageInvoice = packageDetails !== undefined;
 	const isAdjustmentInvoice = adjustmentDetails !== undefined;
+
 	const packageDiscountAmount = isPackageInvoice
 		? data.lineItems
 				.filter((item) => item.amount < 0 && item.description.includes("package discount"))
 				.reduce((total, item) => total + Math.abs(item.amount), 0)
 		: 0;
+
 	const sessionSummary = getSessionSummary(data);
 
 	return (

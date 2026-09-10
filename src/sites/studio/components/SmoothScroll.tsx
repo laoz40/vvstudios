@@ -64,6 +64,7 @@ export function SmoothScroll() {
 			if (lenis) {
 				lenis.scrollTo(0, { immediate: true, force: true });
 				lenis.start();
+
 				return;
 			}
 
@@ -89,6 +90,7 @@ export function SmoothScroll() {
 
 				if (lenis) {
 					lenis.scrollTo(target, { force: true, offset: -getScrollMarginTop(target) });
+
 					return;
 				}
 

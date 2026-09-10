@@ -44,10 +44,13 @@ type PackageSessionArgs = {
 };
 
 type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<"bookings"> };
+
 type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
 
 type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
+
 type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<"bookings"> };
+
 type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
 
 export type PackageSessionRequestDetails = {
@@ -105,6 +108,7 @@ export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 				}
 
 				mappedSession.googleEventId = session.googleEventId;
+
 				return mappedSession;
 			})
 		}));
@@ -166,6 +170,7 @@ export function createPackageSessionService(
 				if (calendar.googleCalendarId) {
 					saveArgs.googleCalendarId = calendar.googleCalendarId;
 				}
+
 				if (calendar.googleEventId) {
 					saveArgs.googleEventId = calendar.googleEventId;
 				}
@@ -192,6 +197,7 @@ export function createPackageSessionService(
 					)
 						.mapErr((cleanupError) => {
 							console.error("Failed to compensate orphan package Calendar event", cleanupError);
+
 							return saveError;
 						})
 						.andThen(() => err(saveError));

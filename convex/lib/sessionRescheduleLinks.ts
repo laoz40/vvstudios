@@ -6,8 +6,11 @@ import { env } from "#convex/env";
 import { fromConvexTuple } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
+
 const rescheduleTokenByteLength = 32;
+
 const hexRadix = 16;
+
 const hexByteLength = 2;
 
 export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
@@ -41,17 +44,20 @@ function bytesToHex(bytes: Uint8Array) {
 export function generateRescheduleToken() {
 	const bytes = new Uint8Array(rescheduleTokenByteLength);
 	crypto.getRandomValues(bytes);
+
 	return bytesToHex(bytes);
 }
 
 export async function hashRescheduleToken(token: string) {
 	const encodedToken = new TextEncoder().encode(token);
 	const hashBuffer = await crypto.subtle.digest("SHA-256", encodedToken);
+
 	return bytesToHex(new Uint8Array(hashBuffer));
 }
 
 export function buildRescheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/reschedule/${encodeURIComponent(token)}`, baseUrl);
+
 	return url.toString();
 }
 
@@ -61,6 +67,7 @@ export function getRescheduleUrlForToken(token: string) {
 
 export function isSessionReschedulable(session: Doc<"bookings">) {
 	if (session.status === "confirmed" || session.status === "email_failed") return true;
+
 	return (
 		session.status === "failed" &&
 		(session.bookingFailureCode === "BOOKING_TIME_UNAVAILABLE" ||
@@ -87,21 +94,25 @@ export function validatePublicFailedSessionForReschedule(session: Doc<"bookings"
 			reason: "BOOKING_NOT_FOUND"
 		});
 	}
+
 	if (!isSessionReschedulable(session)) {
 		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
 			reason: "BOOKING_NOT_RESCHEDULABLE"
 		});
 	}
+
 	if (session.status !== "failed") {
 		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
 			reason: "BOOKING_NOT_FAILED"
 		});
 	}
+
 	if (session.sessionStartAt <= Date.now()) {
 		return err<never, CreatePublicFailedSessionRescheduleLinkError>({
 			reason: "RESCHEDULE_LINK_EXPIRED"
 		});
 	}
+
 	return ok(session);
 }
 
@@ -109,9 +120,11 @@ export function validateAdminSessionForReschedule(session: Doc<"bookings">) {
 	if (!isSessionReschedulable(session)) {
 		return err<never, CreateAdminRescheduleLinkError>({ reason: "BOOKING_NOT_RESCHEDULABLE" });
 	}
+
 	if (session.sessionStartAt <= Date.now()) {
 		return err<never, CreateAdminRescheduleLinkError>({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
+
 	return ok(session);
 }
 
@@ -119,12 +132,15 @@ export function validateActiveRescheduleLink(link: Doc<"bookingRescheduleLinks">
 	if (link === null) {
 		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 	}
+
 	if (link.status === "used") {
 		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_USED" });
 	}
+
 	if (link.status === "expired") {
 		return err<never, LockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_EXPIRED" });
 	}
+
 	return ok(link);
 }
 
@@ -151,6 +167,7 @@ export async function createActiveRescheduleLinkForSession({
 
 	const token = generateRescheduleToken();
 	const tokenHash = await hashRescheduleToken(token);
+
 	const linkId = await ctx.db.insert("bookingRescheduleLinks", {
 		bookingId: session._id,
 		tokenHash,

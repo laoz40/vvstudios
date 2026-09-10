@@ -28,6 +28,7 @@ export function ContactCard() {
 		}
 
 		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
 		const supportsCardHover = window.matchMedia(
 			"(min-width: 640px) and (hover: hover) and (pointer: fine)"
 		);

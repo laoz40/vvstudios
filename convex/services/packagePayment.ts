@@ -27,32 +27,40 @@ import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/
 export type { CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 
 type PackageIdArgs = { packageId: Id<"packages"> };
+
 type AuthError = { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" };
+
 type PackageScheduleEmailError =
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
+
 export type CreatePackageRequestSuccess = {
 	packageId: Id<"packages">;
 	invoiceEmailStatus: "sent" | "failed";
 };
+
 export type CreatePackageRequestError =
 	| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 	| PackageInvoiceEmailAttemptError;
+
 export type ResendPackageInvoiceEmailSuccess = { sent: true };
+
 export type ResendPackageInvoiceEmailError =
 	| AuthError
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_NOT_UNPAID" }
 	| { reason: "PACKAGE_INVOICE_EMAIL_FAILED" }
 	| PackageInvoiceEmailAttemptError;
+
 export type ConfirmPackagePaymentError =
 	| AuthError
 	| { reason: "PACKAGE_ALREADY_PAID" }
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| PackageScheduleEmailError;
+
 export type RetryPackageSchedulingEmailError =
 	| AuthError
 	| { reason: "PACKAGE_NOT_FOUND" }
@@ -103,6 +111,7 @@ export function resendPackageInvoiceEmailService(
 			) {
 				return err({ reason: "PACKAGE_NOT_UNPAID" as const });
 			}
+
 			return ok(packageFromDb);
 		})
 		.andThen((packageFromDb) => sendPackageInvoice(ctx, packageFromDb))

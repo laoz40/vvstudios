@@ -51,6 +51,7 @@ export function buildSessionCalendarEventPayload({
 			const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 			const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
 			const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
+
 			const signoffName =
 				BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
@@ -132,6 +133,7 @@ async function findSessionCalendarEventIncludingDeclined({
 	}
 
 	const { startDateTime, endDateTime } = eventWindowResult.value;
+
 	const events = await calendar.events.list({
 		calendarId,
 		singleEvents: true,
@@ -179,6 +181,7 @@ async function deleteCalendarEventIfFound(
 		return true;
 	} catch (error) {
 		const parsedError = calendarErrorSchema.safeParse(error);
+
 		if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
 			return false;
 		}
@@ -204,6 +207,7 @@ export async function deleteSessionCalendarEvent({
 				calendarId,
 				savedEventId
 			);
+
 			if (wasDeleted) {
 				return ok({ calendarEventDeleted: true });
 			}
@@ -236,6 +240,7 @@ export async function deleteSessionCalendarEvent({
 		return ok({ calendarEventDeleted: wasFoundEventDeleted });
 	} catch (error) {
 		const parsedError = calendarErrorSchema.safeParse(error);
+
 		if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
 			return ok({ calendarEventDeleted: false });
 		}
@@ -306,6 +311,7 @@ export async function updateSessionCalendarEventTiming({
 			time,
 			timeZone: client.timeZone
 		});
+
 		if (payloadResult.isErr()) {
 			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" as const });
 		}
@@ -318,6 +324,7 @@ export async function updateSessionCalendarEventTiming({
 		});
 	} catch (error) {
 		const parsedError = calendarErrorSchema.safeParse(error);
+
 		if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
 			return createSessionCalendarEvent({ client, date, details, time });
 		}
@@ -350,6 +357,7 @@ export async function createSessionCalendarEvent({
 			time,
 			timeZone: client.timeZone
 		});
+
 		if (payloadResult.isErr()) {
 			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const });
 		}

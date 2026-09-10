@@ -47,7 +47,9 @@ type EmployeesTableProps = {
 	adminEditorProfile: AdminEditorProfile | null;
 	editors: ManagedEditor[];
 };
+
 type NotesDialogState = { status: "closed" } | { status: "open"; editor: ManagedEditor };
+
 type EnrollAdminAsEditorError =
 	| { reason: "EDITOR_PROFILE_INACTIVE" }
 	| { reason: "NOT_AUTHENTICATED" }
@@ -56,18 +58,23 @@ type EnrollAdminAsEditorError =
 
 function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 	const reason = error.reason;
+
 	switch (reason) {
 		case "EDITOR_PROFILE_INACTIVE":
 			toast.error("Your editor profile is retired. Reactivate it from the employees table.");
+
 			return;
 		case "NOT_AUTHENTICATED":
 			toast.error("Your session has expired. Sign in again.");
+
 			return;
 		case "NOT_AUTHORIZED":
 			toast.error("Only admins can enroll as editors.");
+
 			return;
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to enroll as an editor.");
+
 			return;
 		default:
 			exhaustiveCheck(reason);
@@ -93,6 +100,7 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 
 		if (error !== null) {
 			showEnrollAdminAsEditorError(error);
+
 			return;
 		}
 
@@ -101,14 +109,17 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 
 	async function handleAccessChange(editor: ManagedEditor) {
 		setUpdatingEditorToken(editor.tokenIdentifier);
+
 		const [error] = await tryCatch(
 			updateEmployeeAccess({ tokenIdentifier: editor.tokenIdentifier, isActive: !editor.isActive })
 		);
+
 		setUpdatingEditorToken(null);
 		setOpenActionsEditorToken(null);
 
 		if (error !== null) {
 			toast.error(getEditorAccessErrorMessage(error.reason));
+
 			return;
 		}
 
@@ -202,6 +213,7 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 								visibleEditors.map((editor) => {
 									const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
 									let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
+
 									let accessActionLabel = editor.isActive
 										? "Retire employee"
 										: "Reactivate employee";

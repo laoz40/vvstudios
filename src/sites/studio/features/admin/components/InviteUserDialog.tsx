@@ -40,8 +40,10 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 
 	async function handleSubmit() {
 		const parsedEmail = inviteEmailSchema.safeParse(email);
+
 		if (!parsedEmail.success) {
 			setFieldError(parsedEmail.error.issues[0]?.message ?? "Please enter a valid email address.");
+
 			return;
 		}
 
@@ -52,6 +54,7 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 
 		if (error !== null) {
 			toast.error(getInviteUserErrorMessage(error.reason));
+
 			return;
 		}
 
@@ -80,6 +83,7 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 						disabled={isSubmitting}
 						onChange={(event) => {
 							setEmail(event.target.value);
+
 							if (fieldError !== null) setFieldError(null);
 						}}
 					/>

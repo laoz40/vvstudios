@@ -33,10 +33,12 @@ export function LandingHero() {
 	const heroRef = useRef<HTMLElement>(null);
 	const prefersReducedMotion = useReducedMotion();
 	const isDesktopViewport = useIsDesktopViewport();
+
 	const { scrollYProgress } = useScroll({
 		target: heroRef,
 		offset: ["start start", "center start"]
 	});
+
 	const heroVideoY = useTransform(scrollYProgress, [0, 1], [0, -300]);
 	const heroTextOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
 	const heroTextY = useTransform(scrollYProgress, [0, 0.4], [0, -180]);

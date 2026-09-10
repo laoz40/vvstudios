@@ -20,6 +20,7 @@
 		"components/ui/**",
 		"convex/_generated/**",
 		"src/routeTree.gen.ts",
+		"tools/oxlint/**",
 		"**/*.md",
 		"**/*.yaml",
 		"**/*.yml"

@@ -66,6 +66,7 @@ export function usePackageCalendarBusyWindows({
 			if (busyWindowsError !== null) {
 				console.error("Failed to load package calendar busy windows", busyWindowsError);
 				setCalendarLoadError(getPackageAvailabilityErrorMessage(busyWindowsError));
+
 				return;
 			}
 

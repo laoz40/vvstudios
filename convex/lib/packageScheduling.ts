@@ -138,6 +138,7 @@ export async function getCapacityConsumingPackageSessions(
 	packageSize: 4 | 8 | 12
 ) {
 	const bookings: Doc<"bookings">[] = [];
+
 	const bookingsByStatus = await Promise.all(
 		capacityConsumingSessionStatuses.map((status) =>
 			ctx.db
@@ -148,9 +149,11 @@ export async function getCapacityConsumingPackageSessions(
 				.take(packageSize)
 		)
 	);
+
 	for (const statusBookings of bookingsByStatus) {
 		bookings.push(...statusBookings);
 	}
+
 	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
@@ -197,6 +200,7 @@ export function toPackageCalendarSession(session: Doc<"bookings">): SessionCalen
 	if (session.googleCalendarId) {
 		record.googleCalendarId = session.googleCalendarId;
 	}
+
 	if (session.googleEventId) {
 		record.googleEventId = session.googleEventId;
 	}

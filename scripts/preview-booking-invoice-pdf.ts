@@ -11,6 +11,7 @@ import {
 import { renderBookingInvoicePdf } from "#studio/features/booking-invoice/pdf/render-booking-invoice-pdf";
 
 const BOOKING_OUTPUT_PATH = resolve(process.cwd(), "tmp/booking-invoice-preview.pdf");
+
 const PACKAGE_OUTPUT_PATH = resolve(process.cwd(), "tmp/package-invoice-preview.pdf");
 
 async function main() {

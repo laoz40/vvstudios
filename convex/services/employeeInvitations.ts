@@ -8,7 +8,9 @@ import { createClerkInvitation, parseInviteEmail } from "#convex/lib/clerkInvita
 import { okOrThrow } from "#convex/lib/result";
 
 type InviteUserArgs = { email: string };
+
 type InviteUserSuccess = { invitedEmail: string };
+
 type InviteUserError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }

@@ -21,13 +21,16 @@ type ClientDrivePermissionsDisplayStatus =
 	| "not_created"
 	| "ready"
 	| "skipped";
+
 type AssetsEmailDisplayStatus = "failed" | "not_applicable" | "not_sent" | "pending" | "sent";
+
 type DriveStatusFolderName = "Assets" | "Package" | "Session" | DriveChildFolderName;
 
 // Package session folders live inside their package folder; ordinary sessions sit directly
 // below the client folder, so the session label differs between the two kinds.
 function getSavedPackageFolderName(packageRecord: Doc<"packages"> | null) {
 	if (packageRecord === null) return undefined;
+
 	return formatDrivePackageFolderName({
 		packageSize: packageRecord.packageSize,
 		purchasedAt: packageRecord.paidAt ?? packageRecord.createdAt
@@ -39,9 +42,11 @@ function getSavedSessionFolderName(
 	driveSession: Doc<"driveSessions"> | null
 ) {
 	if (booking === null) return undefined;
+
 	if (driveSession?.packageSessionNumber === undefined) {
 		return formatDriveSessionFolderName(booking.sessionStartAt);
 	}
+
 	return formatDrivePackageSessionFolderName(
 		driveSession.packageSessionNumber,
 		booking.sessionStartAt
@@ -49,6 +54,7 @@ function getSavedSessionFolderName(
 }
 
 type DriveStatusFolder = { name: DriveStatusFolderName; url: string | undefined };
+
 type SavedPackageFolder = NonNullable<Doc<"driveSessions">["packageFolder"]>;
 
 function getSavedFolderRows(
@@ -62,6 +68,7 @@ function getSavedFolderRows(
 		packageFolderName === undefined
 			? []
 			: [{ name: "Package", url: driveSession.packageFolder?.url ?? sharedPackageFolder?.url }];
+
 	return [
 		{ name: "Assets", url: driveClient?.assetsFolder?.url },
 		...packageFolderRow,
@@ -90,15 +97,20 @@ function getNoSessionDriveStatus(
 	sessionFolderName: string | undefined
 ): DriveDisplayStatus {
 	const base = { packageFolderName, sessionFolderName };
+
 	if (args.driveSetupFailed) return { status: "failed", ...base };
 	const assetsUrl = args.driveClient?.assetsFolder?.url;
 	const packageUrl = args.sharedPackageFolder?.url;
+
 	// A sibling session may already own the package folder even though this session has none.
 	if (assetsUrl === undefined && packageUrl === undefined)
 		return { status: "not_created", ...base };
 	const folders: DriveStatusFolder[] = [];
+
 	if (assetsUrl !== undefined) folders.push({ name: "Assets", url: assetsUrl });
+
 	if (packageFolderName !== undefined) folders.push({ name: "Package", url: packageUrl });
+
 	return { status: "incomplete", ...base, folders };
 }
 
@@ -123,7 +135,9 @@ export function buildDriveStatus(args: {
 		packageFolderName,
 		args.sharedPackageFolder
 	);
+
 	const isReady = folders.every((folder) => folder.url !== undefined);
+
 	return {
 		status: isReady ? "ready" : "incomplete",
 		packageFolderName,
@@ -139,6 +153,7 @@ function getDriveIdentityStatus(
 	if (booking === null || driveClient === null) {
 		return { bookingEmailChanged: false, workspaceNameChanged: false };
 	}
+
 	return {
 		bookingEmailChanged: booking.email.trim().toLowerCase() !== driveClient.normalizedEmail,
 		workspaceNameChanged:
@@ -170,6 +185,7 @@ function buildClientDrivePermissionsDisplayStatus(
 
 	const foldersAreReady = areClientDriveFoldersReady(driveClient, driveSession);
 	const permissionsAreReady = areClientDrivePermissionsReady(driveClient);
+
 	switch (driveSession.clientDrivePermissionsStatus) {
 		case "failed":
 			return "failed";
@@ -199,7 +215,9 @@ function hasEditorDriveWorkflowFailure(
 	editorDrivePermissions: ReturnType<typeof buildEditorDrivePermissionsStatus>
 ) {
 	if (editorDrivePermissions.status === "failed") return true;
+
 	if (folderStatus === "ready" && editorDrivePermissions.status === "pending") return true;
+
 	return (
 		editorDrivePermissions.status === "ready" &&
 		editorDrivePermissions.assignmentEmailStatus === "failed"
@@ -214,6 +232,7 @@ export function hasDriveWorkflowFailure(args: {
 	previousEditorRemovalFailed: boolean;
 }) {
 	if (args.folderStatus === "failed") return true;
+
 	// Incomplete only counts when this session's own folders were started, not a sibling
 	// package folder that already exists for another session.
 	if (
@@ -222,8 +241,11 @@ export function hasDriveWorkflowFailure(args: {
 	) {
 		return true;
 	}
+
 	if (hasClientDriveWorkflowFailure(args.clientDrivePermissions)) return true;
+
 	if (hasEditorDriveWorkflowFailure(args.folderStatus, args.editorDrivePermissions)) return true;
+
 	return args.previousEditorRemovalFailed;
 }
 
@@ -244,12 +266,15 @@ function computeHasDriveWorkflowFailure(args: DriveWorkflowFailureInputs) {
 		driveSetupFailed: args.booking?.driveSetupFailureCode !== undefined,
 		sharedPackageFolder: args.sharedPackageFolder
 	});
+
 	const clientDrivePermissions = buildClientDrivePermissionsStatus(
 		args.driveClient,
 		args.driveSession,
 		args.booking
 	);
+
 	const editorDrivePermissions = buildEditorDrivePermissionsStatus(args.booking, args.driveSession);
+
 	return hasDriveWorkflowFailure({
 		clientDrivePermissions,
 		editorDrivePermissions,
@@ -286,7 +311,9 @@ function buildAssetsEmailStatus(
 	if (booking !== null && !bookingRequiresClientAssetsEmail(booking.addons)) {
 		return "not_applicable";
 	}
+
 	if (driveSession === null) return "not_sent";
+
 	if (
 		driveSession.assetsEmailStatus === "sent" &&
 		driveSession.assetsEmailFolderId !== driveClient?.assetsFolder?.id
@@ -349,6 +376,7 @@ function buildDriveStatusFromSetup(
 ) {
 	const { booking, driveClient, driveSession, packageRecord, sharedPackageFolder } =
 		getDriveSetupEntities(setupInfo);
+
 	const folderStatus = buildDriveStatus({
 		booking,
 		driveClient,
@@ -357,12 +385,15 @@ function buildDriveStatusFromSetup(
 		driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
 		sharedPackageFolder
 	});
+
 	const clientDrivePermissions = buildClientDrivePermissionsStatus(
 		driveClient,
 		driveSession,
 		booking
 	);
+
 	const editorDrivePermissions = buildEditorDrivePermissionsStatus(booking, driveSession);
+
 	const previousEditorRemovalFailed =
 		driveSession?.failedRemovalEditorTokenIdentifier !== undefined;
 
@@ -396,7 +427,9 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 			.unique(),
 		booking.packageId !== undefined ? ctx.db.get(booking.packageId) : null
 	]);
+
 	const driveClient = await resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking);
+
 	const sharedPackageFolder =
 		driveSession?.packageFolder === undefined && booking.packageId !== undefined
 			? await loadSharedPackageFolder(ctx, booking.packageId, booking._id)
@@ -413,11 +446,14 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 
 export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
 	const editorTokenIdentifier = booking.assignedEditorTokenIdentifier;
+
 	if (editorTokenIdentifier === undefined) return null;
+
 	const driveSession = await ctx.db
 		.query("driveSessions")
 		.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
 		.unique();
+
 	if (
 		driveSession === null ||
 		driveSession.editorDrivePermissionsStatus !== "ready" ||
@@ -425,7 +461,9 @@ export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"
 	) {
 		return null;
 	}
+
 	const driveClient = await ctx.db.get(driveSession.driveClientId);
+
 	if (
 		driveClient?.assetsFolder === undefined ||
 		driveSession.sessionFolder === undefined ||
@@ -434,6 +472,7 @@ export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"
 	) {
 		return null;
 	}
+
 	return {
 		assets: driveClient.assetsFolder,
 		deliverables: driveSession.deliverablesFolder,
@@ -447,6 +486,7 @@ function buildEditorDrivePermissionsStatus(
 	driveSession: Doc<"driveSessions"> | null
 ) {
 	const editorTokenIdentifier = booking?.assignedEditorTokenIdentifier;
+
 	if (editorTokenIdentifier === undefined) {
 		return { status: "not_assigned" as const, assignmentEmailStatus: "not_sent" as const };
 	}
@@ -460,7 +500,9 @@ function buildEditorDrivePermissionsStatus(
 
 	const status: "failed" | "pending" | "ready" =
 		driveSession.editorDrivePermissionsStatus ?? "pending";
+
 	let assignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent" = "not_sent";
+
 	if (driveSession.assignmentEmailTokenIdentifier === editorTokenIdentifier) {
 		assignmentEmailStatus =
 			driveSession.assignmentEmailStatus ??
