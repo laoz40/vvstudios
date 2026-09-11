@@ -68,13 +68,14 @@ export function sendBookingInvoiceForBookingService(
 					settings
 				}))
 			)
-			// Send the selected invoice artifact to the customer and host.
+			// Send the invoice to the customer. Host notification is repair-only for email_failed bookings.
 			.andThen(({ customInvoice, rescheduleUrl, session, settings }) =>
 				ResultAsync.fromSafePromise(
 					sendBookingInvoiceEmailsForBooking(session, {
 						customInvoice: customInvoice ?? undefined,
 						leadTimeMinutes: settings.leadTimeMinutes,
-						rescheduleUrl
+						rescheduleUrl,
+						skipHostEmail: session.status !== "email_failed"
 					})
 				)
 					.andThen((emailResult) => emailResult)

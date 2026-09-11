@@ -19,7 +19,8 @@
  *
  * 5. Invoice email selection
  *    The original invoice remains the default. A selected custom invoice must belong to the
- *    booking and pass its exact stored values into the email artifact flow.
+ *    booking and pass its exact stored values into the email artifact flow. Admin resends skip
+ *    host notification unless the booking is email_failed.
  *
  * Email delivery and reschedule-link creation are replaced with fakes, so no provider is called.
  */
@@ -420,6 +421,38 @@ describe("session invoice email selection", () => {
 			customTotalDueAmount: 321,
 			invoiceNumber: "VV-CUSTOM-001"
 		});
+	});
+
+	test("skips host notification when admin resends invoice for a confirmed booking", async () => {
+		const t = createConvexTest();
+		await ensureBookingSettings(t);
+		const bookingId = await seedBooking(t);
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
+
+		expect(result).toEqual([null, null]);
+		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
+			expect.objectContaining({ _id: bookingId }),
+			expect.objectContaining({ skipHostEmail: true })
+		);
+	});
+
+	test("includes host notification when admin resends invoice for an email_failed booking", async () => {
+		const t = createConvexTest();
+		await ensureBookingSettings(t);
+		const bookingId = await seedBooking(t, { status: "email_failed" });
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
+
+		expect(result).toEqual([null, null]);
+		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
+			expect.objectContaining({ _id: bookingId }),
+			expect.objectContaining({ skipHostEmail: false })
+		);
 	});
 
 	test("rejects a custom invoice belonging to another booking", async () => {

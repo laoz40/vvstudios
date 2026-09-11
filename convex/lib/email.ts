@@ -227,6 +227,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 		leadTimeMinutes: number;
 		reschedule?: SessionHostRescheduleDetails;
 		rescheduleUrl?: string;
+		skipHostEmail?: boolean;
 	}
 ): Promise<
 	Result<
@@ -272,27 +273,29 @@ export async function sendBookingInvoiceEmailsForBooking(
 		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
-	const hostEmailResult = await sendSessionHostDetailsEmail({
-		invoiceNumber: artifacts.data.invoice.number,
-		name: parsedBooking.name,
-		email: parsedBooking.email,
-		phone: parsedBooking.phone,
-		accountName: parsedBooking.accountName,
-		abn: parsedBooking.abn,
-		date: parsedBooking.date,
-		time: parsedBooking.time,
-		service: parsedBooking.service,
-		duration: parsedBooking.duration,
-		addons: parsedBooking.addons,
-		notes: parsedBooking.notes,
-		reschedule: options.reschedule
-	});
-
-	if (hostEmailResult.isErr()) {
-		console.error("Booking invoice host email send failed", {
-			bookingId: booking._id,
-			reason: hostEmailResult.error.reason
+	if (!options.skipHostEmail) {
+		const hostEmailResult = await sendSessionHostDetailsEmail({
+			invoiceNumber: artifacts.data.invoice.number,
+			name: parsedBooking.name,
+			email: parsedBooking.email,
+			phone: parsedBooking.phone,
+			accountName: parsedBooking.accountName,
+			abn: parsedBooking.abn,
+			date: parsedBooking.date,
+			time: parsedBooking.time,
+			service: parsedBooking.service,
+			duration: parsedBooking.duration,
+			addons: parsedBooking.addons,
+			notes: parsedBooking.notes,
+			reschedule: options.reschedule
 		});
+
+		if (hostEmailResult.isErr()) {
+			console.error("Booking invoice host email send failed", {
+				bookingId: booking._id,
+				reason: hostEmailResult.error.reason
+			});
+		}
 	}
 
 	return ok(null);
