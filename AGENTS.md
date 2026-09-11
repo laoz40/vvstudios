@@ -3,22 +3,6 @@
 Booking website for podcast studio. Includes internal dashboard for admins to manage bookings.
 Extremely important website is accessible, and as fast first paint on marketing pages as possible. SEO is a priority.
 
-## Current Goals
-
-### Convex Tests
-
-- Keep tests for races, idempotency, money, background jobs, failure recovery, and auth.
-- Auth: keep the permission model, list-query guards, and a few representative mutation deny tests. Trim per-endpoint matrix in `authorization.test.ts` — every admin mutation uses the same `requirePermission` guard
-- One PII redaction test in `editorDashboard.test.ts`;
-- Drop the rest. No mock, unit, integration, or tautological tests. Don't expand `convex/tests` unless E2E can't cover it.
-
-### E2E
-
-- Customer success paths only. Failures belong in Convex.
-- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
-- CI stops before checkout; local specs cover payment and reschedule happy paths.
-- Admin: E2E only for high-risk flows.
-
 ## Stack
 
 - Bun
@@ -99,3 +83,21 @@ Extremely important website is accessible, and as fast first paint on marketing 
 - `convex/services` should only contain service chain functions, a readable neverthrow `andThen` chain of domain operations.
 - Put domain operations used by service chains in nearest appropriate file under `convex/lib`. Do not define helper operations in service files
 
+## Tests
+
+## E2E
+
+- Prioritise E2E for customer-facing flows
+- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
+- CI E2E test stops before checkout due to Stripe hCaptcha; local specs cover payment and reschedule happy paths.
+
+## Convex tests
+
+- Only to test important flows and failures:
+    - Races
+    - Idempotency — webhook replay, send-once reminders/jobs
+    - Money calculations
+    - Background jobs — reminders, expiry, scheduled Drive setup
+    - Failure recovery — orphan Calendar cleanup, retryable states, partial Drive setup
+- Don't add unless you can explain with a strong reason.
+- Never write tautological tests
