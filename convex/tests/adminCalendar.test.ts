@@ -33,22 +33,30 @@
  *
  * Google Calendar is replaced with fakes, so no real provider requests are made.
  */
-import { ok } from "neverthrow";
+import { ok, okAsync } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createConvexTest } from "#convex/test.setup";
 
+type NotifyHostOfAdminSessionReschedule =
+	typeof import("#convex/lib/sessionHostEmails").notifyHostOfAdminSessionReschedule;
+
 const providerFakes = vi.hoisted(() => ({
 	deleteEvent: vi.fn(),
 	getEvent: vi.fn(),
 	insertEvent: vi.fn(),
 	listEvents: vi.fn(),
-	patchEvent: vi.fn()
+	patchEvent: vi.fn(),
+	notifyHostOfAdminSessionReschedule: vi.fn<NotifyHostOfAdminSessionReschedule>()
 }));
 
 vi.mock("#convex/env", () => ({ env: { GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney" } }));
+
+vi.mock("#convex/lib/sessionHostEmails", () => ({
+	notifyHostOfAdminSessionReschedule: providerFakes.notifyHostOfAdminSessionReschedule
+}));
 
 vi.mock("#convex/lib/googleCalendarClient", () => {
 	const getClient = () => ({
@@ -87,6 +95,9 @@ beforeEach(() => {
 	providerFakes.insertEvent.mockResolvedValue({ data: { id: "replacement-event" } });
 	providerFakes.listEvents.mockResolvedValue({ data: { items: [] } });
 	providerFakes.patchEvent.mockResolvedValue({ data: {} });
+	providerFakes.notifyHostOfAdminSessionReschedule.mockImplementation((_ctx, args) =>
+		okAsync(args.result)
+	);
 });
 
 describe("admin booking Calendar edits", () => {
@@ -215,6 +226,44 @@ describe("admin failed booking recovery", () => {
 });
 
 describe("admin booking state integrity", () => {
+	test("sends a host reschedule email when timing changes on a confirmed booking", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedConfirmedBooking(t);
+		const admin = t.withIdentity(adminIdentity);
+
+		const result = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
+			adminBookingValues(bookingId, { date: "2030-01-11" })
+		);
+
+		expect(result).toEqual([null, {}]);
+		expect(providerFakes.notifyHostOfAdminSessionReschedule).toHaveBeenCalledTimes(1);
+		expect(providerFakes.notifyHostOfAdminSessionReschedule).toHaveBeenCalledWith(
+			expect.anything(),
+			{
+				bookingId,
+				leadTimeMinutes: 60,
+				originalDate: "2030-01-10",
+				originalTime: "10:00",
+				result: {}
+			}
+		);
+	});
+
+	test("does not send a host reschedule email for non-timing edits", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedConfirmedBooking(t);
+		const admin = t.withIdentity(adminIdentity);
+
+		const result = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
+			adminBookingValues(bookingId, { name: "Renamed customer" })
+		);
+
+		expect(result).toEqual([null, {}]);
+		expect(providerFakes.notifyHostOfAdminSessionReschedule).not.toHaveBeenCalled();
+	});
+
 	test("resets reminders for timing edits and preserves them for ordinary edits", async () => {
 		const timingTest = createConvexTest();
 		const timingBookingId = await seedConfirmedBooking(timingTest);
