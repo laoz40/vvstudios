@@ -46,13 +46,12 @@ export async function expectRescheduleComplete(
 		timeout: 120_000
 	});
 
-	const dataRow = page
-		.locator(".grid.grid-cols-4")
-		.filter({ has: page.locator("div").filter({ hasText: /^1$/ }) })
-		.first();
+	const detailsSection = page
+		.locator("section")
+		.filter({ has: page.getByRole("heading", { name: "Booking Details" }) });
 
-	const newDate = (await dataRow.locator("div").nth(1).textContent())?.trim() ?? "";
-	const newTime = (await dataRow.locator("div").nth(2).textContent())?.trim() ?? "";
+	const newDate = (await detailsSection.locator("dd").nth(0).textContent())?.trim() ?? "";
+	const newTime = (await detailsSection.locator("dd").nth(2).textContent())?.trim() ?? "";
 
 	const dateChanged = newDate !== options.previousDate;
 	const timeChanged = newTime !== options.previousTime;
