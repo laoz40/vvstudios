@@ -1,9 +1,10 @@
 "use node";
 
-import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { err, errAsync, ok } from "neverthrow";
 import { z } from "zod";
 import { studioSite } from "#/config/sites";
 import { env } from "#convex/env";
+import { tryPromise } from "#convex/lib/result";
 
 const clerkInvitationsUrl = "https://api.clerk.com/v1/invitations";
 
@@ -77,24 +78,34 @@ export function parseInviteEmail(email: string) {
 }
 
 export function createClerkInvitation(email: string) {
-	return ResultAsync.fromPromise(
-		fetch(clerkInvitationsUrl, {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${env.CLERK_SECRET_KEY}`,
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({
-				email_address: email,
-				notify: true,
-				redirect_url: new URL(studioSite.routes.login, env.STRIPE_CHECKOUT_RETURN_URL).href
-			})
-		}),
-		() => ({ reason: "CLERK_INVITATION_FAILED" as const })
-	).andThen((response) =>
-		ResultAsync.fromPromise(response.json(), () => ({
-			reason: "CLERK_INVITATION_FAILED" as const
-		})).andThen((body) => {
+	return tryPromise({
+		try: () =>
+			fetch(clerkInvitationsUrl, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${env.CLERK_SECRET_KEY}`,
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({
+					email_address: email,
+					notify: true,
+					redirect_url: new URL(studioSite.routes.login, env.STRIPE_CHECKOUT_RETURN_URL).href
+				})
+			}),
+		catch: (cause) => {
+			console.error("Clerk invitation request failed", { email, cause });
+
+			return { reason: "CLERK_INVITATION_FAILED" as const };
+		}
+	}).andThen((response) =>
+		tryPromise({
+			try: () => response.json(),
+			catch: (cause) => {
+				console.error("Clerk invitation response parse failed", { email, cause });
+
+				return { reason: "CLERK_INVITATION_FAILED" as const };
+			}
+		}).andThen((body) => {
 			if (!response.ok) {
 				const parsedBody = clerkErrorSchema.safeParse(body);
 

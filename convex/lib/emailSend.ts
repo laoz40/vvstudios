@@ -1,5 +1,5 @@
-import { err, ok, ResultAsync } from "neverthrow";
-import { okOrThrow } from "#convex/lib/result";
+import { err, ok } from "neverthrow";
+import { okOrThrow, tryPromise } from "#convex/lib/result";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
@@ -104,14 +104,23 @@ export function sendEmail(args: {
 		requestBody.attachments = attachments;
 	}
 
-	return ResultAsync.fromPromise(
-		fetch("https://api.resend.com/emails", {
-			method: "POST",
-			headers,
-			body: JSON.stringify(requestBody)
-		}),
-		() => ({ reason: "EMAIL_REQUEST_FAILED" as const })
-	).andThen((response) => {
+	return tryPromise({
+		try: () =>
+			fetch("https://api.resend.com/emails", {
+				method: "POST",
+				headers,
+				body: JSON.stringify(requestBody)
+			}),
+		catch: (cause) => {
+			console.error("Resend email request failed", {
+				to: args.to,
+				subject: args.subject,
+				cause
+			});
+
+			return { reason: "EMAIL_REQUEST_FAILED" as const };
+		}
+	}).andThen((response) => {
 		if (response.ok) {
 			return ok(null);
 		}

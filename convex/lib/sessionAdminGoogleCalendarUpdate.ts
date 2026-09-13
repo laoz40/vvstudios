@@ -8,7 +8,7 @@ import {
 	calendarResultAsync,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendarErrors";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
 import {
 	buildSessionCalendarEventPayload,
@@ -78,16 +78,17 @@ function promoteFailedSessionFromAdmin({
 		}
 
 		// Create the Calendar event before saving so Google failures block the Convex update.
-		return ResultAsync.fromPromise(
-			Promise.resolve().then(() =>
-				buildSessionCalendarEventPayload({
-					date: args.date,
-					details: getAdminSessionEventDetails(args),
-					time: args.time,
-					timeZone: client.timeZone
-				})
-			),
-			(error) => {
+		return tryPromise({
+			try: () =>
+				Promise.resolve(
+					buildSessionCalendarEventPayload({
+						date: args.date,
+						details: getAdminSessionEventDetails(args),
+						time: args.time,
+						timeZone: client.timeZone
+					})
+				),
+			catch: (error) => {
 				const parsedError = calendarErrorSchema.safeParse(error);
 
 				return {
@@ -96,7 +97,7 @@ function promoteFailedSessionFromAdmin({
 						: "GOOGLE_CALENDAR_CREATE_FAILED"
 				};
 			}
-		)
+		})
 			.andThen((payloadResult) =>
 				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
 			)
