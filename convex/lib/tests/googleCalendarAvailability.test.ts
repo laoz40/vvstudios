@@ -31,12 +31,12 @@ type CalendarPage = { items: calendar_v3.Schema$Event[]; nextPageToken?: string 
 function calendarWithPages(pagesByCalendarId: Record<string, CalendarPage[]>) {
 	return {
 		events: {
-			list: async ({ calendarId, pageToken }: { calendarId: string; pageToken?: string }) => {
+			list: ({ calendarId, pageToken }: { calendarId: string; pageToken?: string }) => {
 				const pages = pagesByCalendarId[calendarId] ?? [{ items: [] }];
 				const pageIndex = pageToken ? Number(pageToken) : 0;
 				const page = pages[pageIndex] ?? { items: [] };
 
-				return { data: { items: page.items, nextPageToken: page.nextPageToken } };
+				return Promise.resolve({ data: { items: page.items, nextPageToken: page.nextPageToken } });
 			}
 		}
 	};

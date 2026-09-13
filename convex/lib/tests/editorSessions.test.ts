@@ -5,26 +5,22 @@
  *    Rejects unconfirmed, archived, and future sessions before deliverables work starts.
  */
 import { describe, expect, test } from "vitest";
-import type { UserIdentity } from "convex/server";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { DeliverablesEligibilitySession } from "#convex/lib/editorSessions";
 import { requireDeliverablesEligibility } from "#convex/lib/editorSessions";
+import { testUserIdentity } from "#convex/lib/tests/testIds";
 
 const pastStartAt = Date.parse("2020-01-01T00:00:00.000Z");
 
 const futureStartAt = Date.parse("2030-01-01T00:00:00.000Z");
 
-function session(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> {
-	// SAFETY: Unit test fixture; eligibility helper only reads status, hiddenAt, and sessionStartAt.
-	return {
-		_id: "booking-1" as Id<"bookings">,
-		status: "confirmed",
-		sessionStartAt: pastStartAt,
-		...overrides
-	} as Doc<"bookings">;
+function session(
+	overrides: Partial<DeliverablesEligibilitySession> = {}
+): DeliverablesEligibilitySession {
+	return { status: "confirmed", sessionStartAt: pastStartAt, ...overrides };
 }
 
-function access(overrides: Partial<Doc<"bookings">> = {}) {
-	return { identity: { tokenIdentifier: "editor-1" } as UserIdentity, session: session(overrides) };
+function access(overrides: Partial<DeliverablesEligibilitySession> = {}) {
+	return { identity: testUserIdentity(), session: session(overrides) };
 }
 
 describe("requireDeliverablesEligibility", () => {
@@ -32,6 +28,7 @@ describe("requireDeliverablesEligibility", () => {
 		const result = requireDeliverablesEligibility(access({ status: "pending_payment" }));
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "SESSION_NOT_CONFIRMED" });
 		}
@@ -41,6 +38,7 @@ describe("requireDeliverablesEligibility", () => {
 		const result = requireDeliverablesEligibility(access({ hiddenAt: Date.now() }));
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "SESSION_ARCHIVED" });
 		}
@@ -50,6 +48,7 @@ describe("requireDeliverablesEligibility", () => {
 		const result = requireDeliverablesEligibility(access({ sessionStartAt: futureStartAt }));
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "SESSION_NOT_IN_PAST" });
 		}

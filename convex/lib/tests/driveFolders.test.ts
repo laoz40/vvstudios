@@ -11,7 +11,6 @@
  *    Records only actionable setup failures on the booking row.
  */
 import { describe, expect, test } from "vitest";
-import type { Id } from "#convex/_generated/dataModel";
 import { shouldRecordDriveSetupFailure, validateDriveSetup } from "#convex/lib/driveSetup";
 import {
 	getClientFolderName,
@@ -19,10 +18,11 @@ import {
 	getPackageSessionFolderName,
 	getSessionFolderName
 } from "#convex/lib/googleDrive";
+import { testBookingId } from "#convex/lib/tests/testIds";
 
 const sessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
 
-const bookingId = "booking-1" as Id<"bookings">;
+const bookingId = testBookingId("booking-1");
 
 function setupInfo(
 	overrides: Partial<{
@@ -68,6 +68,7 @@ describe("validateDriveSetup", () => {
 		const result = validateDriveSetup(null);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "BOOKING_NOT_FOUND" });
 		}
@@ -77,6 +78,7 @@ describe("validateDriveSetup", () => {
 		const result = validateDriveSetup(setupInfo({ status: "cancelled" }));
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "BOOKING_NOT_ELIGIBLE" });
 		}
@@ -89,6 +91,7 @@ describe("validateDriveSetup", () => {
 		});
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "BOOKING_TIMING_CHANGED" });
 		}

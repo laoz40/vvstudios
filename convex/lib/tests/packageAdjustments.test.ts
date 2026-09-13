@@ -11,15 +11,17 @@
  *    Blocks payment before send or due date; allows sent or overdue invoices.
  */
 import { describe, expect, test } from "vitest";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Doc } from "#convex/_generated/dataModel";
 import {
 	evaluatePackageAdjustment,
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE,
 	requirePackageAdjustmentPaymentEligibility,
-	validatePackageAdjustmentEmailClaim
+	validatePackageAdjustmentEmailClaim,
+	type PackageAdjustmentSession
 } from "#convex/lib/packageAdjustments";
+import { testBookingId, testPackageAdjustmentId, testPackageId } from "#convex/lib/tests/testIds";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
@@ -35,17 +37,18 @@ function packageSession(
 	sessionStartAt: number,
 	duration: string,
 	addons: BookingAddon[] = []
-): Doc<"bookings"> {
-	// SAFETY: Unit test fixture; evaluatePackageAdjustment only reads _id, duration, sessionStartAt, and addons.
-	return { _id: id as Id<"bookings">, sessionStartAt, duration, addons } as Doc<"bookings">;
+): PackageAdjustmentSession {
+	return { _id: testBookingId(id), sessionStartAt, duration, addons };
 }
 
 function invoiceAdjustment(
 	overrides: Partial<Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>> = {}
 ): Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }> {
 	return {
+		_id: testPackageAdjustmentId("adj-1"),
+		_creationTime: now,
 		outcome: "invoice_required",
-		packageId: "package1" as Id<"packages">,
+		packageId: testPackageId("package1"),
 		trigger: "package_expired",
 		remotePodcastBookingIds: [],
 		quantity: 1,
@@ -73,9 +76,17 @@ describe("evaluatePackageAdjustment", () => {
 	});
 
 	test("counts quantity and total from completed Remote Podcast sessions", () => {
+		const remoteSessionOne = packageSession("booking-remote-1", completedSessionStartAt, "1h", [
+			"Remote Podcast"
+		]);
+
+		const remoteSessionTwo = packageSession("booking-remote-2", completedSessionStartAt, "2h", [
+			"Remote Podcast"
+		]);
+
 		const remotePodcastSessions = [
-			packageSession("booking-remote-1", completedSessionStartAt, "1h", ["Remote Podcast"]),
-			packageSession("booking-remote-2", completedSessionStartAt, "2h", ["Remote Podcast"]),
+			remoteSessionOne,
+			remoteSessionTwo,
 			packageSession("booking-plain", completedSessionStartAt, "1h", [])
 		];
 
@@ -83,10 +94,7 @@ describe("evaluatePackageAdjustment", () => {
 
 		expect(evaluation).toEqual({
 			kind: "ready",
-			remotePodcastBookingIds: [
-				"booking-remote-1" as Id<"bookings">,
-				"booking-remote-2" as Id<"bookings">
-			],
+			remotePodcastBookingIds: [remoteSessionOne._id, remoteSessionTwo._id],
 			quantity: 2,
 			totalAmount: 2 * REMOTE_PODCAST_ADJUSTMENT_RATE
 		});
@@ -110,6 +118,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" });
 		}
@@ -124,6 +133,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" });
 		}
@@ -136,6 +146,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" });
 		}
@@ -148,6 +159,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" });
 		}
@@ -162,6 +174,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		const result = validatePackageAdjustmentEmailClaim(adjustment, { attempt: "retry", now });
 
 		expect(result.isOk()).toBe(true);
+
 		if (result.isOk()) {
 			expect(result.value).toEqual(adjustment);
 		}
@@ -179,6 +192,7 @@ describe("requirePackageAdjustmentPaymentEligibility", () => {
 		);
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" });
 		}
@@ -190,6 +204,7 @@ describe("requirePackageAdjustmentPaymentEligibility", () => {
 		const result = requirePackageAdjustmentPaymentEligibility(adjustment, now);
 
 		expect(result.isOk()).toBe(true);
+
 		if (result.isOk()) {
 			expect(result.value).toEqual(adjustment);
 		}

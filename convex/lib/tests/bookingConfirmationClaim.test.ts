@@ -8,7 +8,7 @@
  *    Maps idempotent replays and invalid booking states to claim errors.
  */
 import { describe, expect, test } from "vitest";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { BookingClaimSession } from "#convex/lib/bookingConfirmationClaim";
 import {
 	getBookingClaimStatus,
 	validateClaimStripeSession
@@ -16,14 +16,8 @@ import {
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 
-function booking(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> {
-	// SAFETY: Unit test fixture; claim helpers only read status, stripeSessionId, and claim timestamps.
-	return {
-		_id: "booking-1" as Id<"bookings">,
-		status: "pending_payment",
-		stripeSessionId: "cs-1",
-		...overrides
-	} as Doc<"bookings">;
+function booking(overrides: Partial<BookingClaimSession> = {}): BookingClaimSession {
+	return { status: "pending_payment", stripeSessionId: "cs-1", ...overrides };
 }
 
 describe("validateClaimStripeSession", () => {
@@ -31,6 +25,7 @@ describe("validateClaimStripeSession", () => {
 		const result = validateClaimStripeSession(booking(), "cs-other");
 
 		expect(result.isErr()).toBe(true);
+
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "STRIPE_SESSION_MISMATCH" });
 		}
@@ -44,6 +39,7 @@ describe("getBookingClaimStatus", () => {
 		);
 
 		expect(result.isOk()).toBe(true);
+
 		if (result.isOk()) {
 			expect(result.value).toEqual({ kind: "already_claimed" });
 		}
@@ -59,15 +55,19 @@ describe("getBookingClaimStatus", () => {
 		expect(abandoned.isErr()).toBe(true);
 		expect(expired.isErr()).toBe(true);
 		expect(failed.isErr()).toBe(true);
+
 		if (cancelled.isErr()) {
 			expect(cancelled.error).toEqual({ reason: "BOOKING_INVALID_STATUS", status: "cancelled" });
 		}
+
 		if (abandoned.isErr()) {
 			expect(abandoned.error).toEqual({ reason: "BOOKING_INVALID_STATUS", status: "abandoned" });
 		}
+
 		if (expired.isErr()) {
 			expect(expired.error).toEqual({ reason: "BOOKING_EXPIRED" });
 		}
+
 		if (failed.isErr()) {
 			expect(failed.error).toEqual({ reason: "BOOKING_FAILED" });
 		}

@@ -8,12 +8,12 @@
  *    Detects direct overlaps and buffer gaps between session windows.
  */
 import { describe, expect, test } from "vitest";
-import type { Doc, Id } from "#convex/_generated/dataModel";
 import { doSessionWindowsOverlap } from "#convex/lib/sessionCalendarTime";
 import {
 	sessionHasReservation,
 	SLOT_RESERVATION_TTL_MS,
-	type SessionReservation
+	type SessionReservation,
+	type SessionReservationBooking
 } from "#convex/lib/sessionReservations";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -26,17 +26,17 @@ const eventBufferMinutes = 15;
 
 const reservation: SessionReservation = { reservedAt: now, sessionStartAt, duration: "1h" };
 
-function bookingWithReservation(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> {
-	// SAFETY: Unit test fixture; sessionHasReservation only reads reservation and session fields.
+function bookingWithReservation(
+	overrides: Partial<SessionReservationBooking> = {}
+): SessionReservationBooking {
 	return {
-		_id: "booking-1" as Id<"bookings">,
 		sessionStartAt,
 		duration: "1h",
 		reservationCreatedAt: reservation.reservedAt,
 		reservationSessionStartAt: reservation.sessionStartAt,
 		reservationDuration: reservation.duration,
 		...overrides
-	} as Doc<"bookings">;
+	};
 }
 
 describe("sessionHasReservation", () => {
