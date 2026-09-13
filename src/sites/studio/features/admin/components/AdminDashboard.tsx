@@ -23,7 +23,10 @@ import {
 	toSessionListQuerySort,
 	type SessionSorting
 } from "#studio/features/admin/lib/admin-sessions";
-import { readStoredSessionsTablePreferences } from "#studio/features/admin/lib/admin-dashboard-preferences";
+import {
+	readStoredPackagesTablePreferences,
+	readStoredSessionsTablePreferences
+} from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
 
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
@@ -170,9 +173,16 @@ function AdminDashboardTables({
 }
 
 export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
-	const initialSessionPreferences = useMemo(readStoredSessionsTablePreferences, []);
-	const [sessionSorting, setSessionSorting] = useState(initialSessionPreferences.sorting);
-	const [packageSorting, setPackageSorting] = useState<AdminPackageSort>({ isDescending: true });
+	const initialTablePreferences = useMemo(
+		() => ({
+			sessions: readStoredSessionsTablePreferences(),
+			packages: readStoredPackagesTablePreferences()
+		}),
+		[]
+	);
+
+	const [sessionSorting, setSessionSorting] = useState(initialTablePreferences.sessions.sorting);
+	const [packageSorting, setPackageSorting] = useState(initialTablePreferences.packages.sorting);
 	const sessionListSort = toSessionListQuerySort(sessionSorting);
 
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {

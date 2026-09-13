@@ -12,12 +12,14 @@ import {
 	type AdminPackageSort
 } from "#studio/features/admin/lib/admin-packages";
 import {
-	readStoredPackageTableFilters,
-	storePackageTableFilters
+	readStoredPackagesTablePreferences,
+	storePackagesTableFilters
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
-type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
+type PackageCheckboxFilters = Omit<AdminPackageFilters, "searchQuery">;
+
+type PackageCheckboxFilterKey = keyof PackageCheckboxFilters;
 
 export function PackagesTable({
 	canLoadMorePackages,
@@ -38,28 +40,31 @@ export function PackagesTable({
 	packages: AdminPackageRecord[];
 	sorting: AdminPackageSort;
 }) {
-	// Package filters
-	const [filters, setFilters] = useState<AdminPackageFilters>(() => {
-		return readStoredPackageTableFilters();
+	// Table setup and persisted filters
+	const [filters, setFilters] = useState<PackageCheckboxFilters>(() => {
+		const storedPreferences = readStoredPackagesTablePreferences();
+
+		return {
+			showArchived: storedPreferences.showArchived,
+			showOverdue: storedPreferences.showOverdue,
+			showPaid: storedPreferences.showPaid,
+			showUpcoming: storedPreferences.showUpcoming
+		};
 	});
+
+	const [searchQuery, setSearchQuery] = useState("");
 
 	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
 
-	// Persist package filters.
+	// Persist table preferences.
 	useEffect(() => {
-		storePackageTableFilters({
-			showArchived,
-			showOverdue,
-			showPaid,
-			showUpcoming,
-			searchQuery: ""
-		});
-	}, [showArchived, showOverdue, showPaid, showUpcoming]);
+		storePackagesTableFilters({ sorting, showArchived, showOverdue, showPaid, showUpcoming });
+	}, [sorting, showArchived, showOverdue, showPaid, showUpcoming]);
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
-		return filterAdminPackages(packages.map(mapPackageToAdminRow), filters);
-	}, [filters, packages]);
+		return filterAdminPackages(packages.map(mapPackageToAdminRow), { ...filters, searchQuery });
+	}, [filters, packages, searchQuery]);
 
 	function updateCreatedSort() {
 		onSortingChange({ isDescending: !sorting.isDescending });
@@ -80,16 +85,12 @@ export function PackagesTable({
 		});
 	}
 
-	function updateSearchQuery(searchQuery: string) {
-		setFilters((currentFilters) => ({ ...currentFilters, searchQuery }));
-	}
-
 	return (
 		<section className="flex flex-col gap-4">
 			<PackagesTableFilters
-				filters={filters}
+				filters={{ ...filters, searchQuery }}
 				onFilterChange={updateFilter}
-				onSearchQueryChange={updateSearchQuery}
+				onSearchQueryChange={setSearchQuery}
 			/>
 
 			<div className="overflow-x-auto border-y">
