@@ -535,9 +535,8 @@ export function createPackageInvoiceArtifacts(
 export function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
 	return tryPromise({
 		try: async () => {
-			const { renderBookingInvoicePdf } = await import(
-				"#studio/features/booking-invoice/pdf/render-booking-invoice-pdf"
-			);
+			const { renderBookingInvoicePdf } =
+				await import("#studio/features/booking-invoice/pdf/render-booking-invoice-pdf");
 
 			return renderBookingInvoicePdf(data);
 		},

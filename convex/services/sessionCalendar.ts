@@ -337,9 +337,9 @@ export function rescheduleSessionService(
 				).map(() => state)
 			)
 			.andThen(({ session, settings, timingUpdate }) =>
-				okOrThrow(
-					finishRescheduledSession(session, args, timingUpdate, settings)
-				).andThen((result) => result)
+				okOrThrow(finishRescheduledSession(session, args, timingUpdate, settings)).andThen(
+					(result) => result
+				)
 			)
 	);
 }
@@ -416,9 +416,7 @@ export function deleteSessionFromAdminService(
 			)
 			// Delete the provider event before cancelling the booking in Convex.
 			.andThen(({ client, session }) =>
-				okOrThrow(deleteSessionCalendarEvent({ session, client })).andThen(
-					(result) => result
-				)
+				okOrThrow(deleteSessionCalendarEvent({ session, client })).andThen((result) => result)
 			)
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>

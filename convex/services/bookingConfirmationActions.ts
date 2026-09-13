@@ -155,9 +155,7 @@ export async function completeClaimedSessionService(
 				okOrThrow(ctx.runQuery(api.bookingSettings.get, {}))
 					// Run the provider and persistence workflow with current booking settings.
 					.andThen((settings) =>
-						okOrThrow(completeClaimedSession(ctx, session, settings)).andThen(
-							(result) => result
-						)
+						okOrThrow(completeClaimedSession(ctx, session, settings)).andThen((result) => result)
 					)
 			);
 		});
