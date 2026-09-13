@@ -2,8 +2,13 @@ import { type ReactNode } from "react";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
+export type BookingDetailsData = Pick<
+	BookingStatus,
+	"status" | "date" | "time" | "duration" | "service" | "addons"
+>;
+
 export interface BookingDetailsProps {
-	booking: BookingStatus;
+	booking: BookingDetailsData;
 }
 
 export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {

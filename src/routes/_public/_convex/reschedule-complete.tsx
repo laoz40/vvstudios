@@ -73,13 +73,7 @@ function RescheduleCompletePage() {
 		<BookingStatusLayout
 			bookingStatus="confirmed"
 			devPanel={<RescheduleCompleteDevScenarioPanel />}>
-			<RescheduleConfirmation
-				addons={booking.addons}
-				date={booking.date}
-				duration={booking.duration}
-				service={booking.service}
-				time={booking.time}
-			/>
+			<RescheduleConfirmation booking={booking} />
 		</BookingStatusLayout>
 	);
 }
