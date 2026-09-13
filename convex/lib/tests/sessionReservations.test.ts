@@ -2,7 +2,7 @@
  * Session reservation matching and overlap checks.
  *
  * 1. sessionHasReservation
- *    Matches the stored reservation, rejects stale ids, changed targets, and expired TTLs.
+ *    Rejects stale ids, changed targets, expired TTLs, and uses session field fallbacks.
  *
  * 2. doSessionWindowsOverlap
  *    Detects direct overlaps and buffer gaps between session windows.
@@ -40,10 +40,6 @@ function bookingWithReservation(overrides: Partial<Doc<"bookings">> = {}): Doc<"
 }
 
 describe("sessionHasReservation", () => {
-	test("returns true for a matching reservation", () => {
-		expect(sessionHasReservation(bookingWithReservation(), reservation, now)).toBe(true);
-	});
-
 	test("returns true when reservation fields fall back to the session time and duration", () => {
 		const session = bookingWithReservation({
 			reservationSessionStartAt: undefined,

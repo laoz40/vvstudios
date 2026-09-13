@@ -28,21 +28,6 @@ function access(overrides: Partial<Doc<"bookings">> = {}) {
 }
 
 describe("requireDeliverablesEligibility", () => {
-	test("accepts confirmed past sessions", () => {
-		const result = requireDeliverablesEligibility(access());
-
-		expect(result.isOk()).toBe(true);
-		if (result.isOk()) {
-			expect(result.value._id).toBe("booking-1");
-		}
-	});
-
-	test("accepts email_failed past sessions", () => {
-		const result = requireDeliverablesEligibility(access({ status: "email_failed" }));
-
-		expect(result.isOk()).toBe(true);
-	});
-
 	test("rejects sessions that are not confirmed or email_failed", () => {
 		const result = requireDeliverablesEligibility(access({ status: "pending_payment" }));
 

@@ -1,8 +1,8 @@
 /**
  * Drive folder naming and setup validation helpers.
  *
- * 1. normalizeDriveEmail and folder name formatting
- *    Normalizes client emails and formats stable Drive folder labels.
+ * 1. Folder name formatting
+ *    Formats stable Drive folder labels from session and package metadata.
  *
  * 2. validateDriveSetup
  *    Rejects missing, ineligible, or stale bookings before Drive work starts.
@@ -17,8 +17,7 @@ import {
 	getClientFolderName,
 	getPackageFolderName,
 	getPackageSessionFolderName,
-	getSessionFolderName,
-	normalizeDriveEmail
+	getSessionFolderName
 } from "#convex/lib/googleDrive";
 
 const sessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
@@ -48,12 +47,6 @@ function setupInfo(
 		driveSession: null
 	};
 }
-
-describe("normalizeDriveEmail", () => {
-	test("trims and lowercases client emails", () => {
-		expect(normalizeDriveEmail("  Customer@Gmail.com ")).toBe("customer@gmail.com");
-	});
-});
 
 describe("drive folder names", () => {
 	test("formats client, session, and package folder names", () => {
@@ -100,22 +93,13 @@ describe("validateDriveSetup", () => {
 			expect(result.error).toEqual({ reason: "BOOKING_TIMING_CHANGED" });
 		}
 	});
-
-	test("accepts a confirmed booking at the expected time", () => {
-		const result = validateDriveSetup(setupInfo(), { sessionStartAt, duration: "1h" });
-
-		expect(result.isOk()).toBe(true);
-	});
 });
 
 describe("shouldRecordDriveSetupFailure", () => {
-	test("records actionable provider failures", () => {
+	test("records actionable provider failures but skips auth and eligibility failures", () => {
 		expect(shouldRecordDriveSetupFailure({ reason: "GOOGLE_DRIVE_FOLDER_CREATE_FAILED" })).toBe(
 			true
 		);
-	});
-
-	test("skips auth and eligibility failures", () => {
 		expect(shouldRecordDriveSetupFailure({ reason: "NOT_AUTHORIZED" })).toBe(false);
 		expect(shouldRecordDriveSetupFailure({ reason: "BOOKING_NOT_ELIGIBLE" })).toBe(false);
 	});

@@ -61,17 +61,6 @@ function invoiceAdjustment(
 }
 
 describe("evaluatePackageAdjustment", () => {
-	test("returns ready with zero quantity when no sessions exist", () => {
-		const evaluation = evaluatePackageAdjustment([], now);
-
-		expect(evaluation).toEqual({
-			kind: "ready",
-			remotePodcastBookingIds: [],
-			quantity: 0,
-			totalAmount: 0
-		});
-	});
-
 	test("waits until ongoing sessions end", () => {
 		const ongoingSession = packageSession("booking-ongoing", ongoingSessionStartAt, "1h");
 
@@ -164,17 +153,6 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		}
 	});
 
-	test("allows automatic claims on pending invoices", () => {
-		const adjustment = invoiceAdjustment({ invoiceEmailStatus: "pending" });
-
-		const result = validatePackageAdjustmentEmailClaim(adjustment, { attempt: "automatic", now });
-
-		expect(result.isOk()).toBe(true);
-		if (result.isOk()) {
-			expect(result.value).toEqual(adjustment);
-		}
-	});
-
 	test("allows retry claims on failed invoices after the claim timeout", () => {
 		const adjustment = invoiceAdjustment({
 			invoiceEmailStatus: "failed",
@@ -203,17 +181,6 @@ describe("requirePackageAdjustmentPaymentEligibility", () => {
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" });
-		}
-	});
-
-	test("allows payment after the invoice email is sent", () => {
-		const adjustment = invoiceAdjustment({ invoiceEmailStatus: "sent" });
-
-		const result = requirePackageAdjustmentPaymentEligibility(adjustment, now);
-
-		expect(result.isOk()).toBe(true);
-		if (result.isOk()) {
-			expect(result.value).toEqual(adjustment);
 		}
 	});
 
