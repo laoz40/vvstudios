@@ -21,6 +21,7 @@ import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTim
 import type { SessionReservation } from "#convex/lib/sessionReservations";
 import {
 	didSessionTimingChange,
+	getSessionEditFieldChanges,
 	getSessionStartAt,
 	type AdminSessionUpdateArgs,
 	type AdminSessionUpdateError,
@@ -310,6 +311,35 @@ export function updateSessionFromAdminWithGoogleCalendar({
 	);
 }
 
+function saveAdminSessionUpdateInConvex({
+	args,
+	ctx,
+	reservation
+}: {
+	args: AdminSessionUpdateArgs;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
+	const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+
+	if (reservation) {
+		saveArgs.reservation = reservation;
+	}
+
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
+	).map(() => ({}));
+}
+
+function shouldSyncConfirmedSessionToGoogleCalendar(
+	session: Doc<"bookings">,
+	args: AdminSessionUpdateArgs
+) {
+	const fieldChanges = getSessionEditFieldChanges(session, args);
+
+	return fieldChanges.timingFieldsChanged || fieldChanges.googleEventFieldsChanged;
+}
+
 function applyAdminSessionUpdate({
 	args,
 	session,
@@ -346,19 +376,11 @@ function applyAdminSessionUpdate({
 			next: { date: args.date, duration: args.duration, time: args.time },
 			settings,
 			timeZone: client.timeZone
-		})
-			.andThen(() => {
-				const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
+		}).andThen(() => saveAdminSessionUpdateInConvex({ args, ctx, reservation }));
+	}
 
-				if (reservation) {
-					saveArgs.reservation = reservation;
-				}
-
-				return fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
-				);
-			})
-			.map(() => ({}));
+	if (!shouldSyncConfirmedSessionToGoogleCalendar(session, args)) {
+		return saveAdminSessionUpdateInConvex({ args, ctx, reservation });
 	}
 
 	// Update the linked Google event. If it is missing/cancelled, this creates and saves a replacement.
@@ -374,14 +396,6 @@ function applyAdminSessionUpdate({
 			return ok(replacementOutcome);
 		}
 
-		const saveArgs: SaveAdminSessionUpdateArgs = { ...args };
-
-		if (reservation) {
-			saveArgs.reservation = reservation;
-		}
-
-		return fromConvexTuple(
-			ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
-		).map(() => ({}));
+		return saveAdminSessionUpdateInConvex({ args, ctx, reservation });
 	});
 }

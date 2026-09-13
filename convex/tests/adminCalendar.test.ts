@@ -24,10 +24,14 @@
  *    Editing only customer details keeps the existing reminder result. Pricing changes calculate
  *    a new remaining balance, while a valid manual balance is kept and a negative one is rejected.
  *
- * 6. Calendar deletion failure
+ * 6. Non-calendar field edits
+ *    Account name, phone, ABN, and remaining balance edits save in Convex only and must not patch
+ *    Google Calendar on confirmed bookings.
+ *
+ * 7. Calendar deletion failure
  *    A provider failure must leave the booking confirmed with its Calendar IDs intact.
  *
- * 7. Successful or already-completed Calendar deletion
+ * 8. Successful or already-completed Calendar deletion
  *    A deleted or already-missing Google event must cancel the booking and clear its
  *    Calendar IDs so Convex does not retain a stale active booking.
  *
@@ -262,6 +266,41 @@ describe("admin booking state integrity", () => {
 
 		expect(result).toEqual([null, {}]);
 		expect(providerFakes.notifyHostOfAdminSessionReschedule).not.toHaveBeenCalled();
+	});
+
+	test("saves account-name-only edits without touching Google Calendar", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedConfirmedBooking(t);
+		const admin = t.withIdentity(adminIdentity);
+
+		const result = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
+			adminBookingValues(bookingId, { accountName: "Updated account" })
+		);
+
+		expect(result).toEqual([null, {}]);
+		expect(providerFakes.getEvent).not.toHaveBeenCalled();
+		expect(providerFakes.patchEvent).not.toHaveBeenCalled();
+		expect(providerFakes.insertEvent).not.toHaveBeenCalled();
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			accountName: "Updated account",
+			googleCalendarId: "saved-calendar",
+			googleEventId: "saved-event"
+		});
+	});
+
+	test("still patches Google Calendar when customer-facing event details change", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedConfirmedBooking(t);
+		const admin = t.withIdentity(adminIdentity);
+
+		const result = await admin.action(
+			api.googleCalendar.updateSessionFromAdmin,
+			adminBookingValues(bookingId, { name: "Renamed customer" })
+		);
+
+		expect(result).toEqual([null, {}]);
+		expect(providerFakes.patchEvent).toHaveBeenCalledTimes(1);
 	});
 
 	test("resets reminders for timing edits and preserves them for ordinary edits", async () => {
