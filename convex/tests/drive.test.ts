@@ -247,7 +247,7 @@ vi.mock("#convex/env", () => ({
 
 vi.mock("#convex/lib/googleAuth", () => ({ getGoogleOAuthClient: () => ({}) }));
 
-vi.mock("#convex/lib/email", () => ({
+vi.mock("#convex/lib/emailTemplateSenders", () => ({
 	sendClientAssetsEmail: emailFake.sendClientAssetsEmail,
 	sendEditorAssignmentEmail: emailFake.sendEditorAssignmentEmail
 }));

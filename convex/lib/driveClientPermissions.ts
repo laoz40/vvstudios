@@ -15,7 +15,7 @@ import {
 	type SavedDrivePermission
 } from "#convex/lib/googleDrive";
 import { dismissedClientFolderPermission } from "#convex/lib/driveClientAccess";
-import { sendClientAssetsEmail } from "#convex/lib/email";
+import { sendClientAssetsEmail } from "#convex/lib/emailTemplateSenders";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export type DriveClientPermissionsError =
