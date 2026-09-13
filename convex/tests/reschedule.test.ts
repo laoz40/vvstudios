@@ -7,14 +7,22 @@
  *
  * 2. Missing locked link cleanup
  *    Unlocking a deleted link must report that it is missing rather than already used.
+ *
+ * 3. Reservation and failure guards
+ *    Reschedule saves swap reservations and failed confirmation stores a booking failure code.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "#convex/_generated/api";
+import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
+const rescheduledSessionStartAt = Date.parse("2030-01-11T23:00:00.000Z");
+
+const eventBufferMinutes = 15;
 
 type TestClient = ReturnType<typeof createConvexTest>;
 
@@ -60,12 +68,15 @@ describe("customer booking rescheduling", () => {
 					});
 				}
 
+				const bookingBefore = await readBooking(t, seeded.bookingId);
+
 				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
 					token,
 					now
 				});
 
 				expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
+				expect(await readBooking(t, seeded.bookingId)).toEqual(bookingBefore);
 			})
 		);
 
@@ -108,6 +119,101 @@ describe("customer booking rescheduling", () => {
 		expect(result).toEqual([{ reason: "RESCHEDULE_LINK_NOT_FOUND" }, null]);
 	});
 });
+
+describe("reschedule reservation and failure guards", () => {
+	test("swaps the active reservation when a reschedule is saved", async () => {
+		const t = createConvexTest();
+		const { bookingId } = await seedReschedulableSession(t);
+
+		const firstReservation = await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
+			bookingId,
+			duration: "1h",
+			eventBufferMinutes,
+			now,
+			sessionStartAt: rescheduledSessionStartAt
+		});
+
+		if (firstReservation[0] !== null || firstReservation[1].outcome !== "reserved") {
+			throw new Error("Failed to reserve first target");
+		}
+
+		const secondReservation = await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
+			bookingId,
+			duration: "1h",
+			eventBufferMinutes,
+			now: now + 1,
+			sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000
+		});
+
+		if (secondReservation[0] !== null || secondReservation[1].outcome !== "reserved") {
+			throw new Error("Failed to reserve second target");
+		}
+
+		expect(
+			await t.mutation(internal.sessionScheduling.saveClientSessionReschedule, {
+				bookingId,
+				date: "2030-01-12",
+				time: "10:00",
+				sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000,
+				reservation: secondReservation[1].reservation
+			})
+		).toEqual([null, null]);
+
+		const booking = await readBooking(t, bookingId);
+
+		expect(booking).toMatchObject({
+			sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000
+		});
+		expect(booking?.reservationCreatedAt).toBeUndefined();
+		expect(booking?.reservationSessionStartAt).toBeUndefined();
+		expect(booking?.reservationDuration).toBeUndefined();
+	});
+
+	test("stores a booking failure code without calling Google Calendar", async () => {
+		const t = createConvexTest();
+		const bookingId = await t.run(async (ctx) => {
+			await ctx.db.insert("bookingSettings", {
+				key: "main",
+				leadTimeMinutes: 60,
+				eventBufferMinutes: 15,
+				maxDaysAhead: 30,
+				weekSchedule: Array.from({ length: 7 }, () => ({ startTime: "09:00", endTime: "17:00" })),
+				updatedAt: now
+			});
+
+			return await ctx.db.insert("bookings", {
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt: originalSessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "pending_payment",
+				pendingPaymentCreatedAt: now,
+				stripeSessionId: "cs-1"
+			});
+		});
+
+		expect(
+			await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
+				bookingId,
+				failureCode: "BOOKING_TIME_UNAVAILABLE"
+			})
+		).toEqual([null, null]);
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			status: "failed",
+			bookingFailureCode: "BOOKING_TIME_UNAVAILABLE"
+		});
+	});
+});
+
+async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
+	return await t.run((ctx) => ctx.db.get(bookingId));
+}
 
 async function seedReschedulableSession(t: TestClient) {
 	const bookingId = await t.run(async (ctx) => {
