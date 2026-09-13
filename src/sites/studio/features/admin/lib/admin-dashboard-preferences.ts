@@ -26,9 +26,7 @@ const sessionSortingItemSchema = z.object({
 	desc: z.boolean().optional()
 });
 
-const storedPackageSortingSchema = z.object({
-	isDescending: z.boolean().optional()
-});
+const storedPackageSortingSchema = z.object({ isDescending: z.boolean().optional() });
 
 const storedPackagesTablePreferencesSchema = z.object({
 	sorting: storedPackageSortingSchema.optional(),

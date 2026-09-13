@@ -58,13 +58,7 @@ export function PackagesTable({
 
 	// Persist table preferences.
 	useEffect(() => {
-		storePackagesTableFilters({
-			sorting,
-			showArchived,
-			showOverdue,
-			showPaid,
-			showUpcoming
-		});
+		storePackagesTableFilters({ sorting, showArchived, showOverdue, showPaid, showUpcoming });
 	}, [sorting, showArchived, showOverdue, showPaid, showUpcoming]);
 
 	// Visible package rows after dashboard-level filters.
