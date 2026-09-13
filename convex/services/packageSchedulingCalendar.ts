@@ -7,7 +7,7 @@ import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalenda
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import {
 	getDateAvailabilityRange,
@@ -156,7 +156,7 @@ export function deletePackageSessionCalendarEventService(
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
 			// Delete the saved event, including declined invitations found by session details.
 			.andThen(({ calendar, calendarId, timeZone }) =>
-				ResultAsync.fromSafePromise(
+				okOrThrow(
 					deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } })
 				)
 					.andThen((result) => result)

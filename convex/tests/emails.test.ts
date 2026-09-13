@@ -50,8 +50,11 @@ vi.mock("#convex/env", () => ({
 }));
 
 vi.mock("#convex/lib/email", () => ({
-	sendSessionDeliverablesEmail: providerFakes.sendDeliverablesEmail,
 	sendFeedbackEmailForMessage: providerFakes.sendFeedbackEmail
+}));
+
+vi.mock("#convex/lib/emailTemplateSenders", () => ({
+	sendSessionDeliverablesEmail: providerFakes.sendDeliverablesEmail
 }));
 
 vi.mock("#convex/lib/googleDrive", () => ({

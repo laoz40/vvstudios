@@ -70,7 +70,7 @@ export function sendBookingInvoiceForBookingService(
 			)
 			// Send the invoice to the customer. Host notification is repair-only for email_failed bookings.
 			.andThen(({ customInvoice, rescheduleUrl, session, settings }) =>
-				ResultAsync.fromSafePromise(
+				okOrThrow(
 					sendBookingInvoiceEmailsForBooking(session, {
 						customInvoice: customInvoice ?? undefined,
 						leadTimeMinutes: settings.leadTimeMinutes,
@@ -155,9 +155,7 @@ export async function completeClaimedSessionService(
 				okOrThrow(ctx.runQuery(api.bookingSettings.get, {}))
 					// Run the provider and persistence workflow with current booking settings.
 					.andThen((settings) =>
-						ResultAsync.fromSafePromise(completeClaimedSession(ctx, session, settings)).andThen(
-							(result) => result
-						)
+						okOrThrow(completeClaimedSession(ctx, session, settings)).andThen((result) => result)
 					)
 			);
 		});

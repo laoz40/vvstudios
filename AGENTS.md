@@ -82,6 +82,10 @@ Extremely important website is accessible, and as fast first paint on marketing 
 - Keep Convex handlers as boundary adapters: each handler should call one service function and use `.match(tupleOk, tupleErr)` to convert service `Result` into tuple returned to client.
 - `convex/services` should only contain service chain functions, a readable neverthrow `andThen` chain of domain operations.
 - Put domain operations used by service chains in nearest appropriate file under `convex/lib`. Do not define helper operations in service files
+- Result helpers in `convex/lib/result.ts`. Don't call `fromSafePromise`/`fromPromise` directly.
+  - `okOrThrow` — `ctx.db`, `runQuery`/`runMutation` returning raw values. Infra failure throws; domain errors (`NOT_FOUND`, etc.) you return in `.andThen`.
+  - `fromConvexTuple` — `runQuery`/`runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
+  - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
 
 ## Tests
 

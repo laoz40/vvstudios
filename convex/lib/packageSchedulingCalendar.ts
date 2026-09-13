@@ -1,7 +1,7 @@
 "use node";
 
-import { ResultAsync } from "neverthrow";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import { okOrThrow } from "#convex/lib/result";
 import {
 	createSessionCalendarEvent,
 	updateSessionCalendarEventTiming,
@@ -39,7 +39,7 @@ export function updatePackageCalendarEvent(
 	session: SessionCalendarEventRecord,
 	details: PackageCalendarDetails
 ) {
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		updateSessionCalendarEventTiming({
 			session,
 			client,
@@ -82,7 +82,7 @@ export function createPackageCalendarEvent(
 	client: PackageCalendarClient,
 	details: PackageCalendarDetails
 ) {
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		createSessionCalendarEvent({
 			client,
 			date: details.date,

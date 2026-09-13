@@ -1,5 +1,5 @@
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import { ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
@@ -9,9 +9,7 @@ import { okOrThrow } from "#convex/lib/result";
 export function getBookingSettingsService(
 	ctx: ActionCtx
 ): NeverthrowResultAsync<BookingAvailabilitySettings, never> {
-	return ResultAsync.fromSafePromise<BookingAvailabilitySettings>(
-		ctx.runQuery(api.bookingSettings.get, {})
-	);
+	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
 }
 
 export function updateBookingSettingsService(

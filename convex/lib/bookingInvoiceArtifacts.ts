@@ -1,4 +1,4 @@
-import { err, errAsync, ok, ResultAsync, type Result } from "neverthrow";
+import { err, errAsync, ok, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { z } from "zod";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
@@ -16,6 +16,7 @@ import {
 	createPriceAdjustmentInvoiceLineItem,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { tryPromise } from "#convex/lib/result";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import type {
 	BookingInvoiceData,
@@ -532,10 +533,20 @@ export function createPackageInvoiceArtifacts(
 }
 
 export function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
-	return ResultAsync.fromPromise(
-		import("#studio/features/booking-invoice/pdf/render-booking-invoice-pdf").then(
-			({ renderBookingInvoicePdf }) => renderBookingInvoicePdf(data)
-		),
-		() => ({ reason: "INVOICE_PDF_RENDER_FAILED" as const })
-	);
+	return tryPromise({
+		try: async () => {
+			const { renderBookingInvoicePdf } =
+				await import("#studio/features/booking-invoice/pdf/render-booking-invoice-pdf");
+
+			return renderBookingInvoicePdf(data);
+		},
+		catch: (cause) => {
+			console.error("Booking invoice PDF render failed", {
+				invoiceNumber: data.invoice.number,
+				cause
+			});
+
+			return { reason: "INVOICE_PDF_RENDER_FAILED" as const };
+		}
+	});
 }

@@ -498,7 +498,7 @@ export function saveCreatedPackageSessionService(
 							driveClientId
 						})
 					).andThen((bookingId) =>
-						ResultAsync.fromSafePromise(
+						okOrThrow(
 							scheduleDriveSetup(ctx, {
 								bookingId,
 								sessionStartAt,

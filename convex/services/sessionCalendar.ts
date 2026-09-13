@@ -30,7 +30,7 @@ import {
 	checkBookingSubmitRateLimit,
 	checkGoogleCalendarAvailabilityRateLimit
 } from "#convex/lib/rateLimits";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { getRescheduleUrlForToken } from "#convex/lib/sessionRescheduleLinks";
 import {
 	lockAndReserveReschedule,
@@ -294,7 +294,7 @@ export function rescheduleSessionService(
 			)
 			// Load settings and validate the target before locking the link.
 			.andThen((details) =>
-				ResultAsync.fromSafePromise(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
+				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
 					details,
 					settings
 				}))
@@ -337,9 +337,9 @@ export function rescheduleSessionService(
 				).map(() => state)
 			)
 			.andThen(({ session, settings, timingUpdate }) =>
-				ResultAsync.fromSafePromise(
-					finishRescheduledSession(session, args, timingUpdate, settings)
-				).andThen((result) => result)
+				okOrThrow(finishRescheduledSession(session, args, timingUpdate, settings)).andThen(
+					(result) => result
+				)
 			)
 	);
 }
@@ -359,7 +359,7 @@ export function updateSessionFromAdminService(
 			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Load settings before applying Calendar and persistence changes.
 			.andThen((session) =>
-				ResultAsync.fromSafePromise(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
+				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
 					session,
 					settings
 				}))
@@ -416,9 +416,7 @@ export function deleteSessionFromAdminService(
 			)
 			// Delete the provider event before cancelling the booking in Convex.
 			.andThen(({ client, session }) =>
-				ResultAsync.fromSafePromise(deleteSessionCalendarEvent({ session, client })).andThen(
-					(result) => result
-				)
+				okOrThrow(deleteSessionCalendarEvent({ session, client })).andThen((result) => result)
 			)
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>

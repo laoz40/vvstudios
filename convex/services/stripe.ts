@@ -12,7 +12,7 @@ import {
 	emailDomainCanReceiveMail,
 	getBookingSubmitRateLimitKey
 } from "#convex/lib/bookingSubmission";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
 import { publicBookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 
@@ -148,16 +148,26 @@ export function closeEmbeddedCheckoutSessionService(
 	args: { bookingId: Id<"bookings">; stripeSessionId: string },
 	stripe: StripeClient = getStripeClient()
 ): ResultAsync<CloseEmbeddedCheckoutSessionSuccess, CloseEmbeddedCheckoutSessionError> {
-	return ResultAsync.fromPromise(
-		stripe.checkout.sessions.retrieve(args.stripeSessionId).then(async (session) => {
+	return tryPromise({
+		try: async () => {
+			const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
+
 			if (session.status === "open") {
 				await stripe.checkout.sessions.expire(args.stripeSessionId);
 			}
 
 			return session;
-		}),
-		() => ({ reason: "STRIPE_CHECKOUT_CLOSE_FAILED" as const })
-	).andThen((session) => {
+		},
+		catch: (cause) => {
+			console.error("Stripe checkout close failed", {
+				bookingId: args.bookingId,
+				stripeSessionId: args.stripeSessionId,
+				cause
+			});
+
+			return { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" as const };
+		}
+	}).andThen((session) => {
 		if (session.status === "complete") {
 			return ok<CloseEmbeddedCheckoutSessionSuccess>({ outcome: "already_complete" });
 		}

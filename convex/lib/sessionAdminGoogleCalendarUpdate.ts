@@ -8,7 +8,7 @@ import {
 	calendarResultAsync,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendarErrors";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
 import {
 	buildSessionCalendarEventPayload,
@@ -64,7 +64,7 @@ function promoteFailedSessionFromAdmin({
 	settings: SessionAvailabilitySettings;
 }): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Failed bookings are only promoted when the edited time is valid and available.
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		verifySessionCanBeScheduled({
 			session: { ...session, date: args.date, duration: args.duration, time: args.time },
 			calendar: client.calendar,
@@ -78,16 +78,17 @@ function promoteFailedSessionFromAdmin({
 		}
 
 		// Create the Calendar event before saving so Google failures block the Convex update.
-		return ResultAsync.fromPromise(
-			Promise.resolve().then(() =>
-				buildSessionCalendarEventPayload({
-					date: args.date,
-					details: getAdminSessionEventDetails(args),
-					time: args.time,
-					timeZone: client.timeZone
-				})
-			),
-			(error) => {
+		return tryPromise({
+			try: () =>
+				Promise.resolve(
+					buildSessionCalendarEventPayload({
+						date: args.date,
+						details: getAdminSessionEventDetails(args),
+						time: args.time,
+						timeZone: client.timeZone
+					})
+				),
+			catch: (error) => {
 				const parsedError = calendarErrorSchema.safeParse(error);
 
 				return {
@@ -96,7 +97,7 @@ function promoteFailedSessionFromAdmin({
 						: "GOOGLE_CALENDAR_CREATE_FAILED"
 				};
 			}
-		)
+		})
 			.andThen((payloadResult) =>
 				payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
 			)
@@ -136,7 +137,7 @@ function promoteFailedSessionFromAdmin({
 						return err(saveError);
 					}
 
-					return ResultAsync.fromSafePromise(
+					return okOrThrow(
 						removeOrphanedSessionCalendarEvent({
 							bookingId: session._id,
 							calendar: client.calendar,
@@ -191,7 +192,7 @@ export function updateSessionTimingWithGoogleCalendar({
 			timeZone: client.timeZone
 		})
 			.andThen(() =>
-				ResultAsync.fromSafePromise(
+				okOrThrow(
 					updateSessionCalendarEventTiming({
 						session,
 						client,
@@ -298,7 +299,7 @@ export function updateSessionFromAdminWithGoogleCalendar({
 					settings
 				}).orElse((error) =>
 					// Release the reservation if any part of the update fails.
-					ResultAsync.fromSafePromise(
+					fromConvexTuple(
 						ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 							bookingId: session._id,
 							reservation

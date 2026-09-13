@@ -1,9 +1,10 @@
 "use node";
 
 import { google, type drive_v3 } from "googleapis";
-import { ResultAsync, err, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
+import { tryPromise } from "#convex/lib/result";
 
 export {
 	formatDriveClientFolderName as getClientFolderName,
@@ -163,30 +164,35 @@ function drivePermissionDeleteReason(
 }
 
 function driveResultAsync<T>(promise: Promise<T>, fallback: DriveError["reason"]) {
-	return ResultAsync.fromPromise(promise, (error) =>
-		driveErrorReason(
-			fallback,
-			googleProviderErrorSchema.safeParse(error),
-			fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
-				? googleShareErrorSchema.safeParse(error)
-				: undefined
-		)
-	);
+	return tryPromise({
+		try: () => promise,
+		catch: (error) =>
+			driveErrorReason(
+				fallback,
+				googleProviderErrorSchema.safeParse(error),
+				fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
+					? googleShareErrorSchema.safeParse(error)
+					: undefined
+			)
+	});
 }
 
 function driveFolderLookupAsync<T>(promise: Promise<T>, fallback: DriveError["reason"]) {
-	return ResultAsync.fromPromise(promise, (error) =>
-		driveFolderLookupReason(fallback, googleProviderErrorSchema.safeParse(error))
-	);
+	return tryPromise({
+		try: () => promise,
+		catch: (error) => driveFolderLookupReason(fallback, googleProviderErrorSchema.safeParse(error))
+	});
 }
 
 function drivePermissionDeleteAsync<T>(promise: Promise<T>) {
-	return ResultAsync.fromPromise(promise, (error) =>
-		drivePermissionDeleteReason(
-			googleProviderErrorSchema.safeParse(error),
-			googleShareErrorSchema.safeParse(error)
-		)
-	);
+	return tryPromise({
+		try: () => promise,
+		catch: (error) =>
+			drivePermissionDeleteReason(
+				googleProviderErrorSchema.safeParse(error),
+				googleShareErrorSchema.safeParse(error)
+			)
+	});
 }
 
 export function loadDriveClient() {

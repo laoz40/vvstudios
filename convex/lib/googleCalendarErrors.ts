@@ -1,5 +1,5 @@
-import { ResultAsync } from "neverthrow";
 import { z } from "zod";
+import { tryPromise } from "#convex/lib/result";
 
 export type CalendarFallbackCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
@@ -56,13 +56,16 @@ export function calendarResultAsync<T, F extends CalendarFallbackCode>(
 	promise: Promise<T>,
 	fallbackCode: F
 ) {
-	return ResultAsync.fromPromise(promise, (error) => {
-		const parsedError = calendarErrorSchema.safeParse(error);
+	return tryPromise({
+		try: () => promise,
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
 
-		const reason = parsedError.success
-			? mapCalendarErrorCode(parsedError.data, fallbackCode)
-			: fallbackCode;
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, fallbackCode)
+				: fallbackCode;
 
-		return { reason };
+			return { reason };
+		}
 	});
 }

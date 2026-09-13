@@ -1,27 +1,18 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import { err, ok, ResultAsync, type Result } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
-import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
-import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
-import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
-import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
-import {
-	formatBookingTimeRange,
-	formatDriveSessionMediaFolderName,
-	getEditorEditDueAt
-} from "#studio/lib/bookingdatetime";
+import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import {
 	formatSessionDateLong,
 	formatSessionDateShort,
-	formatSessionDateWithoutYear,
 	formatCalendarEventDate
 } from "#convex/lib/sessionCalendarTime";
 import {
@@ -104,29 +95,6 @@ interface SendPackageExpiryReminderEmailArgs {
 	expiresAt: number;
 	name: string;
 	remainingSessions: number;
-}
-
-interface SendClientAssetsEmailArgs {
-	assetsUrl: string;
-	bookingId: Id<"bookings">;
-	email: string;
-	name: string;
-}
-
-interface SendEditorAssignmentEmailArgs {
-	editorEmail: string;
-	editorName: string;
-	sessionName: string;
-	sessionStartAt: number;
-}
-
-interface SendSessionDeliverablesEmailArgs {
-	date: string;
-	driveLink: string;
-	editorNotes?: string;
-	email: string;
-	emailVariant: DeliverablesEmailVariant;
-	name: string;
 }
 
 type SendPackageScheduleEmailArgs = {
@@ -543,92 +511,6 @@ export async function sendFeedbackEmailForMessage(message: string) {
 			`<p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>`
 		].join("")
 	});
-}
-
-export function sendClientAssetsEmail({
-	assetsUrl,
-	bookingId,
-	email,
-	name
-}: SendClientAssetsEmailArgs) {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	return ResultAsync.fromSafePromise(
-		render(createElement(ClientAssetsEmail, { assetsUrl, name, signoffName }))
-	).andThen((html) =>
-		sendEmail({
-			to: [email],
-			subject: "Anything you'd like us to use in your video edit?",
-			html,
-			idempotencyKey: `client-assets:${bookingId}:${assetsUrl}`
-		})
-	);
-}
-
-export function sendEditorAssignmentEmail({
-	editorEmail,
-	editorName,
-	sessionName,
-	sessionStartAt
-}: SendEditorAssignmentEmailArgs) {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	const sessionDate = formatTimestampDateLong(sessionStartAt);
-	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(sessionStartAt));
-
-	return ResultAsync.fromSafePromise(
-		render(
-			createElement(EditorAssignmentEmail, {
-				clientName: sessionName,
-				deliverablesFolderName: formatDriveSessionMediaFolderName("Deliverables", sessionStartAt),
-				dueDateLabel,
-				editorName,
-				rawMediaFolderName: formatDriveSessionMediaFolderName("Raw Media", sessionStartAt),
-				sessionDateLabel: sessionDate,
-				signoffName
-			})
-		)
-	).andThen((html) =>
-		sendEmail({
-			to: [editorEmail],
-			subject: `New editing job assigned: ${sessionName}, ${sessionDate}`,
-			html,
-			idempotencyKey: `editor-assignment:${editorEmail}:${sessionStartAt}`
-		})
-	);
-}
-
-export function sendSessionDeliverablesEmail({
-	date,
-	driveLink,
-	editorNotes,
-	email,
-	emailVariant,
-	name
-}: SendSessionDeliverablesEmailArgs) {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	return ResultAsync.fromSafePromise(
-		render(
-			createElement(DeliverablesEmail, {
-				bookingDate: formatSessionDateWithoutYear(date),
-				driveLink,
-				editorNotes: editorNotes?.trim() || undefined,
-				emailVariant,
-				name,
-				signoffName
-			})
-		)
-	).andThen((html) =>
-		sendEmail({
-			to: [email],
-			subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(date)}`,
-			html
-		})
-	);
 }
 
 export async function sendSessionReminderEmail({
