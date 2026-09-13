@@ -93,11 +93,16 @@ type PackageAdjustmentEvaluation =
 			totalAmount: number;
 	  };
 
+export type PackageAdjustmentSession = Pick<
+	Doc<"bookings">,
+	"_id" | "duration" | "sessionStartAt" | "addons"
+>;
+
 export function evaluatePackageAdjustment(
-	bookings: Doc<"bookings">[],
+	bookings: PackageAdjustmentSession[],
 	now: number
 ): PackageAdjustmentEvaluation {
-	const completedBookings: Doc<"bookings">[] = [];
+	const completedBookings: PackageAdjustmentSession[] = [];
 	let latestOngoingSessionEndAt = 0;
 
 	for (const booking of bookings) {

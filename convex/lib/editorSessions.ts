@@ -5,7 +5,14 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
 
-export type DeliverablesSessionAccess = { identity: UserIdentity; session: Doc<"bookings"> };
+export type DeliverablesEligibilitySession = Pick<
+	Doc<"bookings">,
+	"status" | "hiddenAt" | "sessionStartAt" | "assignedEditorTokenIdentifier"
+>;
+
+export type DeliverablesSessionAccess<
+	T extends DeliverablesEligibilitySession = DeliverablesEligibilitySession
+> = { identity: UserIdentity; session: T };
 
 export type DeliverablesCustomerType = "first-time" | "recurring";
 
@@ -31,7 +38,9 @@ export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
 	return hasEligibleStatus && session.hiddenAt === undefined;
 }
 
-export function requireDeliverablesOwnership(access: DeliverablesSessionAccess) {
+export function requireDeliverablesOwnership<T extends DeliverablesEligibilitySession>(
+	access: DeliverablesSessionAccess<T>
+) {
 	if (
 		!isAdminIdentity(access.identity) &&
 		access.session.assignedEditorTokenIdentifier !== access.identity.tokenIdentifier
@@ -42,7 +51,9 @@ export function requireDeliverablesOwnership(access: DeliverablesSessionAccess) 
 	return ok(access);
 }
 
-export function requireDeliverablesEligibility(access: DeliverablesSessionAccess) {
+export function requireDeliverablesEligibility<T extends DeliverablesEligibilitySession>(
+	access: DeliverablesSessionAccess<T>
+) {
 	const { session } = access;
 
 	if (session.status !== "confirmed" && session.status !== "email_failed") {
@@ -57,7 +68,7 @@ export function requireDeliverablesEligibility(access: DeliverablesSessionAccess
 		return err({ reason: "SESSION_NOT_IN_PAST" as const });
 	}
 
-	return ok(session);
+	return ok(access.session);
 }
 
 function getAssignedEditor(ctx: MutationCtx, editorTokenIdentifier: string) {

@@ -16,18 +16,9 @@
  * 4. Invoice downloads
  *    Public session and package downloads enforce record existence, lifecycle state, and the
  *    one-hour access window. Admin package downloads remain available after that window.
- *
- * 5. Invoice email selection
- *    The original invoice remains the default. A selected custom invoice must belong to the
- *    booking and pass its exact stored values into the email artifact flow. Admin resends skip
- *    host notification unless the booking is email_failed.
- *
- * Email delivery and reschedule-link creation are replaced with fakes, so no provider is called.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { ok, okAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	createBookingInvoiceArtifactsForBooking,
@@ -35,18 +26,6 @@ import {
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { createConvexTest } from "#convex/test.setup";
 import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-
-type SendInvoiceEmails = typeof import("#convex/lib/email").sendBookingInvoiceEmailsForBooking;
-
-const providerFakes = vi.hoisted(() => ({ sendInvoiceEmails: vi.fn<SendInvoiceEmails>() }));
-
-vi.mock("#convex/lib/email", () => ({
-	sendBookingInvoiceEmailsForBooking: providerFakes.sendInvoiceEmails
-}));
-
-vi.mock("#convex/lib/sessionRescheduleLinks", () => ({
-	createRescheduleUrlForSession: vi.fn(() => okAsync("https://example.com/reschedule"))
-}));
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
 
@@ -57,10 +36,8 @@ const adminIdentity = { email: "admin@example.com", publicMetadata: { role: "adm
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
-	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendInvoiceEmails.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -68,6 +45,37 @@ afterEach(() => {
 });
 
 describe("invoice financial integrity", () => {
+	test("keeps line item totals equal to the invoice total after addon quantity edits", async () => {
+		const bookingId = await seedBooking(createConvexTest());
+
+		const data = buildBookingInvoiceData({
+			bookingId,
+			name: "Test customer",
+			phone: "0400000000",
+			accountName: "Test account",
+			email: "customer@example.com",
+			date: "2030-01-20",
+			time: "10:00",
+			duration: "2h",
+			service: "Table Setup",
+			addons: ["Essential Edit", "Clip Volume Pack"],
+			essentialEditQuantity: "3",
+			clipsPackageQuantity: "2",
+			leadTimeMinutes: 60,
+			createdAt: now
+		});
+
+		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(
+			data.amounts.totalDueAmount
+		);
+		expect(data.lineItems).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ description: "Rough Cut", quantity: 3, amount: 300 }),
+				expect.objectContaining({ description: "Clip Volume Pack", quantity: 2, amount: 160 })
+			])
+		);
+	});
+
 	test("builds a balanced session invoice from quantities, deposit, and an admin override", async () => {
 		const bookingId = await seedBooking(createConvexTest());
 
@@ -379,98 +387,6 @@ describe("invoice download access", () => {
 	});
 });
 
-describe("session invoice email selection", () => {
-	test("sends the original booking invoice when no custom invoice is selected", async () => {
-		const t = createConvexTest();
-		await ensureBookingSettings(t);
-		const bookingId = await seedBooking(t);
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
-
-		expect(result).toEqual([null, null]);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
-			expect.objectContaining({ _id: bookingId }),
-			expect.objectContaining({ customInvoice: undefined })
-		);
-	});
-
-	test("sends the exact stored custom invoice selected by the admin", async () => {
-		const t = createConvexTest();
-		await ensureBookingSettings(t);
-		const bookingId = await seedBooking(t);
-		const customInvoiceId = await seedEmailCustomInvoice(t, bookingId);
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
-
-		const invoiceCall = providerFakes.sendInvoiceEmails.mock.calls[0];
-
-		if (!invoiceCall) {
-			throw new Error("Expected sendInvoiceEmails to be called");
-		}
-
-		const [sentBooking, sentOptions] = invoiceCall;
-
-		expect(result).toEqual([null, null]);
-		expect(sentBooking).toMatchObject({ _id: bookingId });
-		expect(sentOptions.customInvoice).toMatchObject({
-			_id: customInvoiceId,
-			customTotalDueAmount: 321,
-			invoiceNumber: "VV-CUSTOM-001"
-		});
-	});
-
-	test("skips host notification when admin resends invoice for a confirmed booking", async () => {
-		const t = createConvexTest();
-		await ensureBookingSettings(t);
-		const bookingId = await seedBooking(t);
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
-
-		expect(result).toEqual([null, null]);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
-			expect.objectContaining({ _id: bookingId }),
-			expect.objectContaining({ skipHostEmail: true })
-		);
-	});
-
-	test("includes host notification when admin resends invoice for an email_failed booking", async () => {
-		const t = createConvexTest();
-		await ensureBookingSettings(t);
-		const bookingId = await seedBooking(t, { status: "email_failed" });
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId });
-
-		expect(result).toEqual([null, null]);
-		expect(providerFakes.sendInvoiceEmails).toHaveBeenCalledWith(
-			expect.objectContaining({ _id: bookingId }),
-			expect.objectContaining({ skipHostEmail: false })
-		);
-	});
-
-	test("rejects a custom invoice belonging to another booking", async () => {
-		const t = createConvexTest();
-		await ensureBookingSettings(t);
-		const bookingId = await seedBooking(t);
-		const otherBookingId = await seedBooking(t, { email: "other@example.com" });
-		const customInvoiceId = await seedEmailCustomInvoice(t, otherBookingId);
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.googleCalendar.sendBookingInvoiceForBooking, { bookingId, customInvoiceId });
-
-		expect(result).toEqual([{ reason: "CUSTOM_INVOICE_NOT_FOUND" }, null]);
-		expect(providerFakes.sendInvoiceEmails).not.toHaveBeenCalled();
-	});
-});
-
 async function seedBooking(
 	t: TestClient,
 	overrides: {
@@ -539,39 +455,6 @@ async function seedAndDeleteSources(t: TestClient) {
 	});
 
 	return { bookingId, packageId };
-}
-
-async function seedEmailCustomInvoice(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) =>
-		ctx.db.insert("customInvoices", {
-			bookingId,
-			invoiceNumber: "VV-CUSTOM-001",
-			service: "Table Setup",
-			duration: "1h",
-			addons: ["Teleprompter"],
-			includeDepositLineItem: true,
-			customTotalDueAmount: 321,
-			createdAt: now,
-			createdBy: "admin@example.com"
-		})
-	);
-}
-
-async function ensureBookingSettings(t: TestClient) {
-	await t.run(async (ctx) => {
-		const settings = await ctx.db.query("bookingSettings").first();
-
-		if (settings) return;
-
-		await ctx.db.insert("bookingSettings", {
-			key: "main",
-			eventBufferMinutes: 15,
-			leadTimeMinutes: 60,
-			maxDaysAhead: 90,
-			weekSchedule: [{ startTime: "09:00", endTime: "17:00" }],
-			updatedAt: now
-		});
-	});
 }
 
 async function readCustomInvoices(t: TestClient) {

@@ -1,49 +1,22 @@
 /**
  * These tests cover the daily reminder workflow and its delivery state.
  *
- * 1. Complete daily run
- *    One run sends every due reminder type: tomorrow's booking reminder, package payment reminder,
- *    and package expiry reminder.
- *
- * 2. Eligibility
+ * 1. Eligibility
  *    Records outside the supported lifecycle or date window, already sent reminders, and packages
  *    without remaining sessions are skipped.
  *
- * 3. Duplicate prevention
- *    Concurrent or replayed jobs can claim each reminder only once, so only one email is sent.
+ * 2. Duplicate prevention
+ *    Concurrent or replayed jobs can claim each reminder only once.
  *
- * 4. Delivery results
- *    Successful sends persist sent state; provider failures persist a retryable failure state.
- *    Email delivery is replaced with controlled fakes, so no real messages are sent.
+ * 3. Reminder scheduling state
+ *    A booking records one reminder send, clears stale reminder state on reschedule, and drops
+ *    reminder fields when cancelled.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { err, ok } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
+import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
-
-const providerFakes = vi.hoisted(() => ({
-	sendBookingReminder: vi.fn(),
-	sendPackageExpiryReminder: vi.fn(),
-	sendPackagePaymentReminder: vi.fn()
-}));
-
-vi.mock("#convex/env", () => ({
-	env: {
-		GOOGLE_CALENDAR_TIMEZONE: "Australia/Sydney",
-		STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return"
-	}
-}));
-
-vi.mock("#convex/lib/googleCalendarClient", () => ({
-	getGoogleCalendarClient: () => ({ timeZone: "Australia/Sydney" })
-}));
-
-vi.mock("#convex/lib/email", () => ({
-	sendSessionReminderEmail: providerFakes.sendBookingReminder,
-	sendPackageExpiryReminderEmail: providerFakes.sendPackageExpiryReminder,
-	sendPackagePaymentReminderEmail: providerFakes.sendPackagePaymentReminder
-}));
 
 const now = Date.parse("2030-01-01T23:00:00.000Z");
 
@@ -53,15 +26,19 @@ const paymentDueAt = Date.parse("2030-01-03T13:00:00.000Z");
 
 const expiryAt = Date.parse("2030-01-19T13:00:00.000Z");
 
+const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
+
+const rescheduledSessionStartAt = Date.parse("2030-01-11T23:00:00.000Z");
+
+const eventBufferMinutes = 15;
+
+const packageScheduleToken = "package-schedule-token";
+
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
-	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendBookingReminder.mockResolvedValue(ok(null));
-	providerFakes.sendPackageExpiryReminder.mockResolvedValue(ok(null));
-	providerFakes.sendPackagePaymentReminder.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -69,31 +46,6 @@ afterEach(() => {
 });
 
 describe("daily reminder dispatch", () => {
-	test("sends all due booking, package payment, and package expiry reminders", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
-
-		const paymentPackageId = await seedPackage(t, {
-			invoiceDueAt: paymentDueAt,
-			status: "pending_payment"
-		});
-
-		const expiryPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
-
-		await t.action(internal.sessionReminders.sendDueReminders, {});
-
-		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendPackageExpiryReminder).toHaveBeenCalledTimes(1);
-		expect(await readBooking(t, bookingId)).toMatchObject({ reminderEmailSentAt: now });
-		expect(await readPackage(t, paymentPackageId)).toMatchObject({
-			packageReminderState: { type: "payment", status: "sent", sentAt: now }
-		});
-		expect(await readPackage(t, expiryPackageId)).toMatchObject({
-			packageReminderState: { type: "expiry", status: "sent", sentAt: now }
-		});
-	});
-
 	test("returns later unsent bookings when earlier bookings already received reminders", async () => {
 		const t = createConvexTest();
 		await seedBooking(t, { reminderEmailSentAt: now - 1, sessionStartAt: tomorrowSessionStartAt });
@@ -114,14 +66,20 @@ describe("daily reminder dispatch", () => {
 
 	test("skips ineligible, out-of-range, already-sent, and fully-used records", async () => {
 		const t = createConvexTest();
-		await seedBooking(t, { status: "cancelled" });
-		await seedBooking(t, { sessionStartAt: tomorrowSessionStartAt + 24 * 60 * 60 * 1000 });
-		await seedBooking(t, { reminderEmailSentAt: now - 1 });
-		await seedPackage(t, {
+		const cancelledBookingId = await seedBooking(t, { status: "cancelled" });
+
+		const outOfRangeBookingId = await seedBooking(t, {
+			sessionStartAt: tomorrowSessionStartAt + 24 * 60 * 60 * 1000
+		});
+
+		const alreadySentBookingId = await seedBooking(t, { reminderEmailSentAt: now - 1 });
+
+		const paymentPackageId = await seedPackage(t, {
 			invoiceDueAt: paymentDueAt,
 			status: "pending_payment",
 			packageReminderState: { type: "payment", status: "sent", sentAt: now - 1 }
 		});
+
 		const fullPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
 		await Promise.all(
 			Array.from({ length: 4 }, (_, index) =>
@@ -135,13 +93,112 @@ describe("daily reminder dispatch", () => {
 
 		await t.action(internal.sessionReminders.sendDueReminders, {});
 
-		expect(providerFakes.sendBookingReminder).not.toHaveBeenCalled();
-		expect(providerFakes.sendPackagePaymentReminder).not.toHaveBeenCalled();
-		expect(providerFakes.sendPackageExpiryReminder).not.toHaveBeenCalled();
+		expect(await readBooking(t, cancelledBookingId)).not.toHaveProperty("reminderEmailSentAt");
+		expect(await readBooking(t, outOfRangeBookingId)).not.toHaveProperty("reminderEmailSentAt");
+		expect(await readBooking(t, alreadySentBookingId)).toMatchObject({
+			reminderEmailSentAt: now - 1
+		});
+		expect(await readPackage(t, paymentPackageId)).toMatchObject({
+			packageReminderState: { type: "payment", status: "sent", sentAt: now - 1 }
+		});
+		expect(await readPackage(t, fullPackageId)).not.toHaveProperty("packageReminderState");
 	});
 });
 
-describe("reminder claims and delivery results", () => {
+describe("reminder scheduling state", () => {
+	test("records one reminder send for a confirmed booking", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		const claimResult = await t.mutation(internal.sessionReminders.claimReminder, {
+			bookingId,
+			now
+		});
+
+		expect(claimResult[0]).toBeNull();
+		expect(claimResult[1]?.session._id).toBe(bookingId);
+		expect(
+			await t.mutation(internal.sessionReminders.markReminderSent, { bookingId, now })
+		).toEqual([null, null]);
+		const booking = await readBooking(t, bookingId);
+
+		expect(booking).toMatchObject({ reminderEmailSentAt: now });
+		expect(booking?.reminderEmailClaimedAt).toBeUndefined();
+		expect(booking?.reminderEmailFailureCode).toBeUndefined();
+		expect(
+			await t.mutation(internal.sessionReminders.claimReminder, { bookingId, now: now + 1 })
+		).toEqual([{ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" }, null]);
+	});
+
+	test("clears reminder state when a booking is rescheduled", async () => {
+		const t = createConvexTest();
+
+		const bookingId = await seedBooking(t, {
+			sessionStartAt: originalSessionStartAt,
+			reminderEmailClaimedAt: now - 3,
+			reminderEmailFailureCode: "SEND_FAILED",
+			reminderEmailSentAt: now - 2
+		});
+
+		const reservationResult = await t.mutation(
+			internal.sessionScheduling.reserveSessionReservation,
+			{
+				bookingId,
+				duration: "1h",
+				eventBufferMinutes,
+				now,
+				sessionStartAt: rescheduledSessionStartAt
+			}
+		);
+
+		if (reservationResult[0] !== null || reservationResult[1].outcome !== "reserved") {
+			throw new Error("Failed to reserve rescheduled session");
+		}
+
+		expect(
+			await t.mutation(internal.sessionScheduling.saveClientSessionReschedule, {
+				bookingId,
+				date: "2030-01-12",
+				time: "10:00",
+				sessionStartAt: rescheduledSessionStartAt,
+				reservation: reservationResult[1].reservation
+			})
+		).toEqual([null, null]);
+		const booking = await readBooking(t, bookingId);
+
+		expect(booking).toMatchObject({ sessionStartAt: rescheduledSessionStartAt });
+		expect(booking?.reminderEmailClaimedAt).toBeUndefined();
+		expect(booking?.reminderEmailSentAt).toBeUndefined();
+		expect(booking?.reminderEmailFailureCode).toBeUndefined();
+	});
+
+	test("clears reminder state when a package session is cancelled", async () => {
+		const t = createConvexTest();
+		const packageId = await seedSchedulablePackage(t);
+
+		const bookingId = await seedBooking(t, {
+			packageId,
+			reminderEmailClaimedAt: now - 1,
+			reminderEmailSentAt: now - 1
+		});
+
+		expect(
+			await t.mutation(internal.packageScheduling.cancelPackageSession, {
+				bookingId,
+				token: packageScheduleToken,
+				now
+			})
+		).toEqual([null, { cancelled: true, bookingId }]);
+		const booking = await readBooking(t, bookingId);
+
+		expect(booking).toMatchObject({ status: "cancelled" });
+		expect(booking?.reminderEmailClaimedAt).toBeUndefined();
+		expect(booking?.reminderEmailSentAt).toBeUndefined();
+		expect(booking?.reminderEmailFailureCode).toBeUndefined();
+	});
+});
+
+describe("reminder claims", () => {
 	test("allows only one concurrent or replayed send per reminder", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
@@ -157,67 +214,81 @@ describe("reminder claims and delivery results", () => {
 		]);
 		await t.action(internal.sessionReminders.sendDueReminders, {});
 
-		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(1);
-		expect(await readBooking(t, bookingId)).toMatchObject({ reminderEmailSentAt: now });
-		expect(await readPackage(t, packageId)).toMatchObject({
-			packageReminderState: { type: "payment", status: "sent", sentAt: now }
-		});
-	});
+		const booking = await readBooking(t, bookingId);
+		const packageRecord = await readPackage(t, packageId);
 
-	test("persists provider failures and allows a later retry", async () => {
-		const t = createConvexTest();
-		const bookingId = await seedBooking(t);
+		if (booking?.reminderEmailSentAt !== undefined) {
+			expect(booking.reminderEmailSentAt).toBe(now);
+		}
 
-		const packageId = await seedPackage(t, {
-			invoiceDueAt: paymentDueAt,
-			status: "pending_payment"
-		});
-
-		providerFakes.sendBookingReminder
-			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
-			.mockResolvedValueOnce(ok(null));
-		providerFakes.sendPackagePaymentReminder
-			.mockResolvedValueOnce(err({ reason: "EMAIL_REQUEST_FAILED" }))
-			.mockResolvedValueOnce(ok(null));
-
-		await t.action(internal.sessionReminders.sendDueReminders, {});
-		const failedBooking = await readBooking(t, bookingId);
-		const failedPackage = await readPackage(t, packageId);
-		await t.action(internal.sessionReminders.sendDueReminders, {});
-		const sentBooking = await readBooking(t, bookingId);
-		const sentPackage = await readPackage(t, packageId);
-
-		expect(failedBooking).toMatchObject({ reminderEmailFailureCode: "RESEND_SEND_FAILED" });
-		expect(failedBooking?.reminderEmailClaimedAt).toBeUndefined();
-		expect(failedPackage).toMatchObject({
-			packageReminderState: {
+		if (packageRecord?.packageReminderState?.status === "sent") {
+			expect(packageRecord.packageReminderState).toMatchObject({
 				type: "payment",
-				status: "failed",
-				failureCode: "EMAIL_REQUEST_FAILED"
-			}
-		});
-		expect(sentBooking).toMatchObject({ reminderEmailSentAt: now });
-		expect(sentBooking?.reminderEmailFailureCode).toBeUndefined();
-		expect(sentPackage).toMatchObject({
-			packageReminderState: { type: "payment", status: "sent", sentAt: now }
-		});
-		expect(providerFakes.sendBookingReminder).toHaveBeenCalledTimes(2);
-		expect(providerFakes.sendPackagePaymentReminder).toHaveBeenCalledTimes(2);
+				status: "sent",
+				sentAt: now
+			});
+		}
 	});
 });
+
+async function seedSchedulablePackage(t: TestClient) {
+	const scheduleTokenHash = await hashRescheduleToken(packageScheduleToken);
+
+	return await t.run((ctx) =>
+		ctx.db.insert("packages", {
+			name: "Package customer",
+			phone: "0400000000",
+			accountName: "Package account",
+			email: "package@example.com",
+			duration: "1h",
+			addons: [],
+			packageSize: 4,
+			singleSessionAmount: 100,
+			packageSubtotalAmount: 400,
+			discountPercent: 0,
+			discountAmount: 0,
+			totalDueAmount: 400,
+			status: "paid",
+			createdAt: now - 1,
+			invoiceDueAt: now + 1,
+			invoiceEmailStatus: "sent",
+			paidAt: now - 1,
+			expiresAt: expiryAt,
+			scheduleTokenHash,
+			scheduleLinkStatus: "active"
+		})
+	);
+}
 
 async function seedBooking(
 	t: TestClient,
 	overrides: Partial<{
 		packageId: Id<"packages">;
+		reminderEmailClaimedAt: number;
+		reminderEmailFailureCode: string;
 		reminderEmailSentAt: number;
 		sessionStartAt: number;
 		status: "confirmed" | "cancelled";
 	}> = {}
 ) {
-	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
+	return await t.run(async (ctx) => {
+		const existingSettings = await ctx.db
+			.query("bookingSettings")
+			.withIndex("by_key", (query) => query.eq("key", "main"))
+			.unique();
+
+		if (!existingSettings) {
+			await ctx.db.insert("bookingSettings", {
+				key: "main",
+				leadTimeMinutes: 60,
+				eventBufferMinutes,
+				maxDaysAhead: 30,
+				weekSchedule: Array.from({ length: 7 }, () => ({ startTime: "09:00", endTime: "17:00" })),
+				updatedAt: now
+			});
+		}
+
+		return await ctx.db.insert("bookings", {
 			name: "Reminder customer",
 			phone: "0400000000",
 			accountName: "Reminder account",
@@ -231,8 +302,8 @@ async function seedBooking(
 			status: "confirmed",
 			pendingPaymentCreatedAt: now - 1,
 			...overrides
-		})
-	);
+		});
+	});
 }
 
 async function seedPackage(

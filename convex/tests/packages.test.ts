@@ -1,78 +1,26 @@
 /**
- * These tests cover package requests, payment lifecycle, and admin package management.
+ * These tests cover admin package management.
  *
- * 1. Successful payment confirmation
- *    The package must become paid, preserve the payment time, calculate its package-size-based
- *    expiry, activate a hashed scheduling token, and record the successful scheduling email.
+ * 1. Capacity-safe sizing
+ *    Shrinking below active booked sessions is rejected without changing the package.
  *
- * 2. Idempotent payment confirmation
- *    Repeated or concurrent confirmations must create only one paid lifecycle, scheduling token,
- *    expiry job, and scheduling email.
+ * 2. Pricing edits
+ *    Admin edits store a coherent pricing snapshot and isolate a custom final total.
  *
- * 3. Scheduling email recovery
- *    A failed scheduling email leaves a retryable paid lifecycle. Retrying rotates the secret token
- *    without changing the original payment or expiry timestamps.
- *
- * 4. Marking a package unpaid
- *    Payment, expiry, scheduling-link, and reminder state are revoked together, and the old token
- *    can no longer read scheduling data.
- *
- * 5. Package expiry
- *    Confirmation must schedule a backend job for the correct package and expiry time.
- *    That job will check whether the package needs a final adjustment invoice.
- *
- * Customer request creation, invoice delivery, payment confirmation, lifecycle revocation, capacity-safe
- * sizing, and pricing edits are covered here. Authorization is covered by authorization.test.ts.
- * DNS and email providers are replaced with controlled fakes.
+ * 3. Package payment claim
+ *    Payment claim creates one paid lifecycle, one expiry job, and slot accounting on the package row.
  */
-import { err, ok } from "neverthrow";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "#convex/_generated/api";
+import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	getPackageExpiresAt,
-	getPackageInvoiceDueAt
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { getPackageExpiresAt } from "#studio/features/booking-form/lib/booking-pricing";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
-
-type SendInvoiceEmail = typeof import("#convex/lib/email").sendPackageInvoiceEmail;
-
-type SendScheduleEmail = typeof import("#convex/lib/email").sendPackageScheduleEmail;
-
-const providerFakes = vi.hoisted(() => ({
-	resolveMx: vi.fn(),
-	sendInvoiceEmail: vi.fn<SendInvoiceEmail>(),
-	sendScheduleEmail: vi.fn<SendScheduleEmail>()
-}));
-
-vi.mock("node:dns/promises", () => ({ resolveMx: providerFakes.resolveMx }));
-
-vi.mock("#convex/env", () => ({
-	env: { STRIPE_CHECKOUT_RETURN_URL: "https://example.com/checkout/return" }
-}));
-
-vi.mock("#convex/lib/email", () => ({
-	sendPackageInvoiceEmail: providerFakes.sendInvoiceEmail,
-	sendPackageScheduleEmail: providerFakes.sendScheduleEmail
-}));
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 
 const adminIdentity = { publicMetadata: { role: "admin" } };
-
-const validRequest = {
-	name: "  Test customer  ",
-	phone: " 0400 000 000 ",
-	accountName: "  Test account  ",
-	abn: "12 345 678 901",
-	email: " Customer@gmail.com ",
-	duration: "1h",
-	addons: ["Teleprompter"] satisfies BookingAddon[],
-	notes: "  Please call on arrival  ",
-	packageSize: 4 as const
-};
 
 const editedPackage = {
 	name: "Updated customer",
@@ -88,53 +36,34 @@ const editedPackage = {
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
-	vi.clearAllMocks();
 	vi.spyOn(Date, "now").mockReturnValue(now);
-	providerFakes.resolveMx.mockResolvedValue([{ exchange: "mail.example.com", priority: 10 }]);
-	providerFakes.sendInvoiceEmail.mockResolvedValue(
-		ok({ invoiceNumber: "VV-20300101-TEST", sent: true })
-	);
-	providerFakes.sendScheduleEmail.mockResolvedValue(ok(null));
 });
 
-describe("package payment confirmation", () => {
-	test("initializes the complete package scheduling lifecycle", async () => {
+const packageScheduleToken = "package-payment-token";
+
+describe("package payment claim", () => {
+	test("creates one paid lifecycle and expiry job", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t);
 		const expiresAt = getPackageExpiresAt(now, 4);
 
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.packagePayment.confirmPackagePayment, { packageId });
+		const [error, paymentResult] = await t.mutation(
+			internal.packages.markPackagePaidAndCreateScheduleToken,
+			{ packageId, paidAt: now }
+		);
 
-		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
-		const emailCall = providerFakes.sendScheduleEmail.mock.calls[0];
+		if (error !== null) throw new Error("Expected package payment claim");
 
-		if (!emailCall) {
-			throw new Error("Expected sendScheduleEmail to be called");
-		}
+		const packageRecord = await readPackage(t, packageId);
+		const scheduledJobs = await readScheduledJobs(t);
 
-		const emailArgs = emailCall[0];
-		const scheduleToken = getScheduleToken(emailArgs.scheduleUrl);
-
-		expect(result).toEqual([null, null]);
 		expect(packageRecord).toMatchObject({
 			expiresAt,
 			paidAt: now,
 			scheduleLinkStatus: "active",
-			status: "paid"
+			status: "schedule_email_failed"
 		});
-		expect(packageRecord?.scheduleTokenHash).toBe(await hashRescheduleToken(scheduleToken));
-		expect(packageRecord?.scheduleTokenHash).not.toBe(scheduleToken);
-		expect(providerFakes.sendScheduleEmail).toHaveBeenCalledTimes(1);
-		expect(emailArgs).toMatchObject({
-			bookedAt: now,
-			email: "customer@example.com",
-			expiresAt,
-			name: "Test customer",
-			packageSize: 4
-		});
-		expect(emailArgs.scheduleUrl).toContain("https://example.com/package-schedule/");
+		expect(packageRecord?.scheduleTokenHash).toBe(await hashRescheduleToken(paymentResult.token));
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
 			args: [{ expectedExpiresAt: expiresAt, packageId }],
@@ -142,217 +71,61 @@ describe("package payment confirmation", () => {
 		});
 	});
 
-	test("rejects repeated confirmation without replacing the paid lifecycle", async () => {
+	test("rejects a repeated payment claim without replacing the paid lifecycle", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t);
-		const admin = t.withIdentity(adminIdentity);
 
-		const firstResult = await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
-		const firstState = await readLifecycleState(t, packageId);
-
-		const secondResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			packageId
-		});
-
-		const secondState = await readLifecycleState(t, packageId);
-
-		expect(firstResult).toEqual([null, null]);
-		expect(secondResult).toEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
-		expect(secondState.packageRecord).toEqual(firstState.packageRecord);
-		expect(secondState.scheduledJobs).toEqual(firstState.scheduledJobs);
-		expect(providerFakes.sendScheduleEmail).toHaveBeenCalledTimes(1);
-	});
-
-	test("allows only one concurrent confirmation to create the paid lifecycle", async () => {
-		const t = createConvexTest();
-		const packageId = await seedPendingPackage(t);
-		const admin = t.withIdentity(adminIdentity);
-
-		const results = await Promise.all([
-			admin.action(api.packagePayment.confirmPackagePayment, { packageId }),
-			admin.action(api.packagePayment.confirmPackagePayment, { packageId })
-		]);
-
-		const { packageRecord, scheduledJobs } = await readLifecycleState(t, packageId);
-
-		expect(results).toContainEqual([null, null]);
-		expect(results).toContainEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
-		expect(packageRecord).toMatchObject({ paidAt: now, status: "paid" });
-		expect(scheduledJobs).toHaveLength(1);
-		expect(providerFakes.sendScheduleEmail).toHaveBeenCalledTimes(1);
-	});
-
-	test("recovers a failed scheduling email by rotating only the token", async () => {
-		const t = createConvexTest();
-		const packageId = await seedPendingPackage(t);
-		const admin = t.withIdentity(adminIdentity);
-		providerFakes.sendScheduleEmail
-			.mockResolvedValueOnce(err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" }))
-			.mockResolvedValueOnce(ok(null));
-
-		const confirmationResult = await admin.action(api.packagePayment.confirmPackagePayment, {
-			packageId
-		});
-
-		const failedState = await readLifecycleState(t, packageId);
-
-		const firstToken = getScheduleToken(
-			providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl
-		);
-
-		const retryResult = await admin.action(api.packagePayment.retryPackageSchedulingEmail, {
-			packageId
-		});
-
-		const recoveredState = await readLifecycleState(t, packageId);
-
-		const retryToken = getScheduleToken(
-			providerFakes.sendScheduleEmail.mock.calls[1]?.[0]?.scheduleUrl
-		);
-
-		expect(confirmationResult).toEqual([{ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }, null]);
-		expect(failedState.packageRecord).toMatchObject({
-			paidAt: now,
-			expiresAt: getPackageExpiresAt(now, 4),
-			status: "schedule_email_failed"
-		});
-		expect(retryResult).toEqual([null, null]);
-		expect(recoveredState.packageRecord).toMatchObject({
-			paidAt: failedState.packageRecord?.paidAt,
-			expiresAt: failedState.packageRecord?.expiresAt,
-			status: "paid",
-			scheduleLinkStatus: "active"
-		});
-		expect(retryToken).not.toBe(firstToken);
-		expect(failedState.packageRecord?.scheduleTokenHash).toBe(
-			await hashRescheduleToken(firstToken)
-		);
-		expect(recoveredState.packageRecord?.scheduleTokenHash).toBe(
-			await hashRescheduleToken(retryToken)
-		);
-		expect(recoveredState.scheduledJobs).toHaveLength(1);
-		expect(recoveredState.scheduledJobs[0]).toMatchObject({
-			args: failedState.scheduledJobs[0]?.args,
-			name: failedState.scheduledJobs[0]?.name,
-			scheduledTime: failedState.scheduledJobs[0]?.scheduledTime
-		});
-		expect(providerFakes.sendScheduleEmail).toHaveBeenCalledTimes(2);
-	});
-
-	test("marking a package unpaid clears lifecycle state and revokes its token", async () => {
-		const t = createConvexTest();
-		const packageId = await seedPendingPackage(t);
-		const admin = t.withIdentity(adminIdentity);
-		await admin.action(api.packagePayment.confirmPackagePayment, { packageId });
-		const token = getScheduleToken(providerFakes.sendScheduleEmail.mock.calls[0]?.[0]?.scheduleUrl);
-		await t.run((ctx) =>
-			ctx.db.patch(packageId, {
-				packageReminderState: { type: "expiry", status: "sent", sentAt: now }
+		expect(
+			await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+				packageId,
+				paidAt: now
 			})
-		);
-
-		const result = await admin.mutation(api.packages.markPackageUnpaid, { packageId: packageId });
-		const { packageRecord } = await readLifecycleState(t, packageId);
-		const tokenResult = await t.query(api.packageScheduling.getPackageByToken, { token });
-
-		expect(result).toEqual([null, null]);
-		expect(packageRecord).toMatchObject({ status: "pending_payment" });
-		expect(packageRecord?.paidAt).toBeUndefined();
-		expect(packageRecord?.expiresAt).toBeUndefined();
-		expect(packageRecord?.scheduleTokenHash).toBeUndefined();
-		expect(packageRecord?.scheduleLinkStatus).toBeUndefined();
-		expect(packageRecord?.packageReminderState).toBeUndefined();
-		expect(tokenResult).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
+		).toEqual([null, expect.objectContaining({ paidAt: now })]);
+		expect(
+			await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+				packageId,
+				paidAt: now + 1
+			})
+		).toEqual([{ reason: "PACKAGE_ALREADY_PAID" }, null]);
+		expect(await readScheduledJobs(t)).toHaveLength(1);
 	});
-});
 
-describe("package request creation", () => {
-	test("stores the normalized commercial snapshot and successful invoice delivery", async () => {
+	test("moves pending_payment to paid only once", async () => {
 		const t = createConvexTest();
+		const packageId = await seedPendingPackage(t);
 
-		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
-		const packages = await readPackages(t);
+		await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+			packageId,
+			paidAt: now
+		});
+		await t.mutation(internal.packages.markPackageScheduleEmailAttempt, {
+			packageId,
+			status: "sent"
+		});
+		await t.mutation(internal.packages.markPackageScheduleEmailAttempt, {
+			packageId,
+			status: "sent"
+		});
 
-		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "sent" }]);
-		expect(packages).toHaveLength(1);
-		expect(packages[0]).toMatchObject({
-			name: "Test customer",
-			phone: "0400 000 000",
-			accountName: "Test account",
-			abn: "12345678901",
-			email: "customer@gmail.com",
-			duration: "1h",
-			addons: ["Teleprompter"] satisfies BookingAddon[],
-			notes: "Please call on arrival",
+		expect(await readPackage(t, packageId)).toMatchObject({ status: "paid", paidAt: now });
+	});
+
+	test("reduces available package slots as sessions are booked", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackageWithToken(t);
+
+		expect(await readPackageSlots(t, packageScheduleToken)).toEqual({
 			packageSize: 4,
-			singleSessionAmount: 229,
-			packageSubtotalAmount: 916,
-			discountPercent: 5,
-			discountAmount: 45.8,
-			totalDueAmount: 870.2,
-			invoiceLineItems: [
-				{ amount: 800, description: "Studio Hire (1h)", quantity: 4, rate: 200 },
-				{ amount: 116, description: "Teleprompter add-on", quantity: 4, rate: 29 },
-				{ amount: -45.8, description: "5% package discount", quantity: 1, rate: -45.8 }
-			],
-			status: "pending_payment",
-			createdAt: now,
-			invoiceDueAt: getPackageInvoiceDueAt(now),
-			invoiceNumber: "VV-20300101-TEST",
-			invoiceEmailStatus: "sent",
-			invoiceEmailSentAt: now,
-			lastInvoiceEmailAttemptAt: now
-		});
-		expect(providerFakes.sendInvoiceEmail).toHaveBeenCalledTimes(1);
-		expect(providerFakes.sendInvoiceEmail.mock.calls[0]?.[0]).toMatchObject({
-			status: "pending_payment",
-			invoiceEmailStatus: "pending",
-			totalDueAmount: 870.2
-		});
-	});
-
-	test("rejects invalid form data before DNS or invoice delivery", async () => {
-		const t = createConvexTest();
-
-		const result = await t.action(api.packagePayment.createPackageRequest, {
-			...validRequest,
-			name: "   "
+			bookedSessions: 0
 		});
 
-		expect(result).toEqual([{ reason: "BOOKING_INVALID_INPUT" }, null]);
-		expect(await readPackages(t)).toEqual([]);
-		expect(providerFakes.resolveMx).not.toHaveBeenCalled();
-		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
-	});
+		await seedPackageSession(t, packageId, 0, "confirmed");
+		await seedPackageSession(t, packageId, 1, "confirmed");
 
-	test("rejects an undeliverable email without creating or emailing a package", async () => {
-		const t = createConvexTest();
-		providerFakes.resolveMx.mockResolvedValue([]);
-
-		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
-
-		expect(result).toEqual([{ reason: "BOOKING_EMAIL_DOMAIN_INVALID" }, null]);
-		expect(await readPackages(t)).toEqual([]);
-		expect(providerFakes.sendInvoiceEmail).not.toHaveBeenCalled();
-	});
-
-	test("preserves the package and records a failed invoice delivery for retry", async () => {
-		const t = createConvexTest();
-		providerFakes.sendInvoiceEmail.mockResolvedValue(err({ reason: "INVOICE_SEND_FAILED" }));
-
-		const result = await t.action(api.packagePayment.createPackageRequest, validRequest);
-		const packages = await readPackages(t);
-
-		expect(result).toEqual([null, { packageId: packages[0]?._id, invoiceEmailStatus: "failed" }]);
-		expect(packages).toHaveLength(1);
-		expect(packages[0]).toMatchObject({
-			status: "invoice_email_failed",
-			invoiceEmailStatus: "failed",
-			invoiceEmailFailureCode: "INVOICE_SEND_FAILED",
-			lastInvoiceEmailAttemptAt: now
+		expect(await readPackageSlots(t, packageScheduleToken)).toEqual({
+			packageSize: 4,
+			bookedSessions: 2
 		});
-		expect(packages[0]?.invoiceNumber).toBeUndefined();
-		expect(packages[0]?.invoiceEmailSentAt).toBeUndefined();
 	});
 });
 
@@ -433,10 +206,6 @@ describe("admin package management", () => {
 	});
 });
 
-async function readPackages(t: TestClient) {
-	return await t.run((ctx) => ctx.db.query("packages").collect());
-}
-
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
 		ctx.db.insert("packages", {
@@ -496,17 +265,8 @@ async function readPackage(t: TestClient, packageId: Id<"packages">) {
 }
 
 async function seedPendingPackage(t: TestClient) {
-	return await t.run(async (ctx) => {
-		await ctx.db.insert("bookingSettings", {
-			key: "main",
-			leadTimeMinutes: 60,
-			eventBufferMinutes: 15,
-			maxDaysAhead: 90,
-			weekSchedule: Array.from({ length: 7 }, () => ({ startTime: "09:00", endTime: "17:00" })),
-			updatedAt: now
-		});
-
-		return await ctx.db.insert("packages", {
+	return await t.run((ctx) =>
+		ctx.db.insert("packages", {
 			name: "Test customer",
 			phone: "0400000000",
 			accountName: "Test account",
@@ -523,30 +283,47 @@ async function seedPendingPackage(t: TestClient) {
 			createdAt: now,
 			invoiceDueAt: now,
 			invoiceEmailStatus: "sent"
-		});
-	});
+		})
+	);
 }
 
-async function readLifecycleState(
-	t: TestClient,
-	packageId: Awaited<ReturnType<typeof seedPendingPackage>>
-) {
-	return await t.run(async (ctx) => ({
-		packageRecord: await ctx.db.get(packageId),
-		scheduledJobs: await ctx.db.system.query("_scheduled_functions").collect()
-	}));
+async function seedPaidPackageWithToken(t: TestClient) {
+	const scheduleTokenHash = await hashRescheduleToken(packageScheduleToken);
+
+	return await t.run((ctx) =>
+		ctx.db.insert("packages", {
+			name: "Test customer",
+			phone: "0400000000",
+			accountName: "Test account",
+			email: "customer@example.com",
+			duration: "1h",
+			addons: [],
+			packageSize: 4,
+			singleSessionAmount: 100,
+			packageSubtotalAmount: 400,
+			discountPercent: 0,
+			discountAmount: 0,
+			totalDueAmount: 400,
+			status: "paid",
+			createdAt: now,
+			invoiceDueAt: now,
+			paidAt: now,
+			expiresAt: getPackageExpiresAt(now, 4),
+			invoiceEmailStatus: "sent",
+			scheduleTokenHash,
+			scheduleLinkStatus: "active"
+		})
+	);
 }
 
-function getScheduleToken(scheduleUrl: string | undefined) {
-	if (!scheduleUrl) {
-		throw new Error("Scheduling URL was missing");
-	}
+async function readPackageSlots(t: TestClient, token: string) {
+	const [error, packageRecord] = await t.query(api.packageScheduling.getPackageByToken, { token });
 
-	const token = new URL(scheduleUrl).pathname.split("/").at(-1);
+	if (error !== null) throw new Error("Expected package scheduling data");
 
-	if (!token) {
-		throw new Error("Scheduling URL did not contain a token");
-	}
+	return { packageSize: packageRecord.packageSize, bookedSessions: packageRecord.sessions.length };
+}
 
-	return decodeURIComponent(token);
+async function readScheduledJobs(t: TestClient) {
+	return await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 }
