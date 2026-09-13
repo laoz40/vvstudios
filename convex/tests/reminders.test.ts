@@ -213,6 +213,7 @@ describe("reminder claims", () => {
 			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now }),
 			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now })
 		]);
+
 		const packageClaims = await Promise.all([
 			t.mutation(internal.packageReminders.claimPackageReminder, {
 				packageId,
