@@ -93,7 +93,7 @@ export function createClerkInvitation(email: string) {
 				})
 			}),
 		catch: (cause) => {
-			console.error("Clerk invitation request failed", { email, cause });
+			console.error("Clerk invitation request failed", { cause });
 
 			return { reason: "CLERK_INVITATION_FAILED" as const };
 		}
@@ -101,7 +101,7 @@ export function createClerkInvitation(email: string) {
 		tryPromise({
 			try: () => response.json(),
 			catch: (cause) => {
-				console.error("Clerk invitation response parse failed", { email, cause });
+				console.error("Clerk invitation response parse failed", { cause });
 
 				return { reason: "CLERK_INVITATION_FAILED" as const };
 			}
