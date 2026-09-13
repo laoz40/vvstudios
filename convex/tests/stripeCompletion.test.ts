@@ -37,9 +37,11 @@ describe("booking payment completion", () => {
 		const firstClaim = await claimBooking(t, bookingId, "evt-first");
 		const claimedBooking = await readBooking(t, bookingId);
 		const duplicateClaim = await claimBooking(t, bookingId, "evt-duplicate");
+		const replayedClaim = await claimBooking(t, bookingId, "evt-first");
 
 		expect(firstClaim).toMatchObject([null, { outcome: "claimed" }]);
 		expect(duplicateClaim).toEqual([null, { outcome: "already_claimed" }]);
+		expect(replayedClaim).toEqual([null, { outcome: "already_claimed" }]);
 		expect(await readBooking(t, bookingId)).toMatchObject({
 			bookingConfirmationClaimedAt: claimedBooking?.bookingConfirmationClaimedAt,
 			bookingConfirmationEventId: "evt-first",
