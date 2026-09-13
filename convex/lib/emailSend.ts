@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import { okOrThrow, tryPromise } from "#convex/lib/result";
+import { tryPromise } from "#convex/lib/result";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
@@ -112,11 +112,7 @@ export function sendEmail(args: {
 				body: JSON.stringify(requestBody)
 			}),
 		catch: (cause) => {
-			console.error("Resend email request failed", {
-				to: args.to,
-				subject: args.subject,
-				cause
-			});
+			console.error("Resend email request failed", { recipientCount: args.to.length, cause });
 
 			return { reason: "EMAIL_REQUEST_FAILED" as const };
 		}
@@ -125,13 +121,19 @@ export function sendEmail(args: {
 			return ok(null);
 		}
 
-		return okOrThrow(response.text()).andThen((responseBody) => {
+		return tryPromise({
+			try: () => response.text(),
+			catch: (cause) => {
+				console.error("Resend email response body read failed", { status: response.status, cause });
+
+				return { reason: "EMAIL_RESPONSE_FAILED" as const };
+			}
+		}).andThen((responseBody) => {
 			console.error("Resend email response failed", {
 				status: response.status,
 				body: responseBody,
-				to: args.to,
-				subject: args.subject,
-				attachmentFilenames: attachments?.map((attachment) => attachment.filename) ?? []
+				recipientCount: args.to.length,
+				attachmentCount: attachments?.length ?? 0
 			});
 
 			return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
