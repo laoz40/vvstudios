@@ -208,26 +208,35 @@ describe("reminder claims", () => {
 			status: "pending_payment"
 		});
 
-		await Promise.all([
-			t.action(internal.sessionReminders.sendDueReminders, {}),
-			t.action(internal.sessionReminders.sendDueReminders, {})
+		const bookingClaims = await Promise.all([
+			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now }),
+			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now }),
+			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now })
 		]);
-		await t.action(internal.sessionReminders.sendDueReminders, {});
+		const packageClaims = await Promise.all([
+			t.mutation(internal.packageReminders.claimPackageReminder, {
+				packageId,
+				reminderType: "payment",
+				now
+			}),
+			t.mutation(internal.packageReminders.claimPackageReminder, {
+				packageId,
+				reminderType: "payment",
+				now
+			}),
+			t.mutation(internal.packageReminders.claimPackageReminder, {
+				packageId,
+				reminderType: "payment",
+				now
+			})
+		]);
 
-		const booking = await readBooking(t, bookingId);
-		const packageRecord = await readPackage(t, packageId);
-
-		if (booking?.reminderEmailSentAt !== undefined) {
-			expect(booking.reminderEmailSentAt).toBe(now);
-		}
-
-		if (packageRecord?.packageReminderState?.status === "sent") {
-			expect(packageRecord.packageReminderState).toMatchObject({
-				type: "payment",
-				status: "sent",
-				sentAt: now
-			});
-		}
+		expect(bookingClaims.filter((result) => result[0] === null)).toHaveLength(1);
+		expect(packageClaims.filter((result) => result[0] === null)).toHaveLength(1);
+		expect(await readBooking(t, bookingId)).toMatchObject({ reminderEmailClaimedAt: now });
+		expect(await readPackage(t, packageId)).toMatchObject({
+			packageReminderState: { type: "payment", status: "claimed", claimedAt: now }
+		});
 	});
 });
 
