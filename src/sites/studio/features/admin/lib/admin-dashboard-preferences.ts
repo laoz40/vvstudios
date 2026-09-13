@@ -1,15 +1,15 @@
 import { z } from "zod";
-import type { AdminPackageFilters } from "#studio/features/admin/lib/admin-packages";
+import type { AdminPackageSort } from "#studio/features/admin/lib/admin-packages";
 import type { SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 
 const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 
-const DEFAULT_PACKAGE_FILTERS: AdminPackageFilters = {
+const DEFAULT_PACKAGES_TABLE_PREFERENCES: PackagesTablePreferences = {
+	sorting: { isDescending: true },
 	showArchived: false,
 	showOverdue: false,
 	showPaid: false,
-	showUpcoming: false,
-	searchQuery: ""
+	showUpcoming: false
 };
 
 const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
@@ -26,7 +26,12 @@ const sessionSortingItemSchema = z.object({
 	desc: z.boolean().optional()
 });
 
-const storedPackageFiltersSchema = z.object({
+const storedPackageSortingSchema = z.object({
+	isDescending: z.boolean().optional()
+});
+
+const storedPackagesTablePreferencesSchema = z.object({
+	sorting: storedPackageSortingSchema.optional(),
 	showArchived: z.boolean().optional(),
 	showOverdue: z.boolean().optional(),
 	showPaid: z.boolean().optional(),
@@ -41,10 +46,18 @@ const storedSessionsTablePreferencesSchema = z.object({
 });
 
 const adminDashboardPreferencesSchema = z.object({
-	packages: storedPackageFiltersSchema.optional(),
+	packages: storedPackagesTablePreferencesSchema.optional(),
 	privacyMode: z.boolean().optional(),
 	sessions: storedSessionsTablePreferencesSchema.optional()
 });
+
+type PackagesTablePreferences = {
+	sorting: AdminPackageSort;
+	showArchived: boolean;
+	showOverdue: boolean;
+	showPaid: boolean;
+	showUpcoming: boolean;
+};
 
 type SessionsTablePreferences = {
 	sorting: SessionSorting;
@@ -92,20 +105,28 @@ function normalizeStoredSorting(
 	}));
 }
 
-export function readStoredPackageTableFilters(): AdminPackageFilters {
-	const storedFilters = readAdminDashboardPreferences().packages;
+export function readStoredPackagesTablePreferences(): PackagesTablePreferences {
+	const storedPreferences = readAdminDashboardPreferences().packages;
+
+	if (!storedPreferences) {
+		return DEFAULT_PACKAGES_TABLE_PREFERENCES;
+	}
 
 	return {
-		...DEFAULT_PACKAGE_FILTERS,
-		showArchived: storedFilters?.showArchived ?? false,
-		showOverdue: storedFilters?.showOverdue ?? false,
-		showPaid: storedFilters?.showPaid ?? false,
-		showUpcoming: storedFilters?.showUpcoming ?? false
+		sorting: {
+			isDescending:
+				storedPreferences.sorting?.isDescending ??
+				DEFAULT_PACKAGES_TABLE_PREFERENCES.sorting.isDescending
+		},
+		showArchived: storedPreferences.showArchived ?? false,
+		showOverdue: storedPreferences.showOverdue ?? false,
+		showPaid: storedPreferences.showPaid ?? false,
+		showUpcoming: storedPreferences.showUpcoming ?? false
 	};
 }
 
-export function storePackageTableFilters(filters: AdminPackageFilters) {
-	storeAdminDashboardPreferences({ ...readAdminDashboardPreferences(), packages: filters });
+export function storePackagesTableFilters(preferences: PackagesTablePreferences) {
+	storeAdminDashboardPreferences({ ...readAdminDashboardPreferences(), packages: preferences });
 }
 
 export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
