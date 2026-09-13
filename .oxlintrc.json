@@ -194,6 +194,10 @@
 			"rules": { "max-lines": "off" }
 		},
 		{
+			"files": ["convex/tests/**"],
+			"rules": { "anti-slop/no-module-mocking": "error" }
+		},
+		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {
 				"constructor-super": "off",
