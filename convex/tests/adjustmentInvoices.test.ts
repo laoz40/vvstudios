@@ -160,13 +160,32 @@ describe("package adjustment closeout", () => {
 		expect(scheduledJobs).toEqual([]);
 	});
 
-	test("repeated concurrent closeout creates only one adjustment", async () => {
+	test("repeated closeout creates only one adjustment", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
+
+		await processExpiredPackage(t, packageId);
+		await processExpiredPackage(t, packageId);
+
+		const adjustments = await readAdjustments(t, packageId);
+
+		expect(adjustments).toHaveLength(1);
+		expect(adjustments[0]).toMatchObject({
+			outcome: "invoice_required",
+			packageId: packageId,
+			quantity: 1,
+			remotePodcastBookingIds: [bookingId],
+			totalAmount: REMOTE_PODCAST_ADJUSTMENT_RATE
+		});
+	});
+
+	test("concurrent closeout creates only one adjustment", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await Promise.all([
-			processExpiredPackage(t, packageId),
 			processExpiredPackage(t, packageId),
 			processExpiredPackage(t, packageId)
 		]);
@@ -291,7 +310,7 @@ describe("package adjustment payment and download", () => {
 });
 
 describe("package adjustment invoice delivery", () => {
-	test("allows only one sender to claim an invoice", async () => {
+	test("sets invoiceEmailClaimedAt on the first claim and rejects a second concurrent claim", async () => {
 		const t = createConvexTest();
 		const { adjustmentId } = await seedFailedAdjustment(t);
 
@@ -302,6 +321,24 @@ describe("package adjustment invoice delivery", () => {
 
 		expect(claims.filter(([error]) => error === null)).toHaveLength(1);
 		expect(claims).toContainEqual([{ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" }, null]);
+		expect(await readAdjustment(t, adjustmentId)).toMatchObject({
+			invoiceEmailClaimedAt: now,
+			invoiceEmailStatus: "failed"
+		});
+	});
+
+	test("rejects a claim after the invoice email was sent without changing sent status", async () => {
+		const t = createConvexTest();
+		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent");
+
+		expect(await claimInvoice(t, adjustmentId, now)).toEqual([
+			{ reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" },
+			null
+		]);
+		const adjustment = await readAdjustment(t, adjustmentId);
+
+		expect(adjustment).toMatchObject({ invoiceEmailStatus: "sent" });
+		expect(adjustment?.invoiceEmailClaimedAt).toBeUndefined();
 	});
 
 	test("does not let a timed-out sender overwrite a newer retry", async () => {
