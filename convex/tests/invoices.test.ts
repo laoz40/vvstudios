@@ -45,6 +45,37 @@ afterEach(() => {
 });
 
 describe("invoice financial integrity", () => {
+	test("keeps line item totals equal to the invoice total after addon quantity edits", async () => {
+		const bookingId = await seedBooking(createConvexTest());
+
+		const data = buildBookingInvoiceData({
+			bookingId,
+			name: "Test customer",
+			phone: "0400000000",
+			accountName: "Test account",
+			email: "customer@example.com",
+			date: "2030-01-20",
+			time: "10:00",
+			duration: "2h",
+			service: "Table Setup",
+			addons: ["Essential Edit", "Clip Volume Pack"],
+			essentialEditQuantity: "3",
+			clipsPackageQuantity: "2",
+			leadTimeMinutes: 60,
+			createdAt: now
+		});
+
+		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(
+			data.amounts.totalDueAmount
+		);
+		expect(data.lineItems).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ description: "Rough Cut", quantity: 3, amount: 300 }),
+				expect.objectContaining({ description: "Clip Volume Pack", quantity: 2, amount: 160 })
+			])
+		);
+	});
+
 	test("builds a balanced session invoice from quantities, deposit, and an admin override", async () => {
 		const bookingId = await seedBooking(createConvexTest());
 
