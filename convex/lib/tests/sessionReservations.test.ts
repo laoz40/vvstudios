@@ -24,15 +24,9 @@ const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
 const eventBufferMinutes = 15;
 
-const reservation: SessionReservation = {
-	reservedAt: now,
-	sessionStartAt,
-	duration: "1h"
-};
+const reservation: SessionReservation = { reservedAt: now, sessionStartAt, duration: "1h" };
 
-function bookingWithReservation(
-	overrides: Partial<Doc<"bookings">> = {}
-): Doc<"bookings"> {
+function bookingWithReservation(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> {
 	// SAFETY: Unit test fixture; sessionHasReservation only reads reservation and session fields.
 	return {
 		_id: "booking-1" as Id<"bookings">,
@@ -83,11 +77,7 @@ describe("sessionHasReservation", () => {
 
 	test("returns false once the reservation TTL has expired", () => {
 		expect(
-			sessionHasReservation(
-				bookingWithReservation(),
-				reservation,
-				now + SLOT_RESERVATION_TTL_MS
-			)
+			sessionHasReservation(bookingWithReservation(), reservation, now + SLOT_RESERVATION_TTL_MS)
 		).toBe(false);
 	});
 });

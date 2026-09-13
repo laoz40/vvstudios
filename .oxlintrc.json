@@ -193,10 +193,7 @@
 			"files": ["**/*.test.ts", "**/*.test.tsx", "convex/tests/**"],
 			"rules": { "max-lines": "off" }
 		},
-		{
-			"files": ["convex/tests/**"],
-			"rules": { "anti-slop/no-module-mocking": "error" }
-		},
+		{ "files": ["convex/tests/**"], "rules": { "anti-slop/no-module-mocking": "error" } },
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {

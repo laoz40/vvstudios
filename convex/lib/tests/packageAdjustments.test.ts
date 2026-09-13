@@ -37,12 +37,7 @@ function packageSession(
 	addons: BookingAddon[] = []
 ): Doc<"bookings"> {
 	// SAFETY: Unit test fixture; evaluatePackageAdjustment only reads _id, duration, sessionStartAt, and addons.
-	return {
-		_id: id as Id<"bookings">,
-		sessionStartAt,
-		duration,
-		addons
-	} as Doc<"bookings">;
+	return { _id: id as Id<"bookings">, sessionStartAt, duration, addons } as Doc<"bookings">;
 }
 
 function invoiceAdjustment(
@@ -135,10 +130,7 @@ describe("validatePackageAdjustmentEmailClaim", () => {
 		const claimedAt = now - 5 * 60 * 1000;
 
 		const result = validatePackageAdjustmentEmailClaim(
-			invoiceAdjustment({
-				invoiceEmailStatus: "pending",
-				invoiceEmailClaimedAt: claimedAt
-			}),
+			invoiceAdjustment({ invoiceEmailStatus: "pending", invoiceEmailClaimedAt: claimedAt }),
 			{ attempt: "automatic", now }
 		);
 
@@ -226,10 +218,7 @@ describe("requirePackageAdjustmentPaymentEligibility", () => {
 	});
 
 	test("allows payment once the invoice is overdue even if email is still pending", () => {
-		const adjustment = invoiceAdjustment({
-			invoiceEmailStatus: "pending",
-			invoiceDueAt: now - 1
-		});
+		const adjustment = invoiceAdjustment({ invoiceEmailStatus: "pending", invoiceDueAt: now - 1 });
 
 		const result = requirePackageAdjustmentPaymentEligibility(adjustment, now);
 

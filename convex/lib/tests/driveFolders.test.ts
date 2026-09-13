@@ -102,10 +102,7 @@ describe("validateDriveSetup", () => {
 	});
 
 	test("accepts a confirmed booking at the expected time", () => {
-		const result = validateDriveSetup(setupInfo(), {
-			sessionStartAt,
-			duration: "1h"
-		});
+		const result = validateDriveSetup(setupInfo(), { sessionStartAt, duration: "1h" });
 
 		expect(result.isOk()).toBe(true);
 	});

@@ -63,9 +63,7 @@ describe("package payment claim", () => {
 			scheduleLinkStatus: "active",
 			status: "schedule_email_failed"
 		});
-		expect(packageRecord?.scheduleTokenHash).toBe(
-			await hashRescheduleToken(paymentResult.token)
-		);
+		expect(packageRecord?.scheduleTokenHash).toBe(await hashRescheduleToken(paymentResult.token));
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
 			args: [{ expectedExpiresAt: expiresAt, packageId }],
@@ -323,10 +321,7 @@ async function readPackageSlots(t: TestClient, token: string) {
 
 	if (error !== null || !packageRecord) throw new Error("Expected package scheduling data");
 
-	return {
-		packageSize: packageRecord.packageSize,
-		bookedSessions: packageRecord.sessions.length
-	};
+	return { packageSize: packageRecord.packageSize, bookedSessions: packageRecord.sessions.length };
 }
 
 async function readScheduledJobs(t: TestClient) {

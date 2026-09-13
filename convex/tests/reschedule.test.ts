@@ -125,25 +125,31 @@ describe("reschedule reservation and failure guards", () => {
 		const t = createConvexTest();
 		const { bookingId } = await seedReschedulableSession(t);
 
-		const firstReservation = await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
-			bookingId,
-			duration: "1h",
-			eventBufferMinutes,
-			now,
-			sessionStartAt: rescheduledSessionStartAt
-		});
+		const firstReservation = await t.mutation(
+			internal.sessionScheduling.reserveSessionReservation,
+			{
+				bookingId,
+				duration: "1h",
+				eventBufferMinutes,
+				now,
+				sessionStartAt: rescheduledSessionStartAt
+			}
+		);
 
 		if (firstReservation[0] !== null || firstReservation[1].outcome !== "reserved") {
 			throw new Error("Failed to reserve first target");
 		}
 
-		const secondReservation = await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
-			bookingId,
-			duration: "1h",
-			eventBufferMinutes,
-			now: now + 1,
-			sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000
-		});
+		const secondReservation = await t.mutation(
+			internal.sessionScheduling.reserveSessionReservation,
+			{
+				bookingId,
+				duration: "1h",
+				eventBufferMinutes,
+				now: now + 1,
+				sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000
+			}
+		);
 
 		if (secondReservation[0] !== null || secondReservation[1].outcome !== "reserved") {
 			throw new Error("Failed to reserve second target");
@@ -161,9 +167,7 @@ describe("reschedule reservation and failure guards", () => {
 
 		const booking = await readBooking(t, bookingId);
 
-		expect(booking).toMatchObject({
-			sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000
-		});
+		expect(booking).toMatchObject({ sessionStartAt: rescheduledSessionStartAt + 60 * 60 * 1000 });
 		expect(booking?.reservationCreatedAt).toBeUndefined();
 		expect(booking?.reservationSessionStartAt).toBeUndefined();
 		expect(booking?.reservationDuration).toBeUndefined();

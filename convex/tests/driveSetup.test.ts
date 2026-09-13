@@ -72,9 +72,9 @@ describe("drive setup guards", () => {
 				bookingId: deletedBookingId
 			})
 		).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
-		expect(
-			await t.mutation(internal.sessions.backfillBookingDriveClientId, { bookingId })
-		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
+		expect(await t.mutation(internal.sessions.backfillBookingDriveClientId, { bookingId })).toEqual(
+			[{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]
+		);
 	});
 
 	test("keeps the first saved session folder on repeated saves", async () => {
@@ -120,10 +120,7 @@ describe("drive setup guards", () => {
 	});
 });
 
-async function createDriveClient(
-	t: TestClient,
-	client: { email: string; displayName: string }
-) {
+async function createDriveClient(t: TestClient, client: { email: string; displayName: string }) {
 	return await t.run(async (ctx) => {
 		const result = await getOrCreateDriveClientId(ctx, client);
 

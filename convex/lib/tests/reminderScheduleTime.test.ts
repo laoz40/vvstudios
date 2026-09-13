@@ -67,7 +67,10 @@ describe("getTimeZoneDayRange", () => {
 
 describe("getTomorrowTimeZoneDayRange", () => {
 	test("returns the next Sydney calendar day during summer", () => {
-		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(new Date(summerNow), REMINDER_TIME_ZONE);
+		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(
+			new Date(summerNow),
+			REMINDER_TIME_ZONE
+		);
 
 		expect(dayStart).toBe(Date.parse("2030-01-02T13:00:00.000Z"));
 		expect(dayEnd).toBe(Date.parse("2030-01-03T13:00:00.000Z"));

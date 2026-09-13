@@ -110,9 +110,10 @@ describe("reminder scheduling state", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
-		expect(
-			await t.mutation(internal.sessionReminders.claimReminder, { bookingId, now })
-		).toEqual([null, { session: expect.objectContaining({ _id: bookingId }) }]);
+		expect(await t.mutation(internal.sessionReminders.claimReminder, { bookingId, now })).toEqual([
+			null,
+			{ session: expect.objectContaining({ _id: bookingId }) }
+		]);
 		expect(
 			await t.mutation(internal.sessionReminders.markReminderSent, { bookingId, now })
 		).toEqual([null, null]);
@@ -135,13 +136,16 @@ describe("reminder scheduling state", () => {
 			reminderEmailSentAt: now - 2
 		});
 
-		const reservationResult = await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
-			bookingId,
-			duration: "1h",
-			eventBufferMinutes,
-			now,
-			sessionStartAt: rescheduledSessionStartAt
-		});
+		const reservationResult = await t.mutation(
+			internal.sessionScheduling.reserveSessionReservation,
+			{
+				bookingId,
+				duration: "1h",
+				eventBufferMinutes,
+				now,
+				sessionStartAt: rescheduledSessionStartAt
+			}
+		);
 
 		if (reservationResult[0] !== null || reservationResult[1].outcome !== "reserved") {
 			throw new Error("Failed to reserve rescheduled session");

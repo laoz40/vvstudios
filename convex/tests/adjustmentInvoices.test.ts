@@ -185,10 +185,7 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await Promise.all([
-			processExpiredPackage(t, packageId),
-			processExpiredPackage(t, packageId)
-		]);
+		await Promise.all([processExpiredPackage(t, packageId), processExpiredPackage(t, packageId)]);
 
 		expect(await readAdjustments(t, packageId)).toHaveLength(1);
 	});
