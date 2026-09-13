@@ -107,6 +107,22 @@ describe.each(identities)("admin mutation authorization rejects $label", ({ iden
 	});
 });
 
+describe("admin mutation authorization rejects inactive editors", () => {
+	test("from a representative admin-only mutation without side effects", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorMetadataIdentity, false);
+		const bookingId = await seedBooking(t);
+		const before = await readBooking(t, bookingId);
+
+		const result = await t
+			.withIdentity(editorMetadataIdentity)
+			.mutation(api.sessions.archiveSession, { bookingId, archived: true });
+
+		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
+		expect(await readBooking(t, bookingId)).toEqual(before);
+	});
+});
+
 describe("admin mutation authorization rejects active editors", () => {
 	test("from a representative admin-only mutation without side effects", async () => {
 		const t = createConvexTest();
