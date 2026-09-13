@@ -1,32 +1,24 @@
 /**
- * These tests cover creating and emailing the final Remote Podcast adjustment invoice for a package.
+ * These tests cover creating and closing Remote Podcast package adjustment invoices.
  *
  * 1. Adjustment result
- *    A package with no completed Remote Podcast sessions must create one no-charge record and
- *    send no invoice. Completed Remote Podcast sessions must create one unpaid invoice using
- *    the stored quantity, rate, total, invoice number, and seven-day due date.
+ *    A package with no completed Remote Podcast sessions must create one no-charge record.
+ *    Completed Remote Podcast sessions must create one unpaid invoice with stored quantity,
+ *    rate, total, invoice number, and seven-day due date.
  *
  * 2. Repeated or outdated closeout
- *    Repeated or concurrent closeout jobs must still create only one adjustment and send one
- *    automatic invoice email. A job for an old package expiry must do nothing.
+ *    Repeated or concurrent closeout jobs must still create only one adjustment. A job for an
+ *    old package expiry must do nothing.
  *
  * 3. Email claim
  *    Only one sender may claim an invoice. A timed-out sender's late success or failure must not
  *    overwrite a newer retry.
  *
- * 4. Email result and retry
- *    Successful delivery must mark the invoice sent. Failed delivery must mark it failed so an
- *    admin can retry, using the financial values already stored on the adjustment.
- *
- * 5. Which sessions are charged and when an invoice can be used
- *    Only completed Remote Podcast sessions from this package are charged. The final adjustment
- *    waits until every package slot is booked and every session has ended. Payment status can
- *    change after sending or once overdue, while downloads always require a sent invoice.
- *
- * Invoice email delivery is replaced with a fake, so no real provider request is made.
+ * 4. Payment status and downloads
+ *    Payment status can change after sending or once overdue, while downloads always require a
+ *    sent invoice.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { err, ok } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -37,14 +29,6 @@ import {
 } from "#convex/lib/packageAdjustments";
 import { createConvexTest } from "#convex/test.setup";
 
-type SendAdjustmentInvoice = typeof import("#convex/lib/email").sendPackageAdjustmentInvoiceEmail;
-
-const providerFakes = vi.hoisted(() => ({ sendAdjustmentInvoice: vi.fn<SendAdjustmentInvoice>() }));
-
-vi.mock("#convex/lib/email", () => ({
-	sendPackageAdjustmentInvoiceEmail: providerFakes.sendAdjustmentInvoice
-}));
-
 const now = Date.parse("2030-01-10T00:00:00.000Z");
 
 const completedSessionStartAt = now - 2 * 60 * 60 * 1000;
@@ -54,10 +38,8 @@ const adminIdentity = { publicMetadata: { role: "admin" } };
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
-	vi.clearAllMocks();
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	providerFakes.sendAdjustmentInvoice.mockResolvedValue(ok(null));
 });
 
 afterEach(() => {
@@ -82,22 +64,19 @@ describe("package adjustment closeout", () => {
 			totalAmount: 0,
 			trigger: "package_expired"
 		});
-		expect(providerFakes.sendAdjustmentInvoice).not.toHaveBeenCalled();
 	});
 
-	test("creates and sends one invoice snapshot for completed Remote Podcast sessions", async () => {
+	test("creates one invoice snapshot for completed Remote Podcast sessions", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await processExpiredPackage(t, packageId);
-		await t.finishAllScheduledFunctions(() => vi.runAllTimers());
 		const [adjustment] = await readAdjustments(t, packageId);
 
 		expect(adjustment).toMatchObject({
 			createdAt: now,
 			invoiceDueAt: now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-			invoiceEmailStatus: "sent",
 			packageId: packageId,
 			outcome: "invoice_required",
 			paymentStatus: "unpaid",
@@ -112,7 +91,6 @@ describe("package adjustment closeout", () => {
 		}
 
 		expect(adjustment.invoiceNumber).not.toBe("pending");
-		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(1);
 	});
 
 	test("charges only completed capacity-consuming Remote Podcast sessions from its package", async () => {
@@ -180,10 +158,9 @@ describe("package adjustment closeout", () => {
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(scheduledJobs).toEqual([]);
-		expect(providerFakes.sendAdjustmentInvoice).not.toHaveBeenCalled();
 	});
 
-	test("repeated concurrent closeout creates and sends only one adjustment", async () => {
+	test("repeated concurrent closeout creates only one adjustment", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
@@ -193,10 +170,8 @@ describe("package adjustment closeout", () => {
 			processExpiredPackage(t, packageId),
 			processExpiredPackage(t, packageId)
 		]);
-		await t.finishAllScheduledFunctions(() => vi.runAllTimers());
 
 		expect(await readAdjustments(t, packageId)).toHaveLength(1);
-		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(1);
 	});
 });
 
@@ -377,55 +352,6 @@ describe("package adjustment invoice delivery", () => {
 			invoiceEmailClaimedAt: retryClaimedAt,
 			invoiceEmailStatus: "failed"
 		});
-	});
-
-	test("records a successful invoice delivery using the stored financial snapshot", async () => {
-		const t = createConvexTest();
-		const { adjustmentId } = await seedFailedAdjustment(t);
-
-		const result = await t
-			.withIdentity(adminIdentity)
-			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
-
-		const invoiceInput = providerFakes.sendAdjustmentInvoice.mock.calls[0]?.[0];
-
-		if (!invoiceInput) {
-			throw new Error("Expected sendAdjustmentInvoice to be called");
-		}
-
-		expect(result).toEqual([null, null]);
-		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });
-		expect(invoiceInput.adjustment).toMatchObject({ quantity: 2, rate: 75, totalAmount: 150 });
-	});
-
-	test("records provider failure and allows an admin retry", async () => {
-		const t = createConvexTest();
-		const { adjustmentId } = await seedFailedAdjustment(t);
-		providerFakes.sendAdjustmentInvoice
-			.mockResolvedValueOnce(err({ reason: "INVOICE_SEND_FAILED" }))
-			.mockResolvedValueOnce(ok(null));
-
-		const firstResult = await t
-			.withIdentity(adminIdentity)
-			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
-
-		const failedAdjustment = await readAdjustment(t, adjustmentId);
-
-		const retryResult = await t
-			.withIdentity(adminIdentity)
-			.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId });
-
-		expect(firstResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" }, null]);
-		expect(failedAdjustment).toMatchObject({ invoiceEmailStatus: "failed" });
-
-		if (!failedAdjustment || failedAdjustment.outcome !== "invoice_required") {
-			throw new Error("Expected an invoice-required adjustment");
-		}
-
-		expect(failedAdjustment.invoiceEmailClaimedAt).toBeUndefined();
-		expect(retryResult).toEqual([null, null]);
-		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ invoiceEmailStatus: "sent" });
-		expect(providerFakes.sendAdjustmentInvoice).toHaveBeenCalledTimes(2);
 	});
 });
 
