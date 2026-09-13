@@ -16,7 +16,16 @@ export const sessionReservationValidator = v.object({
 
 export type SessionReservation = { reservedAt: number; sessionStartAt: number; duration: string };
 
-function getReservedTarget(session: Doc<"bookings">) {
+export type SessionReservationBooking = Pick<
+	Doc<"bookings">,
+	| "reservationCreatedAt"
+	| "reservationSessionStartAt"
+	| "reservationDuration"
+	| "sessionStartAt"
+	| "duration"
+>;
+
+function getReservedTarget(session: SessionReservationBooking) {
 	if (session.reservationCreatedAt === undefined) return null;
 
 	return {
@@ -27,7 +36,7 @@ function getReservedTarget(session: Doc<"bookings">) {
 }
 
 export function sessionHasReservation(
-	session: Doc<"bookings">,
+	session: SessionReservationBooking,
 	expected: SessionReservation,
 	now?: number
 ) {

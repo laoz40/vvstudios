@@ -6,7 +6,24 @@ import {
 	type BusyWindow
 } from "#convex/lib/sessionCalendarTime";
 
-type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
+type GoogleCalendarListResponse = {
+	data: { items?: calendar_v3.Schema$Event[]; nextPageToken?: string | null };
+};
+
+type GoogleCalendarLike = {
+	events: {
+		list: (args: {
+			calendarId: string;
+			maxResults?: number;
+			orderBy?: string;
+			pageToken?: string;
+			singleEvents?: boolean;
+			timeMax?: string;
+			timeMin?: string;
+			timeZone?: string;
+		}) => Promise<GoogleCalendarListResponse>;
+	};
+};
 
 interface IgnoredBusyEvent {
 	calendarId?: string;

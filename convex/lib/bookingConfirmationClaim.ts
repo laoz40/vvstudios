@@ -2,17 +2,20 @@ import { err, ok, type Result } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 
-export type BookingClaimStatus =
-	| { kind: "already_confirmed" }
-	| { kind: "already_claimed" }
-	| { kind: "pending"; session: Doc<"bookings"> };
+export type BookingClaimSession = Pick<
+	Doc<"bookings">,
+	"status" | "stripeSessionId" | "bookingConfirmationClaimedAt"
+>;
 
 export type BookingClaimStatusError =
 	| { reason: "BOOKING_INVALID_STATUS"; status: "cancelled" | "abandoned" }
 	| { reason: "BOOKING_EXPIRED" }
 	| { reason: "BOOKING_FAILED" };
 
-export function validateClaimStripeSession(session: Doc<"bookings">, stripeSessionId: string) {
+export function validateClaimStripeSession<T extends BookingClaimSession>(
+	session: T,
+	stripeSessionId: string
+) {
 	if (session.stripeSessionId && session.stripeSessionId !== stripeSessionId) {
 		return err({ reason: "STRIPE_SESSION_MISMATCH" as const });
 	}
@@ -20,9 +23,14 @@ export function validateClaimStripeSession(session: Doc<"bookings">, stripeSessi
 	return ok(session);
 }
 
-export function getBookingClaimStatus(
-	session: Doc<"bookings">
-): Result<BookingClaimStatus, BookingClaimStatusError> {
+export type BookingClaimStatus<T extends BookingClaimSession = BookingClaimSession> =
+	| { kind: "already_confirmed" }
+	| { kind: "already_claimed" }
+	| { kind: "pending"; session: T };
+
+export function getBookingClaimStatus<T extends BookingClaimSession>(
+	session: T
+): Result<BookingClaimStatus<T>, BookingClaimStatusError> {
 	switch (session.status) {
 		case "confirmed":
 		case "email_failed":
