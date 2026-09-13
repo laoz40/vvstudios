@@ -107,7 +107,7 @@ export function sendAndRecordPackageScheduleEmail(
 	packageId: Id<"packages">,
 	email: PackageScheduleEmailArgs
 ): PackageScheduleEmailResult {
-	return ResultAsync.fromSafePromise(sendPackageScheduleEmail(email)).andThen((emailResult) => {
+	return okOrThrow(sendPackageScheduleEmail(email)).andThen((emailResult) => {
 		if (emailResult.isErr()) {
 			// Record the failed email so an admin can retry the paid package lifecycle.
 			return recordPackageScheduleEmailAttempt(ctx, packageId, "failed")

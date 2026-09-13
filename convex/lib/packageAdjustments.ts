@@ -1,4 +1,5 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -47,7 +48,7 @@ export function getPackageAdjustmentInvoice(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
-	return ResultAsync.fromSafePromise(ctx.db.get(adjustmentId)).andThen((adjustment) => {
+	return okOrThrow(ctx.db.get(adjustmentId)).andThen((adjustment) => {
 		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
 		}

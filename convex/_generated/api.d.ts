@@ -65,6 +65,7 @@ import type * as lib_sessionAdminGoogleCalendarUpdate from "../lib/sessionAdminG
 import type * as lib_sessionCalendarEvents from "../lib/sessionCalendarEvents.js";
 import type * as lib_sessionCalendarTime from "../lib/sessionCalendarTime.js";
 import type * as lib_sessionCheckout from "../lib/sessionCheckout.js";
+import type * as lib_sessionHostEmails from "../lib/sessionHostEmails.js";
 import type * as lib_sessionLookup from "../lib/sessionLookup.js";
 import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.js";
 import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWorkflow.js";
@@ -174,6 +175,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionCalendarEvents": typeof lib_sessionCalendarEvents;
   "lib/sessionCalendarTime": typeof lib_sessionCalendarTime;
   "lib/sessionCheckout": typeof lib_sessionCheckout;
+  "lib/sessionHostEmails": typeof lib_sessionHostEmails;
   "lib/sessionLookup": typeof lib_sessionLookup;
   "lib/sessionRescheduleLinks": typeof lib_sessionRescheduleLinks;
   "lib/sessionRescheduleWorkflow": typeof lib_sessionRescheduleWorkflow;

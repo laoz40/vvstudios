@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, okAsync, ResultAsync } from "neverthrow";
+import { err, ok, okAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -34,22 +34,20 @@ export function validateRescheduleTiming(
 	settings: SessionAvailabilitySettings,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>
 ) {
-	return ResultAsync.fromSafePromise(
-		validateSessionTimingEdit({
-			calendar: calendarClient.calendar,
-			calendarIds: calendarClient.calendarIds,
-			existing: {
-				date: session.date,
-				duration: session.duration,
-				googleCalendarId: session.googleCalendarId,
-				googleEventId: session.googleEventId,
-				time: session.time
-			},
-			next: { date: args.date, duration: session.duration, time: args.time },
-			settings,
-			timeZone: calendarClient.timeZone
-		})
-	).andThen((result) => result);
+	return validateSessionTimingEdit({
+		calendar: calendarClient.calendar,
+		calendarIds: calendarClient.calendarIds,
+		existing: {
+			date: session.date,
+			duration: session.duration,
+			googleCalendarId: session.googleCalendarId,
+			googleEventId: session.googleEventId,
+			time: session.time
+		},
+		next: { date: args.date, duration: session.duration, time: args.time },
+		settings,
+		timeZone: calendarClient.timeZone
+	});
 }
 
 export function lockAndReserveReschedule(
@@ -134,25 +132,22 @@ export function updateRescheduleCalendar(
 	state: RescheduleState,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>
 ) {
-	return ResultAsync.fromSafePromise(
-		updateSessionTimingWithGoogleCalendar({
-			session: state.session,
-			client: calendarClient,
-			date: args.date,
-			details: {
-				addons: state.session.addons,
-				duration: state.session.duration,
-				email: state.session.email,
-				name: state.session.name,
-				service: state.session.service
-			},
+	return updateSessionTimingWithGoogleCalendar({
+		session: state.session,
+		client: calendarClient,
+		date: args.date,
+		details: {
+			addons: state.session.addons,
 			duration: state.session.duration,
-			createMissingEvent: state.session.status === "failed",
-			settings: state.settings,
-			time: args.time
-		})
-	)
-		.andThen((result) => result)
+			email: state.session.email,
+			name: state.session.name,
+			service: state.session.service
+		},
+		duration: state.session.duration,
+		createMissingEvent: state.session.status === "failed",
+		settings: state.settings,
+		time: args.time
+	})
 		.map((timingUpdate) => ({ ...state, timingUpdate }))
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }

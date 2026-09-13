@@ -1,4 +1,4 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
@@ -105,7 +105,7 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 						return ok(null);
 					}
 
-					return ResultAsync.fromSafePromise(
+					return okOrThrow(
 						scheduleDriveSetup(ctx, {
 							bookingId: session._id,
 							sessionStartAt: updatePatch.sessionStartAt,
@@ -164,7 +164,7 @@ export function saveClientSessionRescheduleService(
 						return ok(null);
 					}
 
-					return ResultAsync.fromSafePromise(
+					return okOrThrow(
 						scheduleDriveSetup(ctx, {
 							bookingId: session._id,
 							sessionStartAt: args.sessionStartAt,

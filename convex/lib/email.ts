@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import { err, ok, ResultAsync, type Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
@@ -42,6 +42,7 @@ import {
 	getHostEmails,
 	sendEmail
 } from "#convex/lib/emailSend";
+import { okOrThrow } from "#convex/lib/result";
 
 interface SendBookingReminderEmailForBookingArgs {
 	name: string;
@@ -554,7 +555,7 @@ export function sendClientAssetsEmail({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		render(createElement(ClientAssetsEmail, { assetsUrl, name, signoffName }))
 	).andThen((html) =>
 		sendEmail({
@@ -578,7 +579,7 @@ export function sendEditorAssignmentEmail({
 	const sessionDate = formatTimestampDateLong(sessionStartAt);
 	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(sessionStartAt));
 
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		render(
 			createElement(EditorAssignmentEmail, {
 				clientName: sessionName,
@@ -611,7 +612,7 @@ export function sendSessionDeliverablesEmail({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	return ResultAsync.fromSafePromise(
+	return okOrThrow(
 		render(
 			createElement(DeliverablesEmail, {
 				bookingDate: formatSessionDateWithoutYear(date),

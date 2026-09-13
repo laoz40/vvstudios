@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Result as ConvexResult } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -12,7 +12,7 @@ import {
 	type PackageAdjustmentInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { sendPackageAdjustmentInvoiceEmail } from "#convex/lib/email";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -75,7 +75,7 @@ export function sendPackageAdjustmentInvoiceService(
 		)
 			// Deliver the claimed invoice using its stored package and adjustment snapshot.
 			.andThen((invoiceInput) =>
-				ResultAsync.fromSafePromise(sendPackageAdjustmentInvoiceEmail(invoiceInput))
+				okOrThrow(sendPackageAdjustmentInvoiceEmail(invoiceInput))
 					.andThen((emailResult) => emailResult)
 					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" as const }))
 					// Persist provider or render failure so an administrator can retry the invoice.

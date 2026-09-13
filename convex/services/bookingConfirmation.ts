@@ -1,4 +1,4 @@
-import { err, ok, ResultAsync, type Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
@@ -196,7 +196,7 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 						...clearedSessionReservationPatch
 					})
 				).andThen(() =>
-					ResultAsync.fromSafePromise(
+					okOrThrow(
 						scheduleDriveSetup(ctx, {
 							bookingId: session._id,
 							sessionStartAt: session.sessionStartAt,

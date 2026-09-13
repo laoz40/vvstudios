@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync, ResultAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -13,7 +13,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
@@ -32,7 +32,7 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
 		({ startDateTime }) =>
 			getReminderRescheduleUrl(ctx, session).andThen((rescheduleUrl) =>
-				ResultAsync.fromSafePromise(
+				okOrThrow(
 					sendSessionReminderEmail({
 						name: session.name,
 						email: session.email,

@@ -4,6 +4,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
 import { sendSessionHostDetailsEmail } from "#convex/lib/email";
 import type { AdminSessionUpdateResult } from "#convex/lib/sessionAdminEdit";
+import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
 export async function sendSessionHostRescheduleEmailForBooking(
@@ -61,7 +62,7 @@ export function notifyHostOfAdminSessionReschedule(
 	}
 ): ResultAsync<AdminSessionUpdateResult, { reason: "BOOKING_NOT_FOUND" }> {
 	return getSessionFromQuery(ctx, args.bookingId).andThen((updatedSession) =>
-		ResultAsync.fromSafePromise(
+		okOrThrow(
 			sendSessionHostRescheduleEmailForBooking(updatedSession, {
 				leadTimeMinutes: args.leadTimeMinutes,
 				originalDate: args.originalDate,

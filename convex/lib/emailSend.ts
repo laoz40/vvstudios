@@ -1,4 +1,5 @@
 import { err, ok, ResultAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
@@ -115,7 +116,7 @@ export function sendEmail(args: {
 			return ok(null);
 		}
 
-		return ResultAsync.fromSafePromise(response.text()).andThen((responseBody) => {
+		return okOrThrow(response.text()).andThen((responseBody) => {
 			console.error("Resend email response failed", {
 				status: response.status,
 				body: responseBody,
