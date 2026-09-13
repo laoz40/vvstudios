@@ -175,6 +175,7 @@ describe("reschedule reservation and failure guards", () => {
 
 	test("stores a booking failure code without calling Google Calendar", async () => {
 		const t = createConvexTest();
+
 		const bookingId = await t.run(async (ctx) => {
 			await ctx.db.insert("bookingSettings", {
 				key: "main",

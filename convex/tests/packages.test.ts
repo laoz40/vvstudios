@@ -52,7 +52,7 @@ describe("package payment claim", () => {
 			{ packageId, paidAt: now }
 		);
 
-		if (error !== null || !paymentResult) throw new Error("Expected package payment claim");
+		if (error !== null) throw new Error("Expected package payment claim");
 
 		const packageRecord = await readPackage(t, packageId);
 		const scheduledJobs = await readScheduledJobs(t);
@@ -319,7 +319,7 @@ async function seedPaidPackageWithToken(t: TestClient) {
 async function readPackageSlots(t: TestClient, token: string) {
 	const [error, packageRecord] = await t.query(api.packageScheduling.getPackageByToken, { token });
 
-	if (error !== null || !packageRecord) throw new Error("Expected package scheduling data");
+	if (error !== null) throw new Error("Expected package scheduling data");
 
 	return { packageSize: packageRecord.packageSize, bookedSessions: packageRecord.sessions.length };
 }

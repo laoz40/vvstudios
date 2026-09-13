@@ -334,8 +334,12 @@ describe("package adjustment invoice delivery", () => {
 		]);
 		const adjustment = await readAdjustment(t, adjustmentId);
 
-		expect(adjustment).toMatchObject({ invoiceEmailStatus: "sent" });
-		expect(adjustment?.invoiceEmailClaimedAt).toBeUndefined();
+		if (!adjustment || adjustment.outcome !== "invoice_required") {
+			throw new Error("Expected invoice adjustment");
+		}
+
+		expect(adjustment.invoiceEmailStatus).toBe("sent");
+		expect(adjustment.invoiceEmailClaimedAt).toBeUndefined();
 	});
 
 	test("does not let a timed-out sender overwrite a newer retry", async () => {

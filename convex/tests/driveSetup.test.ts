@@ -27,6 +27,7 @@ describe("drive setup guards", () => {
 			email: "  Customer@Gmail.com ",
 			displayName: "Customer One"
 		});
+
 		const secondClientId = await createDriveClient(t, {
 			email: "customer@gmail.com",
 			displayName: "Customer Two"
@@ -46,6 +47,7 @@ describe("drive setup guards", () => {
 	test("rejects backfill when the booking or drive session is missing", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const deletedBookingId = await t.run(async (ctx) => {
 			const id = await ctx.db.insert("bookings", {
 				name: "Deleted customer",
@@ -80,6 +82,7 @@ describe("drive setup guards", () => {
 	test("keeps the first saved session folder on repeated saves", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
+
 		const driveClientId = await createDriveClient(t, {
 			email: "customer@example.com",
 			displayName: "Test customer"
@@ -90,6 +93,7 @@ describe("drive setup guards", () => {
 			name: "10 Jan 2030 - 10:00 AM",
 			webViewLink: "https://drive.example/session-1"
 		};
+
 		const secondFolder = {
 			id: "session-folder-2",
 			name: "10 Jan 2030 - 10:00 AM",

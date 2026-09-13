@@ -110,10 +110,13 @@ describe("reminder scheduling state", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
-		expect(await t.mutation(internal.sessionReminders.claimReminder, { bookingId, now })).toEqual([
-			null,
-			{ session: expect.objectContaining({ _id: bookingId }) }
-		]);
+		const claimResult = await t.mutation(internal.sessionReminders.claimReminder, {
+			bookingId,
+			now
+		});
+
+		expect(claimResult[0]).toBeNull();
+		expect(claimResult[1]?.session._id).toBe(bookingId);
 		expect(
 			await t.mutation(internal.sessionReminders.markReminderSent, { bookingId, now })
 		).toEqual([null, null]);
@@ -129,6 +132,7 @@ describe("reminder scheduling state", () => {
 
 	test("clears reminder state when a booking is rescheduled", async () => {
 		const t = createConvexTest();
+
 		const bookingId = await seedBooking(t, {
 			sessionStartAt: originalSessionStartAt,
 			reminderEmailClaimedAt: now - 3,
@@ -171,6 +175,7 @@ describe("reminder scheduling state", () => {
 	test("clears reminder state when a package session is cancelled", async () => {
 		const t = createConvexTest();
 		const packageId = await seedSchedulablePackage(t);
+
 		const bookingId = await seedBooking(t, {
 			packageId,
 			reminderEmailClaimedAt: now - 1,
