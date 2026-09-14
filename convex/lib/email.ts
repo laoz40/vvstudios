@@ -9,6 +9,7 @@ import { PackageSchedulingEmail } from "#studio/features/package-scheduling-emai
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
+import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-email/RescheduledBookingEmail";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import {
 	formatSessionDateLong,
@@ -51,6 +52,19 @@ interface SendBookingReminderEmailForBookingArgs {
 interface SessionHostRescheduleDetails {
 	originalDate: string;
 	originalTime: string;
+}
+
+interface SendBookingRescheduledCustomerEmailArgs {
+	addons: BookingAddon[];
+	date: string;
+	duration: string;
+	email: string;
+	name: string;
+	originalDate: string;
+	originalTime: string;
+	rescheduleUrl?: string;
+	service: string;
+	time: string;
 }
 
 interface SendSessionHostDetailsEmailArgs {
@@ -188,12 +202,63 @@ export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEm
 	});
 }
 
+export async function sendBookingRescheduledCustomerEmail({
+	addons,
+	date,
+	duration,
+	email,
+	name,
+	originalDate,
+	originalTime,
+	rescheduleUrl,
+	service,
+	time
+}: SendBookingRescheduledCustomerEmailArgs): Promise<
+	Result<null, { reason: "RESCHEDULE_EMAIL_SEND_FAILED" }>
+> {
+	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
+
+	const signoffName =
+		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
+
+	const html = await render(
+		createElement(RescheduledBookingEmail, {
+			addonsLine,
+			bookingDate: formatSessionDateLong(date),
+			bookingTime: formatBookingTimeRange(time, duration),
+			duration,
+			name,
+			originalBookingDate: formatSessionDateLong(originalDate),
+			originalBookingTime: formatBookingTimeRange(originalTime, duration),
+			rescheduleUrl,
+			service,
+			signoffName
+		})
+	);
+
+	const emailResult = await sendEmail({
+		to: [email],
+		subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
+		html
+	});
+
+	if (emailResult.isErr()) {
+		console.error("Booking reschedule customer email send failed", {
+			bookingEmail: email,
+			reason: emailResult.error.reason
+		});
+
+		return err({ reason: "RESCHEDULE_EMAIL_SEND_FAILED" });
+	}
+
+	return ok(null);
+}
+
 export async function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: {
 		customInvoice?: Doc<"customInvoices">;
 		leadTimeMinutes: number;
-		reschedule?: SessionHostRescheduleDetails;
 		rescheduleUrl?: string;
 		skipHostEmail?: boolean;
 	}
@@ -254,8 +319,7 @@ export async function sendBookingInvoiceEmailsForBooking(
 			service: parsedBooking.service,
 			duration: parsedBooking.duration,
 			addons: parsedBooking.addons,
-			notes: parsedBooking.notes,
-			reschedule: options.reschedule
+			notes: parsedBooking.notes
 		});
 
 		if (hostEmailResult.isErr()) {

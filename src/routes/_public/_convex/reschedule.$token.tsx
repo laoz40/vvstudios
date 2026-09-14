@@ -111,7 +111,7 @@ function ReschedulePage() {
 						This reschedule link is no longer valid.
 					</h1>
 					<p className="mt-4 text-muted-foreground">
-						Please use the reschedule button in your latest invoice email.
+						Please use the reschedule button in your latest booking email.
 					</p>
 				</div>
 			</BookingStatusLayout>

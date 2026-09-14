@@ -2,10 +2,60 @@ import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
-import { sendSessionHostDetailsEmail } from "#convex/lib/email";
+import {
+	sendBookingRescheduledCustomerEmail,
+	sendSessionHostDetailsEmail
+} from "#convex/lib/email";
 import type { AdminSessionUpdateResult } from "#convex/lib/sessionAdminEdit";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+
+export async function sendBookingRescheduledEmailsForBooking(
+	booking: Doc<"bookings">,
+	options: {
+		leadTimeMinutes: number;
+		originalDate: string;
+		originalTime: string;
+		rescheduleUrl?: string;
+	}
+): Promise<
+	Result<
+		null,
+		{ reason: "INVALID_BOOKING_DATA" | "RESCHEDULE_EMAIL_SEND_FAILED" }
+	>
+> {
+	const customerEmailResult = await sendBookingRescheduledCustomerEmail({
+		addons: booking.addons,
+		date: booking.date,
+		duration: booking.duration,
+		email: booking.email,
+		name: booking.name,
+		originalDate: options.originalDate,
+		originalTime: options.originalTime,
+		rescheduleUrl: options.rescheduleUrl,
+		service: booking.service,
+		time: booking.time
+	});
+
+	if (customerEmailResult.isErr()) {
+		return customerEmailResult;
+	}
+
+	const hostEmailResult = await sendSessionHostRescheduleEmailForBooking(booking, {
+		leadTimeMinutes: options.leadTimeMinutes,
+		originalDate: options.originalDate,
+		originalTime: options.originalTime
+	});
+
+	if (hostEmailResult.isErr()) {
+		console.error("Booking reschedule host email send failed", {
+			bookingId: booking._id,
+			reason: hostEmailResult.error.reason
+		});
+	}
+
+	return ok(null);
+}
 
 export async function sendSessionHostRescheduleEmailForBooking(
 	booking: Doc<"bookings">,
