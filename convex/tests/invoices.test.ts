@@ -353,6 +353,26 @@ describe("invoice download access", () => {
 		);
 	});
 
+	test("allows current public receipt downloads for confirmed and email-failed sessions", async () => {
+		const t = createConvexTest();
+		await seedBooking(t, { status: "confirmed", stripeSessionId: "confirmed-receipt" });
+		await seedBooking(t, { status: "email_failed", stripeSessionId: "email-failed-receipt" });
+
+		await Promise.all(
+			["confirmed-receipt", "email-failed-receipt"].map(async (stripeSessionId) => {
+				const [error, payload] = await t.action(
+					api.invoices.getBookingReceiptPdfByStripeSessionId,
+					{ stripeSessionId }
+				);
+
+				expect(error).toBeNull();
+				expect(payload).toMatchObject({ contentType: "application/pdf" });
+				expect(payload?.filename).toMatch(/^booking-receipt-/);
+				expect(payload?.content.byteLength).toBeGreaterThan(0);
+			})
+		);
+	});
+
 	test("expires public package downloads while keeping admin download available", async () => {
 		const t = createConvexTest();
 		const currentPackageId = await seedPackage(t, { createdAt: now });

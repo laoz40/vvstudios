@@ -7,8 +7,15 @@ import {
 	getAdminCustomPackageInvoicePdfByIdService,
 	getAdminPackageInvoicePdfByIdService,
 	getBookingInvoicePdfByStripeSessionIdService,
+	getBookingReceiptPdfByStripeSessionIdService,
 	getPackageInvoicePdfByIdService
 } from "#convex/services/invoices";
+
+export const getBookingReceiptPdfByStripeSessionId = action({
+	args: { stripeSessionId: v.string() },
+	handler: (ctx, args) =>
+		getBookingReceiptPdfByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr)
+});
 
 export const getBookingInvoicePdfByStripeSessionId = action({
 	args: { stripeSessionId: v.string() },
