@@ -252,6 +252,7 @@ export default defineSchema({
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
 		stripePaymentIntentId: v.optional(v.string()),
+		stripeCustomerId: v.optional(v.string()),
 
 		// Google Calendar data
 		googleEventId: v.optional(v.string()),
