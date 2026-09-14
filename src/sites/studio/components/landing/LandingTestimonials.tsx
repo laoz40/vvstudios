@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import { motion } from "motion/react";
+import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import { cn } from "#/lib/utils";
 import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
@@ -99,10 +100,12 @@ function TestimonialReviewCard({
 
 export function LandingTestimonials() {
 	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const [showAllReviews, setShowAllReviews] = useState(false);
 	const fadeInAnimation = useFadeInAnimation(true);
 	const [featuredReview, ...remainingReviews] = testimonialCopy.reviews;
 	const pairedReviews = remainingReviews.slice(0, 2);
 	const bottomReview = remainingReviews[2];
+	const hiddenOnMobileClassName = showAllReviews ? undefined : "hidden md:block";
 
 	return (
 		<section
@@ -143,17 +146,33 @@ export function LandingTestimonials() {
 							/>
 
 							<div className="grid gap-4 md:grid-cols-2 md:gap-4">
-								{pairedReviews.map((review) => (
+								{pairedReviews.map((review, index) => (
 									<TestimonialReviewCard
 										key={review.author}
 										review={review}
+										className={index === 1 ? hiddenOnMobileClassName : undefined}
 									/>
 								))}
 							</div>
 
+							{!showAllReviews ? (
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="-mt-2 self-center text-muted-foreground md:mt-0 md:hidden"
+									aria-expanded={false}
+									onClick={() => {
+										setShowAllReviews(true);
+									}}>
+									<Plus aria-hidden />
+									Show more
+								</Button>
+							) : null}
+
 							<TestimonialReviewCard
 								review={bottomReview}
-								className="h-auto"
+								className={cn("h-auto", hiddenOnMobileClassName)}
 							/>
 
 							<ContactActions className="mt-0 max-w-none justify-center md:mt-auto" />
