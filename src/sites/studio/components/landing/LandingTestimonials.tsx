@@ -21,7 +21,7 @@ const testimonialCopy = {
 	reviews: [
 		{
 			quote:
-				"I am so thankful I found Vertigo Visuals and Joseph. He made me feel so supported and relaxed about recording and answered all my questions. The space is beautiful and he was very professional. I would recommend him to anyone looking for similar services.",
+				"I am so thankful I found VV Studios. Joseph made me feel so supported and relaxed about recording and answered all my questions. I would recommend him to anyone looking for similar services.",
 			author: "Breanna Sada"
 		},
 		{
