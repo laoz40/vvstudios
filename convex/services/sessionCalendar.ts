@@ -6,8 +6,10 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
-import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
-import { notifyHostOfAdminSessionReschedule } from "#convex/lib/sessionHostEmails";
+import {
+	notifyHostOfAdminSessionReschedule,
+	sendBookingRescheduledEmailsForBooking
+} from "#convex/lib/sessionHostEmails";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
 import {
 	getGoogleCalendarClient,
@@ -259,14 +261,15 @@ async function finishRescheduledSession(
 		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
 	};
 
-	const emailResult = await sendBookingInvoiceEmailsForBooking(updatedBooking, {
+	const emailResult = await sendBookingRescheduledEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
-		reschedule: { originalDate: session.date, originalTime: session.time },
+		originalDate: session.date,
+		originalTime: session.time,
 		rescheduleUrl: getRescheduleUrlForToken(args.token)
 	});
 
 	if (emailResult.isErr()) {
-		return ok({ bookingId: session._id, warning: "INVOICE_SEND_FAILED" as const });
+		return ok({ bookingId: session._id, warning: "RESCHEDULE_EMAIL_SEND_FAILED" as const });
 	}
 
 	return ok({ bookingId: session._id });
@@ -276,7 +279,7 @@ export function rescheduleSessionService(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs
 ): ResultAsync<
-	{ bookingId: Id<"bookings">; warning?: "INVOICE_SEND_FAILED" },
+	{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
 	RescheduleSessionError
 > {
 	return (
@@ -326,7 +329,7 @@ export function rescheduleSessionService(
 			)
 			// Persist the new time; preserve the same compensation ordering on save failure.
 			.andThen((state) => saveRescheduledSession(ctx, args, state))
-			// Unlock after persistence, then send the updated invoice email.
+			// Unlock after persistence, then send the reschedule confirmation email.
 			.andThen((state) =>
 				fromConvexTuple(
 					ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {

@@ -28,13 +28,13 @@ function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInva
 		case "RESCHEDULE_LINK_NOT_FOUND":
 			return {
 				title: "This reschedule link could not be found.",
-				description: "Please use the reschedule button in your latest invoice email."
+				description: "Please use the reschedule button in your latest booking email."
 			};
 
 		case "RESCHEDULE_LINK_USED":
 			return {
 				title: "This reschedule link has already been used.",
-				description: "Please use the newest reschedule link from your latest invoice email."
+				description: "Please use the newest reschedule link from your latest booking email."
 			};
 
 		case "RESCHEDULE_LINK_EXPIRED":
