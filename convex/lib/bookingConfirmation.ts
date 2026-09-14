@@ -5,7 +5,7 @@ import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLink
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendBookingInvoiceEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
+import { sendBookingReceiptEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import {
@@ -151,7 +151,7 @@ export async function sendConfirmedBookingInvoice(
 		return;
 	}
 
-	const emailResult = await sendBookingInvoiceEmailsForBooking(session, {
+	const emailResult = await sendBookingReceiptEmailsForBooking(session, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl: linkResult.value
 	});
