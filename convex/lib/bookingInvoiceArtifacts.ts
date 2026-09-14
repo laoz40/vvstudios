@@ -16,11 +16,14 @@ import {
 	createPriceAdjustmentInvoiceLineItem,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { buildBookingReceiptData } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
 import { tryPromise } from "#convex/lib/result";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
+import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
 import type {
 	BookingInvoiceData,
-	BookingInvoiceLineItem
+	BookingInvoiceLineItem,
+	BookingReceiptData
 } from "#studio/features/booking-invoice/lib/types";
 
 export type MarkPackageInvoiceEmailAttemptArgs = {
@@ -50,6 +53,10 @@ export function validatePackageInvoiceEmailAttempt(
 
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
+}
+
+function createReceiptPdfFilename(receiptNumber: string) {
+	return `booking-receipt-${receiptNumber.toLowerCase()}.pdf`;
 }
 
 type InvoiceEmailArtifacts = {
@@ -404,6 +411,64 @@ export function createBookingInvoiceEmailArtifactsForBooking(
 	);
 }
 
+export function createBookingReceiptArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+) {
+	const parsedBooking = bookingSchema.safeParse(getBookingInvoiceParseInput(booking, undefined));
+
+	if (!parsedBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const data = buildBookingReceiptData({
+		bookingId: booking._id,
+		name: parsedBooking.data.name,
+		phone: parsedBooking.data.phone,
+		accountName: parsedBooking.data.accountName,
+		abn: parsedBooking.data.abn,
+		email: parsedBooking.data.email,
+		date: parsedBooking.data.date,
+		time: parsedBooking.data.time,
+		duration: parsedBooking.data.duration,
+		service: parsedBooking.data.service || undefined,
+		addons: parsedBooking.data.addons,
+		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		completeEditQuantity: parsedBooking.data.completeEditQuantity || undefined,
+		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: parsedBooking.data.handcraftedClipsQuantity || undefined,
+		createdAt,
+		leadTimeMinutes: options.leadTimeMinutes,
+		rescheduleUrl: options.rescheduleUrl
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: createReceiptPdfFilename(data.receipt.number)
+			}
+		},
+		booking: parsedBooking.data
+	});
+}
+
+export function createBookingReceiptEmailArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+) {
+	return createBookingReceiptArtifactsForBooking(booking, createdAt, options).asyncAndThen(
+		(artifactsResult) =>
+			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
+				...artifactsResult,
+				artifacts: { ...artifactsResult.artifacts, emailHtml }
+			}))
+	);
+}
+
 export function createPackageAdjustmentInvoiceArtifacts(
 	invoiceInput: PackageAdjustmentInvoiceInput
 ): ResultAsync<
@@ -547,6 +612,25 @@ export function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
 			});
 
 			return { reason: "INVOICE_PDF_RENDER_FAILED" as const };
+		}
+	});
+}
+
+export function renderBookingReceiptPdfInNode(data: BookingReceiptData) {
+	return tryPromise({
+		try: async () => {
+			const { renderBookingReceiptPdf } =
+				await import("#studio/features/booking-invoice/pdf/render-booking-receipt-pdf");
+
+			return renderBookingReceiptPdf(data);
+		},
+		catch: (cause) => {
+			console.error("Booking receipt PDF render failed", {
+				receiptNumber: data.receipt.number,
+				cause
+			});
+
+			return { reason: "RECEIPT_PDF_RENDER_FAILED" as const };
 		}
 	});
 }

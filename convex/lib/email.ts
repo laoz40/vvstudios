@@ -18,9 +18,11 @@ import {
 } from "#convex/lib/sessionCalendarTime";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
+	createBookingReceiptEmailArtifactsForBooking,
 	createPackageInvoiceArtifacts,
 	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
+	renderBookingReceiptPdfInNode,
 	type PackageInvoiceInput,
 	type PackageAdjustmentInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
@@ -324,6 +326,84 @@ export async function sendBookingInvoiceEmailsForBooking(
 
 		if (hostEmailResult.isErr()) {
 			console.error("Booking invoice host email send failed", {
+				bookingId: booking._id,
+				reason: hostEmailResult.error.reason
+			});
+		}
+	}
+
+	return ok(null);
+}
+
+export async function sendBookingReceiptEmailsForBooking(
+	booking: Doc<"bookings">,
+	options: {
+		leadTimeMinutes: number;
+		reschedule?: SessionHostRescheduleDetails;
+		rescheduleUrl?: string;
+		skipHostEmail?: boolean;
+	}
+): Promise<
+	Result<
+		null,
+		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
+	>
+> {
+	const artifactsResult = await createBookingReceiptEmailArtifactsForBooking(
+		booking,
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
+		options
+	);
+
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
+	}
+
+	const { artifacts, booking: parsedBooking } = artifactsResult.value;
+	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
+
+	if (pdfResult.isErr()) {
+		console.error("Booking receipt PDF render failed", { bookingId: booking._id });
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
+	}
+
+	const receiptEmailResult = await sendEmail({
+		to: [booking.email],
+		subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
+	});
+
+	if (receiptEmailResult.isErr()) {
+		console.error("Booking receipt customer email send failed", {
+			bookingId: booking._id,
+			bookingEmail: booking.email,
+			reason: receiptEmailResult.error.reason
+		});
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
+	}
+
+	if (!options.skipHostEmail) {
+		const hostEmailResult = await sendSessionHostDetailsEmail({
+			invoiceNumber: artifacts.data.receipt.number,
+			name: parsedBooking.name,
+			email: parsedBooking.email,
+			phone: parsedBooking.phone,
+			accountName: parsedBooking.accountName,
+			abn: parsedBooking.abn,
+			date: parsedBooking.date,
+			time: parsedBooking.time,
+			service: parsedBooking.service,
+			duration: parsedBooking.duration,
+			addons: parsedBooking.addons,
+			notes: parsedBooking.notes,
+			reschedule: options.reschedule
+		});
+
+		if (hostEmailResult.isErr()) {
+			console.error("Booking receipt host email send failed", {
 				bookingId: booking._id,
 				reason: hostEmailResult.error.reason
 			});
