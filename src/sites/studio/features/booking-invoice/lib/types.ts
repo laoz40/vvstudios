@@ -48,6 +48,30 @@ export interface BookingInvoiceLineItem {
 	rate: number;
 }
 
+export type BookingReceiptBuilderInput = Omit<
+	BookingInvoiceBuilderInput,
+	"customTotalDueAmount" | "dueDate" | "includeDepositLineItem" | "invoiceNumber"
+> & { receiptNumber?: string };
+
+export interface BookingReceiptMoneyAmounts {
+	addonsAmount: number;
+	baseAmount: number;
+	currency: "AUD";
+	subtotalAmount: number;
+	totalPaidAmount: number;
+}
+
+export interface BookingReceiptData {
+	amounts: BookingReceiptMoneyAmounts;
+	booking: BookingInvoiceData["booking"];
+	branding: BookingInvoiceData["branding"];
+	customer: BookingInvoiceData["customer"];
+	lineItems: BookingInvoiceLineItem[];
+	notes: { cancellationPolicy: string };
+	receipt: { number: string; receiptDate: string; receiptDateLabel: string; title: string };
+	rescheduleUrl?: string;
+}
+
 export interface BookingInvoiceData {
 	amounts: BookingInvoiceMoneyAmounts;
 	booking: {

@@ -29,7 +29,8 @@
 		"test:e2e:package-schedule": "playwright test e2e/package-schedule.spec.ts --workers=1",
 		"test:e2e:ui": "playwright test --ui",
 		"email:preview": "email dev --dir ./scripts",
-		"pdf:preview": "bun run scripts/preview-booking-invoice-pdf.ts"
+		"pdf:preview": "bun run scripts/preview-booking-invoice-pdf.ts",
+		"pdf:receipt-preview": "bun run scripts/preview-booking-receipt-pdf.ts"
 	},
 	"dependencies": {
 		"@clerk/clerk-react": "^5.61.8",
