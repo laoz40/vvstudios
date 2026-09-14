@@ -76,15 +76,21 @@ function getDriveSetupButtonMode(status: DriveDialogStatus["status"] | undefined
 function getDriveSetupButtonLabel({
 	hasClientAssetsLibrary,
 	isSettingUp,
-	shouldRetry
+	shouldRetry,
+	status
 }: {
 	hasClientAssetsLibrary: boolean;
 	isSettingUp: boolean;
 	shouldRetry: boolean;
+	status: DriveDialogStatus["status"] | undefined;
 }) {
 	if (isSettingUp) {
+		if (status === "ready") return "Recreating";
+
 		return hasClientAssetsLibrary ? "Creating" : "Setting up";
 	}
+
+	if (status === "ready") return "Recreate missing folders";
 
 	if (shouldRetry && hasClientAssetsLibrary) {
 		return "Create Google Drive folders";
@@ -128,11 +134,17 @@ function DriveSetupButton({
 		toast.success("Google Drive folders created.");
 	}
 
-	const label = getDriveSetupButtonLabel({ hasClientAssetsLibrary, isSettingUp, shouldRetry });
+	const label = getDriveSetupButtonLabel({
+		hasClientAssetsLibrary,
+		isSettingUp,
+		shouldRetry,
+		status
+	});
 
 	return (
 		<Button
 			type="button"
+			variant={status === "ready" ? "secondary" : "default"}
 			disabled={isSettingUp}
 			onClick={() => void handleSetup()}>
 			{isSettingUp ? (
