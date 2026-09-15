@@ -8,7 +8,8 @@ import {
 	getAdminPackageInvoicePdfByIdService,
 	getBookingInvoicePdfByStripeSessionIdService,
 	getBookingReceiptPdfByStripeSessionIdService,
-	getPackageInvoicePdfByIdService
+	getPackageInvoicePdfByIdService,
+	getPackageReceiptPdfByIdService
 } from "#convex/services/invoices";
 
 export const getBookingReceiptPdfByStripeSessionId = action({
@@ -26,6 +27,11 @@ export const getBookingInvoicePdfByStripeSessionId = action({
 export const getPackageInvoicePdfById = action({
 	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => getPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const getPackageReceiptPdfById = action({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => getPackageReceiptPdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getAdminPackageInvoicePdfById = action({

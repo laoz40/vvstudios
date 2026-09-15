@@ -3,11 +3,16 @@ import type { Doc } from "#convex/_generated/dataModel";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createBookingReceiptEmailArtifactsForBooking,
+	createPackageReceiptEmailArtifacts,
 	renderBookingInvoicePdfInNode,
-	renderBookingReceiptPdfInNode
+	renderBookingReceiptPdfInNode,
+	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
-import { sendEmail } from "#convex/lib/emailSend";
-import { sendSessionHostDetailsEmail } from "#convex/lib/email";
+import {
+	formatTimestampDateShort,
+	sendEmail
+} from "#convex/lib/emailSend";
+import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
 
 interface SessionHostRescheduleDetails {
@@ -170,4 +175,79 @@ export async function sendBookingReceiptEmailsForBooking(
 	}
 
 	return ok(null);
+}
+
+export async function sendPackageReceiptEmailsForPackage(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: {
+		leadTimeMinutes: number;
+		skipHostEmail?: boolean;
+	}
+): Promise<
+	Result<
+		{ receiptNumber: string },
+		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
+	>
+> {
+	const artifactsResult = await createPackageReceiptEmailArtifacts(packageRecord, paidAt, options);
+
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
+	}
+
+	const { artifacts } = artifactsResult.value;
+	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
+
+	if (pdfResult.isErr()) {
+		console.error("Package receipt PDF render failed", { packageId: packageRecord._id });
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
+	}
+
+	const receiptEmailResult = await sendEmail({
+		to: [packageRecord.email],
+		subject: `Your ${packageRecord.packageSize}-Session Package confirmed - ${formatTimestampDateShort(paidAt)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
+	});
+
+	if (receiptEmailResult.isErr()) {
+		console.error("Package receipt customer email send failed", {
+			packageEmail: packageRecord.email,
+			packageId: packageRecord._id,
+			reason: receiptEmailResult.error.reason
+		});
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
+	}
+
+	if (!options.skipHostEmail) {
+		const hostEmailResult = await sendPackageHostDetailsEmail({
+			invoiceNumber: artifacts.data.receipt.number,
+			name: packageRecord.name,
+			email: packageRecord.email,
+			phone: packageRecord.phone,
+			accountName: packageRecord.accountName,
+			abn: packageRecord.abn,
+			duration: packageRecord.duration,
+			addons: packageRecord.addons,
+			essentialEditQuantity: packageRecord.essentialEditQuantity,
+			completeEditQuantity: packageRecord.completeEditQuantity,
+			clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+			handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+			notes: packageRecord.notes,
+			packageSize: packageRecord.packageSize,
+			invoiceDueAt: paidAt
+		});
+
+		if (hostEmailResult.isErr()) {
+			console.error("Package receipt host email send failed", {
+				packageId: packageRecord._id,
+				reason: hostEmailResult.error.reason
+			});
+		}
+	}
+
+	return ok({ receiptNumber: artifacts.data.receipt.number });
 }

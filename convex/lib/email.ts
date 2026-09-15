@@ -358,7 +358,7 @@ export async function sendPackageInvoiceEmail(
 		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
 		notes: packageRecord.notes,
 		packageSize: packageRecord.packageSize,
-		invoiceDueAt: packageRecord.invoiceDueAt
+		invoiceDueAt: packageRecord.invoiceDueAt ?? packageRecord.createdAt
 	});
 
 	if (hostEmailResult.isErr()) {

@@ -8,6 +8,10 @@ export interface BookingReceiptPdfProps {
 }
 
 function getSessionSummary(data: BookingReceiptData) {
+	if (data.package) {
+		return `${data.package.size} pack · ${data.booking.duration} sessions`;
+	}
+
 	const formattedSessionTimeRange = formatBookingTimeRange(
 		data.booking.time,
 		data.booking.duration
@@ -21,7 +25,14 @@ function getSessionSummary(data: BookingReceiptData) {
 }
 
 export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
+	const packageDetails = data.package;
+	const isPackageReceipt = packageDetails !== undefined;
 	const sessionSummary = getSessionSummary(data);
+	const packageDiscountAmount = isPackageReceipt
+		? data.lineItems
+				.filter((item) => item.amount < 0 && item.description.toLowerCase().includes("package discount"))
+				.reduce((total, item) => total + Math.abs(item.amount), 0)
+		: 0;
 
 	return (
 		<Document>
@@ -33,7 +44,9 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 						<VvPodcastLogo />
 					</View>
 					<View style={styles.headerRight}>
-						<Text style={styles.receiptTitle}>VV Studios Booking Receipt</Text>
+						<Text style={styles.receiptTitle}>
+							{isPackageReceipt ? "VV Studios Package Receipt" : "VV Studios Booking Receipt"}
+						</Text>
 						<Text style={styles.businessDetailStrong}>{data.branding.businessName}</Text>
 						<Text style={styles.businessDetail}>{data.branding.contactEmail}</Text>
 						<Text style={styles.businessDetail}>ABN: 97 592 829 541</Text>
@@ -71,7 +84,9 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 
 				<View style={styles.sessionSummaryRow}>
 					<View style={styles.sessionSummaryItem}>
-						<Text style={styles.sessionSummaryLabel}>Session</Text>
+						<Text style={styles.sessionSummaryLabel}>
+							{isPackageReceipt ? "Package" : "Session"}
+						</Text>
 						<Text style={styles.sessionSummaryValue}>{sessionSummary}</Text>
 					</View>
 					<View style={styles.sessionSummaryItemRight}>
@@ -106,6 +121,12 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 						<Text style={styles.totalLabel}>Subtotal</Text>
 						<Text style={styles.totalValue}>{formatAud(data.amounts.subtotalAmount)}</Text>
 					</View>
+					{packageDiscountAmount > 0 ? (
+						<View style={styles.totalRow}>
+							<Text style={styles.totalLabel}>Package discount</Text>
+							<Text style={styles.totalValue}>-{formatAud(packageDiscountAmount)}</Text>
+						</View>
+					) : null}
 					<View style={styles.totalPaidRow}>
 						<Text style={styles.totalPaidLabel}>Total paid</Text>
 						<Text style={styles.totalPaidValue}>{formatAud(data.amounts.totalPaidAmount)}</Text>

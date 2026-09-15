@@ -7,6 +7,7 @@ import {
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	BOOKING_INVOICE_BUSINESS,
+	BOOKING_INVOICE_NOTES,
 	BOOKING_RECEIPT_NOTES,
 	BOOKING_RECEIPT_TITLE
 } from "#studio/features/booking-invoice/lib/constants";
@@ -19,7 +20,8 @@ import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib
 import type {
 	BookingInvoiceLineItem,
 	BookingReceiptBuilderInput,
-	BookingReceiptData
+	BookingReceiptData,
+	PackageReceiptBuilderInput
 } from "#studio/features/booking-invoice/lib/types";
 
 function formatCalendarDate(value: string) {
@@ -111,5 +113,71 @@ export function buildBookingReceiptData(input: BookingReceiptBuilderInput): Book
 			title: BOOKING_RECEIPT_TITLE
 		},
 		rescheduleUrl: input.rescheduleUrl
+	};
+}
+
+export function buildPackageReceiptData(input: PackageReceiptBuilderInput): BookingReceiptData {
+	const addonQuantities = pickBookingAddonQuantities(input);
+	const receiptDateLabel = format(input.paidAt, "d MMMM yyyy");
+	const noticeWindowLabel = formatNoticeWindowLabel(input.leadTimeMinutes);
+
+	const addonsSummary =
+		input.addons.length > 0
+			? input.addons
+					.map((addon) => {
+						const quantity = getAddonQuantity(addon, addonQuantities);
+						const quantityLabel = quantity > 1 ? ` x ${quantity}` : "";
+						const displayLabel = getCustomerAddonDisplayLabel(addon);
+
+						return `${displayLabel}${quantityLabel}`;
+					})
+					.join(", ")
+			: "No add-ons selected";
+
+	return {
+		amounts: {
+			addonsAmount: 0,
+			baseAmount: input.packageSubtotalAmount,
+			currency: "AUD",
+			subtotalAmount: input.packageSubtotalAmount,
+			totalPaidAmount: input.totalDueAmount
+		},
+		booking: {
+			addons: input.addons,
+			addonsSummary,
+			bookingDate: "unscheduled",
+			bookingDateLabel: "To be scheduled after payment",
+			duration: input.duration,
+			time: "To be scheduled"
+		},
+		branding: {
+			businessName: BOOKING_INVOICE_BUSINESS.businessName,
+			contactEmail: BOOKING_INVOICE_BUSINESS.contactEmail,
+			locationAddress: BOOKING_INVOICE_BUSINESS.locationAddress,
+			locationLabel: BOOKING_INVOICE_BUSINESS.locationLabel,
+			locationUrl: BOOKING_INVOICE_BUSINESS.locationUrl,
+			logoUrl: BOOKING_INVOICE_BUSINESS.logoUrl,
+			ownerName: BOOKING_INVOICE_BUSINESS.ownerName,
+			websiteLabel: BOOKING_INVOICE_BUSINESS.websiteLabel,
+			websiteUrl: BOOKING_INVOICE_BUSINESS.websiteUrl
+		},
+		customer: {
+			abn: input.abn,
+			accountName: input.accountName,
+			email: input.email,
+			name: input.name,
+			phone: input.phone
+		},
+		lineItems: input.invoiceLineItems,
+		notes: {
+			cancellationPolicy: BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel)
+		},
+		package: { size: input.packageSize },
+		receipt: {
+			number: input.receiptNumber ?? formatBookingInvoiceNumber(input.packageId, input.paidAt),
+			receiptDate: new Date(input.paidAt).toISOString(),
+			receiptDateLabel,
+			title: BOOKING_RECEIPT_TITLE
+		}
 	};
 }

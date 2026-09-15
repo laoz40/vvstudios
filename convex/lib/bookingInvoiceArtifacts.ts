@@ -16,7 +16,10 @@ import {
 	createPriceAdjustmentInvoiceLineItem,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { buildBookingReceiptData } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
+import {
+	buildBookingReceiptData,
+	buildPackageReceiptData
+} from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
 import { tryPromise } from "#convex/lib/result";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
@@ -57,6 +60,10 @@ function createPdfFilename(invoiceNumber: string) {
 
 function createReceiptPdfFilename(receiptNumber: string) {
 	return `booking-receipt-${receiptNumber.toLowerCase()}.pdf`;
+}
+
+function createPackageReceiptPdfFilename(receiptNumber: string) {
+	return `package-receipt-${receiptNumber.toLowerCase()}.pdf`;
 }
 
 type InvoiceEmailArtifacts = {
@@ -220,7 +227,7 @@ export function createCustomPackageInvoiceData(
 
 		const invoiceDueAt = invoiceInput.customInvoice.dueDate
 			? new Date(`${invoiceInput.customInvoice.dueDate}T00:00:00`).getTime()
-			: invoiceInput.packageRecord.invoiceDueAt;
+			: (invoiceInput.packageRecord.invoiceDueAt ?? invoiceInput.packageRecord.createdAt);
 
 		return buildPackageInvoiceData({
 			bookingId: invoiceInput.packageRecord._id,
@@ -455,6 +462,20 @@ export function createBookingReceiptArtifactsForBooking(
 	});
 }
 
+export function createPackageReceiptEmailArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: { leadTimeMinutes: number }
+) {
+	return createPackageReceiptArtifacts(packageRecord, paidAt, options).asyncAndThen(
+		(artifactsResult) =>
+			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
+				...artifactsResult,
+				artifacts: { ...artifactsResult.artifacts, emailHtml }
+			}))
+	);
+}
+
 export function createBookingReceiptEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
@@ -523,6 +544,87 @@ export function createPackageAdjustmentInvoiceArtifacts(
 	}));
 }
 
+export function createPackageReceiptArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: { leadTimeMinutes: number }
+): Result<
+	{
+		artifacts: {
+			data: BookingReceiptData;
+			pdf: { contentType: string; filename: string };
+		};
+	},
+	{ reason: "INVALID_BOOKING_DATA" }
+> {
+	const parsedPackage = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
+		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
+		notes: packageRecord.notes ?? "",
+		packageSize: packageRecord.packageSize
+	});
+
+	if (!parsedPackage.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const packageFormData = parsedPackage.data;
+
+	const invoiceLineItems =
+		packageRecord.invoiceLineItems ??
+		createStoredAmountPackageInvoiceLineItemSnapshot({
+			discountAmount: packageRecord.discountAmount,
+			discountPercent: packageRecord.discountPercent,
+			duration: packageFormData.duration,
+			packageSize: packageRecord.packageSize,
+			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+			singleSessionAmount: packageRecord.singleSessionAmount
+		});
+
+	const data = buildPackageReceiptData({
+		packageId: packageRecord._id,
+		name: packageFormData.name,
+		phone: packageFormData.phone,
+		accountName: packageFormData.accountName,
+		abn: packageFormData.abn,
+		email: packageFormData.email,
+		duration: packageFormData.duration,
+		addons: packageFormData.addons,
+		essentialEditQuantity: packageFormData.essentialEditQuantity || undefined,
+		completeEditQuantity: packageFormData.completeEditQuantity || undefined,
+		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
+		paidAt,
+		packageSize: packageRecord.packageSize,
+		packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+		discountPercent: packageRecord.discountPercent,
+		discountAmount: packageRecord.discountAmount,
+		totalDueAmount: packageRecord.totalDueAmount,
+		invoiceLineItems,
+		leadTimeMinutes: options.leadTimeMinutes,
+		receiptNumber: packageRecord.invoiceNumber
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: createPackageReceiptPdfFilename(data.receipt.number)
+			}
+		}
+	});
+}
+
 export function createPackageInvoiceArtifacts(
 	packageRecord: PackageInvoiceInput,
 	options: { leadTimeMinutes: number }
@@ -577,7 +679,7 @@ export function createPackageInvoiceArtifacts(
 		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
 		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
 		createdAt: packageRecord.createdAt,
-		invoiceDueAt: packageRecord.invoiceDueAt,
+		invoiceDueAt: packageRecord.invoiceDueAt ?? packageRecord.createdAt,
 		invoiceNumber: packageRecord.invoiceNumber,
 		packageSize: packageRecord.packageSize,
 		packageSubtotalAmount: packageRecord.packageSubtotalAmount,

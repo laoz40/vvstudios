@@ -10,6 +10,7 @@ import {
 	createBookingReceiptArtifactsForBooking,
 	createCustomPackageInvoiceData,
 	createPackageInvoiceArtifacts,
+	createPackageReceiptArtifacts,
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode,
 	type CustomPackageInvoiceInput
@@ -18,6 +19,7 @@ import {
 	toInvoicePdfPayload,
 	validateBookingInvoiceDownload,
 	validatePackageInvoiceDownload,
+	validatePackageReceiptDownload,
 	type InvoicePdfPayload
 } from "#convex/lib/invoiceDownloads";
 import { getPackageForAction } from "#convex/lib/packageLookup";
@@ -37,6 +39,12 @@ type PublicPackageInvoicePdfError =
 	| InvoicePdfError
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 	| { reason: "PACKAGE_NOT_FOUND" };
+
+type PublicPackageReceiptPdfError =
+	| BookingReceiptPdfError
+	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_NOT_PAID" };
 
 type AdminPackageInvoicePdfError =
 	| InvoicePdfError
@@ -139,6 +147,33 @@ export function getBookingInvoicePdfByStripeSessionIdService(
 			.andThen((artifactsResult) =>
 				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
 					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
+					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+			)
+	);
+}
+
+export function getPackageReceiptPdfByIdService(
+	ctx: ActionCtx,
+	args: { packageId: Id<"packages"> }
+): ResultAsync<InvoicePdfPayload, PublicPackageReceiptPdfError> {
+	return (
+		getPackageForAction(ctx, args.packageId)
+			.andThen((packageRecord) => validatePackageReceiptDownload(packageRecord, Date.now()))
+			.andThen(({ packageRecord, receiptCreatedAt }) =>
+				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
+					bookingSettings,
+					packageRecord,
+					receiptCreatedAt
+				}))
+			)
+			.andThen(({ bookingSettings, packageRecord, receiptCreatedAt }) =>
+				createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
+					leadTimeMinutes: bookingSettings.leadTimeMinutes
+				})
+			)
+			.andThen((artifactsResult) =>
+				renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
+					.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
 					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
 			)
 	);

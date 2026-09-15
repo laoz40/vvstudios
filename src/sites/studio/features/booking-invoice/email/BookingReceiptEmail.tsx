@@ -19,9 +19,12 @@ export interface BookingReceiptEmailProps {
 }
 
 export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
+	const isPackageReceipt = data.package !== undefined;
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 	const sessionTimeRange = formatBookingTimeRange(data.booking.time, data.booking.duration);
-	const previewText = `Studio booking confirmed for ${data.booking.bookingDateLabel}. Your receipt is attached.`;
+	const previewText = isPackageReceipt
+		? `${data.package?.size}-session package confirmed. Your receipt is attached.`
+		: `Studio booking confirmed for ${data.booking.bookingDateLabel}. Your receipt is attached.`;
 
 	return (
 		<Html>
@@ -44,30 +47,54 @@ export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
+					<Heading style={heading}>
+						{isPackageReceipt
+							? `Thanks for your purchase, ${data.customer.name}`
+							: `Thanks for booking, ${data.customer.name}`}
+					</Heading>
 					<Text style={paragraph}>
-						Your studio session is confirmed. Your receipt is attached to this email.
+						{isPackageReceipt
+							? "Your package payment is confirmed. Your receipt is attached to this email."
+							: "Your studio session is confirmed. Your receipt is attached to this email."}
 					</Text>
 					<Section style={section}>
-						<Text style={sectionTitle}>Booking summary</Text>
+						<Text style={sectionTitle}>
+							{isPackageReceipt ? "Package summary" : "Booking summary"}
+						</Text>
 						<Section style={summaryCard}>
-							<Text style={summaryLine}>
-								<strong>Date:</strong> {data.booking.bookingDateLabel}
-							</Text>
-							<Text style={summaryLine}>
-								<strong>Time:</strong> {sessionTimeRange}
-							</Text>
-							{data.booking.service ? (
-								<Text style={summaryLine}>
-									<strong>Service:</strong> {data.booking.service}
-								</Text>
-							) : null}
-							<Text style={summaryLine}>
-								<strong>Add-ons:</strong> {data.booking.addonsSummary}
-							</Text>
+							{isPackageReceipt ? (
+								<>
+									<Text style={summaryLine}>
+										<strong>Package:</strong> {data.package?.size} sessions
+									</Text>
+									<Text style={summaryLine}>
+										<strong>Duration:</strong> {data.booking.duration}
+									</Text>
+									<Text style={summaryLine}>
+										<strong>Add-ons:</strong> {data.booking.addonsSummary}
+									</Text>
+								</>
+							) : (
+								<>
+									<Text style={summaryLine}>
+										<strong>Date:</strong> {data.booking.bookingDateLabel}
+									</Text>
+									<Text style={summaryLine}>
+										<strong>Time:</strong> {sessionTimeRange}
+									</Text>
+									{data.booking.service ? (
+										<Text style={summaryLine}>
+											<strong>Service:</strong> {data.booking.service}
+										</Text>
+									) : null}
+									<Text style={summaryLine}>
+										<strong>Add-ons:</strong> {data.booking.addonsSummary}
+									</Text>
+								</>
+							)}
 						</Section>
 					</Section>
-					{data.rescheduleUrl ? (
+					{!isPackageReceipt && data.rescheduleUrl ? (
 						<Section style={section}>
 							<Text style={sectionTitle}>Need to change your time?</Text>
 							<Text style={paragraph}>
