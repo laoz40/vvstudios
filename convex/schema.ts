@@ -138,10 +138,14 @@ export default defineSchema({
 				invoiceDueAt: v.number(),
 				invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
 				invoiceEmailClaimedAt: v.optional(v.number()),
-				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"))
+				stripeInvoiceId: v.optional(v.string()),
+				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid")),
+				paidAt: v.optional(v.number())
 			})
 		)
-	).index("by_packageId", ["packageId"]),
+	)
+		.index("by_packageId", ["packageId"])
+		.index("by_stripeInvoiceId", ["stripeInvoiceId"]),
 
 	customInvoices: defineTable({
 		bookingId: v.optional(v.id("bookings")),

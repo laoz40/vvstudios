@@ -9,6 +9,7 @@ import {
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
+import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustmentInvoicePayment";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -19,6 +20,7 @@ export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim
 type ClaimedPackageAdjustmentInvoiceEmailArgs = {
 	adjustmentId: Id<"packageAdjustments">;
 	claimedAt: number;
+	stripeInvoiceId?: string;
 };
 
 type MarkPackageAdjustmentPaymentStatusArgs = {
@@ -110,12 +112,24 @@ export function completePackageAdjustmentInvoiceEmailService(
 			return ok({ updated: false });
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch(adjustment._id, { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined })
-				.then(() => ({ updated: true }))
-		);
+		const patch =
+			status === "sent" && args.stripeInvoiceId
+				? {
+						invoiceEmailStatus: status,
+						invoiceEmailClaimedAt: undefined,
+						stripeInvoiceId: args.stripeInvoiceId
+					}
+				: { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined };
+
+		return okOrThrow(ctx.db.patch(adjustment._id, patch).then(() => ({ updated: true })));
 	});
+}
+
+export function claimPackageAdjustmentInvoicePaymentService(
+	ctx: MutationCtx,
+	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
+) {
+	return claimPackageAdjustmentInvoicePayment(ctx, args);
 }
 
 export function markPackageAdjustmentPaymentStatusService(
