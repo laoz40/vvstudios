@@ -28,6 +28,7 @@ import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingConfirmationClaim from "../lib/bookingConfirmationClaim.js";
 import type * as lib_bookingDocumentEmails from "../lib/bookingDocumentEmails.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
+import type * as lib_bookingInvoiceCustomPackage from "../lib/bookingInvoiceCustomPackage.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_clerkInvitations from "../lib/clerkInvitations.js";
@@ -54,6 +55,7 @@ import type * as lib_googleCalendarClient from "../lib/googleCalendarClient.js";
 import type * as lib_googleCalendarErrors from "../lib/googleCalendarErrors.js";
 import type * as lib_googleDrive from "../lib/googleDrive.js";
 import type * as lib_invoiceDownloads from "../lib/invoiceDownloads.js";
+import type * as lib_packageAdjustmentInvoicePayment from "../lib/packageAdjustmentInvoicePayment.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
 import type * as lib_packageCheckout from "../lib/packageCheckout.js";
 import type * as lib_packageLookup from "../lib/packageLookup.js";
@@ -76,6 +78,7 @@ import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.
 import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWorkflow.js";
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
 import type * as lib_sessionSavePatch from "../lib/sessionSavePatch.js";
+import type * as lib_stripeAdjustmentInvoice from "../lib/stripeAdjustmentInvoice.js";
 import type * as lib_stripeCheckoutLineItems from "../lib/stripeCheckoutLineItems.js";
 import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js";
 import type * as lib_stripeClient from "../lib/stripeClient.js";
@@ -100,6 +103,7 @@ import type * as services_driveEditorPermissions from "../services/driveEditorPe
 import type * as services_employeeInvitations from "../services/employeeInvitations.js";
 import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
+import type * as services_packageAdjustmentInvoicePayment from "../services/packageAdjustmentInvoicePayment.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
 import type * as services_packageAdjustments from "../services/packageAdjustments.js";
 import type * as services_packageCheckout from "../services/packageCheckout.js";
@@ -151,6 +155,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingConfirmationClaim": typeof lib_bookingConfirmationClaim;
   "lib/bookingDocumentEmails": typeof lib_bookingDocumentEmails;
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
+  "lib/bookingInvoiceCustomPackage": typeof lib_bookingInvoiceCustomPackage;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/clerkInvitations": typeof lib_clerkInvitations;
@@ -177,6 +182,7 @@ declare const fullApi: ApiFromModules<{
   "lib/googleCalendarErrors": typeof lib_googleCalendarErrors;
   "lib/googleDrive": typeof lib_googleDrive;
   "lib/invoiceDownloads": typeof lib_invoiceDownloads;
+  "lib/packageAdjustmentInvoicePayment": typeof lib_packageAdjustmentInvoicePayment;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
   "lib/packageCheckout": typeof lib_packageCheckout;
   "lib/packageLookup": typeof lib_packageLookup;
@@ -199,6 +205,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionRescheduleWorkflow": typeof lib_sessionRescheduleWorkflow;
   "lib/sessionReservations": typeof lib_sessionReservations;
   "lib/sessionSavePatch": typeof lib_sessionSavePatch;
+  "lib/stripeAdjustmentInvoice": typeof lib_stripeAdjustmentInvoice;
   "lib/stripeCheckoutLineItems": typeof lib_stripeCheckoutLineItems;
   "lib/stripeCheckoutSession": typeof lib_stripeCheckoutSession;
   "lib/stripeClient": typeof lib_stripeClient;
@@ -223,6 +230,7 @@ declare const fullApi: ApiFromModules<{
   "services/employeeInvitations": typeof services_employeeInvitations;
   "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;
+  "services/packageAdjustmentInvoicePayment": typeof services_packageAdjustmentInvoicePayment;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;
   "services/packageAdjustments": typeof services_packageAdjustments;
   "services/packageCheckout": typeof services_packageCheckout;
