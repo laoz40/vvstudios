@@ -62,7 +62,8 @@ Open locally: `mdxp plans/12-upfront-stripe-payments.mdx`
 
 - Full upfront payment via Embedded Checkout (sessions + packages)
 - Itemized \`price_data\` line items from \`DURATION_PRICES\` / \`ADDON_PRICES\` — no fixed Stripe Price IDs for deposit or processing fee
-- New Stripe Customer per checkout; \`stripeCustomerId\` stored on booking/package record
+- New Stripe Customer per checkout (\`email\` + \`name\` only; no extra customer metadata); \`stripeCustomerId\` stored on booking/package record
+- \`stripePaymentIntentId\` stored on booking via webhook; not shown on customer receipt PDF (admin copy UI in stage 4)
 - Stripe Invoicing for adjustments + admin ad-hoc charges (multi-line)
 - Scheduling link emailed only (not on complete page)
 - Legacy schema fields kept for old bookings; nothing new writes to them
@@ -127,12 +128,12 @@ Five stacked PRs. Each stage is one branch in the stack; later stages depend on 
 
 Ship each stage as its own PR, stacked on the previous one. Build one branch at a time — no need to create the full stack upfront.
 
-**Stage 1** (from `main`):
+**Stage 1** (from `production`):
 
 <Code
 	language="bash"
-	code={`git checkout main && git pull
-gh stack init upfront-stripe/1-session-checkout
+	code={`git checkout production && git pull
+gh stack init feat/upfront-stripe/session-checkout
 # implement stage 1, commit, then:
 gh stack submit`}
 />
@@ -141,7 +142,7 @@ gh stack submit`}
 
 <Code
 	language="bash"
-	code={`gh stack add upfront-stripe/2-package-checkout   # name from stages table
+	code={`gh stack add feat/upfront-stripe/package-checkout   # name from stages table
 # implement stage 2 only, commit, then:
 gh stack submit`}
 />
@@ -150,7 +151,7 @@ Repeat with `gh stack add` for stages 3–5. Each new branch sits on top of the 
 
 <Callout
 	tone="info"
-	body="One stage per branch per PR. Use the matching stage section below as the PR description. Run `gh stack rebase` if `main` or a lower PR changes."
+	body="One stage per branch per PR. Use the matching stage section below as the PR description. Run `gh stack rebase` if `production` or a lower PR changes."
 />
 
 ---
@@ -158,6 +159,8 @@ Repeat with `gh stack add` for stages 3–5. Each new branch sits on top of the 
 ## Stage 1 — Single sessions: full checkout + receipts
 
 **Goal:** Customer pays the full session total in Stripe. Receipt emailed on confirmation. Deposit and processing fee gone.
+
+**Status:** Implemented on `feat/upfront-stripe/session-checkout`. Manual Stripe QA still pending (see verify checklist).
 
 ### Backend
 
@@ -173,21 +176,17 @@ line_items: [
   { price: env.STRIPE_BOOKING_DEPOSIT_PRICE_ID, quantity: 1 },
   { price: env.STRIPE_PROCESSING_FEE_PRICE_ID, quantity: 1 },
 ]`}
-      after={`// Itemized from booking-pricing constants
-const lineItems = buildSessionCheckoutLineItems({
-  duration, addons, // maps to DURATION_PRICES / ADDON_PRICES
-});
+      after={`// Itemized from booking-pricing constants (convex/lib/stripeCheckoutLineItems.ts)
+const lineItems = buildSessionCheckoutLineItems({ duration, addons });
 
-// New Stripe Customer per checkout
-const customer = await stripe.customers.create({
-email, name, phone,
-metadata: { accountName, abn },
-});
+// Checkout helpers in convex/lib/stripeCheckoutSession.ts
+const customer = await stripe.customers.create({ email, name });
 
 line_items: lineItems,
 customer: customer.id,
-// store stripeCustomerId on pending booking`}
-/>
+metadata: { bookingId },
+// store stripeCustomerId + stripeSessionId on pending booking`}
+    />
 
   </Tab>
   <Tab id="env-cleanup" label="Env vars">
@@ -216,9 +215,12 @@ stripeCustomerId: v.optional(v.string()), // new per checkout`}
   </Tab>
 </Tabs>
 
-**New lib:** `convex/lib/stripeCheckoutLineItems.ts` (or under `booking-pricing`) — builds Stripe `price_data` lines from duration, addons, quantities. Single source of truth with frontend pricing.
+**New libs (implemented):**
 
-**Webhook:** `checkout.session.completed` path unchanged structurally. Confirmation still claims → calendar → confirmed. Swap invoice send for receipt send.
+- `convex/lib/stripeCheckoutLineItems.ts` — builds Stripe `price_data` lines from duration, addons, quantities. Single source of truth with frontend pricing.
+- `convex/lib/stripeCheckoutSession.ts` — customer create, embedded checkout session, link `stripeCustomerId` / `stripeSessionId` to pending booking.
+
+**Webhook:** `checkout.session.completed` path unchanged structurally. Confirmation still claims → calendar → confirmed. Stores `stripePaymentIntentId` on booking. Swaps invoice send for receipt send.
 
 ### Receipt emails (sessions)
 
@@ -229,24 +231,24 @@ stripeCustomerId: v.optional(v.string()), // new per checkout`}
 	language="ts"
 	before={`await sendBookingInvoiceEmailsForBooking(ctx, bookingId);`}
 	after={`await sendBookingReceiptEmailsForBooking(ctx, bookingId);
-// PDF title: "Receipt", no bank details, "Paid" + Stripe ref`}
+// PDF title: "Receipt", no bank details, "Total paid"`}
 />
 
-| Change        | Detail                                                       |
-| ------------- | ------------------------------------------------------------ |
-| PDF title     | `BOOKING_INVOICE_TITLE` → `"Receipt"` (or separate constant) |
-| PDF body      | Remove deposit line, amount due, bank transfer block         |
-| PDF body      | Add paid indicator + `stripePaymentIntentId` when available  |
-| Email subject | `Studio booking confirmed - {formatted session date}`        |
-| Email body    | Booking summary + reschedule link; no payment instructions   |
-| Host email    | Unchanged (`HostBookingDetailsEmail`)                        |
+| Change        | Detail                                                                 |
+| ------------- | ---------------------------------------------------------------------- |
+| PDF title     | `BOOKING_RECEIPT_TITLE` = `"Receipt"` (separate from invoice constant) |
+| PDF body      | Remove deposit line, amount due, bank transfer block                   |
+| PDF body      | Show "Total paid" amount; no Stripe payment ID on customer PDF         |
+| Email subject | `Studio booking confirmed - {formatted session date}`                  |
+| Email body    | Booking summary + reschedule link; no payment instructions             |
+| Host email    | Unchanged (`HostBookingDetailsEmail`)                                  |
+| Complete page | Receipt download via `getBookingReceiptPdfByStripeSessionId`           |
 
-Rename internals gradually: `sendBookingInvoiceEmailsForBooking` → `sendBookingReceiptEmailsForBooking`. Keep old function names as aliases only if needed mid-migration; prefer clean rename in this PR.
+`sendBookingReceiptEmailsForBooking` added alongside legacy invoice send (admin/reschedule paths still use invoice). `stripePaymentIntentId` stored on booking for ops/debug; copy UI deferred to stage 4.
 
 ### Frontend (sessions)
 
-remove this line: Pay a $50 deposit now. Remaining balance due before your session.
-remove paying $50 deposit on the landing/pricing page and any other frontend copy
+Deposit copy removed from `BookingSummary`, `PricingSection`, and `PaymentModal` (implemented). `TermsDialog` cancellation copy still references deposit language — update in stage 5.
 
 <Diff
 	id="complete-page-receipt"
@@ -270,10 +272,12 @@ descriptionSteps: [{ title: "Receipt", showReceiptDownloadLink: true }]
 
 ### Stage 1 — verify
 
+Code complete; manual Stripe test mode QA still needed:
+
 - [ ] Book 1h / 2h / 3h session with addons → Stripe shows itemized total matching form
 - [ ] No processing fee line item
 - [ ] Webhook confirms → calendar event → receipt email with correct subject
-- [ ] Receipt PDF: no bank details, shows Paid
+- [ ] Receipt PDF: no bank details, shows "Total paid"
 - [ ] `/booking-complete?session_id=...` shows receipt download
 - [ ] Abandoned checkout still marks booking `abandoned`
 - [ ] Host email still sends
@@ -457,6 +461,7 @@ export function createPackageCheckoutSession(...) {
 | Price column in session/package tables | Show full booking total (unchanged display)                                                                      |
 | Legacy records                         | Read-only payment fields if present; no edit controls                                                            |
 | Resend receipt                         | New action: regenerate PDF receipt + resend customer email                                                       |
+| Stripe IDs (copy)                      | Session/package detail menu: copy `stripePaymentIntentId`, `stripeSessionId`, `stripeCustomerId` for debugging   |
 | Ad-hoc Stripe Invoice                  | Multi-line form: pick booking/package → add rows (description + amount) → one Stripe Invoice with itemized lines |
 
 **Backend:** for each line item, `stripe.invoiceItems.create({ customer, invoice, amount, description })`. Customer sees every row on the Stripe-hosted invoice; total is the sum of lines.
@@ -502,6 +507,7 @@ export function createPackageCheckoutSession(...) {
 
 - [ ] New session booking: no payment toggle in admin
 - [ ] Old session with `paidRemainingBalance: false`: shows read-only, no toggle
+- [ ] Stripe IDs copyable from session/package detail menu (`stripePaymentIntentId`, `stripeSessionId`, `stripeCustomerId`)
 - [ ] Resend receipt works for confirmed booking
 - [ ] Admin ad-hoc Stripe Invoice with multiple line items sends; customer sees itemized total
 - [ ] Single-line invoice still works (one row)
@@ -517,7 +523,7 @@ export function createPackageCheckoutSession(...) {
 
 | Area   | What to test                                            |
 | ------ | ------------------------------------------------------- |
-| Convex | Checkout line item amounts match pricing constants      |
+| Convex | Checkout line item amounts match pricing constants (stage 1 done) |
 | Convex | Webhook idempotency (checkout replay)                   |
 | Convex | Package paid → schedule token created once              |
 | Convex | Adjustment Stripe Invoice only when remote sessions > 0 |
