@@ -11,7 +11,7 @@ import {
 	sendConfirmedBookingInvoice
 } from "#convex/lib/bookingConfirmation";
 import { getSelectedBookingCustomInvoice } from "#convex/lib/customInvoices";
-import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
+import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/bookingDocumentEmails";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";

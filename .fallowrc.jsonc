@@ -8,6 +8,8 @@
 		{ "file": "src/config/sites.ts", "exports": ["parentSite"] }
 	],
 	"ignoreFindings": [
+		// agent/plan docs, not app entry points
+		"plans/**",
 		// convex-test setup intentionally imports test files
 		"convex/test.setup.ts",
 		"convex/tests/**",

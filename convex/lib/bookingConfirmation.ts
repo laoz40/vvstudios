@@ -5,7 +5,8 @@ import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLink
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendBookingReceiptEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
+import { sendBookingReceiptEmailsForBooking } from "#convex/lib/bookingDocumentEmails";
+import { sendSessionReminderEmail } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import {
