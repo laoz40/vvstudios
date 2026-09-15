@@ -10,6 +10,7 @@ import {
 	Section,
 	Text
 } from "@react-email/components";
+import { exhaustiveCheck } from "#/lib/result";
 import type { BookingReceiptData } from "#studio/features/booking-invoice/lib/types";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -18,14 +19,119 @@ export interface BookingReceiptEmailProps {
 	data: BookingReceiptData;
 }
 
-export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
-	const isPackageReceipt = data.package !== undefined;
-	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
-	const sessionTimeRange = formatBookingTimeRange(data.booking.time, data.booking.duration);
+function getReceiptPreviewText(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return `Remote Podcast adjustment payment received for your ${data.adjustment.packageSize}-session package. Your receipt is attached.`;
+		case "package":
+			return `${data.package.size}-session package confirmed. Your receipt is attached.`;
+		case "booking":
+			return `Studio booking confirmed for ${data.booking.bookingDateLabel}. Your receipt is attached.`;
+		default:
+			return exhaustiveCheck(data);
+	}
+}
 
-	const previewText = isPackageReceipt
-		? `${data.package?.size}-session package confirmed. Your receipt is attached.`
-		: `Studio booking confirmed for ${data.booking.bookingDateLabel}. Your receipt is attached.`;
+function getReceiptHeading(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return `Thanks for your payment, ${data.customer.name}`;
+		case "package":
+			return `Thanks for your purchase, ${data.customer.name}`;
+		case "booking":
+			return `Thanks for booking, ${data.customer.name}`;
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
+function getReceiptIntro(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return "Your Remote Podcast adjustment payment is confirmed. Your receipt is attached to this email.";
+		case "package":
+			return "Your package payment is confirmed. Your receipt is attached to this email.";
+		case "booking":
+			return "Your studio session is confirmed. Your receipt is attached to this email.";
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
+function getReceiptSummaryTitle(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return "Adjustment summary";
+		case "package":
+			return "Package summary";
+		case "booking":
+			return "Booking summary";
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
+function ReceiptSummary({ data }: { data: BookingReceiptData }) {
+	switch (data.kind) {
+		case "adjustment":
+			return (
+				<>
+					<Text style={summaryLine}>
+						<strong>Package:</strong> {data.adjustment.packageSize} sessions
+					</Text>
+					<Text style={summaryLine}>
+						<strong>Booked:</strong> {data.adjustment.bookedAtLabel}
+					</Text>
+					<Text style={summaryLine}>
+						<strong>Charge:</strong> {data.booking.addonsSummary}
+					</Text>
+				</>
+			);
+		case "package":
+			return (
+				<>
+					<Text style={summaryLine}>
+						<strong>Package:</strong> {data.package.size} sessions
+					</Text>
+					<Text style={summaryLine}>
+						<strong>Duration:</strong> {data.booking.duration}
+					</Text>
+					<Text style={summaryLine}>
+						<strong>Add-ons:</strong> {data.booking.addonsSummary}
+					</Text>
+				</>
+			);
+		case "booking": {
+			const sessionTimeRange = formatBookingTimeRange(data.booking.time, data.booking.duration);
+
+			return (
+				<>
+					<Text style={summaryLine}>
+						<strong>Date:</strong> {data.booking.bookingDateLabel}
+					</Text>
+					<Text style={summaryLine}>
+						<strong>Time:</strong> {sessionTimeRange}
+					</Text>
+					{data.booking.service ? (
+						<Text style={summaryLine}>
+							<strong>Service:</strong> {data.booking.service}
+						</Text>
+					) : null}
+					<Text style={summaryLine}>
+						<strong>Add-ons:</strong> {data.booking.addonsSummary}
+					</Text>
+				</>
+			);
+		}
+
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
+export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
+	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
+	const previewText = getReceiptPreviewText(data);
 
 	return (
 		<Html>
@@ -48,54 +154,15 @@ export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>
-						{isPackageReceipt
-							? `Thanks for your purchase, ${data.customer.name}`
-							: `Thanks for booking, ${data.customer.name}`}
-					</Heading>
-					<Text style={paragraph}>
-						{isPackageReceipt
-							? "Your package payment is confirmed. Your receipt is attached to this email."
-							: "Your studio session is confirmed. Your receipt is attached to this email."}
-					</Text>
+					<Heading style={heading}>{getReceiptHeading(data)}</Heading>
+					<Text style={paragraph}>{getReceiptIntro(data)}</Text>
 					<Section style={section}>
-						<Text style={sectionTitle}>
-							{isPackageReceipt ? "Package summary" : "Booking summary"}
-						</Text>
+						<Text style={sectionTitle}>{getReceiptSummaryTitle(data)}</Text>
 						<Section style={summaryCard}>
-							{isPackageReceipt ? (
-								<>
-									<Text style={summaryLine}>
-										<strong>Package:</strong> {data.package?.size} sessions
-									</Text>
-									<Text style={summaryLine}>
-										<strong>Duration:</strong> {data.booking.duration}
-									</Text>
-									<Text style={summaryLine}>
-										<strong>Add-ons:</strong> {data.booking.addonsSummary}
-									</Text>
-								</>
-							) : (
-								<>
-									<Text style={summaryLine}>
-										<strong>Date:</strong> {data.booking.bookingDateLabel}
-									</Text>
-									<Text style={summaryLine}>
-										<strong>Time:</strong> {sessionTimeRange}
-									</Text>
-									{data.booking.service ? (
-										<Text style={summaryLine}>
-											<strong>Service:</strong> {data.booking.service}
-										</Text>
-									) : null}
-									<Text style={summaryLine}>
-										<strong>Add-ons:</strong> {data.booking.addonsSummary}
-									</Text>
-								</>
-							)}
+							<ReceiptSummary data={data} />
 						</Section>
 					</Section>
-					{!isPackageReceipt && data.rescheduleUrl ? (
+					{data.kind === "booking" && data.rescheduleUrl ? (
 						<Section style={section}>
 							<Text style={sectionTitle}>Need to change your time?</Text>
 							<Text style={paragraph}>

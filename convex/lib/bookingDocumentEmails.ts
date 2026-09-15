@@ -3,9 +3,11 @@ import type { Doc } from "#convex/_generated/dataModel";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createBookingReceiptEmailArtifactsForBooking,
+	createPackageAdjustmentReceiptEmailArtifacts,
 	createPackageReceiptEmailArtifacts,
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode,
+	type PackageAdjustmentInvoiceInput,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
@@ -241,6 +243,58 @@ export async function sendPackageReceiptEmailsForPackage(
 				reason: hostEmailResult.error.reason
 			});
 		}
+	}
+
+	return ok({ receiptNumber: artifacts.data.receipt.number });
+}
+
+export async function sendPackageAdjustmentReceiptEmails(
+	invoiceInput: PackageAdjustmentInvoiceInput,
+	paidAt: number,
+	leadTimeMinutes: number
+): Promise<
+	Result<
+		{ receiptNumber: string },
+		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
+	>
+> {
+	const artifactsResult = await createPackageAdjustmentReceiptEmailArtifacts(
+		invoiceInput,
+		paidAt,
+		leadTimeMinutes
+	);
+
+	if (artifactsResult.isErr()) {
+		return err(artifactsResult.error);
+	}
+
+	const { artifacts } = artifactsResult.value;
+	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
+
+	if (pdfResult.isErr()) {
+		console.error("Package adjustment receipt PDF render failed", {
+			adjustmentId: invoiceInput.adjustment._id
+		});
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
+	}
+
+	const receiptEmailResult = await sendEmail({
+		to: [invoiceInput.packageRecord.email],
+		subject: `Your Remote Podcast Adjustment Receipt — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
+		html: artifacts.emailHtml,
+		attachments: [{ ...artifacts.pdf, content: pdfResult.value }],
+		idempotencyKey: `package-adjustment-receipt-${invoiceInput.adjustment._id}`
+	});
+
+	if (receiptEmailResult.isErr()) {
+		console.error("Package adjustment receipt customer email send failed", {
+			adjustmentId: invoiceInput.adjustment._id,
+			packageEmail: invoiceInput.packageRecord.email,
+			reason: receiptEmailResult.error.reason
+		});
+
+		return err({ reason: "RECEIPT_SEND_FAILED" });
 	}
 
 	return ok({ receiptNumber: artifacts.data.receipt.number });

@@ -81,17 +81,40 @@ export type PackageReceiptBuilderInput = {
 	receiptNumber?: string;
 } & BookingAddonQuantities;
 
-export interface BookingReceiptData {
+export type PackageAdjustmentReceiptBuilderInput = {
+	abn?: string;
+	accountName: string;
+	bookedAt: number;
+	duration: BookingDuration;
+	email: string;
+	leadTimeMinutes: number;
+	name: string;
+	packageSize: number;
+	paidAt: number;
+	phone: string;
+	quantity: number;
+	rate: number;
+	receiptNumber: string;
+	totalAmount: number;
+};
+
+type BookingReceiptSharedData = {
 	amounts: BookingReceiptMoneyAmounts;
 	booking: BookingInvoiceData["booking"];
 	branding: BookingInvoiceData["branding"];
 	customer: BookingInvoiceData["customer"];
 	lineItems: BookingInvoiceLineItem[];
 	notes: { cancellationPolicy: string };
-	package?: { size: number };
 	receipt: { number: string; receiptDate: string; receiptDateLabel: string; title: string };
-	rescheduleUrl?: string;
-}
+};
+
+export type BookingReceiptData =
+	| (BookingReceiptSharedData & { kind: "booking"; rescheduleUrl?: string })
+	| (BookingReceiptSharedData & { kind: "package"; package: { size: number } })
+	| (BookingReceiptSharedData & {
+			kind: "adjustment";
+			adjustment: { bookedAtLabel: string; packageSize: number };
+	  });
 
 export interface BookingInvoiceData {
 	amounts: BookingInvoiceMoneyAmounts;

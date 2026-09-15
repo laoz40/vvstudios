@@ -1,4 +1,5 @@
 import { Document, Link, Page, Polygon, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { exhaustiveCheck } from "#/lib/result";
 import { formatAud } from "#studio/features/booking-invoice/lib/money";
 import type { BookingReceiptData } from "#studio/features/booking-invoice/lib/types";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -7,35 +8,67 @@ export interface BookingReceiptPdfProps {
 	data: BookingReceiptData;
 }
 
+function getReceiptTitle(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return "VV Studios Adjustment Receipt";
+		case "package":
+			return "VV Studios Package Receipt";
+		case "booking":
+			return "VV Studios Booking Receipt";
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
 function getSessionSummary(data: BookingReceiptData) {
-	if (data.package) {
-		return `${data.package.size} pack · ${data.booking.duration} sessions`;
+	switch (data.kind) {
+		case "adjustment":
+			return `${data.adjustment.packageSize} pack · Remote Podcast usage`;
+		case "package":
+			return `${data.package.size} pack · ${data.booking.duration} sessions`;
+		case "booking": {
+			const formattedSessionTimeRange = formatBookingTimeRange(
+				data.booking.time,
+				data.booking.duration
+			);
+
+			if (data.booking.service) {
+				return `${data.booking.service} · ${formattedSessionTimeRange}`;
+			}
+
+			return `Add-ons only · ${formattedSessionTimeRange}`;
+		}
+
+		default:
+			return exhaustiveCheck(data);
 	}
+}
 
-	const formattedSessionTimeRange = formatBookingTimeRange(
-		data.booking.time,
-		data.booking.duration
-	);
-
-	if (data.booking.service) {
-		return `${data.booking.service} · ${formattedSessionTimeRange}`;
+function getSessionSummaryLabel(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return "Adjustment";
+		case "package":
+			return "Package";
+		case "booking":
+			return "Session";
+		default:
+			return exhaustiveCheck(data);
 	}
-
-	return `Add-ons only · ${formattedSessionTimeRange}`;
 }
 
 export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
-	const packageDetails = data.package;
-	const isPackageReceipt = packageDetails !== undefined;
 	const sessionSummary = getSessionSummary(data);
 
-	const packageDiscountAmount = isPackageReceipt
-		? data.lineItems
-				.filter(
-					(item) => item.amount < 0 && item.description.toLowerCase().includes("package discount")
-				)
-				.reduce((total, item) => total + Math.abs(item.amount), 0)
-		: 0;
+	const packageDiscountAmount =
+		data.kind === "package"
+			? data.lineItems
+					.filter(
+						(item) => item.amount < 0 && item.description.toLowerCase().includes("package discount")
+					)
+					.reduce((total, item) => total + Math.abs(item.amount), 0)
+			: 0;
 
 	return (
 		<Document>
@@ -47,9 +80,7 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 						<VvPodcastLogo />
 					</View>
 					<View style={styles.headerRight}>
-						<Text style={styles.receiptTitle}>
-							{isPackageReceipt ? "VV Studios Package Receipt" : "VV Studios Booking Receipt"}
-						</Text>
+						<Text style={styles.receiptTitle}>{getReceiptTitle(data)}</Text>
 						<Text style={styles.businessDetailStrong}>{data.branding.businessName}</Text>
 						<Text style={styles.businessDetail}>{data.branding.contactEmail}</Text>
 						<Text style={styles.businessDetail}>ABN: 97 592 829 541</Text>
@@ -87,9 +118,7 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 
 				<View style={styles.sessionSummaryRow}>
 					<View style={styles.sessionSummaryItem}>
-						<Text style={styles.sessionSummaryLabel}>
-							{isPackageReceipt ? "Package" : "Session"}
-						</Text>
+						<Text style={styles.sessionSummaryLabel}>{getSessionSummaryLabel(data)}</Text>
 						<Text style={styles.sessionSummaryValue}>{sessionSummary}</Text>
 					</View>
 					<View style={styles.sessionSummaryItemRight}>
