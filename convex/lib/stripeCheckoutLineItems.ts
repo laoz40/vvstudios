@@ -8,8 +8,10 @@ import {
 import {
 	ADDON_PRICES,
 	BOOKING_INVOICE_CURRENCY,
+	calculatePackageAmounts,
 	DURATION_PRICES,
-	getBookingAddonQuantity
+	getBookingAddonQuantity,
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 
 type BookingDuration = keyof typeof DURATION_PRICES;
@@ -72,4 +74,76 @@ export function buildSessionCheckoutLineItems(
 	}
 
 	return ok(lineItems);
+}
+
+export type PackageCheckoutDiscount = { amount: number; description: string };
+
+export type PackageCheckoutLineItems = {
+	discount: PackageCheckoutDiscount | null;
+	lineItems: SessionCheckoutLineItem[];
+};
+
+export type BuildPackageCheckoutLineItemsInput = {
+	duration: string;
+	addons: readonly BookingAddon[];
+	packageSize: PackageSize;
+} & BookingAddonQuantities;
+
+export type BuildPackageCheckoutLineItemsError = { reason: "BOOKING_INVALID_DURATION" };
+
+export function buildPackageCheckoutLineItems(
+	input: BuildPackageCheckoutLineItemsInput
+): Result<PackageCheckoutLineItems, BuildPackageCheckoutLineItemsError> {
+	if (!isBookingDuration(input.duration)) {
+		return err({ reason: "BOOKING_INVALID_DURATION" });
+	}
+
+	const addonQuantities = pickBookingAddonQuantities(input);
+
+	const packageAmounts = calculatePackageAmounts({
+		addons: [...input.addons],
+		duration: input.duration,
+		packageSize: input.packageSize,
+		...addonQuantities
+	});
+
+	const currency = BOOKING_INVOICE_CURRENCY.toLowerCase();
+
+	const lineItems: SessionCheckoutLineItem[] = [
+		{
+			quantity: input.packageSize,
+			price_data: {
+				currency,
+				unit_amount: audToStripeUnitAmount(DURATION_PRICES[input.duration]),
+				product_data: { name: `Studio Hire (${input.duration})` }
+			}
+		}
+	];
+
+	for (const addon of input.addons) {
+		const quantityPerSession = getBookingAddonQuantity(addon, addonQuantities);
+
+		if (quantityPerSession <= 0) {
+			continue;
+		}
+
+		lineItems.push({
+			quantity: input.packageSize * quantityPerSession,
+			price_data: {
+				currency,
+				unit_amount: audToStripeUnitAmount(ADDON_PRICES[addon]),
+				product_data: { name: getCustomerAddonDisplayLabel(addon) }
+			}
+		});
+	}
+
+	const discount =
+		packageAmounts.discountAmount > 0
+			? {
+					amount: packageAmounts.discountAmount,
+					description: `${packageAmounts.discountPercent}% package discount`
+				}
+			: null;
+
+	return ok({ discount, lineItems });
 }
