@@ -58,6 +58,30 @@ function getSessionSummaryLabel(data: BookingReceiptData) {
 	}
 }
 
+function getSessionDateLabel(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return "Booked";
+		case "package":
+		case "booking":
+			return "Session date";
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
+function getSessionDateValue(data: BookingReceiptData) {
+	switch (data.kind) {
+		case "adjustment":
+			return data.adjustment.bookedAtLabel;
+		case "package":
+		case "booking":
+			return data.booking.bookingDateLabel;
+		default:
+			return exhaustiveCheck(data);
+	}
+}
+
 export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 	const sessionSummary = getSessionSummary(data);
 
@@ -122,8 +146,8 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 						<Text style={styles.sessionSummaryValue}>{sessionSummary}</Text>
 					</View>
 					<View style={styles.sessionSummaryItemRight}>
-						<Text style={styles.sessionSummaryLabel}>Session date</Text>
-						<Text style={styles.sessionSummaryValue}>{data.booking.bookingDateLabel}</Text>
+						<Text style={styles.sessionSummaryLabel}>{getSessionDateLabel(data)}</Text>
+						<Text style={styles.sessionSummaryValue}>{getSessionDateValue(data)}</Text>
 					</View>
 				</View>
 
