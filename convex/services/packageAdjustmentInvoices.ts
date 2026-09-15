@@ -110,9 +110,7 @@ export function sendPackageAdjustmentInvoiceService(
 								claimedAt,
 								stripeInvoiceId
 							})
-						)
-							.orElse(() => ok(null))
-							.map(() => null)
+						).map(() => null)
 					);
 			})
 	);
