@@ -83,7 +83,7 @@ function ReceiptSummary({ data }: { data: BookingReceiptData }) {
 						<strong>Booked:</strong> {data.adjustment.bookedAtLabel}
 					</Text>
 					<Text style={summaryLine}>
-						<strong>Charge:</strong> {data.booking.addonsSummary}
+						<strong>Adjustment:</strong> {data.booking.addonsSummary}
 					</Text>
 				</>
 			);
