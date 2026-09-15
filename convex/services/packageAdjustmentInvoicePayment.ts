@@ -1,12 +1,8 @@
-"use node";
-
-import { okAsync, ResultAsync } from "neverthrow";
-import { api, internal } from "#convex/_generated/api";
+import { okAsync, type ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendPackageAdjustmentReceiptEmails } from "#convex/lib/bookingDocumentEmails";
 import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packageAdjustmentInvoicePayment";
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 type CompletePackageAdjustmentInvoicePaymentSuccess = {
 	outcome: "already_completed" | "completed";
@@ -39,25 +35,10 @@ export function completePackageAdjustmentInvoicePaymentService(
 			}
 
 			return fromConvexTuple(
-				ctx.runQuery(internal.packageAdjustments.getPackageAdjustmentInvoiceInput, {
-					adjustmentId: claim.adjustmentId
-				})
-			)
-				.mapErr((error) => ({ kind: "claim_failed" as const, error }))
-				.andThen((invoiceInput) =>
-					okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-						(bookingSettings) => ({ bookingSettings, invoiceInput })
-					)
+				ctx.runAction(
+					internal.packageAdjustmentInvoicePaymentHandlers.sendPackageAdjustmentReceiptAfterPayment,
+					{ adjustmentId: claim.adjustmentId, paidAt: args.paidAt }
 				)
-				.andThen(({ bookingSettings, invoiceInput }) =>
-					okOrThrow(
-						sendPackageAdjustmentReceiptEmails(
-							invoiceInput,
-							args.paidAt,
-							bookingSettings.leadTimeMinutes
-						)
-					).mapErr((error) => ({ kind: "completion_failed" as const, error }))
-				)
-				.map(() => ({ outcome: "completed" as const }));
+			).mapErr((error) => ({ kind: "completion_failed" as const, error }));
 		});
 }
