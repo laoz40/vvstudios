@@ -1,9 +1,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { useAction } from "convex/react";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { studioSite } from "#/config/sites";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	packageFormSchema,
@@ -12,7 +10,6 @@ import {
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	closeBookingModal,
 	openPaymentModal,
 	openTermsModal
 } from "#studio/features/booking-form/lib/booking-modal-store";
@@ -26,13 +23,13 @@ type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
 >;
 
-type CreatePackageRequestAction = ReturnType<
-	typeof useAction<typeof api.packagePayment.createPackageRequest>
+type CreatePackageCheckoutSessionAction = ReturnType<
+	typeof useAction<typeof api.packagePayment.createPackageCheckoutSession>
 >;
 
 interface UseBookingSubmitOptions {
 	createEmbeddedCheckoutSession: CreateEmbeddedCheckoutSessionAction;
-	createPackageRequest: CreatePackageRequestAction;
+	createPackageCheckoutSession: CreatePackageCheckoutSessionAction;
 	formRef: RefObject<HTMLFormElement | null>;
 	persistBookingInfoFromForm: (values: BookingFormValues) => void;
 }
@@ -41,15 +38,13 @@ export const termsDialogPendingError = new Error("terms-dialog-pending");
 
 export function useBookingSubmit({
 	createEmbeddedCheckoutSession,
-	createPackageRequest,
+	createPackageCheckoutSession,
 	formRef,
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [hasCompletedPackageBooking, setHasCompletedPackageBooking] = useState(false);
 	const isSubmittingRef = useRef(false);
 	const submitAfterTermsRef = useRef(false);
-	const navigate = useNavigate();
 
 	const submitPackageBooking = async (parsedValue: BookingFormValues) => {
 		const packageFormValue = packageFormSchema.parse(parsedValue);
@@ -58,8 +53,8 @@ export function useBookingSubmit({
 		setIsSubmitting(true);
 		const addonQuantities = pickBookingAddonQuantities(packageFormValue);
 
-		const [error, result] = await tryCatch(
-			createPackageRequest({
+		const [error, session] = await tryCatch(
+			createPackageCheckoutSession({
 				name: packageFormValue.name,
 				phone: packageFormValue.phone,
 				accountName: packageFormValue.accountName,
@@ -78,6 +73,7 @@ export function useBookingSubmit({
 
 		isSubmittingRef.current = false;
 		setIsSubmitting(false);
+		submitAfterTermsRef.current = false;
 
 		if (error !== null) {
 			toast.error(createPackageToastMessages[error.reason]);
@@ -86,11 +82,11 @@ export function useBookingSubmit({
 		}
 
 		persistBookingInfoFromForm({ ...parsedValue, notes: "" });
-		setHasCompletedPackageBooking(true);
-		closeBookingModal();
-		await navigate({
-			to: studioSite.routes.packageComplete,
-			search: { package_id: result.packageId, package_size: packageFormValue.packageSize }
+		openPaymentModal({
+			kind: "package",
+			packageId: session.packageId,
+			clientSecret: session.clientSecret,
+			stripeSessionId: session.stripeSessionId
 		});
 	};
 
@@ -130,11 +126,16 @@ export function useBookingSubmit({
 		}
 
 		persistBookingInfoFromForm(parsedValue);
-		openPaymentModal(session);
+		openPaymentModal({
+			kind: "session",
+			bookingId: session.bookingId,
+			clientSecret: session.clientSecret,
+			stripeSessionId: session.stripeSessionId
+		});
 	};
 
 	const handleSubmit = async (value: BookingFormValues) => {
-		if (isSubmittingRef.current || hasCompletedPackageBooking) {
+		if (isSubmittingRef.current) {
 			return;
 		}
 
@@ -142,11 +143,7 @@ export function useBookingSubmit({
 
 		if (!submitAfterTermsRef.current) {
 			openTermsModal();
-
-			if (parsedValue.bookingMode === "single") {
-				void loadBookingPaymentModal();
-			}
-
+			void loadBookingPaymentModal();
 			throw termsDialogPendingError;
 		}
 
@@ -162,7 +159,7 @@ export function useBookingSubmit({
 	};
 
 	const handleTermsConfirm = () => {
-		if (isSubmittingRef.current || submitAfterTermsRef.current || hasCompletedPackageBooking) {
+		if (isSubmittingRef.current || submitAfterTermsRef.current) {
 			return;
 		}
 
@@ -174,11 +171,5 @@ export function useBookingSubmit({
 		submitAfterTermsRef.current = false;
 	};
 
-	return {
-		handleSubmit,
-		handleTermsConfirm,
-		hasCompletedPackageBooking,
-		isSubmitting,
-		resetTermsSubmit
-	};
+	return { handleSubmit, handleTermsConfirm, isSubmitting, resetTermsSubmit };
 }
