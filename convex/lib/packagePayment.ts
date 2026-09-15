@@ -138,9 +138,9 @@ export function sendAndRecordPackageReceiptEmail(
 		sendPackageReceiptEmailsForPackage(packageRecord, paidAt, { leadTimeMinutes })
 	).andThen((emailResult) => {
 		if (emailResult.isErr()) {
-			void recordPackageReceiptEmailAttempt(ctx, packageId, "failed", emailResult.error.reason);
-
-			return errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const });
+			return recordPackageReceiptEmailAttempt(ctx, packageId, "failed", emailResult.error.reason)
+				.mapErr(() => ({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }))
+				.andThen(() => errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }));
 		}
 
 		return recordPackageReceiptEmailAttempt(
