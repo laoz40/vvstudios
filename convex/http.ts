@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
+import { completePackageAdjustmentInvoicePaymentService } from "#convex/services/packageAdjustmentInvoicePayment";
 import { completePackageCheckoutService } from "#convex/services/packageCheckoutCompletion";
 
 const http = httpRouter();
@@ -158,9 +159,64 @@ async function handleCompletedCheckout(
 	);
 }
 
+async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent) {
+	const invoice = event.data.object;
+	const stripeInvoiceId = invoice.id;
+	const adjustmentId = invoice.metadata?.adjustmentId;
+
+	const paymentCompletion = await completePackageAdjustmentInvoicePaymentService(ctx, {
+		stripeInvoiceId,
+		adjustmentId,
+		paidAt: Date.now()
+	});
+
+	return paymentCompletion.match(
+		({ outcome }) => {
+			switch (outcome) {
+				case "already_completed":
+					return new Response("already completed", { status: 200 });
+				case "completed":
+					return new Response("paid", { status: 200 });
+				default:
+					return exhaustiveCheck(outcome);
+			}
+		},
+		(failure) => {
+			const failureKind = failure.kind;
+
+			switch (failureKind) {
+				case "claim_failed":
+					console.error("Package adjustment invoice payment claim failed", {
+						eventId: event.id,
+						stripeInvoiceId,
+						adjustmentId,
+						claimError: failure.error
+					});
+
+					return new Response("claim failed", { status: 200 });
+				case "completion_failed":
+					console.error("Package adjustment receipt email failed", {
+						eventId: event.id,
+						stripeInvoiceId,
+						adjustmentId,
+						completionError: failure.error
+					});
+
+					return new Response("completion failed", { status: 200 });
+				default:
+					return exhaustiveCheck(failureKind);
+			}
+		}
+	);
+}
+
 async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
 	if (event.type === "checkout.session.completed") {
 		return handleCompletedCheckout(ctx, event);
+	}
+
+	if (event.type === "invoice.paid") {
+		return handlePaidInvoice(ctx, event);
 	}
 
 	if (event.type === "checkout.session.expired") {

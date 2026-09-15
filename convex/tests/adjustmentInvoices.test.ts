@@ -17,6 +17,9 @@
  * 4. Payment status and downloads
  *    Payment status can change after sending or once overdue, while downloads always require a
  *    sent invoice.
+ *
+ * 5. Stripe invoice payment
+ *    invoice.paid claims mark the adjustment paid once and reject mismatched Stripe invoice ids.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
@@ -306,6 +309,52 @@ describe("package adjustment payment and download", () => {
 	});
 });
 
+describe("package adjustment stripe invoice payment", () => {
+	test("marks a sent adjustment paid once for a matching Stripe invoice", async () => {
+		const t = createConvexTest();
+
+		const { adjustmentId, packageId } = await seedInvoiceAdjustment(
+			t,
+			"sent",
+			undefined,
+			"in_test_1"
+		);
+
+		const paidAt = now + 60 * 60 * 1000;
+
+		expect(
+			await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+				stripeInvoiceId: "in_test_1",
+				adjustmentId,
+				paidAt
+			})
+		).toEqual([null, { outcome: "completed", adjustmentId, packageId }]);
+		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid", paidAt });
+
+		expect(
+			await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+				stripeInvoiceId: "in_test_1",
+				adjustmentId,
+				paidAt: paidAt + 1
+			})
+		).toEqual([null, { outcome: "already_completed" }]);
+	});
+
+	test("rejects payment claims when the Stripe invoice id does not match", async () => {
+		const t = createConvexTest();
+		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent", undefined, "in_test_1");
+
+		expect(
+			await t.mutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+				stripeInvoiceId: "in_test_other",
+				adjustmentId,
+				paidAt: now
+			})
+		).toEqual([{ reason: "STRIPE_INVOICE_MISMATCH" }, null]);
+		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
+	});
+});
+
 describe("package adjustment invoice delivery", () => {
 	test("sets invoiceEmailClaimedAt on the first claim and rejects a second concurrent claim", async () => {
 		const t = createConvexTest();
@@ -357,7 +406,7 @@ describe("package adjustment invoice delivery", () => {
 
 		const staleResult = await t.mutation(
 			internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent,
-			{ adjustmentId, claimedAt: firstClaimedAt }
+			{ adjustmentId, claimedAt: firstClaimedAt, stripeInvoiceId: "in_test_stale" }
 		);
 
 		expect(staleResult).toEqual([null, { updated: false }]);
@@ -413,7 +462,8 @@ async function seedPaidPackage(t: TestClient) {
 			invoiceDueAt: now,
 			invoiceEmailStatus: "sent",
 			paidAt: now - 20 * 24 * 60 * 60 * 1000,
-			expiresAt: now
+			expiresAt: now,
+			stripeCustomerId: "cus_test_package"
 		})
 	);
 }
@@ -459,7 +509,8 @@ async function processCompletedPackage(t: TestClient, packageId: Id<"packages">)
 async function seedInvoiceAdjustment(
 	t: TestClient,
 	invoiceEmailStatus: "pending" | "sent" | "failed",
-	invoiceDueAt = now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS
+	invoiceDueAt = now + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
+	stripeInvoiceId?: string
 ) {
 	const packageId = await seedPaidPackage(t);
 
@@ -476,6 +527,7 @@ async function seedInvoiceAdjustment(
 			createdAt: now,
 			invoiceDueAt,
 			invoiceEmailStatus,
+			stripeInvoiceId,
 			paymentStatus: "unpaid"
 		})
 	);
