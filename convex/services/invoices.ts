@@ -7,9 +7,11 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	createBookingInvoiceArtifactsForBooking,
+	createBookingReceiptArtifactsForBooking,
 	createCustomPackageInvoiceData,
 	createPackageInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
+	renderBookingReceiptPdfInNode,
 	type CustomPackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import {
@@ -24,6 +26,10 @@ import { okOrThrow } from "#convex/lib/result";
 type BookingInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
 	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+
+type BookingReceiptPdfError =
+	| { reason: "INVALID_BOOKING_DATA" }
+	| { reason: "RECEIPT_DOWNLOAD_FAILED" };
 
 type InvoicePdfError = BookingInvoicePdfError | { reason: "INVOICE_EMAIL_RENDER_FAILED" };
 
@@ -51,6 +57,46 @@ function renderPackageInvoicePdf(
 					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
 			)
 	);
+}
+
+export function getBookingReceiptPdfByStripeSessionIdService(
+	ctx: ActionCtx,
+	args: { stripeSessionId: string }
+): ResultAsync<
+	InvoicePdfPayload,
+	| BookingReceiptPdfError
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_CONFIRMED" }
+	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
+> {
+	const bookingPromise: Promise<Doc<"bookings"> | null> = ctx.runQuery(
+		internal.sessionCheckout.getSessionByStripeSessionId,
+		{ stripeSessionId: args.stripeSessionId }
+	);
+
+	return okOrThrow(bookingPromise)
+		.andThen((booking) =>
+			booking
+				? validateBookingInvoiceDownload(booking, Date.now())
+				: err({ reason: "BOOKING_NOT_FOUND" as const })
+		)
+		.andThen(({ booking, invoiceCreatedAt }) =>
+			okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
+				booking,
+				bookingSettings,
+				receiptCreatedAt: invoiceCreatedAt
+			}))
+		)
+		.andThen(({ booking, bookingSettings, receiptCreatedAt }) =>
+			createBookingReceiptArtifactsForBooking(booking, receiptCreatedAt, {
+				leadTimeMinutes: bookingSettings.leadTimeMinutes
+			})
+		)
+		.andThen((artifactsResult) =>
+			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
+				.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
+				.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+		);
 }
 
 export function getBookingInvoicePdfByStripeSessionIdService(

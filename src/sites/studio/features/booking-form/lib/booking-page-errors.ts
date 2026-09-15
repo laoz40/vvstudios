@@ -26,6 +26,7 @@ const bookingPageErrorMessages = {
 	LOAD_AVAILABILITY_FAILED: "Something went wrong while loading availability.",
 	START_CHECKOUT_FAILED: "Something went wrong while starting checkout.",
 	STRIPE_CHECKOUT_CLOSE_FAILED: "Failed to close checkout.",
+	STRIPE_CHECKOUT_CREATE_FAILED: "Something went wrong while starting checkout.",
 	STRIPE_SESSION_MISMATCH:
 		"We couldn’t close this checkout session safely. Please refresh the page and try again.",
 	UNKNOWN: "Something went wrong."
@@ -67,6 +68,7 @@ export const startCheckoutToastMessages = {
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
 	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
 	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
+	STRIPE_CHECKOUT_CREATE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CREATE_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
 

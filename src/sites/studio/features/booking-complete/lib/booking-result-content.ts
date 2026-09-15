@@ -7,8 +7,8 @@ export interface BookingResultContent {
 	descriptionSteps?: Array<{
 		title: string;
 		description: string;
-		showInvoiceDownloadLink?: boolean;
-		invoiceDownloadLinkSuffix?: string;
+		showReceiptDownloadLink?: boolean;
+		receiptDownloadLinkSuffix?: string;
 	}>;
 	isBookingCompletionFailure: boolean;
 	title: string;
@@ -52,7 +52,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 		case "confirmed":
 			return {
 				title: "Your booking is confirmed!",
-				description: "Your invoice has been emailed to you, or you can download it",
+				description: "Your receipt has been emailed",
 				isBookingCompletionFailure: false
 			};
 
@@ -60,7 +60,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 			return {
 				title: "Your booking is confirmed!",
 				description:
-					"Your booking is confirmed, but we couldn’t email your invoice. You can download it here or contact us.",
+					"Your booking is confirmed, but we couldn’t email your receipt. You can download it here or contact us.",
 				isBookingCompletionFailure: false
 			};
 
@@ -101,8 +101,8 @@ export function getPackageResultContent(packageSize: 4 | 8 | 12): BookingResultC
 			{
 				title: "Pay your invoice",
 				description: "Your invoice is in your email (or download it",
-				showInvoiceDownloadLink: true,
-				invoiceDownloadLinkSuffix: "). Please complete payment to start the process."
+				showReceiptDownloadLink: true,
+				receiptDownloadLinkSuffix: "). Please complete payment to start the process."
 			},
 			{
 				title: "Bank processing",
