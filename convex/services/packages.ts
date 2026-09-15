@@ -36,6 +36,12 @@ type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
 
 type MarkPackageScheduleEmailAttemptArgs = PackageIdArgs & { status: "sent" | "failed" };
 
+type MarkPackageReceiptEmailAttemptArgs = PackageIdArgs & {
+	status: "sent" | "failed";
+	receiptNumber?: string;
+	failureCode?: string;
+};
+
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 
 export type PaidPackageResult = {
@@ -318,4 +324,34 @@ export function markPackageScheduleEmailAttemptService(
 				.then(() => null)
 		)
 	);
+}
+
+export function markPackageReceiptEmailAttemptService(
+	ctx: MutationCtx,
+	args: MarkPackageReceiptEmailAttemptArgs
+) {
+	return getPackageFromDb(ctx, args.packageId).andThen(() => {
+		const now = Date.now();
+
+		// Receipt fields still use invoice* columns until a schema migration renames them.
+		return okOrThrow(
+			ctx.db
+				.patch(args.packageId, {
+					...(args.status === "sent"
+						? {
+								invoiceEmailFailureCode: undefined,
+								invoiceEmailSentAt: now,
+								invoiceEmailStatus: "sent" as const,
+								invoiceNumber: args.receiptNumber,
+								lastInvoiceEmailAttemptAt: now
+							}
+						: {
+								invoiceEmailFailureCode: args.failureCode,
+								invoiceEmailStatus: "failed" as const,
+								lastInvoiceEmailAttemptAt: now
+							})
+				})
+				.then(() => null)
+		);
+	});
 }

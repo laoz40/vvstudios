@@ -318,10 +318,12 @@ export default defineSchema({
 			v.literal("pending_payment"),
 			v.literal("paid"),
 			v.literal("invoice_email_failed"),
-			v.literal("schedule_email_failed")
+			v.literal("schedule_email_failed"),
+			v.literal("abandoned"),
+			v.literal("expired")
 		),
 		createdAt: v.number(),
-		invoiceDueAt: v.number(),
+		invoiceDueAt: v.optional(v.number()),
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),

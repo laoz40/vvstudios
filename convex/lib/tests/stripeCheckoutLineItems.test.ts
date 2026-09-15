@@ -19,6 +19,7 @@ import {
 	buildSessionCheckoutLineItems,
 	type SessionCheckoutLineItem
 } from "#convex/lib/stripeCheckoutLineItems";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
 function sumLineItemsAud(lineItems: SessionCheckoutLineItem[]) {
@@ -75,7 +76,7 @@ describe("buildPackageCheckoutLineItems", () => {
 		const input = {
 			duration: "2h" as const,
 			packageSize: 4 as const,
-			addons: ["Teleprompter", "Essential Edit"] as const,
+			addons: ["Teleprompter", "Essential Edit"] satisfies BookingAddon[],
 			essentialEditQuantity: "1"
 		};
 
@@ -114,7 +115,7 @@ describe("buildPackageCheckoutLineItems", () => {
 		const input = {
 			duration: "3h" as const,
 			packageSize: 8 as const,
-			addons: ["4K UHD Recording"] as const
+			addons: ["4K UHD Recording"] satisfies BookingAddon[]
 		};
 
 		const result = buildPackageCheckoutLineItems(input);
@@ -124,7 +125,7 @@ describe("buildPackageCheckoutLineItems", () => {
 
 		if (result.isOk()) {
 			const subtotal = sumLineItemsAud(result.value.lineItems);
-			const discountAmount = result.value.discount?.amount ?? 0;
+			const discountAmount = result.value.discount.amount;
 
 			expect(subtotal - discountAmount).toBe(packageAmounts.totalDueAmount);
 			expect(result.value.discount).toEqual({

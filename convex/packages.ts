@@ -15,6 +15,7 @@ import {
 	markPackageInvoiceEmailAttemptService,
 	markPackagePaidAndCreateScheduleTokenService,
 	markPackageUnpaidService,
+	markPackageReceiptEmailAttemptService,
 	markPackageScheduleEmailAttemptService,
 	refreshPackageScheduleTokenService,
 	savePackageInstagramHandleService,
@@ -133,6 +134,16 @@ export const refreshPackageScheduleToken = internalMutation({
 export const markPackageScheduleEmailAttempt = internalMutation({
 	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
 	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const markPackageReceiptEmailAttempt = internalMutation({
+	args: {
+		packageId: v.id("packages"),
+		status: v.union(v.literal("sent"), v.literal("failed")),
+		receiptNumber: v.optional(v.string()),
+		failureCode: v.optional(v.string())
+	},
+	handler: (ctx, args) => markPackageReceiptEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const savePackageInstagramHandle = mutation({

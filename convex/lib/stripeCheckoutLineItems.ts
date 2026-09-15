@@ -1,4 +1,5 @@
 import { err, ok, type Result } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 import {
 	getCustomerAddonDisplayLabel,
 	pickBookingAddonQuantities,
@@ -10,8 +11,7 @@ import {
 	BOOKING_INVOICE_CURRENCY,
 	calculatePackageAmounts,
 	DURATION_PRICES,
-	getBookingAddonQuantity,
-	type PackageSize
+	getBookingAddonQuantity
 } from "#studio/features/booking-form/lib/booking-pricing";
 
 type BookingDuration = keyof typeof DURATION_PRICES;
@@ -79,31 +79,36 @@ export function buildSessionCheckoutLineItems(
 export type PackageCheckoutDiscount = { amount: number; description: string };
 
 export type PackageCheckoutLineItems = {
-	discount: PackageCheckoutDiscount | null;
+	discount: PackageCheckoutDiscount;
 	lineItems: SessionCheckoutLineItem[];
 };
 
-export type BuildPackageCheckoutLineItemsInput = {
-	duration: string;
-	addons: readonly BookingAddon[];
-	packageSize: PackageSize;
-} & BookingAddonQuantities;
+export type PackageCheckoutPricing = Pick<
+	Doc<"packages">,
+	| "duration"
+	| "addons"
+	| "packageSize"
+	| "essentialEditQuantity"
+	| "completeEditQuantity"
+	| "clipsPackageQuantity"
+	| "handcraftedClipsQuantity"
+>;
 
 export type BuildPackageCheckoutLineItemsError = { reason: "BOOKING_INVALID_DURATION" };
 
 export function buildPackageCheckoutLineItems(
-	input: BuildPackageCheckoutLineItemsInput
+	packageFromDb: PackageCheckoutPricing
 ): Result<PackageCheckoutLineItems, BuildPackageCheckoutLineItemsError> {
-	if (!isBookingDuration(input.duration)) {
+	if (!isBookingDuration(packageFromDb.duration)) {
 		return err({ reason: "BOOKING_INVALID_DURATION" });
 	}
 
-	const addonQuantities = pickBookingAddonQuantities(input);
+	const addonQuantities = pickBookingAddonQuantities(packageFromDb);
 
 	const packageAmounts = calculatePackageAmounts({
-		addons: [...input.addons],
-		duration: input.duration,
-		packageSize: input.packageSize,
+		addons: [...packageFromDb.addons],
+		duration: packageFromDb.duration,
+		packageSize: packageFromDb.packageSize,
 		...addonQuantities
 	});
 
@@ -111,16 +116,16 @@ export function buildPackageCheckoutLineItems(
 
 	const lineItems: SessionCheckoutLineItem[] = [
 		{
-			quantity: input.packageSize,
+			quantity: packageFromDb.packageSize,
 			price_data: {
 				currency,
-				unit_amount: audToStripeUnitAmount(DURATION_PRICES[input.duration]),
-				product_data: { name: `Studio Hire (${input.duration})` }
+				unit_amount: audToStripeUnitAmount(DURATION_PRICES[packageFromDb.duration]),
+				product_data: { name: `Studio Hire (${packageFromDb.duration})` }
 			}
 		}
 	];
 
-	for (const addon of input.addons) {
+	for (const addon of packageFromDb.addons) {
 		const quantityPerSession = getBookingAddonQuantity(addon, addonQuantities);
 
 		if (quantityPerSession <= 0) {
@@ -128,7 +133,7 @@ export function buildPackageCheckoutLineItems(
 		}
 
 		lineItems.push({
-			quantity: input.packageSize * quantityPerSession,
+			quantity: packageFromDb.packageSize * quantityPerSession,
 			price_data: {
 				currency,
 				unit_amount: audToStripeUnitAmount(ADDON_PRICES[addon]),
@@ -137,13 +142,11 @@ export function buildPackageCheckoutLineItems(
 		});
 	}
 
-	const discount =
-		packageAmounts.discountAmount > 0
-			? {
-					amount: packageAmounts.discountAmount,
-					description: `${packageAmounts.discountPercent}% package discount`
-				}
-			: null;
-
-	return ok({ discount, lineItems });
+	return ok({
+		discount: {
+			amount: packageAmounts.discountAmount,
+			description: `${packageAmounts.discountPercent}% package discount`
+		},
+		lineItems
+	});
 }

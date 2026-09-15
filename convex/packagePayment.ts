@@ -8,13 +8,16 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/bookingAddonQuantities";
 import {
+	closeEmbeddedPackageCheckoutSessionService,
+	createPackageCheckoutSessionService
+} from "#convex/services/packageCheckoutActions";
+import {
 	confirmPackagePaymentService,
-	createPackageRequestService,
 	resendPackageInvoiceEmailService,
 	retryPackageSchedulingEmailService
 } from "#convex/services/packagePayment";
 
-export const createPackageRequest = action({
+export const createPackageCheckoutSession = action({
 	args: {
 		name: v.string(),
 		phone: v.string(),
@@ -27,7 +30,13 @@ export const createPackageRequest = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createPackageRequestService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => createPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const closeEmbeddedPackageCheckoutSession = action({
+	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
+	handler: (ctx, args) =>
+		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const resendPackageInvoiceEmail = action({

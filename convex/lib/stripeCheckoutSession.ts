@@ -71,11 +71,11 @@ export function createPendingSessionForCheckout(
 	);
 }
 
-export function createStripeCheckoutCustomer(
+export function createStripeCheckoutCustomer<T extends { lineItems: SessionCheckoutLineItem[] }>(
 	stripe: Stripe,
 	booking: Pick<SessionCheckoutBooking, "email" | "name">,
-	checkoutDraft: SessionCheckoutDraft
-): ResultAsync<SessionCheckoutDraft & { stripeCustomerId: string }, StripeCheckoutCreateFailed> {
+	checkoutDraft: T
+): ResultAsync<T & { stripeCustomerId: string }, StripeCheckoutCreateFailed> {
 	return tryPromise({
 		try: () =>
 			stripe.customers
@@ -136,6 +136,129 @@ export function linkStripeCheckoutToPendingBooking(
 			})
 			.then(() => ({
 				bookingId: checkoutDraft.bookingId,
+				clientSecret,
+				stripeSessionId: checkoutDraft.session.id
+			}))
+	);
+}
+
+type PackageCheckoutDraft = {
+	packageId: Id<"packages">;
+	lineItems: SessionCheckoutLineItem[];
+	discount: PackageCheckoutDiscount;
+};
+
+type StripePackageCheckoutDraft = PackageCheckoutDraft & {
+	stripeCustomerId: string;
+	session: Stripe.Checkout.Session;
+};
+
+function audToStripeUnitAmount(amount: number) {
+	return Math.round(amount * 100);
+}
+
+export function createStripeCheckoutDiscountCoupon(
+	stripe: Stripe,
+	discount: PackageCheckoutDiscount
+): ResultAsync<{ couponId: string }, StripeCheckoutCreateFailed> {
+	return tryPromise({
+		try: () =>
+			stripe.coupons
+				.create({
+					amount_off: audToStripeUnitAmount(discount.amount),
+					currency: "aud",
+					duration: "once",
+					name: discount.description
+				})
+				.then((coupon) => ({ couponId: coupon.id })),
+		catch: (cause) => {
+			console.error("Stripe checkout coupon create failed", { cause });
+
+			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+		}
+	});
+}
+
+export function createEmbeddedStripePackageCheckoutSession(
+	stripe: Stripe,
+	checkoutDraft: PackageCheckoutDraft & { stripeCustomerId: string }
+): ResultAsync<StripePackageCheckoutDraft, StripeCheckoutCreateFailed> {
+	return createStripeCheckoutDiscountCoupon(stripe, checkoutDraft.discount).andThen(
+		({ couponId }) =>
+			tryPromise({
+				try: () =>
+					stripe.checkout.sessions
+						.create({
+							mode: "payment",
+							ui_mode: "embedded_page",
+							payment_method_types: ["card"],
+							return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
+							customer: checkoutDraft.stripeCustomerId,
+							metadata: { packageId: checkoutDraft.packageId },
+							line_items: checkoutDraft.lineItems,
+							discounts: [{ coupon: couponId }]
+						})
+						.then((session) => ({ ...checkoutDraft, session })),
+				catch: (cause) => {
+					console.error("Stripe package checkout session create failed", { cause });
+
+					return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+				}
+			})
+	);
+}
+
+type StripeCheckoutCloseLogContext = {
+	stripeSessionId: string;
+	bookingId?: Id<"bookings">;
+	packageId?: Id<"packages">;
+};
+
+export function closeOpenStripeCheckoutSession(
+	stripe: Stripe,
+	stripeSessionId: string,
+	logContext: StripeCheckoutCloseLogContext
+): ResultAsync<Stripe.Checkout.Session, StripeCheckoutCloseFailed> {
+	return tryPromise({
+		try: async () => {
+			const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+
+			if (session.status === "open") {
+				await stripe.checkout.sessions.expire(stripeSessionId);
+			}
+
+			return session;
+		},
+		catch: (cause) => {
+			console.error("Stripe checkout close failed", { ...logContext, cause });
+
+			return { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" as const };
+		}
+	});
+}
+
+export function linkStripeCheckoutToPendingPackage(
+	ctx: ActionCtx,
+	checkoutDraft: StripePackageCheckoutDraft
+): ResultAsync<
+	{ packageId: Id<"packages">; clientSecret: string; stripeSessionId: string },
+	StripeCheckoutCreateFailed
+> {
+	const clientSecret = checkoutDraft.session.client_secret;
+
+	if (!clientSecret) {
+		return errAsync({ reason: "STRIPE_CHECKOUT_CREATE_FAILED" });
+	}
+
+	return okOrThrow(
+		ctx
+			.runMutation(internal.packageCheckout.setPackageStripeSessionId, {
+				packageId: checkoutDraft.packageId,
+				stripeSessionId: checkoutDraft.session.id,
+				stripeCustomerId: checkoutDraft.stripeCustomerId
+			})
+			.then(() => ({
+				packageId: checkoutDraft.packageId,
 				clientSecret,
 				stripeSessionId: checkoutDraft.session.id
 			}))
