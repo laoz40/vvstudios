@@ -186,7 +186,7 @@ line_items: lineItems,
 customer: customer.id,
 metadata: { bookingId },
 // store stripeCustomerId + stripeSessionId on pending booking`}
-    />
+/>
 
   </Tab>
   <Tab id="env-cleanup" label="Env vars">
@@ -521,15 +521,15 @@ export function createPackageCheckoutSession(...) {
 
 ### Tests
 
-| Area   | What to test                                            |
-| ------ | ------------------------------------------------------- |
+| Area   | What to test                                                      |
+| ------ | ----------------------------------------------------------------- |
 | Convex | Checkout line item amounts match pricing constants (stage 1 done) |
-| Convex | Webhook idempotency (checkout replay)                   |
-| Convex | Package paid → schedule token created once              |
-| Convex | Adjustment Stripe Invoice only when remote sessions > 0 |
-| Convex | `invoice.paid` idempotency                              |
-| E2E    | Single session: form → checkout → complete page         |
-| E2E    | Package: form → checkout → complete page (local Stripe) |
+| Convex | Webhook idempotency (checkout replay)                             |
+| Convex | Package paid → schedule token created once                        |
+| Convex | Adjustment Stripe Invoice only when remote sessions > 0           |
+| Convex | `invoice.paid` idempotency                                        |
+| E2E    | Single session: form → checkout → complete page                   |
+| E2E    | Package: form → checkout → complete page (local Stripe)           |
 
 ### Dead code / constants
 
