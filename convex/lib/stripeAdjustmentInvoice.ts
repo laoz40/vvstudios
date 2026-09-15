@@ -1,5 +1,6 @@
 "use node";
 
+import Stripe from "stripe";
 import { ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import {
@@ -44,17 +45,14 @@ export function createAndSendPackageAdjustmentStripeInvoice(
 				metadata: { adjustmentId: input.adjustmentId, packageId: input.packageId }
 			});
 
-			await Promise.all(
-				Array.from({ length: input.quantity }, () =>
-					stripe.invoiceItems.create({
-						customer: input.stripeCustomerId,
-						invoice: invoice.id,
-						amount: unitAmount,
-						currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-						description: `${remotePodcastLabel} (package adjustment)`
-					})
-				)
-			);
+			await stripe.invoiceItems.create({
+				customer: input.stripeCustomerId,
+				invoice: invoice.id,
+				quantity: input.quantity,
+				unit_amount_decimal: Stripe.Decimal.from(unitAmount),
+				currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
+				description: `${remotePodcastLabel} (package adjustment)`
+			});
 
 			const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
 
