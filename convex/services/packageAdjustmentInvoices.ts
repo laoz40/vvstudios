@@ -11,8 +11,9 @@ import {
 	renderBookingInvoicePdfInNode,
 	type PackageAdjustmentInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
-import { sendPackageAdjustmentInvoiceEmail } from "#convex/lib/email";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
+import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripeAdjustmentInvoice";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -59,7 +60,8 @@ function markPackageAdjustmentInvoiceEmailFailed(
 
 export function sendPackageAdjustmentInvoiceService(
 	ctx: ActionCtx,
-	args: SendPackageAdjustmentInvoiceArgs
+	args: SendPackageAdjustmentInvoiceArgs,
+	stripe: StripeClient = getStripeClient()
 ): NeverthrowResultAsync<null, SendPackageAdjustmentInvoiceError> {
 	const claimedAt = Date.now();
 
@@ -73,32 +75,46 @@ export function sendPackageAdjustmentInvoiceService(
 				now: claimedAt
 			})
 		)
-			// Deliver the claimed invoice using its stored package and adjustment snapshot.
-			.andThen((invoiceInput) =>
-				okOrThrow(sendPackageAdjustmentInvoiceEmail(invoiceInput))
-					.andThen((emailResult) => emailResult)
+			// Create and send the claimed adjustment invoice through Stripe.
+			.andThen((invoiceInput) => {
+				const { adjustment, packageRecord } = invoiceInput;
+
+				if (!packageRecord.stripeCustomerId) {
+					return markPackageAdjustmentInvoiceEmailFailed(ctx, {
+						adjustmentId: args.adjustmentId,
+						claimedAt
+					});
+				}
+
+				return createAndSendPackageAdjustmentStripeInvoice(stripe, {
+					adjustmentId: args.adjustmentId,
+					packageId: packageRecord._id,
+					stripeCustomerId: packageRecord.stripeCustomerId,
+					quantity: adjustment.quantity
+				})
 					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" as const }))
-					// Persist provider or render failure so an administrator can retry the invoice.
 					.orElse(() =>
 						markPackageAdjustmentInvoiceEmailFailed(ctx, {
 							adjustmentId: args.adjustmentId,
 							claimedAt
 						})
 					)
-			)
-			// Mark successful delivery only if this attempt still owns the claim.
-			.andThen(() =>
-				fromConvexTuple<
-					Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
-				>(
-					ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
-						adjustmentId: args.adjustmentId,
-						claimedAt
-					})
-				)
-					.orElse(() => ok(null))
-					.map(() => null)
-			)
+					.andThen(({ stripeInvoiceId }) =>
+						fromConvexTuple<
+							Promise<
+								ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>
+							>
+						>(
+							ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
+								adjustmentId: args.adjustmentId,
+								claimedAt,
+								stripeInvoiceId
+							})
+						)
+							.orElse(() => ok(null))
+							.map(() => null)
+					);
+			})
 	);
 }
 

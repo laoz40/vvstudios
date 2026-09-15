@@ -17,10 +17,8 @@ import {
 } from "#convex/lib/sessionCalendarTime";
 import {
 	createPackageInvoiceArtifacts,
-	createPackageAdjustmentInvoiceArtifacts,
 	renderBookingInvoicePdfInNode,
-	type PackageInvoiceInput,
-	type PackageAdjustmentInvoiceInput
+	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -247,51 +245,6 @@ export async function sendBookingRescheduledCustomerEmail({
 		});
 
 		return err({ reason: "RESCHEDULE_EMAIL_SEND_FAILED" });
-	}
-
-	return ok(null);
-}
-
-export async function sendPackageAdjustmentInvoiceEmail(
-	invoiceInput: PackageAdjustmentInvoiceInput
-): Promise<
-	Result<
-		null,
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createPackageAdjustmentInvoiceArtifacts(invoiceInput);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const artifacts = artifactsResult.value.artifacts;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Package adjustment invoice PDF render failed", {
-			adjustmentId: invoiceInput.adjustment._id
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const invoiceEmailResult = await sendEmail({
-		to: [invoiceInput.packageRecord.email],
-		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }],
-		idempotencyKey: `package-adjustment-${invoiceInput.adjustment._id}`
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Package adjustment invoice email send failed", {
-			adjustmentId: invoiceInput.adjustment._id,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
 	}
 
 	return ok(null);
