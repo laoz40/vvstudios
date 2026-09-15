@@ -4,11 +4,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
-export type AdminPackageStatus =
-	| "pending_payment"
-	| "paid"
-	| "invoice_email_failed"
-	| "schedule_email_failed";
+export type AdminPackageStatus = Doc<"packages">["status"];
 
 export type AdminPackageRecord = Doc<"packages"> & {
 	bookedSessions?: number;
@@ -50,7 +46,7 @@ export type AdminPackageRow = {
 	} | null;
 	isPaid: boolean;
 	areSessionsComplete: boolean;
-	invoiceDueAt: number;
+	invoiceDueAt?: number;
 	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
@@ -112,6 +108,12 @@ function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 
 		case "schedule_email_failed":
 			return "Scheduling link failed";
+
+		case "abandoned":
+			return "Abandoned";
+
+		case "expired":
+			return "Expired";
 		default:
 			return exhaustiveCheck(status);
 	}
@@ -165,6 +167,12 @@ export function getAdminPackageStatusDisplay(
 				icon: MailWarning,
 				label: "Scheduling link failed"
 			};
+
+		case "abandoned":
+			return { className: "size-5 text-muted-foreground", icon: ClockAlert, label: "Abandoned" };
+
+		case "expired":
+			return { className: "size-5 text-destructive", icon: ClockAlert, label: "Expired" };
 		default:
 			return exhaustiveCheck(packageRow.status);
 	}
@@ -183,6 +191,10 @@ function isAdminPackageOverdue(
 	}
 
 	if (packageRow.status === "paid" || packageRow.status === "schedule_email_failed") {
+		return false;
+	}
+
+	if (packageRow.invoiceDueAt === undefined) {
 		return false;
 	}
 
@@ -214,6 +226,10 @@ export function isAdminPackagePaymentDueClose(
 	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "isPaid">
 ) {
 	const dueAt = packageRow.adjustment?.invoiceDueAt ?? packageRow.invoiceDueAt;
+
+	if (dueAt === undefined) {
+		return false;
+	}
 
 	const isPaymentOutstanding = packageRow.adjustment
 		? packageRow.adjustment.paymentStatus === "unpaid"
@@ -254,6 +270,10 @@ function isAdminPackageUpcoming(
 	}
 
 	if (!packageRow.isPaid) {
+		if (packageRow.invoiceDueAt === undefined) {
+			return false;
+		}
+
 		return Date.now() <= packageRow.invoiceDueAt;
 	}
 
@@ -268,6 +288,10 @@ export function getAdminPackageDashboardDate(
 	}
 
 	if (!packageRow.isPaid) {
+		if (packageRow.invoiceDueAt === undefined) {
+			return { kind: "missing_package_expiry" };
+		}
+
 		return { kind: "payment_due", timestamp: packageRow.invoiceDueAt };
 	}
 

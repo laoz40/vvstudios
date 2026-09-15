@@ -4,12 +4,6 @@ import { exhaustiveCheck } from "#/lib/result";
 export interface BookingResultContent {
 	description: string;
 	descriptionHeading?: string;
-	descriptionSteps?: Array<{
-		title: string;
-		description: string;
-		showReceiptDownloadLink?: boolean;
-		receiptDownloadLinkSuffix?: string;
-	}>;
 	isBookingCompletionFailure: boolean;
 	title: string;
 }
@@ -92,28 +86,21 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 	}
 }
 
-export function getPackageResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
+export function getPackagePaidResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
 	return {
-		title: `${packageSize}-Session Package requested.`,
-		descriptionHeading: "Next Steps:",
-		description: "",
-		descriptionSteps: [
-			{
-				title: "Pay your invoice",
-				description: "Your invoice is in your email (or download it",
-				showReceiptDownloadLink: true,
-				receiptDownloadLinkSuffix: "). Please complete payment to start the process."
-			},
-			{
-				title: "Bank processing",
-				description: "It can take up to 24 hours for first time payments to process."
-			},
-			{
-				title: "Lock your dates",
-				description:
-					"After roughly 24 hours, your scheduling link will be sent via email. There, you can select and secure your session dates."
-			}
-		],
+		title: `${packageSize}-Session Package confirmed`,
+		description: "A link to schedule your sessions has been sent to your email.",
+		isBookingCompletionFailure: false
+	};
+}
+
+export function getPackageReceiptEmailFailedResultContent(
+	packageSize: 4 | 8 | 12
+): BookingResultContent {
+	return {
+		title: `${packageSize}-Session Package confirmed`,
+		description:
+			"Your package is confirmed, but we couldn’t email your receipt. You can download it here or contact us.",
 		isBookingCompletionFailure: false
 	};
 }
