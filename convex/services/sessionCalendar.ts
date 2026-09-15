@@ -291,8 +291,8 @@ export function rescheduleSessionService(
 			})
 		)
 			.andThen((details: ValidRescheduleDetails) =>
-				checkBookingSubmitRateLimit(ctx, getBookingSubmitRateLimitKey(details.session.email)).map(
-					() => details
+				getBookingSubmitRateLimitKey(details.session.email).andThen((submitRateLimitKey) =>
+					checkBookingSubmitRateLimit(ctx, submitRateLimitKey).map(() => details)
 				)
 			)
 			// Load settings and validate the target before locking the link.

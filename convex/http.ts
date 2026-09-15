@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
+import { completePackageCheckoutService } from "#convex/services/packageCheckoutCompletion";
 
 const http = httpRouter();
 
@@ -38,6 +39,57 @@ async function handleCompletedCheckout(
 	event: Stripe.CheckoutSessionCompletedEvent
 ) {
 	const session = event.data.object;
+	const packageId = session.metadata?.packageId;
+
+	if (packageId) {
+		const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
+
+		const checkoutCompletion = await completePackageCheckoutService(ctx, {
+			packageId,
+			stripeSessionId: session.id,
+			stripePaymentIntentId
+		});
+
+		return checkoutCompletion.match(
+			({ outcome }) => {
+				switch (outcome) {
+					case "already_completed":
+						return new Response("already completed", { status: 200 });
+					case "completed":
+						return new Response("confirmed", { status: 200 });
+					default:
+						return exhaustiveCheck(outcome);
+				}
+			},
+			(failure) => {
+				const failureKind = failure.kind;
+
+				switch (failureKind) {
+					case "claim_failed":
+						console.error("Package completion claim failed", {
+							eventId: event.id,
+							sessionId: session.id,
+							packageId,
+							claimError: failure.error
+						});
+
+						return new Response("claim failed", { status: 200 });
+					case "completion_failed":
+						console.error("Package completion failed", {
+							eventId: event.id,
+							sessionId: session.id,
+							packageId,
+							completionError: failure.error
+						});
+
+						return new Response("completion failed", { status: 200 });
+					default:
+						return exhaustiveCheck(failureKind);
+				}
+			}
+		);
+	}
+
 	const bookingId = session.metadata?.bookingId;
 
 	if (!bookingId) {
@@ -112,8 +164,13 @@ async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
 	}
 
 	if (event.type === "checkout.session.expired") {
+		const stripeSessionId = event.data.object.id;
+
 		await ctx.runMutation(internal.sessionCheckout.markSessionExpiredByStripeSessionId, {
-			stripeSessionId: event.data.object.id
+			stripeSessionId
+		});
+		await ctx.runMutation(internal.packageCheckout.markPackageExpiredByStripeSessionId, {
+			stripeSessionId
 		});
 
 		return new Response("expired", { status: 200 });

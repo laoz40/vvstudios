@@ -2,7 +2,6 @@ import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { packageFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
-	getPackageInvoiceDueAt,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
@@ -83,7 +82,6 @@ type PendingPackageRecord = {
 	invoiceLineItems: Doc<"packages">["invoiceLineItems"];
 	status: "pending_payment";
 	createdAt: number;
-	invoiceDueAt: number;
 	invoiceEmailStatus: "pending";
 };
 
@@ -104,7 +102,6 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		invoiceLineItems: args.invoiceLineItems,
 		status: "pending_payment",
 		createdAt,
-		invoiceDueAt: getPackageInvoiceDueAt(createdAt),
 		invoiceEmailStatus: "pending"
 	};
 

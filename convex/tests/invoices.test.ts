@@ -373,6 +373,51 @@ describe("invoice download access", () => {
 		);
 	});
 
+	test("allows current public receipt downloads for paid packages", async () => {
+		const t = createConvexTest();
+		const paidPackageId = await seedPackage(t, { createdAt: now, paidAt: now, status: "paid" });
+
+		const scheduleFailedPackageId = await seedPackage(t, {
+			createdAt: now,
+			paidAt: now,
+			status: "schedule_email_failed"
+		});
+
+		const unpaidPackageId = await seedPackage(t, { createdAt: now });
+
+		expect(
+			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: unpaidPackageId })
+		).toEqual([{ reason: "PACKAGE_NOT_PAID" }, null]);
+
+		await Promise.all(
+			[paidPackageId, scheduleFailedPackageId].map(async (packageId) => {
+				const [error, payload] = await t.action(api.invoices.getPackageReceiptPdfById, {
+					packageId
+				});
+
+				expect(error).toBeNull();
+				expect(payload).toMatchObject({ contentType: "application/pdf" });
+				expect(payload?.filename).toMatch(/^package-receipt-/);
+				expect(payload?.content.byteLength).toBeGreaterThan(0);
+			})
+		);
+	});
+
+	test("expires public package receipt downloads after the paid download window", async () => {
+		const t = createConvexTest();
+		const expiredPaidAt = now - oneHour - 1;
+
+		const expiredPackageId = await seedPackage(t, {
+			createdAt: expiredPaidAt,
+			paidAt: expiredPaidAt,
+			status: "paid"
+		});
+
+		expect(
+			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
+		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
+	});
+
 	test("expires public package downloads while keeping admin download available", async () => {
 		const t = createConvexTest();
 		const currentPackageId = await seedPackage(t, { createdAt: now });
@@ -462,8 +507,21 @@ function packageFields(createdAt: number) {
 	};
 }
 
-async function seedPackage(t: TestClient, options: { createdAt: number }) {
-	return await t.run((ctx) => ctx.db.insert("packages", packageFields(options.createdAt)));
+async function seedPackage(
+	t: TestClient,
+	options: {
+		createdAt: number;
+		paidAt?: number;
+		status?: "pending_payment" | "paid" | "schedule_email_failed";
+	}
+) {
+	return await t.run((ctx) =>
+		ctx.db.insert("packages", {
+			...packageFields(options.createdAt),
+			status: options.status ?? "pending_payment",
+			paidAt: options.paidAt
+		})
+	);
 }
 
 async function seedAndDeleteSources(t: TestClient) {

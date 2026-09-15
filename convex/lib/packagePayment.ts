@@ -1,11 +1,12 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageLookupError, PaidPackageResult } from "#convex/services/packages";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { sendPackageReceiptEmailsForPackage } from "#convex/lib/bookingDocumentEmails";
 import type { ParsedPackageRequest } from "#convex/lib/packageUpdates";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { sendPackageInvoiceEmail, sendPackageScheduleEmail } from "#convex/lib/email";
@@ -102,6 +103,86 @@ export function markPackagePaid(
 	);
 }
 
+export function buildPackageScheduleEmailArgs(
+	paymentResult: PaidPackageResult,
+	leadTimeMinutes: number,
+	origin: string
+): PackageScheduleEmailArgs {
+	const packageRecord = paymentResult.packageRecord;
+
+	return {
+		addons: packageRecord.addons,
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+		completeEditQuantity: packageRecord.completeEditQuantity,
+		duration: packageRecord.duration,
+		email: packageRecord.email,
+		essentialEditQuantity: packageRecord.essentialEditQuantity,
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+		expiresAt: paymentResult.expiresAt,
+		leadTimeMinutes,
+		name: packageRecord.name,
+		packageSize: packageRecord.packageSize,
+		bookedAt: paymentResult.paidAt,
+		scheduleUrl: buildPackageScheduleUrl(origin, paymentResult.token)
+	};
+}
+
+export function sendAndRecordPackageReceiptEmail(
+	ctx: ActionCtx,
+	packageId: Id<"packages">,
+	packageRecord: Doc<"packages">,
+	paidAt: number,
+	leadTimeMinutes: number
+): ResultAsync<null, { reason: "PACKAGE_RECEIPT_EMAIL_FAILED" }> {
+	return okOrThrow(
+		sendPackageReceiptEmailsForPackage(packageRecord, paidAt, { leadTimeMinutes })
+	).andThen((emailResult) => {
+		if (emailResult.isErr()) {
+			void recordPackageReceiptEmailAttempt(ctx, packageId, "failed", emailResult.error.reason);
+
+			return errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const });
+		}
+
+		return recordPackageReceiptEmailAttempt(
+			ctx,
+			packageId,
+			"sent",
+			emailResult.value.receiptNumber
+		).mapErr(() => ({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }));
+	});
+}
+
+export function sendPackageCheckoutPaidEmails(
+	ctx: ActionCtx,
+	packageId: Id<"packages">,
+	paymentResult: PaidPackageResult,
+	leadTimeMinutes: number,
+	checkoutReturnOrigin: string
+): PackageScheduleEmailResult {
+	return sendAndRecordPackageReceiptEmail(
+		ctx,
+		packageId,
+		paymentResult.packageRecord,
+		paymentResult.paidAt,
+		leadTimeMinutes
+	)
+		.orElse((receiptError) => {
+			console.error("Package receipt email failed during checkout", {
+				packageId,
+				reason: receiptError.reason
+			});
+
+			return okAsync(null);
+		})
+		.andThen(() =>
+			sendAndRecordPackageScheduleEmail(
+				ctx,
+				packageId,
+				buildPackageScheduleEmailArgs(paymentResult, leadTimeMinutes, checkoutReturnOrigin)
+			)
+		);
+}
+
 export function sendAndRecordPackageScheduleEmail(
 	ctx: ActionCtx,
 	packageId: Id<"packages">,
@@ -131,5 +212,21 @@ function recordPackageScheduleEmailAttempt(
 ): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.packages.markPackageScheduleEmailAttempt, { packageId, status })
+	);
+}
+
+function recordPackageReceiptEmailAttempt(
+	ctx: ActionCtx,
+	packageId: Id<"packages">,
+	status: "sent" | "failed",
+	receiptNumberOrFailureCode?: string
+): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
+	return fromConvexTuple(
+		ctx.runMutation(internal.packages.markPackageReceiptEmailAttempt, {
+			packageId,
+			status,
+			receiptNumber: status === "sent" ? receiptNumberOrFailureCode : undefined,
+			failureCode: status === "failed" ? receiptNumberOrFailureCode : undefined
+		})
 	);
 }

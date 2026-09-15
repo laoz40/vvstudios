@@ -7,12 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
-	checkPackageSubmitRateLimit,
-	emailDomainCanReceiveMail
-} from "#convex/lib/bookingSubmission";
-import {
-	buildPackageScheduleUrl,
-	createPendingPackage,
+	buildPackageScheduleEmailArgs,
 	markPackagePaid,
 	refreshPackageScheduleToken,
 	sendAndRecordPackageScheduleEmail,
@@ -22,7 +17,6 @@ import type { PackageInvoiceEmailAttemptError } from "#convex/lib/bookingInvoice
 import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 
 export type { CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 
@@ -35,16 +29,18 @@ type PackageScheduleEmailError =
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
 
-export type CreatePackageRequestSuccess = {
+export type CreatePackageCheckoutSessionSuccess = {
 	packageId: Id<"packages">;
-	invoiceEmailStatus: "sent" | "failed";
+	clientSecret: string;
+	stripeSessionId: string;
 };
 
-export type CreatePackageRequestError =
+export type CreatePackageCheckoutSessionError =
 	| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }
+	| { reason: "BOOKING_INVALID_DURATION" }
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
-	| PackageInvoiceEmailAttemptError;
+	| { reason: "STRIPE_CHECKOUT_CREATE_FAILED" };
 
 export type ResendPackageInvoiceEmailSuccess = { sent: true };
 
@@ -68,35 +64,6 @@ export type RetryPackageSchedulingEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" }
 	| PackageScheduleEmailError;
-
-export function createPackageRequestService(
-	ctx: ActionCtx,
-	args: CreatePackageRequestArgs
-): ResultAsync<CreatePackageRequestSuccess, CreatePackageRequestError> {
-	return (
-		parsePackageRequest(args)
-			.andThen((packageRequest) =>
-				checkPackageSubmitRateLimit(ctx, packageRequest.email).map(() => packageRequest)
-			)
-			// Validate deliverability before creating a package that cannot receive its invoice.
-			.andThen((validRequest) =>
-				okOrThrow(emailDomainCanReceiveMail(validRequest.email)).andThen((isDeliverable) =>
-					isDeliverable
-						? ok(validRequest)
-						: err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" as const })
-				)
-			)
-			// Persist the normalized commercial snapshot before attempting external delivery.
-			.andThen((validRequest) => createPendingPackage(ctx, validRequest))
-			// Invoice delivery failure is recorded but does not discard the created request.
-			.andThen((packageFromDb) =>
-				sendPackageInvoice(ctx, packageFromDb).map((invoiceEmailStatus) => ({
-					packageId: packageFromDb._id,
-					invoiceEmailStatus
-				}))
-			)
-	);
-}
 
 export function resendPackageInvoiceEmailService(
 	ctx: ActionCtx,
@@ -138,24 +105,15 @@ export function confirmPackagePaymentService(
 			)
 			// Send the scheduling link and save its delivery status for admin retries.
 			.andThen(({ bookingSettings, paymentResult }) =>
-				sendAndRecordPackageScheduleEmail(ctx, args.packageId, {
-					addons: paymentResult.packageRecord.addons,
-					clipsPackageQuantity: paymentResult.packageRecord.clipsPackageQuantity,
-					completeEditQuantity: paymentResult.packageRecord.completeEditQuantity,
-					duration: paymentResult.packageRecord.duration,
-					email: paymentResult.packageRecord.email,
-					essentialEditQuantity: paymentResult.packageRecord.essentialEditQuantity,
-					handcraftedClipsQuantity: paymentResult.packageRecord.handcraftedClipsQuantity,
-					expiresAt: paymentResult.expiresAt,
-					leadTimeMinutes: bookingSettings.leadTimeMinutes,
-					name: paymentResult.packageRecord.name,
-					packageSize: paymentResult.packageRecord.packageSize,
-					bookedAt: paymentResult.paidAt,
-					scheduleUrl: buildPackageScheduleUrl(
-						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
-						paymentResult.token
+				sendAndRecordPackageScheduleEmail(
+					ctx,
+					args.packageId,
+					buildPackageScheduleEmailArgs(
+						paymentResult,
+						bookingSettings.leadTimeMinutes,
+						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
 					)
-				})
+				)
 			)
 	);
 }
@@ -176,24 +134,15 @@ export function retryPackageSchedulingEmailService(
 			)
 			// Send the replacement scheduling link and persist the resulting status.
 			.andThen(({ bookingSettings, tokenResult }) =>
-				sendAndRecordPackageScheduleEmail(ctx, args.packageId, {
-					addons: tokenResult.packageRecord.addons,
-					clipsPackageQuantity: tokenResult.packageRecord.clipsPackageQuantity,
-					completeEditQuantity: tokenResult.packageRecord.completeEditQuantity,
-					duration: tokenResult.packageRecord.duration,
-					email: tokenResult.packageRecord.email,
-					essentialEditQuantity: tokenResult.packageRecord.essentialEditQuantity,
-					handcraftedClipsQuantity: tokenResult.packageRecord.handcraftedClipsQuantity,
-					expiresAt: tokenResult.expiresAt,
-					leadTimeMinutes: bookingSettings.leadTimeMinutes,
-					name: tokenResult.packageRecord.name,
-					packageSize: tokenResult.packageRecord.packageSize,
-					bookedAt: tokenResult.paidAt,
-					scheduleUrl: buildPackageScheduleUrl(
-						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
-						tokenResult.token
+				sendAndRecordPackageScheduleEmail(
+					ctx,
+					args.packageId,
+					buildPackageScheduleEmailArgs(
+						tokenResult,
+						bookingSettings.leadTimeMinutes,
+						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
 					)
-				})
+				)
 			)
 	);
 }

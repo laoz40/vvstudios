@@ -140,7 +140,7 @@ export function PackageCustomInvoiceDialog({
 	const customInvoices: PackageCustomInvoiceRecord[] | undefined =
 		customInvoicesResult?.[1] ?? undefined;
 
-	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt);
+	const defaultDueDate = toDateInputValue(packageRow.invoiceDueAt ?? packageRow.createdAt);
 
 	const [draft, setDraft] = useState<PackageCustomInvoiceDraft>({
 		duration: "",

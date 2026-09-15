@@ -41,3 +41,17 @@ export function validatePackageInvoiceDownload(packageFromDb: Doc<"packages">, n
 
 	return ok(packageFromDb);
 }
+
+export function validatePackageReceiptDownload(packageFromDb: Doc<"packages">, now: number) {
+	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
+		return err({ reason: "PACKAGE_NOT_PAID" as const });
+	}
+
+	const receiptCreatedAt = packageFromDb.paidAt;
+
+	if (!receiptCreatedAt || now - receiptCreatedAt > INVOICE_DOWNLOAD_EXPIRY_MS) {
+		return err({ reason: "INVOICE_DOWNLOAD_EXPIRED" as const });
+	}
+
+	return ok({ packageRecord: packageFromDb, receiptCreatedAt });
+}

@@ -1,10 +1,7 @@
 import { err, errAsync, ok, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { z } from "zod";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	bookingSchema,
-	DURATION_OPTIONS,
 	packageFormSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -12,11 +9,12 @@ import {
 	buildBookingInvoiceData,
 	buildPackageInvoiceData,
 	buildPackageAdjustmentInvoiceData,
-	createPackageInvoiceLineItemSnapshot,
-	createPriceAdjustmentInvoiceLineItem,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { buildBookingReceiptData } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
+import {
+	buildBookingReceiptData,
+	buildPackageReceiptData
+} from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
 import { tryPromise } from "#convex/lib/result";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
@@ -59,6 +57,10 @@ function createReceiptPdfFilename(receiptNumber: string) {
 	return `booking-receipt-${receiptNumber.toLowerCase()}.pdf`;
 }
 
+function createPackageReceiptPdfFilename(receiptNumber: string) {
+	return `package-receipt-${receiptNumber.toLowerCase()}.pdf`;
+}
+
 type InvoiceEmailArtifacts = {
 	artifacts: {
 		data: BookingInvoiceData;
@@ -97,157 +99,6 @@ export type PackageInvoiceInput = Pick<
 	| "discountAmount"
 	| "totalDueAmount"
 > & { invoiceLineItems?: BookingInvoiceLineItem[] };
-
-export type CustomPackageInvoiceInput = {
-	customInvoice: Doc<"customInvoices">;
-	packageRecord: Doc<"packages">;
-};
-
-type CustomPackageFormData = z.infer<typeof packageFormSchema>;
-
-function toCustomDuration(value: string | undefined): BookingFormValues["duration"] | "" {
-	return DURATION_OPTIONS.find((duration) => duration === value) ?? "";
-}
-
-function resolveCustomInvoiceQuantity(
-	customInvoice: Doc<"customInvoices">,
-	packageRecord: Doc<"packages">,
-	field:
-		| "essentialEditQuantity"
-		| "completeEditQuantity"
-		| "clipsPackageQuantity"
-		| "handcraftedClipsQuantity"
-) {
-	return customInvoice[field] ?? packageRecord[field] ?? "";
-}
-
-function parseCustomPackageInvoice(invoiceInput: CustomPackageInvoiceInput) {
-	const { customInvoice, packageRecord } = invoiceInput;
-	const packageSize = customInvoice.packageSize ?? packageRecord.packageSize;
-
-	const parsedCustomInvoice = packageFormSchema.safeParse({
-		name: packageRecord.name,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		email: packageRecord.email,
-		duration: customInvoice.duration ?? packageRecord.duration,
-		addons: customInvoice.addons,
-		essentialEditQuantity: resolveCustomInvoiceQuantity(
-			customInvoice,
-			packageRecord,
-			"essentialEditQuantity"
-		),
-		completeEditQuantity: resolveCustomInvoiceQuantity(
-			customInvoice,
-			packageRecord,
-			"completeEditQuantity"
-		),
-		clipsPackageQuantity: resolveCustomInvoiceQuantity(
-			customInvoice,
-			packageRecord,
-			"clipsPackageQuantity"
-		),
-		handcraftedClipsQuantity: resolveCustomInvoiceQuantity(
-			customInvoice,
-			packageRecord,
-			"handcraftedClipsQuantity"
-		),
-		notes: packageRecord.notes ?? "",
-		packageSize
-	});
-
-	if (!parsedCustomInvoice.success) {
-		return err({ reason: "INVALID_BOOKING_DATA" as const });
-	}
-
-	return ok({ customInvoiceData: parsedCustomInvoice.data, packageSize });
-}
-
-function createCustomInvoiceLineItems(
-	customInvoiceData: CustomPackageFormData,
-	customDuration: BookingFormValues["duration"] | "",
-	packageSize: number,
-	amounts: ReturnType<typeof calculatePackageAmounts>,
-	totalDueAmount: number
-) {
-	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
-		addons: customInvoiceData.addons,
-		clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
-		completeEditQuantity: customInvoiceData.completeEditQuantity || undefined,
-		discountAmount: amounts.discountAmount,
-		discountPercent: amounts.discountPercent,
-		duration: customDuration,
-		essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
-		handcraftedClipsQuantity: customInvoiceData.handcraftedClipsQuantity || undefined,
-		packageSize
-	});
-
-	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
-
-	if (priceAdjustmentAmount !== 0) {
-		invoiceLineItems.push(createPriceAdjustmentInvoiceLineItem(priceAdjustmentAmount));
-	}
-
-	return invoiceLineItems;
-}
-
-export function createCustomPackageInvoiceData(
-	invoiceInput: CustomPackageInvoiceInput,
-	leadTimeMinutes: number
-) {
-	return parseCustomPackageInvoice(invoiceInput).map(({ customInvoiceData, packageSize }) => {
-		// An omitted custom duration intentionally produces an add-ons-only invoice.
-		const customDuration = toCustomDuration(invoiceInput.customInvoice.duration);
-
-		const amounts = calculatePackageAmounts({
-			...customInvoiceData,
-			duration: customDuration,
-			includeDiscount: invoiceInput.customInvoice.includePackageDiscount !== false,
-			packageSize
-		});
-
-		const totalDueAmount =
-			invoiceInput.customInvoice.customTotalDueAmount ?? amounts.totalDueAmount;
-
-		const invoiceLineItems = createCustomInvoiceLineItems(
-			customInvoiceData,
-			customDuration,
-			packageSize,
-			amounts,
-			totalDueAmount
-		);
-
-		const invoiceDueAt = invoiceInput.customInvoice.dueDate
-			? new Date(`${invoiceInput.customInvoice.dueDate}T00:00:00`).getTime()
-			: invoiceInput.packageRecord.invoiceDueAt;
-
-		return buildPackageInvoiceData({
-			bookingId: invoiceInput.packageRecord._id,
-			name: customInvoiceData.name,
-			phone: customInvoiceData.phone,
-			accountName: customInvoiceData.accountName,
-			abn: customInvoiceData.abn,
-			email: customInvoiceData.email,
-			duration: customDuration || customInvoiceData.duration,
-			addons: customInvoiceData.addons,
-			essentialEditQuantity: customInvoiceData.essentialEditQuantity || undefined,
-			completeEditQuantity: customInvoiceData.completeEditQuantity || undefined,
-			clipsPackageQuantity: customInvoiceData.clipsPackageQuantity || undefined,
-			handcraftedClipsQuantity: customInvoiceData.handcraftedClipsQuantity || undefined,
-			createdAt: invoiceInput.customInvoice.createdAt,
-			invoiceDueAt,
-			invoiceNumber: invoiceInput.customInvoice.invoiceNumber,
-			packageSize,
-			packageSubtotalAmount: amounts.packageSubtotalAmount,
-			discountPercent: amounts.discountPercent,
-			discountAmount: amounts.discountAmount,
-			totalDueAmount,
-			invoiceLineItems,
-			leadTimeMinutes
-		});
-	});
-}
 
 function getCustomInvoiceQuantityDefault(
 	booking: Doc<"bookings">,
@@ -455,6 +306,20 @@ export function createBookingReceiptArtifactsForBooking(
 	});
 }
 
+export function createPackageReceiptEmailArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: { leadTimeMinutes: number }
+) {
+	return createPackageReceiptArtifacts(packageRecord, paidAt, options).asyncAndThen(
+		(artifactsResult) =>
+			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
+				...artifactsResult,
+				artifacts: { ...artifactsResult.artifacts, emailHtml }
+			}))
+	);
+}
+
 export function createBookingReceiptEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
@@ -523,6 +388,82 @@ export function createPackageAdjustmentInvoiceArtifacts(
 	}));
 }
 
+export function createPackageReceiptArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: { leadTimeMinutes: number }
+): Result<
+	{ artifacts: { data: BookingReceiptData; pdf: { contentType: string; filename: string } } },
+	{ reason: "INVALID_BOOKING_DATA" }
+> {
+	const parsedPackage = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
+		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
+		notes: packageRecord.notes ?? "",
+		packageSize: packageRecord.packageSize
+	});
+
+	if (!parsedPackage.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const packageFormData = parsedPackage.data;
+
+	const invoiceLineItems =
+		packageRecord.invoiceLineItems ??
+		createStoredAmountPackageInvoiceLineItemSnapshot({
+			discountAmount: packageRecord.discountAmount,
+			discountPercent: packageRecord.discountPercent,
+			duration: packageFormData.duration,
+			packageSize: packageRecord.packageSize,
+			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+			singleSessionAmount: packageRecord.singleSessionAmount
+		});
+
+	const data = buildPackageReceiptData({
+		packageId: packageRecord._id,
+		name: packageFormData.name,
+		phone: packageFormData.phone,
+		accountName: packageFormData.accountName,
+		abn: packageFormData.abn,
+		email: packageFormData.email,
+		duration: packageFormData.duration,
+		addons: packageFormData.addons,
+		essentialEditQuantity: packageFormData.essentialEditQuantity || undefined,
+		completeEditQuantity: packageFormData.completeEditQuantity || undefined,
+		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
+		paidAt,
+		packageSize: packageRecord.packageSize,
+		packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+		discountPercent: packageRecord.discountPercent,
+		discountAmount: packageRecord.discountAmount,
+		totalDueAmount: packageRecord.totalDueAmount,
+		invoiceLineItems,
+		leadTimeMinutes: options.leadTimeMinutes,
+		receiptNumber: packageRecord.invoiceNumber
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: createPackageReceiptPdfFilename(data.receipt.number)
+			}
+		}
+	});
+}
+
 export function createPackageInvoiceArtifacts(
 	packageRecord: PackageInvoiceInput,
 	options: { leadTimeMinutes: number }
@@ -577,7 +518,7 @@ export function createPackageInvoiceArtifacts(
 		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
 		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
 		createdAt: packageRecord.createdAt,
-		invoiceDueAt: packageRecord.invoiceDueAt,
+		invoiceDueAt: packageRecord.invoiceDueAt ?? packageRecord.createdAt,
 		invoiceNumber: packageRecord.invoiceNumber,
 		packageSize: packageRecord.packageSize,
 		packageSubtotalAmount: packageRecord.packageSubtotalAmount,

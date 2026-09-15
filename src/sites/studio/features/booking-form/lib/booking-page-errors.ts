@@ -45,7 +45,7 @@ type AvailabilityToastError =
 	| UnexpectedError;
 
 type CreatePackageToastError =
-	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageRequest>[0]>
+	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageCheckoutSession>[0]>
 	| UnexpectedError;
 
 export const devBookingErrorMessages = {
@@ -74,11 +74,11 @@ export const startCheckoutToastMessages = {
 
 export const createPackageToastMessages = {
 	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
+	BOOKING_INVALID_DURATION: bookingPageErrorMessages.BOOKING_INVALID_DURATION,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
-	INVOICE_FAILURE_CODE_REQUIRED: "Something went wrong while creating your package request.",
-	INVOICE_NUMBER_REQUIRED: "Something went wrong while creating your package request.",
-	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
+	STRIPE_CHECKOUT_CREATE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CREATE_FAILED,
+	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<CreatePackageToastError["reason"], string>;
 
 export const closeCheckoutToastMessages = {

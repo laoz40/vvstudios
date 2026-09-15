@@ -1,8 +1,8 @@
-import { err, ok } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { sendPackageExpiryReminderEmail, sendPackagePaymentReminderEmail } from "#convex/lib/email";
+import { sendPackageExpiryReminderEmail } from "#convex/lib/email";
+import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
 import {
 	hasSentPackageReminder,
@@ -18,8 +18,6 @@ import {
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const MAX_PACKAGE_SESSIONS = 12;
-
-const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -100,10 +98,7 @@ export function claimPackageReminderService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return okOrThrow(ctx.db.get(args.packageId))
-		.andThen((packageFromDb) =>
-			packageFromDb ? ok(packageFromDb) : err({ reason: "PACKAGE_NOT_FOUND" as const })
-		)
+	return getPackageFromDb(ctx, args.packageId)
 		.andThen((packageFromDb) => validatePackageReminderClaim(packageFromDb, args.reminderType))
 		.andThen(() =>
 			okOrThrow(
@@ -124,7 +119,7 @@ export function markPackageReminderSentService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return ensurePackageExists(ctx, args.packageId).andThen(() =>
+	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
 				.patch(args.packageId, {
@@ -139,7 +134,7 @@ export function markPackageReminderFailedService(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { failureCode: string }
 ) {
-	return ensurePackageExists(ctx, args.packageId).andThen(() =>
+	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
 				.patch(args.packageId, {
@@ -154,82 +149,11 @@ export function markPackageReminderFailedService(
 	);
 }
 
-function ensurePackageExists(ctx: MutationCtx, packageId: Doc<"packages">["_id"]) {
-	return okOrThrow(ctx.db.get(packageId)).andThen((packageFromDb) =>
-		packageFromDb ? ok(null) : err({ reason: "PACKAGE_NOT_FOUND" as const })
-	);
-}
-
 const getSydneyCalendarDayNumber = (timestamp: number) => {
 	const { year, month, day } = getTimeZoneDate(new Date(timestamp), REMINDER_TIME_ZONE);
 
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
-
-async function sendPackagePaymentRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
-	const now = nowDate.getTime();
-
-	const paymentDueDay = getTimeZoneDayRange(
-		nowDate,
-		REMINDER_TIME_ZONE,
-		PAYMENT_REMINDER_DAYS_BEFORE_DUE
-	);
-
-	const paymentPackages = await ctx.runQuery(
-		internal.packageReminders.listPackagesDueForPaymentReminder,
-		{
-			invoiceDueEnd: paymentDueDay.dayEnd,
-			invoiceDueStart: paymentDueDay.dayStart,
-			limit: REMINDER_BATCH_SIZE
-		}
-	);
-
-	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
-	await Promise.all(
-		paymentPackages.map(async (packageRecord) => {
-			try {
-				const claimResult = await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-						packageId: packageRecord._id,
-						now,
-						reminderType: "payment"
-					})
-				);
-
-				if (claimResult.isErr()) return;
-
-				const sendResult = await sendPackagePaymentReminderEmail({
-					email: packageRecord.email,
-					invoiceDueAt: packageRecord.invoiceDueAt,
-					name: packageRecord.name,
-					requestDate: packageRecord.createdAt
-				});
-
-				if (sendResult.isOk()) {
-					await fromConvexTuple(
-						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
-							packageId: packageRecord._id,
-							now,
-							reminderType: "payment"
-						})
-					);
-
-					return;
-				}
-
-				await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-						failureCode: sendResult.error.reason,
-						packageId: packageRecord._id,
-						reminderType: "payment"
-					})
-				);
-			} catch (error) {
-				console.error(`Failed to process payment reminder for package ${packageRecord._id}`, error);
-			}
-		})
-	);
-}
 
 async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
 	const now = nowDate.getTime();
@@ -304,6 +228,5 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 // the original attempt from later overwriting the retry. We intentionally omit that complexity because
 // these are non-critical reminders; preventing duplicate emails is more important than guaranteed delivery.
 export async function sendDuePackageReminders(ctx: ActionCtx, nowDate: Date) {
-	await sendPackagePaymentRemindersDueToday(ctx, nowDate);
 	await sendPackageExpiryRemindersDueToday(ctx, nowDate);
 }

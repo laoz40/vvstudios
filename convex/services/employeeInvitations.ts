@@ -3,7 +3,7 @@
 import { err, ok, type ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
-import { emailDomainCanReceiveMail } from "#convex/lib/bookingSubmission";
+import { emailDomainCanReceiveMail } from "#convex/lib/emailDomain";
 import { createClerkInvitation, parseInviteEmail } from "#convex/lib/clerkInvitations";
 import { okOrThrow } from "#convex/lib/result";
 

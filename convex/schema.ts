@@ -318,10 +318,12 @@ export default defineSchema({
 			v.literal("pending_payment"),
 			v.literal("paid"),
 			v.literal("invoice_email_failed"),
-			v.literal("schedule_email_failed")
+			v.literal("schedule_email_failed"),
+			v.literal("abandoned"),
+			v.literal("expired")
 		),
 		createdAt: v.number(),
-		invoiceDueAt: v.number(),
+		invoiceDueAt: v.optional(v.number()),
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
@@ -340,10 +342,16 @@ export default defineSchema({
 		scheduleTokenHash: v.optional(v.string()),
 		scheduleLinkStatus: v.optional(
 			v.union(v.literal("active"), v.literal("expired"), v.literal("disabled"))
-		)
+		),
+
+		// Stripe data
+		stripeSessionId: v.optional(v.string()),
+		stripePaymentIntentId: v.optional(v.string()),
+		stripeCustomerId: v.optional(v.string())
 	})
 		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])
 		.index("by_status_and_expiresAt", ["status", "expiresAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
+		.index("by_stripeSessionId", ["stripeSessionId"])
 });

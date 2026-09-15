@@ -22,7 +22,7 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 				}
 			}}
 			title="Complete payment"
-			description="Pay the full session total to secure your booking."
+			description="Pay the full total to secure your booking."
 			closeLabel={closeButtonLabel}
 			hideHeader
 			initialFocus="content"
