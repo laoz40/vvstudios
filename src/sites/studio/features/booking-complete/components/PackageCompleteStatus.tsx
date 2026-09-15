@@ -5,7 +5,8 @@ import { BookingResult } from "#studio/features/booking-complete/components/Book
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import {
 	getPackagePaidResultContent,
-	getPackageReceiptEmailFailedResultContent
+	getPackageReceiptEmailFailedResultContent,
+	getPackageScheduleEmailFailedResultContent
 } from "#studio/features/booking-complete/lib/booking-result-content";
 import type { Doc } from "#convex/_generated/dataModel";
 import { studioSite } from "#/config/sites";
@@ -32,7 +33,6 @@ export function PackageCompleteStatus({
 				</BookingStatusLayout>
 			);
 		case "paid":
-		case "schedule_email_failed":
 			return (
 				<BookingStatusLayout
 					bookingStatus="confirmed"
@@ -41,6 +41,20 @@ export function PackageCompleteStatus({
 					<BookingResult
 						booking={null}
 						content={getPackagePaidResultContent(packageRecord.packageSize)}
+						invoiceDownloadTarget={{ kind: "package", packageId: packageRecord._id }}
+						showBookingDetails={false}
+					/>
+				</BookingStatusLayout>
+			);
+		case "schedule_email_failed":
+			return (
+				<BookingStatusLayout
+					bookingStatus="failed"
+					instagramPromptTarget={{ kind: "package", packageId: packageRecord._id }}
+					stripeSessionId={previewStripeSessionId}>
+					<BookingResult
+						booking={null}
+						content={getPackageScheduleEmailFailedResultContent(packageRecord.packageSize)}
 						invoiceDownloadTarget={{ kind: "package", packageId: packageRecord._id }}
 						showBookingDetails={false}
 					/>
