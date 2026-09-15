@@ -1,35 +1,31 @@
-"use node";
-
-import { createHash } from "node:crypto";
-import { resolveMx } from "node:dns/promises";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+
+const hexRadix = 16;
+const hexByteLength = 2;
+
+function bytesToHex(bytes: Uint8Array) {
+	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");
+}
+
+async function hashEmailForRateLimit(email: string) {
+	const encodedEmail = new TextEncoder().encode(email.trim().toLowerCase());
+	const hashBuffer = await crypto.subtle.digest("SHA-256", encodedEmail);
+
+	return `email:${bytesToHex(new Uint8Array(hashBuffer))}`;
+}
 
 export function getBookingSubmitRateLimitKey(email: string) {
-	return `email:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
+	return okOrThrow(hashEmailForRateLimit(email));
 }
 
 export function checkPackageSubmitRateLimit(ctx: ActionCtx, email: string) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
-			submitRateLimitKey: getBookingSubmitRateLimitKey(email)
-		})
+	return getBookingSubmitRateLimitKey(email).andThen((submitRateLimitKey) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
+				submitRateLimitKey
+			})
+		)
 	);
-}
-
-export async function emailDomainCanReceiveMail(email: string) {
-	const domain = email.trim().toLowerCase().split("@").at(-1);
-
-	if (!domain) {
-		return false;
-	}
-
-	try {
-		const mxRecords = await resolveMx(domain);
-
-		return mxRecords.length > 0;
-	} catch {
-		return false;
-	}
 }

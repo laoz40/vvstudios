@@ -6,15 +6,18 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { emailDomainCanReceiveMail } from "#convex/lib/bookingSubmission";
+import { emailDomainCanReceiveMail } from "#convex/lib/emailDomain";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
 import type {
 	BuildSessionCheckoutLineItemsInput,
+	PackageCheckoutDiscount,
 	SessionCheckoutLineItem
 } from "#convex/lib/stripeCheckoutLineItems";
 
 export type StripeCheckoutCreateFailed = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" };
+
+export type StripeCheckoutCloseFailed = { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" };
 
 export type SessionCheckoutBooking = {
 	name: string;
