@@ -336,7 +336,9 @@ export function markPackageReceiptEmailAttemptService(
 		// Receipt fields still use invoice* columns until a schema migration renames them.
 		return okOrThrow(
 			ctx.db
-				.patch(args.packageId, (args.status === "sent"
+				.patch(
+					args.packageId,
+					args.status === "sent"
 						? {
 								invoiceEmailFailureCode: undefined,
 								invoiceEmailSentAt: now,
@@ -348,7 +350,8 @@ export function markPackageReceiptEmailAttemptService(
 								invoiceEmailFailureCode: args.failureCode,
 								invoiceEmailStatus: "failed" as const,
 								lastInvoiceEmailAttemptAt: now
-							}))
+							}
+				)
 				.then(() => null)
 		);
 	});

@@ -8,13 +8,15 @@ import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	createBookingInvoiceArtifactsForBooking,
 	createBookingReceiptArtifactsForBooking,
-	createCustomPackageInvoiceData,
 	createPackageInvoiceArtifacts,
 	createPackageReceiptArtifacts,
 	renderBookingInvoicePdfInNode,
-	renderBookingReceiptPdfInNode,
-	type CustomPackageInvoiceInput
+	renderBookingReceiptPdfInNode
 } from "#convex/lib/bookingInvoiceArtifacts";
+import {
+	createCustomPackageInvoiceData,
+	type CustomPackageInvoiceInput
+} from "#convex/lib/bookingInvoiceCustomPackage";
 import {
 	toInvoicePdfPayload,
 	validateBookingInvoiceDownload,
