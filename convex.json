@@ -1,1 +1,5 @@
-{ "$schema": "node_modules/convex/schemas/convex.schema.json", "aiFiles": { "enabled": false } }
+{
+	"$schema": "node_modules/convex/schemas/convex.schema.json",
+	"aiFiles": { "enabled": false },
+	"node": { "externalPackages": ["@react-pdf/renderer", "yoga-layout"] }
+}
