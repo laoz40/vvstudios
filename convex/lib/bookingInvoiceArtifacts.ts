@@ -549,12 +549,7 @@ export function createPackageReceiptArtifacts(
 	paidAt: number,
 	options: { leadTimeMinutes: number }
 ): Result<
-	{
-		artifacts: {
-			data: BookingReceiptData;
-			pdf: { contentType: string; filename: string };
-		};
-	},
+	{ artifacts: { data: BookingReceiptData; pdf: { contentType: string; filename: string } } },
 	{ reason: "INVALID_BOOKING_DATA" }
 > {
 	const parsedPackage = packageFormSchema.safeParse({

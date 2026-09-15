@@ -42,23 +42,27 @@ export function deletePendingPackageService(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string }
 ) {
-	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb) => validatePendingPackageDeletion(packageFromDb, args.stripeSessionId))
-		// Preserve idempotency or abandon the pending package.
-		.andThen((deleteDecision) => {
-			if (deleteDecision.kind === "complete") {
-				return ok(deleteDecision.value);
-			}
+	return (
+		getPackageFromDb(ctx, args.packageId)
+			.andThen((packageFromDb) =>
+				validatePendingPackageDeletion(packageFromDb, args.stripeSessionId)
+			)
+			// Preserve idempotency or abandon the pending package.
+			.andThen((deleteDecision) => {
+				if (deleteDecision.kind === "complete") {
+					return ok(deleteDecision.value);
+				}
 
-			return okOrThrow(
-				ctx.db
-					.patch(args.packageId, { status: "abandoned" })
-					.then((): DeletePendingPackageSuccess => ({ outcome: "abandoned" }))
-			);
-		})
-		.orElse((error) =>
-			error.reason === "PACKAGE_NOT_FOUND" ? ok({ outcome: "not_found" as const }) : err(error)
-		);
+				return okOrThrow(
+					ctx.db
+						.patch(args.packageId, { status: "abandoned" })
+						.then((): DeletePendingPackageSuccess => ({ outcome: "abandoned" }))
+				);
+			})
+			.orElse((error) =>
+				error.reason === "PACKAGE_NOT_FOUND" ? ok({ outcome: "not_found" as const }) : err(error)
+			)
+	);
 }
 
 export type PackageCheckoutClaim =

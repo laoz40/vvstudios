@@ -156,27 +156,25 @@ export function getPackageReceiptPdfByIdService(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<InvoicePdfPayload, PublicPackageReceiptPdfError> {
-	return (
-		getPackageForAction(ctx, args.packageId)
-			.andThen((packageRecord) => validatePackageReceiptDownload(packageRecord, Date.now()))
-			.andThen(({ packageRecord, receiptCreatedAt }) =>
-				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
-					bookingSettings,
-					packageRecord,
-					receiptCreatedAt
-				}))
-			)
-			.andThen(({ bookingSettings, packageRecord, receiptCreatedAt }) =>
-				createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
-					leadTimeMinutes: bookingSettings.leadTimeMinutes
-				})
-			)
-			.andThen((artifactsResult) =>
-				renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
-					.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
-					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
-			)
-	);
+	return getPackageForAction(ctx, args.packageId)
+		.andThen((packageRecord) => validatePackageReceiptDownload(packageRecord, Date.now()))
+		.andThen(({ packageRecord, receiptCreatedAt }) =>
+			okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
+				bookingSettings,
+				packageRecord,
+				receiptCreatedAt
+			}))
+		)
+		.andThen(({ bookingSettings, packageRecord, receiptCreatedAt }) =>
+			createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
+				leadTimeMinutes: bookingSettings.leadTimeMinutes
+			})
+		)
+		.andThen((artifactsResult) =>
+			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
+				.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
+				.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+		);
 }
 
 export function getPackageInvoicePdfByIdService(

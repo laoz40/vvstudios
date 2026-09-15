@@ -376,11 +376,13 @@ describe("invoice download access", () => {
 	test("allows current public receipt downloads for paid packages", async () => {
 		const t = createConvexTest();
 		const paidPackageId = await seedPackage(t, { createdAt: now, paidAt: now, status: "paid" });
+
 		const scheduleFailedPackageId = await seedPackage(t, {
 			createdAt: now,
 			paidAt: now,
 			status: "schedule_email_failed"
 		});
+
 		const unpaidPackageId = await seedPackage(t, { createdAt: now });
 
 		expect(
@@ -404,6 +406,7 @@ describe("invoice download access", () => {
 	test("expires public package receipt downloads after the paid download window", async () => {
 		const t = createConvexTest();
 		const expiredPaidAt = now - oneHour - 1;
+
 		const expiredPackageId = await seedPackage(t, {
 			createdAt: expiredPaidAt,
 			paidAt: expiredPaidAt,

@@ -22,6 +22,7 @@ export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
 	const isPackageReceipt = data.package !== undefined;
 	const signoffName = data.branding.ownerName.split(" ")[0] ?? data.branding.ownerName;
 	const sessionTimeRange = formatBookingTimeRange(data.booking.time, data.booking.duration);
+
 	const previewText = isPackageReceipt
 		? `${data.package?.size}-session package confirmed. Your receipt is attached.`
 		: `Studio booking confirmed for ${data.booking.bookingDateLabel}. Your receipt is attached.`;

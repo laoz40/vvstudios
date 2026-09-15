@@ -8,10 +8,7 @@ import {
 	renderBookingReceiptPdfInNode,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
-import {
-	formatTimestampDateShort,
-	sendEmail
-} from "#convex/lib/emailSend";
+import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
 import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
 
@@ -180,10 +177,7 @@ export async function sendBookingReceiptEmailsForBooking(
 export async function sendPackageReceiptEmailsForPackage(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: {
-		leadTimeMinutes: number;
-		skipHostEmail?: boolean;
-	}
+	options: { leadTimeMinutes: number; skipHostEmail?: boolean }
 ): Promise<
 	Result<
 		{ receiptNumber: string },

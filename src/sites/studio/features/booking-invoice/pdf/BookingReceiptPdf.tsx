@@ -28,9 +28,12 @@ export function BookingReceiptPdf({ data }: BookingReceiptPdfProps) {
 	const packageDetails = data.package;
 	const isPackageReceipt = packageDetails !== undefined;
 	const sessionSummary = getSessionSummary(data);
+
 	const packageDiscountAmount = isPackageReceipt
 		? data.lineItems
-				.filter((item) => item.amount < 0 && item.description.toLowerCase().includes("package discount"))
+				.filter(
+					(item) => item.amount < 0 && item.description.toLowerCase().includes("package discount")
+				)
 				.reduce((total, item) => total + Math.abs(item.amount), 0)
 		: 0;
 

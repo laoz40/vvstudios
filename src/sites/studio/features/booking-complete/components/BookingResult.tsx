@@ -180,7 +180,9 @@ function BookingResultHeading({
 	);
 }
 
-function BookingResultDescription({ content }: Pick<BookingResultContentViewProps, "content">): ReactNode {
+function BookingResultDescription({
+	content
+}: Pick<BookingResultContentViewProps, "content">): ReactNode {
 	return (
 		<div className="max-w-2xl space-y-4">
 			{content.descriptionHeading ? (
