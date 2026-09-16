@@ -309,18 +309,20 @@ export function SessionActionsMenu({
 								</AnimatedDropdownMenuItem>
 								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
 								<DropdownMenuSeparator />
-								<AnimatedDropdownMenuItem
-									onSelect={() => void receiptActions.handleResendReceipt()}
-									renderIcon={(iconRef) => (
-										<MailFilledIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Resend receipt
-								</AnimatedDropdownMenuItem>
+								{invoiceActions.hasStripeCustomer ? (
+									<AnimatedDropdownMenuItem
+										onSelect={() => void receiptActions.handleResendReceipt()}
+										renderIcon={(iconRef) => (
+											<MailFilledIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										Resend receipt
+									</AnimatedDropdownMenuItem>
+								) : null}
 								{invoiceActions.hasStripeCustomer ? (
 									<AnimatedDropdownMenuItem
 										disabled={invoiceActions.isSendingStripeInvoice}

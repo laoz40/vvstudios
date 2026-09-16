@@ -48,7 +48,7 @@ function PackageInvoiceActions({
 
 	return (
 		<>
-			{canSendNewSchedulingLink ? (
+			{canSendNewSchedulingLink && actions.hasStripeCustomer ? (
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}
 					onSelect={() => void handleResendReceipt()}
