@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, okAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
@@ -19,7 +19,6 @@ import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 import {
 	didSessionTimingChange,
 	getSessionStartAt,
-	isValidSessionRemainingBalanceAmount,
 	type AdminSessionUpdateArgs,
 	type AdminSessionUpdateError,
 	type AdminSessionUpdateResult
@@ -353,12 +352,7 @@ export function updateSessionFromAdminService(
 ): ResultAsync<AdminSessionUpdateResult, UpdateSessionFromAdminError> {
 	return (
 		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() => {
-				return isValidSessionRemainingBalanceAmount(args.remainingBalanceAmount)
-					? ok(null)
-					: err({ reason: "BOOKING_INVALID_INPUT" as const });
-			})
-			// Load the booking only after authorization and input validation succeed.
+			// Load the booking only after authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Load settings before applying Calendar and persistence changes.
 			.andThen((session) =>

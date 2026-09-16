@@ -46,8 +46,7 @@ import {
 	saveSessionInstagramHandleService,
 	updateSessionAdminNotesService,
 	updateSessionNotesService,
-	updateSessionEditStatusService,
-	updateSessionPaidStatusService
+	updateSessionEditStatusService
 } from "#convex/services/sessions";
 
 const savedDriveFolderValidator = v.object({
@@ -350,11 +349,6 @@ export const assignSessionEditor = mutation({
 export const archiveSession = mutation({
 	args: { bookingId: v.id("bookings"), archived: v.boolean() },
 	handler: (ctx, args) => archiveSessionService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const updateSessionPaidStatus = mutation({
-	args: { bookingId: v.id("bookings"), paidRemainingBalance: v.boolean() },
-	handler: (ctx, args) => updateSessionPaidStatusService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateSessionAdminNotes = mutation({

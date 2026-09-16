@@ -1,7 +1,5 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { err, ok, okAsync, type Result } from "neverthrow";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -31,7 +29,6 @@ type SessionEditValues = {
 	service: string;
 	addons: BookingAddon[];
 	notes?: string;
-	remainingBalanceAmount?: number;
 } & BookingAddonQuantitiesArgs;
 
 export function getSessionStartAt(
@@ -58,7 +55,6 @@ const sessionEditFieldNames: Record<SessionEditField, null> = {
 	name: null,
 	notes: null,
 	phone: null,
-	remainingBalanceAmount: null,
 	service: null,
 	time: null
 };
@@ -86,7 +82,7 @@ const sessionGoogleEventFields: readonly SessionEditField[] = [
 	"notes"
 ];
 
-// Pricing field changes may recalculate the remaining balance.
+// Pricing field changes may affect displayed booking totals.
 const sessionPricingFields: readonly SessionEditField[] = [
 	"addons",
 	"duration",
@@ -145,20 +141,6 @@ export function getSessionEditFieldChanges(
 	};
 }
 
-export function calculateSessionRemainingBalanceAmount(
-	values: Pick<SessionEditValues, "addons" | "duration"> & BookingAddonQuantitiesArgs
-) {
-	return calculateBookingInvoiceAmounts({
-		duration: values.duration,
-		addons: values.addons,
-		...pickBookingAddonQuantities(values)
-	}).totalDueAmount;
-}
-
-export function isValidSessionRemainingBalanceAmount(amount?: number) {
-	return amount === undefined || (Number.isFinite(amount) && amount >= 0);
-}
-
 export type AdminSessionTimingPatch = {
 	name: string;
 	phone: string;
@@ -168,7 +150,6 @@ export type AdminSessionTimingPatch = {
 	date: string;
 	time: string;
 	duration: string;
-	remainingBalanceAmount: number;
 	sessionStartAt: number;
 	service: string;
 	addons: Doc<"bookings">["addons"];
@@ -191,10 +172,6 @@ export function buildAdminSessionUpdatePatch({
 	timeZone: string;
 	values: SessionEditValues;
 }) {
-	if (!isValidSessionRemainingBalanceAmount(values.remainingBalanceAmount)) {
-		return err({ reason: "BOOKING_INVALID_INPUT" as const });
-	}
-
 	const changes = getSessionEditFieldChanges(session, values);
 	const scheduleChanged = changes.timingFieldsChanged;
 
@@ -208,8 +185,6 @@ export function buildAdminSessionUpdatePatch({
 			date: values.date,
 			time: values.time,
 			duration: values.duration,
-			remainingBalanceAmount:
-				values.remainingBalanceAmount ?? calculateSessionRemainingBalanceAmount(values),
 			sessionStartAt,
 			service: values.service,
 			addons: values.addons,

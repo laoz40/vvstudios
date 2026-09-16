@@ -52,8 +52,6 @@ type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle
 
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
 
-type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
-
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "review" | "completed";
@@ -261,21 +259,6 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 			okOrThrow(
 				ctx.db
 					.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
-		);
-}
-
-export function updateSessionPaidStatusService(
-	ctx: MutationCtx,
-	args: UpdateSessionPaidStatusArgs
-) {
-	return requirePermission(ctx, "update:payment-status")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			okOrThrow(
-				ctx.db
-					.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance })
 					.then(() => null)
 			)
 		);

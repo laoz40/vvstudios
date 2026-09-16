@@ -118,8 +118,7 @@ export const updateSessionFromAdmin = action({
 		service: v.string(),
 		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
-		notes: v.optional(v.string()),
-		remainingBalanceAmount: v.optional(v.number())
+		notes: v.optional(v.string())
 	},
 	handler: async (ctx, args) =>
 		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
