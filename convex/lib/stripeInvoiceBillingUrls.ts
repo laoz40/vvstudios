@@ -5,10 +5,7 @@ import { z } from "zod";
 import { tryPromise } from "#convex/lib/result";
 import type { StripeClient } from "#convex/lib/stripeClient";
 
-export type StripeInvoiceBillingUrls = {
-	invoicePdf?: string;
-	receiptUrl?: string;
-};
+export type StripeInvoiceBillingUrls = { invoicePdf?: string; receiptUrl?: string };
 
 const stripeResourceIdSchema = z.union([z.string(), z.object({ id: z.string() })]);
 
@@ -41,10 +38,7 @@ async function getChargeReceiptUrl(stripe: StripeClient, chargeId: string) {
 // Charge = the completed card payment. Payment intent = a wrapper Stripe uses for
 // newer checkouts; when it succeeds, it creates a charge. Receipt URL is on the charge.
 async function getReceiptUrlForPaidInvoice(stripe: StripeClient, stripeInvoiceId: string) {
-	const invoicePayments = await stripe.invoicePayments.list({
-		invoice: stripeInvoiceId,
-		limit: 1
-	});
+	const invoicePayments = await stripe.invoicePayments.list({ invoice: stripeInvoiceId, limit: 1 });
 
 	const payment = invoicePayments.data[0]?.payment;
 
