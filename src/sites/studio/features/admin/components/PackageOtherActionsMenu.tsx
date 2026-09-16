@@ -146,7 +146,7 @@ function PackageInvoiceActions({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Send Stripe invoice
+					Create Stripe invoice
 				</AnimatedDropdownMenuItem>
 			) : null}
 			{packageRow.stripeCustomerId === undefined ? (
