@@ -175,6 +175,8 @@ export function SessionActionsMenu({
 	onOpenDrive,
 	onEditAdminNotes
 }: SessionActionsMenuProps) {
+	const showSessionBillingActions = session.packageId === undefined;
+
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
@@ -308,57 +310,61 @@ export function SessionActionsMenu({
 									Copy database ID
 								</AnimatedDropdownMenuItem>
 								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
-								<DropdownMenuSeparator />
-								{invoiceActions.hasStripeCustomer ? (
-									<AnimatedDropdownMenuItem
-										onSelect={() => void receiptActions.handleResendReceipt()}
-										renderIcon={(iconRef) => (
-											<MailFilledIcon
-												ref={iconRef}
-												size={16}
-												aria-hidden
-												className="shrink-0 text-current"
+								{showSessionBillingActions ? (
+									<>
+										<DropdownMenuSeparator />
+										{invoiceActions.hasStripeCustomer ? (
+											<AnimatedDropdownMenuItem
+												onSelect={() => void receiptActions.handleResendReceipt()}
+												renderIcon={(iconRef) => (
+													<MailFilledIcon
+														ref={iconRef}
+														size={16}
+														aria-hidden
+														className="shrink-0 text-current"
+													/>
+												)}>
+												Resend receipt
+											</AnimatedDropdownMenuItem>
+										) : null}
+										{invoiceActions.hasStripeCustomer ? (
+											<AnimatedDropdownMenuItem
+												disabled={invoiceActions.isSendingStripeInvoice}
+												onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
+												renderIcon={(iconRef) => (
+													<PenIcon
+														ref={iconRef}
+														size={16}
+														aria-hidden
+														className="shrink-0 text-current"
+													/>
+												)}>
+												Send Stripe invoice
+											</AnimatedDropdownMenuItem>
+										) : null}
+										{session.stripeCustomerId === undefined ? (
+											<LegacyInvoicesSubmenu
+												downloadingLegacyCustomInvoiceId={
+													invoiceActions.downloadingLegacyCustomInvoiceId
+												}
+												downloadLabel={
+													invoiceActions.isDownloadingInvoice
+														? "Generating invoice"
+														: "Download invoice"
+												}
+												isDownloadingInvoice={invoiceActions.isDownloadingInvoice}
+												isEmailingInvoice={invoiceActions.isEmailingInvoice}
+												onDownloadInvoice={() => {
+													void invoiceActions.handleDownloadInvoice();
+												}}
+												onEmailInvoice={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
+												onOpenCustomInvoices={() =>
+													invoiceActions.setIsLegacyCustomInvoicesDialogOpen(true)
+												}
+												showEmailInvoice
 											/>
-										)}>
-										Resend receipt
-									</AnimatedDropdownMenuItem>
-								) : null}
-								{invoiceActions.hasStripeCustomer ? (
-									<AnimatedDropdownMenuItem
-										disabled={invoiceActions.isSendingStripeInvoice}
-										onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
-										renderIcon={(iconRef) => (
-											<PenIcon
-												ref={iconRef}
-												size={16}
-												aria-hidden
-												className="shrink-0 text-current"
-											/>
-										)}>
-										Send Stripe invoice
-									</AnimatedDropdownMenuItem>
-								) : null}
-								{session.stripeCustomerId === undefined ? (
-									<LegacyInvoicesSubmenu
-										downloadingLegacyCustomInvoiceId={
-											invoiceActions.downloadingLegacyCustomInvoiceId
-										}
-										downloadLabel={
-											invoiceActions.isDownloadingInvoice
-												? "Generating invoice"
-												: "Download invoice"
-										}
-										isDownloadingInvoice={invoiceActions.isDownloadingInvoice}
-										isEmailingInvoice={invoiceActions.isEmailingInvoice}
-										onDownloadInvoice={() => {
-											void invoiceActions.handleDownloadInvoice();
-										}}
-										onEmailInvoice={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
-										onOpenCustomInvoices={() =>
-											invoiceActions.setIsLegacyCustomInvoicesDialogOpen(true)
-										}
-										showEmailInvoice
-									/>
+										) : null}
+									</>
 								) : null}
 							</>
 						) : (
