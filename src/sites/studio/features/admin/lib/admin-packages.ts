@@ -76,6 +76,7 @@ export type AdminPackagePendingAction =
 	| "adjustmentEmail"
 	| "archive"
 	| "download"
+	| "receiptEmail"
 	| "scheduleEmail"
 	| null;
 

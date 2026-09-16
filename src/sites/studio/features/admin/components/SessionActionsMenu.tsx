@@ -44,6 +44,7 @@ import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteActi
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
+import type { useReceiptActions } from "#studio/features/admin/hooks/useReceiptActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
@@ -55,6 +56,7 @@ type SessionActionsMenuProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
+	receiptActions: ReturnType<typeof useReceiptActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
 	onOpenDrive: () => void;
@@ -167,6 +169,7 @@ export function SessionActionsMenu({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
+	receiptActions,
 	rescheduleAction,
 	statusActions,
 	onOpenDrive,
@@ -306,6 +309,18 @@ export function SessionActionsMenu({
 								</AnimatedDropdownMenuItem>
 								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
 								<DropdownMenuSeparator />
+								<AnimatedDropdownMenuItem
+									onSelect={() => void receiptActions.handleResendReceipt()}
+									renderIcon={(iconRef) => (
+										<MailFilledIcon
+											ref={iconRef}
+											size={16}
+											aria-hidden
+											className="shrink-0 text-current"
+										/>
+									)}>
+									Resend receipt
+								</AnimatedDropdownMenuItem>
 								<AnimatedDropdownMenuItem
 									disabled={invoiceActions.isDownloadingInvoice}
 									onSelect={() => void invoiceActions.handleDownloadInvoice()}

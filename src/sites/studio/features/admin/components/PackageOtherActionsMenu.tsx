@@ -36,6 +36,7 @@ function PackageInvoiceActions({
 	const {
 		handleDownloadAdjustmentInvoice,
 		handleDownloadInvoice,
+		handleResendReceipt,
 		isActionPending,
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
@@ -45,6 +46,21 @@ function PackageInvoiceActions({
 
 	return (
 		<>
+			{canSendNewSchedulingLink ? (
+				<AnimatedDropdownMenuItem
+					disabled={isActionPending}
+					onSelect={() => void handleResendReceipt()}
+					renderIcon={(iconRef) => (
+						<MailFilledIcon
+							ref={iconRef}
+							size={16}
+							aria-hidden
+							className="shrink-0 text-current"
+						/>
+					)}>
+					Resend receipt
+				</AnimatedDropdownMenuItem>
+			) : null}
 			<AnimatedDropdownMenuItem
 				disabled={isActionPending}
 				onSelect={() => void handleDownloadInvoice()}

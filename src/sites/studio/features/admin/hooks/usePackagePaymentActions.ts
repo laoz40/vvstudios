@@ -7,6 +7,7 @@ import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
+import { resendReceiptWithFeedback } from "#studio/features/admin/lib/resend-receipt";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
 
@@ -14,6 +15,7 @@ export function usePackagePaymentActions(
 	packageRow: AdminPackageRow,
 	setPendingAction: SetPackagePendingAction
 ) {
+	const resendPackageReceipt = useAction(api.receiptEmails.resendPackageReceipt);
 	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const archivePackage = useMutation(api.packages.archivePackage);
 	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
@@ -52,6 +54,21 @@ export function usePackagePaymentActions(
 		}
 
 		toast.success(archived ? "Package archived." : "Package restored.");
+		setPendingAction(null);
+	}
+
+	async function handleResendReceipt() {
+		setPendingAction("receiptEmail");
+
+		await resendReceiptWithFeedback({
+			customerEmail: packageRow.customerEmail,
+			entityMessages: {
+				PACKAGE_NOT_FOUND: "This package no longer exists.",
+				PACKAGE_NOT_PAID: "Receipts are only available after payment is confirmed."
+			},
+			run: () => resendPackageReceipt({ packageId: packageRow.id })
+		});
+
 		setPendingAction(null);
 	}
 
@@ -120,6 +137,7 @@ export function usePackagePaymentActions(
 
 	return {
 		handleArchiveChange,
+		handleResendReceipt,
 		handleRetrySchedulingEmail,
 		isSchedulingLinkDialogOpen,
 		setIsSchedulingLinkDialogOpen
