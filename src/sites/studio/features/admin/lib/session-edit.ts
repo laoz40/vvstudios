@@ -4,7 +4,6 @@ import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import {
 	bookingSchema,
 	pickBookingAddonQuantities
@@ -17,8 +16,6 @@ type UpdateSessionFromAdminResult = FunctionReturnType<
 type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
 
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
-
-type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 type SessionUpdateInput = {
 	bookingId: SessionRecord["_id"];
@@ -37,17 +34,11 @@ type SessionUpdateInput = {
 	clipsPackageQuantity?: string;
 	handcraftedClipsQuantity?: string;
 	notes?: string;
-	remainingBalanceAmount?: number;
 };
 
 export type ParsedSessionEditDraft =
 	| { status: "booking-invalid"; message: string }
-	| { status: "remaining-balance-invalid" }
-	| {
-			status: "ok";
-			parsedValues: ParsedSessionValues;
-			remainingBalanceAmountResult: RemainingBalanceResult;
-	  };
+	| { status: "ok"; parsedValues: ParsedSessionValues };
 
 export type SessionEditSaveOutcome = "error" | "replacement-created" | "updated";
 
@@ -98,24 +89,10 @@ export function parseSessionEditDraft(values: SessionEditDraft): ParsedSessionEd
 		};
 	}
 
-	const remainingBalanceDraft = values.remainingBalanceAmount.trim();
-
-	const remainingBalanceAmountResult = remainingBalanceDraft
-		? parseRemainingBalanceAmountDraft(remainingBalanceDraft)
-		: null;
-
-	if (remainingBalanceAmountResult?.status === "invalid") {
-		return { status: "remaining-balance-invalid" };
-	}
-
-	return { status: "ok", parsedValues: parsedValues.data, remainingBalanceAmountResult };
+	return { status: "ok", parsedValues: parsedValues.data };
 }
 
-function buildSessionUpdateInput(
-	session: SessionRecord,
-	parsedValues: ParsedSessionValues,
-	remainingBalanceAmountResult: RemainingBalanceResult
-) {
+function buildSessionUpdateInput(session: SessionRecord, parsedValues: ParsedSessionValues) {
 	const input: SessionUpdateInput = {
 		bookingId: session._id,
 		name: parsedValues.name,
@@ -138,10 +115,6 @@ function buildSessionUpdateInput(
 		input.notes = parsedValues.notes;
 	}
 
-	if (remainingBalanceAmountResult?.status === "valid") {
-		input.remainingBalanceAmount = remainingBalanceAmountResult.amount;
-	}
-
 	return input;
 }
 
@@ -152,11 +125,7 @@ export async function performSessionEditSave(
 		input: ReturnType<typeof buildSessionUpdateInput>
 	) => Promise<UpdateSessionFromAdminResult>
 ): Promise<SessionEditSaveOutcome> {
-	const updateInput = buildSessionUpdateInput(
-		session,
-		parsedDraft.parsedValues,
-		parsedDraft.remainingBalanceAmountResult
-	);
+	const updateInput = buildSessionUpdateInput(session, parsedDraft.parsedValues);
 
 	const [error, result] = await tryCatch(updateSession(updateInput));
 

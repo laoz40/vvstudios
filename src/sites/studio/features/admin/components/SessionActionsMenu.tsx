@@ -26,7 +26,6 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
 import {
 	SessionEditorAssignment,
 	type ActiveEditor
@@ -44,7 +43,6 @@ import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteActi
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
-import type { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
@@ -56,7 +54,6 @@ type SessionActionsMenuProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
-	paymentActions: ReturnType<typeof usePaymentActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
 	onOpenDrive: () => void;
@@ -169,7 +166,6 @@ export function SessionActionsMenu({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	paymentActions,
 	rescheduleAction,
 	statusActions,
 	onOpenDrive,
@@ -258,22 +254,6 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.canManageConfirmedSession && session.packageId === undefined ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
-							Payment status
-						</DropdownMenuLabel>
-						<div className="px-2 pb-2">
-							<PaymentStatusTabs
-								disabled={paymentActions.isUpdatingPaidRemainingBalance}
-								isPaid={paymentActions.isPaidRemainingBalance}
-								onMarkPaid={() => void paymentActions.handleSetPaidRemainingBalance(true)}
-								onMarkUnpaid={() => void paymentActions.handleSetPaidRemainingBalance(false)}
-							/>
-						</div>
-					</>
-				) : null}
 				<DropdownMenuSeparator />
 				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
 				<DeliverablesControls

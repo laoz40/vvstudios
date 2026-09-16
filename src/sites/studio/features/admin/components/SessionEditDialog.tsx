@@ -22,13 +22,10 @@ import {
 	DURATION_OPTIONS,
 	SERVICES,
 	toDeliverableCountOption,
-	pickBookingAddonQuantities,
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
-import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { X } from "lucide-react";
 
@@ -46,7 +43,6 @@ export type SessionEditDraft = {
 		notes: string;
 		phone: string;
 		service: SessionRecord["service"];
-		remainingBalanceAmount: string;
 		time: string;
 	};
 
@@ -75,8 +71,7 @@ function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 		addons: [...session.addons],
 		email: session.email,
 		phone: session.phone,
-		notes: session.notes ?? "",
-		remainingBalanceAmount: session.remainingBalanceAmount?.toString() ?? ""
+		notes: session.notes ?? ""
 	};
 }
 
@@ -89,12 +84,6 @@ export function SessionEditDialog({
 	isSaving
 }: SessionEditDialogProps) {
 	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(session));
-
-	const defaultRemainingBalanceAmount = calculateBookingInvoiceAmounts({
-		duration: draft.duration,
-		addons: draft.addons,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
 
 	useEffect(() => {
 		if (open) {
@@ -393,28 +382,6 @@ export function SessionEditDialog({
 							}}
 						/>
 					) : null}
-
-					<section className="grid gap-2">
-						<Label htmlFor="edit-session-remaining-balance">Remaining balance due</Label>
-						<Input
-							id="edit-session-remaining-balance"
-							name="remainingBalanceAmount"
-							type="number"
-							inputMode="decimal"
-							min="0"
-							step="0.01"
-							value={draft.remainingBalanceAmount}
-							onChange={(event) => {
-								setDraft((current) => ({ ...current, remainingBalanceAmount: event.target.value }));
-							}}
-							placeholder={defaultRemainingBalanceAmount.toFixed(2)}
-							disabled={isSaving}
-						/>
-						<p className="text-muted-foreground text-sm">
-							Leave blank to use the current default:{" "}
-							{formatAudAmount(defaultRemainingBalanceAmount)}.
-						</p>
-					</section>
 
 					<div className="grid gap-2">
 						<Label htmlFor="edit-session-notes">Client notes</Label>
