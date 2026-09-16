@@ -85,6 +85,7 @@ import type * as lib_stripeCheckoutLineItems from "../lib/stripeCheckoutLineItem
 import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js";
 import type * as lib_stripeClient from "../lib/stripeClient.js";
 import type * as lib_stripeInvoice from "../lib/stripeInvoice.js";
+import type * as lib_stripeInvoiceBillingUrls from "../lib/stripeInvoiceBillingUrls.js";
 import type * as lib_stripeInvoices from "../lib/stripeInvoices.js";
 import type * as lib_tests_testIds from "../lib/tests/testIds.js";
 import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
@@ -129,6 +130,7 @@ import type * as services_sessionReschedule from "../services/sessionReschedule.
 import type * as services_sessionScheduling from "../services/sessionScheduling.js";
 import type * as services_sessions from "../services/sessions.js";
 import type * as services_stripe from "../services/stripe.js";
+import type * as services_stripeInvoiceBillingUrls from "../services/stripeInvoiceBillingUrls.js";
 import type * as services_stripeInvoicePayment from "../services/stripeInvoicePayment.js";
 import type * as services_stripeInvoices from "../services/stripeInvoices.js";
 import type * as services_stripeInvoicing from "../services/stripeInvoicing.js";
@@ -225,6 +227,7 @@ declare const fullApi: ApiFromModules<{
   "lib/stripeCheckoutSession": typeof lib_stripeCheckoutSession;
   "lib/stripeClient": typeof lib_stripeClient;
   "lib/stripeInvoice": typeof lib_stripeInvoice;
+  "lib/stripeInvoiceBillingUrls": typeof lib_stripeInvoiceBillingUrls;
   "lib/stripeInvoices": typeof lib_stripeInvoices;
   "lib/tests/testIds": typeof lib_tests_testIds;
   packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
@@ -269,6 +272,7 @@ declare const fullApi: ApiFromModules<{
   "services/sessionScheduling": typeof services_sessionScheduling;
   "services/sessions": typeof services_sessions;
   "services/stripe": typeof services_stripe;
+  "services/stripeInvoiceBillingUrls": typeof services_stripeInvoiceBillingUrls;
   "services/stripeInvoicePayment": typeof services_stripeInvoicePayment;
   "services/stripeInvoices": typeof services_stripeInvoices;
   "services/stripeInvoicing": typeof services_stripeInvoicing;

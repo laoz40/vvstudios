@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
+import { getStripeInvoiceBillingUrlsService } from "#convex/services/stripeInvoiceBillingUrls";
 import {
 	sendBookingStripeInvoiceService,
 	sendPackageStripeInvoiceService
@@ -28,4 +29,10 @@ export const sendPackageStripeInvoice = action({
 	},
 	handler: async (ctx, args) =>
 		(await sendPackageStripeInvoiceService(ctx, args)).match(tupleOk, tupleErr)
+});
+
+export const getStripeInvoiceBillingUrls = action({
+	args: { stripeInvoiceId: v.string() },
+	handler: async (ctx, args) =>
+		(await getStripeInvoiceBillingUrlsService(ctx, args)).match(tupleOk, tupleErr)
 });
