@@ -100,7 +100,9 @@ export function StripeBillingDialog({
 
 		if (!billingUrl) {
 			if (link === "receipt" && invoice.paymentStatus === "paid") {
-				toast.error("Payment receipt is no longer available. Copy the Stripe invoice ID instead.");
+				toast.error(
+					"Payment receipt is no longer available. Copy the invoice ID and search for it in the Stripe dashboard."
+				);
 				await copyText(invoice.stripeInvoiceId, "Stripe invoice ID");
 
 				return;
@@ -175,14 +177,29 @@ export function StripeBillingDialog({
 							<li
 								key={invoice._id}
 								className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
-								<div className="flex min-w-0 items-center gap-1 font-medium">
-									<span className="truncate">{formatStripeInvoiceKindLabel(invoice.kind)}</span>
-									<span className="text-muted-foreground">·</span>
-									<span className={getStripeInvoiceAmountClassName(invoice.paymentStatus)}>
-										{formatStripeInvoiceAmount(invoice)}
+								<div className="flex min-w-0 flex-col gap-0.5">
+									<div className="flex min-w-0 items-center gap-1 font-medium">
+										<span className="truncate">{formatStripeInvoiceKindLabel(invoice.kind)}</span>
+										<span className="text-muted-foreground">·</span>
+										<span className={getStripeInvoiceAmountClassName(invoice.paymentStatus)}>
+											{formatStripeInvoiceAmount(invoice)}
+										</span>
+									</div>
+									<span className="truncate font-mono text-xs text-muted-foreground">
+										{invoice.stripeInvoiceId}
 									</span>
 								</div>
 								<div className="flex shrink-0 gap-2">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										disabled={isOpeningBillingLink}
+										onClick={() => {
+											void copyText(invoice.stripeInvoiceId, "Stripe invoice ID");
+										}}>
+										Copy ID
+									</Button>
 									{getStripeInvoiceBillingLinks(invoice).map((link) => {
 										const isLoadingLink =
 											loadingBillingLink?.stripeInvoiceId === invoice.stripeInvoiceId &&
@@ -213,6 +230,20 @@ export function StripeBillingDialog({
 							</li>
 						))}
 					</ul>
+				) : null}
+
+				{hasInvoices ? (
+					<p className="text-sm text-muted-foreground">
+						If a link fails, copy the invoice ID and search for it in the{" "}
+						<a
+							href="https://dashboard.stripe.com/invoices"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-foreground underline underline-offset-4">
+							Stripe dashboard
+						</a>{" "}
+						to open the PDF or payment receipt manually.
+					</p>
 				) : null}
 
 				<DialogFooter>
