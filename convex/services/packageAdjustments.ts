@@ -11,6 +11,8 @@ import {
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustmentInvoicePayment";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
+import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripeInvoices";
+import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {
 	adjustmentId: Id<"packageAdjustments">;
@@ -109,7 +111,28 @@ export function completePackageAdjustmentInvoiceEmailService(
 					}
 				: { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined };
 
-		return okOrThrow(ctx.db.patch(adjustment._id, patch).then(() => ({ updated: true })));
+		return okOrThrow(ctx.db.patch(adjustment._id, patch).then(() => ({ updated: true }))).andThen(
+			(result) => {
+				if (status !== "sent" || !args.stripeInvoiceId) {
+					return ok(result);
+				}
+
+				const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
+
+				return recordPackageAdjustmentStripeInvoice(ctx, {
+					packageId: adjustment.packageId,
+					packageAdjustmentId: adjustment._id,
+					stripeInvoiceId: args.stripeInvoiceId,
+					lineItems: [
+						{
+							description: `${remotePodcastLabel} (package adjustment)`,
+							amount: adjustment.totalAmount
+						}
+					],
+					totalAmount: adjustment.totalAmount
+				}).map(() => result);
+			}
+		);
 	});
 }
 

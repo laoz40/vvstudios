@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
-import { completePackageAdjustmentInvoicePaymentService } from "#convex/services/packageAdjustmentInvoicePayment";
+import { completeStripeInvoicePaymentService } from "#convex/services/stripeInvoicePayment";
 import { completePackageCheckoutService } from "#convex/services/packageCheckoutCompletion";
 
 const http = httpRouter();
@@ -164,7 +164,7 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 	const stripeInvoiceId = invoice.id;
 	const adjustmentId = invoice.metadata?.adjustmentId;
 
-	const paymentCompletion = await completePackageAdjustmentInvoicePaymentService(ctx, {
+	const paymentCompletion = await completeStripeInvoicePaymentService(ctx, {
 		stripeInvoiceId,
 		adjustmentId,
 		paidAt: Date.now()
@@ -182,14 +182,27 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 			}
 		},
 		(failure) => {
-			console.error("Package adjustment invoice payment claim failed", {
-				eventId: event.id,
-				stripeInvoiceId,
-				adjustmentId,
-				claimError: failure.error
-			});
+			switch (failure.kind) {
+				case "not_found":
+					console.error("Stripe invoice payment had no matching record", {
+						eventId: event.id,
+						stripeInvoiceId,
+						adjustmentId
+					});
 
-			return new Response("claim failed", { status: 200 });
+					return new Response("not found", { status: 200 });
+				case "claim_failed":
+					console.error("Stripe invoice payment claim failed", {
+						eventId: event.id,
+						stripeInvoiceId,
+						adjustmentId,
+						claimError: failure.error
+					});
+
+					return new Response("claim failed", { status: 200 });
+				default:
+					return exhaustiveCheck(failure);
+			}
 		}
 	);
 }

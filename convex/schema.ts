@@ -43,6 +43,10 @@ const packageReminderStateValidator = v.union(
 	})
 );
 
+const stripeInvoiceLineItemsValidator = v.array(
+	v.object({ description: v.string(), amount: v.number() })
+);
+
 export default defineSchema({
 	editorProfiles: defineTable({
 		tokenIdentifier: v.string(),
@@ -146,6 +150,26 @@ export default defineSchema({
 	)
 		.index("by_packageId", ["packageId"])
 		.index("by_stripeInvoiceId", ["stripeInvoiceId"]),
+
+	stripeInvoices: defineTable({
+		stripeInvoiceId: v.string(),
+		kind: v.union(v.literal("booking"), v.literal("package"), v.literal("package_adjustment")),
+		bookingId: v.optional(v.id("bookings")),
+		packageId: v.optional(v.id("packages")),
+		packageAdjustmentId: v.optional(v.id("packageAdjustments")),
+		lineItems: stripeInvoiceLineItemsValidator,
+		totalAmount: v.number(),
+		paymentStatus: v.union(v.literal("unpaid"), v.literal("paid")),
+		paidAt: v.optional(v.number()),
+		createdAt: v.number(),
+		requestId: v.optional(v.string()),
+		createdBy: v.optional(v.string())
+	})
+		.index("by_stripeInvoiceId", ["stripeInvoiceId"])
+		.index("by_bookingId", ["bookingId"])
+		.index("by_packageId", ["packageId"])
+		.index("by_packageAdjustmentId", ["packageAdjustmentId"])
+		.index("by_requestId", ["requestId"]),
 
 	customInvoices: defineTable({
 		bookingId: v.optional(v.id("bookings")),
