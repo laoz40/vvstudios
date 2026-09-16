@@ -23,6 +23,10 @@ import {
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
+import {
+	listStripeInvoicesForPackage,
+	summarizeCustomPackageStripeInvoices
+} from "#convex/lib/stripeInvoices";
 
 type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };
 
@@ -88,7 +92,7 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 			okOrThrow(
 				Promise.all(
 					packagesPage.page.map(async (packageFromDb) => {
-						const [packageSessions, packageAdjustment] = await Promise.all([
+						const [packageSessions, packageAdjustment, stripeInvoicesResult] = await Promise.all([
 							getCapacityConsumingPackageSessions(
 								ctx,
 								packageFromDb._id,
@@ -99,8 +103,13 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 								.withIndex("by_packageId", (indexQuery) =>
 									indexQuery.eq("packageId", packageFromDb._id)
 								)
-								.unique()
+								.unique(),
+							listStripeInvoicesForPackage(ctx, packageFromDb._id)
 						]);
+
+						const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(
+							stripeInvoicesResult.unwrapOr([])
+						);
 
 						return {
 							...packageFromDb,
@@ -116,7 +125,8 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 											invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
 											paymentStatus: packageAdjustment.paymentStatus
 										}
-									: null
+									: null,
+							customStripeInvoicesSummary
 						};
 					})
 				).then((page) => ({ ...packagesPage, page }))

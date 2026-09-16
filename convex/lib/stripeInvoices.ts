@@ -6,6 +6,11 @@ import type { StripeInvoiceLineItem } from "#convex/lib/stripeInvoice";
 
 export type StripeInvoiceKind = Doc<"stripeInvoices">["kind"];
 
+export type StripeInvoiceAmountSummary = {
+	paymentStatus: Doc<"stripeInvoices">["paymentStatus"];
+	totalAmount: number;
+};
+
 export type StripeInvoicePaymentClaim =
 	| { outcome: "already_completed" }
 	| { outcome: "completed" }
@@ -15,6 +20,30 @@ type StripeInvoiceInsert = Omit<Doc<"stripeInvoices">, "_id" | "_creationTime">;
 
 function sumStripeInvoiceLineItems(lineItems: StripeInvoiceLineItem[]) {
 	return lineItems.reduce((total, lineItem) => total + lineItem.amount, 0);
+}
+
+export function summarizeStripeInvoices(
+	invoices: Doc<"stripeInvoices">[]
+): StripeInvoiceAmountSummary | null {
+	if (invoices.length === 0) {
+		return null;
+	}
+
+	const totalAmount = invoices.reduce((total, invoice) => total + invoice.totalAmount, 0);
+
+	const paymentStatus = invoices.some((invoice) => invoice.paymentStatus === "unpaid")
+		? "unpaid"
+		: "paid";
+
+	return { paymentStatus, totalAmount };
+}
+
+export function summarizeCustomPackageStripeInvoices(
+	invoices: Doc<"stripeInvoices">[]
+): StripeInvoiceAmountSummary | null {
+	const customInvoices = invoices.filter((invoice) => invoice.kind !== "package_adjustment");
+
+	return summarizeStripeInvoices(customInvoices);
 }
 
 function getStripeInvoiceByStripeInvoiceId(ctx: QueryCtx | MutationCtx, stripeInvoiceId: string) {
