@@ -14,6 +14,7 @@ import {
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -169,6 +170,7 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 					)}>
 					Copy database ID
 				</AnimatedDropdownMenuItem>
+				<StripeIdCopyMenuItems stripePaymentIntentId={packageRow.stripePaymentIntentId} />
 				{hasPackageInvoiceActions ? (
 					<>
 						<DropdownMenuSeparator />

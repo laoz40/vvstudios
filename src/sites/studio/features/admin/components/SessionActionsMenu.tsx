@@ -26,6 +26,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import {
 	SessionEditorAssignment,
 	type ActiveEditor
@@ -303,6 +304,7 @@ export function SessionActionsMenu({
 									)}>
 									Copy database ID
 								</AnimatedDropdownMenuItem>
+								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
 								<DropdownMenuSeparator />
 								<AnimatedDropdownMenuItem
 									disabled={invoiceActions.isDownloadingInvoice}
@@ -346,18 +348,21 @@ export function SessionActionsMenu({
 								</AnimatedDropdownMenuItem>
 							</>
 						) : (
-							<AnimatedDropdownMenuItem
-								onSelect={() => void navigator.clipboard.writeText(String(session._id))}
-								renderIcon={(iconRef) => (
-									<Stack3Icon
-										ref={iconRef}
-										size={16}
-										aria-hidden
-										className="shrink-0 text-current"
-									/>
-								)}>
-								Copy database ID
-							</AnimatedDropdownMenuItem>
+							<>
+								<AnimatedDropdownMenuItem
+									onSelect={() => void navigator.clipboard.writeText(String(session._id))}
+									renderIcon={(iconRef) => (
+										<Stack3Icon
+											ref={iconRef}
+											size={16}
+											aria-hidden
+											className="shrink-0 text-current"
+										/>
+									)}>
+									Copy database ID
+								</AnimatedDropdownMenuItem>
+								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
+							</>
 						)}
 						<DropdownMenuSeparator />
 						{canSetDeliverablesStatusToSent(details) ? (

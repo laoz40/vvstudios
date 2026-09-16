@@ -51,6 +51,7 @@ export type AdminPackageRow = {
 	createdAt: number;
 	status: AdminPackageStatus;
 	invoiceNumber: string;
+	stripePaymentIntentId?: string;
 	hiddenAt?: number;
 };
 
@@ -346,6 +347,7 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		createdAt: packageRecord.createdAt,
 		status: packageRecord.status,
 		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
+		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
 		hiddenAt: packageRecord.hiddenAt
 	};
 }
