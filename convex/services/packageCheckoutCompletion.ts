@@ -36,9 +36,10 @@ export function completePackageCheckoutService(
 					return okAsync({ outcome: "already_completed" as const });
 				case "claimed":
 					return fromConvexTuple(
-						ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
-							packageId: claim.packageId
-						})
+						ctx.runAction(
+							internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout,
+							{ packageId: claim.packageId }
+						)
 					).mapErr((error) => ({ kind: "completion_failed" as const, error }));
 				default:
 					return exhaustiveCheck(claimOutcome);

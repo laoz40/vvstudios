@@ -78,9 +78,7 @@ export function createAndSendPackageAdjustmentStripeInvoice(
 					days_until_due: PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE,
 					metadata: { adjustmentId: input.adjustmentId, packageId: input.packageId }
 				},
-				{
-					idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "create")
-				}
+				{ idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "create") }
 			);
 
 			const productId = await getPackageAdjustmentRemotePodcastProductId(
@@ -100,9 +98,7 @@ export function createAndSendPackageAdjustmentStripeInvoice(
 					},
 					description: `${remotePodcastLabel} (package adjustment)`
 				},
-				{
-					idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "item")
-				}
+				{ idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "item") }
 			);
 
 			const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, undefined, {

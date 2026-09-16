@@ -18,7 +18,9 @@ export function validatePackageClaimStripeSession<T extends PackageCheckoutClaim
 	return ok(packageFromDb);
 }
 
-export type PackageCheckoutClaimStatus<T extends PackageCheckoutClaimPackage = PackageCheckoutClaimPackage> =
+export type PackageCheckoutClaimStatus<
+	T extends PackageCheckoutClaimPackage = PackageCheckoutClaimPackage
+> =
 	| { kind: "already_completed" }
 	| { kind: "already_claimed" }
 	| { kind: "pending"; packageFromDb: T };
