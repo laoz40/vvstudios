@@ -123,6 +123,7 @@ function BookingResultContentView({
 	const isPackageBooking = invoiceDownloadTarget?.kind === "package";
 
 	const showReceiptDownloadLink = invoiceDownloadTarget !== undefined;
+
 	const receiptLeadIncludesDescription =
 		showReceiptDownloadLink && !isPackageBooking && booking?.status !== "email_failed";
 
@@ -206,6 +207,7 @@ function DocumentDownloadButton({
 	onDownload: () => void;
 }): ReactNode {
 	const idleLabel = documentKind === "receipt" ? "download your receipt" : "here";
+
 	const loadingLabel =
 		documentKind === "receipt" ? "generating receipt..." : "generating invoice...";
 

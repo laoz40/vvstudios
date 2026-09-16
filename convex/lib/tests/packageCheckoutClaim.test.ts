@@ -50,6 +50,7 @@ describe("getPackageCheckoutClaimStatus", () => {
 	test("rejects abandoned, expired, and invoice email failed packages", () => {
 		const abandoned = getPackageCheckoutClaimStatus(packageRecord({ status: "abandoned" }));
 		const expired = getPackageCheckoutClaimStatus(packageRecord({ status: "expired" }));
+
 		const invoiceEmailFailed = getPackageCheckoutClaimStatus(
 			packageRecord({ status: "invoice_email_failed" })
 		);
