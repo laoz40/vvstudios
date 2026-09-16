@@ -94,6 +94,7 @@ import type * as packageReminders from "../packageReminders.js";
 import type * as packageScheduling from "../packageScheduling.js";
 import type * as packageSchedulingCalendar from "../packageSchedulingCalendar.js";
 import type * as packages from "../packages.js";
+import type * as receiptEmails from "../receiptEmails.js";
 import type * as services_auth from "../services/auth.js";
 import type * as services_bookingConfirmation from "../services/bookingConfirmation.js";
 import type * as services_bookingConfirmationActions from "../services/bookingConfirmationActions.js";
@@ -119,6 +120,7 @@ import type * as services_packageReminders from "../services/packageReminders.js
 import type * as services_packageScheduling from "../services/packageScheduling.js";
 import type * as services_packageSchedulingCalendar from "../services/packageSchedulingCalendar.js";
 import type * as services_packages from "../services/packages.js";
+import type * as services_receiptEmails from "../services/receiptEmails.js";
 import type * as services_sessionCalendar from "../services/sessionCalendar.js";
 import type * as services_sessionCheckout from "../services/sessionCheckout.js";
 import type * as services_sessionReminders from "../services/sessionReminders.js";
@@ -226,6 +228,7 @@ declare const fullApi: ApiFromModules<{
   packageScheduling: typeof packageScheduling;
   packageSchedulingCalendar: typeof packageSchedulingCalendar;
   packages: typeof packages;
+  receiptEmails: typeof receiptEmails;
   "services/auth": typeof services_auth;
   "services/bookingConfirmation": typeof services_bookingConfirmation;
   "services/bookingConfirmationActions": typeof services_bookingConfirmationActions;
@@ -251,6 +254,7 @@ declare const fullApi: ApiFromModules<{
   "services/packageScheduling": typeof services_packageScheduling;
   "services/packageSchedulingCalendar": typeof services_packageSchedulingCalendar;
   "services/packages": typeof services_packages;
+  "services/receiptEmails": typeof services_receiptEmails;
   "services/sessionCalendar": typeof services_sessionCalendar;
   "services/sessionCheckout": typeof services_sessionCheckout;
   "services/sessionReminders": typeof services_sessionReminders;
