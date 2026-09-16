@@ -4,8 +4,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
 import {
+	getAdminBookingReceiptPdfByBookingIdService,
 	getAdminCustomPackageInvoicePdfByIdService,
 	getAdminPackageInvoicePdfByIdService,
+	getAdminPackageReceiptPdfByIdService,
 	getBookingInvoicePdfByStripeSessionIdService,
 	getBookingReceiptPdfByStripeSessionIdService,
 	getPackageInvoicePdfByIdService,
@@ -37,6 +39,17 @@ export const getPackageReceiptPdfById = action({
 export const getAdminPackageInvoicePdfById = action({
 	args: { packageId: v.id("packages") },
 	handler: (ctx, args) => getAdminPackageInvoicePdfByIdService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const getAdminBookingReceiptPdfByBookingId = action({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) =>
+		getAdminBookingReceiptPdfByBookingIdService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const getAdminPackageReceiptPdfById = action({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => getAdminPackageReceiptPdfByIdService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getAdminCustomPackageInvoicePdfById = action({

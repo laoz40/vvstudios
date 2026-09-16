@@ -29,6 +29,53 @@ type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & {
 	canSendNewSchedulingLink: boolean;
 };
 
+type PackageReceiptMenuItemsProps = {
+	actions: ReturnType<typeof usePackageActions>;
+	canSendNewSchedulingLink: boolean;
+	isActionPending: boolean;
+	pendingAction: ReturnType<typeof usePackageActions>["pendingAction"];
+};
+
+function PackageReceiptMenuItems({
+	actions,
+	canSendNewSchedulingLink,
+	isActionPending,
+	pendingAction
+}: PackageReceiptMenuItemsProps) {
+	if (!canSendNewSchedulingLink || !actions.hasStripeCustomer) return null;
+
+	return (
+		<>
+			<AnimatedDropdownMenuItem
+				disabled={isActionPending}
+				onSelect={() => void actions.handleResendReceipt()}
+				renderIcon={(iconRef) => (
+					<MailFilledIcon
+						ref={iconRef}
+						size={16}
+						aria-hidden
+						className="shrink-0 text-current"
+					/>
+				)}>
+				Resend receipt
+			</AnimatedDropdownMenuItem>
+			<AnimatedDropdownMenuItem
+				disabled={isActionPending}
+				onSelect={() => void actions.handleDownloadReceipt()}
+				renderIcon={(iconRef) => (
+					<DownloadIcon
+						ref={iconRef}
+						size={16}
+						aria-hidden
+						className="shrink-0 text-current"
+					/>
+				)}>
+				{pendingAction === "receiptDownload" ? "Generating receipt" : "Download receipt"}
+			</AnimatedDropdownMenuItem>
+		</>
+	);
+}
+
 function PackageInvoiceActions({
 	actions,
 	canSendNewSchedulingLink,
@@ -37,7 +84,6 @@ function PackageInvoiceActions({
 	const {
 		handleDownloadAdjustmentInvoice,
 		handleDownloadInvoice,
-		handleResendReceipt,
 		isActionPending,
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
@@ -48,21 +94,12 @@ function PackageInvoiceActions({
 
 	return (
 		<>
-			{canSendNewSchedulingLink && actions.hasStripeCustomer ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending}
-					onSelect={() => void handleResendReceipt()}
-					renderIcon={(iconRef) => (
-						<MailFilledIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					Resend receipt
-				</AnimatedDropdownMenuItem>
-			) : null}
+			<PackageReceiptMenuItems
+				actions={actions}
+				canSendNewSchedulingLink={canSendNewSchedulingLink}
+				isActionPending={isActionPending}
+				pendingAction={pendingAction}
+			/>
 			{packageRow.adjustment?.invoiceEmailStatus === "failed" ? (
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}

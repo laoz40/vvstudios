@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
+import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
@@ -314,18 +315,35 @@ export function SessionActionsMenu({
 									<>
 										<DropdownMenuSeparator />
 										{invoiceActions.hasStripeCustomer ? (
-											<AnimatedDropdownMenuItem
-												onSelect={() => void receiptActions.handleResendReceipt()}
-												renderIcon={(iconRef) => (
-													<MailFilledIcon
-														ref={iconRef}
-														size={16}
-														aria-hidden
-														className="shrink-0 text-current"
-													/>
-												)}>
-												Resend receipt
-											</AnimatedDropdownMenuItem>
+											<>
+												<AnimatedDropdownMenuItem
+													onSelect={() => void receiptActions.handleResendReceipt()}
+													renderIcon={(iconRef) => (
+														<MailFilledIcon
+															ref={iconRef}
+															size={16}
+															aria-hidden
+															className="shrink-0 text-current"
+														/>
+													)}>
+													Resend receipt
+												</AnimatedDropdownMenuItem>
+												<AnimatedDropdownMenuItem
+													disabled={receiptActions.isDownloadingReceipt}
+													onSelect={() => void receiptActions.handleDownloadReceipt()}
+													renderIcon={(iconRef) => (
+														<DownloadIcon
+															ref={iconRef}
+															size={16}
+															aria-hidden
+															className="shrink-0 text-current"
+														/>
+													)}>
+													{receiptActions.isDownloadingReceipt
+														? "Generating receipt"
+														: "Download receipt"}
+												</AnimatedDropdownMenuItem>
+											</>
 										) : null}
 										{invoiceActions.hasStripeCustomer ? (
 											<AnimatedDropdownMenuItem

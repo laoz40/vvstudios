@@ -8,6 +8,7 @@ import type {
 	AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 import { resendReceiptWithFeedback } from "#studio/features/admin/lib/resend-receipt";
+import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
 
@@ -16,6 +17,7 @@ export function usePackagePaymentActions(
 	setPendingAction: SetPackagePendingAction
 ) {
 	const resendPackageReceipt = useAction(api.receiptEmails.resendPackageReceipt);
+	const getAdminPackageReceiptPdf = useAction(api.invoices.getAdminPackageReceiptPdfById);
 	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const archivePackage = useMutation(api.packages.archivePackage);
 	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
@@ -54,6 +56,52 @@ export function usePackagePaymentActions(
 		}
 
 		toast.success(archived ? "Package archived." : "Package restored.");
+		setPendingAction(null);
+	}
+
+	async function handleDownloadReceipt() {
+		setPendingAction("receiptDownload");
+
+		const [error, receipt] = await tryCatch(
+			getAdminPackageReceiptPdf({ packageId: packageRow.id })
+		);
+
+		if (error !== null) {
+			const reason = error.reason;
+
+			switch (reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+					break;
+
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to download receipts.");
+					break;
+
+				case "PACKAGE_NOT_FOUND":
+					toast.error("This package no longer exists.");
+					break;
+
+				case "PACKAGE_NOT_PAID":
+					toast.error("Receipts are only available after payment is confirmed.");
+					break;
+
+				case "INVALID_BOOKING_DATA":
+				case "RECEIPT_PDF_RENDER_FAILED":
+				case "UNEXPECTED_ERROR":
+					toast.error("Unable to generate receipt.");
+					break;
+				default:
+					exhaustiveCheck(reason);
+			}
+
+			setPendingAction(null);
+
+			return;
+		}
+
+		downloadBlob(new Blob([receipt.content], { type: receipt.contentType }), receipt.filename);
+		toast.success("Receipt download started.");
 		setPendingAction(null);
 	}
 
@@ -131,6 +179,7 @@ export function usePackagePaymentActions(
 
 	return {
 		handleArchiveChange,
+		handleDownloadReceipt,
 		handleResendReceipt,
 		handleRetrySchedulingEmail,
 		isSchedulingLinkDialogOpen,

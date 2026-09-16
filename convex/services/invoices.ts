@@ -28,6 +28,7 @@ import {
 } from "#convex/lib/invoiceDownloads";
 import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 
 type BookingInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
@@ -55,6 +56,34 @@ type AdminPackageInvoicePdfError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "PACKAGE_NOT_FOUND" };
+
+type AdminPackageReceiptPdfError =
+	| BookingReceiptPdfError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_NOT_PAID" };
+
+type AdminBookingReceiptPdfError =
+	| BookingReceiptPdfError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_CONFIRMED" };
+
+function isPaidPackageStatus(status: Doc<"packages">["status"]) {
+	return status === "paid" || status === "schedule_email_failed";
+}
+
+function isConfirmedBookingStatus(status: Doc<"bookings">["status"]) {
+	return status === "confirmed" || status === "email_failed";
+}
+
+function getBookingReceiptCreatedAt(booking: Doc<"bookings">) {
+	return (
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
+	);
+}
 
 function renderPackageInvoicePdf(
 	packageRecord: Doc<"packages">,
@@ -199,6 +228,88 @@ export function getPackageInvoicePdfByIdService(
 			// Render the package's stored commercial snapshot.
 			.andThen(({ bookingSettings, packageRecord }) =>
 				renderPackageInvoicePdf(packageRecord, bookingSettings.leadTimeMinutes)
+			)
+	);
+}
+
+export function getAdminBookingReceiptPdfByBookingIdService(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+): ResultAsync<InvoicePdfPayload, AdminBookingReceiptPdfError> {
+	return (
+		requirePermissionActions(ctx, "view:sensitive-booking-data")
+			// Load the booking only after admin authorization succeeds.
+			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
+			.andThen((booking) => {
+				if (!isConfirmedBookingStatus(booking.status)) {
+					return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+				}
+
+				const receiptCreatedAt = getBookingReceiptCreatedAt(booking);
+
+				if (!receiptCreatedAt) {
+					return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+				}
+
+				return ok({ booking, receiptCreatedAt });
+			})
+			// Load current lead-time guidance used by the receipt artifact.
+			.andThen(({ booking, receiptCreatedAt }) =>
+				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
+					booking,
+					bookingSettings,
+					receiptCreatedAt
+				}))
+			)
+			// Render the booking receipt without the public expiry restriction.
+			.andThen(({ booking, bookingSettings, receiptCreatedAt }) =>
+				createBookingReceiptArtifactsForBooking(booking, receiptCreatedAt, {
+					leadTimeMinutes: bookingSettings.leadTimeMinutes
+				})
+			)
+			.andThen((artifactsResult) =>
+				renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+					toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+				)
+			)
+	);
+}
+
+export function getAdminPackageReceiptPdfByIdService(
+	ctx: ActionCtx,
+	args: { packageId: Id<"packages"> }
+): ResultAsync<InvoicePdfPayload, AdminPackageReceiptPdfError> {
+	return (
+		requirePermissionActions(ctx, "view:sensitive-booking-data")
+			// Load the package only after admin authorization succeeds.
+			.andThen(() => getPackageForAction(ctx, args.packageId))
+			.andThen((packageRecord) => {
+				const receiptCreatedAt = packageRecord.paidAt;
+
+				if (!isPaidPackageStatus(packageRecord.status) || !receiptCreatedAt) {
+					return err({ reason: "PACKAGE_NOT_PAID" as const });
+				}
+
+				return ok({ packageRecord, receiptCreatedAt });
+			})
+			// Load current lead-time guidance used by the receipt artifact.
+			.andThen(({ packageRecord, receiptCreatedAt }) =>
+				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((bookingSettings) => ({
+					bookingSettings,
+					packageRecord,
+					receiptCreatedAt
+				}))
+			)
+			// Render the package receipt without the public expiry restriction.
+			.andThen(({ bookingSettings, packageRecord, receiptCreatedAt }) =>
+				createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
+					leadTimeMinutes: bookingSettings.leadTimeMinutes
+				})
+			)
+			.andThen((artifactsResult) =>
+				renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+					toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+				)
 			)
 	);
 }

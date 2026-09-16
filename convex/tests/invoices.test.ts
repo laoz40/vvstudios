@@ -15,7 +15,8 @@
  *
  * 4. Invoice downloads
  *    Public session and package downloads enforce record existence, lifecycle state, and the
- *    one-hour access window. Admin package downloads remain available after that window.
+ *    one-hour access window. Admin package invoice and receipt downloads remain available
+ *    after that window.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -449,6 +450,44 @@ describe("invoice download access", () => {
 		expect(publicPayload?.content.byteLength).toBeGreaterThan(0);
 		expect(adminError).toBeNull();
 		expect(adminPayload?.content.byteLength).toBeGreaterThan(0);
+	});
+
+	test("expires public package receipt downloads while keeping admin download available", async () => {
+		const t = createConvexTest();
+		const expiredPaidAt = now - oneHour - 1;
+
+		const expiredPackageId = await seedPackage(t, {
+			createdAt: expiredPaidAt,
+			paidAt: expiredPaidAt,
+			status: "paid"
+		});
+
+		expect(
+			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
+		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
+
+		const [adminError, adminPayload] = await t
+			.withIdentity(adminIdentity)
+			.action(api.invoices.getAdminPackageReceiptPdfById, { packageId: expiredPackageId });
+
+		expect(adminError).toBeNull();
+		expect(adminPayload).toMatchObject({ contentType: "application/pdf" });
+		expect(adminPayload?.filename).toMatch(/^package-receipt-/);
+		expect(adminPayload?.content.byteLength).toBeGreaterThan(0);
+	});
+
+	test("allows admin booking receipt downloads for confirmed sessions", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t, { status: "confirmed" });
+
+		const [error, payload] = await t
+			.withIdentity(adminIdentity)
+			.action(api.invoices.getAdminBookingReceiptPdfByBookingId, { bookingId });
+
+		expect(error).toBeNull();
+		expect(payload).toMatchObject({ contentType: "application/pdf" });
+		expect(payload?.filename).toMatch(/^booking-receipt-/);
+		expect(payload?.content.byteLength).toBeGreaterThan(0);
 	});
 });
 
