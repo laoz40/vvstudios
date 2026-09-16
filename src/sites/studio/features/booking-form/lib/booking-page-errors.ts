@@ -88,8 +88,11 @@ export const closeCheckoutToastMessages = {
 } satisfies Record<CloseCheckoutToastError["reason"], string>;
 
 export const availabilityErrorMessages = {
+	BOOKING_INVALID_DATE: bookingPageErrorMessages.BOOKING_INVALID_DATE,
+	BOOKING_INVALID_TIME: bookingPageErrorMessages.BOOKING_INVALID_TIME,
 	GOOGLE_CALENDAR_AUTH_FAILED: bookingPageErrorMessages.GOOGLE_CALENDAR_AUTH_FAILED,
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED: bookingPageErrorMessages.GOOGLE_CALENDAR_AVAILABILITY_FAILED,
 	GOOGLE_CALENDAR_RATE_LIMITED: bookingPageErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED,
+	INVALID_ZONED_TIME: bookingPageErrorMessages.BOOKING_INVALID_TIME,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.LOAD_AVAILABILITY_FAILED
 } satisfies Record<AvailabilityToastError["reason"], string>;

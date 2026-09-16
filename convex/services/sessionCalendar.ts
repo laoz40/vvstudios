@@ -59,9 +59,12 @@ type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
 type GoogleCalendarAvailabilityError = {
 	reason:
+		| "BOOKING_INVALID_DATE"
+		| "BOOKING_INVALID_TIME"
 		| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 		| "GOOGLE_CALENDAR_AUTH_FAILED"
-		| "GOOGLE_CALENDAR_RATE_LIMITED";
+		| "GOOGLE_CALENDAR_RATE_LIMITED"
+		| "INVALID_ZONED_TIME";
 };
 
 export type GetAvailableRescheduleTimesError =
@@ -81,9 +84,8 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 			const startDate = formatDateValue(today);
 			const endDate = formatDateValue(getLastBookableDate(today, settings.maxDaysAhead));
 
-			return getDateAvailabilityRange(startDate, endDate, timeZone)
-				.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-				.asyncAndThen(({ timeMin, timeMax }) =>
+			return getDateAvailabilityRange(startDate, endDate, timeZone).asyncAndThen(
+				({ timeMin, timeMax }) =>
 					calendarResultAsync(
 						getBusyWindowsInRange({
 							calendar,
@@ -95,9 +97,10 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 						}),
 						"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 					).andThen((busyWindows) =>
-						groupBusyWindowsByDay(busyWindows, timeZone)
-							.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-							.map((busyDays) => ({ busyWindowsByMonth: groupBusyDaysByMonth(busyDays), timeZone }))
+						groupBusyWindowsByDay(busyWindows, timeZone).map((busyDays) => ({
+							busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
+							timeZone
+						}))
 					)
 				);
 		}
