@@ -82,7 +82,6 @@ function PackageInvoiceActions({
 	packageRow
 }: PackageInvoiceActionsProps) {
 	const {
-		handleDownloadAdjustmentInvoice,
 		handleDownloadInvoice,
 		isActionPending,
 		pendingAction,
@@ -115,23 +114,6 @@ function PackageInvoiceActions({
 					{pendingAction === "adjustmentEmail"
 						? "Sending adjustment invoice"
 						: "Retry adjustment invoice"}
-				</AnimatedDropdownMenuItem>
-			) : null}
-			{packageRow.adjustment?.invoiceEmailStatus === "sent" ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending}
-					onSelect={() => void handleDownloadAdjustmentInvoice()}
-					renderIcon={(iconRef) => (
-						<DownloadIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					{pendingAction === "adjustmentDownload"
-						? "Generating adjustment invoice"
-						: "Download adjustment invoice"}
 				</AnimatedDropdownMenuItem>
 			) : null}
 			{actions.hasStripeCustomer ? (

@@ -21,8 +21,6 @@ export interface BookingReceiptEmailProps {
 
 function getReceiptPreviewText(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return `Remote Podcast adjustment payment received for your ${data.adjustment.packageSize}-session package. Your receipt is attached.`;
 		case "package":
 			return `${data.package.size}-session package confirmed. Your receipt is attached.`;
 		case "booking":
@@ -34,8 +32,6 @@ function getReceiptPreviewText(data: BookingReceiptData) {
 
 function getReceiptHeading(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return `Thanks for your payment, ${data.customer.name}`;
 		case "package":
 			return `Thanks for your purchase, ${data.customer.name}`;
 		case "booking":
@@ -47,8 +43,6 @@ function getReceiptHeading(data: BookingReceiptData) {
 
 function getReceiptIntro(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return "Your Remote Podcast adjustment payment is confirmed. Your receipt is attached to this email.";
 		case "package":
 			return "Your package payment is confirmed. Your receipt is attached to this email.";
 		case "booking":
@@ -60,8 +54,6 @@ function getReceiptIntro(data: BookingReceiptData) {
 
 function getReceiptSummaryTitle(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return "Adjustment summary";
 		case "package":
 			return "Package summary";
 		case "booking":
@@ -73,20 +65,6 @@ function getReceiptSummaryTitle(data: BookingReceiptData) {
 
 function ReceiptSummary({ data }: { data: BookingReceiptData }) {
 	switch (data.kind) {
-		case "adjustment":
-			return (
-				<>
-					<Text style={summaryLine}>
-						<strong>Package:</strong> {data.adjustment.packageSize} sessions
-					</Text>
-					<Text style={summaryLine}>
-						<strong>Booked:</strong> {data.adjustment.bookedAtLabel}
-					</Text>
-					<Text style={summaryLine}>
-						<strong>Adjustment:</strong> {data.booking.addonsSummary}
-					</Text>
-				</>
-			);
 		case "package":
 			return (
 				<>

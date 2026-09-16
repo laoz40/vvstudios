@@ -8,12 +8,10 @@ import {
 import {
 	buildBookingInvoiceData,
 	buildPackageInvoiceData,
-	buildPackageAdjustmentInvoiceData,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
 	buildBookingReceiptData,
-	buildPackageAdjustmentReceiptData,
 	buildPackageReceiptData
 } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
 import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
@@ -59,10 +57,6 @@ function createReceiptPdfFilename(receiptNumber: string) {
 
 function createPackageReceiptPdfFilename(receiptNumber: string) {
 	return `package-receipt-${receiptNumber.toLowerCase()}.pdf`;
-}
-
-function createPackageAdjustmentReceiptPdfFilename(receiptNumber: string) {
-	return `package-adjustment-receipt-${receiptNumber.toLowerCase()}.pdf`;
 }
 
 type InvoiceEmailArtifacts = {
@@ -343,81 +337,6 @@ export function createPackageReceiptEmailArtifacts(
 	);
 }
 
-export function createPackageAdjustmentReceiptArtifacts(
-	invoiceInput: PackageAdjustmentInvoiceInput,
-	paidAt: number,
-	leadTimeMinutes: number
-): Result<
-	{ artifacts: { data: BookingReceiptData; pdf: { contentType: string; filename: string } } },
-	{ reason: "INVALID_BOOKING_DATA" }
-> {
-	const { adjustment, packageRecord } = invoiceInput;
-
-	const parsedPackage = packageFormSchema.safeParse({
-		name: packageRecord.name,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		email: packageRecord.email,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
-		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
-		notes: packageRecord.notes ?? "",
-		packageSize: packageRecord.packageSize
-	});
-
-	if (!parsedPackage.success) {
-		return err({ reason: "INVALID_BOOKING_DATA" as const });
-	}
-
-	const data = buildPackageAdjustmentReceiptData({
-		abn: packageRecord.abn,
-		accountName: packageRecord.accountName,
-		bookedAt: packageRecord.createdAt,
-		duration: parsedPackage.data.duration,
-		email: packageRecord.email,
-		leadTimeMinutes,
-		name: packageRecord.name,
-		packageSize: packageRecord.packageSize,
-		paidAt,
-		phone: packageRecord.phone,
-		quantity: adjustment.quantity,
-		rate: adjustment.rate,
-		receiptNumber: adjustment.invoiceNumber,
-		totalAmount: adjustment.totalAmount
-	});
-
-	return ok({
-		artifacts: {
-			data,
-			pdf: {
-				contentType: "application/pdf",
-				filename: createPackageAdjustmentReceiptPdfFilename(data.receipt.number)
-			}
-		}
-	});
-}
-
-export function createPackageAdjustmentReceiptEmailArtifacts(
-	invoiceInput: PackageAdjustmentInvoiceInput,
-	paidAt: number,
-	leadTimeMinutes: number
-) {
-	return createPackageAdjustmentReceiptArtifacts(
-		invoiceInput,
-		paidAt,
-		leadTimeMinutes
-	).asyncAndThen((artifactsResult) =>
-		renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
-			...artifactsResult,
-			artifacts: { ...artifactsResult.artifacts, emailHtml }
-		}))
-	);
-}
-
 export function createBookingReceiptEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
@@ -445,60 +364,6 @@ export function createBookingReceiptEmailArtifactsForBooking(
 			artifacts: { ...value.artifacts, emailHtml }
 		}))
 	);
-}
-
-export function createPackageAdjustmentInvoiceArtifacts(
-	invoiceInput: PackageAdjustmentInvoiceInput
-): ResultAsync<
-	InvoiceEmailArtifacts,
-	{ reason: "INVALID_BOOKING_DATA" } | { reason: "INVOICE_EMAIL_RENDER_FAILED" }
-> {
-	const { adjustment, packageRecord } = invoiceInput;
-
-	const parsedPackage = packageFormSchema.safeParse({
-		name: packageRecord.name,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		email: packageRecord.email,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
-		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
-		notes: packageRecord.notes ?? "",
-		packageSize: packageRecord.packageSize
-	});
-
-	if (!parsedPackage.success) {
-		return errAsync({ reason: "INVALID_BOOKING_DATA" as const });
-	}
-
-	const data = buildPackageAdjustmentInvoiceData({
-		abn: packageRecord.abn,
-		accountName: packageRecord.accountName,
-		bookedAt: packageRecord.createdAt,
-		createdAt: adjustment.createdAt,
-		duration: parsedPackage.data.duration,
-		email: packageRecord.email,
-		invoiceDueAt: adjustment.invoiceDueAt,
-		invoiceNumber: adjustment.invoiceNumber,
-		name: packageRecord.name,
-		packageSize: packageRecord.packageSize,
-		phone: packageRecord.phone,
-		quantity: adjustment.quantity,
-		rate: adjustment.rate,
-		totalAmount: adjustment.totalAmount
-	});
-
-	return renderBookingInvoiceEmail(data).map((emailHtml) => ({
-		artifacts: {
-			data,
-			emailHtml,
-			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
-		}
-	}));
 }
 
 export function createPackageReceiptArtifacts(

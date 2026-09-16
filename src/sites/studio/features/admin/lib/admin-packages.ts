@@ -73,7 +73,6 @@ export function toPackageListQuerySort(sort: AdminPackageSort): PackageListQuery
 }
 
 export type AdminPackagePendingAction =
-	| "adjustmentDownload"
 	| "adjustmentEmail"
 	| "archive"
 	| "download"

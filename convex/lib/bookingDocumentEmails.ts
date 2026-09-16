@@ -3,9 +3,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
 	createBookingReceiptEmailArtifactsForBooking,
-	createPackageAdjustmentReceiptEmailArtifacts,
 	createPackageReceiptEmailArtifacts,
-	type PackageAdjustmentInvoiceInput,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
 import {
@@ -217,34 +215,4 @@ export function sendPackageReceiptEmailsForPackage(
 				})
 				.map(() => ({ receiptNumber }));
 		});
-}
-
-export function sendPackageAdjustmentReceiptEmails(
-	invoiceInput: PackageAdjustmentInvoiceInput,
-	paidAt: number,
-	leadTimeMinutes: number
-): ResultAsync<
-	{ receiptNumber: string },
-	{
-		reason:
-			| "EMAIL_REQUEST_FAILED"
-			| "EMAIL_RESPONSE_FAILED"
-			| "INVALID_BOOKING_DATA"
-			| "RECEIPT_EMAIL_RENDER_FAILED"
-			| "RECEIPT_PDF_RENDER_FAILED";
-	}
-> {
-	return createPackageAdjustmentReceiptEmailArtifacts(invoiceInput, paidAt, leadTimeMinutes)
-		.andThen(({ artifacts }) =>
-			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({ artifacts, pdfContent }))
-		)
-		.andThen(({ artifacts, pdfContent }) =>
-			sendEmail({
-				to: [invoiceInput.packageRecord.email],
-				subject: `Your Remote Podcast Adjustment Receipt — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
-				html: artifacts.emailHtml,
-				attachments: [{ ...artifacts.pdf, content: pdfContent }],
-				idempotencyKey: `package-adjustment-receipt-${invoiceInput.adjustment._id}`
-			}).map(() => ({ receiptNumber: artifacts.data.receipt.number }))
-		);
 }

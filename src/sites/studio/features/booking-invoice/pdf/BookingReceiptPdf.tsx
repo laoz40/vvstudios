@@ -10,8 +10,6 @@ export interface BookingReceiptPdfProps {
 
 function getReceiptTitle(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return "VV Studios Adjustment Receipt";
 		case "package":
 			return "VV Studios Package Receipt";
 		case "booking":
@@ -23,8 +21,6 @@ function getReceiptTitle(data: BookingReceiptData) {
 
 function getSessionSummary(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return `${data.adjustment.packageSize} pack · Remote Podcast usage`;
 		case "package":
 			return `${data.package.size} pack · ${data.booking.duration} sessions`;
 		case "booking": {
@@ -47,8 +43,6 @@ function getSessionSummary(data: BookingReceiptData) {
 
 function getSessionSummaryLabel(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return "Adjustment";
 		case "package":
 			return "Package";
 		case "booking":
@@ -60,8 +54,6 @@ function getSessionSummaryLabel(data: BookingReceiptData) {
 
 function getSessionDateLabel(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return "Booked";
 		case "package":
 		case "booking":
 			return "Session date";
@@ -72,8 +64,6 @@ function getSessionDateLabel(data: BookingReceiptData) {
 
 function getSessionDateValue(data: BookingReceiptData) {
 	switch (data.kind) {
-		case "adjustment":
-			return data.adjustment.bookedAtLabel;
 		case "package":
 		case "booking":
 			return data.booking.bookingDateLabel;

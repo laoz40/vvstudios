@@ -1,4 +1,4 @@
-import { okAsync, type ResultAsync } from "neverthrow";
+import { type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packageAdjustmentInvoicePayment";
@@ -8,19 +8,10 @@ type CompletePackageAdjustmentInvoicePaymentSuccess = {
 	outcome: "already_completed" | "completed";
 };
 
-type CompletePackageAdjustmentInvoicePaymentFailure =
-	| { kind: "claim_failed"; error: PackageAdjustmentInvoicePaymentClaimError }
-	| {
-			kind: "completion_failed";
-			error:
-				| { reason: "EMAIL_REQUEST_FAILED" }
-				| { reason: "EMAIL_RESPONSE_FAILED" }
-				| { reason: "INVALID_BOOKING_DATA" }
-				| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
-				| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
-				| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
-				| { reason: "RECEIPT_PDF_RENDER_FAILED" };
-	  };
+type CompletePackageAdjustmentInvoicePaymentFailure = {
+	kind: "claim_failed";
+	error: PackageAdjustmentInvoicePaymentClaimError;
+};
 
 export function completePackageAdjustmentInvoicePaymentService(
 	ctx: ActionCtx,
@@ -33,16 +24,11 @@ export function completePackageAdjustmentInvoicePaymentService(
 		ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, args)
 	)
 		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
-		.andThen((claim) => {
+		.map((claim) => {
 			if (claim.outcome === "already_completed") {
-				return okAsync({ outcome: "already_completed" as const });
+				return { outcome: "already_completed" as const };
 			}
 
-			return fromConvexTuple(
-				ctx.runAction(
-					internal.packageAdjustmentInvoicePaymentHandlers.sendPackageAdjustmentReceiptAfterPayment,
-					{ adjustmentId: claim.adjustmentId, paidAt: args.paidAt }
-				)
-			).mapErr((error) => ({ kind: "completion_failed" as const, error }));
+			return { outcome: "completed" as const };
 		});
 }

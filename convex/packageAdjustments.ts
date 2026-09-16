@@ -2,24 +2,17 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { internalMutation, internalQuery, mutation } from "#convex/_generated/server";
+import { internalMutation, mutation } from "#convex/_generated/server";
 import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/packageAdjustments";
 import {
 	claimPackageAdjustmentInvoiceEmailService,
 	claimPackageAdjustmentInvoicePaymentService,
 	completePackageAdjustmentInvoiceEmailService,
-	getPackageAdjustmentInvoiceInputService,
 	markPackageAdjustmentPaymentStatusService,
 	markStalledPackageAdjustmentInvoiceEmailFailedService
 } from "#convex/services/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
-
-export const getPackageAdjustmentInvoiceInput = internalQuery({
-	args: { adjustmentId: v.id("packageAdjustments") },
-	handler: (ctx, args) =>
-		getPackageAdjustmentInvoiceInputService(ctx, args).match(tupleOk, tupleErr)
-});
 
 export const claimPackageAdjustmentInvoiceEmail = internalMutation({
 	args: {

@@ -124,14 +124,14 @@ Open locally: `mdxp plans/12-upfront-stripe-payments.mdx`
 
 Six stacked PRs. Each stage is one branch in the stack; later stages depend on earlier ones. Stage 4 ships as two PRs.
 
-| Stage | Branch                                          | PR focus                                               | Status                                       |
-| ----- | ----------------------------------------------- | ------------------------------------------------------ | -------------------------------------------- |
-| 1     | `feat/upfront-stripe/session-checkout`          | Single-session full Stripe checkout + receipts         | Done — manual Stripe QA pending (see verify) |
-| 2     | `feat/upfront-stripe/package-checkout`          | Package Stripe checkout + auto scheduling email        | Done — E2E still on old flow (stage 5)       |
-| 3     | `feat/upfront-stripe/adjustment-invoicing`      | Stripe Invoicing for package adjustments               | Done                                         |
-| 4a    | `feat/upfront-stripe/admin-billing`             | Remove payment controls, resend receipt, copy Stripe Payment ID | Open — PR #96                         |
-| 4b    | `feat/upfront-stripe/admin-stripe-invoicing`    | Ad-hoc Stripe Invoice, receipt PDF download, legacy invoice read-only | In progress — open PR stacked on 4a |
-| 5     | `feat/upfront-stripe/tests-cleanup`             | Tests, dead-code removal, copy polish                  | Not started                                  |
+| Stage | Branch                                       | PR focus                                                              | Status                                       |
+| ----- | -------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------- |
+| 1     | `feat/upfront-stripe/session-checkout`       | Single-session full Stripe checkout + receipts                        | Done — manual Stripe QA pending (see verify) |
+| 2     | `feat/upfront-stripe/package-checkout`       | Package Stripe checkout + auto scheduling email                       | Done — E2E still on old flow (stage 5)       |
+| 3     | `feat/upfront-stripe/adjustment-invoicing`   | Stripe Invoicing for package adjustments                              | Done                                         |
+| 4a    | `feat/upfront-stripe/admin-billing`          | Remove payment controls, resend receipt, copy Stripe Payment ID       | Open — PR #96                                |
+| 4b    | `feat/upfront-stripe/admin-stripe-invoicing` | Ad-hoc Stripe Invoice, receipt PDF download, legacy invoice read-only | In progress — open PR stacked on 4a          |
+| 5     | `feat/upfront-stripe/tests-cleanup`          | Tests, dead-code removal, copy polish                                 | Not started                                  |
 
 ---
 
@@ -464,22 +464,22 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 
 ### Remove (new bookings)
 
-| UI / action                     | File(s)                                             | Status |
-| ------------------------------- | --------------------------------------------------- | ------ |
-| Session paid/unpaid toggle      | `PaymentStatusTabs`, `usePaymentActions`            | Done   |
-| Package confirm payment         | admin UI (was `PackageActionDialogs` confirm flow)  | Done — delete `confirmPackagePayment` action in stage 5 |
-| Adjustment mark paid            | admin package actions                               | Done   |
-| Remaining balance override      | `SessionEditDialog`                                 | Done   |
-| Package payment reminder resend | admin package actions                               | Done (cron stopped) |
+| UI / action                     | File(s)                                            | Status                                                  |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| Session paid/unpaid toggle      | `PaymentStatusTabs`, `usePaymentActions`           | Done                                                    |
+| Package confirm payment         | admin UI (was `PackageActionDialogs` confirm flow) | Done — delete `confirmPackagePayment` action in stage 5 |
+| Adjustment mark paid            | admin package actions                              | Done                                                    |
+| Remaining balance override      | `SessionEditDialog`                                | Done                                                    |
+| Package payment reminder resend | admin package actions                              | Done (cron stopped)                                     |
 
 ### Keep / add
 
-| Feature                                | Detail                                                                                                           | Status |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
-| Price column in session/package tables | Show full booking total (unchanged display)                                                                      | Done   |
-| Legacy records                         | Read-only payment fields if present; no edit controls                                                            | Done   |
-| Resend receipt                         | Regenerate PDF receipt + resend customer email (session + package menus)                                           | Done   |
-| Stripe IDs (copy)                      | Session/package menu: copy `stripePaymentIntentId` only (intentional — not session/customer IDs)                 | Done   |
+| Feature                                | Detail                                                                                           | Status |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------ | ------ |
+| Price column in session/package tables | Show full booking total (unchanged display)                                                      | Done   |
+| Legacy records                         | Read-only payment fields if present; no edit controls                                            | Done   |
+| Resend receipt                         | Regenerate PDF receipt + resend customer email (session + package menus)                         | Done   |
+| Stripe IDs (copy)                      | Session/package menu: copy `stripePaymentIntentId` only (intentional — not session/customer IDs) | Done   |
 
 **Stop writing** to: `paidRemainingBalance`, `remainingBalanceAmount` on new session updates.
 
@@ -500,19 +500,19 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 
 ### Remove (new bookings)
 
-| UI / action            | File(s)                                           | Status |
-| ---------------------- | ------------------------------------------------- | ------ |
+| UI / action            | File(s)                                             | Status                                                |
+| ---------------------- | --------------------------------------------------- | ----------------------------------------------------- |
 | Custom invoice dialogs | `CustomInvoiceDialog`, `PackageCustomInvoiceDialog` | Done — `LegacyCustomInvoicesDialog` kept for old rows |
 
 ### Keep / add
 
-| Feature                                | Detail                                                                                                           | Status |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
-| Receipt PDF download                   | Admin download from session/package menus                                                                          | Done   |
-| Ad-hoc Stripe Invoice                  | Multi-line form: pick booking/package → add rows (description + amount) → one Stripe Invoice with itemized lines | Done — `StripeInvoiceDialog`, `convex/services/stripeInvoicing.ts` |
-| Legacy custom invoices                 | List/download only when `stripeCustomerId` is missing                                                            | Done   |
-| Package-linked session billing         | Hide session billing actions for bookings tied to a package                                                      | Done   |
-| Legacy resend receipt                  | Hide resend receipt when booking has no `stripeCustomerId`                                                     | Done   |
+| Feature                        | Detail                                                                                                           | Status                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Receipt PDF download           | Admin download from session/package menus                                                                        | Done                                                               |
+| Ad-hoc Stripe Invoice          | Multi-line form: pick booking/package → add rows (description + amount) → one Stripe Invoice with itemized lines | Done — `StripeInvoiceDialog`, `convex/services/stripeInvoicing.ts` |
+| Legacy custom invoices         | List/download only when `stripeCustomerId` is missing                                                            | Done                                                               |
+| Package-linked session billing | Hide session billing actions for bookings tied to a package                                                      | Done                                                               |
+| Legacy resend receipt          | Hide resend receipt when booking has no `stripeCustomerId`                                                       | Done                                                               |
 
 **Backend:** for each line item, `stripe.invoiceItems.create({ customer, invoice, amount, description })`. Customer sees every row on the Stripe-hosted invoice; total is the sum of lines. Implemented in `convex/lib/stripeInvoice.ts` + `convex/services/stripeInvoicing.ts`.
 
@@ -576,15 +576,15 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 
 ### Tests
 
-| Area   | What to test                                                      | Status |
-| ------ | ----------------------------------------------------------------- | ------ |
-| Convex | Checkout line item amounts match pricing constants                | Done — `convex/lib/tests/stripeCheckoutLineItems.test.ts` |
-| Convex | Webhook idempotency (checkout replay)                             | Done — `convex/tests/stripeCompletion.test.ts`, `convex/lib/tests/packageCheckoutClaim.test.ts` |
-| Convex | Package paid → schedule token created once                        | Partial — covered in package/scheduling tests; extend if gaps found |
-| Convex | Adjustment Stripe Invoice only when remote sessions > 0           | Done — `convex/tests/adjustmentInvoices.test.ts` |
-| Convex | `invoice.paid` idempotency                                        | Done — `convex/tests/adjustmentInvoices.test.ts` |
-| E2E    | Single session: form → checkout → complete page                   | Done locally — `e2e/book-payment.spec.ts` (not CI) |
-| E2E    | Package: form → checkout → complete page (local Stripe)           | Not started — replace `book.spec.ts` package test + rewrite `package-schedule.spec.ts` (still uses admin confirm payment) |
+| Area   | What to test                                            | Status                                                                                                                    |
+| ------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Convex | Checkout line item amounts match pricing constants      | Done — `convex/lib/tests/stripeCheckoutLineItems.test.ts`                                                                 |
+| Convex | Webhook idempotency (checkout replay)                   | Done — `convex/tests/stripeCompletion.test.ts`, `convex/lib/tests/packageCheckoutClaim.test.ts`                           |
+| Convex | Package paid → schedule token created once              | Partial — covered in package/scheduling tests; extend if gaps found                                                       |
+| Convex | Adjustment Stripe Invoice only when remote sessions > 0 | Done — `convex/tests/adjustmentInvoices.test.ts`                                                                          |
+| Convex | `invoice.paid` idempotency                              | Done — `convex/tests/adjustmentInvoices.test.ts`                                                                          |
+| E2E    | Single session: form → checkout → complete page         | Done locally — `e2e/book-payment.spec.ts` (not CI)                                                                        |
+| E2E    | Package: form → checkout → complete page (local Stripe) | Not started — replace `book.spec.ts` package test + rewrite `package-schedule.spec.ts` (still uses admin confirm payment) |
 
 ### Dead code / constants
 

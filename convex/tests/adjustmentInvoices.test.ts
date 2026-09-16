@@ -14,9 +14,8 @@
  *    Only one sender may claim an invoice. A timed-out sender's late success or failure must not
  *    overwrite a newer retry.
  *
- * 4. Payment status and downloads
- *    Payment status can change after sending or once overdue, while downloads always require a
- *    sent invoice.
+ * 4. Payment status
+ *    Payment status can change after sending or once overdue.
  *
  * 5. Stripe invoice payment
  *    invoice.paid claims mark the adjustment paid once and reject mismatched Stripe invoice ids.
@@ -194,9 +193,9 @@ describe("package adjustment closeout", () => {
 	});
 });
 
-describe("package adjustment payment and download", () => {
+describe("package adjustment payment", () => {
 	test.each(["pending", "failed"] as const)(
-		"rejects non-overdue payment changes and downloads while invoice email is %s",
+		"rejects non-overdue payment changes while invoice email is %s",
 		async (invoiceEmailStatus) => {
 			const t = createConvexTest();
 			const { adjustmentId } = await seedInvoiceAdjustment(t, invoiceEmailStatus);
@@ -207,19 +206,13 @@ describe("package adjustment payment and download", () => {
 				{ adjustmentId, paid: true }
 			);
 
-			const downloadResult = await admin.action(
-				api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf,
-				{ adjustmentId }
-			);
-
 			expect(paymentResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
-			expect(downloadResult).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
 			expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "unpaid" });
 		}
 	);
 
 	test.each(["pending", "failed"] as const)(
-		"allows overdue payment changes but rejects downloads while invoice email is %s",
+		"allows overdue payment changes while invoice email is %s",
 		async (invoiceEmailStatus) => {
 			const t = createConvexTest();
 			const { adjustmentId } = await seedInvoiceAdjustment(t, invoiceEmailStatus, now - 1);
@@ -232,15 +225,10 @@ describe("package adjustment payment and download", () => {
 				})
 			).toEqual([null, null]);
 			expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid" });
-			expect(
-				await admin.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, {
-					adjustmentId
-				})
-			).toEqual([{ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }, null]);
 		}
 	);
 
-	test("rejects payment changes and downloads for a no-charge adjustment", async () => {
+	test("rejects payment changes for a no-charge adjustment", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
 
@@ -265,25 +253,6 @@ describe("package adjustment payment and download", () => {
 				paid: true
 			})
 		).toEqual([{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }, null]);
-		expect(
-			await admin.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, {
-				adjustmentId
-			})
-		).toEqual([{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }, null]);
-	});
-
-	test("allows a sent invoice to be downloaded", async () => {
-		const t = createConvexTest();
-		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent");
-
-		const [error, download] = await t
-			.withIdentity(adminIdentity)
-			.action(api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf, { adjustmentId });
-
-		expect(error).toBeNull();
-		expect(download).toMatchObject({ contentType: "application/pdf" });
-		expect(download?.filename).toMatch(/\.pdf$/);
-		expect(download?.content.byteLength).toBeGreaterThan(0);
 	});
 
 	test("allows a sent invoice payment status to be toggled", async () => {

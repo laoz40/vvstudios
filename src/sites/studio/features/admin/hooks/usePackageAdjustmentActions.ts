@@ -7,7 +7,6 @@ import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
-import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
 
@@ -15,62 +14,11 @@ export function usePackageAdjustmentActions(
 	packageRow: AdminPackageRow,
 	setPendingAction: SetPackagePendingAction
 ) {
-	const getAdjustmentInvoicePdf = useAction(
-		api.packageAdjustmentInvoices.getAdminPackageAdjustmentInvoicePdf
-	);
-
 	const retryAdjustmentInvoiceEmail = useAction(
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
 
 	const [isAdjustmentInvoiceDialogOpen, setIsAdjustmentInvoiceDialogOpen] = useState(false);
-
-	async function handleDownloadAdjustmentInvoice() {
-		if (!packageRow.adjustment) return;
-
-		setPendingAction("adjustmentDownload");
-
-		const [error, invoice] = await tryCatch(
-			getAdjustmentInvoicePdf({ adjustmentId: packageRow.adjustment.id })
-		);
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to download adjustment invoices.");
-					break;
-				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
-					toast.error("This adjustment no longer exists.");
-					break;
-				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
-					toast.error("The adjustment invoice has not been sent yet.");
-					break;
-				case "INVALID_BOOKING_DATA":
-				case "INVOICE_EMAIL_RENDER_FAILED":
-				case "INVOICE_PDF_RENDER_FAILED":
-					toast.error("Unable to generate the adjustment invoice.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while downloading the adjustment invoice.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
-
-			return;
-		}
-
-		downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
-		toast.success("Adjustment invoice download started.");
-		setPendingAction(null);
-	}
 
 	async function handleRetryAdjustmentInvoice() {
 		if (!packageRow.adjustment) return;
@@ -119,7 +67,6 @@ export function usePackageAdjustmentActions(
 	}
 
 	return {
-		handleDownloadAdjustmentInvoice,
 		handleRetryAdjustmentInvoice,
 		isAdjustmentInvoiceDialogOpen,
 		setIsAdjustmentInvoiceDialogOpen

@@ -182,30 +182,14 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 			}
 		},
 		(failure) => {
-			const failureKind = failure.kind;
+			console.error("Package adjustment invoice payment claim failed", {
+				eventId: event.id,
+				stripeInvoiceId,
+				adjustmentId,
+				claimError: failure.error
+			});
 
-			switch (failureKind) {
-				case "claim_failed":
-					console.error("Package adjustment invoice payment claim failed", {
-						eventId: event.id,
-						stripeInvoiceId,
-						adjustmentId,
-						claimError: failure.error
-					});
-
-					return new Response("claim failed", { status: 200 });
-				case "completion_failed":
-					console.error("Package adjustment receipt email failed", {
-						eventId: event.id,
-						stripeInvoiceId,
-						adjustmentId,
-						completionError: failure.error
-					});
-
-					return new Response("completion failed", { status: 200 });
-				default:
-					return exhaustiveCheck(failureKind);
-			}
+			return new Response("claim failed", { status: 200 });
 		}
 	);
 }

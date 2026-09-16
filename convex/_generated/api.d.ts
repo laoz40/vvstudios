@@ -86,7 +86,6 @@ import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js
 import type * as lib_stripeClient from "../lib/stripeClient.js";
 import type * as lib_stripeInvoice from "../lib/stripeInvoice.js";
 import type * as lib_tests_testIds from "../lib/tests/testIds.js";
-import type * as packageAdjustmentInvoicePaymentHandlers from "../packageAdjustmentInvoicePaymentHandlers.js";
 import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
 import type * as packageAdjustments from "../packageAdjustments.js";
 import type * as packageCheckout from "../packageCheckout.js";
@@ -110,7 +109,6 @@ import type * as services_employeeInvitations from "../services/employeeInvitati
 import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
 import type * as services_packageAdjustmentInvoicePayment from "../services/packageAdjustmentInvoicePayment.js";
-import type * as services_packageAdjustmentInvoicePaymentActions from "../services/packageAdjustmentInvoicePaymentActions.js";
 import type * as services_packageAdjustmentInvoices from "../services/packageAdjustmentInvoices.js";
 import type * as services_packageAdjustments from "../services/packageAdjustments.js";
 import type * as services_packageCheckout from "../services/packageCheckout.js";
@@ -224,7 +222,6 @@ declare const fullApi: ApiFromModules<{
   "lib/stripeClient": typeof lib_stripeClient;
   "lib/stripeInvoice": typeof lib_stripeInvoice;
   "lib/tests/testIds": typeof lib_tests_testIds;
-  packageAdjustmentInvoicePaymentHandlers: typeof packageAdjustmentInvoicePaymentHandlers;
   packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
   packageAdjustments: typeof packageAdjustments;
   packageCheckout: typeof packageCheckout;
@@ -248,7 +245,6 @@ declare const fullApi: ApiFromModules<{
   "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;
   "services/packageAdjustmentInvoicePayment": typeof services_packageAdjustmentInvoicePayment;
-  "services/packageAdjustmentInvoicePaymentActions": typeof services_packageAdjustmentInvoicePaymentActions;
   "services/packageAdjustmentInvoices": typeof services_packageAdjustmentInvoices;
   "services/packageAdjustments": typeof services_packageAdjustments;
   "services/packageCheckout": typeof services_packageCheckout;
