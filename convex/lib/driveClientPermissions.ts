@@ -28,8 +28,14 @@ export type DriveClientPermissionsError =
 				| "BOOKING_NOT_ELIGIBLE"
 				| "BOOKING_TIMING_CHANGED";
 	  }
-	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" }
-	| { reason: "CLIENT_ASSETS_EMAIL_SEND_FAILED" };
+	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_RECORD_NOT_FOUND" }
+	| { reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }
+	| {
+			reason:
+				| "EMAIL_RENDER_FAILED"
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED";
+	  };
 
 type ReadyBookingDriveFolders = DriveSetupInfo & {
 	driveClient: {
@@ -129,7 +135,7 @@ function saveClientDrivePermission(
 ) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.saveClientDrivePermission, { bookingId, name, permission })
-	).mapErr(() => ({ reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const }));
+	);
 }
 
 export function saveClientDrivePermissionsStatus(
@@ -139,7 +145,7 @@ export function saveClientDrivePermissionsStatus(
 ) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.saveClientDrivePermissionsStatus, { bookingId, status })
-	).mapErr(() => ({ reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const }));
+	);
 }
 
 export function requireClientDrivePermissions(
@@ -204,7 +210,6 @@ export function sendClientAssetsFolderEmail(
 					email: claim.email,
 					name: claim.name
 				})
-					.mapErr(() => ({ reason: "CLIENT_ASSETS_EMAIL_SEND_FAILED" as const }))
 					.andThen(() =>
 						fromConvexTuple(
 							ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
@@ -213,7 +218,7 @@ export function sendClientAssetsFolderEmail(
 								claimedAt: claim.claimedAt,
 								status: "sent"
 							})
-						).mapErr(() => ({ reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const }))
+						)
 					)
 					.orElse((emailError) =>
 						fromConvexTuple(
@@ -223,9 +228,7 @@ export function sendClientAssetsFolderEmail(
 								claimedAt: claim.claimedAt,
 								status: "failed"
 							})
-						)
-							.mapErr(() => ({ reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const }))
-							.andThen(() => errAsync(emailError))
+						).andThen(() => errAsync(emailError))
 					)
 			)
 			// An existing email result means this replay has no message to send.

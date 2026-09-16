@@ -25,8 +25,14 @@ import { fromConvexTuple } from "#convex/lib/result";
 export type DriveEditorPermissionsError =
 	| DriveError
 	| { reason: "BOOKING_NOT_FOUND" | "EDITOR_NOT_ASSIGNED" | "EDITOR_NOT_ACTIVE" }
-	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" }
-	| { reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" | "EDITOR_ASSIGNMENT_EMAIL_SEND_FAILED" }
+	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_RECORD_NOT_FOUND" }
+	| {
+			reason:
+				| "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE"
+				| "EMAIL_RENDER_FAILED"
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED";
+	  }
 	| { reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" };
 
 type EditorPermissionRequirement = { fileId: string; role: "reader" | "writer" };
@@ -35,27 +41,21 @@ export function loadEditorDriveAccessToRemove(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<EditorDriveAccessToRemove | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveAccessToRemove, args)).mapErr(
-		() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const })
-	);
+	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveAccessToRemove, args));
 }
 
 export function markPreviousEditorRemovalFailed(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.markPreviousEditorRemovalFailed, args)
-	).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }));
+	return fromConvexTuple(ctx.runMutation(internal.sessions.markPreviousEditorRemovalFailed, args));
 }
 
 export function loadFailedEditorRemoval(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<FailedEditorRemoval | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getFailedEditorRemoval, args)).mapErr(
-		() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const })
-	);
+	return fromConvexTuple(ctx.runQuery(internal.sessions.getFailedEditorRemoval, args));
 }
 
 function loadEditorDriveSetup(
@@ -99,7 +99,7 @@ function saveEditorPermission(
 			name,
 			permission
 		})
-	).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }));
+	);
 }
 
 function saveEditorPermissionsStatus(
@@ -113,7 +113,7 @@ function saveEditorPermissionsStatus(
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			status
 		})
-	).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }));
+	);
 }
 
 function ensureEditorDrivePermissions(
@@ -183,7 +183,6 @@ export function sendEditorAssignmentEmailForReadyAccess(
 					sessionName: claim.sessionName,
 					sessionStartAt: claim.sessionStartAt
 				})
-					.mapErr(() => ({ reason: "EDITOR_ASSIGNMENT_EMAIL_SEND_FAILED" as const }))
 					.andThen(() =>
 						fromConvexTuple(
 							ctx.runMutation(internal.sessions.saveEditorAssignmentEmailResult, {
@@ -192,7 +191,7 @@ export function sendEditorAssignmentEmailForReadyAccess(
 								editorTokenIdentifier: claim.editorTokenIdentifier,
 								status: "sent"
 							})
-						).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
+						)
 					)
 					.orElse((emailError) =>
 						fromConvexTuple(
@@ -202,9 +201,7 @@ export function sendEditorAssignmentEmailForReadyAccess(
 								editorTokenIdentifier: claim.editorTokenIdentifier,
 								status: "failed"
 							})
-						)
-							.mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
-							.andThen(() => errAsync(emailError))
+						).andThen(() => errAsync(emailError))
 					)
 			)
 			// A missing or duplicate claim means there is nothing to send, not a workflow failure.
@@ -222,9 +219,7 @@ export function setupEditorAccess(
 		loadEditorDriveSetup(ctx, args.bookingId)
 			.andThen((setup) =>
 				// Set up all Drive permissions and record a failed status if any step stops.
-				ensureEditorDrivePermissions(ctx, setup)
-					.mapErr((error): DriveEditorPermissionsError => error)
-					.orElse((error: DriveEditorPermissionsError) =>
+				ensureEditorDrivePermissions(ctx, setup).orElse((error: DriveEditorPermissionsError) =>
 						saveEditorPermissionsStatus(ctx, setup, "failed").andThen(() => errAsync(error))
 					)
 					.map(() => setup)
@@ -284,7 +279,7 @@ export function removePreviousEditorDriveAccess(
 					driveSessionId: access.driveSessionId,
 					editorTokenIdentifier: args.previousEditorTokenIdentifier
 				})
-			).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
+			)
 		);
 }
 
@@ -322,7 +317,7 @@ export function removeFailedEditorDriveAccess(
 					driveSessionId: removal.driveSessionId,
 					editorTokenIdentifier: removal.editorTokenIdentifier
 				})
-			).mapErr(() => ({ reason: "DRIVE_EDITOR_PERMISSIONS_SAVE_FAILED" as const }))
+			)
 		);
 }
 
