@@ -50,13 +50,17 @@ const sessionUpdateErrorMessageMap = {
 	BOOKING_INVALID_DURATION: "Enter a valid session duration.",
 	BOOKING_INVALID_TIME: "Enter a valid session time.",
 	BOOKING_INVALID_INPUT: "Check the session details and balance, then try again.",
+	BOOKING_OUTSIDE_OPENING_HOURS: "Choose a time within opening hours.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",
+	BOOKING_TOO_FAR_AHEAD: "Choose a date within the booking window.",
+	BOOKING_TOO_SOON: "Choose a later time.",
 	GOOGLE_CALENDAR_AUTH_FAILED: "Google Calendar authentication failed. Booking was not updated.",
 	GOOGLE_CALENDAR_CREATE_FAILED: "Google Calendar failed to create the event. Please try again.",
 	GOOGLE_CALENDAR_UPDATE_FAILED: "Google Calendar failed to update the event. Please try again.",
 	GOOGLE_CALENDAR_RATE_LIMITED: "Google Calendar is busy right now. Wait a minute, then try again.",
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
 		"Something went wrong while updating the session. Please try again.",
+	INVALID_ZONED_TIME: "Enter a valid session time.",
 	UNEXPECTED_ERROR: "Something went wrong while updating the session. Please try again."
 } satisfies Record<SessionUpdateError["reason"], string>;
 

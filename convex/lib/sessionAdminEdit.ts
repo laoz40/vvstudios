@@ -292,12 +292,16 @@ export type AdminSessionUpdateError =
 	| { reason: "BOOKING_INVALID_INPUT" }
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_OUTSIDE_OPENING_HOURS" }
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }
+	| { reason: "BOOKING_TOO_FAR_AHEAD" }
+	| { reason: "BOOKING_TOO_SOON" }
 	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
 	| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
 	| { reason: "GOOGLE_CALENDAR_CREATE_FAILED" }
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" };
+	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }
+	| { reason: "INVALID_ZONED_TIME" };
 
 export function validateSessionTimingEdit({
 	bypassAvailabilitySettings = false,
@@ -320,7 +324,7 @@ export function validateSessionTimingEdit({
 				settings,
 				time: next.time,
 				timeZone
-			}).mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }));
+			});
 
 	return settingsResult.asyncAndThen(() =>
 		calendarResultAsync(
