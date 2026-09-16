@@ -45,13 +45,6 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 					addons: session.addons,
 					rescheduleUrl,
 					isPackageSession: session.packageId !== undefined
-				}).mapErr((emailError) => {
-					console.error("Booking reminder email send failed", {
-						bookingId: session._id,
-						reason: emailError.reason
-					});
-
-					return { reason: "RESEND_SEND_FAILED" as const };
 				})
 			)
 	);
