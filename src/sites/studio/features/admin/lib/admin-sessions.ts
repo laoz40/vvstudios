@@ -13,6 +13,7 @@ export type SessionRecord = Doc<"bookings"> & {
 	packageInvoiceNumber?: string;
 	linkedPackageSize?: 4 | 8 | 12;
 	packageSessionPosition?: number;
+	stripeInvoicesSummary?: { paymentStatus: "paid" | "unpaid"; totalAmount: number } | null;
 };
 
 export function toAdminSessionDuration(

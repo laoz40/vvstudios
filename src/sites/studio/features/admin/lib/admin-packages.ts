@@ -3,6 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 
 export type AdminPackageStatus = Doc<"packages">["status"];
 
@@ -16,6 +17,7 @@ export type AdminPackageRecord = Doc<"packages"> & {
 		invoiceEmailStatus: "pending" | "sent" | "failed";
 		paymentStatus: "unpaid" | "paid";
 	} | null;
+	customStripeInvoicesSummary?: { paymentStatus: "paid" | "unpaid"; totalAmount: number } | null;
 };
 
 export type AdminPackageRow = {
@@ -35,15 +37,15 @@ export type AdminPackageRow = {
 	completeEditQuantity?: string;
 	essentialEditQuantity?: string;
 	handcraftedClipsQuantity?: string;
-	totalDueLabel: string;
 	totalDueAmount: number;
 	adjustment: {
 		id: Doc<"packageAdjustments">["_id"];
-		amountLabel: string;
+		totalAmount: number;
 		invoiceDueAt: number;
 		invoiceEmailStatus: "pending" | "sent" | "failed";
 		paymentStatus: "unpaid" | "paid";
 	} | null;
+	customStripeInvoices: { totalAmount: number; paymentStatus: "paid" | "unpaid" } | null;
 	isPaid: boolean;
 	areSessionsComplete: boolean;
 	invoiceDueAt?: number;
@@ -331,15 +333,20 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		completeEditQuantity: packageRecord.completeEditQuantity,
 		essentialEditQuantity: packageRecord.essentialEditQuantity,
 		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-		totalDueLabel: formatPackageAmount(packageRecord.totalDueAmount),
 		totalDueAmount: packageRecord.totalDueAmount,
 		adjustment: packageRecord.adjustment
 			? {
 					id: packageRecord.adjustment._id,
-					amountLabel: formatPackageAmount(packageRecord.adjustment.totalAmount),
+					totalAmount: packageRecord.adjustment.totalAmount,
 					invoiceDueAt: packageRecord.adjustment.invoiceDueAt,
 					invoiceEmailStatus: packageRecord.adjustment.invoiceEmailStatus,
 					paymentStatus: packageRecord.adjustment.paymentStatus
+				}
+			: null,
+		customStripeInvoices: packageRecord.customStripeInvoicesSummary
+			? {
+					totalAmount: packageRecord.customStripeInvoicesSummary.totalAmount,
+					paymentStatus: packageRecord.customStripeInvoicesSummary.paymentStatus
 				}
 			: null,
 		isPaid: packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed",
@@ -353,14 +360,6 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
 		hiddenAt: packageRecord.hiddenAt
 	};
-}
-
-function formatPackageAmount(amount: number) {
-	return new Intl.NumberFormat("en-AU", {
-		currency: "AUD",
-		maximumFractionDigits: 2,
-		style: "currency"
-	}).format(amount);
 }
 
 function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) {
@@ -382,7 +381,7 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		`${packageRow.bookedSessions} booked`,
 		packageRow.duration,
 		packageRow.addons.join(" "),
-		packageRow.totalDueLabel,
+		formatAudAmount(packageRow.totalDueAmount),
 		getAdminPackageStatusLabel(packageRow.status)
 	]
 		.join(" ")
