@@ -549,14 +549,14 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 └─────────────────────────────────────┘`}
 />
 
-**Permissions:** reuse `send:invoice-emails` or rename to `send:receipt-emails` (decide in 4b PR; prefer rename for clarity).
+**Permissions:** `send:receipt-emails` (renamed from `send:invoice-emails`).
 
 **Stop writing** to: `invoiceDueAt` (new records), `customInvoices` (new rows). New packages no longer set `invoiceDueAt`; legacy `invoiceEmailStatus: "pending"` on insert can go in stage 5.
 
 ### Stage 4b — remaining
 
 - [ ] Open PR for `feat/upfront-stripe/admin-stripe-invoicing` stacked on 4a
-- [ ] Decide whether to rename `send:invoice-emails` → `send:receipt-emails` in `src/lib/permissions.ts` and Convex callers
+- [x] Renamed `send:invoice-emails` → `send:receipt-emails` in `src/lib/permissions.ts` and Convex callers
 - [ ] Run stage 4b verify checklist below
 
 ### Stage 4b — verify

@@ -50,8 +50,8 @@ export function sendBookingInvoiceForBookingService(
 	args: SendBookingInvoiceForBookingArgs
 ): ResultAsync<null, SendBookingInvoiceError> {
 	return (
-		requirePermissionActions(ctx, "send:invoice-emails")
-			// Load the booking only after send:invoice-emails authorization succeeds.
+		requirePermissionActions(ctx, "send:receipt-emails")
+			// Load the booking only after send:receipt-emails authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 			// Resolve and validate the optional stored custom invoice.
 			.andThen((session) =>

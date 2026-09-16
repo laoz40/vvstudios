@@ -122,7 +122,7 @@ export function retryPackageAdjustmentInvoiceEmailService(
 	null,
 	SendPackageAdjustmentInvoiceError | { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" }
 > {
-	return requirePermissionActions(ctx, "send:invoice-emails").andThen(() =>
+	return requirePermissionActions(ctx, "send:receipt-emails").andThen(() =>
 		sendPackageAdjustmentInvoiceService(ctx, { ...args, attempt: "retry" })
 	);
 }

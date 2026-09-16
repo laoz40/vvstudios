@@ -32,7 +32,7 @@ export function sendBookingStripeInvoiceService(
 	args: SendBookingStripeInvoiceArgs,
 	stripe: StripeClient = getStripeClient()
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return requirePermissionActions(ctx, "send:invoice-emails")
+	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => validateStripeInvoiceLineItems(args.lineItems))
 		.andThen((lineItems) =>
 			getSessionFromQuery(ctx, args.bookingId).andThen((session) =>
@@ -56,7 +56,7 @@ export function sendPackageStripeInvoiceService(
 	args: SendPackageStripeInvoiceArgs,
 	stripe: StripeClient = getStripeClient()
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return requirePermissionActions(ctx, "send:invoice-emails")
+	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => validateStripeInvoiceLineItems(args.lineItems))
 		.andThen((lineItems) =>
 			getPackageForAction(ctx, args.packageId).andThen((packageRecord) =>

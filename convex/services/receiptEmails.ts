@@ -24,7 +24,7 @@ export function resendBookingReceiptService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, { reason: string }> {
-	return requirePermissionActions(ctx, "send:invoice-emails")
+	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 		.andThen((session) => {
 			if (!isConfirmedBookingStatus(session.status)) {
@@ -61,7 +61,7 @@ export function resendPackageReceiptService(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<null, { reason: string }> {
-	return requirePermissionActions(ctx, "send:invoice-emails")
+	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => getPackageForAction(ctx, args.packageId))
 		.andThen((packageRecord) => {
 			const paidAt = packageRecord.paidAt;

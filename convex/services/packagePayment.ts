@@ -69,7 +69,7 @@ export function resendPackageInvoiceEmailService(
 	ctx: ActionCtx,
 	args: PackageIdArgs
 ): ResultAsync<ResendPackageInvoiceEmailSuccess, ResendPackageInvoiceEmailError> {
-	return requirePermissionActions(ctx, "send:invoice-emails")
+	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => getPackageForAction(ctx, args.packageId))
 		.andThen((packageFromDb) => {
 			if (
@@ -123,7 +123,7 @@ export function retryPackageSchedulingEmailService(
 	args: PackageIdArgs
 ): ResultAsync<null, RetryPackageSchedulingEmailError> {
 	return (
-		requirePermissionActions(ctx, "send:invoice-emails")
+		requirePermissionActions(ctx, "send:receipt-emails")
 			// Rotate the failed package's scheduling token before exposing a fresh link.
 			.andThen(() => refreshPackageScheduleToken(ctx, args.packageId))
 			// Load lead time so the replacement email contains current scheduling guidance.
