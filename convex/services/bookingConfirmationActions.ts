@@ -31,7 +31,14 @@ type SendBookingInvoiceError =
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "CUSTOM_INVOICE_NOT_FOUND" }
-	| { reason: "INVOICE_SEND_FAILED" };
+	| {
+			reason:
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED"
+				| "INVALID_BOOKING_DATA"
+				| "INVOICE_EMAIL_RENDER_FAILED"
+				| "INVOICE_PDF_RENDER_FAILED";
+	  };
 
 type CompleteClaimedSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }
@@ -57,9 +64,11 @@ export function sendBookingInvoiceForBookingService(
 			)
 			// Create the single-use reschedule link included in the invoice email.
 			.andThen(({ customInvoice, session }) =>
-				createRescheduleUrlForSession(ctx, session)
-					.mapErr(() => ({ reason: "INVOICE_SEND_FAILED" as const }))
-					.map((rescheduleUrl) => ({ customInvoice, rescheduleUrl, session }))
+				createRescheduleUrlForSession(ctx, session).map((rescheduleUrl) => ({
+					customInvoice,
+					rescheduleUrl,
+					session
+				}))
 			)
 			// Load current lead-time guidance before rendering the invoice.
 			.andThen((state) =>
@@ -75,9 +84,7 @@ export function sendBookingInvoiceForBookingService(
 					leadTimeMinutes: settings.leadTimeMinutes,
 					rescheduleUrl,
 					skipHostEmail: session.status !== "email_failed"
-				})
-					.mapErr(() => ({ reason: "INVOICE_SEND_FAILED" as const }))
-					.map(() => session)
+				}).map(() => session)
 			)
 			// Record recovery from a previous invoice-email failure.
 			.andThen((session) =>

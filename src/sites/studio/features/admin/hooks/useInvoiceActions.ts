@@ -140,7 +140,11 @@ export function useInvoiceActions(session: SessionRecord) {
 					toast.error("That custom invoice no longer exists.");
 
 					return;
-				case "INVOICE_SEND_FAILED":
+				case "EMAIL_REQUEST_FAILED":
+				case "EMAIL_RESPONSE_FAILED":
+				case "INVALID_BOOKING_DATA":
+				case "INVOICE_EMAIL_RENDER_FAILED":
+				case "INVOICE_PDF_RENDER_FAILED":
 					toast.error("Unable to send invoice email.");
 
 					return;
