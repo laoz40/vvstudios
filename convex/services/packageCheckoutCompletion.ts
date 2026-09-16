@@ -1,4 +1,5 @@
 import { okAsync, type ResultAsync } from "neverthrow";
+import { exhaustiveCheck } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { fromConvexTuple } from "#convex/lib/result";
@@ -27,14 +28,20 @@ export function completePackageCheckoutService(
 	)
 		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
 		.andThen((claim: PackageCheckoutClaim) => {
-			if (claim.outcome === "already_completed") {
-				return okAsync({ outcome: "already_completed" as const });
-			}
+			const claimOutcome = claim.outcome;
 
-			return fromConvexTuple(
-				ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
-					packageId: claim.packageId
-				})
-			).mapErr((error) => ({ kind: "completion_failed" as const, error }));
+			switch (claimOutcome) {
+				case "already_completed":
+				case "already_claimed":
+					return okAsync({ outcome: "already_completed" as const });
+				case "claimed":
+					return fromConvexTuple(
+						ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
+							packageId: claim.packageId
+						})
+					).mapErr((error) => ({ kind: "completion_failed" as const, error }));
+				default:
+					return exhaustiveCheck(claimOutcome);
+			}
 		});
 }

@@ -348,6 +348,8 @@ export default defineSchema({
 			v.union(v.literal("active"), v.literal("expired"), v.literal("disabled"))
 		),
 
+		packageCheckoutClaimedAt: v.optional(v.number()),
+
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
 		stripePaymentIntentId: v.optional(v.string()),

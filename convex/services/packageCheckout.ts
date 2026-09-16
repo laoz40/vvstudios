@@ -6,6 +6,10 @@ import {
 	validatePendingPackageDeletion,
 	type DeletePendingPackageSuccess
 } from "#convex/lib/packageCheckout";
+import {
+	getPackageCheckoutClaimStatus,
+	validatePackageClaimStripeSession
+} from "#convex/lib/packageCheckoutClaim";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -67,6 +71,7 @@ export function deletePendingPackageService(
 
 export type PackageCheckoutClaim =
 	| { outcome: "already_completed"; packageId: Id<"packages"> }
+	| { outcome: "already_claimed"; packageId: Id<"packages"> }
 	| { outcome: "claimed"; packageId: Id<"packages"> };
 
 type PackageCheckoutClaimError = { reason: "PACKAGE_NOT_FOUND" | "STRIPE_SESSION_MISMATCH" };
@@ -81,25 +86,38 @@ export function claimPackageCheckoutPaymentService(
 		return errAsync({ reason: "PACKAGE_NOT_FOUND" as const });
 	}
 
-	return getPackageFromDb(ctx, normalizedPackageId).andThen((packageFromDb) => {
-		if (packageFromDb.stripeSessionId !== args.stripeSessionId) {
-			return errAsync({ reason: "STRIPE_SESSION_MISMATCH" as const });
-		}
+	return getPackageFromDb(ctx, normalizedPackageId)
+		.andThen((packageFromDb) =>
+			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(() => packageFromDb)
+		)
+		.andThen((packageFromDb) =>
+			getPackageCheckoutClaimStatus(packageFromDb).map((claimStatus) => ({
+				claimStatus,
+				packageFromDb
+			}))
+		)
+		.andThen(({ claimStatus, packageFromDb }) => {
+			const packageId = packageFromDb._id;
 
-		if (packageFromDb.status === "paid" || packageFromDb.status === "schedule_email_failed") {
-			return okAsync({ outcome: "already_completed" as const, packageId: packageFromDb._id });
-		}
+			if (claimStatus.kind === "already_completed") {
+				return okAsync({ outcome: "already_completed" as const, packageId });
+			}
 
-		if (packageFromDb.status !== "pending_payment") {
-			return errAsync({ reason: "STRIPE_SESSION_MISMATCH" as const });
-		}
+			if (claimStatus.kind === "already_claimed") {
+				return okAsync({ outcome: "already_claimed" as const, packageId });
+			}
 
-		return okOrThrow(
-			ctx.db
-				.patch(packageFromDb._id, { stripePaymentIntentId: args.stripePaymentIntentId })
-				.then(() => ({ outcome: "claimed" as const, packageId: packageFromDb._id }))
-		);
-	});
+			const now = Date.now();
+
+			return okOrThrow(
+				ctx.db
+					.patch(packageFromDb._id, {
+						packageCheckoutClaimedAt: now,
+						stripePaymentIntentId: args.stripePaymentIntentId
+					})
+					.then(() => ({ outcome: "claimed" as const, packageId }))
+			);
+		});
 }
 
 export function buildPublicPackageStatusResponse(packageFromDb: Doc<"packages">) {
