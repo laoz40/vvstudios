@@ -259,7 +259,7 @@ function handleBookingReceiptError(reason: BookingReceiptErrorReason) {
 			toast.error("Unable to generate receipt.");
 
 			return;
-		case "RECEIPT_DOWNLOAD_FAILED":
+		case "RECEIPT_PDF_RENDER_FAILED":
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate receipt.");
 
@@ -286,7 +286,7 @@ function handlePackageReceiptError(reason: PackageReceiptErrorReason) {
 
 			return;
 		case "INVALID_BOOKING_DATA":
-		case "RECEIPT_DOWNLOAD_FAILED":
+		case "RECEIPT_PDF_RENDER_FAILED":
 		case "UNEXPECTED_ERROR":
 			toast.error("Unable to generate receipt.");
 

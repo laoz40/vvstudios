@@ -29,11 +29,11 @@ import { okOrThrow } from "#convex/lib/result";
 
 type BookingInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
-	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+	| { reason: "INVOICE_PDF_RENDER_FAILED" };
 
 type BookingReceiptPdfError =
 	| { reason: "INVALID_BOOKING_DATA" }
-	| { reason: "RECEIPT_DOWNLOAD_FAILED" };
+	| { reason: "RECEIPT_PDF_RENDER_FAILED" };
 
 type InvoicePdfError = BookingInvoicePdfError | { reason: "INVOICE_EMAIL_RENDER_FAILED" };
 
@@ -62,9 +62,9 @@ function renderPackageInvoicePdf(
 		createPackageInvoiceArtifacts(packageRecord, { leadTimeMinutes })
 			// Render the validated package invoice into its downloadable PDF payload.
 			.andThen((artifactsResult) =>
-				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
-					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
-					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+					toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+				)
 			)
 	);
 }
@@ -103,9 +103,9 @@ export function getBookingReceiptPdfByStripeSessionIdService(
 			})
 		)
 		.andThen((artifactsResult) =>
-			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
-				.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
-				.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+				toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+			)
 		);
 }
 
@@ -147,9 +147,9 @@ export function getBookingInvoicePdfByStripeSessionIdService(
 			)
 			// Render the invoice into a downloadable PDF payload.
 			.andThen((artifactsResult) =>
-				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
-					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
-					.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+					toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+				)
 			)
 	);
 }
@@ -173,9 +173,9 @@ export function getPackageReceiptPdfByIdService(
 			})
 		)
 		.andThen((artifactsResult) =>
-			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data)
-				.mapErr(() => ({ reason: "RECEIPT_DOWNLOAD_FAILED" as const }))
-				.map((pdfContent) => toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf))
+			renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
+				toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+			)
 		);
 }
 
@@ -251,14 +251,12 @@ export function getAdminCustomPackageInvoicePdfByIdService(
 			)
 			// Render the custom invoice into its downloadable PDF payload.
 			.andThen((data) =>
-				renderBookingInvoicePdfInNode(data)
-					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
-					.map((pdfContent) =>
-						toInvoicePdfPayload(pdfContent, {
-							contentType: "application/pdf",
-							filename: `booking-invoice-${data.invoice.number.toLowerCase()}.pdf`
-						})
-					)
+				renderBookingInvoicePdfInNode(data).map((pdfContent) =>
+					toInvoicePdfPayload(pdfContent, {
+						contentType: "application/pdf",
+						filename: `booking-invoice-${data.invoice.number.toLowerCase()}.pdf`
+					})
+				)
 			)
 	);
 }

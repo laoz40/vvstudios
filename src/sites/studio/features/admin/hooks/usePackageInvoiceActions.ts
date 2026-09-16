@@ -42,7 +42,7 @@ export function usePackageInvoiceActions(
 					break;
 
 				case "INVALID_BOOKING_DATA":
-				case "INVOICE_DOWNLOAD_FAILED":
+				case "INVOICE_PDF_RENDER_FAILED":
 				case "INVOICE_EMAIL_RENDER_FAILED":
 				case "UNEXPECTED_ERROR":
 					toast.error("Unable to generate package invoice.");
