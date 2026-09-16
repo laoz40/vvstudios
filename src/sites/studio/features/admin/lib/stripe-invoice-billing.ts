@@ -29,10 +29,10 @@ export function getStripeInvoiceAmountClassName(
 
 export function formatStripeInvoiceBillingLinkLabel(link: StripeInvoiceBillingLink) {
 	if (link === "invoicePdf") {
-		return "Invoice PDF";
+		return "Invoice";
 	}
 
-	return "Payment receipt";
+	return "Receipt";
 }
 
 export function getStripeInvoiceBillingLinks(

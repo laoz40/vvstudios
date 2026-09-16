@@ -14,7 +14,10 @@ import {
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import {
+	CopyableText,
+	copyText
+} from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	formatStripeInvoiceAmount,
@@ -101,7 +104,7 @@ export function StripeBillingDialog({
 		if (!billingUrl) {
 			if (link === "receipt" && invoice.paymentStatus === "paid") {
 				toast.error(
-					"Payment receipt is no longer available. Copy the invoice ID and search for it in the Stripe dashboard."
+					"Receipt is no longer available. Copy the invoice ID and search for it in the Stripe dashboard."
 				);
 				await copyText(invoice.stripeInvoiceId, "Stripe invoice ID");
 
@@ -185,21 +188,15 @@ export function StripeBillingDialog({
 											{formatStripeInvoiceAmount(invoice)}
 										</span>
 									</div>
-									<span className="truncate font-mono text-xs text-muted-foreground">
-										{invoice.stripeInvoiceId}
-									</span>
+									<CopyableText
+										value={invoice.stripeInvoiceId}
+										label="Stripe invoice ID">
+										<span className="truncate font-mono text-xs text-muted-foreground">
+											{invoice.stripeInvoiceId}
+										</span>
+									</CopyableText>
 								</div>
 								<div className="flex shrink-0 gap-2">
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										disabled={isOpeningBillingLink}
-										onClick={() => {
-											void copyText(invoice.stripeInvoiceId, "Stripe invoice ID");
-										}}>
-										Copy ID
-									</Button>
 									{getStripeInvoiceBillingLinks(invoice).map((link) => {
 										const isLoadingLink =
 											loadingBillingLink?.stripeInvoiceId === invoice.stripeInvoiceId &&
@@ -242,7 +239,7 @@ export function StripeBillingDialog({
 							className="text-foreground underline underline-offset-4">
 							Stripe dashboard
 						</a>{" "}
-						to open the PDF or payment receipt manually.
+						to open the invoice or receipt manually.
 					</p>
 				) : null}
 
