@@ -206,7 +206,7 @@ function DocumentDownloadButton({
 	onDownload: () => void;
 }): ReactNode {
 	const idleLabel = documentKind === "receipt" ? "download your receipt" : "here";
-	const loadingLabel = documentKind === "receipt" ? "Generating receipt" : "generating invoice...";
+	const loadingLabel = documentKind === "receipt" ? "generating receipt..." : "generating invoice...";
 
 	return (
 		<button
