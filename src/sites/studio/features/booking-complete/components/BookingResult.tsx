@@ -123,8 +123,11 @@ function BookingResultContentView({
 	const isPackageBooking = invoiceDownloadTarget?.kind === "package";
 
 	const showReceiptDownloadLink = invoiceDownloadTarget !== undefined;
+	const receiptLeadIncludesDescription =
+		showReceiptDownloadLink && !isPackageBooking && booking?.status !== "email_failed";
 
-	const showDescription = !hasConfirmedBooking || isPackageBooking;
+	const showDescription =
+		(!hasConfirmedBooking && !receiptLeadIncludesDescription) || isPackageBooking;
 
 	return (
 		<div className="space-y-8">
