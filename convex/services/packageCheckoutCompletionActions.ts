@@ -22,19 +22,25 @@ export function completeClaimedPackageCheckoutService(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<CompleteClaimedPackageCheckoutSuccess, CompleteClaimedPackageCheckoutError> {
-	return markPackagePaid(ctx, args.packageId, Date.now())
-		.andThen((paymentResult) =>
-			okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-				(bookingSettings) => ({ bookingSettings, paymentResult })
-			)
+	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
+		.map((bookingSettings) => ({
+			bookingSettings,
+			checkoutReturnOrigin: new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
+		}))
+		.andThen(({ bookingSettings, checkoutReturnOrigin }) =>
+			markPackagePaid(ctx, args.packageId, Date.now()).map((paymentResult) => ({
+				bookingSettings,
+				checkoutReturnOrigin,
+				paymentResult
+			}))
 		)
-		.andThen(({ bookingSettings, paymentResult }) =>
+		.andThen(({ bookingSettings, checkoutReturnOrigin, paymentResult }) =>
 			sendPackageCheckoutPaidEmails(
 				ctx,
 				args.packageId,
 				paymentResult,
 				bookingSettings.leadTimeMinutes,
-				new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
+				checkoutReturnOrigin
 			)
 		)
 		.map(() => ({ outcome: "completed" as const }));
