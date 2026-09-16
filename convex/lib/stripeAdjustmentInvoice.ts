@@ -53,6 +53,15 @@ type CreatePackageAdjustmentStripeInvoiceInput = {
 	quantity: number;
 };
 
+type PackageAdjustmentInvoiceIdempotencyStep = "create" | "item" | "finalize" | "send";
+
+function packageAdjustmentInvoiceIdempotencyKey(
+	adjustmentId: Id<"packageAdjustments">,
+	step: PackageAdjustmentInvoiceIdempotencyStep
+) {
+	return `package-adjustment-invoice-${step}-${adjustmentId}`;
+}
+
 export function createAndSendPackageAdjustmentStripeInvoice(
 	stripe: StripeClient,
 	input: CreatePackageAdjustmentStripeInvoiceInput
@@ -62,33 +71,47 @@ export function createAndSendPackageAdjustmentStripeInvoice(
 
 	return tryPromise({
 		try: async () => {
-			const invoice = await stripe.invoices.create({
-				customer: input.stripeCustomerId,
-				collection_method: "send_invoice",
-				days_until_due: PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE,
-				metadata: { adjustmentId: input.adjustmentId, packageId: input.packageId }
-			});
+			const invoice = await stripe.invoices.create(
+				{
+					customer: input.stripeCustomerId,
+					collection_method: "send_invoice",
+					days_until_due: PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE,
+					metadata: { adjustmentId: input.adjustmentId, packageId: input.packageId }
+				},
+				{
+					idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "create")
+				}
+			);
 
 			const productId = await getPackageAdjustmentRemotePodcastProductId(
 				stripe,
 				remotePodcastLabel
 			);
 
-			await stripe.invoiceItems.create({
-				customer: input.stripeCustomerId,
-				invoice: invoice.id,
-				quantity: input.quantity,
-				price_data: {
-					currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-					product: productId,
-					unit_amount: unitAmount
+			await stripe.invoiceItems.create(
+				{
+					customer: input.stripeCustomerId,
+					invoice: invoice.id,
+					quantity: input.quantity,
+					price_data: {
+						currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
+						product: productId,
+						unit_amount: unitAmount
+					},
+					description: `${remotePodcastLabel} (package adjustment)`
 				},
-				description: `${remotePodcastLabel} (package adjustment)`
+				{
+					idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "item")
+				}
+			);
+
+			const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, undefined, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "finalize")
 			});
 
-			const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
-
-			await stripe.invoices.sendInvoice(finalizedInvoice.id);
+			await stripe.invoices.sendInvoice(finalizedInvoice.id, undefined, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "send")
+			});
 
 			return finalizedInvoice.id;
 		},
