@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
-import DownloadIcon from "#/components/ui/download-icon";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
@@ -26,6 +25,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { LegacyInvoicesSubmenu } from "#studio/features/admin/components/LegacyInvoicesSubmenu";
 import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import {
 	SessionEditorAssignment,
@@ -321,46 +321,43 @@ export function SessionActionsMenu({
 									)}>
 									Resend receipt
 								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									disabled={invoiceActions.isDownloadingInvoice}
-									onSelect={() => void invoiceActions.handleDownloadInvoice()}
-									renderIcon={(iconRef) => (
-										<DownloadIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									{invoiceActions.isDownloadingInvoice
-										? "Generating invoice..."
-										: "Download invoice"}
-								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									disabled={invoiceActions.isEmailingInvoice}
-									onSelect={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
-									renderIcon={(iconRef) => (
-										<MailFilledIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Email invoice
-								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									onSelect={() => invoiceActions.setIsCustomInvoiceDialogOpen(true)}
-									renderIcon={(iconRef) => (
-										<PenIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Create custom invoice
-								</AnimatedDropdownMenuItem>
+								{invoiceActions.hasStripeCustomer ? (
+									<AnimatedDropdownMenuItem
+										disabled={invoiceActions.isSendingStripeInvoice}
+										onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<PenIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										Send Stripe invoice
+									</AnimatedDropdownMenuItem>
+								) : null}
+								{session.stripeCustomerId === undefined ? (
+									<LegacyInvoicesSubmenu
+										downloadingLegacyCustomInvoiceId={
+											invoiceActions.downloadingLegacyCustomInvoiceId
+										}
+										downloadLabel={
+											invoiceActions.isDownloadingInvoice
+												? "Generating invoice"
+												: "Download invoice"
+										}
+										isDownloadingInvoice={invoiceActions.isDownloadingInvoice}
+										isEmailingInvoice={invoiceActions.isEmailingInvoice}
+										onDownloadInvoice={() => {
+											void invoiceActions.handleDownloadInvoice();
+										}}
+										onEmailInvoice={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
+										onOpenCustomInvoices={() =>
+											invoiceActions.setIsLegacyCustomInvoicesDialogOpen(true)
+										}
+										showEmailInvoice
+									/>
+								) : null}
 							</>
 						) : (
 							<>

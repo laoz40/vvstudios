@@ -13,7 +13,8 @@ import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDe
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
 import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
-import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
+import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
+import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
@@ -186,11 +187,29 @@ export function SessionActionsDialogs({
 				}}
 			/>
 
-			<CustomInvoiceDialog
-				open={invoiceActions.isCustomInvoiceDialogOpen}
-				session={session}
-				onOpenChange={invoiceActions.setIsCustomInvoiceDialogOpen}
+			<LegacyCustomInvoicesDialog
+				open={invoiceActions.isLegacyCustomInvoicesDialogOpen}
+				customerEmail={session.email}
+				customerName={session.name}
+				downloadingInvoiceId={invoiceActions.downloadingLegacyCustomInvoiceId}
+				invoices={invoiceActions.legacyCustomInvoices}
+				onDownload={(customInvoiceId) => {
+					void invoiceActions.handleDownloadLegacyCustomInvoice(customInvoiceId);
+				}}
+				onOpenChange={invoiceActions.setIsLegacyCustomInvoicesDialogOpen}
 			/>
+
+			{invoiceActions.hasStripeCustomer ? (
+				<StripeInvoiceDialog
+					open={invoiceActions.isStripeInvoiceDialogOpen}
+					customerEmail={session.email}
+					customerName={session.name}
+					hasStripeCustomer
+					isSending={invoiceActions.isSendingStripeInvoice}
+					onOpenChange={invoiceActions.setIsStripeInvoiceDialogOpen}
+					onSend={invoiceActions.handleSendStripeInvoice}
+				/>
+			) : null}
 
 			<SessionDeleteDialog
 				open={deleteAction.isDeleteDialogOpen}

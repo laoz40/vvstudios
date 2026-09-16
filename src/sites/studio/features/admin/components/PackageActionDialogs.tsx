@@ -1,7 +1,8 @@
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
-import { PackageCustomInvoiceDialog } from "#studio/features/admin/components/PackageCustomInvoiceDialog";
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
+import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
+import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 
@@ -22,11 +23,29 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onSave={editAction.handleEditPackage}
 				isSaving={editAction.isSaving}
 			/>
-			<PackageCustomInvoiceDialog
-				open={actions.isCustomInvoiceDialogOpen}
-				packageRow={packageRow}
-				onOpenChange={actions.setIsCustomInvoiceDialogOpen}
+			<LegacyCustomInvoicesDialog
+				open={actions.isLegacyCustomInvoicesDialogOpen}
+				customerEmail={packageRow.customerEmail}
+				customerName={packageRow.customerName}
+				downloadingInvoiceId={actions.downloadingLegacyCustomInvoiceId}
+				invoices={actions.legacyCustomInvoices}
+				onDownload={(customInvoiceId) => {
+					void actions.handleDownloadLegacyCustomInvoice(customInvoiceId);
+				}}
+				onOpenChange={actions.setIsLegacyCustomInvoicesDialogOpen}
 			/>
+
+			{actions.hasStripeCustomer ? (
+				<StripeInvoiceDialog
+					open={actions.isStripeInvoiceDialogOpen}
+					customerEmail={packageRow.customerEmail}
+					customerName={packageRow.customerName}
+					hasStripeCustomer
+					isSending={actions.isSendingStripeInvoice}
+					onOpenChange={actions.setIsStripeInvoiceDialogOpen}
+					onSend={actions.handleSendStripeInvoice}
+				/>
+			) : null}
 			<AdminEditConfirmationDialog
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
