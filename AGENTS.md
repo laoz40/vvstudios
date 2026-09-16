@@ -77,10 +77,12 @@ Extremely important website is accessible, and as fast first paint on marketing 
 
 - Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask user to clarify.
 
+- Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
+
 ### Neverthrow
 
 - Keep Convex handlers as boundary adapters: each handler should call one service function and use `.match(tupleOk, tupleErr)` to convert service `Result` into tuple returned to client.
-- `convex/services` should only contain service chain functions, a readable neverthrow `andThen` chain of domain operations.
+- `convex/services` should only contain service chain functions, a readable neverthrow `andThen` chain of domain operations. Chain errors propagate to the handler automatically.
 - Put domain operations used by service chains in nearest appropriate file under `convex/lib`. Do not define helper operations in service files
 - Result helpers in `convex/lib/result.ts`. Don't call `fromSafePromise`/`fromPromise` directly.
   - `okOrThrow` — `ctx.db`, `runQuery`/`runMutation` returning raw values. Infra failure throws; domain errors (`NOT_FOUND`, etc.) you return in `.andThen`.
