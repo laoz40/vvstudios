@@ -1,20 +1,3 @@
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-
-export type RemainingBalanceSession = {
-	duration: string;
-	addons: BookingAddon[];
-	remainingBalanceAmount?: number;
-};
-
-function getDefaultRemainingBalanceAmount(session: RemainingBalanceSession) {
-	return calculateBookingInvoiceAmounts(session).totalDueAmount;
-}
-
-export function getRemainingBalanceAmount(session: RemainingBalanceSession) {
-	return session.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(session);
-}
-
 type RemainingBalanceAmountParseResult =
 	| { status: "valid"; amount: number }
 	| { status: "invalid" };

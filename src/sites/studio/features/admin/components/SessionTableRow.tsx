@@ -29,7 +29,8 @@ import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
-import { formatAudAmount, getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
+import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
+import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 import {
 	formatShortMonthFullDate,
 	formatBookingDateMedium,
@@ -194,7 +195,7 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
-	const amountLabel = formatAudAmount(getRemainingBalanceAmount(session));
+	const amountLabel = formatAudAmount(calculateBookingReceiptAmounts(session).totalPaidAmount);
 
 	return (
 		<p className="text-green">
