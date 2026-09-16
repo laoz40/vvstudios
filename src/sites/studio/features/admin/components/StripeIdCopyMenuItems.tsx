@@ -11,7 +11,7 @@ export function StripeIdCopyMenuItems({ stripePaymentIntentId }: StripeIdCopyMen
 
 	return (
 		<AnimatedDropdownMenuItem
-			onSelect={() => void copyText(stripePaymentIntentId, "Stripe payment intent ID")}
+			onSelect={() => void copyText(stripePaymentIntentId, "Stripe Payment ID")}
 			renderIcon={(iconRef) => (
 				<Stack3Icon
 					ref={iconRef}
@@ -20,7 +20,7 @@ export function StripeIdCopyMenuItems({ stripePaymentIntentId }: StripeIdCopyMen
 					className="shrink-0 text-current"
 				/>
 			)}>
-			Copy Stripe payment intent ID
+			Copy Stripe Payment ID
 		</AnimatedDropdownMenuItem>
 	);
 }

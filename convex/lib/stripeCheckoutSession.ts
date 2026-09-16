@@ -103,7 +103,8 @@ export function createEmbeddedStripeCheckoutSession(
 					return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
 					customer: checkoutDraft.stripeCustomerId,
 					metadata: { bookingId: checkoutDraft.bookingId },
-					line_items: checkoutDraft.lineItems
+					line_items: checkoutDraft.lineItems,
+					payment_intent_data: { description: "Studio booking" }
 				})
 				.then((session) => ({ ...checkoutDraft, session })),
 		catch: (cause) => {
@@ -196,7 +197,8 @@ export function createEmbeddedStripePackageCheckoutSession(
 							customer: checkoutDraft.stripeCustomerId,
 							metadata: { packageId: checkoutDraft.packageId },
 							line_items: checkoutDraft.lineItems,
-							discounts: [{ coupon: couponId }]
+							discounts: [{ coupon: couponId }],
+							payment_intent_data: { description: "Package booking" }
 						})
 						.then((session) => ({ ...checkoutDraft, session })),
 				catch: (cause) => {
