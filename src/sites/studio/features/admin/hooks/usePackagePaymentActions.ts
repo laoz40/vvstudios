@@ -106,16 +106,10 @@ export function usePackagePaymentActions(
 					break;
 
 				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
+				case "EMAIL_REQUEST_FAILED":
+				case "EMAIL_RESPONSE_FAILED":
+				case "SCHEDULE_EMAIL_RENDER_FAILED":
 					toast.error("Scheduling email failed again.");
-					break;
-
-				case "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED":
-					toast.error("Scheduling email failed again, and we could not save that failure status.");
-					break;
-
-				case "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED":
-					toast.error("Scheduling email sent, but the package status did not update.");
-					setIsSchedulingLinkDialogOpen(false);
 					break;
 
 				case "UNEXPECTED_ERROR":

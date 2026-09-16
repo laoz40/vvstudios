@@ -12,11 +12,12 @@ import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilit
 type CompleteClaimedPackageCheckoutSuccess = { outcome: "completed" };
 
 type CompleteClaimedPackageCheckoutError =
+	| { reason: "EMAIL_REQUEST_FAILED" }
+	| { reason: "EMAIL_RESPONSE_FAILED" }
 	| { reason: "PACKAGE_ALREADY_PAID" }
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" };
+	| { reason: "SCHEDULE_EMAIL_RENDER_FAILED" };
 
 export function completeClaimedPackageCheckoutService(
 	ctx: ActionCtx,

@@ -15,9 +15,11 @@ type PackageScheduleEmailArgs = Parameters<typeof sendPackageScheduleEmail>[0];
 
 type PackageScheduleEmailResult = ResultAsync<
 	null,
+	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" }
+	| {
+			reason: "EMAIL_REQUEST_FAILED" | "EMAIL_RESPONSE_FAILED" | "SCHEDULE_EMAIL_RENDER_FAILED";
+	  }
 >;
 
 export function buildPackageScheduleUrl(baseUrl: string, token: string) {
@@ -133,17 +135,27 @@ export function sendAndRecordPackageReceiptEmail(
 	packageRecord: Doc<"packages">,
 	paidAt: number,
 	leadTimeMinutes: number
-): ResultAsync<null, { reason: "PACKAGE_RECEIPT_EMAIL_FAILED" }> {
+): ResultAsync<
+	null,
+	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_RECEIPT_EMAIL_FAILED" }
+	| {
+			reason:
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED"
+				| "INVALID_BOOKING_DATA"
+				| "RECEIPT_EMAIL_RENDER_FAILED"
+				| "RECEIPT_PDF_RENDER_FAILED";
+	  }
+> {
 	return sendPackageReceiptEmailsForPackage(packageRecord, paidAt, { leadTimeMinutes })
 		.andThen(({ receiptNumber }) =>
-			recordPackageReceiptEmailAttempt(ctx, packageId, "sent", receiptNumber).mapErr(() => ({
-				reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const
-			}))
+			recordPackageReceiptEmailAttempt(ctx, packageId, "sent", receiptNumber)
 		)
 		.orElse((error) =>
-			recordPackageReceiptEmailAttempt(ctx, packageId, "failed", error.reason)
-				.mapErr(() => ({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }))
-				.andThen(() => errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }))
+			recordPackageReceiptEmailAttempt(ctx, packageId, "failed", error.reason).andThen(() =>
+				errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const })
+			)
 		);
 }
 
@@ -184,17 +196,11 @@ export function sendAndRecordPackageScheduleEmail(
 	email: PackageScheduleEmailArgs
 ): PackageScheduleEmailResult {
 	return sendPackageScheduleEmail(email)
-		.andThen(() =>
-			recordPackageScheduleEmailAttempt(ctx, packageId, "sent").mapErr(() => ({
-				reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" as const
-			}))
-		)
+		.andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, "sent"))
 		.orElse(() =>
-			recordPackageScheduleEmailAttempt(ctx, packageId, "failed")
-				.mapErr(() => ({
-					reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" as const
-				}))
-				.andThen(() => err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const }))
+			recordPackageScheduleEmailAttempt(ctx, packageId, "failed").andThen(() =>
+				err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const })
+			)
 		);
 }
 
