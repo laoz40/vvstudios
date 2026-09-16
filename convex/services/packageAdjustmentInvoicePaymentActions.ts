@@ -11,9 +11,16 @@ import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilit
 type SendPackageAdjustmentReceiptAfterPaymentSuccess = { outcome: "completed" };
 
 type SendPackageAdjustmentReceiptAfterPaymentError =
-	| { reason: "INVALID_BOOKING_DATA" }
-	| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
-	| { reason: "RECEIPT_SEND_FAILED" };
+	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
+	| {
+			reason:
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED"
+				| "INVALID_BOOKING_DATA"
+				| "RECEIPT_EMAIL_RENDER_FAILED"
+				| "RECEIPT_PDF_RENDER_FAILED";
+	  };
 
 export function sendPackageAdjustmentReceiptAfterPaymentService(
 	ctx: ActionCtx,
@@ -27,7 +34,6 @@ export function sendPackageAdjustmentReceiptAfterPaymentService(
 			adjustmentId: args.adjustmentId
 		})
 	)
-		.mapErr(() => ({ reason: "INVALID_BOOKING_DATA" as const }))
 		.andThen((invoiceInput) =>
 			okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
 				(bookingSettings) => ({ bookingSettings, invoiceInput })
@@ -38,7 +44,7 @@ export function sendPackageAdjustmentReceiptAfterPaymentService(
 				invoiceInput,
 				args.paidAt,
 				bookingSettings.leadTimeMinutes
-			).mapErr(() => ({ reason: "RECEIPT_SEND_FAILED" as const }))
+			)
 		)
 		.map(() => ({ outcome: "completed" as const }));
 }

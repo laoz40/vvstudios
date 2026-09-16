@@ -8,9 +8,16 @@ import { sendPackageAdjustmentReceiptAfterPaymentService } from "#convex/service
 type SendPackageAdjustmentReceiptAfterPaymentSuccess = { outcome: "completed" };
 
 type SendPackageAdjustmentReceiptAfterPaymentError =
-	| { reason: "INVALID_BOOKING_DATA" }
-	| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
-	| { reason: "RECEIPT_SEND_FAILED" };
+	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
+	| {
+			reason:
+				| "EMAIL_REQUEST_FAILED"
+				| "EMAIL_RESPONSE_FAILED"
+				| "INVALID_BOOKING_DATA"
+				| "RECEIPT_EMAIL_RENDER_FAILED"
+				| "RECEIPT_PDF_RENDER_FAILED";
+	  };
 
 export const sendPackageAdjustmentReceiptAfterPayment = internalAction({
 	args: { adjustmentId: v.id("packageAdjustments"), paidAt: v.number() },

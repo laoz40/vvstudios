@@ -13,9 +13,13 @@ type CompletePackageAdjustmentInvoicePaymentFailure =
 	| {
 			kind: "completion_failed";
 			error:
+				| { reason: "EMAIL_REQUEST_FAILED" }
+				| { reason: "EMAIL_RESPONSE_FAILED" }
 				| { reason: "INVALID_BOOKING_DATA" }
+				| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+				| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
 				| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
-				| { reason: "RECEIPT_SEND_FAILED" };
+				| { reason: "RECEIPT_PDF_RENDER_FAILED" };
 	  };
 
 export function completePackageAdjustmentInvoicePaymentService(
