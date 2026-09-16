@@ -70,15 +70,12 @@ export function sendBookingInvoiceForBookingService(
 			)
 			// Send the invoice to the customer. Host notification is repair-only for email_failed bookings.
 			.andThen(({ customInvoice, rescheduleUrl, session, settings }) =>
-				okOrThrow(
-					sendBookingInvoiceEmailsForBooking(session, {
-						customInvoice: customInvoice ?? undefined,
-						leadTimeMinutes: settings.leadTimeMinutes,
-						rescheduleUrl,
-						skipHostEmail: session.status !== "email_failed"
-					})
-				)
-					.andThen((emailResult) => emailResult)
+				sendBookingInvoiceEmailsForBooking(session, {
+					customInvoice: customInvoice ?? undefined,
+					leadTimeMinutes: settings.leadTimeMinutes,
+					rescheduleUrl,
+					skipHostEmail: session.status !== "email_failed"
+				})
 					.mapErr(() => ({ reason: "INVOICE_SEND_FAILED" as const }))
 					.map(() => session)
 			)

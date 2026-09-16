@@ -14,7 +14,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
@@ -33,30 +33,26 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
 		({ startDateTime }) =>
 			getReminderRescheduleUrl(ctx, session).andThen((rescheduleUrl) =>
-				okOrThrow(
-					sendSessionReminderEmail({
-						name: session.name,
-						email: session.email,
-						date: session.date,
-						startDateTime,
-						time: session.time,
-						timeZone,
-						service: session.service,
-						duration: session.duration,
-						addons: session.addons,
-						rescheduleUrl,
-						isPackageSession: session.packageId !== undefined
-					})
-				)
-					.andThen((emailResult) => emailResult)
-					.mapErr((emailError) => {
-						console.error("Booking reminder email send failed", {
-							bookingId: session._id,
-							reason: emailError.reason
-						});
+				sendSessionReminderEmail({
+					name: session.name,
+					email: session.email,
+					date: session.date,
+					startDateTime,
+					time: session.time,
+					timeZone,
+					service: session.service,
+					duration: session.duration,
+					addons: session.addons,
+					rescheduleUrl,
+					isPackageSession: session.packageId !== undefined
+				}).mapErr((emailError) => {
+					console.error("Booking reminder email send failed", {
+						bookingId: session._id,
+						reason: emailError.reason
+					});
 
-						return { reason: "RESEND_SEND_FAILED" as const };
-					})
+					return { reason: "RESEND_SEND_FAILED" as const };
+				})
 			)
 	);
 }

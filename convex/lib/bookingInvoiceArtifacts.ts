@@ -256,14 +256,33 @@ export function createBookingInvoiceArtifactsForBooking(
 export function createBookingInvoiceEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
-	options: { leadTimeMinutes: number; rescheduleUrl?: string }
-) {
-	return createBookingInvoiceArtifactsForBooking(booking, createdAt, options).asyncAndThen(
-		(artifactsResult) =>
-			renderBookingInvoiceEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
-				...artifactsResult,
-				artifacts: { ...artifactsResult.artifacts, emailHtml }
-			}))
+	options: {
+		customInvoice?: Doc<"customInvoices">;
+		leadTimeMinutes: number;
+		rescheduleUrl?: string;
+	}
+): ResultAsync<
+	{
+		artifacts: {
+			data: BookingInvoiceData;
+			emailHtml: string;
+			pdf: { contentType: string; filename: string };
+		};
+		booking: BookingFormValues;
+	},
+	{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" }
+> {
+	const artifactsResult = createBookingInvoiceArtifactsForBooking(booking, createdAt, options);
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingInvoiceEmail(value.artifacts.data).map((emailHtml) => ({
+			...value,
+			artifacts: { ...value.artifacts, emailHtml }
+		}))
 	);
 }
 
@@ -404,13 +423,28 @@ export function createBookingReceiptEmailArtifactsForBooking(
 	booking: Doc<"bookings">,
 	createdAt: number,
 	options: { leadTimeMinutes: number; rescheduleUrl?: string }
-) {
-	return createBookingReceiptArtifactsForBooking(booking, createdAt, options).asyncAndThen(
-		(artifactsResult) =>
-			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
-				...artifactsResult,
-				artifacts: { ...artifactsResult.artifacts, emailHtml }
-			}))
+): ResultAsync<
+	{
+		artifacts: {
+			data: BookingReceiptData;
+			emailHtml: string;
+			pdf: { contentType: string; filename: string };
+		};
+		booking: BookingFormValues;
+	},
+	{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" }
+> {
+	const artifactsResult = createBookingReceiptArtifactsForBooking(booking, createdAt, options);
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingReceiptEmail(value.artifacts.data).map((emailHtml) => ({
+			...value,
+			artifacts: { ...value.artifacts, emailHtml }
+		}))
 	);
 }
 

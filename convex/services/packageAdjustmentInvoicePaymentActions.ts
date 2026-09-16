@@ -34,13 +34,11 @@ export function sendPackageAdjustmentReceiptAfterPaymentService(
 			)
 		)
 		.andThen(({ bookingSettings, invoiceInput }) =>
-			okOrThrow(
-				sendPackageAdjustmentReceiptEmails(
-					invoiceInput,
-					args.paidAt,
-					bookingSettings.leadTimeMinutes
-				)
-			).mapErr((error) => error)
+			sendPackageAdjustmentReceiptEmails(
+				invoiceInput,
+				args.paidAt,
+				bookingSettings.leadTimeMinutes
+			).mapErr(() => ({ reason: "RECEIPT_SEND_FAILED" as const }))
 		)
 		.map(() => ({ outcome: "completed" as const }));
 }

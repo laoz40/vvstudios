@@ -1,4 +1,4 @@
-import { err, ok, type Result } from "neverthrow";
+import { ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	createBookingInvoiceEmailArtifactsForBooking,
@@ -19,7 +19,40 @@ interface SessionHostRescheduleDetails {
 	originalTime: string;
 }
 
-export async function sendBookingInvoiceEmailsForBooking(
+type BookingInvoiceEmailError = {
+	reason:
+		| "EMAIL_REQUEST_FAILED"
+		| "EMAIL_RESPONSE_FAILED"
+		| "INVALID_BOOKING_DATA"
+		| "INVOICE_EMAIL_RENDER_FAILED"
+		| "INVOICE_PDF_RENDER_FAILED";
+};
+
+type BookingReceiptEmailError = {
+	reason:
+		| "EMAIL_REQUEST_FAILED"
+		| "EMAIL_RESPONSE_FAILED"
+		| "INVALID_BOOKING_DATA"
+		| "RECEIPT_EMAIL_RENDER_FAILED"
+		| "RECEIPT_PDF_RENDER_FAILED";
+};
+
+type PackageReceiptEmailError = {
+	reason:
+		| "EMAIL_REQUEST_FAILED"
+		| "EMAIL_RESPONSE_FAILED"
+		| "INVALID_BOOKING_DATA"
+		| "RECEIPT_EMAIL_RENDER_FAILED"
+		| "RECEIPT_PDF_RENDER_FAILED";
+};
+
+function bookingPaidAt(booking: Doc<"bookings">) {
+	return (
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
+	);
+}
+
+export function sendBookingInvoiceEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: {
 		customInvoice?: Doc<"customInvoices">;
@@ -27,78 +60,53 @@ export async function sendBookingInvoiceEmailsForBooking(
 		rescheduleUrl?: string;
 		skipHostEmail?: boolean;
 	}
-): Promise<
-	Result<
-		null,
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createBookingInvoiceEmailArtifactsForBooking(
-		booking,
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-		options
-	);
+): ResultAsync<null, BookingInvoiceEmailError> {
+	return createBookingInvoiceEmailArtifactsForBooking(booking, bookingPaidAt(booking), options)
+		.andThen(({ artifacts, booking: parsedBooking }) =>
+			renderBookingInvoicePdfInNode(artifacts.data).map((pdfContent) => ({
+				artifacts,
+				parsedBooking,
+				pdfContent
+			}))
+		)
+		.andThen(({ artifacts, parsedBooking, pdfContent }) =>
+			sendEmail({
+				to: [booking.email],
+				subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
+				html: artifacts.emailHtml,
+				attachments: [{ ...artifacts.pdf, content: pdfContent }]
+			}).map(() => ({ artifacts, parsedBooking }))
+		)
+		.andThen(({ artifacts, parsedBooking }) => {
+			if (options.skipHostEmail) {
+				return okAsync(null);
+			}
 
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
+			return sendSessionHostDetailsEmail({
+				invoiceNumber: artifacts.data.invoice.number,
+				name: parsedBooking.name,
+				email: parsedBooking.email,
+				phone: parsedBooking.phone,
+				accountName: parsedBooking.accountName,
+				abn: parsedBooking.abn,
+				date: parsedBooking.date,
+				time: parsedBooking.time,
+				service: parsedBooking.service,
+				duration: parsedBooking.duration,
+				addons: parsedBooking.addons,
+				notes: parsedBooking.notes
+			}).orElse((error) => {
+				console.error("Booking invoice host email send failed", {
+					bookingId: booking._id,
+					reason: error.reason
+				});
 
-	const { artifacts, booking: parsedBooking } = artifactsResult.value;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const pdfContent = pdfResult.value;
-
-	const invoiceEmailResult = await sendEmail({
-		to: [booking.email],
-		subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfContent }]
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Booking invoice customer email send failed", {
-			bookingId: booking._id,
-			bookingEmail: booking.email,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	if (!options.skipHostEmail) {
-		const hostEmailResult = await sendSessionHostDetailsEmail({
-			invoiceNumber: artifacts.data.invoice.number,
-			name: parsedBooking.name,
-			email: parsedBooking.email,
-			phone: parsedBooking.phone,
-			accountName: parsedBooking.accountName,
-			abn: parsedBooking.abn,
-			date: parsedBooking.date,
-			time: parsedBooking.time,
-			service: parsedBooking.service,
-			duration: parsedBooking.duration,
-			addons: parsedBooking.addons,
-			notes: parsedBooking.notes
-		});
-
-		if (hostEmailResult.isErr()) {
-			console.error("Booking invoice host email send failed", {
-				bookingId: booking._id,
-				reason: hostEmailResult.error.reason
+				return ok(null);
 			});
-		}
-	}
-
-	return ok(null);
+		});
 }
 
-export async function sendBookingReceiptEmailsForBooking(
+export function sendBookingReceiptEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: {
 		leadTimeMinutes: number;
@@ -106,196 +114,135 @@ export async function sendBookingReceiptEmailsForBooking(
 		rescheduleUrl?: string;
 		skipHostEmail?: boolean;
 	}
-): Promise<
-	Result<
-		null,
-		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createBookingReceiptEmailArtifactsForBooking(
-		booking,
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-		options
-	);
+): ResultAsync<null, BookingReceiptEmailError> {
+	return createBookingReceiptEmailArtifactsForBooking(booking, bookingPaidAt(booking), {
+		leadTimeMinutes: options.leadTimeMinutes,
+		rescheduleUrl: options.rescheduleUrl
+	})
+		.andThen(({ artifacts, booking: parsedBooking }) =>
+			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({
+				artifacts,
+				parsedBooking,
+				pdfContent
+			}))
+		)
+		.andThen(({ artifacts, parsedBooking, pdfContent }) =>
+			sendEmail({
+				to: [booking.email],
+				subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
+				html: artifacts.emailHtml,
+				attachments: [{ ...artifacts.pdf, content: pdfContent }]
+			}).map(() => ({ artifacts, parsedBooking }))
+		)
+		.andThen(({ artifacts, parsedBooking }) => {
+			if (options.skipHostEmail) {
+				return okAsync(null);
+			}
 
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
+			return sendSessionHostDetailsEmail({
+				invoiceNumber: artifacts.data.receipt.number,
+				name: parsedBooking.name,
+				email: parsedBooking.email,
+				phone: parsedBooking.phone,
+				accountName: parsedBooking.accountName,
+				abn: parsedBooking.abn,
+				date: parsedBooking.date,
+				time: parsedBooking.time,
+				service: parsedBooking.service,
+				duration: parsedBooking.duration,
+				addons: parsedBooking.addons,
+				notes: parsedBooking.notes,
+				reschedule: options.reschedule
+			}).orElse((error) => {
+				console.error("Booking receipt host email send failed", {
+					bookingId: booking._id,
+					reason: error.reason
+				});
 
-	const { artifacts, booking: parsedBooking } = artifactsResult.value;
-	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Booking receipt PDF render failed", { bookingId: booking._id });
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	const receiptEmailResult = await sendEmail({
-		to: [booking.email],
-		subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
-	});
-
-	if (receiptEmailResult.isErr()) {
-		console.error("Booking receipt customer email send failed", {
-			bookingId: booking._id,
-			bookingEmail: booking.email,
-			reason: receiptEmailResult.error.reason
-		});
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	if (!options.skipHostEmail) {
-		const hostEmailResult = await sendSessionHostDetailsEmail({
-			invoiceNumber: artifacts.data.receipt.number,
-			name: parsedBooking.name,
-			email: parsedBooking.email,
-			phone: parsedBooking.phone,
-			accountName: parsedBooking.accountName,
-			abn: parsedBooking.abn,
-			date: parsedBooking.date,
-			time: parsedBooking.time,
-			service: parsedBooking.service,
-			duration: parsedBooking.duration,
-			addons: parsedBooking.addons,
-			notes: parsedBooking.notes,
-			reschedule: options.reschedule
-		});
-
-		if (hostEmailResult.isErr()) {
-			console.error("Booking receipt host email send failed", {
-				bookingId: booking._id,
-				reason: hostEmailResult.error.reason
+				return ok(null);
 			});
-		}
-	}
-
-	return ok(null);
+		});
 }
 
-export async function sendPackageReceiptEmailsForPackage(
+export function sendPackageReceiptEmailsForPackage(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
 	options: { leadTimeMinutes: number; skipHostEmail?: boolean }
-): Promise<
-	Result<
-		{ receiptNumber: string },
-		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createPackageReceiptEmailArtifacts(packageRecord, paidAt, options);
+): ResultAsync<{ receiptNumber: string }, PackageReceiptEmailError> {
+	return createPackageReceiptEmailArtifacts(packageRecord, paidAt, options)
+		.andThen(({ artifacts }) =>
+			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({ artifacts, pdfContent }))
+		)
+		.andThen(({ artifacts, pdfContent }) =>
+			sendEmail({
+				to: [packageRecord.email],
+				subject: `Your ${packageRecord.packageSize}-Session Package confirmed - ${formatTimestampDateShort(paidAt)}`,
+				html: artifacts.emailHtml,
+				attachments: [{ ...artifacts.pdf, content: pdfContent }]
+			}).map(() => ({ artifacts }))
+		)
+		.andThen(({ artifacts }) => {
+			const receiptNumber = artifacts.data.receipt.number;
 
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
+			if (options.skipHostEmail) {
+				return okAsync({ receiptNumber });
+			}
 
-	const { artifacts } = artifactsResult.value;
-	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
+			return sendPackageHostDetailsEmail({
+				invoiceNumber: receiptNumber,
+				name: packageRecord.name,
+				email: packageRecord.email,
+				phone: packageRecord.phone,
+				accountName: packageRecord.accountName,
+				abn: packageRecord.abn,
+				duration: packageRecord.duration,
+				addons: packageRecord.addons,
+				essentialEditQuantity: packageRecord.essentialEditQuantity,
+				completeEditQuantity: packageRecord.completeEditQuantity,
+				clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+				handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+				notes: packageRecord.notes,
+				packageSize: packageRecord.packageSize,
+				invoiceDueAt: paidAt
+			})
+				.orElse((error) => {
+					console.error("Package receipt host email send failed", {
+						packageId: packageRecord._id,
+						reason: error.reason
+					});
 
-	if (pdfResult.isErr()) {
-		console.error("Package receipt PDF render failed", { packageId: packageRecord._id });
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	const receiptEmailResult = await sendEmail({
-		to: [packageRecord.email],
-		subject: `Your ${packageRecord.packageSize}-Session Package confirmed - ${formatTimestampDateShort(paidAt)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
-	});
-
-	if (receiptEmailResult.isErr()) {
-		console.error("Package receipt customer email send failed", {
-			packageEmail: packageRecord.email,
-			packageId: packageRecord._id,
-			reason: receiptEmailResult.error.reason
+					return ok(null);
+				})
+				.map(() => ({ receiptNumber }));
 		});
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	if (!options.skipHostEmail) {
-		const hostEmailResult = await sendPackageHostDetailsEmail({
-			invoiceNumber: artifacts.data.receipt.number,
-			name: packageRecord.name,
-			email: packageRecord.email,
-			phone: packageRecord.phone,
-			accountName: packageRecord.accountName,
-			abn: packageRecord.abn,
-			duration: packageRecord.duration,
-			addons: packageRecord.addons,
-			essentialEditQuantity: packageRecord.essentialEditQuantity,
-			completeEditQuantity: packageRecord.completeEditQuantity,
-			clipsPackageQuantity: packageRecord.clipsPackageQuantity,
-			handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-			notes: packageRecord.notes,
-			packageSize: packageRecord.packageSize,
-			invoiceDueAt: paidAt
-		});
-
-		if (hostEmailResult.isErr()) {
-			console.error("Package receipt host email send failed", {
-				packageId: packageRecord._id,
-				reason: hostEmailResult.error.reason
-			});
-		}
-	}
-
-	return ok({ receiptNumber: artifacts.data.receipt.number });
 }
 
-export async function sendPackageAdjustmentReceiptEmails(
+export function sendPackageAdjustmentReceiptEmails(
 	invoiceInput: PackageAdjustmentInvoiceInput,
 	paidAt: number,
 	leadTimeMinutes: number
-): Promise<
-	Result<
-		{ receiptNumber: string },
-		{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" | "RECEIPT_SEND_FAILED" }
-	>
+): ResultAsync<
+	{ receiptNumber: string },
+	{
+		reason:
+			| "EMAIL_REQUEST_FAILED"
+			| "EMAIL_RESPONSE_FAILED"
+			| "INVALID_BOOKING_DATA"
+			| "RECEIPT_EMAIL_RENDER_FAILED"
+			| "RECEIPT_PDF_RENDER_FAILED";
+	}
 > {
-	const artifactsResult = await createPackageAdjustmentReceiptEmailArtifacts(
-		invoiceInput,
-		paidAt,
-		leadTimeMinutes
-	);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const { artifacts } = artifactsResult.value;
-	const pdfResult = await renderBookingReceiptPdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Package adjustment receipt PDF render failed", {
-			adjustmentId: invoiceInput.adjustment._id
-		});
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	const receiptEmailResult = await sendEmail({
-		to: [invoiceInput.packageRecord.email],
-		subject: `Your Remote Podcast Adjustment Receipt — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }],
-		idempotencyKey: `package-adjustment-receipt-${invoiceInput.adjustment._id}`
-	});
-
-	if (receiptEmailResult.isErr()) {
-		console.error("Package adjustment receipt customer email send failed", {
-			adjustmentId: invoiceInput.adjustment._id,
-			packageEmail: invoiceInput.packageRecord.email,
-			reason: receiptEmailResult.error.reason
-		});
-
-		return err({ reason: "RECEIPT_SEND_FAILED" });
-	}
-
-	return ok({ receiptNumber: artifacts.data.receipt.number });
+	return createPackageAdjustmentReceiptEmailArtifacts(invoiceInput, paidAt, leadTimeMinutes)
+		.andThen(({ artifacts }) =>
+			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({ artifacts, pdfContent }))
+		)
+		.andThen(({ artifacts, pdfContent }) =>
+			sendEmail({
+				to: [invoiceInput.packageRecord.email],
+				subject: `Your Remote Podcast Adjustment Receipt — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
+				html: artifacts.emailHtml,
+				attachments: [{ ...artifacts.pdf, content: pdfContent }],
+				idempotencyKey: `package-adjustment-receipt-${invoiceInput.adjustment._id}`
+			}).map(() => ({ receiptNumber: artifacts.data.receipt.number }))
+		);
 }

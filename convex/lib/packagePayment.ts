@@ -134,22 +134,17 @@ export function sendAndRecordPackageReceiptEmail(
 	paidAt: number,
 	leadTimeMinutes: number
 ): ResultAsync<null, { reason: "PACKAGE_RECEIPT_EMAIL_FAILED" }> {
-	return okOrThrow(
-		sendPackageReceiptEmailsForPackage(packageRecord, paidAt, { leadTimeMinutes })
-	).andThen((emailResult) => {
-		if (emailResult.isErr()) {
-			return recordPackageReceiptEmailAttempt(ctx, packageId, "failed", emailResult.error.reason)
+	return sendPackageReceiptEmailsForPackage(packageRecord, paidAt, { leadTimeMinutes })
+		.andThen(({ receiptNumber }) =>
+			recordPackageReceiptEmailAttempt(ctx, packageId, "sent", receiptNumber).mapErr(() => ({
+				reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const
+			}))
+		)
+		.orElse((error) =>
+			recordPackageReceiptEmailAttempt(ctx, packageId, "failed", error.reason)
 				.mapErr(() => ({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }))
-				.andThen(() => errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }));
-		}
-
-		return recordPackageReceiptEmailAttempt(
-			ctx,
-			packageId,
-			"sent",
-			emailResult.value.receiptNumber
-		).mapErr(() => ({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }));
-	});
+				.andThen(() => errAsync({ reason: "PACKAGE_RECEIPT_EMAIL_FAILED" as const }))
+		);
 }
 
 export function sendPackageCheckoutPaidEmails(
@@ -188,21 +183,19 @@ export function sendAndRecordPackageScheduleEmail(
 	packageId: Id<"packages">,
 	email: PackageScheduleEmailArgs
 ): PackageScheduleEmailResult {
-	return okOrThrow(sendPackageScheduleEmail(email)).andThen((emailResult) => {
-		if (emailResult.isErr()) {
-			// Record the failed email so an admin can retry the paid package lifecycle.
-			return recordPackageScheduleEmailAttempt(ctx, packageId, "failed")
+	return sendPackageScheduleEmail(email)
+		.andThen(() =>
+			recordPackageScheduleEmailAttempt(ctx, packageId, "sent").mapErr(() => ({
+				reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" as const
+			}))
+		)
+		.orElse(() =>
+			recordPackageScheduleEmailAttempt(ctx, packageId, "failed")
 				.mapErr(() => ({
 					reason: "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED" as const
 				}))
-				.andThen(() => err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const }));
-		}
-
-		// Translate a failed status write into the workflow error the admin can act on.
-		return recordPackageScheduleEmailAttempt(ctx, packageId, "sent").mapErr(() => ({
-			reason: "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED" as const
-		}));
-	});
+				.andThen(() => err({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const }))
+		);
 }
 
 function recordPackageScheduleEmailAttempt(

@@ -41,13 +41,11 @@ export function resendBookingReceiptService(
 		)
 		.andThen(({ session, settings }) =>
 			createRescheduleUrlForSession(ctx, session).andThen((rescheduleUrl) =>
-				okOrThrow(
-					sendBookingReceiptEmailsForBooking(session, {
-						leadTimeMinutes: settings.leadTimeMinutes,
-						rescheduleUrl,
-						skipHostEmail: true
-					})
-				).andThen((emailResult) => emailResult.map(() => session))
+				sendBookingReceiptEmailsForBooking(session, {
+					leadTimeMinutes: settings.leadTimeMinutes,
+					rescheduleUrl,
+					skipHostEmail: true
+				}).map(() => session)
 			)
 		)
 		.andThen((session) =>
