@@ -8,9 +8,9 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	createPackageAdjustmentInvoiceArtifacts,
-	renderBookingInvoicePdfInNode,
 	type PackageAdjustmentInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
+import { renderBookingInvoicePdfInNode } from "#convex/lib/bookingInvoicePdfRender";
 import { fromConvexTuple } from "#convex/lib/result";
 import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripeAdjustmentInvoice";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";

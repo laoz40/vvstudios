@@ -5,11 +5,13 @@ import {
 	createBookingReceiptEmailArtifactsForBooking,
 	createPackageAdjustmentReceiptEmailArtifacts,
 	createPackageReceiptEmailArtifacts,
-	renderBookingInvoicePdfInNode,
-	renderBookingReceiptPdfInNode,
 	type PackageAdjustmentInvoiceInput,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
+import {
+	renderBookingInvoicePdfInNode,
+	renderBookingReceiptPdfInNode
+} from "#convex/lib/bookingInvoicePdfRender";
 import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
 import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";

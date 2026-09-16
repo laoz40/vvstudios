@@ -9,10 +9,12 @@ import {
 	createBookingInvoiceArtifactsForBooking,
 	createBookingReceiptArtifactsForBooking,
 	createPackageInvoiceArtifacts,
-	createPackageReceiptArtifacts,
+	createPackageReceiptArtifacts
+} from "#convex/lib/bookingInvoiceArtifacts";
+import {
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode
-} from "#convex/lib/bookingInvoiceArtifacts";
+} from "#convex/lib/bookingInvoicePdfRender";
 import {
 	createCustomPackageInvoiceData,
 	type CustomPackageInvoiceInput

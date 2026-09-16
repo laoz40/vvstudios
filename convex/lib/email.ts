@@ -18,9 +18,9 @@ import {
 } from "#convex/lib/sessionCalendarTime";
 import {
 	createPackageInvoiceArtifacts,
-	renderBookingInvoicePdfInNode,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
+import { renderBookingInvoicePdfInNode } from "#convex/lib/bookingInvoicePdfRender";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
