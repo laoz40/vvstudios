@@ -80,11 +80,11 @@ import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.
 import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWorkflow.js";
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
 import type * as lib_sessionSavePatch from "../lib/sessionSavePatch.js";
-import type * as lib_stripeInvoice from "../lib/stripeInvoice.js";
 import type * as lib_stripeAdjustmentInvoice from "../lib/stripeAdjustmentInvoice.js";
 import type * as lib_stripeCheckoutLineItems from "../lib/stripeCheckoutLineItems.js";
 import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js";
 import type * as lib_stripeClient from "../lib/stripeClient.js";
+import type * as lib_stripeInvoice from "../lib/stripeInvoice.js";
 import type * as lib_tests_testIds from "../lib/tests/testIds.js";
 import type * as packageAdjustmentInvoicePaymentHandlers from "../packageAdjustmentInvoicePaymentHandlers.js";
 import type * as packageAdjustmentInvoices from "../packageAdjustmentInvoices.js";
@@ -218,11 +218,11 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionRescheduleWorkflow": typeof lib_sessionRescheduleWorkflow;
   "lib/sessionReservations": typeof lib_sessionReservations;
   "lib/sessionSavePatch": typeof lib_sessionSavePatch;
-  "lib/stripeInvoice": typeof lib_stripeInvoice;
   "lib/stripeAdjustmentInvoice": typeof lib_stripeAdjustmentInvoice;
   "lib/stripeCheckoutLineItems": typeof lib_stripeCheckoutLineItems;
   "lib/stripeCheckoutSession": typeof lib_stripeCheckoutSession;
   "lib/stripeClient": typeof lib_stripeClient;
+  "lib/stripeInvoice": typeof lib_stripeInvoice;
   "lib/tests/testIds": typeof lib_tests_testIds;
   packageAdjustmentInvoicePaymentHandlers: typeof packageAdjustmentInvoicePaymentHandlers;
   packageAdjustmentInvoices: typeof packageAdjustmentInvoices;
