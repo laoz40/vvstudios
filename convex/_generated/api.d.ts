@@ -58,6 +58,7 @@ import type * as lib_invoiceDownloads from "../lib/invoiceDownloads.js";
 import type * as lib_packageAdjustmentInvoicePayment from "../lib/packageAdjustmentInvoicePayment.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
 import type * as lib_packageCheckout from "../lib/packageCheckout.js";
+import type * as lib_packageCheckoutClaim from "../lib/packageCheckoutClaim.js";
 import type * as lib_packageLookup from "../lib/packageLookup.js";
 import type * as lib_packagePayment from "../lib/packagePayment.js";
 import type * as lib_packageReminders from "../lib/packageReminders.js";
@@ -189,6 +190,7 @@ declare const fullApi: ApiFromModules<{
   "lib/packageAdjustmentInvoicePayment": typeof lib_packageAdjustmentInvoicePayment;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
   "lib/packageCheckout": typeof lib_packageCheckout;
+  "lib/packageCheckoutClaim": typeof lib_packageCheckoutClaim;
   "lib/packageLookup": typeof lib_packageLookup;
   "lib/packagePayment": typeof lib_packagePayment;
   "lib/packageReminders": typeof lib_packageReminders;
