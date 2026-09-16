@@ -282,7 +282,6 @@ export function updateSessionFromAdminWithGoogleCalendar({
 				sessionStartAt
 			})
 		)
-			.mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }))
 			.andThen((reservationResult) => {
 				if (reservationResult.outcome === "unavailable") {
 					return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
