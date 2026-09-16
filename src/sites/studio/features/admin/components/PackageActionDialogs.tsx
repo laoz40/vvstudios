@@ -2,6 +2,7 @@ import { AdminEditConfirmationDialog } from "#studio/features/admin/components/A
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
 import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
+import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
 import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
@@ -33,6 +34,14 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 					void actions.handleDownloadLegacyCustomInvoice(customInvoiceId);
 				}}
 				onOpenChange={actions.setIsLegacyCustomInvoicesDialogOpen}
+			/>
+
+			<StripeBillingDialog
+				open={actions.isStripeBillingDialogOpen}
+				customerEmail={packageRow.customerEmail}
+				customerName={packageRow.customerName}
+				invoices={actions.stripeBillingInvoices}
+				onOpenChange={actions.setIsStripeBillingDialogOpen}
 			/>
 
 			{actions.hasStripeCustomer ? (

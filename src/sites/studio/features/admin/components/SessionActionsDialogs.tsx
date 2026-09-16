@@ -14,6 +14,7 @@ import { AdminEditConfirmationDialog } from "#studio/features/admin/components/A
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
 import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
 import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
+import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
 import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
@@ -197,6 +198,14 @@ export function SessionActionsDialogs({
 					void invoiceActions.handleDownloadLegacyCustomInvoice(customInvoiceId);
 				}}
 				onOpenChange={invoiceActions.setIsLegacyCustomInvoicesDialogOpen}
+			/>
+
+			<StripeBillingDialog
+				open={invoiceActions.isStripeBillingDialogOpen}
+				customerEmail={session.email}
+				customerName={session.name}
+				invoices={invoiceActions.stripeBillingInvoices}
+				onOpenChange={invoiceActions.setIsStripeBillingDialogOpen}
 			/>
 
 			{invoiceActions.hasStripeCustomer ? (

@@ -1,9 +1,9 @@
 import { useRef } from "react";
+import { DollarSign } from "lucide-react";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
-import PenIcon from "#/components/ui/pen-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import {
 	DropdownMenuSeparator,
@@ -88,6 +88,7 @@ function PackageInvoiceActions({
 		setIsAdjustmentInvoiceDialogOpen,
 		setIsLegacyCustomInvoicesDialogOpen,
 		setIsSchedulingLinkDialogOpen,
+		setIsStripeBillingDialogOpen,
 		setIsStripeInvoiceDialogOpen
 	} = actions;
 
@@ -120,15 +121,26 @@ function PackageInvoiceActions({
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending || actions.isSendingStripeInvoice}
 					onSelect={() => setIsStripeInvoiceDialogOpen(true)}
-					renderIcon={(iconRef) => (
-						<PenIcon
-							ref={iconRef}
-							size={16}
+					renderIcon={() => (
+						<DollarSign
 							aria-hidden
-							className="shrink-0 text-current"
+							className="size-4 shrink-0 text-current"
 						/>
 					)}>
 					Create Stripe invoice
+				</AnimatedDropdownMenuItem>
+			) : null}
+			{actions.hasStripeBillingInvoices ? (
+				<AnimatedDropdownMenuItem
+					disabled={isActionPending}
+					onSelect={() => setIsStripeBillingDialogOpen(true)}
+					renderIcon={() => (
+						<DollarSign
+							aria-hidden
+							className="size-4 shrink-0 text-current"
+						/>
+					)}>
+					Stripe billing
 				</AnimatedDropdownMenuItem>
 			) : null}
 			{packageRow.stripeCustomerId === undefined ? (

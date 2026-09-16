@@ -14,6 +14,7 @@ import {
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type EmailBookingInvoiceRequest = {
@@ -75,6 +76,12 @@ export function useInvoiceActions(session: SessionRecord) {
 		useState<Id<"customInvoices"> | null>(null);
 
 	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
+	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
+
+	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForBooking, {
+		bookingId: session._id
+	});
+
 	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
@@ -284,6 +291,11 @@ export function useInvoiceActions(session: SessionRecord) {
 		toast.success("Stripe invoice sent.");
 	}
 
+	const { hasStripeBillingInvoices, stripeBillingInvoices } = getStripeBillingInvoicesState(
+		stripeInvoicesResult,
+		isStripeBillingDialogOpen
+	);
+
 	return {
 		customInvoices: customInvoicesResult?.[1] ?? undefined,
 		downloadingLegacyCustomInvoiceId,
@@ -291,18 +303,22 @@ export function useInvoiceActions(session: SessionRecord) {
 		handleDownloadLegacyCustomInvoice,
 		handleEmailInvoice,
 		handleSendStripeInvoice,
+		hasStripeBillingInvoices,
 		hasStripeCustomer: Boolean(session.stripeCustomerId),
 		isDownloadingInvoice,
 		isEmailInvoiceDialogOpen,
 		isEmailingInvoice,
 		isLegacyCustomInvoicesDialogOpen,
 		isSendingStripeInvoice,
+		isStripeBillingDialogOpen,
 		isStripeInvoiceDialogOpen,
 		legacyCustomInvoices,
 		selectedEmailCustomInvoiceId,
 		setIsEmailInvoiceDialogOpen: setEmailInvoiceDialogOpen,
 		setIsLegacyCustomInvoicesDialogOpen,
+		setIsStripeBillingDialogOpen,
 		setIsStripeInvoiceDialogOpen,
-		setSelectedEmailCustomInvoiceId
+		setSelectedEmailCustomInvoiceId,
+		stripeBillingInvoices
 	};
 }

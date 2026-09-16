@@ -10,6 +10,7 @@ import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
+import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
@@ -57,7 +58,13 @@ export function usePackageInvoiceActions(
 	const getCustomPackageInvoicePdf = useAction(api.invoices.getAdminCustomPackageInvoicePdfById);
 	const sendPackageStripeInvoice = useAction(api.stripeInvoicing.sendPackageStripeInvoice);
 	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
+	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
+
+	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForPackage, {
+		packageId: packageRow.id
+	});
+
 	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
 
 	const [downloadingLegacyCustomInvoiceId, setDownloadingLegacyCustomInvoiceId] =
@@ -184,17 +191,26 @@ export function usePackageInvoiceActions(
 		toast.success("Stripe invoice sent.");
 	}
 
+	const { hasStripeBillingInvoices, stripeBillingInvoices } = getStripeBillingInvoicesState(
+		stripeInvoicesResult,
+		isStripeBillingDialogOpen
+	);
+
 	return {
 		downloadingLegacyCustomInvoiceId,
 		handleDownloadInvoice,
 		handleDownloadLegacyCustomInvoice,
 		handleSendStripeInvoice,
+		hasStripeBillingInvoices,
 		hasStripeCustomer: Boolean(packageRow.stripeCustomerId),
 		isLegacyCustomInvoicesDialogOpen,
 		isSendingStripeInvoice,
+		isStripeBillingDialogOpen,
 		isStripeInvoiceDialogOpen,
 		legacyCustomInvoices,
 		setIsLegacyCustomInvoicesDialogOpen,
-		setIsStripeInvoiceDialogOpen
+		setIsStripeBillingDialogOpen,
+		setIsStripeInvoiceDialogOpen,
+		stripeBillingInvoices
 	};
 }

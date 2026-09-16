@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { DollarSign } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DownloadIcon from "#/components/ui/download-icon";
@@ -349,15 +350,25 @@ export function SessionActionsMenu({
 											<AnimatedDropdownMenuItem
 												disabled={invoiceActions.isSendingStripeInvoice}
 												onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
-												renderIcon={(iconRef) => (
-													<PenIcon
-														ref={iconRef}
-														size={16}
+												renderIcon={() => (
+													<DollarSign
 														aria-hidden
-														className="shrink-0 text-current"
+														className="size-4 shrink-0 text-current"
 													/>
 												)}>
-												Send Stripe invoice
+												Create Stripe invoice
+											</AnimatedDropdownMenuItem>
+										) : null}
+										{invoiceActions.hasStripeBillingInvoices ? (
+											<AnimatedDropdownMenuItem
+												onSelect={() => invoiceActions.setIsStripeBillingDialogOpen(true)}
+												renderIcon={() => (
+													<DollarSign
+														aria-hidden
+														className="size-4 shrink-0 text-current"
+													/>
+												)}>
+												Stripe billing
 											</AnimatedDropdownMenuItem>
 										) : null}
 										{session.stripeCustomerId === undefined ? (
