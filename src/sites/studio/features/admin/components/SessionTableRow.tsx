@@ -29,10 +29,7 @@ import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
-import {
-	formatAudAmount,
-	getRemainingBalanceAmount
-} from "#studio/features/admin/lib/remaining-balance";
+import { formatAudAmount, getRemainingBalanceAmount } from "#studio/features/admin/lib/remaining-balance";
 import {
 	formatShortMonthFullDate,
 	formatBookingDateMedium,
@@ -186,26 +183,25 @@ function SessionNotesCell({
 	);
 }
 
-function RemainingBalanceCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
+function SessionAmountCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 
-	const showRemainingBalance =
+	const showAmount =
 		!packageSessionProgressLabel &&
 		(session.status === "confirmed" || session.status === "email_failed");
 
-	if (!showRemainingBalance) {
+	if (!showAmount) {
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
 	const amountLabel = formatAudAmount(getRemainingBalanceAmount(session));
-	const className = session.paidRemainingBalance === true ? "text-green" : "text-destructive";
 
 	return (
-		<p className={className}>
+		<p className="text-green">
 			<PrivacySensitiveText
 				rowId={rowId}
 				value={amountLabel}
-				label="remaining balance"
+				label="session amount"
 				copyable={false}>
 				{amountLabel}
 			</PrivacySensitiveText>
@@ -312,7 +308,7 @@ export function SessionTableRow({
 				/>
 			</TableCell>
 			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
-				<RemainingBalanceCell
+				<SessionAmountCell
 					rowId={session._id}
 					session={session}
 				/>

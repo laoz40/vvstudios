@@ -2,7 +2,6 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { hasUnsentDeliverables } from "#studio/features/admin/lib/session-edit-status";
-import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
 import {
 	DURATION_OPTIONS,
 	type BookingFormValues
@@ -115,8 +114,7 @@ export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSes
 		if (
 			filters.showUpcomingOnly &&
 			!isUpcomingBooking(session.date, session.time) &&
-			!hasUnsentDeliverables(session) &&
-			!hasUnpaidRemainingBalance(session)
+			!hasUnsentDeliverables(session)
 		) {
 			return false;
 		}

@@ -1,4 +1,3 @@
-import type { Doc } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 
@@ -6,11 +5,6 @@ export type RemainingBalanceSession = {
 	duration: string;
 	addons: BookingAddon[];
 	remainingBalanceAmount?: number;
-};
-
-export type RemainingBalancePaymentSession = RemainingBalanceSession & {
-	status: Doc<"bookings">["status"];
-	paidRemainingBalance?: boolean;
 };
 
 function getDefaultRemainingBalanceAmount(session: RemainingBalanceSession) {
@@ -39,14 +33,6 @@ export function parseRemainingBalanceAmountDraft(draft: string): RemainingBalanc
 	}
 
 	return { status: "valid", amount };
-}
-
-export function hasUnpaidRemainingBalance(session: RemainingBalancePaymentSession) {
-	if (session.status !== "confirmed" && session.status !== "email_failed") {
-		return false;
-	}
-
-	return session.paidRemainingBalance !== true && getRemainingBalanceAmount(session) > 0;
 }
 
 export function formatAudAmount(amount: number) {

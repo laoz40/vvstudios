@@ -78,11 +78,7 @@ function PackageTableDateCell({
 	);
 }
 
-function hasOutstandingPackagePayment(packageRow: AdminPackageRow) {
-	if (!packageRow.isPaid) {
-		return true;
-	}
-
+function hasOutstandingStripeInvoice(packageRow: AdminPackageRow) {
 	return packageRow.adjustment?.paymentStatus === "unpaid";
 }
 
@@ -100,7 +96,7 @@ function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
 
 	return {
 		amountCellClassName:
-			isInactive && !hasOutstandingPackagePayment(packageRow) ? "opacity-70" : undefined,
+			isInactive && !hasOutstandingStripeInvoice(packageRow) ? "opacity-70" : undefined,
 		dateCellClassName: isInactive && !isDashboardDatePastDue ? "opacity-70" : undefined,
 		isDashboardDatePastDue,
 		inactiveCellClassName: isInactive ? "opacity-70" : undefined,
@@ -236,7 +232,7 @@ export function PackageTableRow({
 			</TableCell>
 			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
 				<div className="flex flex-col gap-1">
-					<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
+					<p className="text-green">
 						<PrivacySensitiveText
 							rowId={packageRow.id}
 							value={packageRow.totalDueLabel}
