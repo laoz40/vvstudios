@@ -19,6 +19,8 @@ import {
 	isAdminPackageRowDimmed,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
+import { formatAudAmountRowLabels } from "#studio/features/admin/lib/remaining-balance";
+import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import {
 	formatShortMonthFullDate,
 	formatBookingRelativeDate,
@@ -78,8 +80,77 @@ function PackageTableDateCell({
 	);
 }
 
+function getPackageAmountRowLabels(packageRow: AdminPackageRow) {
+	const rowAmounts = [
+		packageRow.totalDueAmount,
+		packageRow.adjustment?.totalAmount,
+		packageRow.customStripeInvoices?.totalAmount
+	].filter((amount): amount is number => amount !== undefined);
+
+	return formatAudAmountRowLabels(rowAmounts);
+}
+
+function PackageAmountCell({
+	packageRow,
+	rowId
+}: {
+	packageRow: AdminPackageRow;
+	rowId: AdminPackageRow["id"];
+}) {
+	const rowLabels = getPackageAmountRowLabels(packageRow);
+	let labelIndex = 0;
+	const totalDueLabel = rowLabels[labelIndex++];
+	const adjustmentLabel = packageRow.adjustment ? rowLabels[labelIndex++] : null;
+	const customStripeInvoiceLabel = packageRow.customStripeInvoices ? rowLabels[labelIndex] : null;
+
+	return (
+		<div className="flex flex-col items-end gap-1">
+			<p className="text-green">
+				<PrivacySensitiveText
+					rowId={rowId}
+					value={totalDueLabel}
+					label="package amount"
+					copyable={false}>
+					{totalDueLabel}
+				</PrivacySensitiveText>
+			</p>
+			{packageRow.adjustment && adjustmentLabel ? (
+				<p
+					className={
+						packageRow.adjustment.paymentStatus === "paid" ? "text-green" : "text-destructive"
+					}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={adjustmentLabel}
+						label="adjustment amount"
+						copyable={false}>
+						{adjustmentLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+			{packageRow.customStripeInvoices && customStripeInvoiceLabel ? (
+				<p
+					className={getStripeInvoiceAmountClassName(
+						packageRow.customStripeInvoices.paymentStatus
+					)}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={customStripeInvoiceLabel}
+						label="Stripe invoice amount"
+						copyable={false}>
+						{customStripeInvoiceLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+		</div>
+	);
+}
+
 function hasOutstandingStripeInvoice(packageRow: AdminPackageRow) {
-	return packageRow.adjustment?.paymentStatus === "unpaid";
+	return (
+		packageRow.adjustment?.paymentStatus === "unpaid" ||
+		packageRow.customStripeInvoices?.paymentStatus === "unpaid"
+	);
 }
 
 function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
@@ -231,31 +302,10 @@ export function PackageTableRow({
 				/>
 			</TableCell>
 			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
-				<div className="flex flex-col gap-1">
-					<p className="text-green">
-						<PrivacySensitiveText
-							rowId={packageRow.id}
-							value={packageRow.totalDueLabel}
-							label="package amount"
-							copyable={false}>
-							{packageRow.totalDueLabel}
-						</PrivacySensitiveText>
-					</p>
-					{packageRow.adjustment ? (
-						<p
-							className={
-								packageRow.adjustment.paymentStatus === "paid" ? "text-green" : "text-destructive"
-							}>
-							<PrivacySensitiveText
-								rowId={packageRow.id}
-								value={packageRow.adjustment.amountLabel}
-								label="adjustment amount"
-								copyable={false}>
-								{packageRow.adjustment.amountLabel}
-							</PrivacySensitiveText>
-						</p>
-					) : null}
-				</div>
+				<PackageAmountCell
+					packageRow={packageRow}
+					rowId={packageRow.id}
+				/>
 			</TableCell>
 			<TableCell className={inactiveCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">

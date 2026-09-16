@@ -18,10 +18,23 @@ export function parseRemainingBalanceAmountDraft(draft: string): RemainingBalanc
 	return { status: "valid", amount };
 }
 
-export function formatAudAmount(amount: number) {
+function amountHasCents(amount: number) {
+	return Math.round(amount * 100) % 100 !== 0;
+}
+
+export function formatAudAmount(amount: number, options?: { showCents?: boolean }) {
+	const showCents = options?.showCents ?? amountHasCents(amount);
+
 	return new Intl.NumberFormat("en-AU", {
-		style: "currency",
 		currency: "AUD",
-		maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
+		maximumFractionDigits: showCents ? 2 : 0,
+		minimumFractionDigits: showCents ? 2 : 0,
+		style: "currency"
 	}).format(amount);
+}
+
+export function formatAudAmountRowLabels(amounts: readonly number[]) {
+	const showCents = amounts.some(amountHasCents);
+
+	return amounts.map((amount) => formatAudAmount(amount, { showCents }));
 }

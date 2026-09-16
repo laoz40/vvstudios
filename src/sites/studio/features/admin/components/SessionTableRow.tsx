@@ -29,7 +29,8 @@ import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
-import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
+import { formatAudAmountRowLabels } from "#studio/features/admin/lib/remaining-balance";
+import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 import {
 	formatShortMonthFullDate,
@@ -187,26 +188,56 @@ function SessionNotesCell({
 function SessionAmountCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 
-	const showAmount =
+	const showReceiptAmount =
 		!packageSessionProgressLabel &&
 		(session.status === "confirmed" || session.status === "email_failed");
 
-	if (!showAmount) {
+	const stripeInvoicesSummary = session.stripeInvoicesSummary;
+
+	if (!showReceiptAmount && !stripeInvoicesSummary) {
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
-	const amountLabel = formatAudAmount(calculateBookingReceiptAmounts(session).totalPaidAmount);
+	const rowAmounts: number[] = [];
+
+	if (showReceiptAmount) {
+		rowAmounts.push(calculateBookingReceiptAmounts(session).totalPaidAmount);
+	}
+
+	if (stripeInvoicesSummary) {
+		rowAmounts.push(stripeInvoicesSummary.totalAmount);
+	}
+
+	const rowLabels = formatAudAmountRowLabels(rowAmounts);
+	let labelIndex = 0;
+	const receiptAmountLabel = showReceiptAmount ? rowLabels[labelIndex++] : null;
+	const stripeInvoiceAmountLabel = stripeInvoicesSummary ? rowLabels[labelIndex] : null;
 
 	return (
-		<p className="text-green">
-			<PrivacySensitiveText
-				rowId={rowId}
-				value={amountLabel}
-				label="session amount"
-				copyable={false}>
-				{amountLabel}
-			</PrivacySensitiveText>
-		</p>
+		<div className="flex flex-col items-end gap-1">
+			{showReceiptAmount ? (
+				<p className="text-green">
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={receiptAmountLabel}
+						label="session amount"
+						copyable={false}>
+						{receiptAmountLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+			{stripeInvoicesSummary ? (
+				<p className={getStripeInvoiceAmountClassName(stripeInvoicesSummary.paymentStatus)}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={stripeInvoiceAmountLabel}
+						label="Stripe invoice amount"
+						copyable={false}>
+						{stripeInvoiceAmountLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+		</div>
 	);
 }
 
@@ -308,7 +339,7 @@ export function SessionTableRow({
 					isPastSession={isPastSession}
 				/>
 			</TableCell>
-			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
+			<TableCell className={cn("text-right tabular-nums", pastCellClassName)}>
 				<SessionAmountCell
 					rowId={session._id}
 					session={session}
