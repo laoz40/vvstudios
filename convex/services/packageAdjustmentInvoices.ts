@@ -36,7 +36,7 @@ type PackageAdjustmentInvoicePdfError =
 	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
 	| { reason: "INVALID_BOOKING_DATA" }
 	| { reason: "INVOICE_EMAIL_RENDER_FAILED" }
-	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+	| { reason: "INVOICE_PDF_RENDER_FAILED" };
 
 type PackageAdjustmentInvoiceInputQueryResult = Promise<
 	ConvexResult<
@@ -92,7 +92,6 @@ export function sendPackageAdjustmentInvoiceService(
 					stripeCustomerId: packageRecord.stripeCustomerId,
 					quantity: adjustment.quantity
 				})
-					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" as const }))
 					.orElse(() =>
 						markPackageAdjustmentInvoiceEmailFailed(ctx, {
 							adjustmentId: args.adjustmentId,
@@ -144,9 +143,7 @@ export function getAdminPackageAdjustmentInvoicePdfService(
 			.andThen((invoiceInput) => createPackageAdjustmentInvoiceArtifacts(invoiceInput))
 			// Convert PDF rendering failures into the public download error.
 			.andThen((artifactsResult) =>
-				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
-					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
-					.map((pdfContent) => ({
+				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data).map((pdfContent) => ({
 						content: pdfContent.buffer.slice(
 							pdfContent.byteOffset,
 							pdfContent.byteOffset + pdfContent.byteLength
