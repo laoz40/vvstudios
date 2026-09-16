@@ -69,6 +69,18 @@ function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
 	return details.canManageConfirmedSession && details.isPastSession;
 }
 
+function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
+	if (isUpdatingArchive) {
+		return "Updating archive...";
+	}
+
+	if (!isArchived) {
+		return "Archive session";
+	}
+
+	return "Unarchive session";
+}
+
 function DeliverablesControls({
 	activeEditors,
 	session,
@@ -185,13 +197,11 @@ export function SessionActionsMenu({
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
 	const isArchived = session.hiddenAt !== undefined;
-	let archiveActionLabel = "Unarchive session";
 
-	if (deleteAction.isUpdatingArchive) {
-		archiveActionLabel = "Updating archive...";
-	} else if (!isArchived) {
-		archiveActionLabel = "Archive session";
-	}
+	const archiveActionLabel = getSessionArchiveActionLabel(
+		deleteAction.isUpdatingArchive,
+		isArchived
+	);
 
 	return (
 		<DropdownMenu modal={false}>

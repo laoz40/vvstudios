@@ -29,7 +29,10 @@ import {
 	getPackageSessionProgressLabel,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
-import { formatAudAmountRowLabels } from "#studio/features/admin/lib/remaining-balance";
+import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
 import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 import {
@@ -198,24 +201,27 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
-	const rowAmounts: number[] = [];
+	const receiptAmount = showReceiptAmount
+		? calculateBookingReceiptAmounts(session).totalPaidAmount
+		: null;
 
-	if (showReceiptAmount) {
-		rowAmounts.push(calculateBookingReceiptAmounts(session).totalPaidAmount);
-	}
+	const stripeInvoiceAmount = stripeInvoicesSummary?.totalAmount ?? null;
 
-	if (stripeInvoicesSummary) {
-		rowAmounts.push(stripeInvoicesSummary.totalAmount);
-	}
+	const rowAmounts = [receiptAmount, stripeInvoiceAmount].filter(
+		(amount): amount is number => amount !== null
+	);
 
-	const rowLabels = formatAudAmountRowLabels(rowAmounts);
-	let labelIndex = 0;
-	const receiptAmountLabel = showReceiptAmount ? rowLabels[labelIndex++] : null;
-	const stripeInvoiceAmountLabel = stripeInvoicesSummary ? rowLabels[labelIndex] : null;
+	const showCents = getAudAmountRowShowCents(rowAmounts);
+
+	const receiptAmountLabel =
+		receiptAmount !== null ? formatAudAmount(receiptAmount, { showCents }) : null;
+
+	const stripeInvoiceAmountLabel =
+		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
 
 	return (
 		<div className="flex flex-col items-end gap-1">
-			{showReceiptAmount ? (
+			{receiptAmountLabel ? (
 				<p className="text-green">
 					<PrivacySensitiveText
 						rowId={rowId}
@@ -226,7 +232,7 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 					</PrivacySensitiveText>
 				</p>
 			) : null}
-			{stripeInvoicesSummary ? (
+			{stripeInvoiceAmountLabel && stripeInvoicesSummary ? (
 				<p className={getStripeInvoiceAmountClassName(stripeInvoicesSummary.paymentStatus)}>
 					<PrivacySensitiveText
 						rowId={rowId}

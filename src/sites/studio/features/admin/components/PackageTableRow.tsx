@@ -19,7 +19,10 @@ import {
 	isAdminPackageRowDimmed,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
-import { formatAudAmountRowLabels } from "#studio/features/admin/lib/remaining-balance";
+import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
 import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import {
 	formatShortMonthFullDate,
@@ -80,16 +83,6 @@ function PackageTableDateCell({
 	);
 }
 
-function getPackageAmountRowLabels(packageRow: AdminPackageRow) {
-	const rowAmounts = [
-		packageRow.totalDueAmount,
-		packageRow.adjustment?.totalAmount,
-		packageRow.customStripeInvoices?.totalAmount
-	].filter((amount): amount is number => amount !== undefined);
-
-	return formatAudAmountRowLabels(rowAmounts);
-}
-
 function PackageAmountCell({
 	packageRow,
 	rowId
@@ -97,11 +90,23 @@ function PackageAmountCell({
 	packageRow: AdminPackageRow;
 	rowId: AdminPackageRow["id"];
 }) {
-	const rowLabels = getPackageAmountRowLabels(packageRow);
-	let labelIndex = 0;
-	const totalDueLabel = rowLabels[labelIndex++];
-	const adjustmentLabel = packageRow.adjustment ? rowLabels[labelIndex++] : null;
-	const customStripeInvoiceLabel = packageRow.customStripeInvoices ? rowLabels[labelIndex] : null;
+	const rowAmounts = [
+		packageRow.totalDueAmount,
+		packageRow.adjustment?.totalAmount,
+		packageRow.customStripeInvoices?.totalAmount
+	].filter((amount): amount is number => amount !== undefined);
+
+	const showCents = getAudAmountRowShowCents(rowAmounts);
+
+	const totalDueLabel = formatAudAmount(packageRow.totalDueAmount, { showCents });
+
+	const adjustmentLabel = packageRow.adjustment
+		? formatAudAmount(packageRow.adjustment.totalAmount, { showCents })
+		: null;
+
+	const customStripeInvoiceLabel = packageRow.customStripeInvoices
+		? formatAudAmount(packageRow.customStripeInvoices.totalAmount, { showCents })
+		: null;
 
 	return (
 		<div className="flex flex-col items-end gap-1">

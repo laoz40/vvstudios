@@ -33,8 +33,12 @@ export function formatAudAmount(amount: number, options?: { showCents?: boolean 
 	}).format(amount);
 }
 
+export function getAudAmountRowShowCents(amounts: readonly number[]) {
+	return amounts.some(amountHasCents);
+}
+
 export function formatAudAmountRowLabels(amounts: readonly number[]) {
-	const showCents = amounts.some(amountHasCents);
+	const showCents = getAudAmountRowShowCents(amounts);
 
 	return amounts.map((amount) => formatAudAmount(amount, { showCents }));
 }
