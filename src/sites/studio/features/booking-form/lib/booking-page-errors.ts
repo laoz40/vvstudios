@@ -16,6 +16,7 @@ const bookingPageErrorMessages = {
 	BOOKING_TIME_UNAVAILABLE: "That time was just taken. Please choose another available time.",
 	BOOKING_TOO_FAR_AHEAD: "That date is too far ahead. Please choose a closer date.",
 	BOOKING_TOO_SOON: "That time is too soon. Please choose a later slot.",
+	INVALID_ZONED_TIME: "Choose a valid booking time.",
 	CLOSE_CHECKOUT_FAILED: "Something went wrong while closing checkout.",
 	GOOGLE_CALENDAR_AUTH_FAILED:
 		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
@@ -68,6 +69,7 @@ export const startCheckoutToastMessages = {
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
 	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
 	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
+	INVALID_ZONED_TIME: bookingPageErrorMessages.INVALID_ZONED_TIME,
 	STRIPE_CHECKOUT_CREATE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CREATE_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
