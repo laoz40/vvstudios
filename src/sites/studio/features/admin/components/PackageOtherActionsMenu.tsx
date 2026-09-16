@@ -24,13 +24,11 @@ type PackageOtherActionsMenuProps = {
 };
 
 type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & {
-	canSendInvoice: boolean;
 	canSendNewSchedulingLink: boolean;
 };
 
 function PackageInvoiceActions({
 	actions,
-	canSendInvoice,
 	canSendNewSchedulingLink,
 	packageRow
 }: PackageInvoiceActionsProps) {
@@ -41,27 +39,11 @@ function PackageInvoiceActions({
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
 		setIsCustomInvoiceDialogOpen,
-		setIsInvoiceDialogOpen,
 		setIsSchedulingLinkDialogOpen
 	} = actions;
 
 	return (
 		<>
-			{canSendInvoice ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending}
-					onSelect={() => setIsInvoiceDialogOpen(true)}
-					renderIcon={(iconRef) => (
-						<MailFilledIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					{pendingAction === "invoice" ? "Sending invoice..." : "Email invoice"}
-				</AnimatedDropdownMenuItem>
-			) : null}
 			<AnimatedDropdownMenuItem
 				disabled={isActionPending}
 				onSelect={() => void handleDownloadInvoice()}
@@ -144,10 +126,8 @@ function PackageInvoiceActions({
 }
 
 export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherActionsMenuProps) {
-	const canSendInvoice =
-		packageRow.status === "pending_payment" || packageRow.status === "invoice_email_failed";
-
 	const canSendNewSchedulingLink = packageRow.isPaid;
+	const hasPackageInvoiceActions = canSendNewSchedulingLink || packageRow.adjustment !== null;
 	const invoiceNumber = formatBookingInvoiceNumber(packageRow.id, packageRow.createdAt);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 
@@ -189,12 +169,11 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 					)}>
 					Copy database ID
 				</AnimatedDropdownMenuItem>
-				{canSendInvoice || canSendNewSchedulingLink ? (
+				{hasPackageInvoiceActions ? (
 					<>
 						<DropdownMenuSeparator />
 						<PackageInvoiceActions
 							actions={actions}
-							canSendInvoice={canSendInvoice}
 							canSendNewSchedulingLink={canSendNewSchedulingLink}
 							packageRow={packageRow}
 						/>

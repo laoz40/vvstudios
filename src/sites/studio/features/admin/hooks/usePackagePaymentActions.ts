@@ -14,11 +14,8 @@ export function usePackagePaymentActions(
 	packageRow: AdminPackageRow,
 	setPendingAction: SetPackagePendingAction
 ) {
-	const confirmPackagePayment = useAction(api.packagePayment.confirmPackagePayment);
 	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const archivePackage = useMutation(api.packages.archivePackage);
-	const markPackageUnpaid = useMutation(api.packages.markPackageUnpaid);
-	const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
 
 	async function handleArchiveChange(archived: boolean) {
@@ -55,102 +52,6 @@ export function usePackagePaymentActions(
 		}
 
 		toast.success(archived ? "Package archived." : "Package restored.");
-		setPendingAction(null);
-	}
-
-	async function handleMarkPackageUnpaid() {
-		setPendingAction("payment");
-
-		const [error] = await tryCatch(markPackageUnpaid({ packageId: packageRow.id }));
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to update package payment.");
-					break;
-
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while updating package payment.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
-
-			return;
-		}
-
-		toast.success("Package marked unpaid.");
-		setPendingAction(null);
-	}
-
-	async function handleConfirmPayment() {
-		setPendingAction("payment");
-
-		const [error] = await tryCatch(confirmPackagePayment({ packageId: packageRow.id }));
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to confirm package payments.");
-					break;
-
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-
-				case "PACKAGE_ALREADY_PAID":
-					toast.error("This package is already marked paid.");
-					break;
-
-				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
-					toast.error("Package was marked paid, but the scheduling email failed.");
-					setIsPaymentDialogOpen(false);
-					break;
-
-				case "PACKAGE_SCHEDULE_EMAIL_FAILED_AND_STATUS_UPDATE_FAILED":
-					toast.error(
-						"Package was marked paid, but the scheduling email failed and we could not save that failure status."
-					);
-					setIsPaymentDialogOpen(false);
-					break;
-
-				case "PACKAGE_SCHEDULE_EMAIL_SENT_STATUS_UPDATE_FAILED":
-					toast.error("Scheduling email sent, but the package status did not update.");
-					setIsPaymentDialogOpen(false);
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while confirming payment.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
-
-			return;
-		}
-
-		toast.success("Package marked paid and scheduling email sent.");
-		setIsPaymentDialogOpen(false);
 		setPendingAction(null);
 	}
 
@@ -219,12 +120,8 @@ export function usePackagePaymentActions(
 
 	return {
 		handleArchiveChange,
-		handleConfirmPayment,
-		handleMarkPackageUnpaid,
 		handleRetrySchedulingEmail,
-		isPaymentDialogOpen,
 		isSchedulingLinkDialogOpen,
-		setIsPaymentDialogOpen,
 		setIsSchedulingLinkDialogOpen
 	};
 }

@@ -2,7 +2,6 @@ import { AdminEditConfirmationDialog } from "#studio/features/admin/components/A
 import { PackageCustomInvoiceDialog } from "#studio/features/admin/components/PackageCustomInvoiceDialog";
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
-import { PackagePaymentConfirmationDialog } from "#studio/features/admin/components/PackagePaymentConfirmationDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 
@@ -51,25 +50,6 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 						editAction.closeEditConfirmationDialog();
 					}
 				}}
-			/>
-			<PackagePaymentConfirmationDialog
-				open={actions.isPaymentDialogOpen}
-				onOpenChange={actions.setIsPaymentDialogOpen}
-				packageRow={packageRow}
-				isConfirming={pendingAction === "payment"}
-				onConfirm={() => void actions.handleConfirmPayment()}
-			/>
-			<PackageEmailConfirmationDialog
-				open={actions.isInvoiceDialogOpen}
-				customerName={packageRow.customerName}
-				customerEmail={packageRow.customerEmail}
-				description="Confirm before sending the package invoice email to this customer."
-				isSending={pendingAction === "invoice"}
-				sendLabel="Email invoice"
-				sendingLabel="Sending invoice..."
-				title="Email package invoice to customer?"
-				onOpenChange={actions.setIsInvoiceDialogOpen}
-				onSend={() => void actions.handleResendInvoice()}
 			/>
 			<PackageEmailConfirmationDialog
 				open={actions.isAdjustmentInvoiceDialogOpen}

@@ -73,11 +73,8 @@ export function toPackageListQuerySort(sort: AdminPackageSort): PackageListQuery
 export type AdminPackagePendingAction =
 	| "adjustmentDownload"
 	| "adjustmentEmail"
-	| "adjustmentPayment"
 	| "archive"
 	| "download"
-	| "invoice"
-	| "payment"
 	| "scheduleEmail"
 	| null;
 
@@ -205,12 +202,6 @@ function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "
 	return (
 		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
 	);
-}
-
-export function isAdminPackageAdjustmentPaymentEligible(
-	adjustment: NonNullable<AdminPackageRow["adjustment"]>
-) {
-	return adjustment.invoiceEmailStatus === "sent" || Date.now() > adjustment.invoiceDueAt;
 }
 
 type AdminPackageRowDimmingInput = Pick<

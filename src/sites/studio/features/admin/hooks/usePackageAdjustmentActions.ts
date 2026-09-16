@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
@@ -21,10 +21,6 @@ export function usePackageAdjustmentActions(
 
 	const retryAdjustmentInvoiceEmail = useAction(
 		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
-	);
-
-	const markAdjustmentPaymentStatus = useMutation(
-		api.packageAdjustments.markPackageAdjustmentPaymentStatus
 	);
 
 	const [isAdjustmentInvoiceDialogOpen, setIsAdjustmentInvoiceDialogOpen] = useState(false);
@@ -122,49 +118,7 @@ export function usePackageAdjustmentActions(
 		setPendingAction(null);
 	}
 
-	async function handleAdjustmentPaymentChange(paid: boolean) {
-		if (!packageRow.adjustment) return;
-
-		setPendingAction("adjustmentPayment");
-
-		const [error] = await tryCatch(
-			markAdjustmentPaymentStatus({ adjustmentId: packageRow.adjustment.id, paid })
-		);
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to update adjustment payments.");
-					break;
-				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
-					toast.error("This adjustment no longer exists.");
-					break;
-				case "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT":
-					toast.error("The adjustment invoice must be sent first.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while updating the adjustment payment.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
-
-			return;
-		}
-
-		toast.success(paid ? "Adjustment marked paid." : "Adjustment marked unpaid.");
-		setPendingAction(null);
-	}
-
 	return {
-		handleAdjustmentPaymentChange,
 		handleDownloadAdjustmentInvoice,
 		handleRetryAdjustmentInvoice,
 		isAdjustmentInvoiceDialogOpen,
