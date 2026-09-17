@@ -66,6 +66,8 @@ export function StripeBillingDialog({
 		invoice: Doc<"stripeInvoices">,
 		link: StripeInvoiceBillingLink
 	) {
+		const billingWindow = window.open("", "_blank", "noopener,noreferrer");
+
 		setLoadingBillingLink({ stripeInvoiceId: invoice.stripeInvoiceId, link });
 
 		const [error, billingUrls] = await tryCatch(
@@ -75,6 +77,7 @@ export function StripeBillingDialog({
 		setLoadingBillingLink(null);
 
 		if (error !== null) {
+			billingWindow?.close();
 			const reason = error.reason;
 
 			switch (reason) {
@@ -102,6 +105,8 @@ export function StripeBillingDialog({
 		const billingUrl = getBillingUrl(billingUrls, link);
 
 		if (!billingUrl) {
+			billingWindow?.close();
+
 			if (link === "receipt" && invoice.paymentStatus === "paid") {
 				toast.error(
 					"Receipt is no longer available. Copy the invoice ID and search for it in the Stripe dashboard."
@@ -112,6 +117,12 @@ export function StripeBillingDialog({
 			}
 
 			toast.error("This Stripe billing link is unavailable.");
+
+			return;
+		}
+
+		if (billingWindow) {
+			billingWindow.location.href = billingUrl;
 
 			return;
 		}
