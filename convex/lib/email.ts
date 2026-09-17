@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import { tryPromise } from "#convex/lib/result";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
@@ -16,11 +16,6 @@ import {
 	formatSessionDateShort,
 	formatCalendarEventDate
 } from "#convex/lib/sessionCalendarTime";
-import {
-	createPackageInvoiceArtifacts,
-	type PackageInvoiceInput
-} from "#convex/lib/bookingInvoiceArtifacts";
-import { renderBookingInvoicePdfInNode } from "#convex/lib/bookingInvoicePdfRender";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -273,80 +268,6 @@ export function sendBookingRescheduledCustomerEmail({
 			html
 		}).map(() => null)
 	);
-}
-
-export async function sendPackageInvoiceEmail(
-	packageRecord: PackageInvoiceInput,
-	options: { leadTimeMinutes: number }
-): Promise<
-	Result<
-		{ invoiceNumber: string },
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createPackageInvoiceArtifacts(packageRecord, options);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const artifacts = artifactsResult.value.artifacts;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Multi-booking invoice PDF render failed", { packageId: packageRecord._id });
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		year: "numeric"
-	}).format(new Date(packageRecord.createdAt));
-
-	const invoiceEmailResult = await sendEmail({
-		to: [packageRecord.email],
-		subject: `Your ${packageRecord.packageSize} Pack Studio Booking Invoice from ${invoiceCreatedDate}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Multi-booking invoice customer email send failed", {
-			packageId: packageRecord._id,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const hostEmailResult = await sendPackageHostDetailsEmail({
-		invoiceNumber: artifacts.data.invoice.number,
-		name: packageRecord.name,
-		email: packageRecord.email,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity,
-		completeEditQuantity: packageRecord.completeEditQuantity,
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity,
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-		notes: packageRecord.notes,
-		packageSize: packageRecord.packageSize,
-		invoiceDueAt: packageRecord.invoiceDueAt ?? packageRecord.createdAt
-	});
-
-	if (hostEmailResult.isErr()) {
-		console.error("Multi-booking invoice host email send failed", {
-			packageId: packageRecord._id,
-			reason: hostEmailResult.error.reason
-		});
-	}
-
-	return ok({ invoiceNumber: artifacts.data.invoice.number });
 }
 
 export function sendPackageScheduleEmail({

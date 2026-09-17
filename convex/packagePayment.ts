@@ -13,7 +13,6 @@ import {
 } from "#convex/services/packageCheckoutActions";
 import {
 	confirmPackagePaymentService,
-	resendPackageInvoiceEmailService,
 	retryPackageSchedulingEmailService
 } from "#convex/services/packagePayment";
 
@@ -37,11 +36,6 @@ export const closeEmbeddedPackageCheckoutSession = action({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
 	handler: (ctx, args) =>
 		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const resendPackageInvoiceEmail = action({
-	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => resendPackageInvoiceEmailService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const confirmPackagePayment = action({

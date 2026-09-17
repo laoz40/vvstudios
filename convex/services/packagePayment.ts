@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, ResultAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -10,11 +10,8 @@ import {
 	buildPackageScheduleEmailArgs,
 	markPackagePaid,
 	refreshPackageScheduleToken,
-	sendAndRecordPackageScheduleEmail,
-	sendPackageInvoice
+	sendAndRecordPackageScheduleEmail
 } from "#convex/lib/packagePayment";
-import type { PackageInvoiceEmailAttemptError } from "#convex/lib/bookingInvoiceArtifacts";
-import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
@@ -42,15 +39,6 @@ export type CreatePackageCheckoutSessionError =
 	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 	| { reason: "STRIPE_CHECKOUT_CREATE_FAILED" };
 
-export type ResendPackageInvoiceEmailSuccess = { sent: true };
-
-export type ResendPackageInvoiceEmailError =
-	| AuthError
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_NOT_UNPAID" }
-	| { reason: "PACKAGE_INVOICE_EMAIL_FAILED" }
-	| PackageInvoiceEmailAttemptError;
-
 export type ConfirmPackagePaymentError =
 	| AuthError
 	| { reason: "PACKAGE_ALREADY_PAID" }
@@ -64,30 +52,6 @@ export type RetryPackageSchedulingEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" }
 	| PackageScheduleEmailError;
-
-export function resendPackageInvoiceEmailService(
-	ctx: ActionCtx,
-	args: PackageIdArgs
-): ResultAsync<ResendPackageInvoiceEmailSuccess, ResendPackageInvoiceEmailError> {
-	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => getPackageForAction(ctx, args.packageId))
-		.andThen((packageFromDb) => {
-			if (
-				packageFromDb.status !== "pending_payment" &&
-				packageFromDb.status !== "invoice_email_failed"
-			) {
-				return err({ reason: "PACKAGE_NOT_UNPAID" as const });
-			}
-
-			return ok(packageFromDb);
-		})
-		.andThen((packageFromDb) => sendPackageInvoice(ctx, packageFromDb))
-		.andThen((invoiceEmailStatus) =>
-			invoiceEmailStatus === "sent"
-				? ok({ sent: true as const })
-				: err({ reason: "PACKAGE_INVOICE_EMAIL_FAILED" as const })
-		);
-}
 
 export function confirmPackagePaymentService(
 	ctx: ActionCtx,
