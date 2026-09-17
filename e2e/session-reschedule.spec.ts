@@ -5,7 +5,7 @@
  * Prerequisites
  * `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` (same Resend account Convex uses to send).
  * Convex `STRIPE_CHECKOUT_RETURN_URL` origin must be `http://localhost:3000` so invoice links open in Playwright.
- * Run with `bun run test:e2e:reschedule` (`--workers=1` avoids parallel payment tests colliding on slots).
+ * Run with `bun run test:e2e:session-reschedule` (`--workers=1` avoids parallel payment tests colliding on slots).
  *
  * 1. Book, pay, and reschedule via invoice link
  *    Fill the booking form, complete Stripe checkout, poll Resend for the invoice reschedule URL,
@@ -33,7 +33,7 @@ import {
 
 const resendApiKey = process.env.E2E_RESEND_API_KEY ?? process.env.RESEND_API_KEY;
 
-test.describe("reschedule", () => {
+test.describe("session reschedule", () => {
 	test.describe.configure({ mode: "serial" });
 
 	test("book, pay, and reschedule via invoice link", async ({ page }) => {
