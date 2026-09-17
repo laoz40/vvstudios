@@ -1,6 +1,9 @@
 import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { BOOKING_RECEIPT_NOTES } from "#studio/features/booking-invoice/lib/constants";
+import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { Modal } from "#studio/components/Modal";
+import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 
 const dialogTitle = "Terms & Conditions";
 
@@ -9,6 +12,10 @@ const dialogDescription = "Please review these terms before completing your book
 const cancelButtonLabel = "Cancel";
 
 const confirmButtonLabel = "Agree & Book";
+
+const defaultNoticeWindowLabel = formatNoticeWindowLabel(
+	DEFAULT_BOOKING_AVAILABILITY_SETTINGS.leadTimeMinutes
+);
 
 export const terms = [
 	{
@@ -21,7 +28,7 @@ export const terms = [
 	},
 	{
 		title: "3 - Cancellations & Rescheduling",
-		body: "Payments are non-refundable for customer cancellations, change of mind, late cancellations or no-shows (subject to the notice requirements below). This does not affect your rights under the Australian Consumer Law. Bookings may be rescheduled with a minimum of 24 hours notice."
+		body: BOOKING_RECEIPT_NOTES.getCancellationPolicy(defaultNoticeWindowLabel)
 	},
 	{
 		title: "4 - Session Conduct & Surveillance",
