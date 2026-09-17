@@ -247,7 +247,11 @@ function expressionReferencesIdentifier(expression: ESTree.Expression, identifie
 			return expressionReferencesIdentifier(unwrapped.object, identifierName);
 		case "ObjectExpression":
 			return unwrapped.properties.some((property) => {
-				if (property.type !== "Property" || property.value.type === "SpreadElement") {
+				if (property.type === "SpreadElement") {
+					return expressionReferencesIdentifier(property.argument, identifierName);
+				}
+
+				if (property.type !== "Property") {
 					return false;
 				}
 
@@ -255,13 +259,19 @@ function expressionReferencesIdentifier(expression: ESTree.Expression, identifie
 			});
 		case "ArrayExpression":
 			return unwrapped.elements.some(
-				(element) => element !== null && expressionReferencesIdentifier(element, identifierName)
+				(element) =>
+					element !== null &&
+					(element.type === "SpreadElement"
+						? expressionReferencesIdentifier(element.argument, identifierName)
+						: expressionReferencesIdentifier(element, identifierName))
 			);
 		case "CallExpression":
 			return (
 				expressionReferencesIdentifier(unwrapped.callee, identifierName) ||
-				unwrapped.arguments.some(
-					(argument) => argument.type !== "SpreadElement" && expressionReferencesIdentifier(argument, identifierName)
+				unwrapped.arguments.some((argument) =>
+					argument.type === "SpreadElement"
+						? expressionReferencesIdentifier(argument.argument, identifierName)
+						: expressionReferencesIdentifier(argument, identifierName)
 				)
 			);
 		case "ConditionalExpression":

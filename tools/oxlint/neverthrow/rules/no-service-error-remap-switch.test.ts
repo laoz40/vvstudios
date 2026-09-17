@@ -28,7 +28,9 @@ tester.run("neverthrow/no-service-error-remap-switch", noServiceErrorRemapSwitch
       }
     });`,
 		`chain.andThen((session) => ok(session));`,
-		`fromConvexTuple(ctx.runMutation(internal.foo.bar, args)).mapErr((error) => ({ kind: "claim_failed" as const, error }));`
+		`fromConvexTuple(ctx.runMutation(internal.foo.bar, args)).mapErr((error) => ({ kind: "claim_failed" as const, error }));`,
+		`chain.mapErr((error) => ({ kind: "claim_failed" as const, ...error }));`,
+		`chain.mapErr((error) => [error, ...error]);`
 	],
 	invalid: [
 		{
