@@ -84,9 +84,9 @@ async function readDayTimeSelectionState(
 const dayTimeSelectionTimeoutMs = 6_000;
 
 // Stripe redirect and Convex booking confirmation hit live external services.
-const stripeBookingCompleteTimeoutMs = 120_000;
+const stripeBookingCompleteTimeoutMs = 60_000;
 
-const bookingConfirmedHeadingTimeoutMs = 90_000;
+const bookingConfirmedHeadingTimeoutMs = 45_000;
 
 async function waitForDayTimeSelectionAfterClick(
 	timeField: ReturnType<Page["locator"]>

@@ -42,7 +42,7 @@ test.describe("session reschedule", () => {
 			"Set E2E_RESEND_API_KEY or RESEND_API_KEY in .env.local (same Resend account Convex uses to send)."
 		);
 
-		test.setTimeout(240_000);
+		test.setTimeout(300_000);
 
 		const startedAt = new Date();
 		const bookingSlot = getE2eBookingSlotOffset();

@@ -208,7 +208,7 @@ export async function waitForInvoiceRescheduleUrl({
 	apiKey,
 	recipient,
 	since,
-	timeoutMs = 120_000,
+	timeoutMs = 60_000,
 	pollIntervalMs = 2_000
 }: {
 	apiKey: string;
@@ -239,7 +239,7 @@ export async function waitForPackageScheduleUrl({
 	packageSize,
 	recipient,
 	since,
-	timeoutMs = 120_000,
+	timeoutMs = 60_000,
 	pollIntervalMs = 2_000
 }: {
 	apiKey: string;
