@@ -10,7 +10,10 @@ import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
-import { pickBookingAddonQuantities, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	pickBookingAddonQuantities,
+	SERVICES
+} from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 type CustomInvoiceRecord = Doc<"customInvoices">;
