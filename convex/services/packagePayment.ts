@@ -8,7 +8,6 @@ import { env } from "#convex/env";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	buildPackagePaidEmailContext,
-	markPackagePaid,
 	refreshPackageScheduleToken,
 	sendAndRecordPackagePaidEmail
 } from "#convex/lib/packagePayment";
@@ -39,12 +38,6 @@ export type CreatePackageCheckoutSessionError =
 	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number }
 	| { reason: "STRIPE_CHECKOUT_CREATE_FAILED" };
 
-export type ConfirmPackagePaymentError =
-	| AuthError
-	| { reason: "PACKAGE_ALREADY_PAID" }
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| PackagePaidEmailError;
-
 export type ResendPackageEmailError =
 	| AuthError
 	| { reason: "PACKAGE_NOT_FOUND" }
@@ -55,30 +48,6 @@ export type ResendPackageEmailError =
 
 function isPaidPackageStatus(status: string) {
 	return status === "paid" || status === "schedule_email_failed";
-}
-
-export function confirmPackagePaymentService(
-	ctx: ActionCtx,
-	args: PackageIdArgs
-): ResultAsync<null, ConfirmPackagePaymentError> {
-	return requirePermissionActions(ctx, "update:payment-status")
-		.andThen(() => markPackagePaid(ctx, args.packageId, Date.now()))
-		.andThen((paymentResult) =>
-			okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-				(bookingSettings) => ({ bookingSettings, paymentResult })
-			)
-		)
-		.andThen(({ bookingSettings, paymentResult }) =>
-			sendAndRecordPackagePaidEmail(
-				ctx,
-				args.packageId,
-				buildPackagePaidEmailContext(
-					paymentResult,
-					bookingSettings.leadTimeMinutes,
-					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-				)
-			)
-		);
 }
 
 export function resendPackageEmailService(

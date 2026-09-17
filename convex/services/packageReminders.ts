@@ -23,34 +23,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type PackageReminderArgs = { packageId: Doc<"packages">["_id"]; reminderType: PackageReminderType };
 
-export async function listPackagesDueForPaymentReminderService(
-	ctx: QueryCtx,
-	args: { invoiceDueStart: number; invoiceDueEnd: number; limit?: number }
-) {
-	const limit = args.limit ?? REMINDER_BATCH_SIZE;
-
-	const packagesByStatus = await Promise.all(
-		(["pending_payment", "invoice_email_failed"] as const).map((status) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_status_and_invoiceDueAt", (query) =>
-					query
-						.eq("status", status)
-						.gte("invoiceDueAt", args.invoiceDueStart)
-						.lt("invoiceDueAt", args.invoiceDueEnd)
-				)
-				.take(limit)
-		)
-	);
-
-	return packagesByStatus
-		.flat()
-		.filter(
-			(packageFromDb) => !hasSentPackageReminder(packageFromDb.packageReminderState, "payment")
-		)
-		.slice(0, limit);
-}
-
 export async function listPackagesPotentiallyDueForExpiryReminderService(
 	ctx: QueryCtx,
 	args: { expiresAfter: number; expiresBefore: number; limit?: number }

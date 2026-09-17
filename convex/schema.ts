@@ -356,9 +356,11 @@ export default defineSchema({
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
 
-		// Invoice metadata/email status
+		// Invoice metadata/email status (legacy invoice-first packages only; Stripe checkout omits on insert)
 		invoiceNumber: v.optional(v.string()),
-		invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
+		invoiceEmailStatus: v.optional(
+			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
+		),
 		invoiceEmailSentAt: v.optional(v.number()),
 		invoiceEmailFailureCode: v.optional(v.string()),
 		lastInvoiceEmailAttemptAt: v.optional(v.number()),

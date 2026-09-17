@@ -11,10 +11,7 @@ import {
 	closeEmbeddedPackageCheckoutSessionService,
 	createPackageCheckoutSessionService
 } from "#convex/services/packageCheckoutActions";
-import {
-	confirmPackagePaymentService,
-	resendPackageEmailService
-} from "#convex/services/packagePayment";
+import { resendPackageEmailService } from "#convex/services/packagePayment";
 
 export const createPackageCheckoutSession = action({
 	args: {
@@ -36,11 +33,6 @@ export const closeEmbeddedPackageCheckoutSession = action({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
 	handler: (ctx, args) =>
 		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const confirmPackagePayment = action({
-	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const resendPackageEmail = action({
