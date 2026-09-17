@@ -14,10 +14,7 @@ import {
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	CopyableText,
-	copyText
-} from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { CopyableText, copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import {
 	formatStripeInvoiceAmount,

@@ -50,8 +50,7 @@ export function validateStripeInvoiceLineItems(
 
 	for (const lineItem of lineItems) {
 		const amountInCents = Math.round(lineItem.amount * 100);
-		const hasFractionalCents =
-			Math.abs(lineItem.amount - amountInCents / 100) > 1e-9;
+		const hasFractionalCents = Math.abs(lineItem.amount - amountInCents / 100) > 1e-9;
 
 		if (
 			lineItem.description.trim().length === 0 ||
