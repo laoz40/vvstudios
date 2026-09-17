@@ -124,14 +124,14 @@ Open locally: `mdxp plans/12-upfront-stripe-payments.mdx`
 
 Six stacked PRs. Each stage is one branch in the stack; later stages depend on earlier ones. Stage 4 ships as two PRs.
 
-| Stage | Branch                                       | PR focus                                                              | Status                                       |
-| ----- | -------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------- |
-| 1     | `feat/upfront-stripe/session-checkout`       | Single-session full Stripe checkout + receipts                        | Done — manual Stripe QA pending (see verify) |
-| 2     | `feat/upfront-stripe/package-checkout`       | Package Stripe checkout + auto scheduling email                       | Done — E2E still on old flow (stage 5)       |
-| 3     | `feat/upfront-stripe/adjustment-invoicing`   | Stripe Invoicing for package adjustments                              | Done                                         |
-| 4a    | `feat/upfront-stripe/admin-billing`          | Remove payment controls, resend receipt, copy Stripe Payment ID       | Open — PR #96                                |
-| 4b    | `feat/upfront-stripe/admin-stripe-invoicing` | Ad-hoc Stripe Invoice, receipt PDF download, legacy invoice read-only | In progress — open PR stacked on 4a          |
-| 5     | `feat/upfront-stripe/tests-cleanup`          | Tests, dead-code removal, copy polish                                 | Not started                                  |
+| Stage | Branch                                       | PR focus                                                              | Status                                              |
+| ----- | -------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------- |
+| 1     | `feat/upfront-stripe/session-checkout`       | Single-session full Stripe checkout + receipts                        | Done — manual Stripe QA pending (see verify)        |
+| 2     | `feat/upfront-stripe/package-checkout`       | Package Stripe checkout + auto scheduling email                       | Done — E2E still on old flow (stage 5)              |
+| 3     | `feat/upfront-stripe/adjustment-invoicing`   | Stripe Invoicing for package adjustments                              | Done                                                |
+| 4a    | `feat/upfront-stripe/admin-billing`          | Remove payment controls, resend receipt, copy Stripe Payment ID       | Open — PR #96                                       |
+| 4b    | `feat/upfront-stripe/admin-stripe-invoicing` | Ad-hoc Stripe Invoice, receipt PDF download, legacy invoice read-only | In progress — open PR stacked on 4a                 |
+| 5     | `feat/upfront-stripe/tests-cleanup`          | Tests, dead-code removal, copy polish (split into parts below)        | In progress — AGENTS.md + tautology test fixes done |
 
 ---
 
@@ -574,45 +574,89 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 
 **Goal:** Confidence + remove dead code paths. No behavior changes.
 
-### Tests
+Ship as stacked parts on `feat/upfront-stripe/tests-cleanup`. Each part is one commit (or one small PR slice). Do them in order.
 
-| Area   | What to test                                            | Status                                                                                                                    |
-| ------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Convex | Checkout line item amounts match pricing constants      | Done — `convex/lib/tests/stripeCheckoutLineItems.test.ts`                                                                 |
-| Convex | Webhook idempotency (checkout replay)                   | Done — `convex/tests/stripeCompletion.test.ts`, `convex/lib/tests/packageCheckoutClaim.test.ts`                           |
-| Convex | Package paid → schedule token created once              | Partial — covered in package/scheduling tests; extend if gaps found                                                       |
-| Convex | Adjustment Stripe Invoice only when remote sessions > 0 | Done — `convex/tests/adjustmentInvoices.test.ts`                                                                          |
-| Convex | `invoice.paid` idempotency                              | Done — `convex/tests/adjustmentInvoices.test.ts`                                                                          |
-| E2E    | Single session: form → checkout → complete page         | Done locally — `e2e/book-payment.spec.ts` (not CI)                                                                        |
-| E2E    | Package: form → checkout → complete page (local Stripe) | Not started — replace `book.spec.ts` package test + rewrite `package-schedule.spec.ts` (still uses admin confirm payment) |
-
-### Dead code / constants
-
-<Code
-  language="ts"
-  filename="src/sites/studio/features/booking-invoice/lib/constants.ts"
-  code={`// Remove or stop importing in new flows:
-BOOKING_DEPOSIT_AMOUNT
-BOOKING_INVOICE_PAYMENT // bank BSB, PayID, in-studio copy
-
-// Update:
-BOOKING_INVOICE_TITLE → BOOKING_RECEIPT_TITLE = "Receipt"
-BOOKING_INVOICE_NOTES → rescheduling policy (no deposit language)`}
+<Callout
+	tone="decision"
+	body="**Legacy invoice PDFs stay.** Admin still downloads and emails invoice PDFs for old sessions/packages (`stripeCustomerId` missing). Do not remove `calculate-booking-invoice-amounts`, deposit constants, `includeDepositLineItem`, or legacy custom-invoice helpers. Stage 5 only stops new customer flows from using invoice/deposit copy."
 />
 
-- Remove `calculate-booking-invoice-amounts` deposit subtraction for new receipts
-- Remove `includeDepositLineItem` from legacy custom invoice code paths
-- Update `TermsDialog` / `/terms-and-conditions` copy: full upfront payment non-refundable, rescheduling with notice (still says deposit today)
-- Update E2E: `book.spec.ts` package case expects `/package-complete` without payment modal — switch to checkout + `/booking-complete`
-- Rewrite `e2e/package-schedule.spec.ts` and `e2e/helpers/admin-packages.ts` to drop admin confirm-payment flow
-- Delete dead backend: `confirmPackagePayment`, `listPackagesDueForPaymentReminder*`, unused `sendPackageInvoice` on create path if fully legacy
+### Part 1 — E2E (CI pre-checkout + local full checkout)
+
+Packages now behave like single sessions: form → terms → Stripe payment modal → `/booking-complete?session_id=...`. Stripe Pay + hCaptcha blocks headless checkout in GitHub Actions, so **full checkout E2E is local only**. CI stays pre-checkout (form + payment modal, no pay). No post-checkout E2E in CI.
+
+**CI (`bun run test:e2e`, runs in GitHub Actions)**
+
+| Spec                           | Change                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/book.spec.ts`             | **Session:** unchanged — fill form, agree to terms, assert payment modal opens, close in `finally`.                                                                                               |
+| `e2e/book.spec.ts`             | **Package:** replace `/package-complete` + "no payment modal" with the same pattern as session — open payment modal, assert Stripe UI, close in `finally`. Remove `expectPackageRequestComplete`. |
+| `e2e/home.spec.ts`             | Unchanged.                                                                                                                                                                                        |
+| `e2e/package-schedule.spec.ts` | **Remove from CI** — delete from `test:e2e` script; spec still uses admin confirm payment (removed in stage 4a).                                                                                  |
+
+**Local only (Stripe test keys in `.env.local`, not run in CI)**
+
+| Spec                             | Purpose                                                                                                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/session-payment.spec.ts`    | Session: pay test card → `/booking-complete` confirmed. Already exists.                                                                                           |
+| `e2e/package-payment.spec.ts`    | **New.** Package: pay test card → `/booking-complete` → poll Resend for `/package-schedule/...` → schedule session 1.                                             |
+| `e2e/package-schedule.spec.ts`   | **Rewrite** as local-only (or fold into `package-payment.spec.ts`). Drop `confirmPackagePaymentForCustomer`; start from Stripe checkout instead of admin confirm. |
+| `e2e/session-reschedule.spec.ts` | Session: pay → receipt email → reschedule UI. Already local-only.                                                                                                 |
+
+**Scripts / helpers**
+
+- `package.json`: `test:e2e` = `book.spec.ts` + `home.spec.ts` only. Add `test:e2e:package-payment` (and keep `test:e2e:session-reschedule`, `test:e2e:session-payment` if split).
+- `e2e/helpers/booking-form.ts`: reuse `expectPaymentModal`, `completeStripePayment`, `expectBookingConfirmed` for packages; remove `/package-complete` helpers for new flow.
+- `e2e/helpers/admin-packages.ts`: remove `confirmPackagePaymentForCustomer` (dead after stage 4a).
+
+**Convex tests (already in CI via `bun run test`)**
+
+| Area                                                   | Status                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Checkout line item amounts                             | Done — `convex/lib/tests/stripeCheckoutLineItems.test.ts` (tautology fix applied)               |
+| Webhook idempotency (checkout replay)                  | Done — `convex/tests/stripeCompletion.test.ts`, `convex/lib/tests/packageCheckoutClaim.test.ts` |
+| Package paid → schedule token once                     | Partial — extend only if a real gap appears after Part 2                                        |
+| Adjustment invoice guards + `invoice.paid` idempotency | Done — `convex/tests/adjustmentInvoices.test.ts`                                                |
+| Reminder timezone math                                 | Done — removed tautological wrapper test in `reminderScheduleTime.test.ts`                      |
+
+### Part 2 — Backend dead code
+
+Remove paths made obsolete by stages 1–4. Grep after each deletion.
+
+- Delete `confirmPackagePayment` action/handler
+- Delete `listPackagesDueForPaymentReminder*` (cron stopped in stage 2)
+- Remove unused `sendPackageInvoice` on the **create** path if fully legacy-only
 - Remove `invoiceEmailStatus: "pending"` from `buildPendingPackageRecord` when safe
 
-### Stage 5 — verify
+### Part 3 — Customer-facing copy
+
+Update copy on **new** booking and complete flows only. Do not change legacy admin invoice/receipt menus.
+
+- `TermsDialog` and `/terms-and-conditions`: full upfront payment non-refundable, rescheduling with notice (still mentions deposit today)
+- Grep: `"bank transfer"`, `"PayID"`, `"deposit"` should not appear on `/book`, complete pages, or customer emails for new checkout. Hits in legacy admin invoice PDFs and `stripeCustomerId === undefined` menus are expected.
+
+Receipt paths already use `BOOKING_RECEIPT_TITLE`, `BOOKING_RECEIPT_NOTES`, and `calculate-booking-receipt-amounts` (no deposit line). Part 3 is mostly Terms + any stray customer copy, not ripping out invoice constants.
+
+### Part 4 — Legacy invoice PDF boundary (audit, not removal)
+
+**Keep** for admin legacy sessions/packages:
+
+- `buildBookingInvoiceData`, `calculate-booking-invoice-amounts`, `BOOKING_DEPOSIT_AMOUNT`, `BOOKING_INVOICE_PAYMENT`, `includeDepositLineItem`
+- `legacy-custom-invoices.ts`, `LegacyCustomInvoicesDialog`, `downloadAdminBookingInvoice`, `sendBookingInvoiceForBooking`
+
+**Do not** remove `includeDepositLineItem` from custom-invoice render paths. Stored rows may still have `includeDepositLineItem: true`.
+
+**Audit only:** confirm new receipt/checkout code does not import deposit or bank-transfer constants. Leave invoice libs frozen unless fixing a bug.
+
+### Part 5 — Verify gate
+
+Run before merge:
 
 - [ ] `bun run format && bun run lint && bun run test && bun run typecheck`
 - [ ] No references to `STRIPE_BOOKING_DEPOSIT_PRICE_ID` or `STRIPE_PROCESSING_FEE_PRICE_ID`
-- [ ] Grep for "bank transfer", "PayID", "deposit" in customer-facing copy returns only legacy/admin read-only contexts
+- [ ] CI E2E: session + package both stop at payment modal (no Stripe pay)
+- [ ] Local E2E (optional): `session-payment`, `package-payment`, `session-reschedule`
+- [ ] Grep customer-facing copy clean; legacy admin invoice paths still work for old records
 
 ---
 
