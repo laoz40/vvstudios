@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
+import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packageAdjustmentInvoicePayment";
 import { completeStripeInvoicePaymentService } from "#convex/services/stripeInvoicePayment";
 import { completePackageCheckoutService } from "#convex/services/packageCheckoutCompletion";
 
@@ -159,6 +160,33 @@ async function handleCompletedCheckout(
 	);
 }
 
+function isManagedStripeInvoice(invoice: Stripe.Invoice) {
+	const metadata = invoice.metadata;
+
+	return (
+		metadata?.kind === "booking" ||
+		metadata?.kind === "package" ||
+		metadata?.adjustmentId !== undefined
+	);
+}
+
+function shouldRetryStripeInvoicePaymentWebhook(
+	invoice: Stripe.Invoice,
+	failure:
+		| { kind: "not_found" }
+		| { kind: "claim_failed"; error: PackageAdjustmentInvoicePaymentClaimError }
+) {
+	if (!isManagedStripeInvoice(invoice)) {
+		return false;
+	}
+
+	if (failure.kind === "not_found") {
+		return true;
+	}
+
+	return failure.error.reason === "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT";
+}
+
 async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent) {
 	const invoice = event.data.object;
 	const stripeInvoiceId = invoice.id;
@@ -182,15 +210,18 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 			}
 		},
 		(failure) => {
+			const retryWebhook = shouldRetryStripeInvoicePaymentWebhook(invoice, failure);
+
 			switch (failure.kind) {
 				case "not_found":
 					console.error("Stripe invoice payment had no matching record", {
 						eventId: event.id,
 						stripeInvoiceId,
-						adjustmentId
+						adjustmentId,
+						metadata: invoice.metadata
 					});
 
-					return new Response("not found", { status: 200 });
+					return new Response("not found", { status: retryWebhook ? 500 : 200 });
 				case "claim_failed":
 					console.error("Stripe invoice payment claim failed", {
 						eventId: event.id,
@@ -199,7 +230,7 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 						claimError: failure.error
 					});
 
-					return new Response("claim failed", { status: 200 });
+					return new Response("claim failed", { status: retryWebhook ? 500 : 200 });
 				default:
 					return exhaustiveCheck(failure);
 			}
