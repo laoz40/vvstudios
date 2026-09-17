@@ -101,10 +101,10 @@ export function getPackageBusyWindowsService(
 			// Group busy days by month.
 			.andThen(({ busyWindows, client, packageFromDb }) =>
 				groupBusyWindowsByDay(busyWindows, client.timeZone).map((busyDays) => ({
-						busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-						packageExpiresAt: packageFromDb.expiresAt,
-						timeZone: client.timeZone
-					}))
+					busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
+					packageExpiresAt: packageFromDb.expiresAt,
+					timeZone: client.timeZone
+				}))
 			)
 	);
 }

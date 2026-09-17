@@ -219,7 +219,8 @@ export function setupEditorAccess(
 		loadEditorDriveSetup(ctx, args.bookingId)
 			.andThen((setup) =>
 				// Set up all Drive permissions and record a failed status if any step stops.
-				ensureEditorDrivePermissions(ctx, setup).orElse((error: DriveEditorPermissionsError) =>
+				ensureEditorDrivePermissions(ctx, setup)
+					.orElse((error: DriveEditorPermissionsError) =>
 						saveEditorPermissionsStatus(ctx, setup, "failed").andThen(() => errAsync(error))
 					)
 					.map(() => setup)

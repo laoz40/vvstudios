@@ -40,11 +40,7 @@ export function sendPackageAdjustmentReceiptAfterPaymentService(
 			)
 		)
 		.andThen(({ bookingSettings, invoiceInput }) =>
-			sendPackageAdjustmentReceiptEmails(
-				invoiceInput,
-				args.paidAt,
-				bookingSettings.leadTimeMinutes
-			)
+			sendPackageAdjustmentReceiptEmails(invoiceInput, args.paidAt, bookingSettings.leadTimeMinutes)
 		)
 		.map(() => ({ outcome: "completed" as const }));
 }

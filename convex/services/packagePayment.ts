@@ -27,9 +27,7 @@ type AuthError = { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" };
 type PackageScheduleEmailError =
 	| { reason: "PACKAGE_NOT_FOUND" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| {
-			reason: "EMAIL_REQUEST_FAILED" | "EMAIL_RESPONSE_FAILED" | "SCHEDULE_EMAIL_RENDER_FAILED";
-	  };
+	| { reason: "EMAIL_REQUEST_FAILED" | "EMAIL_RESPONSE_FAILED" | "SCHEDULE_EMAIL_RENDER_FAILED" };
 
 export type CreatePackageCheckoutSessionSuccess = {
 	packageId: Id<"packages">;

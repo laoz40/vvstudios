@@ -144,13 +144,13 @@ export function getAdminPackageAdjustmentInvoicePdfService(
 			// Convert PDF rendering failures into the public download error.
 			.andThen((artifactsResult) =>
 				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data).map((pdfContent) => ({
-						content: pdfContent.buffer.slice(
-							pdfContent.byteOffset,
-							pdfContent.byteOffset + pdfContent.byteLength
-						),
-						contentType: artifactsResult.artifacts.pdf.contentType,
-						filename: artifactsResult.artifacts.pdf.filename
-					}))
+					content: pdfContent.buffer.slice(
+						pdfContent.byteOffset,
+						pdfContent.byteOffset + pdfContent.byteLength
+					),
+					contentType: artifactsResult.artifacts.pdf.contentType,
+					filename: artifactsResult.artifacts.pdf.filename
+				}))
 			)
 	);
 }

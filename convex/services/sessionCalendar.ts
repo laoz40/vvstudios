@@ -102,7 +102,7 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 							timeZone
 						}))
 					)
-				);
+			);
 		}
 	);
 }

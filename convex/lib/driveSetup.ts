@@ -225,15 +225,11 @@ function clearSavedClientAssetsFolder(ctx: ActionCtx, driveClientId: Id<"driveCl
 }
 
 function clearSavedPackageFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.clearDrivePackageFolder, { bookingId })
-	);
+	return fromConvexTuple(ctx.runMutation(internal.sessions.clearDrivePackageFolder, { bookingId }));
 }
 
 function clearSavedSessionFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.clearDriveSessionFolder, { bookingId })
-	);
+	return fromConvexTuple(ctx.runMutation(internal.sessions.clearDriveSessionFolder, { bookingId }));
 }
 
 function clearSavedChildFolder(
@@ -287,11 +283,11 @@ function getOrCreateClientFolder(
 				folder
 			})
 		).map(({ assetsFolder, driveClientId, folderId }) => ({
-				drive,
-				clientFolderId: folderId,
-				driveClientId,
-				assetsFolder
-			}))
+			drive,
+			clientFolderId: folderId,
+			driveClientId,
+			assetsFolder
+		}))
 	);
 }
 

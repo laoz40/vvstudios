@@ -30,12 +30,7 @@ export type DriveClientPermissionsError =
 	  }
 	| { reason: "DRIVE_FOLDERS_NOT_READY" | "DRIVE_RECORD_NOT_FOUND" }
 	| { reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }
-	| {
-			reason:
-				| "EMAIL_RENDER_FAILED"
-				| "EMAIL_REQUEST_FAILED"
-				| "EMAIL_RESPONSE_FAILED";
-	  };
+	| { reason: "EMAIL_RENDER_FAILED" | "EMAIL_REQUEST_FAILED" | "EMAIL_RESPONSE_FAILED" };
 
 type ReadyBookingDriveFolders = DriveSetupInfo & {
 	driveClient: {
