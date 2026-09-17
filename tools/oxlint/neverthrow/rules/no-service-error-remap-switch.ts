@@ -237,6 +237,17 @@ function getMapErrReceiverCall(node: ESTree.CallExpression): ESTree.CallExpressi
 	return receiver;
 }
 
+function expressionOperandReferencesIdentifier(
+	operand: ESTree.Expression | ESTree.PrivateIdentifier,
+	identifierName: string
+): boolean {
+	if (operand.type === "PrivateIdentifier") {
+		return false;
+	}
+
+	return expressionReferencesIdentifier(operand, identifierName);
+}
+
 function expressionReferencesIdentifier(expression: ESTree.Expression, identifierName: string): boolean {
 	const unwrapped = unwrapExpression(expression);
 
@@ -286,8 +297,8 @@ function expressionReferencesIdentifier(expression: ESTree.Expression, identifie
 		case "BinaryExpression":
 		case "LogicalExpression":
 			return (
-				expressionReferencesIdentifier(unwrapped.left, identifierName) ||
-				expressionReferencesIdentifier(unwrapped.right, identifierName)
+				expressionOperandReferencesIdentifier(unwrapped.left, identifierName) ||
+				expressionOperandReferencesIdentifier(unwrapped.right, identifierName)
 			);
 		case "SequenceExpression":
 			return unwrapped.expressions.some((expression) =>
