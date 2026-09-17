@@ -46,18 +46,29 @@ export function validateStripeInvoiceLineItems(
 		return err({ reason: "INVALID_LINE_ITEMS" });
 	}
 
+	const normalizedLineItems: StripeInvoiceLineItem[] = [];
+
 	for (const lineItem of lineItems) {
-		if (lineItem.description.trim().length === 0 || lineItem.amount <= 0) {
+		const amountInCents = Math.round(lineItem.amount * 100);
+		const hasFractionalCents =
+			Math.abs(lineItem.amount - amountInCents / 100) > 1e-9;
+
+		if (
+			lineItem.description.trim().length === 0 ||
+			!Number.isFinite(lineItem.amount) ||
+			lineItem.amount <= 0 ||
+			hasFractionalCents
+		) {
 			return err({ reason: "INVALID_LINE_ITEMS" });
 		}
+
+		normalizedLineItems.push({
+			description: lineItem.description.trim(),
+			amount: amountInCents / 100
+		});
 	}
 
-	return ok(
-		lineItems.map((lineItem) => ({
-			description: lineItem.description.trim(),
-			amount: lineItem.amount
-		}))
-	);
+	return ok(normalizedLineItems);
 }
 
 export function createAndSendStripeInvoice(
