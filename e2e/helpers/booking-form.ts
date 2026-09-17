@@ -83,6 +83,11 @@ async function readDayTimeSelectionState(
 
 const dayTimeSelectionTimeoutMs = 6_000;
 
+// Stripe redirect and Convex booking confirmation hit live external services.
+const stripeBookingCompleteTimeoutMs = 120_000;
+
+const bookingConfirmedHeadingTimeoutMs = 90_000;
+
 async function waitForDayTimeSelectionAfterClick(
 	timeField: ReturnType<Page["locator"]>
 ): Promise<"available" | "unavailable" | "timeout"> {
@@ -371,7 +376,7 @@ export async function completeStripePayment(page: Page) {
 	await expect(payButton).toBeEnabled({ timeout: 10_000 });
 
 	await Promise.all([
-		page.waitForURL(/\/booking-complete/, { timeout: 60_000 }),
+		page.waitForURL(/\/booking-complete/, { timeout: stripeBookingCompleteTimeoutMs }),
 		payButton.click()
 	]);
 }
@@ -402,6 +407,6 @@ export async function expectBookingConfirmed(
 			: `${options.packageSize}-Session Package confirmed`;
 
 	await expect(page.getByRole("heading", { name: confirmedHeading })).toBeVisible({
-		timeout: 45_000
+		timeout: bookingConfirmedHeadingTimeoutMs
 	});
 }

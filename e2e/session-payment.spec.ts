@@ -24,7 +24,7 @@ import {
 } from "./helpers/booking-form";
 
 test("single session payment completes booking", async ({ page }) => {
-	test.setTimeout(120_000);
+	test.setTimeout(180_000);
 
 	await page.goto("/book");
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const INVOICE_SUBJECT_PREFIX = "Your Studio Booking Invoice -";
+// Matches `sendBookingReceiptEmailsForBooking` in convex/lib/bookingDocumentEmails.ts.
+const BOOKING_RECEIPT_SUBJECT_PREFIX = "Studio booking confirmed - ";
 
 const PACKAGE_PAID_EMAIL_SUBJECT_PREFIX = "Your ";
 
@@ -56,12 +57,12 @@ function isEmailSince(email: ResendEmailListItem, recipient: string, since: Date
 	return parseResendTimestamp(email.created_at) >= since;
 }
 
-function isInvoiceEmail(email: ResendEmailListItem, recipient: string, since: Date) {
+function isBookingReceiptEmail(email: ResendEmailListItem, recipient: string, since: Date) {
 	if (!isEmailSince(email, recipient, since)) {
 		return false;
 	}
 
-	return email.subject.startsWith(INVOICE_SUBJECT_PREFIX);
+	return email.subject.startsWith(BOOKING_RECEIPT_SUBJECT_PREFIX);
 }
 
 function isPackageScheduleEmail(
@@ -207,7 +208,7 @@ export async function waitForInvoiceRescheduleUrl({
 	apiKey,
 	recipient,
 	since,
-	timeoutMs = 60_000,
+	timeoutMs = 120_000,
 	pollIntervalMs = 2_000
 }: {
 	apiKey: string;
@@ -223,9 +224,9 @@ export async function waitForInvoiceRescheduleUrl({
 		findEmail: () =>
 			findMatchingEmailInPages({
 				apiKey,
-				isMatch: (email) => isInvoiceEmail(email, recipient, since)
+				isMatch: (email) => isBookingReceiptEmail(email, recipient, since)
 			}),
-		notFoundMessage: `Invoice email with reschedule link not found for ${recipient} within ${timeoutMs}ms`,
+		notFoundMessage: `Booking receipt email with reschedule link not found for ${recipient} within ${timeoutMs}ms`,
 		pollIntervalMs,
 		recipient,
 		since,
@@ -238,7 +239,7 @@ export async function waitForPackageScheduleUrl({
 	packageSize,
 	recipient,
 	since,
-	timeoutMs = 60_000,
+	timeoutMs = 120_000,
 	pollIntervalMs = 2_000
 }: {
 	apiKey: string;
