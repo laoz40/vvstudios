@@ -21,7 +21,7 @@ import {
 	expectPaymentModal,
 	expectTermsDialog,
 	fillSingleSessionBookingForm,
-	getE2eDayIndexBucket,
+	getE2eBookingSlotOffset,
 	submitBookingForm
 } from "./helpers/booking-form";
 import { waitForInvoiceRescheduleUrl } from "./helpers/resend";
@@ -42,18 +42,15 @@ test.describe("session reschedule", () => {
 			"Set E2E_RESEND_API_KEY or RESEND_API_KEY in .env.local (same Resend account Convex uses to send)."
 		);
 
-		test.setTimeout(240_000);
+		test.setTimeout(150_000);
 
 		const startedAt = new Date();
-		const bookingDayIndex = getE2eDayIndexBucket();
+		const bookingSlot = getE2eBookingSlotOffset();
 
 		await page.goto("/book");
 
 		try {
-			const contactDetails = await fillSingleSessionBookingForm(page, {
-				monthOffset: 1,
-				startingDayIndex: bookingDayIndex
-			});
+			const contactDetails = await fillSingleSessionBookingForm(page, bookingSlot);
 
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
@@ -65,14 +62,16 @@ test.describe("session reschedule", () => {
 			const rescheduleUrl = await waitForInvoiceRescheduleUrl({
 				apiKey: resendApiKey!,
 				recipient: contactDetails.email,
-				since: startedAt,
-				timeoutMs: 120_000
+				since: startedAt
 			});
 
 			await page.goto(rescheduleUrl);
 
 			const previousBooking = await readExistingBookingSummary(page);
-			await completeReschedule(page, { monthOffset: 1, startingDayIndex: bookingDayIndex + 1 });
+			await completeReschedule(page, {
+				monthOffset: bookingSlot.monthOffset,
+				startingDayIndex: bookingSlot.startingDayIndex + 1
+			});
 			await expectRescheduleComplete(page, {
 				previousDate: previousBooking.date,
 				previousTime: previousBooking.time

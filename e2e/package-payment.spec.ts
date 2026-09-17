@@ -20,7 +20,7 @@ import {
 	expectPaymentModal,
 	expectTermsDialog,
 	fillPackageBookingForm,
-	getE2eDayIndexBucket,
+	getE2eBookingSlotOffset,
 	submitBookingForm
 } from "./helpers/booking-form";
 import {
@@ -42,10 +42,10 @@ test.describe("package payment", () => {
 			"Set E2E_RESEND_API_KEY or RESEND_API_KEY in .env.local (same Resend account Convex uses to send)."
 		);
 
-		test.setTimeout(300_000);
+		test.setTimeout(180_000);
 
 		const startedAt = new Date();
-		const bookingDayIndex = getE2eDayIndexBucket();
+		const bookingSlot = getE2eBookingSlotOffset();
 
 		await page.goto("/book");
 
@@ -62,15 +62,11 @@ test.describe("package payment", () => {
 				apiKey: resendApiKey!,
 				packageSize,
 				recipient: contactDetails.email,
-				since: startedAt,
-				timeoutMs: 120_000
+				since: startedAt
 			});
 
 			await page.goto(scheduleUrl);
-			await scheduleFirstPackageSession(page, {
-				monthOffset: 1,
-				startingDayIndex: bookingDayIndex
-			});
+			await scheduleFirstPackageSession(page, bookingSlot);
 			await expectFirstPackageSessionScheduled(page, packageSize);
 		} finally {
 			if (page.url().includes("/book")) {

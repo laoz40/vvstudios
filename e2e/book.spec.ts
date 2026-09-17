@@ -42,7 +42,7 @@ test.describe("book page", () => {
 	});
 
 	test("single session form opens terms dialog", async ({ page }) => {
-		test.setTimeout(60_000);
+		test.setTimeout(45_000);
 
 		await page.goto("/book");
 
@@ -52,7 +52,7 @@ test.describe("book page", () => {
 	});
 
 	test("single session checkout opens payment modal", async ({ page }) => {
-		test.setTimeout(120_000);
+		test.setTimeout(75_000);
 
 		await page.goto("/book");
 
@@ -68,7 +68,7 @@ test.describe("book page", () => {
 	});
 
 	test("package checkout opens payment modal", async ({ page }) => {
-		test.setTimeout(120_000);
+		test.setTimeout(75_000);
 
 		await page.goto("/book");
 

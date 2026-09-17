@@ -19,16 +19,17 @@ import {
 	expectPaymentModal,
 	expectTermsDialog,
 	fillSingleSessionBookingForm,
+	getE2eBookingSlotOffset,
 	submitBookingForm
 } from "./helpers/booking-form";
 
 test("single session payment completes booking", async ({ page }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(120_000);
 
 	await page.goto("/book");
 
 	try {
-		await fillSingleSessionBookingForm(page, { monthOffset: 1 });
+		await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset());
 		await submitBookingForm(page);
 		await expectTermsDialog(page);
 		await agreeToTerms(page);
