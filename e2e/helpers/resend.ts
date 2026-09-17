@@ -2,7 +2,9 @@ import { z } from "zod";
 
 const INVOICE_SUBJECT_PREFIX = "Your Studio Booking Invoice -";
 
-const PACKAGE_SCHEDULE_SUBJECT_PREFIX = "Schedule Your ";
+const PACKAGE_PAID_EMAIL_SUBJECT_PREFIX = "Your ";
+
+const PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX = "-Session Package confirmed — schedule your sessions";
 
 const RESCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/reschedule\/[a-f0-9]{64}/i;
 
@@ -72,8 +74,9 @@ function isPackageScheduleEmail(
 		return false;
 	}
 
-	return email.subject.startsWith(
-		`${PACKAGE_SCHEDULE_SUBJECT_PREFIX}${packageSize} Pack Studio Sessions`
+	return (
+		email.subject.startsWith(PACKAGE_PAID_EMAIL_SUBJECT_PREFIX) &&
+		email.subject.includes(`${packageSize}${PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX}`)
 	);
 }
 

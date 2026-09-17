@@ -25,30 +25,28 @@ type PackageOtherActionsMenuProps = {
 	packageRow: AdminPackageRow;
 };
 
-type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & {
-	canSendNewSchedulingLink: boolean;
-};
+type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & { canResendPackageEmail: boolean };
 
 type PackageReceiptMenuItemsProps = {
 	actions: ReturnType<typeof usePackageActions>;
-	canSendNewSchedulingLink: boolean;
+	canResendPackageEmail: boolean;
 	isActionPending: boolean;
 	pendingAction: ReturnType<typeof usePackageActions>["pendingAction"];
 };
 
 function PackageReceiptMenuItems({
 	actions,
-	canSendNewSchedulingLink,
+	canResendPackageEmail,
 	isActionPending,
 	pendingAction
 }: PackageReceiptMenuItemsProps) {
-	if (!canSendNewSchedulingLink || !actions.hasStripeCustomer) return null;
+	if (!canResendPackageEmail || !actions.hasStripeCustomer) return null;
 
 	return (
 		<>
 			<AnimatedDropdownMenuItem
 				disabled={isActionPending}
-				onSelect={() => void actions.handleResendReceipt()}
+				onSelect={() => actions.setIsPackageEmailDialogOpen(true)}
 				renderIcon={(iconRef) => (
 					<MailFilledIcon
 						ref={iconRef}
@@ -57,7 +55,7 @@ function PackageReceiptMenuItems({
 						className="shrink-0 text-current"
 					/>
 				)}>
-				Resend receipt
+				{pendingAction === "packageEmail" ? "Sending package email" : "Resend package email"}
 			</AnimatedDropdownMenuItem>
 			<AnimatedDropdownMenuItem
 				disabled={isActionPending}
@@ -78,7 +76,7 @@ function PackageReceiptMenuItems({
 
 function PackageInvoiceActions({
 	actions,
-	canSendNewSchedulingLink,
+	canResendPackageEmail,
 	packageRow
 }: PackageInvoiceActionsProps) {
 	const {
@@ -87,7 +85,6 @@ function PackageInvoiceActions({
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
 		setIsLegacyCustomInvoicesDialogOpen,
-		setIsSchedulingLinkDialogOpen,
 		setIsStripeBillingDialogOpen,
 		setIsStripeInvoiceDialogOpen
 	} = actions;
@@ -96,7 +93,7 @@ function PackageInvoiceActions({
 		<>
 			<PackageReceiptMenuItems
 				actions={actions}
-				canSendNewSchedulingLink={canSendNewSchedulingLink}
+				canResendPackageEmail={canResendPackageEmail}
 				isActionPending={isActionPending}
 				pendingAction={pendingAction}
 			/>
@@ -155,30 +152,13 @@ function PackageInvoiceActions({
 					onOpenCustomInvoices={() => setIsLegacyCustomInvoicesDialogOpen(true)}
 				/>
 			) : null}
-			{canSendNewSchedulingLink ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending}
-					onSelect={() => setIsSchedulingLinkDialogOpen(true)}
-					renderIcon={(iconRef) => (
-						<MailFilledIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					{pendingAction === "scheduleEmail"
-						? "Sending scheduling link..."
-						: "Send New Scheduling Link"}
-				</AnimatedDropdownMenuItem>
-			) : null}
 		</>
 	);
 }
 
 export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherActionsMenuProps) {
-	const canSendNewSchedulingLink = packageRow.isPaid;
-	const hasPackageInvoiceActions = canSendNewSchedulingLink || packageRow.adjustment !== null;
+	const canResendPackageEmail = packageRow.isPaid;
+	const hasPackageInvoiceActions = canResendPackageEmail || packageRow.adjustment !== null;
 	const invoiceNumber = formatBookingInvoiceNumber(packageRow.id, packageRow.createdAt);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 
@@ -226,7 +206,7 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 						<DropdownMenuSeparator />
 						<PackageInvoiceActions
 							actions={actions}
-							canSendNewSchedulingLink={canSendNewSchedulingLink}
+							canResendPackageEmail={canResendPackageEmail}
 							packageRow={packageRow}
 						/>
 					</>

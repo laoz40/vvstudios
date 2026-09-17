@@ -79,6 +79,8 @@ export type PackageReceiptBuilderInput = {
 	invoiceLineItems: BookingInvoiceLineItem[];
 	leadTimeMinutes: number;
 	receiptNumber?: string;
+	scheduleExpiresAtLabel?: string;
+	scheduleUrl?: string;
 } & BookingAddonQuantities;
 
 type BookingReceiptSharedData = {
@@ -93,7 +95,13 @@ type BookingReceiptSharedData = {
 
 export type BookingReceiptData =
 	| (BookingReceiptSharedData & { kind: "booking"; rescheduleUrl?: string })
-	| (BookingReceiptSharedData & { kind: "package"; package: { size: number } });
+	| (BookingReceiptSharedData & {
+			kind: "package";
+			leadTimeMinutes: number;
+			package: { size: number };
+			scheduleExpiresAtLabel?: string;
+			scheduleUrl?: string;
+	  });
 
 export interface BookingInvoiceData {
 	amounts: BookingInvoiceMoneyAmounts;

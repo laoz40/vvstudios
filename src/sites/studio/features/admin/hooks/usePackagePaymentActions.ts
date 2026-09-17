@@ -7,7 +7,6 @@ import type {
 	AdminPackagePendingAction,
 	AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
-import { resendReceiptWithFeedback } from "#studio/features/admin/lib/resend-receipt";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
@@ -16,11 +15,10 @@ export function usePackagePaymentActions(
 	packageRow: AdminPackageRow,
 	setPendingAction: SetPackagePendingAction
 ) {
-	const resendPackageReceipt = useAction(api.receiptEmails.resendPackageReceipt);
+	const resendPackageEmail = useAction(api.packagePayment.resendPackageEmail);
 	const getAdminPackageReceiptPdf = useAction(api.invoices.getAdminPackageReceiptPdfById);
-	const retrySchedulingEmail = useAction(api.packagePayment.retryPackageSchedulingEmail);
 	const archivePackage = useMutation(api.packages.archivePackage);
-	const [isSchedulingLinkDialogOpen, setIsSchedulingLinkDialogOpen] = useState(false);
+	const [isPackageEmailDialogOpen, setIsPackageEmailDialogOpen] = useState(false);
 
 	async function handleArchiveChange(archived: boolean) {
 		setPendingAction("archive");
@@ -105,25 +103,10 @@ export function usePackagePaymentActions(
 		setPendingAction(null);
 	}
 
-	async function handleResendReceipt() {
-		setPendingAction("receiptEmail");
+	async function handleResendPackageEmail() {
+		setPendingAction("packageEmail");
 
-		await resendReceiptWithFeedback({
-			customerEmail: packageRow.customerEmail,
-			entityMessages: {
-				PACKAGE_NOT_FOUND: "This package no longer exists.",
-				PACKAGE_NOT_PAID: "Receipts are only available after payment is confirmed."
-			},
-			run: () => resendPackageReceipt({ packageId: packageRow.id })
-		});
-
-		setPendingAction(null);
-	}
-
-	async function handleRetrySchedulingEmail() {
-		setPendingAction("scheduleEmail");
-
-		const [error] = await tryCatch(retrySchedulingEmail({ packageId: packageRow.id }));
+		const [error] = await tryCatch(resendPackageEmail({ packageId: packageRow.id }));
 
 		if (error !== null) {
 			const reason = error.reason;
@@ -134,35 +117,33 @@ export function usePackagePaymentActions(
 					break;
 
 				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to send scheduling links.");
+					toast.error("You do not have access to send package emails.");
 					break;
 
 				case "PACKAGE_NOT_FOUND":
 					toast.error("This package no longer exists.");
 					break;
 
+				case "PACKAGE_NOT_PAID":
+					toast.error("Package emails are only available after payment is confirmed.");
+					break;
+
 				case "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE":
-					toast.error("Only paid packages can receive a new scheduling link.");
+					toast.error("Only paid packages can receive a new package email.");
 					break;
 
 				case "PACKAGE_SCHEDULE_LINK_NOT_READY":
 					toast.error("This package does not have an active scheduling window yet.");
 					break;
 
-				case "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED":
-					toast.error("Unable to refresh the scheduling link.");
-					break;
-
 				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
-				case "EMAIL_REQUEST_FAILED":
-				case "EMAIL_RESPONSE_FAILED":
-				case "SCHEDULE_EMAIL_RENDER_FAILED":
-					toast.error("Scheduling email failed again.");
+					toast.error("Receipt and scheduling email failed to send.");
 					break;
 
 				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while sending the scheduling link.");
+					toast.error("Something went wrong while sending the package email.");
 					break;
+
 				default:
 					exhaustiveCheck(reason);
 			}
@@ -172,17 +153,16 @@ export function usePackagePaymentActions(
 			return;
 		}
 
-		toast.success("Scheduling email sent.");
-		setIsSchedulingLinkDialogOpen(false);
+		toast.success(`Package email sent to ${packageRow.customerEmail}.`);
+		setIsPackageEmailDialogOpen(false);
 		setPendingAction(null);
 	}
 
 	return {
 		handleArchiveChange,
 		handleDownloadReceipt,
-		handleResendReceipt,
-		handleRetrySchedulingEmail,
-		isSchedulingLinkDialogOpen,
-		setIsSchedulingLinkDialogOpen
+		handleResendPackageEmail,
+		isPackageEmailDialogOpen,
+		setIsPackageEmailDialogOpen
 	};
 }

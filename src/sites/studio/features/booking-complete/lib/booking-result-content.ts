@@ -89,7 +89,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 export function getPackagePaidResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
 	return {
 		title: `${packageSize}-Session Package confirmed`,
-		description: "A link to schedule your sessions has been sent to your email.",
+		description: "Your receipt and scheduling link have been sent to your email.",
 		isBookingCompletionFailure: false
 	};
 }
@@ -111,7 +111,7 @@ export function getPackageScheduleEmailFailedResultContent(
 	return {
 		title: `${packageSize}-Session Package confirmed`,
 		description:
-			"Your package is confirmed, but we couldn’t email your scheduling link. Please contact us and we’ll send it to you.",
+			"Your package is confirmed, but we couldn’t email your receipt and scheduling link. Please contact us and we’ll send it to you.",
 		isBookingCompletionFailure: false
 	};
 }

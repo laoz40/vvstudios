@@ -13,6 +13,7 @@ import {
 import { exhaustiveCheck } from "#/lib/result";
 import type { BookingReceiptData } from "#studio/features/booking-invoice/lib/types";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
+import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export interface BookingReceiptEmailProps {
@@ -33,7 +34,7 @@ function getReceiptPreviewText(data: BookingReceiptData) {
 function getReceiptHeading(data: BookingReceiptData) {
 	switch (data.kind) {
 		case "package":
-			return `Thanks for your purchase, ${data.customer.name}`;
+			return `Thank you for booking, ${data.customer.name}`;
 		case "booking":
 			return `Thanks for booking, ${data.customer.name}`;
 		default:
@@ -44,7 +45,7 @@ function getReceiptHeading(data: BookingReceiptData) {
 function getReceiptIntro(data: BookingReceiptData) {
 	switch (data.kind) {
 		case "package":
-			return "Your package payment is confirmed. Your receipt is attached to this email.";
+			return "Your package payment is confirmed. Your receipt is attached.";
 		case "booking":
 			return "Your studio session is confirmed. Your receipt is attached to this email.";
 		default:
@@ -75,7 +76,7 @@ function ReceiptSummary({ data }: { data: BookingReceiptData }) {
 						<strong>Duration:</strong> {data.booking.duration}
 					</Text>
 					<Text style={summaryLine}>
-						<strong>Add-ons:</strong> {data.booking.addonsSummary}
+						<strong>Add-ons per session:</strong> {data.booking.addonsSummary}
 					</Text>
 				</>
 			);
@@ -134,6 +135,29 @@ export function BookingReceiptEmail({ data }: BookingReceiptEmailProps) {
 					) : null}
 					<Heading style={heading}>{getReceiptHeading(data)}</Heading>
 					<Text style={paragraph}>{getReceiptIntro(data)}</Text>
+					{data.kind === "package" && data.scheduleUrl ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Schedule your sessions</Text>
+							<Text style={paragraph}>
+								Use your private link below to choose session dates and times. You can book sessions
+								one at a time and return later using this link.
+							</Text>
+							<Section style={scheduleCtaSection}>
+								<Button
+									href={data.scheduleUrl}
+									style={button}>
+									Schedule Your Sessions Here
+								</Button>
+								{data.scheduleExpiresAtLabel ? (
+									<Text style={scheduleExpiry}>Available until {data.scheduleExpiresAtLabel}</Text>
+								) : null}
+							</Section>
+							<Text style={scheduleNote}>
+								Sessions can be rescheduled or cleared up to{" "}
+								{formatNoticeWindowLabel(data.leadTimeMinutes)} before the session start.
+							</Text>
+						</Section>
+					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>{getReceiptSummaryTitle(data)}</Text>
 						<Section style={summaryCard}>
@@ -217,6 +241,23 @@ const summaryCard = {
 const summaryLine = { color: "#fafafa", fontSize: "14px", lineHeight: "22px", margin: "0 0 8px" };
 
 const section = { margin: "0 0 24px" };
+
+const scheduleCtaSection = { margin: "16px 0", textAlign: "center" as const };
+
+const scheduleExpiry = {
+	color: "#b8b8b8",
+	fontSize: "12px",
+	lineHeight: "18px",
+	margin: "8px 0 0"
+};
+
+const scheduleNote = {
+	color: "#d0d0d0",
+	fontSize: "14px",
+	fontStyle: "italic",
+	lineHeight: "20px",
+	margin: "12px 0 0"
+};
 
 const sectionTitle = {
 	color: "#f5c400",

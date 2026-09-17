@@ -6,15 +6,9 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import { sendBookingReceiptEmailsForBooking } from "#convex/lib/bookingDocumentEmails";
-import { getPackageForAction } from "#convex/lib/packageLookup";
-import { sendAndRecordPackageReceiptEmail } from "#convex/lib/packagePayment";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
-
-function isPaidPackageStatus(status: string) {
-	return status === "paid" || status === "schedule_email_failed";
-}
 
 function isConfirmedBookingStatus(status: string) {
 	return status === "confirmed" || status === "email_failed";
@@ -55,38 +49,4 @@ export function resendBookingReceiptService(
 				})
 			).map(() => null)
 		);
-}
-
-export function resendPackageReceiptService(
-	ctx: ActionCtx,
-	args: { packageId: Id<"packages"> }
-): ResultAsync<null, { reason: string }> {
-	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => getPackageForAction(ctx, args.packageId))
-		.andThen((packageRecord) => {
-			const paidAt = packageRecord.paidAt;
-
-			if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
-				return err({ reason: "PACKAGE_NOT_PAID" as const });
-			}
-
-			return ok({ packageRecord, paidAt });
-		})
-		.andThen(({ packageRecord, paidAt }) =>
-			okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
-				packageRecord,
-				paidAt,
-				settings
-			}))
-		)
-		.andThen(({ packageRecord, paidAt, settings }) =>
-			sendAndRecordPackageReceiptEmail(
-				ctx,
-				packageRecord._id,
-				packageRecord,
-				paidAt,
-				settings.leadTimeMinutes
-			)
-		)
-		.map(() => null);
 }

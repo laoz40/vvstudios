@@ -21,6 +21,13 @@ import type {
 	BookingInvoiceLineItem,
 	BookingReceiptData
 } from "#studio/features/booking-invoice/lib/types";
+import { formatTimestampDateLong } from "#convex/lib/emailSend";
+
+type PackageReceiptArtifactOptions = {
+	expiresAt?: number;
+	leadTimeMinutes: number;
+	scheduleUrl?: string;
+};
 
 export type MarkPackageInvoiceEmailAttemptArgs = {
 	packageId: Id<"packages">;
@@ -326,7 +333,7 @@ export function createBookingReceiptArtifactsForBooking(
 export function createPackageReceiptEmailArtifacts(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: { leadTimeMinutes: number }
+	options: PackageReceiptArtifactOptions
 ) {
 	return createPackageReceiptArtifacts(packageRecord, paidAt, options).asyncAndThen(
 		(artifactsResult) =>
@@ -369,7 +376,7 @@ export function createBookingReceiptEmailArtifactsForBooking(
 export function createPackageReceiptArtifacts(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: { leadTimeMinutes: number }
+	options: PackageReceiptArtifactOptions
 ): Result<
 	{ artifacts: { data: BookingReceiptData; pdf: { contentType: string; filename: string } } },
 	{ reason: "INVALID_BOOKING_DATA" }
@@ -407,6 +414,9 @@ export function createPackageReceiptArtifacts(
 			singleSessionAmount: packageRecord.singleSessionAmount
 		});
 
+	const scheduleExpiresAtLabel =
+		options.expiresAt === undefined ? undefined : formatTimestampDateLong(options.expiresAt);
+
 	const data = buildPackageReceiptData({
 		packageId: packageRecord._id,
 		name: packageFormData.name,
@@ -428,7 +438,9 @@ export function createPackageReceiptArtifacts(
 		totalDueAmount: packageRecord.totalDueAmount,
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes,
-		receiptNumber: packageRecord.invoiceNumber
+		receiptNumber: packageRecord.invoiceNumber,
+		scheduleExpiresAtLabel,
+		scheduleUrl: options.scheduleUrl
 	});
 
 	return ok({

@@ -13,7 +13,7 @@ import {
 } from "#convex/services/packageCheckoutActions";
 import {
 	confirmPackagePaymentService,
-	retryPackageSchedulingEmailService
+	resendPackageEmailService
 } from "#convex/services/packagePayment";
 
 export const createPackageCheckoutSession = action({
@@ -43,7 +43,7 @@ export const confirmPackagePayment = action({
 	handler: (ctx, args) => confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const retryPackageSchedulingEmail = action({
+export const resendPackageEmail = action({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => retryPackageSchedulingEmailService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => resendPackageEmailService(ctx, args).match(tupleOk, tupleErr)
 });

@@ -92,16 +92,16 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onSend={() => void actions.handleRetryAdjustmentInvoice()}
 			/>
 			<PackageEmailConfirmationDialog
-				open={actions.isSchedulingLinkDialogOpen}
+				open={actions.isPackageEmailDialogOpen}
 				customerName={packageRow.customerName}
 				customerEmail={packageRow.customerEmail}
-				description="This will create a fresh scheduling link for this package. Any previous scheduling link will stop working."
-				isSending={pendingAction === "scheduleEmail"}
-				sendLabel="Send New Scheduling Link"
-				sendingLabel="Sending scheduling link..."
-				title="Send new scheduling link to customer?"
-				onOpenChange={actions.setIsSchedulingLinkDialogOpen}
-				onSend={() => void actions.handleRetrySchedulingEmail()}
+				description="This will email the receipt and a fresh scheduling link. Any previous scheduling link will stop working."
+				isSending={pendingAction === "packageEmail"}
+				sendLabel="Resend package email"
+				sendingLabel="Sending package email"
+				title="Resend package email to customer?"
+				onOpenChange={actions.setIsPackageEmailDialogOpen}
+				onSend={() => void actions.handleResendPackageEmail()}
 			/>
 		</>
 	);

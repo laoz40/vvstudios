@@ -5,7 +5,6 @@ import { tryPromise } from "#convex/lib/result";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
-import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
@@ -102,18 +101,6 @@ interface SendPackageExpiryReminderEmailArgs {
 	name: string;
 	remainingSessions: number;
 }
-
-type SendPackageScheduleEmailArgs = {
-	addons: BookingAddon[];
-	leadTimeMinutes: number;
-	duration: string;
-	email: string;
-	expiresAt: number;
-	name: string;
-	packageSize: 4 | 8 | 12;
-	bookedAt: number;
-	scheduleUrl: string;
-} & BookingAddonQuantitiesArgs;
 
 export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
@@ -265,63 +252,6 @@ export function sendBookingRescheduledCustomerEmail({
 		sendEmail({
 			to: [email],
 			subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
-			html
-		}).map(() => null)
-	);
-}
-
-export function sendPackageScheduleEmail({
-	addons,
-	clipsPackageQuantity,
-	completeEditQuantity,
-	duration,
-	email,
-	essentialEditQuantity,
-	handcraftedClipsQuantity,
-	expiresAt,
-	name,
-	packageSize,
-	leadTimeMinutes,
-	bookedAt,
-	scheduleUrl
-}: SendPackageScheduleEmailArgs): ResultAsync<
-	null,
-	| { reason: "SCHEDULE_EMAIL_RENDER_FAILED" }
-	| { reason: "EMAIL_REQUEST_FAILED" }
-	| { reason: "EMAIL_RESPONSE_FAILED" }
-> {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	return tryPromise({
-		try: () =>
-			render(
-				createElement(PackageSchedulingEmail, {
-					addonsLine: formatAddonsLine({
-						addons,
-						clipsPackageQuantity,
-						completeEditQuantity,
-						essentialEditQuantity,
-						handcraftedClipsQuantity
-					}),
-					duration,
-					expiresAtLabel: formatTimestampDateLong(expiresAt),
-					name,
-					packageSize,
-					leadTimeMinutes,
-					scheduleUrl,
-					signoffName
-				})
-			),
-		catch: (cause) => {
-			console.error("Multi-booking schedule email render failed", { email, cause });
-
-			return { reason: "SCHEDULE_EMAIL_RENDER_FAILED" as const };
-		}
-	}).andThen((html) =>
-		sendEmail({
-			to: [email],
-			subject: `Schedule Your ${packageSize} Pack Studio Sessions — Booked ${formatTimestampDateShort(bookedAt)}`,
 			html
 		}).map(() => null)
 	);

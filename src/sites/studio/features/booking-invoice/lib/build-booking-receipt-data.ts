@@ -174,12 +174,15 @@ export function buildPackageReceiptData(input: PackageReceiptBuilderInput): Book
 		notes: {
 			cancellationPolicy: BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel)
 		},
+		leadTimeMinutes: input.leadTimeMinutes,
 		package: { size: input.packageSize },
 		receipt: {
 			number: input.receiptNumber ?? formatBookingInvoiceNumber(input.packageId, input.paidAt),
 			receiptDate: new Date(input.paidAt).toISOString(),
 			receiptDateLabel,
 			title: BOOKING_RECEIPT_TITLE
-		}
+		},
+		scheduleExpiresAtLabel: input.scheduleExpiresAtLabel,
+		scheduleUrl: input.scheduleUrl
 	};
 }

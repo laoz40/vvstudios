@@ -78,9 +78,8 @@ export type AdminPackagePendingAction =
 	| "adjustmentEmail"
 	| "archive"
 	| "download"
+	| "packageEmail"
 	| "receiptDownload"
-	| "receiptEmail"
-	| "scheduleEmail"
 	| null;
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -109,7 +108,7 @@ function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 			return "Paid";
 
 		case "schedule_email_failed":
-			return "Scheduling link failed";
+			return "Receipt and scheduling email failed";
 
 		case "abandoned":
 			return "Abandoned";
@@ -167,7 +166,7 @@ export function getAdminPackageStatusDisplay(
 			return {
 				className: "size-5 text-destructive",
 				icon: MailWarning,
-				label: "Scheduling link failed"
+				label: "Receipt and scheduling email failed"
 			};
 
 		case "abandoned":

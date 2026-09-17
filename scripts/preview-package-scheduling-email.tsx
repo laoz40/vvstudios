@@ -1,18 +1,11 @@
-import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
+import { BookingReceiptEmail } from "#studio/features/booking-invoice/email/BookingReceiptEmail";
+import { buildPackageReceiptData } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
+import { SAMPLE_PACKAGE_RECEIPT_INPUT } from "#studio/features/booking-invoice/lib/sample-booking-invoice-input";
 
-const previewProps = {
-	addonsLine: "4K UHD Recording, 3 x Clip Volume Pack",
-	duration: "2h",
-	expiresAtLabel: "Saturday, 2 May 2026",
-	name: "Alex Carter",
-	leadTimeMinutes: 12 * 60,
-	packageSize: 8 as const,
-	scheduleUrl: "https://vvstudios.example/package-schedule/sample-token",
-	signoffName: "Joseph"
-};
+const previewData = buildPackageReceiptData(SAMPLE_PACKAGE_RECEIPT_INPUT);
 
-export default function PackageSchedulingEmailPreview() {
-	return <PackageSchedulingEmail {...previewProps} />;
+export default function PackagePaidEmailPreview() {
+	return <BookingReceiptEmail data={previewData} />;
 }
 
-PackageSchedulingEmailPreview.PreviewProps = previewProps;
+PackagePaidEmailPreview.PreviewProps = { data: previewData };

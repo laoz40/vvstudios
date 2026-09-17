@@ -100,7 +100,12 @@ export function sendBookingReceiptEmailsForBooking(
 export function sendPackageReceiptEmailsForPackage(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: { leadTimeMinutes: number; skipHostEmail?: boolean }
+	options: {
+		expiresAt?: number;
+		leadTimeMinutes: number;
+		scheduleUrl: string;
+		skipHostEmail?: boolean;
+	}
 ): ResultAsync<{ receiptNumber: string }, PackageReceiptEmailError> {
 	return createPackageReceiptEmailArtifacts(packageRecord, paidAt, options)
 		.andThen(({ artifacts }) =>
@@ -109,7 +114,7 @@ export function sendPackageReceiptEmailsForPackage(
 		.andThen(({ artifacts, pdfContent }) =>
 			sendEmail({
 				to: [packageRecord.email],
-				subject: `Your ${packageRecord.packageSize}-Session Package confirmed - ${formatTimestampDateShort(paidAt)}`,
+				subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
 				html: artifacts.emailHtml,
 				attachments: [{ ...artifacts.pdf, content: pdfContent }]
 			}).map(() => ({ artifacts }))

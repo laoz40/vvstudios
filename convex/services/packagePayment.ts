@@ -1,17 +1,18 @@
 "use node";
 
-import { ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
-	buildPackageScheduleEmailArgs,
+	buildPackagePaidEmailContext,
 	markPackagePaid,
 	refreshPackageScheduleToken,
-	sendAndRecordPackageScheduleEmail
+	sendAndRecordPackagePaidEmail
 } from "#convex/lib/packagePayment";
+import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
@@ -21,10 +22,9 @@ type PackageIdArgs = { packageId: Id<"packages"> };
 
 type AuthError = { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" };
 
-type PackageScheduleEmailError =
+type PackagePaidEmailError =
 	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "EMAIL_REQUEST_FAILED" | "EMAIL_RESPONSE_FAILED" | "SCHEDULE_EMAIL_RENDER_FAILED" };
+	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" };
 
 export type CreatePackageCheckoutSessionSuccess = {
 	packageId: Id<"packages">;
@@ -43,70 +43,74 @@ export type ConfirmPackagePaymentError =
 	| AuthError
 	| { reason: "PACKAGE_ALREADY_PAID" }
 	| { reason: "PACKAGE_NOT_FOUND" }
-	| PackageScheduleEmailError;
+	| PackagePaidEmailError;
 
-export type RetryPackageSchedulingEmailError =
+export type ResendPackageEmailError =
 	| AuthError
 	| { reason: "PACKAGE_NOT_FOUND" }
+	| { reason: "PACKAGE_NOT_PAID" }
 	| { reason: "PACKAGE_SCHEDULE_EMAIL_NOT_RETRYABLE" }
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
-	| { reason: "PACKAGE_SCHEDULE_TOKEN_UPDATE_FAILED" }
-	| PackageScheduleEmailError;
+	| PackagePaidEmailError;
+
+function isPaidPackageStatus(status: string) {
+	return status === "paid" || status === "schedule_email_failed";
+}
 
 export function confirmPackagePaymentService(
 	ctx: ActionCtx,
 	args: PackageIdArgs
 ): ResultAsync<null, ConfirmPackagePaymentError> {
-	return (
-		requirePermissionActions(ctx, "update:payment-status")
-			// Mark the package paid and create the token and expiry used by its scheduling link.
-			.andThen(() => markPackagePaid(ctx, args.packageId, Date.now()))
-			// Load lead time so the email explains how far ahead each session must be scheduled.
-			.andThen((paymentResult) =>
-				okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-					(bookingSettings) => ({ bookingSettings, paymentResult })
+	return requirePermissionActions(ctx, "update:payment-status")
+		.andThen(() => markPackagePaid(ctx, args.packageId, Date.now()))
+		.andThen((paymentResult) =>
+			okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
+				(bookingSettings) => ({ bookingSettings, paymentResult })
+			)
+		)
+		.andThen(({ bookingSettings, paymentResult }) =>
+			sendAndRecordPackagePaidEmail(
+				ctx,
+				args.packageId,
+				buildPackagePaidEmailContext(
+					paymentResult,
+					bookingSettings.leadTimeMinutes,
+					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
 				)
 			)
-			// Send the scheduling link and save its delivery status for admin retries.
-			.andThen(({ bookingSettings, paymentResult }) =>
-				sendAndRecordPackageScheduleEmail(
-					ctx,
-					args.packageId,
-					buildPackageScheduleEmailArgs(
-						paymentResult,
-						bookingSettings.leadTimeMinutes,
-						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-					)
-				)
-			)
-	);
+		);
 }
 
-export function retryPackageSchedulingEmailService(
+export function resendPackageEmailService(
 	ctx: ActionCtx,
 	args: PackageIdArgs
-): ResultAsync<null, RetryPackageSchedulingEmailError> {
-	return (
-		requirePermissionActions(ctx, "send:receipt-emails")
-			// Rotate the failed package's scheduling token before exposing a fresh link.
-			.andThen(() => refreshPackageScheduleToken(ctx, args.packageId))
-			// Load lead time so the replacement email contains current scheduling guidance.
-			.andThen((tokenResult) =>
-				okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-					(bookingSettings) => ({ bookingSettings, tokenResult })
+): ResultAsync<null, ResendPackageEmailError> {
+	return requirePermissionActions(ctx, "send:receipt-emails")
+		.andThen(() => getPackageForAction(ctx, args.packageId))
+		.andThen((packageRecord) => {
+			const paidAt = packageRecord.paidAt;
+
+			if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
+				return err({ reason: "PACKAGE_NOT_PAID" as const });
+			}
+
+			return ok({ packageRecord, paidAt });
+		})
+		.andThen(() => refreshPackageScheduleToken(ctx, args.packageId))
+		.andThen((tokenResult) =>
+			okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
+				(bookingSettings) => ({ bookingSettings, tokenResult })
+			)
+		)
+		.andThen(({ bookingSettings, tokenResult }) =>
+			sendAndRecordPackagePaidEmail(
+				ctx,
+				args.packageId,
+				buildPackagePaidEmailContext(
+					tokenResult,
+					bookingSettings.leadTimeMinutes,
+					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
 				)
 			)
-			// Send the replacement scheduling link and persist the resulting status.
-			.andThen(({ bookingSettings, tokenResult }) =>
-				sendAndRecordPackageScheduleEmail(
-					ctx,
-					args.packageId,
-					buildPackageScheduleEmailArgs(
-						tokenResult,
-						bookingSettings.leadTimeMinutes,
-						new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-					)
-				)
-			)
-	);
+		);
 }
