@@ -45,7 +45,7 @@ test.describe("session reschedule", () => {
 		test.setTimeout(300_000);
 
 		const startedAt = new Date();
-		const bookingSlot = getE2eBookingSlotOffset();
+		const bookingSlot = getE2eBookingSlotOffset(test.info().parallelIndex);
 
 		await page.goto("/book");
 

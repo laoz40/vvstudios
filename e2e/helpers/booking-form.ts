@@ -31,13 +31,13 @@ function createDefaultContactDetails(): BookingContactDetails {
 }
 
 /** Spread E2E bookings across bookable days so reruns don't fight the same Google Calendar slot. */
-export function getE2eDayIndexBucket(bucketCount = 5) {
-	return Math.floor(Date.now() / 60_000) % bucketCount;
+export function getE2eDayIndexBucket(bucketCount = 5, parallelIndex = 0) {
+	return (Math.floor(Date.now() / 60_000) + parallelIndex) % bucketCount;
 }
 
 /** Month and day offsets so parallel e2e runs land on different calendar slots. */
-export function getE2eBookingSlotOffset(bucketCount = 5) {
-	return { monthOffset: 1, startingDayIndex: getE2eDayIndexBucket(bucketCount) };
+export function getE2eBookingSlotOffset(parallelIndex = 0, bucketCount = 5) {
+	return { monthOffset: 1, startingDayIndex: getE2eDayIndexBucket(bucketCount, parallelIndex) };
 }
 
 async function waitForCalendarAvailability(page: Page) {

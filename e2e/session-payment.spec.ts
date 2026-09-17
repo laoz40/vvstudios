@@ -29,7 +29,7 @@ test("single session payment completes booking", async ({ page }) => {
 	await page.goto("/book");
 
 	try {
-		await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset());
+		await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset(test.info().parallelIndex));
 		await submitBookingForm(page);
 		await expectTermsDialog(page);
 		await agreeToTerms(page);
