@@ -7,7 +7,6 @@ import {
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	BOOKING_INVOICE_BUSINESS,
-	BOOKING_INVOICE_NOTES,
 	BOOKING_RECEIPT_NOTES,
 	BOOKING_RECEIPT_TITLE
 } from "#studio/features/booking-invoice/lib/constants";
@@ -172,7 +171,7 @@ export function buildPackageReceiptData(input: PackageReceiptBuilderInput): Book
 		},
 		lineItems: input.invoiceLineItems,
 		notes: {
-			cancellationPolicy: BOOKING_INVOICE_NOTES.getPackageCancellationPolicy(noticeWindowLabel)
+			cancellationPolicy: BOOKING_RECEIPT_NOTES.getPackageCancellationPolicy(noticeWindowLabel)
 		},
 		leadTimeMinutes: input.leadTimeMinutes,
 		package: { size: input.packageSize },

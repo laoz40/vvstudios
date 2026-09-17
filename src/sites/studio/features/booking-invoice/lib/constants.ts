@@ -30,7 +30,9 @@ export const BOOKING_INVOICE_PAYMENT = {
 
 export const BOOKING_RECEIPT_NOTES = {
 	getCancellationPolicy: (noticeWindowLabel: string) =>
-		`Payments are non-refundable for customer cancellations, change of mind, late cancellations or no-shows (subject to the notice requirements below). This does not affect your rights under the Australian Consumer Law. Bookings may be rescheduled with a minimum of ${noticeWindowLabel} notice.`
+		`Payments are non-refundable for customer cancellations, change of mind, late cancellations or no-shows (subject to the notice requirements below). This does not affect your rights under the Australian Consumer Law. Bookings may be rescheduled with a minimum of ${noticeWindowLabel} notice.`,
+	getPackageCancellationPolicy: (noticeWindowLabel: string) =>
+		`Sessions may be rescheduled with a minimum of ${noticeWindowLabel} notice. Late cancellations or no-shows will forfeit that session.`
 } as const;
 
 export const BOOKING_INVOICE_NOTES = {

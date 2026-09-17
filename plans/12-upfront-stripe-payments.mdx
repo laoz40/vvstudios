@@ -131,7 +131,7 @@ Six stacked PRs. Each stage is one branch in the stack; later stages depend on e
 | 3     | `feat/upfront-stripe/adjustment-invoicing`   | Stripe Invoicing for package adjustments                              | Done                                                |
 | 4a    | `feat/upfront-stripe/admin-billing`          | Remove payment controls, resend receipt, copy Stripe Payment ID       | Open — PR #96                                       |
 | 4b    | `feat/upfront-stripe/admin-stripe-invoicing` | Ad-hoc Stripe Invoice, receipt PDF download, legacy invoice read-only | In progress — open PR stacked on 4a                 |
-| 5     | `feat/upfront-stripe/tests-cleanup`          | Tests, dead-code removal, copy polish (split into parts below)        | In progress — AGENTS.md + tautology test fixes done |
+| 5     | `feat/upfront-stripe/tests-cleanup`          | Tests, dead-code removal, copy polish (split into parts below)        | In progress — parts 1–4 done; part 5 verify pending |
 
 ---
 
@@ -583,6 +583,8 @@ Ship as stacked parts on `feat/upfront-stripe/tests-cleanup`. Each part is one c
 
 ### Part 1 — E2E (CI pre-checkout + local full checkout)
 
+**Status:** Done — CI runs `book.spec.ts` + `home.spec.ts`; local `package-payment.spec.ts` covers checkout through session 1 scheduling (replaces deleted `package-schedule.spec.ts`).
+
 Packages now behave like single sessions: form → terms → Stripe payment modal → `/booking-complete?session_id=...`. Stripe Pay + hCaptcha blocks headless checkout in GitHub Actions, so **full checkout E2E is local only**. CI stays pre-checkout (form + payment modal, no pay). No post-checkout E2E in CI.
 
 **CI (`bun run test:e2e`, runs in GitHub Actions)**
@@ -621,6 +623,8 @@ Packages now behave like single sessions: form → terms → Stripe payment moda
 
 ### Part 2 — Backend dead code
 
+**Status:** Done — `confirmPackagePayment`, `listPackagesDueForPaymentReminder*`, create-path `sendPackageInvoice`, and package `invoiceEmailStatus: "pending"` insert removed.
+
 Remove paths made obsolete by stages 1–4. Grep after each deletion.
 
 - Delete `confirmPackagePayment` action/handler
@@ -630,14 +634,18 @@ Remove paths made obsolete by stages 1–4. Grep after each deletion.
 
 ### Part 3 — Customer-facing copy
 
+**Status:** Done — `TermsDialog` + `/terms-and-conditions` use upfront payment and non-refundable cancellation copy; no deposit/bank-transfer/PayID on `/book`, complete pages, or receipt emails.
+
 Update copy on **new** booking and complete flows only. Do not change legacy admin invoice/receipt menus.
 
-- `TermsDialog` and `/terms-and-conditions`: full upfront payment non-refundable, rescheduling with notice (still mentions deposit today)
+- `TermsDialog` and `/terms-and-conditions`: full upfront payment non-refundable, rescheduling with notice
 - Grep: `"bank transfer"`, `"PayID"`, `"deposit"` should not appear on `/book`, complete pages, or customer emails for new checkout. Hits in legacy admin invoice PDFs and `stripeCustomerId === undefined` menus are expected.
 
 Receipt paths already use `BOOKING_RECEIPT_TITLE`, `BOOKING_RECEIPT_NOTES`, and `calculate-booking-receipt-amounts` (no deposit line). Part 3 is mostly Terms + any stray customer copy, not ripping out invoice constants.
 
 ### Part 4 — Legacy invoice PDF boundary (audit, not removal)
+
+**Status:** Done — receipt/checkout paths use `BOOKING_RECEIPT_*` only; package receipt cancellation policy moved off `BOOKING_INVOICE_NOTES`. Legacy invoice libs unchanged.
 
 **Keep** for admin legacy sessions/packages:
 

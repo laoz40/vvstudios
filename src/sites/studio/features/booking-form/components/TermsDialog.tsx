@@ -18,10 +18,7 @@ const defaultNoticeWindowLabel = formatNoticeWindowLabel(
 );
 
 export const terms = [
-	{
-		title: "1 - Payment",
-		body: "Full payment is required upfront to secure all bookings."
-	},
+	{ title: "1 - Payment", body: "Full payment is required upfront to secure all bookings." },
 	{
 		title: "2 - Damage & Liability",
 		body: "Clients are responsible for any damage caused to studio equipment or property during their session, excluding reasonable wear and tear. Repair or replacement costs will be charged accordingly."
