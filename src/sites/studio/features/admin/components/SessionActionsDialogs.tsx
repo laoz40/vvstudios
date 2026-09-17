@@ -17,7 +17,6 @@ import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/Le
 import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
 import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
-import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
@@ -151,20 +150,6 @@ export function SessionActionsDialogs({
 			<RescheduleLinkDialog
 				sessionName={session.name}
 				rescheduleAction={rescheduleAction}
-			/>
-
-			<EmailInvoiceDialog
-				open={invoiceActions.isEmailInvoiceDialogOpen}
-				bookingName={session.name}
-				bookingEmail={session.email}
-				customInvoices={invoiceActions.customInvoices}
-				isSending={invoiceActions.isEmailingInvoice}
-				selectedCustomInvoiceId={invoiceActions.selectedEmailCustomInvoiceId}
-				onOpenChange={invoiceActions.setIsEmailInvoiceDialogOpen}
-				onSelectedCustomInvoiceIdChange={invoiceActions.setSelectedEmailCustomInvoiceId}
-				onSend={() => {
-					void invoiceActions.handleEmailInvoice();
-				}}
 			/>
 
 			<DeliverablesEmailDialog

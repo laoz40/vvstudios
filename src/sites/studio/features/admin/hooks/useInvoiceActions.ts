@@ -17,11 +17,6 @@ import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
-type EmailBookingInvoiceRequest = {
-	bookingId: SessionRecord["_id"];
-	customInvoiceId?: Id<"customInvoices">;
-};
-
 function showSendStripeInvoiceError(reason: string) {
 	switch (reason) {
 		case "NOT_AUTHENTICATED":
@@ -58,22 +53,15 @@ function showSendStripeInvoiceError(reason: string) {
 }
 
 export function useInvoiceActions(session: SessionRecord) {
-	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
 	const sendBookingStripeInvoice = useAction(api.stripeInvoicing.sendBookingStripeInvoice);
 	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
-	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
-
-	const shouldLoadCustomInvoices = isEmailInvoiceDialogOpen || isLegacyCustomInvoicesDialogOpen;
 
 	const customInvoicesResult = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
-		shouldLoadCustomInvoices ? { bookingId: session._id } : "skip"
+		isLegacyCustomInvoicesDialogOpen ? { bookingId: session._id } : "skip"
 	);
-
-	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
-		useState<Id<"customInvoices"> | null>(null);
 
 	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
@@ -82,20 +70,11 @@ export function useInvoiceActions(session: SessionRecord) {
 		bookingId: session._id
 	});
 
-	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
 	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
 
 	const [downloadingLegacyCustomInvoiceId, setDownloadingLegacyCustomInvoiceId] =
 		useState<Id<"customInvoices"> | null>(null);
-
-	function setEmailInvoiceDialogOpen(open: boolean) {
-		setIsEmailInvoiceDialogOpen(open);
-
-		if (!open) {
-			setSelectedEmailCustomInvoiceId(null);
-		}
-	}
 
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
@@ -154,66 +133,6 @@ export function useInvoiceActions(session: SessionRecord) {
 		}
 
 		toast.success("Invoice download started.");
-	}
-
-	async function handleEmailInvoice() {
-		setIsEmailingInvoice(true);
-
-		const [error] = await tryCatch(
-			sendBookingInvoiceForBooking(
-				(() => {
-					const request: EmailBookingInvoiceRequest = { bookingId: session._id };
-
-					if (selectedEmailCustomInvoiceId) {
-						request.customInvoiceId = selectedEmailCustomInvoiceId;
-					}
-
-					return request;
-				})()
-			)
-		);
-
-		setIsEmailingInvoice(false);
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-
-					return;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to send invoice emails.");
-
-					return;
-				case "BOOKING_NOT_FOUND":
-					toast.error("That session no longer exists.");
-
-					return;
-				case "CUSTOM_INVOICE_NOT_FOUND":
-					toast.error("That custom invoice no longer exists.");
-
-					return;
-				case "EMAIL_REQUEST_FAILED":
-				case "EMAIL_RESPONSE_FAILED":
-				case "INVALID_BOOKING_DATA":
-				case "INVOICE_EMAIL_RENDER_FAILED":
-				case "INVOICE_PDF_RENDER_FAILED":
-					toast.error("Unable to send invoice email.");
-
-					return;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while sending the invoice email.");
-
-					return;
-				default:
-					exhaustiveCheck(reason);
-			}
-		}
-
-		setEmailInvoiceDialogOpen(false);
-		toast.success(`Invoice sent to ${session.email}.`);
 	}
 
 	const customInvoices = customInvoicesResult?.[1];
@@ -297,28 +216,21 @@ export function useInvoiceActions(session: SessionRecord) {
 	);
 
 	return {
-		customInvoices: customInvoicesResult?.[1] ?? undefined,
 		downloadingLegacyCustomInvoiceId,
 		handleDownloadInvoice,
 		handleDownloadLegacyCustomInvoice,
-		handleEmailInvoice,
 		handleSendStripeInvoice,
 		hasStripeBillingInvoices,
 		hasStripeCustomer: Boolean(session.stripeCustomerId),
 		isDownloadingInvoice,
-		isEmailInvoiceDialogOpen,
-		isEmailingInvoice,
 		isLegacyCustomInvoicesDialogOpen,
 		isSendingStripeInvoice,
 		isStripeBillingDialogOpen,
 		isStripeInvoiceDialogOpen,
 		legacyCustomInvoices,
-		selectedEmailCustomInvoiceId,
-		setIsEmailInvoiceDialogOpen: setEmailInvoiceDialogOpen,
 		setIsLegacyCustomInvoicesDialogOpen,
 		setIsStripeBillingDialogOpen,
 		setIsStripeInvoiceDialogOpen,
-		setSelectedEmailCustomInvoiceId,
 		stripeBillingInvoices
 	};
 }

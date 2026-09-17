@@ -1,15 +1,11 @@
 import { ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
-	createBookingInvoiceEmailArtifactsForBooking,
 	createBookingReceiptEmailArtifactsForBooking,
 	createPackageReceiptEmailArtifacts,
 	type PackageInvoiceInput
 } from "#convex/lib/bookingInvoiceArtifacts";
-import {
-	renderBookingInvoicePdfInNode,
-	renderBookingReceiptPdfInNode
-} from "#convex/lib/bookingInvoicePdfRender";
+import { renderBookingReceiptPdfInNode } from "#convex/lib/bookingInvoicePdfRender";
 import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
 import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
@@ -18,15 +14,6 @@ interface SessionHostRescheduleDetails {
 	originalDate: string;
 	originalTime: string;
 }
-
-type BookingInvoiceEmailError = {
-	reason:
-		| "EMAIL_REQUEST_FAILED"
-		| "EMAIL_RESPONSE_FAILED"
-		| "INVALID_BOOKING_DATA"
-		| "INVOICE_EMAIL_RENDER_FAILED"
-		| "INVOICE_PDF_RENDER_FAILED";
-};
 
 type BookingReceiptEmailError = {
 	reason:
@@ -50,60 +37,6 @@ function bookingPaidAt(booking: Doc<"bookings">) {
 	return (
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
 	);
-}
-
-export function sendBookingInvoiceEmailsForBooking(
-	booking: Doc<"bookings">,
-	options: {
-		customInvoice?: Doc<"customInvoices">;
-		leadTimeMinutes: number;
-		rescheduleUrl?: string;
-		skipHostEmail?: boolean;
-	}
-): ResultAsync<null, BookingInvoiceEmailError> {
-	return createBookingInvoiceEmailArtifactsForBooking(booking, bookingPaidAt(booking), options)
-		.andThen(({ artifacts, booking: parsedBooking }) =>
-			renderBookingInvoicePdfInNode(artifacts.data).map((pdfContent) => ({
-				artifacts,
-				parsedBooking,
-				pdfContent
-			}))
-		)
-		.andThen(({ artifacts, parsedBooking, pdfContent }) =>
-			sendEmail({
-				to: [booking.email],
-				subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
-				html: artifacts.emailHtml,
-				attachments: [{ ...artifacts.pdf, content: pdfContent }]
-			}).map(() => ({ artifacts, parsedBooking }))
-		)
-		.andThen(({ artifacts, parsedBooking }) => {
-			if (options.skipHostEmail) {
-				return okAsync(null);
-			}
-
-			return sendSessionHostDetailsEmail({
-				invoiceNumber: artifacts.data.invoice.number,
-				name: parsedBooking.name,
-				email: parsedBooking.email,
-				phone: parsedBooking.phone,
-				accountName: parsedBooking.accountName,
-				abn: parsedBooking.abn,
-				date: parsedBooking.date,
-				time: parsedBooking.time,
-				service: parsedBooking.service,
-				duration: parsedBooking.duration,
-				addons: parsedBooking.addons,
-				notes: parsedBooking.notes
-			}).orElse((error) => {
-				console.error("Booking invoice host email send failed", {
-					bookingId: booking._id,
-					reason: error.reason
-				});
-
-				return ok(null);
-			});
-		});
 }
 
 export function sendBookingReceiptEmailsForBooking(

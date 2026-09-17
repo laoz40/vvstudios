@@ -128,7 +128,6 @@ export async function sendConfirmedBookingInvoice(
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
 ) {
-	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const linkResult = await createRescheduleUrlForSession(ctx, session);
 
 	if (linkResult.isErr()) {

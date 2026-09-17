@@ -392,15 +392,12 @@ export function SessionActionsMenu({
 														: "Download invoice"
 												}
 												isDownloadingInvoice={invoiceActions.isDownloadingInvoice}
-												isEmailingInvoice={invoiceActions.isEmailingInvoice}
 												onDownloadInvoice={() => {
 													void invoiceActions.handleDownloadInvoice();
 												}}
-												onEmailInvoice={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
 												onOpenCustomInvoices={() =>
 													invoiceActions.setIsLegacyCustomInvoicesDialogOpen(true)
 												}
-												showEmailInvoice
 											/>
 										) : null}
 									</>
