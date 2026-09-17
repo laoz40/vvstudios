@@ -37,8 +37,6 @@ function getPackageDashboardDateLabel(
 	switch (kind) {
 		case "adjustment_due":
 			return "Adjustment due";
-		case "payment_due":
-			return "Payment due";
 		case "package_expiry":
 			return "Package expiry";
 		case "missing_package_expiry":

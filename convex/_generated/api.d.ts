@@ -28,7 +28,6 @@ import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingConfirmationClaim from "../lib/bookingConfirmationClaim.js";
 import type * as lib_bookingDocumentEmails from "../lib/bookingDocumentEmails.js";
 import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
-import type * as lib_bookingInvoiceCustomPackage from "../lib/bookingInvoiceCustomPackage.js";
 import type * as lib_bookingInvoicePdfRender from "../lib/bookingInvoicePdfRender.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
@@ -170,7 +169,6 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingConfirmationClaim": typeof lib_bookingConfirmationClaim;
   "lib/bookingDocumentEmails": typeof lib_bookingDocumentEmails;
   "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
-  "lib/bookingInvoiceCustomPackage": typeof lib_bookingInvoiceCustomPackage;
   "lib/bookingInvoicePdfRender": typeof lib_bookingInvoicePdfRender;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;

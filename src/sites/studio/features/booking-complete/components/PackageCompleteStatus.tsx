@@ -5,7 +5,6 @@ import { BookingResult } from "#studio/features/booking-complete/components/Book
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import {
 	getPackagePaidResultContent,
-	getPackageReceiptEmailFailedResultContent,
 	getPackageScheduleEmailFailedResultContent
 } from "#studio/features/booking-complete/lib/booking-result-content";
 import type { Doc } from "#convex/_generated/dataModel";
@@ -77,20 +76,6 @@ export function PackageCompleteStatus({
 							description: "Please return to the booking form to start a new checkout session.",
 							isBookingCompletionFailure: false
 						}}
-					/>
-				</BookingStatusLayout>
-			);
-		case "invoice_email_failed":
-			return (
-				<BookingStatusLayout
-					bookingStatus="confirmed"
-					instagramPromptTarget={{ kind: "package", packageId: packageRecord._id }}
-					stripeSessionId={previewStripeSessionId}>
-					<BookingResult
-						booking={null}
-						content={getPackageReceiptEmailFailedResultContent(packageRecord.packageSize)}
-						invoiceDownloadTarget={{ kind: "package", packageId: packageRecord._id }}
-						showBookingDetails={false}
 					/>
 				</BookingStatusLayout>
 			);

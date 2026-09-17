@@ -1,7 +1,4 @@
-import {
-	calculatePackageAmounts,
-	getPackageInvoiceDueAt
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type {
 	BookingInvoiceBuilderInput,
@@ -77,20 +74,4 @@ export const SAMPLE_PACKAGE_RECEIPT_INPUT: PackageReceiptBuilderInput = {
 	receiptNumber: "VV-20260419-PACK",
 	scheduleExpiresAtLabel: "19 March 2027",
 	scheduleUrl: "https://vvstudios.example/package-schedule/preview-token"
-};
-
-export const SAMPLE_PACKAGE_INVOICE_INPUT = {
-	bookingId: bookingInvoiceIdSchema.parse("preview-package-001"),
-	name: "Jamie Carter",
-	phone: "0400 987 654",
-	accountName: "Southern Cross Shows",
-	abn: "98765432109",
-	email: "jamie@example.com",
-	createdAt: SAMPLE_PACKAGE_CREATED_AT,
-	invoiceDueAt: getPackageInvoiceDueAt(SAMPLE_PACKAGE_CREATED_AT),
-	invoiceNumber: "VV-20260419-PACK",
-	...SAMPLE_PACKAGE_PRICING,
-	...SAMPLE_PACKAGE_AMOUNTS,
-	leadTimeMinutes: 12 * 60,
-	invoiceLineItems: SAMPLE_PACKAGE_LINE_ITEMS
 };

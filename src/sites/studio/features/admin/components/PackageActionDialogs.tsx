@@ -1,7 +1,6 @@
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
-import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
 import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
 import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
@@ -24,18 +23,6 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onSave={editAction.handleEditPackage}
 				isSaving={editAction.isSaving}
 			/>
-			<LegacyCustomInvoicesDialog
-				open={actions.isLegacyCustomInvoicesDialogOpen}
-				customerEmail={packageRow.customerEmail}
-				customerName={packageRow.customerName}
-				downloadingInvoiceId={actions.downloadingLegacyCustomInvoiceId}
-				invoices={actions.legacyCustomInvoices}
-				onDownload={(customInvoiceId) => {
-					void actions.handleDownloadLegacyCustomInvoice(customInvoiceId);
-				}}
-				onOpenChange={actions.setIsLegacyCustomInvoicesDialogOpen}
-			/>
-
 			<StripeBillingDialog
 				open={actions.isStripeBillingDialogOpen}
 				customerEmail={packageRow.customerEmail}

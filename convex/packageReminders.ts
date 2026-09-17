@@ -16,28 +16,16 @@ export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 });
 
 export const claimPackageReminder = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
-		now: v.number()
-	},
+	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), now: v.number() },
 	handler: (ctx, args) => claimPackageReminderService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageReminderSent = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
-		now: v.number()
-	},
+	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), now: v.number() },
 	handler: (ctx, args) => markPackageReminderSentService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageReminderFailed = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		reminderType: v.union(v.literal("payment"), v.literal("expiry")),
-		failureCode: v.string()
-	},
+	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), failureCode: v.string() },
 	handler: (ctx, args) => markPackageReminderFailedService(ctx, args).match(tupleOk, tupleErr)
 });

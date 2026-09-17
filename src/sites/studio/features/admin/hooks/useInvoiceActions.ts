@@ -15,7 +15,6 @@ import {
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
-import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 function showSendStripeInvoiceError(reason: string) {
 	switch (reason) {
@@ -54,7 +53,6 @@ function showSendStripeInvoiceError(reason: string) {
 
 export function useInvoiceActions(session: SessionRecord) {
 	const sendBookingStripeInvoice = useAction(api.stripeInvoicing.sendBookingStripeInvoice);
-	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
 	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
 
@@ -78,25 +76,6 @@ export function useInvoiceActions(session: SessionRecord) {
 
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
-
-		if (session.packageId) {
-			const [packageError, invoice] = await tryCatch(
-				getAdminPackageInvoicePdf({ packageId: session.packageId })
-			);
-
-			setIsDownloadingInvoice(false);
-
-			if (packageError !== null) {
-				toast.error("Unable to generate package invoice.");
-
-				return;
-			}
-
-			downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
-			toast.success("Package invoice download started.");
-
-			return;
-		}
 
 		if (!bookingSettings) {
 			setIsDownloadingInvoice(false);

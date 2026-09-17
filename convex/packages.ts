@@ -12,9 +12,7 @@ import {
 	archivePackageService,
 	createPendingPackageService,
 	listPackagesService,
-	markPackageInvoiceEmailAttemptService,
 	markPackagePaidAndCreateScheduleTokenService,
-	markPackageUnpaidService,
 	markPackageReceiptEmailAttemptService,
 	markPackageScheduleEmailAttemptService,
 	refreshPackageScheduleTokenService,
@@ -59,16 +57,6 @@ export const createPendingPackage = internalMutation({
 	handler: (ctx, args) => createPendingPackageService(ctx, args)
 });
 
-export const markPackageInvoiceEmailAttempt = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		status: v.union(v.literal("sent"), v.literal("failed")),
-		invoiceNumber: v.optional(v.string()),
-		failureCode: v.optional(v.string())
-	},
-	handler: (ctx, args) => markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
-});
-
 export const listPackages = query({
 	args: {
 		paginationOpts: paginationOptsValidator,
@@ -105,11 +93,6 @@ export const updatePackageFromAdmin = mutation({
 export const archivePackage = mutation({
 	args: { packageId: v.id("packages"), archived: v.boolean() },
 	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const markPackageUnpaid = mutation({
-	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({

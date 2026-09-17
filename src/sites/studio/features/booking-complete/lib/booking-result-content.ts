@@ -94,17 +94,6 @@ export function getPackagePaidResultContent(packageSize: 4 | 8 | 12): BookingRes
 	};
 }
 
-export function getPackageReceiptEmailFailedResultContent(
-	packageSize: 4 | 8 | 12
-): BookingResultContent {
-	return {
-		title: `${packageSize}-Session Package confirmed`,
-		description:
-			"Your package is confirmed, but we couldn’t email your receipt. You can download it here or contact us.",
-		isBookingCompletionFailure: false
-	};
-}
-
 export function getPackageScheduleEmailFailedResultContent(
 	packageSize: 4 | 8 | 12
 ): BookingResultContent {

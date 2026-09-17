@@ -172,8 +172,7 @@ export default defineSchema({
 		.index("by_requestId", ["requestId"]),
 
 	customInvoices: defineTable({
-		bookingId: v.optional(v.id("bookings")),
-		packageId: v.optional(v.id("packages")),
+		bookingId: v.id("bookings"),
 		invoiceNumber: v.string(),
 		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
@@ -183,15 +182,11 @@ export default defineSchema({
 		completeEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		handcraftedClipsQuantity: v.optional(v.string()),
-		packageSize: v.optional(v.union(v.literal(4), v.literal(8), v.literal(12))),
 		includeDepositLineItem: v.boolean(),
-		includePackageDiscount: v.optional(v.boolean()),
 		customTotalDueAmount: v.optional(v.number()),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string())
-	})
-		.index("by_bookingId", ["bookingId"])
-		.index("by_packageId", ["packageId"]),
+	}).index("by_bookingId", ["bookingId"]),
 
 	bookingRescheduleLinks: defineTable({
 		bookingId: v.id("bookings"),
@@ -345,18 +340,16 @@ export default defineSchema({
 		status: v.union(
 			v.literal("pending_payment"),
 			v.literal("paid"),
-			v.literal("invoice_email_failed"),
 			v.literal("schedule_email_failed"),
 			v.literal("abandoned"),
 			v.literal("expired")
 		),
 		createdAt: v.number(),
-		invoiceDueAt: v.optional(v.number()),
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
 
-		// Invoice metadata/email status (legacy invoice-first packages only; Stripe checkout omits on insert)
+		// Receipt metadata (receipt number + email delivery status)
 		invoiceNumber: v.optional(v.string()),
 		invoiceEmailStatus: v.optional(
 			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
@@ -381,7 +374,6 @@ export default defineSchema({
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeCustomerId: v.optional(v.string())
 	})
-		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])
 		.index("by_status_and_expiresAt", ["status", "expiresAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])

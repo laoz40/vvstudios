@@ -47,17 +47,12 @@ describe("getPackageCheckoutClaimStatus", () => {
 		}
 	});
 
-	test("rejects abandoned, expired, and invoice email failed packages", () => {
+	test("rejects abandoned and expired packages", () => {
 		const abandoned = getPackageCheckoutClaimStatus(packageRecord({ status: "abandoned" }));
 		const expired = getPackageCheckoutClaimStatus(packageRecord({ status: "expired" }));
 
-		const invoiceEmailFailed = getPackageCheckoutClaimStatus(
-			packageRecord({ status: "invoice_email_failed" })
-		);
-
 		expect(abandoned.isErr()).toBe(true);
 		expect(expired.isErr()).toBe(true);
-		expect(invoiceEmailFailed.isErr()).toBe(true);
 
 		if (abandoned.isErr()) {
 			expect(abandoned.error).toEqual({ reason: "STRIPE_SESSION_MISMATCH" });

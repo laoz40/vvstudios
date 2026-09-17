@@ -14,7 +14,6 @@ import {
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { LegacyInvoicesSubmenu } from "#studio/features/admin/components/LegacyInvoicesSubmenu";
 import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
@@ -80,11 +79,9 @@ function PackageInvoiceActions({
 	packageRow
 }: PackageInvoiceActionsProps) {
 	const {
-		handleDownloadInvoice,
 		isActionPending,
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
-		setIsLegacyCustomInvoicesDialogOpen,
 		setIsStripeBillingDialogOpen,
 		setIsStripeInvoiceDialogOpen
 	} = actions;
@@ -139,18 +136,6 @@ function PackageInvoiceActions({
 					)}>
 					Stripe billing
 				</AnimatedDropdownMenuItem>
-			) : null}
-			{packageRow.stripeCustomerId === undefined ? (
-				<LegacyInvoicesSubmenu
-					downloadingLegacyCustomInvoiceId={actions.downloadingLegacyCustomInvoiceId}
-					downloadLabel={pendingAction === "download" ? "Generating invoice" : "Download invoice"}
-					isDisabled={isActionPending}
-					isDownloadingInvoice={pendingAction === "download"}
-					onDownloadInvoice={() => {
-						void handleDownloadInvoice();
-					}}
-					onOpenCustomInvoices={() => setIsLegacyCustomInvoicesDialogOpen(true)}
-				/>
 			) : null}
 		</>
 	);

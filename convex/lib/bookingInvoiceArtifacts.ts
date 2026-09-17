@@ -1,5 +1,5 @@
 import { err, errAsync, ok, type Result, type ResultAsync } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Doc } from "#convex/_generated/dataModel";
 import {
 	bookingSchema,
 	packageFormSchema,
@@ -7,7 +7,6 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildBookingInvoiceData,
-	buildPackageInvoiceData,
 	createStoredAmountPackageInvoiceLineItemSnapshot
 } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import {
@@ -29,31 +28,6 @@ type PackageReceiptArtifactOptions = {
 	scheduleUrl?: string;
 };
 
-export type MarkPackageInvoiceEmailAttemptArgs = {
-	packageId: Id<"packages">;
-	status: "sent" | "failed";
-	invoiceNumber?: string;
-	failureCode?: string;
-};
-
-export type PackageInvoiceEmailAttemptError =
-	| { reason: "INVOICE_NUMBER_REQUIRED" }
-	| { reason: "INVOICE_FAILURE_CODE_REQUIRED" };
-
-export function validatePackageInvoiceEmailAttempt(
-	args: MarkPackageInvoiceEmailAttemptArgs
-): Result<null, PackageInvoiceEmailAttemptError> {
-	if (args.status === "sent" && args.invoiceNumber === undefined) {
-		return err({ reason: "INVOICE_NUMBER_REQUIRED" as const });
-	}
-
-	if (args.status === "failed" && args.failureCode === undefined) {
-		return err({ reason: "INVOICE_FAILURE_CODE_REQUIRED" as const });
-	}
-
-	return ok(null);
-}
-
 function createPdfFilename(invoiceNumber: string) {
 	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
 }
@@ -65,14 +39,6 @@ function createReceiptPdfFilename(receiptNumber: string) {
 function createPackageReceiptPdfFilename(receiptNumber: string) {
 	return `package-receipt-${receiptNumber.toLowerCase()}.pdf`;
 }
-
-type InvoiceEmailArtifacts = {
-	artifacts: {
-		data: BookingInvoiceData;
-		emailHtml: string;
-		pdf: { contentType: string; filename: string };
-	};
-};
 
 export type PackageAdjustmentInvoiceInput = {
 	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>;
@@ -96,7 +62,6 @@ export type PackageInvoiceInput = Pick<
 	| "notes"
 	| "packageSize"
 	| "createdAt"
-	| "invoiceDueAt"
 	| "invoiceNumber"
 	| "singleSessionAmount"
 	| "packageSubtotalAmount"
@@ -452,78 +417,4 @@ export function createPackageReceiptArtifacts(
 			}
 		}
 	});
-}
-
-export function createPackageInvoiceArtifacts(
-	packageRecord: PackageInvoiceInput,
-	options: { leadTimeMinutes: number }
-): ResultAsync<
-	InvoiceEmailArtifacts,
-	{ reason: "INVALID_BOOKING_DATA" } | { reason: "INVOICE_EMAIL_RENDER_FAILED" }
-> {
-	const parsedPackage = packageFormSchema.safeParse({
-		name: packageRecord.name,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		email: packageRecord.email,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
-		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
-		notes: packageRecord.notes ?? "",
-		packageSize: packageRecord.packageSize
-	});
-
-	if (!parsedPackage.success) {
-		return errAsync({ reason: "INVALID_BOOKING_DATA" as const });
-	}
-
-	const packageFormData = parsedPackage.data;
-
-	const invoiceLineItems =
-		packageRecord.invoiceLineItems ??
-		createStoredAmountPackageInvoiceLineItemSnapshot({
-			discountAmount: packageRecord.discountAmount,
-			discountPercent: packageRecord.discountPercent,
-			duration: packageFormData.duration,
-			packageSize: packageRecord.packageSize,
-			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
-			singleSessionAmount: packageRecord.singleSessionAmount
-		});
-
-	const data = buildPackageInvoiceData({
-		bookingId: packageRecord._id,
-		name: packageFormData.name,
-		phone: packageFormData.phone,
-		accountName: packageFormData.accountName,
-		abn: packageFormData.abn,
-		email: packageFormData.email,
-		duration: packageFormData.duration,
-		addons: packageFormData.addons,
-		essentialEditQuantity: packageFormData.essentialEditQuantity || undefined,
-		completeEditQuantity: packageFormData.completeEditQuantity || undefined,
-		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
-		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
-		createdAt: packageRecord.createdAt,
-		invoiceDueAt: packageRecord.invoiceDueAt ?? packageRecord.createdAt,
-		invoiceNumber: packageRecord.invoiceNumber,
-		packageSize: packageRecord.packageSize,
-		packageSubtotalAmount: packageRecord.packageSubtotalAmount,
-		discountPercent: packageRecord.discountPercent,
-		discountAmount: packageRecord.discountAmount,
-		totalDueAmount: packageRecord.totalDueAmount,
-		invoiceLineItems,
-		leadTimeMinutes: options.leadTimeMinutes
-	});
-
-	return renderBookingInvoiceEmail(data).map((emailHtml) => ({
-		artifacts: {
-			data,
-			emailHtml,
-			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
-		}
-	}));
 }

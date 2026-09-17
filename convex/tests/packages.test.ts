@@ -227,7 +227,6 @@ async function seedPackage(t: TestClient) {
 			],
 			status: "paid",
 			createdAt: now,
-			invoiceDueAt: now,
 			paidAt: now,
 			expiresAt: now + 100_000,
 			invoiceEmailStatus: "sent"
@@ -281,7 +280,6 @@ async function seedPendingPackage(t: TestClient) {
 			totalDueAmount: 400,
 			status: "pending_payment",
 			createdAt: now,
-			invoiceDueAt: now,
 			invoiceEmailStatus: "sent"
 		})
 	);
@@ -306,7 +304,6 @@ async function seedPaidPackageWithToken(t: TestClient) {
 			totalDueAmount: 400,
 			status: "paid",
 			createdAt: now,
-			invoiceDueAt: now,
 			paidAt: now,
 			expiresAt: getPackageExpiresAt(now, 4),
 			invoiceEmailStatus: "sent",

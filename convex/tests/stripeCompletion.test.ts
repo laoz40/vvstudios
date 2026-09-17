@@ -170,7 +170,6 @@ async function seedPendingPackage(t: TestClient) {
 			totalDueAmount: 400,
 			status: "pending_payment",
 			createdAt: now,
-			invoiceDueAt: now,
 			invoiceEmailStatus: "sent",
 			stripeSessionId: "cs-1"
 		})

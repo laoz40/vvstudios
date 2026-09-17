@@ -6,7 +6,6 @@ import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
-import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-email/RescheduledBookingEmail";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -87,13 +86,6 @@ type SendPackageHostDetailsEmailArgs = {
 	packageSize: 4 | 8 | 12;
 	invoiceDueAt: number;
 } & BookingAddonQuantitiesArgs;
-
-interface SendPackagePaymentReminderEmailArgs {
-	email: string;
-	invoiceDueAt: number;
-	name: string;
-	requestDate: number;
-}
 
 interface SendPackageExpiryReminderEmailArgs {
 	email: string;
@@ -254,39 +246,6 @@ export function sendBookingRescheduledCustomerEmail({
 			subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
 			html
 		}).map(() => null)
-	);
-}
-
-export function sendPackagePaymentReminderEmail({
-	email,
-	invoiceDueAt,
-	name,
-	requestDate
-}: SendPackagePaymentReminderEmailArgs) {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	return tryPromise({
-		try: () =>
-			render(
-				createElement(PackagePaymentReminderEmail, {
-					invoiceDueAtLabel: formatTimestampDateLong(invoiceDueAt),
-					name,
-					requestDateLabel: formatTimestampDateLong(requestDate),
-					signoffName
-				})
-			),
-		catch: (cause) => {
-			console.error("Package payment reminder email render failed", { email, cause });
-
-			return { reason: "EMAIL_RENDER_FAILED" as const };
-		}
-	}).andThen((html) =>
-		sendEmail({
-			to: [email],
-			subject: `Reminder: Complete Your Package Payment — Requested ${formatTimestampDateShort(requestDate)}`,
-			html
-		})
 	);
 }
 

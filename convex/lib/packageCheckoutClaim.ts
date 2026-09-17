@@ -38,7 +38,6 @@ export function getPackageCheckoutClaimStatus<T extends PackageCheckoutClaimPack
 				: ok({ kind: "pending", packageFromDb });
 		case "abandoned":
 		case "expired":
-		case "invoice_email_failed":
 			return err({ reason: "STRIPE_SESSION_MISMATCH" });
 		default:
 			return exhaustiveCheck(packageFromDb.status);

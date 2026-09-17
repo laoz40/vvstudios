@@ -5,26 +5,18 @@
  *    Duration, add-ons, editing quantities, deposit, and a manual override must create a
  *    coherent, nonnegative invoice whose line items balance to the final total.
  *
- * 2. Package pricing snapshots
- *    Package invoice artifacts must use the commercial amounts and line items saved at purchase
- *    time instead of recalculating them from current pricing.
+ * 2. Custom invoice creation
+ *    Only an admin with an existing session and a finite nonnegative total may create an invoice.
+ *    Rejected requests must leave the database unchanged.
  *
- * 3. Custom invoice creation
- *    Only an admin with an existing session or package and a finite nonnegative total may create
- *    an invoice. Rejected requests must leave the database unchanged.
- *
- * 4. Invoice downloads
- *    Public session and package downloads enforce record existence, lifecycle state, and the
- *    one-hour access window. Admin package invoice and receipt downloads remain available
- *    after that window.
+ * 3. Invoice downloads
+ *    Public session and package receipt downloads enforce record existence, lifecycle state, and
+ *    the one-hour access window. Admin package receipt downloads remain available after that window.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	createBookingInvoiceArtifactsForBooking,
-	createPackageInvoiceArtifacts
-} from "#convex/lib/bookingInvoiceArtifacts";
+import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
 import { createConvexTest } from "#convex/test.setup";
 import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
@@ -176,26 +168,6 @@ describe("invoice financial integrity", () => {
 			])
 		);
 	});
-
-	test("uses the package commercial snapshot without recalculating current prices", async () => {
-		const t = createConvexTest();
-		const packageId = await seedPackage(t, { createdAt: now });
-		const packageRecord = await t.run((ctx) => ctx.db.get(packageId));
-
-		if (!packageRecord) throw new Error("Expected seeded package");
-
-		const result = await createPackageInvoiceArtifacts(packageRecord, { leadTimeMinutes: 60 });
-
-		if (result.isErr()) throw new Error(`Expected invoice artifacts: ${result.error.reason}`);
-		expect(result.value.artifacts.data.amounts).toMatchObject({
-			subtotalAmount: 912.34,
-			totalDueAmount: 876.54
-		});
-		expect(result.value.artifacts.data.lineItems).toEqual([
-			{ amount: 999.99, description: "Stored studio package", quantity: 4, rate: 249.9975 },
-			{ amount: -123.45, description: "Stored package discount", quantity: 1, rate: -123.45 }
-		]);
-	});
 });
 
 describe("custom invoice creation", () => {
@@ -242,9 +214,10 @@ describe("custom invoice creation", () => {
 		}
 	);
 
-	test("rejects missing session and package sources without creating an invoice", async () => {
+	test("rejects missing session source without creating an invoice", async () => {
 		const t = createConvexTest();
-		const { bookingId, packageId } = await seedAndDeleteSources(t);
+		const bookingId = await seedBooking(t);
+		await t.run((ctx) => ctx.db.delete(bookingId));
 		const admin = t.withIdentity(adminIdentity);
 
 		const bookingResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
@@ -253,22 +226,13 @@ describe("custom invoice creation", () => {
 			includeDepositLineItem: true
 		});
 
-		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
-			packageId: packageId,
-			addons: [],
-			packageSize: 4,
-			includeDepositLineItem: true
-		});
-
 		expect(bookingResult).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
-		expect(packageResult).toEqual([{ reason: "PACKAGE_NOT_FOUND" }, null]);
 		expect(await readCustomInvoices(t)).toEqual([]);
 	});
 
-	test("stores final numbered custom invoices for valid session and package sources", async () => {
+	test("stores final numbered custom invoices for valid session sources", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
-		const packageId = await seedPackage(t, { createdAt: now });
 		const admin = t.withIdentity(adminIdentity);
 
 		const bookingResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
@@ -278,27 +242,12 @@ describe("custom invoice creation", () => {
 			customTotalDueAmount: 321
 		});
 
-		const packageResult = await admin.mutation(api.customInvoices.createPackageCustomInvoice, {
-			packageId: packageId,
-			addons: [],
-			packageSize: 4,
-			includeDepositLineItem: true,
-			customTotalDueAmount: 654
-		});
-
 		const invoices = await readCustomInvoices(t);
 
 		expect(bookingResult[0]).toBeNull();
-		expect(packageResult[0]).toBeNull();
-		expect(invoices).toHaveLength(2);
-		expect(invoices).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ bookingId, customTotalDueAmount: 321 }),
-				expect.objectContaining({ packageId: packageId, customTotalDueAmount: 654 })
-			])
-		);
-
-		for (const invoice of invoices) expect(invoice.invoiceNumber).toMatch(/^VV-20300110-/);
+		expect(invoices).toHaveLength(1);
+		expect(invoices[0]).toMatchObject({ bookingId, customTotalDueAmount: 321 });
+		expect(invoices[0]?.invoiceNumber).toMatch(/^VV-20300110-/);
 	});
 });
 
@@ -419,39 +368,6 @@ describe("invoice download access", () => {
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
 	});
 
-	test("expires public package downloads while keeping admin download available", async () => {
-		const t = createConvexTest();
-		const currentPackageId = await seedPackage(t, { createdAt: now });
-		const expiredPackageId = await seedPackage(t, { createdAt: now - oneHour - 1 });
-
-		const missingId = await t.run(async (ctx) => {
-			const id = await ctx.db.insert("packages", packageFields(now));
-			await ctx.db.delete(id);
-
-			return id;
-		});
-
-		expect(await t.action(api.invoices.getPackageInvoicePdfById, { packageId: missingId })).toEqual(
-			[{ reason: "PACKAGE_NOT_FOUND" }, null]
-		);
-		expect(
-			await t.action(api.invoices.getPackageInvoicePdfById, { packageId: expiredPackageId })
-		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
-
-		const [publicError, publicPayload] = await t.action(api.invoices.getPackageInvoicePdfById, {
-			packageId: currentPackageId
-		});
-
-		const [adminError, adminPayload] = await t
-			.withIdentity(adminIdentity)
-			.action(api.invoices.getAdminPackageInvoicePdfById, { packageId: expiredPackageId });
-
-		expect(publicError).toBeNull();
-		expect(publicPayload?.content.byteLength).toBeGreaterThan(0);
-		expect(adminError).toBeNull();
-		expect(adminPayload?.content.byteLength).toBeGreaterThan(0);
-	});
-
 	test("expires public package receipt downloads while keeping admin download available", async () => {
 		const t = createConvexTest();
 		const expiredPaidAt = now - oneHour - 1;
@@ -540,7 +456,6 @@ function packageFields(createdAt: number) {
 		],
 		status: "pending_payment" as const,
 		createdAt,
-		invoiceDueAt: createdAt + 7 * 24 * 60 * 60 * 1000,
 		invoiceNumber: "VV-STORED-001",
 		invoiceEmailStatus: "sent" as const
 	};
@@ -561,17 +476,6 @@ async function seedPackage(
 			paidAt: options.paidAt
 		})
 	);
-}
-
-async function seedAndDeleteSources(t: TestClient) {
-	const bookingId = await seedBooking(t);
-	const packageId = await seedPackage(t, { createdAt: now });
-	await t.run(async (ctx) => {
-		await ctx.db.delete(bookingId);
-		await ctx.db.delete(packageId);
-	});
-
-	return { bookingId, packageId };
 }
 
 async function readCustomInvoices(t: TestClient) {

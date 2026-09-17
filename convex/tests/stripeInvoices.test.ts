@@ -215,7 +215,6 @@ async function seedPaidPackage(t: TestClient) {
 			totalDueAmount: 400,
 			status: "paid",
 			createdAt: now - 30 * 24 * 60 * 60 * 1000,
-			invoiceDueAt: now,
 			invoiceEmailStatus: "sent",
 			paidAt: now - 20 * 24 * 60 * 60 * 1000,
 			expiresAt: now,

@@ -3,10 +3,6 @@ import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
-import {
-	validatePackageInvoiceEmailAttempt,
-	type MarkPackageInvoiceEmailAttemptArgs
-} from "#convex/lib/bookingInvoiceArtifacts";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import {
 	createPackageScheduleToken,
@@ -33,8 +29,6 @@ type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHand
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
 type PackageIdArgs = { packageId: Id<"packages"> };
-
-type MarkPackageUnpaidArgs = { packageId: Id<"packages"> };
 
 type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
 
@@ -186,28 +180,6 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 		);
 }
 
-export function markPackageUnpaidService(ctx: MutationCtx, args: MarkPackageUnpaidArgs) {
-	return requirePermission(ctx, "update:payment-status")
-		.andThen(() => getPackageFromDb(ctx, args.packageId))
-		.andThen((packageFromDb) =>
-			okOrThrow(
-				ctx.db
-					.patch(args.packageId, {
-						paidAt: undefined,
-						expiresAt: undefined,
-						packageReminderState: undefined,
-						scheduleTokenHash: undefined,
-						scheduleLinkStatus: undefined,
-						status:
-							packageFromDb.invoiceEmailStatus === "failed"
-								? "invoice_email_failed"
-								: "pending_payment"
-					})
-					.then(() => null)
-			)
-		);
-}
-
 export function markPackagePaidAndCreateScheduleTokenService(
 	ctx: MutationCtx,
 	args: MarkPackagePaidArgs,
@@ -289,36 +261,6 @@ export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: Packa
 					}))
 			)
 		);
-}
-
-export function markPackageInvoiceEmailAttemptService(
-	ctx: MutationCtx,
-	args: MarkPackageInvoiceEmailAttemptArgs
-) {
-	return validatePackageInvoiceEmailAttempt(args).asyncAndThen(() => {
-		const now = Date.now();
-
-		const patch =
-			args.status === "sent"
-				? {
-						invoiceNumber: args.invoiceNumber,
-						invoiceEmailStatus: args.status,
-						invoiceEmailSentAt: now,
-						invoiceEmailFailureCode: undefined,
-						lastInvoiceEmailAttemptAt: now,
-						status: "pending_payment" as const
-					}
-				: {
-						invoiceNumber: undefined,
-						invoiceEmailStatus: args.status,
-						invoiceEmailSentAt: undefined,
-						invoiceEmailFailureCode: args.failureCode,
-						lastInvoiceEmailAttemptAt: now,
-						status: "invoice_email_failed" as const
-					};
-
-		return okOrThrow(ctx.db.patch(args.packageId, patch).then(() => null));
-	});
 }
 
 export function markPackageScheduleEmailAttemptService(

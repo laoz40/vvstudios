@@ -56,7 +56,7 @@ Open locally: `mdxp plans/12-upfront-stripe-payments.mdx`
 		{
 			path: "src/sites/studio/features/admin/",
 			change: "modified",
-			note: "resend/download receipt, Stripe invoice, legacy read-only invoices"
+			note: "resend/download receipt, Stripe invoice, legacy session invoices only"
 		},
 		{
 			path: "convex/schema.ts",
@@ -342,8 +342,8 @@ export function createPackageCheckoutSession(...) {
 
 **Remove from package create flow:**
 
-- `sendPackageInvoice` on request — done for new packages; keep for legacy resend only
-- `invoiceDueAt` writes for new packages — done
+- `sendPackageInvoice` on request — removed
+- `invoiceDueAt` writes for new packages — removed (field dropped; prod had zero package rows)
 - Package payment reminder cron (`packageReminders.ts` payment branch) — cron stopped; delete `listPackagesDueForPaymentReminder*` in stage 5
 
 ### Frontend
@@ -500,9 +500,9 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 
 ### Remove (new bookings)
 
-| UI / action            | File(s)                                             | Status                                                |
-| ---------------------- | --------------------------------------------------- | ----------------------------------------------------- |
-| Custom invoice dialogs | `CustomInvoiceDialog`, `PackageCustomInvoiceDialog` | Done — `LegacyCustomInvoicesDialog` kept for old rows |
+| UI / action            | File(s)                                             | Status                                                                |
+| ---------------------- | --------------------------------------------------- | --------------------------------------------------------------------- |
+| Custom invoice dialogs | `CustomInvoiceDialog`, `PackageCustomInvoiceDialog` | Done — `LegacyCustomInvoicesDialog` kept for legacy session rows only |
 
 ### Keep / add
 
@@ -510,7 +510,7 @@ Code complete; manual Stripe QA + E2E updates deferred to stages 4–5:
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Receipt PDF download           | Admin download from session/package menus                                                                        | Done                                                               |
 | Ad-hoc Stripe Invoice          | Multi-line form: pick booking/package → add rows (description + amount) → one Stripe Invoice with itemized lines | Done — `StripeInvoiceDialog`, `convex/services/stripeInvoicing.ts` |
-| Legacy custom invoices         | List/download only when `stripeCustomerId` is missing                                                            | Done                                                               |
+| Legacy custom invoices         | Session list/download only when `stripeCustomerId` is missing (no package custom invoices)                       | Done                                                               |
 | Package-linked session billing | Hide session billing actions for bookings tied to a package                                                      | Done                                                               |
 | Legacy resend receipt          | Hide resend receipt when booking has no `stripeCustomerId`                                                       | Done                                                               |
 
@@ -578,7 +578,7 @@ Ship as stacked parts on `feat/upfront-stripe/tests-cleanup`. Each part is one c
 
 <Callout
 	tone="decision"
-	body="**Legacy invoice PDFs stay.** Admin still downloads and emails invoice PDFs for old sessions/packages (`stripeCustomerId` missing). Do not remove `calculate-booking-invoice-amounts`, deposit constants, `includeDepositLineItem`, or legacy custom-invoice helpers. Stage 5 only stops new customer flows from using invoice/deposit copy."
+	body="**Legacy session invoice PDFs stay.** Admin still downloads invoice PDFs for old sessions (`stripeCustomerId` missing). Package legacy invoice paths were removed in stage 5 part 2b — prod had zero package rows. Do not remove `calculate-booking-invoice-amounts`, deposit constants, `includeDepositLineItem`, or session legacy custom-invoice helpers."
 />
 
 ### Part 1 — E2E (CI pre-checkout + local full checkout)
@@ -623,14 +623,22 @@ Packages now behave like single sessions: form → terms → Stripe payment moda
 
 ### Part 2 — Backend dead code
 
-**Status:** Done — `confirmPackagePayment`, `listPackagesDueForPaymentReminder*`, create-path `sendPackageInvoice`, and package `invoiceEmailStatus: "pending"` insert removed.
+**Status:** Done — create-path invoice email removed in part 2a; package legacy invoice/admin paths removed in part 2b (zero prod package rows).
 
-Remove paths made obsolete by stages 1–4. Grep after each deletion.
+**Part 2a (done):**
 
 - Delete `confirmPackagePayment` action/handler
 - Delete `listPackagesDueForPaymentReminder*` (cron stopped in stage 2)
-- Remove unused `sendPackageInvoice` on the **create** path if fully legacy-only
-- Remove `invoiceEmailStatus: "pending"` from `buildPendingPackageRecord` when safe
+- Remove create-path `sendPackageInvoice`
+- Remove `invoiceEmailStatus: "pending"` from `buildPendingPackageRecord`
+
+**Part 2b — package legacy removal (done):**
+
+- Drop package invoice PDF downloads (`getPackageInvoicePdfById`, `getAdminPackageInvoicePdfById`, custom package invoices)
+- Drop `createPackageInvoiceArtifacts`, `buildPackageInvoiceData`, `bookingInvoiceCustomPackage.ts`
+- Drop `markPackageUnpaid`, `markPackageInvoiceEmailAttempt`, `sendPackagePaymentReminderEmail`
+- Drop package `invoiceDueAt`, `invoice_email_failed` status, and `by_status_and_invoiceDueAt` index
+- Admin: remove package `LegacyInvoicesSubmenu` / custom-invoice dialog wiring
 
 ### Part 3 — Customer-facing copy
 
@@ -643,18 +651,16 @@ Update copy on **new** booking and complete flows only. Do not change legacy adm
 
 Receipt paths already use `BOOKING_RECEIPT_TITLE`, `BOOKING_RECEIPT_NOTES`, and `calculate-booking-receipt-amounts` (no deposit line). Part 3 is mostly Terms + any stray customer copy, not ripping out invoice constants.
 
-### Part 4 — Legacy invoice PDF boundary (audit, not removal)
+### Part 4 — Legacy invoice PDF boundary (sessions only)
 
-**Status:** Done — receipt/checkout paths use `BOOKING_RECEIPT_*` only; package receipt cancellation policy moved off `BOOKING_INVOICE_NOTES`. Legacy invoice libs unchanged.
+**Status:** Done — receipt/checkout paths use `BOOKING_RECEIPT_*` only. Package legacy invoice code removed (part 2b). Session legacy invoice libs unchanged.
 
-**Keep** for admin legacy sessions/packages:
+**Keep** for admin legacy sessions:
 
 - `buildBookingInvoiceData`, `calculate-booking-invoice-amounts`, `BOOKING_DEPOSIT_AMOUNT`, `BOOKING_INVOICE_PAYMENT`, `includeDepositLineItem`
 - `legacy-custom-invoices.ts`, `LegacyCustomInvoicesDialog`, `downloadAdminBookingInvoice`, `sendBookingInvoiceForBooking`
 
-**Do not** remove `includeDepositLineItem` from custom-invoice render paths. Stored rows may still have `includeDepositLineItem: true`.
-
-**Audit only:** confirm new receipt/checkout code does not import deposit or bank-transfer constants. Leave invoice libs frozen unless fixing a bug.
+**Do not** remove `includeDepositLineItem` from custom-invoice render paths. Stored session rows may still have `includeDepositLineItem: true`.
 
 ### Part 5 — Verify gate
 
@@ -664,7 +670,7 @@ Run before merge:
 - [ ] No references to `STRIPE_BOOKING_DEPOSIT_PRICE_ID` or `STRIPE_PROCESSING_FEE_PRICE_ID`
 - [ ] CI E2E: session + package both stop at payment modal (no Stripe pay)
 - [ ] Local E2E (optional): `session-payment`, `package-payment`, `session-reschedule`
-- [ ] Grep customer-facing copy clean; legacy admin invoice paths still work for old records
+- [ ] Grep customer-facing copy clean; legacy session admin invoice paths still work for old records
 
 ---
 
