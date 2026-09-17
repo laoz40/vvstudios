@@ -131,10 +131,7 @@ describe("buildPackageCheckoutLineItems", () => {
 					}
 				}
 			]);
-			expect(result.value.discount).toEqual({
-				amount: 358.4,
-				description: "10% package discount"
-			});
+			expect(result.value.discount).toEqual({ amount: 358.4, description: "10% package discount" });
 		}
 	});
 
