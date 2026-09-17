@@ -310,22 +310,6 @@ export async function expectPaymentModal(page: Page) {
 	await expect(paymentDialog.locator("iframe").first()).toBeVisible({ timeout: 30_000 });
 }
 
-export async function expectNoPaymentModal(page: Page) {
-	await expect(page.getByRole("button", { name: "Close payment modal" })).toBeHidden({
-		timeout: 5_000
-	});
-}
-
-export async function expectPackageRequestComplete(page: Page, packageSize: PackageSizeOption = 4) {
-	await expect(page).toHaveURL(/\/package-complete/, { timeout: 45_000 });
-	await expect(page).toHaveURL(new RegExp(`package_size=${packageSize}`));
-	await expect(
-		page.getByRole("heading", { name: `${packageSize}-Session Package requested.` })
-	).toBeVisible();
-	await expect(page.getByText("Next Steps:")).toBeVisible();
-	await expect(page.getByText("Pay your invoice")).toBeVisible();
-}
-
 export async function closePaymentModal(page: Page) {
 	const closeButton = page.getByRole("button", { name: "Close payment modal" });
 
@@ -375,7 +359,14 @@ export async function completeStripePayment(page: Page) {
 	]);
 }
 
-export async function expectBookingConfirmed(page: Page) {
+export interface ExpectBookingConfirmedOptions {
+	packageSize?: PackageSizeOption;
+}
+
+export async function expectBookingConfirmed(
+	page: Page,
+	options: ExpectBookingConfirmedOptions = {}
+) {
 	await expect(page).toHaveURL(/session_id=/, { timeout: 10_000 });
 
 	const paymentReceivedHeading = page.getByRole("heading", { name: /We received your payment/ });
@@ -388,7 +379,12 @@ export async function expectBookingConfirmed(page: Page) {
 		);
 	}
 
-	await expect(page.getByRole("heading", { name: "Your booking is confirmed!" })).toBeVisible({
+	const confirmedHeading =
+		options.packageSize === undefined
+			? "Your booking is confirmed!"
+			: `${options.packageSize}-Session Package confirmed`;
+
+	await expect(page.getByRole("heading", { name: confirmedHeading })).toBeVisible({
 		timeout: 120_000
 	});
 }
