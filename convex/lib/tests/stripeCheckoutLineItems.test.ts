@@ -11,22 +11,14 @@
  *    Returns BOOKING_INVALID_DURATION.
  *
  * 4. Package totals
- *    Itemized lines plus discount metadata match calculatePackageAmounts.
+ *    An 8-session package with add-ons applies the 10% discount to known subtotals.
  */
 import { describe, expect, test } from "vitest";
 import {
 	buildPackageCheckoutLineItems,
-	buildSessionCheckoutLineItems,
-	type SessionCheckoutLineItem
+	buildSessionCheckoutLineItems
 } from "#convex/lib/stripeCheckoutLineItems";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
-
-function sumLineItemsAud(lineItems: SessionCheckoutLineItem[]) {
-	return lineItems.reduce((total, item) => {
-		return total + (item.quantity * item.price_data.unit_amount) / 100;
-	}, 0);
-}
 
 describe("buildSessionCheckoutLineItems", () => {
 	test("converts AUD prices to Stripe cents", () => {
@@ -111,25 +103,36 @@ describe("buildPackageCheckoutLineItems", () => {
 		}
 	});
 
-	test("matches calculatePackageAmounts total after discount", () => {
-		const input = {
-			duration: "3h" as const,
-			packageSize: 8 as const,
+	test("applies a 10% discount to an 8-session package subtotal", () => {
+		const result = buildPackageCheckoutLineItems({
+			duration: "3h",
+			packageSize: 8,
 			addons: ["4K UHD Recording"] satisfies BookingAddon[]
-		};
-
-		const result = buildPackageCheckoutLineItems(input);
-		const packageAmounts = calculatePackageAmounts({ ...input, addons: [...input.addons] });
+		});
 
 		expect(result.isOk()).toBe(true);
 
 		if (result.isOk()) {
-			const subtotal = sumLineItemsAud(result.value.lineItems);
-			const discountAmount = result.value.discount.amount;
-
-			expect(subtotal - discountAmount).toBe(packageAmounts.totalDueAmount);
+			expect(result.value.lineItems).toEqual([
+				{
+					quantity: 8,
+					price_data: {
+						currency: "aud",
+						unit_amount: 39_900,
+						product_data: { name: "Studio Hire (3h)" }
+					}
+				},
+				{
+					quantity: 8,
+					price_data: {
+						currency: "aud",
+						unit_amount: 4_900,
+						product_data: { name: "4K UHD Recording" }
+					}
+				}
+			]);
 			expect(result.value.discount).toEqual({
-				amount: packageAmounts.discountAmount,
+				amount: 358.4,
 				description: "10% package discount"
 			});
 		}
