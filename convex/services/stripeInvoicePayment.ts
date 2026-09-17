@@ -31,14 +31,14 @@ export function completeStripeInvoicePaymentService(
 				return { outcome: "completed" as const };
 			})
 			.orElse((adjustmentError) => {
-				if (
-					stripeInvoiceClaim.outcome === "completed" ||
-					stripeInvoiceClaim.outcome === "already_completed"
-				) {
-					return ok({ outcome: "completed" as const });
-				}
-
 				if (adjustmentError.reason === "PACKAGE_ADJUSTMENT_NOT_FOUND") {
+					if (
+						stripeInvoiceClaim.outcome === "completed" ||
+						stripeInvoiceClaim.outcome === "already_completed"
+					) {
+						return ok({ outcome: "completed" as const });
+					}
+
 					return err({ kind: "not_found" as const });
 				}
 
