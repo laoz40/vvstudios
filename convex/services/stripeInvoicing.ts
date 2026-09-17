@@ -32,7 +32,7 @@ function requireStripeCustomerId(stripeCustomerId: string | undefined) {
 export function sendBookingStripeInvoiceService(
 	ctx: ActionCtx,
 	args: SendBookingStripeInvoiceArgs,
-	stripe: StripeClient = getStripeClient()
+	stripe?: StripeClient
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen((identity) =>
@@ -48,7 +48,7 @@ export function sendBookingStripeInvoiceService(
 			)
 		)
 		.andThen(({ identity, lineItems, stripeCustomerId }) =>
-			createAndSendStripeInvoice(stripe, {
+			createAndSendStripeInvoice(stripe ?? getStripeClient(), {
 				stripeCustomerId,
 				lineItems,
 				metadata: { kind: "booking", bookingId: args.bookingId, requestId: args.requestId }
@@ -69,7 +69,7 @@ export function sendBookingStripeInvoiceService(
 export function sendPackageStripeInvoiceService(
 	ctx: ActionCtx,
 	args: SendPackageStripeInvoiceArgs,
-	stripe: StripeClient = getStripeClient()
+	stripe?: StripeClient
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen((identity) =>
@@ -85,7 +85,7 @@ export function sendPackageStripeInvoiceService(
 			)
 		)
 		.andThen(({ identity, lineItems, stripeCustomerId }) =>
-			createAndSendStripeInvoice(stripe, {
+			createAndSendStripeInvoice(stripe ?? getStripeClient(), {
 				stripeCustomerId,
 				lineItems,
 				metadata: { kind: "package", packageId: args.packageId, requestId: args.requestId }
