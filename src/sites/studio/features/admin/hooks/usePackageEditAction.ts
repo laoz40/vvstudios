@@ -11,6 +11,7 @@ import {
 	packageFormSchema,
 	pickBookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { getBookingStartTimestamp } from "#studio/lib/bookingdatetime";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
 
@@ -59,8 +60,12 @@ function buildPackageUpdateInput(
 		input.notes = parsedValues.notes;
 	}
 
-	if (values.expiresAt !== undefined) {
-		input.expiresAt = values.expiresAt;
+	if (values.expiresDate && values.expiresTime) {
+		const expiresAt = getBookingStartTimestamp(values.expiresDate, values.expiresTime);
+
+		if (expiresAt > 0) {
+			input.expiresAt = expiresAt;
+		}
 	}
 
 	return input;

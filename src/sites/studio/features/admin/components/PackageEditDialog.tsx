@@ -45,7 +45,7 @@ import {
 	getAudAmountRowShowCents
 } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { toOptionId } from "#studio/lib/bookingdatetime";
+import { getSydneyDateValue, getSydneyTimeValue, toOptionId } from "#studio/lib/bookingdatetime";
 
 export type PackageEditDraft = {
 	accountName: string;
@@ -55,7 +55,8 @@ export type PackageEditDraft = {
 	customerName: string;
 	customerPhone: string;
 	duration: BookingFormValues["duration"];
-	expiresAt?: number;
+	expiresDate: string;
+	expiresTime: string;
 	notes: string;
 	packageSize: PackageSize;
 } & BookingAddonQuantities;
@@ -80,31 +81,6 @@ function formatSignedPriceDifference(diff: number, showCents: boolean) {
 	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
 }
 
-function formatDateTimeLocalValue(timestamp: number | undefined) {
-	if (timestamp === undefined) {
-		return "";
-	}
-
-	const date = new Date(timestamp);
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	const hours = String(date.getHours()).padStart(2, "0");
-	const minutes = String(date.getMinutes()).padStart(2, "0");
-
-	return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-function parseDateTimeLocalValue(value: string) {
-	if (!value) {
-		return undefined;
-	}
-
-	const timestamp = new Date(value).getTime();
-
-	return Number.isFinite(timestamp) ? timestamp : undefined;
-}
-
 function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 	return {
 		accountName: packageRow.accountName,
@@ -118,7 +94,9 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		duration: toAdminSessionDuration(packageRow.duration),
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
-		expiresAt: packageRow.expiresAt,
+		expiresDate:
+			packageRow.expiresAt === undefined ? "" : getSydneyDateValue(new Date(packageRow.expiresAt)),
+		expiresTime: packageRow.expiresAt === undefined ? "" : getSydneyTimeValue(packageRow.expiresAt),
 		notes: packageRow.notes ?? "",
 		packageSize: packageRow.packageSize
 	};
@@ -317,22 +295,37 @@ export function PackageEditDialog({
 								Package details
 							</AccordionTrigger>
 							<AccordionContent className={accordionContentClassName}>
-								<div className={compactFieldClassName}>
-									<Label htmlFor="edit-package-expires-at">Package expiry window</Label>
-									<Input
-										id="edit-package-expires-at"
-										name="expiresAt"
-										type="datetime-local"
-										autoComplete="off"
-										value={formatDateTimeLocalValue(draft.expiresAt)}
-										onChange={(event) => {
-											setDraft((current) => ({
-												...current,
-												expiresAt: parseDateTimeLocalValue(event.target.value)
-											}));
-										}}
-										disabled={isSaving}
-									/>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-expires-date">Package expiry date</Label>
+										<Input
+											id="edit-package-expires-date"
+											name="expiresDate"
+											type="date"
+											autoComplete="off"
+											value={draft.expiresDate}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, expiresDate: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-expires-time">Package expiry time</Label>
+										<Input
+											id="edit-package-expires-time"
+											name="expiresTime"
+											type="time"
+											autoComplete="off"
+											value={draft.expiresTime}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, expiresTime: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
 								</div>
 
 								<div className="grid gap-3 sm:grid-cols-2">

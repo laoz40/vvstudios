@@ -1,5 +1,6 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
+import { getSydneyDateValue, getSydneyTimeValue } from "#studio/lib/bookingdatetime";
 
 type PackageEditWarningField = keyof PackageEditDraft;
 
@@ -25,7 +26,8 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	duration: "Session duration",
 	essentialEditQuantity: "Essential Edit quantity",
 	handcraftedClipsQuantity: "Handcrafted Clips quantity",
-	expiresAt: "Package expiry window",
+	expiresDate: "Package expiry date",
+	expiresTime: "Package expiry time",
 	notes: "Notes",
 	packageSize: "Package sessions"
 };
@@ -54,8 +56,14 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		return packageRow[field] ?? "";
 	}
 
-	if (field === "expiresAt") {
-		return packageRow.expiresAt ?? undefined;
+	if (field === "expiresDate") {
+		return packageRow.expiresAt === undefined
+			? ""
+			: getSydneyDateValue(new Date(packageRow.expiresAt));
+	}
+
+	if (field === "expiresTime") {
+		return packageRow.expiresAt === undefined ? "" : getSydneyTimeValue(packageRow.expiresAt);
 	}
 
 	return packageRow[field];
@@ -73,7 +81,7 @@ function didPackageEditFieldChange(
 		return didArrayChange(currentValue, nextValue);
 	}
 
-	return (currentValue ?? undefined) !== (nextValue ?? undefined);
+	return currentValue !== nextValue;
 }
 
 function getChangedFieldLabels(

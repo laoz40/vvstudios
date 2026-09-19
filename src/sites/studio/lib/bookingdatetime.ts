@@ -174,6 +174,19 @@ export function getSydneyDateValue(date = new Date()) {
 	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export function getSydneyTimeValue(date: Date | number) {
+	const parts = new Intl.DateTimeFormat("en-AU", {
+		hour: "2-digit",
+		hour12: false,
+		minute: "2-digit",
+		timeZone: BOOKING_TIME_ZONE
+	}).formatToParts(date);
+
+	const partValue = (type: string) => parts.find((part) => part.type === type)?.value;
+
+	return `${partValue("hour")}:${partValue("minute")}`;
+}
+
 export function getEditorEditDueAt(sessionStartAt: number) {
 	const { day, month, year } = getCalendarDateInSydney(new Date(sessionStartAt));
 
