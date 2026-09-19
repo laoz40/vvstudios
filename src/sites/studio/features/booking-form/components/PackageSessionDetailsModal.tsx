@@ -4,6 +4,8 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import { Modal } from "#studio/components/Modal";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { selectablePillButtonClassName } from "#studio/features/booking-form/lib/booking-form-styles";
+import { cn } from "#/lib/utils";
 
 interface PackageSessionDetailsModalProps {
 	packageData: NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
@@ -16,9 +18,9 @@ export function PackageSessionDetailsModal({ packageData }: PackageSessionDetail
 		<>
 			<Button
 				type="button"
-				variant="outline"
+				variant="ghost"
 				size="sm"
-				className="border-foreground/15 bg-background/30 py-1! text-xs! tracking-wider text-foreground/85 uppercase shadow-md hover:bg-background/30 hover:text-primary"
+				className={cn(selectablePillButtonClassName, "py-1! text-sm!")}
 				onClick={() => {
 					setIsOpen(true);
 				}}>

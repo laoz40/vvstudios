@@ -10,6 +10,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
+import { selectablePillButtonClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	formatBookingDateCompact,
 	formatBookingTimeRange,
@@ -101,7 +102,7 @@ export function PackageSessionListItem({
 					<Badge
 						variant="ghost"
 						className={cn(
-							"rounded-none border-0 bg-transparent p-0 tracking-wider",
+							"rounded-none border-0 bg-transparent p-0",
 							statusDetails.textClassName
 						)}>
 						{statusDetails.label}
@@ -227,14 +228,14 @@ function PackageSessionActions({
 	sessionKey,
 	sessionNumber
 }: PackageSessionActionsProps) {
-	let editButtonLabel = "SCHEDULE";
+	let editButtonLabel = "Schedule";
 
 	if (booking) {
-		editButtonLabel = "EDIT";
+		editButtonLabel = "Edit";
 	}
 
 	if (isActive) {
-		editButtonLabel = "CLOSE";
+		editButtonLabel = "Close";
 	}
 
 	return (
@@ -288,9 +289,9 @@ function PackageSessionActions({
 					role="button"
 					tabIndex={0}
 					className={cn(
-						"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center rounded-lg border px-3 py-1 md:inline-flex",
-						"border-foreground/15 bg-background/30 text-foreground/85",
-						"outline-none text-xs font-medium tracking-wider shadow-md hover:text-destructive focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center px-3 py-1 md:inline-flex",
+						selectablePillButtonClassName,
+						"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					)}
 					onClick={(event) => {
 						event.preventDefault();
@@ -306,7 +307,7 @@ function PackageSessionActions({
 						event.stopPropagation();
 						actions.onRequestUnschedule(booking._id, booking.date);
 					}}>
-					UNSCHEDULE
+					Unschedule
 				</span>
 			) : null}
 			<span
@@ -314,12 +315,11 @@ function PackageSessionActions({
 				tabIndex={0}
 				className={cn(
 					booking ? "hidden md:inline-flex" : "inline-flex",
-					"min-h-8 min-w-16 cursor-pointer items-center justify-center rounded-lg border px-3 py-1",
+					"min-h-8 min-w-16 cursor-pointer items-center justify-center px-3 py-1",
+					"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
 					!booking && !isActive
-						? "border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
-						: "border-foreground/15 bg-background/30 text-foreground/85",
-					"text-xs font-medium tracking-wider shadow-md hover:text-primary peer-hover/unschedule:text-foreground/85",
-					"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						? "rounded-lg border border-primary bg-primary text-sm font-medium text-primary-foreground shadow-md transition-all duration-200 ease-in hover:darker-bg-primary"
+						: cn(selectablePillButtonClassName, "peer-hover/unschedule:text-foreground/85")
 				)}
 				onClick={onToggleSession}
 				onKeyDown={(event) => {

@@ -24,6 +24,9 @@ const pillIdleClassName =
 
 const pillSelectedClassName = "min-w-20 border-foreground/15 bg-background/30 text-primary";
 
+export const selectablePillButtonClassName =
+	"rounded-lg border border-border bg-input/30 text-foreground/85 text-sm font-medium tracking-wider shadow-md transition-all duration-200 ease-in hover:bg-secondary hover:text-primary";
+
 export function getCardStateClassName(isSelected: boolean) {
 	return cn(cardHoverClassName, isSelected && cardSelectedClassName);
 }

@@ -139,7 +139,7 @@ export function PackageSessionEditorDialog({
 					type="button"
 					className={cn(
 						"h-12 w-full rounded-lg",
-						"text-base font-bold! tracking-wider",
+						"text-base! font-bold! tracking-wider",
 						"shadow-lg shadow-primary/45"
 					)}
 					disabled={isSaveDisabled}

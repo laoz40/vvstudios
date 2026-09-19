@@ -9,7 +9,7 @@ export async function openFirstUnscheduledPackageSession(page: Page) {
 		.filter({ hasText: "Date Required" })
 		.first();
 
-	await firstDateRequiredSession.getByText("SCHEDULE", { exact: true }).click();
+	await firstDateRequiredSession.getByText("Schedule", { exact: true }).click();
 	await expect(page.getByRole("button", { name: "SAVE SESSION" })).toBeVisible();
 }
 
