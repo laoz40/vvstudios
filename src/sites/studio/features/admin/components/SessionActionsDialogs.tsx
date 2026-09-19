@@ -19,6 +19,7 @@ import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInv
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -137,6 +138,8 @@ export function SessionActionsDialogs({
 	isAdminNotesDialogOpen,
 	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
+	const stripeInvoiceContext = createStripeInvoiceContext(session.duration);
+
 	return (
 		<>
 			<SessionAdminNotesDialog
@@ -193,12 +196,13 @@ export function SessionActionsDialogs({
 				onOpenChange={invoiceActions.setIsStripeBillingDialogOpen}
 			/>
 
-			{invoiceActions.hasStripeCustomer ? (
+			{invoiceActions.hasStripeCustomer && stripeInvoiceContext ? (
 				<StripeInvoiceDialog
 					open={invoiceActions.isStripeInvoiceDialogOpen}
 					customerEmail={session.email}
 					customerName={session.name}
 					hasStripeCustomer
+					invoiceContext={stripeInvoiceContext}
 					isSending={invoiceActions.isSendingStripeInvoice}
 					onOpenChange={invoiceActions.setIsStripeInvoiceDialogOpen}
 					onSend={invoiceActions.handleSendStripeInvoice}

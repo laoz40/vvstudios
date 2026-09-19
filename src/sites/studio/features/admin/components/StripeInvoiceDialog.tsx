@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LoaderCircle, Plus, Trash2, X } from "lucide-react";
+import { LoaderCircle, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
@@ -10,23 +10,25 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { StripeInvoiceLineItemRow } from "#studio/features/admin/components/StripeInvoiceLineItemRow";
 import { SessionCustomerSummary } from "#studio/features/admin/components/SessionCustomerSummary";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
+import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 import {
+	buildStripeInvoiceLineItemsFromDrafts,
 	createStripeInvoiceLineItemDraft,
-	parseStripeInvoiceLineItemDrafts,
 	sumStripeInvoiceLineItemDrafts,
-	type ParsedStripeInvoiceLineItem,
+	type StripeInvoiceContext,
 	type StripeInvoiceLineItemDraft
-} from "#studio/features/admin/lib/stripe-invoice-line-items";
+} from "#studio/features/admin/lib/stripe-invoice-pricing";
 
 type StripeInvoiceDialogProps = {
 	open: boolean;
 	customerEmail: string;
 	customerName: string;
 	hasStripeCustomer: boolean;
+	invoiceContext: StripeInvoiceContext;
 	isSending: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSend: (input: { lineItems: ParsedStripeInvoiceLineItem[]; requestId: string }) => Promise<void>;
@@ -37,6 +39,7 @@ export function StripeInvoiceDialog({
 	customerEmail,
 	customerName,
 	hasStripeCustomer,
+	invoiceContext,
 	isSending,
 	onOpenChange,
 	onSend
@@ -52,13 +55,10 @@ export function StripeInvoiceDialog({
 		}
 	}, [open]);
 
-	const totalAmount = sumStripeInvoiceLineItemDrafts(lineItemDrafts);
-	const canSubmit = hasStripeCustomer && totalAmount !== null && !isSending;
+	const totalAmount = sumStripeInvoiceLineItemDrafts(lineItemDrafts, invoiceContext);
+	const canSubmit = hasStripeCustomer && totalAmount !== null && totalAmount > 0 && !isSending;
 
-	function updateLineItemDraft(
-		lineItemId: string,
-		update: Partial<Pick<StripeInvoiceLineItemDraft, "amount" | "description">>
-	) {
+	function updateLineItemDraft(lineItemId: string, update: Partial<StripeInvoiceLineItemDraft>) {
 		setLineItemDrafts((currentDrafts) =>
 			currentDrafts.map((draft) => (draft.id === lineItemId ? { ...draft, ...update } : draft))
 		);
@@ -79,10 +79,10 @@ export function StripeInvoiceDialog({
 	}
 
 	async function handleSendInvoice() {
-		const lineItems = parseStripeInvoiceLineItemDrafts(lineItemDrafts);
+		const lineItems = buildStripeInvoiceLineItemsFromDrafts(lineItemDrafts, invoiceContext);
 
 		if (lineItems === null) {
-			toast.error("Add at least one line item with a description and amount greater than zero.");
+			toast.error("Complete each line item before sending the invoice.");
 
 			return;
 		}
@@ -150,67 +150,39 @@ export function StripeInvoiceDialog({
 					}}>
 					<div className="grid gap-2">
 						<Label>Line items</Label>
-						<div className="grid gap-2 text-sm">
-							<div className="flex items-center gap-2 px-1 text-muted-foreground">
-								<span className="min-w-0 flex-1">Description</span>
-								<span className="w-20 text-right">Amount</span>
-								<span className="size-8 shrink-0" />
+						<div className="overflow-hidden rounded-lg border">
+							<div className="divide-y">
+								{lineItemDrafts.map((lineItemDraft, index) => (
+									<StripeInvoiceLineItemRow
+										key={lineItemDraft.id}
+										context={invoiceContext}
+										draft={lineItemDraft}
+										index={index}
+										isDisabled={isSending || !hasStripeCustomer}
+										canRemove={lineItemDrafts.length > 1}
+										onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
+										onRemove={() => removeLineItemDraft(lineItemDraft.id)}
+									/>
+								))}
 							</div>
-							{lineItemDrafts.map((lineItemDraft, index) => (
-								<div
-									key={lineItemDraft.id}
-									className="flex items-center gap-2">
-									<Input
-										id={`stripe-invoice-description-${lineItemDraft.id}`}
-										aria-label={`Line ${index + 1} description`}
-										className="min-w-0 flex-1"
-										value={lineItemDraft.description}
-										disabled={isSending || !hasStripeCustomer}
-										placeholder="Extra editing hours"
-										onChange={(event) =>
-											updateLineItemDraft(lineItemDraft.id, { description: event.target.value })
-										}
-									/>
-									<Input
-										id={`stripe-invoice-amount-${lineItemDraft.id}`}
-										aria-label={`Line ${index + 1} amount`}
-										className="w-20 text-right tabular-nums"
-										inputMode="decimal"
-										value={lineItemDraft.amount}
-										disabled={isSending || !hasStripeCustomer}
-										placeholder="0"
-										onChange={(event) =>
-											updateLineItemDraft(lineItemDraft.id, { amount: event.target.value })
-										}
-									/>
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon-sm"
-										disabled={isSending || lineItemDrafts.length === 1}
-										aria-label={`Remove line item ${index + 1}`}
-										onClick={() => removeLineItemDraft(lineItemDraft.id)}>
-										<Trash2 className="size-4" />
-									</Button>
-								</div>
-							))}
+							<div className="flex justify-center border-t p-2">
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									disabled={isSending || !hasStripeCustomer}
+									onClick={addLineItemDraft}>
+									<Plus className="size-4" />
+									Add line item
+								</Button>
+							</div>
 						</div>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="w-fit"
-							disabled={isSending || !hasStripeCustomer}
-							onClick={addLineItemDraft}>
-							<Plus className="size-4" />
-							Add line item
-						</Button>
 					</div>
 
 					<div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm">
 						<span className="font-medium">Total</span>
 						<span className="font-medium tabular-nums">
-							{totalAmount === null ? "Enter valid line items" : formatAudAmount(totalAmount)}
+							{totalAmount === null ? "Complete line items" : formatAudAmount(totalAmount)}
 						</span>
 					</div>
 

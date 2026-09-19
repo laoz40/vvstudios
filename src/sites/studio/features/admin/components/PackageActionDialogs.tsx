@@ -5,6 +5,7 @@ import { StripeBillingDialog } from "#studio/features/admin/components/StripeBil
 import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
+import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 
 type PackageActionDialogsProps = {
 	actions: ReturnType<typeof usePackageActions>;
@@ -13,6 +14,11 @@ type PackageActionDialogsProps = {
 
 export function PackageActionDialogs({ actions, packageRow }: PackageActionDialogsProps) {
 	const { editAction, pendingAction } = actions;
+
+	const stripeInvoiceContext = createStripeInvoiceContext(
+		packageRow.duration,
+		packageRow.packageSize
+	);
 
 	return (
 		<>
@@ -31,12 +37,13 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onOpenChange={actions.setIsStripeBillingDialogOpen}
 			/>
 
-			{actions.hasStripeCustomer ? (
+			{actions.hasStripeCustomer && stripeInvoiceContext ? (
 				<StripeInvoiceDialog
 					open={actions.isStripeInvoiceDialogOpen}
 					customerEmail={packageRow.customerEmail}
 					customerName={packageRow.customerName}
 					hasStripeCustomer
+					invoiceContext={stripeInvoiceContext}
 					isSending={actions.isSendingStripeInvoice}
 					onOpenChange={actions.setIsStripeInvoiceDialogOpen}
 					onSend={actions.handleSendStripeInvoice}
