@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAction } from "convex/react";
-import { ExternalLink, LoaderCircle, X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
+import ExternalLinkIcon from "#/components/ui/external-link-icon";
+import type { AnimatedIconHandle } from "#/components/ui/types";
 import {
 	Dialog,
 	DialogClose,
@@ -34,6 +36,47 @@ type StripeBillingDialogProps = {
 };
 
 type LoadingBillingLink = { link: StripeInvoiceBillingLink; stripeInvoiceId: string };
+
+type StripeBillingLinkButtonProps = {
+	disabled: boolean;
+	isLoading: boolean;
+	label: string;
+	onClick: () => void;
+};
+
+function StripeBillingLinkButton({
+	disabled,
+	isLoading,
+	label,
+	onClick
+}: StripeBillingLinkButtonProps) {
+	const iconRef = useRef<AnimatedIconHandle | null>(null);
+
+	return (
+		<Button
+			type="button"
+			variant="outline"
+			size="sm"
+			disabled={disabled}
+			onPointerEnter={() => iconRef.current?.startAnimation()}
+			onPointerLeave={() => iconRef.current?.stopAnimation()}
+			onFocus={() => iconRef.current?.startAnimation()}
+			onBlur={() => iconRef.current?.stopAnimation()}
+			onClick={onClick}>
+			{isLoading ? (
+				<LoaderCircle className="size-4 animate-spin" />
+			) : (
+				<ExternalLinkIcon
+					ref={iconRef}
+					size={16}
+					aria-hidden
+					className="shrink-0 text-current"
+				/>
+			)}
+			{label}
+		</Button>
+	);
+}
 
 function getBillingUrl(
 	urls: { invoicePdf?: string; receiptUrl?: string },
@@ -211,24 +254,19 @@ export function StripeBillingDialog({
 											loadingBillingLink.link === link;
 
 										return (
-											<Button
+											<StripeBillingLinkButton
 												key={link}
-												type="button"
-												variant="outline"
-												size="sm"
 												disabled={isOpeningBillingLink}
+												isLoading={isLoadingLink}
+												label={
+													isLoadingLink
+														? "Opening billing link"
+														: formatStripeInvoiceBillingLinkLabel(link)
+												}
 												onClick={() => {
 													void handleOpenBillingLink(invoice, link);
-												}}>
-												{isLoadingLink ? (
-													<LoaderCircle className="size-4 animate-spin" />
-												) : (
-													<ExternalLink className="size-4" />
-												)}
-												{isLoadingLink
-													? "Opening billing link"
-													: formatStripeInvoiceBillingLinkLabel(link)}
-											</Button>
+												}}
+											/>
 										);
 									})}
 								</div>
