@@ -51,6 +51,8 @@ export function AdminAddonOptions({
 
 	function removeLineItemDraft(lineItemId: string) {
 		if (lineItemDrafts.length === 1) {
+			updateLineItemDrafts([createAdminAddonLineItemDraft()]);
+
 			return;
 		}
 
@@ -68,7 +70,7 @@ export function AdminAddonOptions({
 						draft={lineItemDraft}
 						index={index}
 						isDisabled={disabled}
-						canRemove={lineItemDrafts.length > 1}
+						canRemove
 						onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
 						onRemove={() => removeLineItemDraft(lineItemDraft.id)}
 					/>

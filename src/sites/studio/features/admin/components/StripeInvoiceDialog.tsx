@@ -71,7 +71,7 @@ export function StripeInvoiceDialog({
 	function removeLineItemDraft(lineItemId: string) {
 		setLineItemDrafts((currentDrafts) => {
 			if (currentDrafts.length === 1) {
-				return currentDrafts;
+				return [createStripeInvoiceLineItemDraft()];
 			}
 
 			return currentDrafts.filter((draft) => draft.id !== lineItemId);
@@ -158,7 +158,7 @@ export function StripeInvoiceDialog({
 									draft={lineItemDraft}
 									index={index}
 									isDisabled={isSending || !hasStripeCustomer}
-									canRemove={lineItemDrafts.length > 1}
+									canRemove
 									onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
 									onRemove={() => removeLineItemDraft(lineItemDraft.id)}
 								/>
