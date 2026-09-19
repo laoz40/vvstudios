@@ -3,14 +3,17 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type {
-	AdminPackagePendingAction,
-	AdminPackageRow
-} from "#studio/features/admin/lib/admin-packages";
+import type { Id } from "#convex/_generated/dataModel";
+import type { AdminPackagePendingAction } from "#studio/features/admin/lib/admin-packages";
 import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
 import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
+
+export type PackageInvoiceTarget = {
+	packageId: Id<"packages">;
+	stripeCustomerId?: string;
+};
 
 function showSendStripeInvoiceError(reason: string) {
 	switch (reason) {
@@ -48,16 +51,17 @@ function showSendStripeInvoiceError(reason: string) {
 }
 
 export function usePackageInvoiceActions(
-	packageRow: AdminPackageRow,
-	_setPendingAction: SetPackagePendingAction
+	packageTarget: PackageInvoiceTarget | null,
+	_setPendingAction?: SetPackagePendingAction
 ) {
 	const sendPackageStripeInvoice = useAction(api.stripeInvoicing.sendPackageStripeInvoice);
 	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
-	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForPackage, {
-		packageId: packageRow.id
-	});
+	const stripeInvoicesResult = useQuery(
+		api.stripeInvoices.listStripeInvoicesForPackage,
+		packageTarget ? { packageId: packageTarget.packageId } : "skip"
+	);
 
 	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
 
@@ -67,9 +71,13 @@ export function usePackageInvoiceActions(
 	}) {
 		setIsSendingStripeInvoice(true);
 
+		if (!packageTarget) {
+			return;
+		}
+
 		const [error] = await tryCatch(
 			sendPackageStripeInvoice({
-				packageId: packageRow.id,
+				packageId: packageTarget.packageId,
 				lineItems: input.lineItems,
 				requestId: input.requestId
 			})
@@ -95,7 +103,7 @@ export function usePackageInvoiceActions(
 	return {
 		handleSendStripeInvoice,
 		hasStripeBillingInvoices,
-		hasStripeCustomer: Boolean(packageRow.stripeCustomerId),
+		hasStripeCustomer: Boolean(packageTarget?.stripeCustomerId),
 		isSendingStripeInvoice,
 		isStripeBillingDialogOpen,
 		isStripeInvoiceDialogOpen,

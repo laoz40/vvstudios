@@ -7,6 +7,7 @@ import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
+import { usePackageInvoiceActions } from "#studio/features/admin/hooks/usePackageInvoiceActions";
 import { useReceiptActions } from "#studio/features/admin/hooks/useReceiptActions";
 import { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
@@ -46,6 +47,13 @@ export function SessionActions({
 	const deleteAction = useDeleteAction(session);
 	const editAction = useEditAction(session);
 	const invoiceActions = useInvoiceActions(session);
+
+	const packageInvoiceActions = usePackageInvoiceActions(
+		session.packageId
+			? { packageId: session.packageId, stripeCustomerId: session.packageStripeCustomerId }
+			: null
+	);
+
 	const receiptActions = useReceiptActions(session);
 	const rescheduleAction = useRescheduleAction(session);
 	const statusActions = useStatusActions(session);
@@ -60,6 +68,7 @@ export function SessionActions({
 				deliverablesEmailAction={deliverablesEmailAction}
 				editAction={editAction}
 				invoiceActions={invoiceActions}
+				packageInvoiceActions={packageInvoiceActions}
 				receiptActions={receiptActions}
 				rescheduleAction={rescheduleAction}
 				statusActions={statusActions}
@@ -82,6 +91,7 @@ export function SessionActions({
 				deliverablesEmailAction={deliverablesEmailAction}
 				editAction={editAction}
 				invoiceActions={invoiceActions}
+				packageInvoiceActions={packageInvoiceActions}
 				rescheduleAction={rescheduleAction}
 				isAdminNotesDialogOpen={isAdminNotesDialogOpen}
 				onAdminNotesDialogOpenChange={setIsAdminNotesDialogOpen}

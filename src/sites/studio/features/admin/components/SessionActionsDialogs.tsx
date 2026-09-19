@@ -24,6 +24,7 @@ import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteActi
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
+import type { usePackageInvoiceActions } from "#studio/features/admin/hooks/usePackageInvoiceActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 
 type SessionActionsDialogsProps = {
@@ -33,6 +34,7 @@ type SessionActionsDialogsProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
+	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	isAdminNotesDialogOpen: boolean;
 	onAdminNotesDialogOpenChange: (open: boolean) => void;
@@ -134,11 +136,17 @@ export function SessionActionsDialogs({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
+	packageInvoiceActions,
 	rescheduleAction,
 	isAdminNotesDialogOpen,
 	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
 	const stripeInvoiceContext = createStripeInvoiceContext(session.duration);
+
+	const packageStripeInvoiceContext =
+		session.packageId && session.linkedPackageSize
+			? createStripeInvoiceContext(session.duration, session.linkedPackageSize)
+			: null;
 
 	return (
 		<>
@@ -206,6 +214,19 @@ export function SessionActionsDialogs({
 					isSending={invoiceActions.isSendingStripeInvoice}
 					onOpenChange={invoiceActions.setIsStripeInvoiceDialogOpen}
 					onSend={invoiceActions.handleSendStripeInvoice}
+				/>
+			) : null}
+
+			{packageInvoiceActions.hasStripeCustomer && packageStripeInvoiceContext ? (
+				<StripeInvoiceDialog
+					open={packageInvoiceActions.isStripeInvoiceDialogOpen}
+					customerEmail={session.email}
+					customerName={session.name}
+					hasStripeCustomer
+					invoiceContext={packageStripeInvoiceContext}
+					isSending={packageInvoiceActions.isSendingStripeInvoice}
+					onOpenChange={packageInvoiceActions.setIsStripeInvoiceDialogOpen}
+					onSend={packageInvoiceActions.handleSendStripeInvoice}
 				/>
 			) : null}
 

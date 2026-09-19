@@ -46,6 +46,7 @@ import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteActi
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
+import type { usePackageInvoiceActions } from "#studio/features/admin/hooks/usePackageInvoiceActions";
 import type { useReceiptActions } from "#studio/features/admin/hooks/useReceiptActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
@@ -58,6 +59,7 @@ type SessionActionsMenuProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
+	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
 	receiptActions: ReturnType<typeof useReceiptActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
@@ -67,6 +69,33 @@ type SessionActionsMenuProps = {
 
 function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
 	return details.canManageConfirmedSession && details.isPastSession;
+}
+
+function SessionPackageStripeInvoiceMenuItem({
+	packageInvoiceActions
+}: {
+	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
+}) {
+	if (!packageInvoiceActions.hasStripeCustomer) {
+		return null;
+	}
+
+	return (
+		<>
+			<DropdownMenuSeparator />
+			<AnimatedDropdownMenuItem
+				disabled={packageInvoiceActions.isSendingStripeInvoice}
+				onSelect={() => packageInvoiceActions.setIsStripeInvoiceDialogOpen(true)}
+				renderIcon={() => (
+					<DollarSign
+						aria-hidden
+						className="size-4 shrink-0 text-current"
+					/>
+				)}>
+				Create Stripe invoice
+			</AnimatedDropdownMenuItem>
+		</>
+	);
 }
 
 function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
@@ -183,6 +212,7 @@ export function SessionActionsMenu({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
+	packageInvoiceActions,
 	receiptActions,
 	rescheduleAction,
 	statusActions,
@@ -401,6 +431,11 @@ export function SessionActionsMenu({
 											/>
 										) : null}
 									</>
+								) : null}
+								{!showSessionBillingActions ? (
+									<SessionPackageStripeInvoiceMenuItem
+										packageInvoiceActions={packageInvoiceActions}
+									/>
 								) : null}
 							</>
 						) : (

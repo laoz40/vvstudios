@@ -185,6 +185,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 					packageRecord.createdAt
 				),
 				linkedPackageSize: packageRecord.packageSize,
+				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)
 					? packageSessions.findIndex(({ _id }) => _id === session._id) + 1
 					: undefined
