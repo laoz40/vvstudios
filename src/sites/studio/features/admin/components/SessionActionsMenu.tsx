@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
-import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import DownloadIcon from "#/components/ui/download-icon";
+import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
+import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
@@ -26,7 +27,8 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
+import { LegacyInvoicesSubmenu } from "#studio/features/admin/components/LegacyInvoicesSubmenu";
+import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import {
 	SessionEditorAssignment,
 	type ActiveEditor
@@ -44,7 +46,8 @@ import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteActi
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
-import type { usePaymentActions } from "#studio/features/admin/hooks/usePaymentActions";
+import type { usePackageInvoiceActions } from "#studio/features/admin/hooks/usePackageInvoiceActions";
+import type { useReceiptActions } from "#studio/features/admin/hooks/useReceiptActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
@@ -56,7 +59,8 @@ type SessionActionsMenuProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
-	paymentActions: ReturnType<typeof usePaymentActions>;
+	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
+	receiptActions: ReturnType<typeof useReceiptActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	statusActions: ReturnType<typeof useStatusActions>;
 	onOpenDrive: () => void;
@@ -65,6 +69,47 @@ type SessionActionsMenuProps = {
 
 function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
 	return details.canManageConfirmedSession && details.isPastSession;
+}
+
+function SessionPackageStripeInvoiceMenuItem({
+	packageInvoiceActions
+}: {
+	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
+}) {
+	if (!packageInvoiceActions.hasStripeCustomer) {
+		return null;
+	}
+
+	return (
+		<>
+			<DropdownMenuSeparator />
+			<AnimatedDropdownMenuItem
+				disabled={packageInvoiceActions.isSendingStripeInvoice}
+				onSelect={() => packageInvoiceActions.setIsStripeInvoiceDialogOpen(true)}
+				renderIcon={(iconRef) => (
+					<BrandStripeIcon
+						ref={iconRef}
+						size={16}
+						aria-hidden
+						className="shrink-0 text-current"
+					/>
+				)}>
+				Create Stripe invoice
+			</AnimatedDropdownMenuItem>
+		</>
+	);
+}
+
+function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
+	if (isUpdatingArchive) {
+		return "Updating archive...";
+	}
+
+	if (!isArchived) {
+		return "Archive session";
+	}
+
+	return "Unarchive session";
 }
 
 function DeliverablesControls({
@@ -169,25 +214,26 @@ export function SessionActionsMenu({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	paymentActions,
+	packageInvoiceActions,
+	receiptActions,
 	rescheduleAction,
 	statusActions,
 	onOpenDrive,
 	onEditAdminNotes
 }: SessionActionsMenuProps) {
+	const showSessionBillingActions = session.packageId === undefined;
+
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
 	const isArchived = session.hiddenAt !== undefined;
-	let archiveActionLabel = "Unarchive session";
 
-	if (deleteAction.isUpdatingArchive) {
-		archiveActionLabel = "Updating archive...";
-	} else if (!isArchived) {
-		archiveActionLabel = "Archive session";
-	}
+	const archiveActionLabel = getSessionArchiveActionLabel(
+		deleteAction.isUpdatingArchive,
+		isArchived
+	);
 
 	return (
 		<DropdownMenu modal={false}>
@@ -258,22 +304,6 @@ export function SessionActionsMenu({
 						) : null}
 					</div>
 				</DropdownMenuGroup>
-				{details.canManageConfirmedSession && session.packageId === undefined ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
-							Payment status
-						</DropdownMenuLabel>
-						<div className="px-2 pb-2">
-							<PaymentStatusTabs
-								disabled={paymentActions.isUpdatingPaidRemainingBalance}
-								isPaid={paymentActions.isPaidRemainingBalance}
-								onMarkPaid={() => void paymentActions.handleSetPaidRemainingBalance(true)}
-								onMarkUnpaid={() => void paymentActions.handleSetPaidRemainingBalance(false)}
-							/>
-						</div>
-					</>
-				) : null}
 				<DropdownMenuSeparator />
 				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
 				<DeliverablesControls
@@ -323,61 +353,113 @@ export function SessionActionsMenu({
 									)}>
 									Copy database ID
 								</AnimatedDropdownMenuItem>
-								<DropdownMenuSeparator />
-								<AnimatedDropdownMenuItem
-									disabled={invoiceActions.isDownloadingInvoice}
-									onSelect={() => void invoiceActions.handleDownloadInvoice()}
-									renderIcon={(iconRef) => (
-										<DownloadIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									{invoiceActions.isDownloadingInvoice
-										? "Generating invoice..."
-										: "Download invoice"}
-								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									disabled={invoiceActions.isEmailingInvoice}
-									onSelect={() => invoiceActions.setIsEmailInvoiceDialogOpen(true)}
-									renderIcon={(iconRef) => (
-										<MailFilledIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Email invoice
-								</AnimatedDropdownMenuItem>
-								<AnimatedDropdownMenuItem
-									onSelect={() => invoiceActions.setIsCustomInvoiceDialogOpen(true)}
-									renderIcon={(iconRef) => (
-										<PenIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									Create custom invoice
-								</AnimatedDropdownMenuItem>
+								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
+								{showSessionBillingActions ? (
+									<>
+										<DropdownMenuSeparator />
+										{invoiceActions.hasStripeCustomer ? (
+											<>
+												<AnimatedDropdownMenuItem
+													onSelect={() => void receiptActions.handleResendReceipt()}
+													renderIcon={(iconRef) => (
+														<MailFilledIcon
+															ref={iconRef}
+															size={16}
+															aria-hidden
+															className="shrink-0 text-current"
+														/>
+													)}>
+													Resend receipt
+												</AnimatedDropdownMenuItem>
+												<AnimatedDropdownMenuItem
+													disabled={receiptActions.isDownloadingReceipt}
+													onSelect={() => void receiptActions.handleDownloadReceipt()}
+													renderIcon={(iconRef) => (
+														<DownloadIcon
+															ref={iconRef}
+															size={16}
+															aria-hidden
+															className="shrink-0 text-current"
+														/>
+													)}>
+													{receiptActions.isDownloadingReceipt
+														? "Generating receipt"
+														: "Download receipt"}
+												</AnimatedDropdownMenuItem>
+											</>
+										) : null}
+										{invoiceActions.hasStripeCustomer ? (
+											<AnimatedDropdownMenuItem
+												disabled={invoiceActions.isSendingStripeInvoice}
+												onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
+												renderIcon={(iconRef) => (
+													<BrandStripeIcon
+														ref={iconRef}
+														size={16}
+														aria-hidden
+														className="shrink-0 text-current"
+													/>
+												)}>
+												Create Stripe invoice
+											</AnimatedDropdownMenuItem>
+										) : null}
+										{invoiceActions.hasStripeBillingInvoices ? (
+											<AnimatedDropdownMenuItem
+												onSelect={() => invoiceActions.setIsStripeBillingDialogOpen(true)}
+												renderIcon={(iconRef) => (
+													<BrandStripeIcon
+														ref={iconRef}
+														size={16}
+														aria-hidden
+														className="shrink-0 text-current"
+													/>
+												)}>
+												Stripe billing
+											</AnimatedDropdownMenuItem>
+										) : null}
+										{session.stripeCustomerId === undefined ? (
+											<LegacyInvoicesSubmenu
+												downloadingLegacyCustomInvoiceId={
+													invoiceActions.downloadingLegacyCustomInvoiceId
+												}
+												downloadLabel={
+													invoiceActions.isDownloadingInvoice
+														? "Generating invoice"
+														: "Download invoice"
+												}
+												isDownloadingInvoice={invoiceActions.isDownloadingInvoice}
+												onDownloadInvoice={() => {
+													void invoiceActions.handleDownloadInvoice();
+												}}
+												onOpenCustomInvoices={() =>
+													invoiceActions.setIsLegacyCustomInvoicesDialogOpen(true)
+												}
+											/>
+										) : null}
+									</>
+								) : null}
+								{!showSessionBillingActions ? (
+									<SessionPackageStripeInvoiceMenuItem
+										packageInvoiceActions={packageInvoiceActions}
+									/>
+								) : null}
 							</>
 						) : (
-							<AnimatedDropdownMenuItem
-								onSelect={() => void navigator.clipboard.writeText(String(session._id))}
-								renderIcon={(iconRef) => (
-									<Stack3Icon
-										ref={iconRef}
-										size={16}
-										aria-hidden
-										className="shrink-0 text-current"
-									/>
-								)}>
-								Copy database ID
-							</AnimatedDropdownMenuItem>
+							<>
+								<AnimatedDropdownMenuItem
+									onSelect={() => void navigator.clipboard.writeText(String(session._id))}
+									renderIcon={(iconRef) => (
+										<Stack3Icon
+											ref={iconRef}
+											size={16}
+											aria-hidden
+											className="shrink-0 text-current"
+										/>
+									)}>
+									Copy database ID
+								</AnimatedDropdownMenuItem>
+								<StripeIdCopyMenuItems stripePaymentIntentId={session.stripePaymentIntentId} />
+							</>
 						)}
 						<DropdownMenuSeparator />
 						{canSetDeliverablesStatusToSent(details) ? (

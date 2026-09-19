@@ -1,13 +1,11 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
-import { err, ok, type Result } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
+import { okAsync, type ResultAsync } from "neverthrow";
+import { tryPromise } from "#convex/lib/result";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
-import { PackageSchedulingEmail } from "#studio/features/package-scheduling-email/PackageSchedulingEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
-import { PackagePaymentReminderEmail } from "#studio/features/package-reminder-email/PackagePaymentReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-email/RescheduledBookingEmail";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
@@ -16,14 +14,6 @@ import {
 	formatSessionDateShort,
 	formatCalendarEventDate
 } from "#convex/lib/sessionCalendarTime";
-import {
-	createBookingInvoiceEmailArtifactsForBooking,
-	createPackageInvoiceArtifacts,
-	createPackageAdjustmentInvoiceArtifacts,
-	renderBookingInvoicePdfInNode,
-	type PackageInvoiceInput,
-	type PackageAdjustmentInvoiceInput
-} from "#convex/lib/bookingInvoiceArtifacts";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -97,13 +87,6 @@ type SendPackageHostDetailsEmailArgs = {
 	invoiceDueAt: number;
 } & BookingAddonQuantitiesArgs;
 
-interface SendPackagePaymentReminderEmailArgs {
-	email: string;
-	invoiceDueAt: number;
-	name: string;
-	requestDate: number;
-}
-
 interface SendPackageExpiryReminderEmailArgs {
 	email: string;
 	expiresAt: number;
@@ -111,23 +94,11 @@ interface SendPackageExpiryReminderEmailArgs {
 	remainingSessions: number;
 }
 
-type SendPackageScheduleEmailArgs = {
-	addons: BookingAddon[];
-	leadTimeMinutes: number;
-	duration: string;
-	email: string;
-	expiresAt: number;
-	name: string;
-	packageSize: 4 | 8 | 12;
-	bookedAt: number;
-	scheduleUrl: string;
-} & BookingAddonQuantitiesArgs;
-
-export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
+export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
-		return ok(null);
+		return okAsync(null);
 	}
 
 	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
@@ -156,53 +127,74 @@ export async function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEm
 			})
 		: createElement(HostBookingDetailsEmail, bookingDetails);
 
-	const html = await render(emailElement);
-
 	const subjectPrefix = args.reschedule ? "Studio Booking Rescheduled" : "New Studio Booking";
 
-	return await sendEmail({
-		to: hostEmails,
-		subject: `${subjectPrefix} - ${args.name} - ${formatSessionDateShort(args.date)}`,
-		html
-	});
+	return tryPromise({
+		try: () => render(emailElement),
+		catch: (cause) => {
+			console.error("Session host details email render failed", {
+				invoiceNumber: args.invoiceNumber,
+				cause
+			});
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	}).andThen((html) =>
+		sendEmail({
+			to: hostEmails,
+			subject: `${subjectPrefix} - ${args.name} - ${formatSessionDateShort(args.date)}`,
+			html
+		}).map(() => null)
+	);
 }
 
-export async function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
+export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
 	if (hostEmails.length === 0) {
-		return ok(null);
+		return okAsync(null);
 	}
 
-	const html = await render(
-		createElement(HostBookingDetailsEmail, {
-			kind: "package",
-			invoiceNumber: args.invoiceNumber,
-			name: args.name,
-			email: args.email,
-			phone: args.phone,
-			accountName: args.accountName,
-			abn: args.abn,
-			duration: args.duration,
-			addonsLine: formatAddonsLine({
-				addons: args.addons,
-				clipsPackageQuantity: args.clipsPackageQuantity,
-				essentialEditQuantity: args.essentialEditQuantity
-			}),
-			notes: args.notes,
-			packageSize: args.packageSize,
-			invoiceDueAtLabel: formatTimestampDateLong(args.invoiceDueAt)
-		})
-	);
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(HostBookingDetailsEmail, {
+					kind: "package",
+					invoiceNumber: args.invoiceNumber,
+					name: args.name,
+					email: args.email,
+					phone: args.phone,
+					accountName: args.accountName,
+					abn: args.abn,
+					duration: args.duration,
+					addonsLine: formatAddonsLine({
+						addons: args.addons,
+						clipsPackageQuantity: args.clipsPackageQuantity,
+						essentialEditQuantity: args.essentialEditQuantity
+					}),
+					notes: args.notes,
+					packageSize: args.packageSize,
+					invoiceDueAtLabel: formatTimestampDateLong(args.invoiceDueAt)
+				})
+			),
+		catch: (cause) => {
+			console.error("Package host details email render failed", {
+				invoiceNumber: args.invoiceNumber,
+				cause
+			});
 
-	return await sendEmail({
-		to: hostEmails,
-		subject: `New Package Booking Request - ${args.name} - ${args.packageSize} Pack`,
-		html
-	});
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	}).andThen((html) =>
+		sendEmail({
+			to: hostEmails,
+			subject: `New Package Booking Request - ${args.name} - ${args.packageSize} Pack`,
+			html
+		}).map(() => null)
+	);
 }
 
-export async function sendBookingRescheduledCustomerEmail({
+export function sendBookingRescheduledCustomerEmail({
 	addons,
 	date,
 	duration,
@@ -213,334 +205,51 @@ export async function sendBookingRescheduledCustomerEmail({
 	rescheduleUrl,
 	service,
 	time
-}: SendBookingRescheduledCustomerEmailArgs): Promise<
-	Result<null, { reason: "RESCHEDULE_EMAIL_SEND_FAILED" }>
+}: SendBookingRescheduledCustomerEmailArgs): ResultAsync<
+	null,
+	| { reason: "EMAIL_RENDER_FAILED" }
+	| { reason: "EMAIL_REQUEST_FAILED" }
+	| { reason: "EMAIL_RESPONSE_FAILED" }
 > {
 	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
 
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	const html = await render(
-		createElement(RescheduledBookingEmail, {
-			addonsLine,
-			bookingDate: formatSessionDateLong(date),
-			bookingTime: formatBookingTimeRange(time, duration),
-			duration,
-			name,
-			originalBookingDate: formatSessionDateLong(originalDate),
-			originalBookingTime: formatBookingTimeRange(originalTime, duration),
-			rescheduleUrl,
-			service,
-			signoffName
-		})
-	);
-
-	const emailResult = await sendEmail({
-		to: [email],
-		subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
-		html
-	});
-
-	if (emailResult.isErr()) {
-		console.error("Booking reschedule customer email send failed", {
-			bookingEmail: email,
-			reason: emailResult.error.reason
-		});
-
-		return err({ reason: "RESCHEDULE_EMAIL_SEND_FAILED" });
-	}
-
-	return ok(null);
-}
-
-export async function sendBookingInvoiceEmailsForBooking(
-	booking: Doc<"bookings">,
-	options: {
-		customInvoice?: Doc<"customInvoices">;
-		leadTimeMinutes: number;
-		rescheduleUrl?: string;
-		skipHostEmail?: boolean;
-	}
-): Promise<
-	Result<
-		null,
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createBookingInvoiceEmailArtifactsForBooking(
-		booking,
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
-		options
-	);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const { artifacts, booking: parsedBooking } = artifactsResult.value;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Booking invoice PDF render failed", { bookingId: booking._id });
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const pdfContent = pdfResult.value;
-
-	const invoiceEmailResult = await sendEmail({
-		to: [booking.email],
-		subject: `Your Studio Booking Invoice - ${formatSessionDateShort(booking.date)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfContent }]
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Booking invoice customer email send failed", {
-			bookingId: booking._id,
-			bookingEmail: booking.email,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	if (!options.skipHostEmail) {
-		const hostEmailResult = await sendSessionHostDetailsEmail({
-			invoiceNumber: artifacts.data.invoice.number,
-			name: parsedBooking.name,
-			email: parsedBooking.email,
-			phone: parsedBooking.phone,
-			accountName: parsedBooking.accountName,
-			abn: parsedBooking.abn,
-			date: parsedBooking.date,
-			time: parsedBooking.time,
-			service: parsedBooking.service,
-			duration: parsedBooking.duration,
-			addons: parsedBooking.addons,
-			notes: parsedBooking.notes
-		});
-
-		if (hostEmailResult.isErr()) {
-			console.error("Booking invoice host email send failed", {
-				bookingId: booking._id,
-				reason: hostEmailResult.error.reason
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(RescheduledBookingEmail, {
+					addonsLine,
+					bookingDate: formatSessionDateLong(date),
+					bookingTime: formatBookingTimeRange(time, duration),
+					duration,
+					name,
+					originalBookingDate: formatSessionDateLong(originalDate),
+					originalBookingTime: formatBookingTimeRange(originalTime, duration),
+					rescheduleUrl,
+					service,
+					signoffName
+				})
+			),
+		catch: (cause) => {
+			console.error("Booking reschedule customer email render failed", {
+				bookingEmail: email,
+				cause
 			});
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
-	}
-
-	return ok(null);
-}
-
-export async function sendPackageAdjustmentInvoiceEmail(
-	invoiceInput: PackageAdjustmentInvoiceInput
-): Promise<
-	Result<
-		null,
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createPackageAdjustmentInvoiceArtifacts(invoiceInput);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const artifacts = artifactsResult.value.artifacts;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Package adjustment invoice PDF render failed", {
-			adjustmentId: invoiceInput.adjustment._id
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const invoiceEmailResult = await sendEmail({
-		to: [invoiceInput.packageRecord.email],
-		subject: `Your Remote Podcast Adjustment Invoice — Package Booked on ${formatTimestampDateShort(invoiceInput.packageRecord.createdAt)}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }],
-		idempotencyKey: `package-adjustment-${invoiceInput.adjustment._id}`
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Package adjustment invoice email send failed", {
-			adjustmentId: invoiceInput.adjustment._id,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	return ok(null);
-}
-
-export async function sendPackageInvoiceEmail(
-	packageRecord: PackageInvoiceInput,
-	options: { leadTimeMinutes: number }
-): Promise<
-	Result<
-		{ invoiceNumber: string },
-		{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" | "INVOICE_SEND_FAILED" }
-	>
-> {
-	const artifactsResult = await createPackageInvoiceArtifacts(packageRecord, options);
-
-	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
-	}
-
-	const artifacts = artifactsResult.value.artifacts;
-	const pdfResult = await renderBookingInvoicePdfInNode(artifacts.data);
-
-	if (pdfResult.isErr()) {
-		console.error("Multi-booking invoice PDF render failed", { packageId: packageRecord._id });
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const invoiceCreatedDate = new Intl.DateTimeFormat("en-AU", {
-		day: "numeric",
-		month: "long",
-		year: "numeric"
-	}).format(new Date(packageRecord.createdAt));
-
-	const invoiceEmailResult = await sendEmail({
-		to: [packageRecord.email],
-		subject: `Your ${packageRecord.packageSize} Pack Studio Booking Invoice from ${invoiceCreatedDate}`,
-		html: artifacts.emailHtml,
-		attachments: [{ ...artifacts.pdf, content: pdfResult.value }]
-	});
-
-	if (invoiceEmailResult.isErr()) {
-		console.error("Multi-booking invoice customer email send failed", {
-			packageId: packageRecord._id,
-			reason: invoiceEmailResult.error.reason
-		});
-
-		return err({ reason: "INVOICE_SEND_FAILED" });
-	}
-
-	const hostEmailResult = await sendPackageHostDetailsEmail({
-		invoiceNumber: artifacts.data.invoice.number,
-		name: packageRecord.name,
-		email: packageRecord.email,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity,
-		completeEditQuantity: packageRecord.completeEditQuantity,
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity,
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-		notes: packageRecord.notes,
-		packageSize: packageRecord.packageSize,
-		invoiceDueAt: packageRecord.invoiceDueAt
-	});
-
-	if (hostEmailResult.isErr()) {
-		console.error("Multi-booking invoice host email send failed", {
-			packageId: packageRecord._id,
-			reason: hostEmailResult.error.reason
-		});
-	}
-
-	return ok({ invoiceNumber: artifacts.data.invoice.number });
-}
-
-export async function sendPackageScheduleEmail({
-	addons,
-	clipsPackageQuantity,
-	completeEditQuantity,
-	duration,
-	email,
-	essentialEditQuantity,
-	handcraftedClipsQuantity,
-	expiresAt,
-	name,
-	packageSize,
-	leadTimeMinutes,
-	bookedAt,
-	scheduleUrl
-}: SendPackageScheduleEmailArgs): Promise<
-	Result<null, { reason: "SCHEDULE_EMAIL_RENDER_FAILED" | "SCHEDULE_EMAIL_SEND_FAILED" }>
-> {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	let html: string;
-
-	try {
-		html = await render(
-			createElement(PackageSchedulingEmail, {
-				addonsLine: formatAddonsLine({
-					addons,
-					clipsPackageQuantity,
-					completeEditQuantity,
-					essentialEditQuantity,
-					handcraftedClipsQuantity
-				}),
-				duration,
-				expiresAtLabel: formatTimestampDateLong(expiresAt),
-				name,
-				packageSize,
-				leadTimeMinutes,
-				scheduleUrl,
-				signoffName
-			})
-		);
-	} catch {
-		return err({ reason: "SCHEDULE_EMAIL_RENDER_FAILED" });
-	}
-
-	const scheduleEmailResult = await sendEmail({
-		to: [email],
-		subject: `Schedule Your ${packageSize} Pack Studio Sessions — Booked ${formatTimestampDateShort(bookedAt)}`,
-		html
-	});
-
-	if (scheduleEmailResult.isErr()) {
-		console.error("Multi-booking schedule email send failed", {
-			email,
-			reason: scheduleEmailResult.error.reason
-		});
-
-		return err({ reason: "SCHEDULE_EMAIL_SEND_FAILED" });
-	}
-
-	return ok(null);
-}
-
-export async function sendPackagePaymentReminderEmail({
-	email,
-	invoiceDueAt,
-	name,
-	requestDate
-}: SendPackagePaymentReminderEmailArgs) {
-	const signoffName =
-		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
-
-	const html = await render(
-		createElement(PackagePaymentReminderEmail, {
-			invoiceDueAtLabel: formatTimestampDateLong(invoiceDueAt),
-			name,
-			requestDateLabel: formatTimestampDateLong(requestDate),
-			signoffName
-		})
+	}).andThen((html) =>
+		sendEmail({
+			to: [email],
+			subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
+			html
+		}).map(() => null)
 	);
-
-	return await sendEmail({
-		to: [email],
-		subject: `Reminder: Complete Your Package Payment — Requested ${formatTimestampDateShort(requestDate)}`,
-		html
-	});
 }
 
-export async function sendPackageExpiryReminderEmail({
+export function sendPackageExpiryReminderEmail({
 	email,
 	expiresAt,
 	name,
@@ -549,20 +258,28 @@ export async function sendPackageExpiryReminderEmail({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	const html = await render(
-		createElement(PackageExpiryReminderEmail, {
-			expiresAtLabel: formatTimestampDateLong(expiresAt),
-			name,
-			remainingSessions,
-			signoffName
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(PackageExpiryReminderEmail, {
+					expiresAtLabel: formatTimestampDateLong(expiresAt),
+					name,
+					remainingSessions,
+					signoffName
+				})
+			),
+		catch: (cause) => {
+			console.error("Package expiry reminder email render failed", { email, cause });
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	}).andThen((html) =>
+		sendEmail({
+			to: [email],
+			subject: `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(expiresAt)}`,
+			html
 		})
 	);
-
-	return await sendEmail({
-		to: [email],
-		subject: `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(expiresAt)}`,
-		html
-	});
 }
 
 export async function sendFeedbackEmailForMessage(message: string) {
@@ -577,7 +294,7 @@ export async function sendFeedbackEmailForMessage(message: string) {
 	});
 }
 
-export async function sendSessionReminderEmail({
+export function sendSessionReminderEmail({
 	name,
 	email,
 	date,
@@ -597,25 +314,31 @@ export async function sendSessionReminderEmail({
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 
-	const html = await render(
-		createElement(ReminderEmail, {
-			addonsLine,
-			bookingDate,
-			bookingTime,
-			duration,
-			name,
-			service,
-			rescheduleUrl,
-			isPackageSession,
-			signoffName
-		})
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(ReminderEmail, {
+					addonsLine,
+					bookingDate,
+					bookingTime,
+					duration,
+					name,
+					service,
+					rescheduleUrl,
+					isPackageSession,
+					signoffName
+				})
+			),
+		catch: (cause) => {
+			console.error("Session reminder email render failed", { email, cause });
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	}).andThen((html) =>
+		sendEmail({
+			to: [email, ...getHostEmails()],
+			subject: `Reminder: Your Studio Session Tomorrow - ${formatSessionDateShort(date)}`,
+			html
+		}).map(() => null)
 	);
-
-	const emailResult = await sendEmail({
-		to: [email, ...getHostEmails()],
-		subject: `Reminder: Your Studio Session Tomorrow - ${formatSessionDateShort(date)}`,
-		html
-	});
-
-	return emailResult;
 }

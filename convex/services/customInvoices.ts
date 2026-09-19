@@ -7,7 +7,6 @@ import {
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
 } from "#convex/lib/customInvoices";
-import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 
@@ -22,12 +21,6 @@ type CustomInvoiceDetails = {
 export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 	bookingId: Id<"bookings">;
 	service?: string;
-};
-
-export type CreatePackageCustomInvoiceArgs = CustomInvoiceDetails & {
-	packageId: Id<"packages">;
-	packageSize: 4 | 8 | 12;
-	includePackageDiscount?: boolean;
 };
 
 export function listCustomInvoicesForBookingService(
@@ -45,82 +38,29 @@ export function listCustomInvoicesForBookingService(
 	);
 }
 
-export function listCustomInvoicesForPackageService(
-	ctx: QueryCtx,
-	args: { packageId: Id<"packages"> }
-) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		okOrThrow(
-			ctx.db
-				.query("customInvoices")
-				.withIndex("by_packageId", (query) => query.eq("packageId", args.packageId))
-				.order("desc")
-				.collect()
-		)
-	);
-}
-
 export function createBookingCustomInvoiceService(
 	ctx: MutationCtx,
 	args: CreateBookingCustomInvoiceArgs
 ) {
-	return (
-		requirePermission(ctx, "create:invoices")
-			// Validate the optional price override before loading or writing invoice data.
-			.andThen((identity) =>
-				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
-			)
-			// Confirm the session still exists before creating its custom invoice.
-			.andThen((identity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
-			// Save and number the invoice in the same transaction.
-			.andThen((identity) =>
-				saveNumberedCustomInvoice(ctx, {
-					bookingId: args.bookingId,
-					dueDate: args.dueDate,
-					service: args.service,
-					duration: args.duration,
-					addons: args.addons,
-					essentialEditQuantity: args.essentialEditQuantity,
-					completeEditQuantity: args.completeEditQuantity,
-					clipsPackageQuantity: args.clipsPackageQuantity,
-					handcraftedClipsQuantity: args.handcraftedClipsQuantity,
-					includeDepositLineItem: args.includeDepositLineItem,
-					customTotalDueAmount: args.customTotalDueAmount,
-					createdBy: identity.email
-				})
-			)
-	);
-}
-
-export function createPackageCustomInvoiceService(
-	ctx: MutationCtx,
-	args: CreatePackageCustomInvoiceArgs
-) {
-	return (
-		requirePermission(ctx, "create:invoices")
-			// Validate the optional price override before loading or writing invoice data.
-			.andThen((identity) =>
-				validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
-			)
-			// Confirm the package still exists before creating its custom invoice.
-			.andThen((identity) => getPackageFromDb(ctx, args.packageId).map(() => identity))
-			// Save and number the invoice in the same transaction.
-			.andThen((identity) =>
-				saveNumberedCustomInvoice(ctx, {
-					packageId: args.packageId,
-					dueDate: args.dueDate,
-					duration: args.duration,
-					addons: args.addons,
-					essentialEditQuantity: args.essentialEditQuantity,
-					completeEditQuantity: args.completeEditQuantity,
-					clipsPackageQuantity: args.clipsPackageQuantity,
-					handcraftedClipsQuantity: args.handcraftedClipsQuantity,
-					packageSize: args.packageSize,
-					includeDepositLineItem: args.includeDepositLineItem,
-					includePackageDiscount: args.includePackageDiscount,
-					customTotalDueAmount: args.customTotalDueAmount,
-					createdBy: identity.email
-				})
-			)
-	);
+	return requirePermission(ctx, "create:invoices")
+		.andThen((identity) =>
+			validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
+		)
+		.andThen((identity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
+		.andThen((identity) =>
+			saveNumberedCustomInvoice(ctx, {
+				bookingId: args.bookingId,
+				dueDate: args.dueDate,
+				service: args.service,
+				duration: args.duration,
+				addons: args.addons,
+				essentialEditQuantity: args.essentialEditQuantity,
+				completeEditQuantity: args.completeEditQuantity,
+				clipsPackageQuantity: args.clipsPackageQuantity,
+				handcraftedClipsQuantity: args.handcraftedClipsQuantity,
+				includeDepositLineItem: args.includeDepositLineItem,
+				customTotalDueAmount: args.customTotalDueAmount,
+				createdBy: identity.email
+			})
+		);
 }

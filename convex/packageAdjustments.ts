@@ -2,23 +2,17 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { internalMutation, internalQuery, mutation } from "#convex/_generated/server";
+import { internalMutation, mutation } from "#convex/_generated/server";
 import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/packageAdjustments";
 import {
 	claimPackageAdjustmentInvoiceEmailService,
+	claimPackageAdjustmentInvoicePaymentService,
 	completePackageAdjustmentInvoiceEmailService,
-	getPackageAdjustmentInvoiceInputService,
 	markPackageAdjustmentPaymentStatusService,
 	markStalledPackageAdjustmentInvoiceEmailFailedService
 } from "#convex/services/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
-
-export const getPackageAdjustmentInvoiceInput = internalQuery({
-	args: { adjustmentId: v.id("packageAdjustments") },
-	handler: (ctx, args) =>
-		getPackageAdjustmentInvoiceInputService(ctx, args).match(tupleOk, tupleErr)
-});
 
 export const claimPackageAdjustmentInvoiceEmail = internalMutation({
 	args: {
@@ -46,9 +40,19 @@ export const markStalledPackageAdjustmentInvoiceEmailFailed = internalMutation({
 });
 
 export const markPackageAdjustmentInvoiceEmailSent = internalMutation({
-	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
+	args: {
+		adjustmentId: v.id("packageAdjustments"),
+		claimedAt: v.number(),
+		stripeInvoiceId: v.string()
+	},
 	handler: (ctx, args) =>
 		completePackageAdjustmentInvoiceEmailService(ctx, args, "sent").match(tupleOk, tupleErr)
+});
+
+export const claimPackageAdjustmentInvoicePayment = internalMutation({
+	args: { stripeInvoiceId: v.string(), adjustmentId: v.optional(v.string()), paidAt: v.number() },
+	handler: (ctx, args) =>
+		claimPackageAdjustmentInvoicePaymentService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageAdjustmentInvoiceEmailFailed = internalMutation({

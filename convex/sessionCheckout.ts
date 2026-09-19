@@ -49,9 +49,12 @@ export const getSessionByStripeSessionId = internalQuery({
 });
 
 export const setSessionStripeSessionId = internalMutation({
-	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
+	args: { bookingId: v.id("bookings"), stripeSessionId: v.string(), stripeCustomerId: v.string() },
 	handler: async (ctx, args) => {
-		return await ctx.db.patch(args.bookingId, { stripeSessionId: args.stripeSessionId });
+		return await ctx.db.patch(args.bookingId, {
+			stripeSessionId: args.stripeSessionId,
+			stripeCustomerId: args.stripeCustomerId
+		});
 	}
 });
 

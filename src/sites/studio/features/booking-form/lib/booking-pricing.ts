@@ -57,8 +57,6 @@ export type PackagePricingValues = {
 	includeDiscount?: boolean;
 } & BookingAddonQuantities;
 
-const PACKAGE_INVOICE_DUE_DAYS = 7;
-
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function roundMoneyAmount(amount: number) {
@@ -112,10 +110,6 @@ export function calculatePackageAmounts(values: PackagePricingValues): PackageAm
 		singleSessionAmount,
 		totalDueAmount: roundMoneyAmount(packageSubtotalAmount - discountAmount)
 	};
-}
-
-export function getPackageInvoiceDueAt(createdAt: number) {
-	return createdAt + PACKAGE_INVOICE_DUE_DAYS * MILLISECONDS_PER_DAY;
 }
 
 export function getPackageExpiresAt(paidAt: number, packageSize: PackageSize) {

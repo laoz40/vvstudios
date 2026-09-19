@@ -31,8 +31,13 @@ function createDefaultContactDetails(): BookingContactDetails {
 }
 
 /** Spread E2E bookings across bookable days so reruns don't fight the same Google Calendar slot. */
-export function getE2eDayIndexBucket(bucketCount = 5) {
-	return Math.floor(Date.now() / 60_000) % bucketCount;
+export function getE2eDayIndexBucket(bucketCount = 5, parallelIndex = 0) {
+	return (Math.floor(Date.now() / 60_000) + parallelIndex) % bucketCount;
+}
+
+/** Month and day offsets so parallel e2e runs land on different calendar slots. */
+export function getE2eBookingSlotOffset(parallelIndex = 0, bucketCount = 5) {
+	return { monthOffset: 1, startingDayIndex: getE2eDayIndexBucket(bucketCount, parallelIndex) };
 }
 
 async function waitForCalendarAvailability(page: Page) {
@@ -40,21 +45,17 @@ async function waitForCalendarAvailability(page: Page) {
 	const calendar = page.locator('[data-slot="calendar"]');
 
 	// Busy-window fetch starts after mount once the rate-limit key is set in useEffect.
-	await loadingAvailability.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+	await loadingAvailability.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
 
 	if (await loadingAvailability.isVisible()) {
-		await loadingAvailability.waitFor({ state: "hidden", timeout: 30_000 });
+		await loadingAvailability.waitFor({ state: "hidden", timeout: 15_000 });
 	}
 
 	await expect
 		.poll(async () => calendar.locator("button[data-day]:not([disabled])").count(), {
-			timeout: 15_000
+			timeout: 10_000
 		})
 		.toBeGreaterThan(0);
-}
-
-async function waitForBookingDateSelected(timeField: ReturnType<Page["locator"]>) {
-	await expect(timeField.getByText("Select a date to view times.")).toBeHidden({ timeout: 30_000 });
 }
 
 async function readDayTimeSelectionState(
@@ -80,6 +81,42 @@ async function readDayTimeSelectionState(
 	return "pending";
 }
 
+const dayTimeSelectionTimeoutMs = 6_000;
+
+// Stripe redirect and Convex booking confirmation hit live external services.
+const stripeBookingCompleteTimeoutMs = 60_000;
+
+const bookingConfirmedHeadingTimeoutMs = 45_000;
+
+async function waitForDayTimeSelectionAfterClick(
+	timeField: ReturnType<Page["locator"]>
+): Promise<"available" | "unavailable" | "timeout"> {
+	let resolvedState: "available" | "unavailable" | undefined;
+
+	try {
+		await expect
+			.poll(
+				async () => {
+					const state = await readDayTimeSelectionState(timeField);
+
+					if (state === "pending") {
+						return undefined;
+					}
+
+					resolvedState = state;
+
+					return state;
+				},
+				{ intervals: [150, 250, 500], timeout: dayTimeSelectionTimeoutMs }
+			)
+			.not.toBeUndefined();
+
+		return resolvedState ?? "timeout";
+	} catch {
+		return "timeout";
+	}
+}
+
 async function pickTimeForDayAtIndex(
 	calendar: ReturnType<Page["locator"]>,
 	timeField: ReturnType<Page["locator"]>,
@@ -94,27 +131,13 @@ async function pickTimeForDayAtIndex(
 	}
 
 	const dayButton = enabledDays.nth(dayIndex);
-	let timeSelection: "available" | "unavailable" | undefined;
 
-	try {
-		await expect(async () => {
-			await dayButton.scrollIntoViewIfNeeded();
-			await dayButton.click();
-			await waitForBookingDateSelected(timeField);
+	await dayButton.scrollIntoViewIfNeeded();
+	await dayButton.click();
 
-			const state = await readDayTimeSelectionState(timeField);
+	const state = await waitForDayTimeSelectionAfterClick(timeField);
 
-			if (state === "pending") {
-				throw new Error("Waiting for time slots after date selection");
-			}
-
-			timeSelection = state;
-		}).toPass({ timeout: 15_000 });
-	} catch {
-		return false;
-	}
-
-	if (timeSelection === undefined || timeSelection === "unavailable") {
+	if (state !== "available") {
 		return false;
 	}
 
@@ -212,7 +235,7 @@ async function selectBookingRadio(page: Page, labelSelector: string, radioSelect
 	await expect(async () => {
 		await label.click();
 		await expect(page.locator(radioSelector)).toBeChecked();
-	}).toPass({ timeout: 15_000 });
+	}).toPass({ timeout: 10_000 });
 }
 
 export async function fillSingleSessionBookingForm(
@@ -225,7 +248,7 @@ export async function fillSingleSessionBookingForm(
 
 	await expect(page.getByRole("heading", { name: "Studio Hire Booking" })).toBeVisible();
 	await expect(page.getByRole("radio", { name: /Single Session/ })).toBeChecked({
-		timeout: 15_000
+		timeout: 10_000
 	});
 
 	await selectBookingRadio(
@@ -239,7 +262,6 @@ export async function fillSingleSessionBookingForm(
 		"#service-table-setup"
 	);
 
-	await waitForCalendarAvailability(page);
 	await pickFirstBookableDateAndTime(page, startingDayIndex, monthOffset);
 
 	await page.getByLabel("Full Name *").fill(contactDetails.name);
@@ -264,7 +286,7 @@ export async function fillPackageBookingForm(
 		'[data-field-name="bookingMode"] label[for="booking-mode-package"]',
 		"#booking-mode-package"
 	);
-	await expect(page.getByText("Package size *")).toBeVisible({ timeout: 15_000 });
+	await expect(page.getByText("Package size *")).toBeVisible({ timeout: 10_000 });
 	await selectBookingRadio(
 		page,
 		`[data-field-name="packageSize"] label[for="package-size-${packageSize}"]`,
@@ -305,25 +327,9 @@ export async function expectPaymentModal(page: Page) {
 	const paymentDialog = page.getByRole("dialog");
 
 	await expect(page.getByRole("button", { name: "Close payment modal" })).toBeVisible({
-		timeout: 45_000
+		timeout: 30_000
 	});
-	await expect(paymentDialog.locator("iframe").first()).toBeVisible({ timeout: 30_000 });
-}
-
-export async function expectNoPaymentModal(page: Page) {
-	await expect(page.getByRole("button", { name: "Close payment modal" })).toBeHidden({
-		timeout: 5_000
-	});
-}
-
-export async function expectPackageRequestComplete(page: Page, packageSize: PackageSizeOption = 4) {
-	await expect(page).toHaveURL(/\/package-complete/, { timeout: 45_000 });
-	await expect(page).toHaveURL(new RegExp(`package_size=${packageSize}`));
-	await expect(
-		page.getByRole("heading", { name: `${packageSize}-Session Package requested.` })
-	).toBeVisible();
-	await expect(page.getByText("Next Steps:")).toBeVisible();
-	await expect(page.getByText("Pay your invoice")).toBeVisible();
+	await expect(paymentDialog.locator("iframe").first()).toBeVisible({ timeout: 20_000 });
 }
 
 export async function closePaymentModal(page: Page) {
@@ -334,7 +340,7 @@ export async function closePaymentModal(page: Page) {
 	}
 
 	await closeButton.click();
-	await expect(closeButton).toBeHidden({ timeout: 15_000 });
+	await expect(closeButton).toBeHidden({ timeout: 10_000 });
 }
 
 function stripeCheckoutFrame(page: Page) {
@@ -346,10 +352,10 @@ function stripeCheckoutFrame(page: Page) {
 export async function completeStripePayment(page: Page) {
 	const checkout = stripeCheckoutFrame(page);
 
-	await expect(checkout.getByText("TEST MODE")).toBeVisible({ timeout: 60_000 });
+	await expect(checkout.getByText("TEST MODE")).toBeVisible({ timeout: 30_000 });
 
 	const cardNumber = checkout.getByRole("textbox", { name: "Card number" });
-	await expect(cardNumber).toBeEditable({ timeout: 30_000 });
+	await expect(cardNumber).toBeEditable({ timeout: 15_000 });
 	await cardNumber.fill("4242 4242 4242 4242");
 	await checkout.getByRole("textbox", { name: "Expiration" }).fill("12 / 34");
 	await checkout.getByRole("textbox", { name: "Credit or debit card CVC/CVV" }).fill("123");
@@ -370,12 +376,19 @@ export async function completeStripePayment(page: Page) {
 	await expect(payButton).toBeEnabled({ timeout: 10_000 });
 
 	await Promise.all([
-		page.waitForURL(/\/booking-complete/, { timeout: 120_000 }),
+		page.waitForURL(/\/booking-complete/, { timeout: stripeBookingCompleteTimeoutMs }),
 		payButton.click()
 	]);
 }
 
-export async function expectBookingConfirmed(page: Page) {
+export interface ExpectBookingConfirmedOptions {
+	packageSize?: PackageSizeOption;
+}
+
+export async function expectBookingConfirmed(
+	page: Page,
+	options: ExpectBookingConfirmedOptions = {}
+) {
 	await expect(page).toHaveURL(/session_id=/, { timeout: 10_000 });
 
 	const paymentReceivedHeading = page.getByRole("heading", { name: /We received your payment/ });
@@ -388,7 +401,12 @@ export async function expectBookingConfirmed(page: Page) {
 		);
 	}
 
-	await expect(page.getByRole("heading", { name: "Your booking is confirmed!" })).toBeVisible({
-		timeout: 120_000
+	const confirmedHeading =
+		options.packageSize === undefined
+			? "Your booking is confirmed!"
+			: `${options.packageSize}-Session Package confirmed`;
+
+	await expect(page.getByRole("heading", { name: confirmedHeading })).toBeVisible({
+		timeout: bookingConfirmedHeadingTimeoutMs
 	});
 }

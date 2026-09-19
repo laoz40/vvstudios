@@ -20,6 +20,11 @@ import {
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
+import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
+import {
 	formatShortMonthFullDate,
 	formatBookingRelativeDate,
 	formatBookingTimestampTime,
@@ -32,8 +37,6 @@ function getPackageDashboardDateLabel(
 	switch (kind) {
 		case "adjustment_due":
 			return "Adjustment due";
-		case "payment_due":
-			return "Payment due";
 		case "package_expiry":
 			return "Package expiry";
 		case "missing_package_expiry":
@@ -78,12 +81,79 @@ function PackageTableDateCell({
 	);
 }
 
-function hasOutstandingPackagePayment(packageRow: AdminPackageRow) {
-	if (!packageRow.isPaid) {
-		return true;
-	}
+function PackageAmountCell({
+	packageRow,
+	rowId
+}: {
+	packageRow: AdminPackageRow;
+	rowId: AdminPackageRow["id"];
+}) {
+	const rowAmounts = [
+		packageRow.totalDueAmount,
+		packageRow.adjustment?.totalAmount,
+		packageRow.customStripeInvoices?.totalAmount
+	].filter((amount): amount is number => amount !== undefined);
 
-	return packageRow.adjustment?.paymentStatus === "unpaid";
+	const showCents = getAudAmountRowShowCents(rowAmounts);
+
+	const totalDueLabel = formatAudAmount(packageRow.totalDueAmount, { showCents });
+
+	const adjustmentLabel = packageRow.adjustment
+		? formatAudAmount(packageRow.adjustment.totalAmount, { showCents })
+		: null;
+
+	const customStripeInvoiceLabel = packageRow.customStripeInvoices
+		? formatAudAmount(packageRow.customStripeInvoices.totalAmount, { showCents })
+		: null;
+
+	return (
+		<div className="flex flex-col items-end gap-1">
+			<p className="text-green">
+				<PrivacySensitiveText
+					rowId={rowId}
+					value={totalDueLabel}
+					label="package amount"
+					copyable={false}>
+					{totalDueLabel}
+				</PrivacySensitiveText>
+			</p>
+			{packageRow.adjustment && adjustmentLabel ? (
+				<p
+					className={
+						packageRow.adjustment.paymentStatus === "paid" ? "text-green" : "text-destructive"
+					}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={adjustmentLabel}
+						label="adjustment amount"
+						copyable={false}>
+						{adjustmentLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+			{packageRow.customStripeInvoices && customStripeInvoiceLabel ? (
+				<p
+					className={getStripeInvoiceAmountClassName(
+						packageRow.customStripeInvoices.paymentStatus
+					)}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={customStripeInvoiceLabel}
+						label="Stripe invoice amount"
+						copyable={false}>
+						{customStripeInvoiceLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+		</div>
+	);
+}
+
+function hasOutstandingStripeInvoice(packageRow: AdminPackageRow) {
+	return (
+		packageRow.adjustment?.paymentStatus === "unpaid" ||
+		packageRow.customStripeInvoices?.paymentStatus === "unpaid"
+	);
 }
 
 function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
@@ -100,7 +170,7 @@ function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
 
 	return {
 		amountCellClassName:
-			isInactive && !hasOutstandingPackagePayment(packageRow) ? "opacity-70" : undefined,
+			isInactive && !hasOutstandingStripeInvoice(packageRow) ? "opacity-70" : undefined,
 		dateCellClassName: isInactive && !isDashboardDatePastDue ? "opacity-70" : undefined,
 		isDashboardDatePastDue,
 		inactiveCellClassName: isInactive ? "opacity-70" : undefined,
@@ -235,31 +305,10 @@ export function PackageTableRow({
 				/>
 			</TableCell>
 			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
-				<div className="flex flex-col gap-1">
-					<p className={packageRow.isPaid ? "text-green" : "text-destructive"}>
-						<PrivacySensitiveText
-							rowId={packageRow.id}
-							value={packageRow.totalDueLabel}
-							label="package amount"
-							copyable={false}>
-							{packageRow.totalDueLabel}
-						</PrivacySensitiveText>
-					</p>
-					{packageRow.adjustment ? (
-						<p
-							className={
-								packageRow.adjustment.paymentStatus === "paid" ? "text-green" : "text-destructive"
-							}>
-							<PrivacySensitiveText
-								rowId={packageRow.id}
-								value={packageRow.adjustment.amountLabel}
-								label="adjustment amount"
-								copyable={false}>
-								{packageRow.adjustment.amountLabel}
-							</PrivacySensitiveText>
-						</p>
-					) : null}
-				</div>
+				<PackageAmountCell
+					packageRow={packageRow}
+					rowId={packageRow.id}
+				/>
 			</TableCell>
 			<TableCell className={inactiveCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">

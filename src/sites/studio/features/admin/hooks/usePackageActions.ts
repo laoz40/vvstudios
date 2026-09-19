@@ -11,8 +11,14 @@ import { usePackagePaymentActions } from "#studio/features/admin/hooks/usePackag
 export function usePackageActions(packageRow: AdminPackageRow) {
 	const [pendingAction, setPendingAction] = useState<AdminPackagePendingAction>(null);
 	const editAction = usePackageEditAction(packageRow);
-	const invoiceActions = usePackageInvoiceActions(packageRow, setPendingAction);
+
+	const invoiceActions = usePackageInvoiceActions(
+		{ packageId: packageRow.id, stripeCustomerId: packageRow.stripeCustomerId },
+		setPendingAction
+	);
+
 	const paymentActions = usePackagePaymentActions(packageRow, setPendingAction);
+
 	const adjustmentActions = usePackageAdjustmentActions(packageRow, setPendingAction);
 
 	const isActionPending = pendingAction !== null;

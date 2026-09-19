@@ -43,7 +43,7 @@ export async function scheduleFirstPackageSession(
 	await page.getByRole("button", { name: "SAVE SESSION" }).click();
 	await expect(
 		page.getByText("Calendar event created. Check your email for the invitation.")
-	).toBeVisible({ timeout: 120_000 });
+	).toBeVisible({ timeout: 45_000 });
 }
 
 export async function expectFirstPackageSessionScheduled(page: Page, packageSize: number) {
@@ -52,6 +52,6 @@ export async function expectFirstPackageSessionScheduled(page: Page, packageSize
 
 	await expect(
 		page.getByText(`Schedule ${sessionsRemaining} more ${sessionLabel} to complete your booking.`)
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: 15_000 });
 	await expect(page.getByText("Upcoming").first()).toBeVisible();
 }

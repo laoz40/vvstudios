@@ -1,18 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { bookingCompleteSearchSchema } from "#studio/features/booking-complete/lib/booking-complete-search";
-import { BookingCompletePage } from "#studio/features/booking-complete/components/BookingCompletePage";
-import { buildNoIndexHead } from "#/lib/seo";
+import { studioSite } from "#/config/sites";
 
 export const Route = createFileRoute("/_public/_convex/package-complete")({
-	validateSearch: (search) => {
+	beforeLoad: ({ search }) => {
 		const parsedSearch = bookingCompleteSearchSchema.safeParse(search);
 
-		return parsedSearch.success ? parsedSearch.data : {};
-	},
-	head: () => buildNoIndexHead("Package Complete | VV Studios"),
-	component: PackageCompletePage
+		throw redirect({
+			to: studioSite.routes.bookingComplete,
+			search: parsedSearch.success ? parsedSearch.data : {}
+		});
+	}
 });
-
-function PackageCompletePage() {
-	return <BookingCompletePage search={Route.useSearch()} />;
-}
