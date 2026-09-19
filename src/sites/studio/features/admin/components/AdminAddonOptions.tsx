@@ -1,70 +1,91 @@
-import { Checkbox } from "#/components/ui/checkbox";
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
-import { cn } from "#/lib/utils";
+import { AdminAddonLineItemRow } from "#studio/features/admin/components/AdminAddonLineItemRow";
 import {
-	ADDON_OPTIONS,
-	getClearedAddonQuantityUpdates,
+	adminAddonLineItemsFromState,
+	adminAddonStateFromLineItems,
+	createAdminAddonLineItemDraft,
+	type AdminAddonLineItemDraft
+} from "#studio/features/admin/lib/admin-addon-line-items";
+import {
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type AdminAddonOptionsProps = {
 	addons: BookingFormValues["addons"];
 	disabled: boolean;
 	idPrefix: string;
 	onChange: (nextValues: { addons: BookingFormValues["addons"] } & BookingAddonQuantities) => void;
+	showLabel?: boolean;
 } & BookingAddonQuantities;
 
 export function AdminAddonOptions({
 	addons,
 	disabled,
-	idPrefix,
 	onChange,
+	showLabel = true,
 	...quantityValues
 }: AdminAddonOptionsProps) {
-	const addonQuantities = pickBookingAddonQuantities(quantityValues);
+	const [lineItemDrafts, setLineItemDrafts] = useState<AdminAddonLineItemDraft[]>(() =>
+		adminAddonLineItemsFromState(addons, pickBookingAddonQuantities(quantityValues))
+	);
+
+	function updateLineItemDrafts(nextDrafts: AdminAddonLineItemDraft[]) {
+		setLineItemDrafts(nextDrafts);
+		onChange(adminAddonStateFromLineItems(nextDrafts));
+	}
+
+	function updateLineItemDraft(lineItemId: string, update: Partial<AdminAddonLineItemDraft>) {
+		updateLineItemDrafts(
+			lineItemDrafts.map((draft) => (draft.id === lineItemId ? { ...draft, ...update } : draft))
+		);
+	}
+
+	function addLineItemDraft() {
+		updateLineItemDrafts([...lineItemDrafts, createAdminAddonLineItemDraft()]);
+	}
+
+	function removeLineItemDraft(lineItemId: string) {
+		if (lineItemDrafts.length === 1) {
+			updateLineItemDrafts([createAdminAddonLineItemDraft()]);
+
+			return;
+		}
+
+		updateLineItemDrafts(lineItemDrafts.filter((draft) => draft.id !== lineItemId));
+	}
 
 	return (
-		<section className="grid gap-3">
-			<Label>Add-ons</Label>
-			<div className="grid gap-3">
-				{ADDON_OPTIONS.map((addon) => {
-					const optionId = `${idPrefix}-${toOptionId(addon)}`;
-					const isChecked = addons.includes(addon);
-
-					return (
-						<label
-							key={addon}
-							htmlFor={optionId}
-							className={cn(
-								"flex cursor-pointer items-center gap-3",
-								"p-3",
-								"rounded-lg border",
-								"transition-colors",
-								"has-checked:border-primary has-checked:bg-primary/5"
-							)}>
-							<Checkbox
-								id={optionId}
-								checked={isChecked}
-								disabled={disabled}
-								onCheckedChange={(checked) => {
-									const nextAddons = checked
-										? [...addons, addon]
-										: addons.filter((value) => value !== addon);
-
-									onChange({
-										addons: nextAddons,
-										...addonQuantities,
-										...getClearedAddonQuantityUpdates(nextAddons)
-									});
-								}}
-							/>
-							<span className="font-medium">{addon}</span>
-						</label>
-					);
-				})}
+		<section className="grid gap-2">
+			{showLabel ? <Label>Add-ons</Label> : null}
+			<div className="grid gap-2">
+				{lineItemDrafts.map((lineItemDraft, index) => (
+					<AdminAddonLineItemRow
+						key={lineItemDraft.id}
+						drafts={lineItemDrafts}
+						draft={lineItemDraft}
+						index={index}
+						isDisabled={disabled}
+						canRemove
+						onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
+						onRemove={() => removeLineItemDraft(lineItemDraft.id)}
+					/>
+				))}
+				<div className="flex justify-center">
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						disabled={disabled}
+						onClick={addLineItemDraft}>
+						<Plus className="size-4" />
+						Add item
+					</Button>
+				</div>
 			</div>
 		</section>
 	);

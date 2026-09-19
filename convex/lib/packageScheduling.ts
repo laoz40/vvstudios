@@ -32,7 +32,7 @@ import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessio
 
 export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packageLookup";
 
-type PackageAdminUpdateValues = { expiresAt?: number; totalDueAmount?: number };
+type PackageAdminUpdateValues = { expiresAt?: number };
 
 export async function createPackageScheduleToken() {
 	const token = generateRescheduleToken();
@@ -77,13 +77,6 @@ export function getPackageUpdateValidationError(
 
 	if (values.expiresAt !== undefined && !Number.isFinite(values.expiresAt)) {
 		return "PACKAGE_INVALID_EXPIRY" as const;
-	}
-
-	if (
-		values.totalDueAmount !== undefined &&
-		(!Number.isFinite(values.totalDueAmount) || values.totalDueAmount < 0)
-	) {
-		return "PACKAGE_INVALID_TOTAL_DUE_AMOUNT" as const;
 	}
 
 	return null;

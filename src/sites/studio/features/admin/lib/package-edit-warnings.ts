@@ -1,7 +1,6 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { getSydneyDateValue, getSydneyTimeValue } from "#studio/lib/bookingdatetime";
 
 type PackageEditWarningField = keyof PackageEditDraft;
 
@@ -12,8 +11,7 @@ const pricingFields: readonly PackageEditWarningField[] = [
 	"completeEditQuantity",
 	"clipsPackageQuantity",
 	"handcraftedClipsQuantity",
-	"packageSize",
-	"totalDueAmount"
+	"packageSize"
 ];
 
 const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
@@ -28,10 +26,10 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	duration: "Session duration",
 	essentialEditQuantity: "Essential Edit quantity",
 	handcraftedClipsQuantity: "Handcrafted Clips quantity",
-	expiresAt: "Package expiry window",
+	expiresDate: "Package expiry date",
+	expiresTime: "Package expiry time",
 	notes: "Notes",
-	packageSize: "Package sessions",
-	totalDueAmount: "Package total due"
+	packageSize: "Package sessions"
 };
 
 function isPackageEditWarningField(field: string): field is PackageEditWarningField {
@@ -58,30 +56,17 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		return packageRow[field] ?? "";
 	}
 
-	if (field === "expiresAt") {
-		return packageRow.expiresAt ?? undefined;
+	if (field === "expiresDate") {
+		return packageRow.expiresAt === undefined
+			? ""
+			: getSydneyDateValue(new Date(packageRow.expiresAt));
 	}
 
-	if (field === "totalDueAmount") {
-		return packageRow.totalDueAmount;
+	if (field === "expiresTime") {
+		return packageRow.expiresAt === undefined ? "" : getSydneyTimeValue(packageRow.expiresAt);
 	}
 
 	return packageRow[field];
-}
-
-function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
-	const totalDueDraft = draft.totalDueAmount.trim();
-
-	if (totalDueDraft.length > 0) {
-		return Number(totalDueDraft);
-	}
-
-	return calculatePackageAmounts({
-		addons: draft.addons,
-		duration: draft.duration,
-		packageSize: draft.packageSize,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
 }
 
 function didPackageEditFieldChange(
@@ -90,13 +75,13 @@ function didPackageEditFieldChange(
 	field: PackageEditWarningField
 ) {
 	const currentValue = getPackageDraftValue(packageRow, field);
-	const nextValue = field === "totalDueAmount" ? getPackageTotalDueDraftValue(draft) : draft[field];
+	const nextValue = draft[field];
 
 	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
 		return didArrayChange(currentValue, nextValue);
 	}
 
-	return (currentValue ?? undefined) !== (nextValue ?? undefined);
+	return currentValue !== nextValue;
 }
 
 function getChangedFieldLabels(
@@ -115,11 +100,8 @@ export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: P
 
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
-	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;
-
 	return {
 		changedFieldLabels: changedFields.map((field) => packageEditFieldLabels[field]),
-		manualPriceWillBeUsed,
 		pricingFieldLabels,
 		requiresConfirmation: changedFields.length > 0
 	};

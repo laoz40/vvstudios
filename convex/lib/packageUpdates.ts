@@ -4,10 +4,7 @@ import {
 	calculatePackageAmounts,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import {
-	createPackageInvoiceLineItemSnapshot,
-	createPriceAdjustmentInvoiceLineItem
-} from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -53,7 +50,6 @@ export type UpdatePackageArgs = {
 	notes?: string;
 	packageSize: PackageSize;
 	expiresAt?: number;
-	totalDueAmount?: number;
 } & BookingAddonQuantitiesArgs;
 
 type ParsedPackage = ReturnType<typeof packageFormSchema.parse>;
@@ -209,13 +205,6 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		discountPercent: amounts.discountPercent
 	});
 
-	const totalDueAmount = args.totalDueAmount ?? amounts.totalDueAmount;
-	const priceAdjustmentAmount = totalDueAmount - amounts.totalDueAmount;
-
-	if (priceAdjustmentAmount !== 0) {
-		invoiceLineItems.push(createPriceAdjustmentInvoiceLineItem(priceAdjustmentAmount));
-	}
-
 	const patch: PackageUpdatePatch = {
 		name: updatedPackage.name,
 		phone: updatedPackage.phone,
@@ -234,7 +223,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		packageSubtotalAmount: amounts.packageSubtotalAmount,
 		discountPercent: amounts.discountPercent,
 		discountAmount: amounts.discountAmount,
-		totalDueAmount,
+		totalDueAmount: amounts.totalDueAmount,
 		invoiceLineItems
 	};
 

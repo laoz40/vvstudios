@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger
+} from "#/components/ui/accordion";
 import { Button } from "#/components/ui/button";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import { AdminEditingQuantityOptions } from "#studio/features/admin/components/AdminEditingQuantityOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -25,9 +30,17 @@ import {
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	adminOptionButtonClassName,
+	adminOptionRowClassName
+} from "#studio/features/admin/lib/admin-form-styles";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
+import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
+import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
-import { X } from "lucide-react";
 
 type SessionRecord = Doc<"bookings">;
 
@@ -54,6 +67,18 @@ export type SessionEditDialogProps = {
 	onSave: (values: SessionEditDraft) => Promise<void>;
 	isSaving: boolean;
 };
+
+const compactFieldClassName = "grid gap-1.5";
+
+const accordionTriggerClassName = "!py-3 !text-base !font-bold hover:!text-primary";
+
+const accordionContentClassName = "space-y-3 pb-3 pt-1 text-sm md:text-sm md:pb-3";
+
+function formatSignedPriceDifference(diff: number, showCents: boolean) {
+	const sign = diff > 0 ? "+" : "-";
+
+	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
+}
 
 function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 	return {
@@ -84,7 +109,12 @@ export function SessionEditDialog({
 	isSaving
 }: SessionEditDialogProps) {
 	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(session));
+	const originalPrice = getBookingTotal(buildSessionEditDraft(session));
+	const newPrice = getBookingTotal(draft);
+	const priceDifference = newPrice - originalPrice;
+	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
+	// Reset draft when dialog opens with fresh session data.
 	useEffect(() => {
 		if (open) {
 			setDraft(buildSessionEditDraft(session));
@@ -102,7 +132,7 @@ export function SessionEditDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className={cn("flex max-h-dvh flex-col", "overflow-hidden", "sm:max-w-4xl")}
+				className={cn("flex max-h-dvh flex-col", "gap-4", "overflow-hidden", "sm:max-w-3xl")}
 				onInteractOutside={(event) => {
 					if (isSaving) {
 						event.preventDefault();
@@ -125,7 +155,7 @@ export function SessionEditDialog({
 					</Button>
 				</DialogClose>
 
-				<DialogHeader className="text-left">
+				<DialogHeader className="space-y-1 text-left">
 					<DialogTitle>Edit session</DialogTitle>
 					<DialogDescription>
 						This will make changes to session {bookingId}. There is no turning back from this. USE
@@ -135,270 +165,266 @@ export function SessionEditDialog({
 
 				<form
 					className={cn(
-						"flex min-h-0 flex-col gap-6",
+						"flex min-h-0 flex-col gap-3",
 						"overflow-y-auto overscroll-contain",
-						"pr-4"
+						"pr-1"
 					)}
 					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();
 						void onSave(draft);
 					}}>
-					<section className="grid gap-4 md:grid-cols-2">
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-name">Customer name</Label>
-							<Input
-								id="edit-session-name"
-								name="name"
-								autoComplete="name"
-								value={draft.name}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, name: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-account-name">Account name</Label>
-							<Input
-								id="edit-session-account-name"
-								name="accountName"
-								autoComplete="organization"
-								value={draft.accountName}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, accountName: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-abn">ABN</Label>
-							<Input
-								id="edit-session-abn"
-								name="abn"
-								autoComplete="off"
-								spellCheck={false}
-								value={draft.abn}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, abn: event.target.value }));
-								}}
-								inputMode="numeric"
-								placeholder="Optional"
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-email">Email</Label>
-							<Input
-								id="edit-session-email"
-								name="email"
-								type="email"
-								autoComplete="email"
-								spellCheck={false}
-								value={draft.email}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, email: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-phone">Phone number</Label>
-							<Input
-								id="edit-session-phone"
-								name="phone"
-								type="tel"
-								autoComplete="tel"
-								inputMode="tel"
-								value={draft.phone}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, phone: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-date">Session date</Label>
-							<Input
-								id="edit-session-date"
-								name="date"
-								type="date"
-								autoComplete="off"
-								value={draft.date}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, date: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-session-time">Session time</Label>
-							<Input
-								id="edit-session-time"
-								name="time"
-								type="time"
-								autoComplete="off"
-								value={draft.time}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, time: event.target.value }));
-								}}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Session duration</Label>
-						<RadioGroup
-							value={draft.duration}
-							onValueChange={(value) => {
-								const duration = DURATION_OPTIONS.find((option) => option === value);
-
-								if (duration) {
-									setDraft((current) => ({ ...current, duration }));
-								}
-							}}
-							className="grid gap-3 sm:grid-cols-3">
-							{DURATION_OPTIONS.map((duration) => {
-								const optionId = `edit-duration-${toOptionId(duration)}`;
-
-								return (
-									<label
-										key={duration}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<RadioGroupItem
-											id={optionId}
-											value={duration}
+					<Accordion
+						type="single"
+						collapsible
+						className="w-full">
+						<AccordionItem value="client-details">
+							<AccordionTrigger className={accordionTriggerClassName}>
+								Client details
+							</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-name">Customer name</Label>
+										<Input
+											id="edit-session-name"
+											name="name"
+											autoComplete="name"
+											value={draft.name}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, name: event.target.value }));
+											}}
+											required
 											disabled={isSaving}
 										/>
-										<span className="font-medium">{duration}</span>
-									</label>
-								);
-							})}
-						</RadioGroup>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Service</Label>
-						<RadioGroup
-							value={draft.service}
-							onValueChange={(value) => {
-								setDraft((current) => ({ ...current, service: value }));
-							}}
-							className="grid gap-3 sm:grid-cols-2">
-							{SERVICES.map((service) => {
-								const optionId = `edit-service-${toOptionId(service)}`;
-
-								return (
-									<label
-										key={service}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<RadioGroupItem
-											id={optionId}
-											value={service}
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-account-name">Account name</Label>
+										<Input
+											id="edit-session-account-name"
+											name="accountName"
+											autoComplete="organization"
+											value={draft.accountName}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, accountName: event.target.value }));
+											}}
+											required
 											disabled={isSaving}
 										/>
-										<span className="font-medium">{service}</span>
-									</label>
-								);
-							})}
-						</RadioGroup>
-					</section>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-abn">ABN</Label>
+										<Input
+											id="edit-session-abn"
+											name="abn"
+											autoComplete="off"
+											spellCheck={false}
+											value={draft.abn}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, abn: event.target.value }));
+											}}
+											inputMode="numeric"
+											placeholder="Optional"
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-email">Email</Label>
+										<Input
+											id="edit-session-email"
+											name="email"
+											type="email"
+											autoComplete="email"
+											spellCheck={false}
+											value={draft.email}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, email: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-phone">Phone number</Label>
+										<Input
+											id="edit-session-phone"
+											name="phone"
+											type="tel"
+											autoComplete="tel"
+											inputMode="tel"
+											value={draft.phone}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, phone: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+								</div>
+								<div className={compactFieldClassName}>
+									<Label htmlFor="edit-session-notes">Client notes</Label>
+									<Textarea
+										id="edit-session-notes"
+										name="notes"
+										autoComplete="off"
+										rows={2}
+										value={draft.notes}
+										onChange={(event) => {
+											setDraft((current) => ({ ...current, notes: event.target.value }));
+										}}
+										placeholder="Optional"
+										disabled={isSaving}
+									/>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
 
-					<AdminAddonOptions
-						addons={draft.addons}
-						essentialEditQuantity={draft.essentialEditQuantity}
-						completeEditQuantity={draft.completeEditQuantity}
-						clipsPackageQuantity={draft.clipsPackageQuantity}
-						handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
-						disabled={isSaving}
-						idPrefix="edit-addon"
-						onChange={(nextValues) => {
-							setDraft((current) => ({ ...current, ...nextValues }));
-						}}
-					/>
+						<AccordionItem value="session-details">
+							<AccordionTrigger className={accordionTriggerClassName}>
+								Session details
+							</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-date">Session date</Label>
+										<Input
+											id="edit-session-date"
+											name="date"
+											type="date"
+											autoComplete="off"
+											value={draft.date}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, date: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-session-time">Session time</Label>
+										<Input
+											id="edit-session-time"
+											name="time"
+											type="time"
+											autoComplete="off"
+											value={draft.time}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, time: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+								</div>
 
-					{draft.addons.includes("Essential Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-essential-edit-quantity"
-							label="Essential Edit quantity"
-							value={draft.essentialEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) => {
-								setDraft((current) => ({ ...current, essentialEditQuantity: value }));
-							}}
-						/>
-					) : null}
-					{draft.addons.includes("Complete Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-complete-edit-quantity"
-							label="Complete Edit quantity"
-							value={draft.completeEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) => {
-								setDraft((current) => ({ ...current, completeEditQuantity: value }));
-							}}
-						/>
-					) : null}
-					{draft.addons.includes("Clip Volume Pack") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-clips-package-quantity"
-							label="Clip Volume Pack quantity"
-							value={draft.clipsPackageQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) => {
-								setDraft((current) => ({ ...current, clipsPackageQuantity: value }));
-							}}
-						/>
-					) : null}
-					{draft.addons.includes("Handcrafted Clips") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-handcrafted-clips-quantity"
-							label="Handcrafted Clips quantity"
-							value={draft.handcraftedClipsQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) => {
-								setDraft((current) => ({ ...current, handcraftedClipsQuantity: value }));
-							}}
-						/>
-					) : null}
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className="grid gap-2">
+										<Label>Session duration</Label>
+										<RadioGroup
+											value={draft.duration}
+											onValueChange={(value) => {
+												const duration = DURATION_OPTIONS.find((option) => option === value);
 
-					<div className="grid gap-2">
-						<Label htmlFor="edit-session-notes">Client notes</Label>
-						<Textarea
-							id="edit-session-notes"
-							name="notes"
-							autoComplete="off"
-							value={draft.notes}
-							onChange={(event) => {
-								setDraft((current) => ({ ...current, notes: event.target.value }));
-							}}
-							placeholder="Optional"
-							disabled={isSaving}
-						/>
+												if (duration) {
+													setDraft((current) => ({ ...current, duration }));
+												}
+											}}
+											className={adminOptionRowClassName}>
+											{DURATION_OPTIONS.map((duration) => {
+												const optionId = `edit-duration-${toOptionId(duration)}`;
+
+												return (
+													<label
+														key={duration}
+														htmlFor={optionId}
+														className={adminOptionButtonClassName}>
+														<RadioGroupItem
+															id={optionId}
+															value={duration}
+															disabled={isSaving}
+															className="sr-only"
+														/>
+														{duration}
+													</label>
+												);
+											})}
+										</RadioGroup>
+									</div>
+
+									<div className="grid gap-2">
+										<Label>Service</Label>
+										<RadioGroup
+											value={draft.service}
+											onValueChange={(value) => {
+												setDraft((current) => ({ ...current, service: value }));
+											}}
+											className={adminOptionRowClassName}>
+											{SERVICES.map((service) => {
+												const optionId = `edit-service-${toOptionId(service)}`;
+
+												return (
+													<label
+														key={service}
+														htmlFor={optionId}
+														className={adminOptionButtonClassName}>
+														<RadioGroupItem
+															id={optionId}
+															value={service}
+															disabled={isSaving}
+															className="sr-only"
+														/>
+														{service}
+													</label>
+												);
+											})}
+										</RadioGroup>
+									</div>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
+
+						<AccordionItem value="addons">
+							<AccordionTrigger className={accordionTriggerClassName}>Add-ons</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<AdminAddonOptions
+									key={open ? bookingId : "closed"}
+									addons={draft.addons}
+									essentialEditQuantity={draft.essentialEditQuantity}
+									completeEditQuantity={draft.completeEditQuantity}
+									clipsPackageQuantity={draft.clipsPackageQuantity}
+									handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
+									disabled={isSaving}
+									idPrefix="edit-addon"
+									showLabel={false}
+									onChange={(nextValues) => {
+										setDraft((current) => ({ ...current, ...nextValues }));
+									}}
+								/>
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
+
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
+						<p>
+							Total:{" "}
+							<span className="font-medium">
+								{formatAudAmount(originalPrice, { showCents: showPriceCents })}
+							</span>
+						</p>
+						{priceDifference !== 0 ? (
+							<p>
+								New:{" "}
+								<span className="font-medium">
+									{formatAudAmount(newPrice, { showCents: showPriceCents })}
+								</span>{" "}
+								<span className="text-muted-foreground">
+									{formatSignedPriceDifference(priceDifference, showPriceCents)}
+								</span>
+							</p>
+						) : null}
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="gap-2">
 						<Button
 							type="button"
 							variant="outline"
@@ -408,9 +434,10 @@ export function SessionEditDialog({
 						</Button>
 						<Button
 							type="submit"
+							variant="destructive"
 							disabled={isSaving}>
 							{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isSaving ? "Saving..." : "I am sure I want to make permanent changes"}
+							{isSaving ? "Saving" : "I am sure I want to make permanent changes"}
 						</Button>
 					</DialogFooter>
 				</form>

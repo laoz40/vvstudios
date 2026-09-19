@@ -71,7 +71,7 @@ export function StripeInvoiceDialog({
 	function removeLineItemDraft(lineItemId: string) {
 		setLineItemDrafts((currentDrafts) => {
 			if (currentDrafts.length === 1) {
-				return currentDrafts;
+				return [createStripeInvoiceLineItemDraft()];
 			}
 
 			return currentDrafts.filter((draft) => draft.id !== lineItemId);
@@ -82,7 +82,7 @@ export function StripeInvoiceDialog({
 		const lineItems = buildStripeInvoiceLineItemsFromDrafts(lineItemDrafts, invoiceContext);
 
 		if (lineItems === null) {
-			toast.error("Complete each line item before sending the invoice.");
+			toast.error("Complete each item before sending the invoice.");
 
 			return;
 		}
@@ -149,23 +149,21 @@ export function StripeInvoiceDialog({
 						void handleSendInvoice();
 					}}>
 					<div className="grid gap-2">
-						<Label>Line items</Label>
-						<div className="overflow-hidden rounded-lg border">
-							<div className="divide-y">
-								{lineItemDrafts.map((lineItemDraft, index) => (
-									<StripeInvoiceLineItemRow
-										key={lineItemDraft.id}
-										context={invoiceContext}
-										draft={lineItemDraft}
-										index={index}
-										isDisabled={isSending || !hasStripeCustomer}
-										canRemove={lineItemDrafts.length > 1}
-										onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
-										onRemove={() => removeLineItemDraft(lineItemDraft.id)}
-									/>
-								))}
-							</div>
-							<div className="flex justify-center border-t p-2">
+						<Label>Items</Label>
+						<div className="grid gap-2">
+							{lineItemDrafts.map((lineItemDraft, index) => (
+								<StripeInvoiceLineItemRow
+									key={lineItemDraft.id}
+									context={invoiceContext}
+									draft={lineItemDraft}
+									index={index}
+									isDisabled={isSending || !hasStripeCustomer}
+									canRemove
+									onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
+									onRemove={() => removeLineItemDraft(lineItemDraft.id)}
+								/>
+							))}
+							<div className="flex justify-center">
 								<Button
 									type="button"
 									variant="ghost"
@@ -173,7 +171,7 @@ export function StripeInvoiceDialog({
 									disabled={isSending || !hasStripeCustomer}
 									onClick={addLineItemDraft}>
 									<Plus className="size-4" />
-									Add line item
+									Add item
 								</Button>
 							</div>
 						</div>

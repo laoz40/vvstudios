@@ -152,7 +152,7 @@ describe("admin package management", () => {
 		expect(await readPackage(t, packageId)).toEqual(packageBefore);
 	});
 
-	test("updates a coherent pricing snapshot and isolates a custom final total", async () => {
+	test("updates a coherent pricing snapshot", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
@@ -178,29 +178,6 @@ describe("admin package management", () => {
 				{ amount: 2392, description: "Studio Hire (2h)", quantity: 8, rate: 299 },
 				{ amount: 232, description: "Teleprompter add-on", quantity: 8, rate: 29 },
 				{ amount: -262.4, description: "10% package discount", quantity: 1, rate: -262.4 }
-			]
-		});
-
-		const customResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
-			packageId: packageId,
-			...editedPackage,
-			totalDueAmount: 2000
-		});
-
-		const customPackage = await readPackage(t, packageId);
-
-		expect(customResult).toEqual([null, null]);
-		expect(customPackage).toEqual({
-			...calculatedPackage,
-			totalDueAmount: 2000,
-			invoiceLineItems: [
-				...calculatedPackage.invoiceLineItems,
-				{
-					amount: -361.5999999999999,
-					description: "Price adjustment",
-					quantity: 1,
-					rate: -361.5999999999999
-				}
 			]
 		});
 	});

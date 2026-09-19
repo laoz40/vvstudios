@@ -34,14 +34,18 @@ function ChangedFieldList({ fields, title, description }: ChangedFieldListProps)
 	}
 
 	return (
-		<section className="grid gap-2 rounded-lg border bg-muted/30 p-3">
-			<h3 className="font-medium text-sm">{title}</h3>
-			<ul className="list-disc space-y-1 pl-5 text-muted-foreground text-sm">
+		<section className="grid gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+			<h3 className="font-bold text-sm">{title}</h3>
+			<ul className="list-disc space-y-1 pl-5 text-sm">
 				{fields.map((field) => (
-					<li key={field}>{field}</li>
+					<li
+						className="text-destructive"
+						key={field}>
+						{field}
+					</li>
 				))}
 			</ul>
-			{description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
+			{description ? <p className="text-foreground text-sm">{description}</p> : null}
 		</section>
 	);
 }
@@ -52,9 +56,9 @@ export function AdminEditConfirmationDialog({
 	driveIdentityFieldLabels = EMPTY_FIELD_LABELS,
 	isSaving,
 	pricingFieldLabels,
-	nonPricingTitle = "Google Calendar event will update",
-	pricingTitle = "Pricing or remaining balance may recalculate",
-	description = "Review what this save will affect before making the session changes permanent.",
+	nonPricingTitle = "Calendar Event Changes",
+	pricingTitle = "Pricing Changes",
+	description = "Check what will change before saving.",
 	onCancel,
 	onConfirm,
 	onOpenChange
@@ -80,17 +84,19 @@ export function AdminEditConfirmationDialog({
 						fields={googleEventFieldLabels}
 					/>
 					<ChangedFieldList
-						title="Google Drive client folder will not be renamed"
+						title="Drive folder won't rename"
 						fields={driveIdentityFieldLabels}
-						description="The client folder keeps its original name, and sharing stays on the original email. Update those in Google Drive yourself if needed."
+						description="Folder name and sharing stay as-is. Update in Google Drive if needed."
 					/>
 					<ChangedFieldList
 						title={pricingTitle}
 						fields={pricingFieldLabels}
+						description={
+							pricingFieldLabels.length > 0
+								? "Send a custom Stripe invoice after saving."
+								: undefined
+						}
 					/>
-					<p className="text-muted-foreground text-sm">
-						If an updated invoice is needed, send it manually after saving.
-					</p>
 				</div>
 				<DialogFooter>
 					<Button
@@ -102,10 +108,11 @@ export function AdminEditConfirmationDialog({
 					</Button>
 					<Button
 						type="button"
+						variant="destructive"
 						disabled={isSaving}
 						onClick={onConfirm}>
 						{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isSaving ? "Saving..." : "Save changes"}
+						{isSaving ? "Saving" : "Make permanent changes"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

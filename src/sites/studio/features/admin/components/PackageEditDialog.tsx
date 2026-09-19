@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { LoaderCircle, X } from "lucide-react";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger
+} from "#/components/ui/accordion";
 import { Button } from "#/components/ui/button";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import { AdminEditingQuantityOptions } from "#studio/features/admin/components/AdminEditingQuantityOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -30,10 +35,17 @@ import {
 	PACKAGE_PLANS,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	adminOptionButtonClassName,
+	adminOptionRowClassName
+} from "#studio/features/admin/lib/admin-form-styles";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
-import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
+import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { toOptionId } from "#studio/lib/bookingdatetime";
+import { getSydneyDateValue, getSydneyTimeValue, toOptionId } from "#studio/lib/bookingdatetime";
 
 export type PackageEditDraft = {
 	accountName: string;
@@ -43,9 +55,9 @@ export type PackageEditDraft = {
 	customerName: string;
 	customerPhone: string;
 	duration: BookingFormValues["duration"];
-	expiresAt?: number;
+	expiresDate: string;
+	expiresTime: string;
 	notes: string;
-	totalDueAmount: string;
 	packageSize: PackageSize;
 } & BookingAddonQuantities;
 
@@ -57,29 +69,16 @@ type PackageEditDialogProps = {
 	onSave: (values: PackageEditDraft) => Promise<void>;
 };
 
-function formatDateTimeLocalValue(timestamp: number | undefined) {
-	if (timestamp === undefined) {
-		return "";
-	}
+const compactFieldClassName = "grid gap-1.5";
 
-	const date = new Date(timestamp);
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	const hours = String(date.getHours()).padStart(2, "0");
-	const minutes = String(date.getMinutes()).padStart(2, "0");
+const accordionTriggerClassName = "!py-3 !text-base !font-bold hover:!text-primary";
 
-	return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
+const accordionContentClassName = "space-y-3 pb-3 pt-1 text-sm md:text-sm md:pb-3";
 
-function parseDateTimeLocalValue(value: string) {
-	if (!value) {
-		return undefined;
-	}
+function formatSignedPriceDifference(diff: number, showCents: boolean) {
+	const sign = diff > 0 ? "+" : "-";
 
-	const timestamp = new Date(value).getTime();
-
-	return Number.isFinite(timestamp) ? timestamp : undefined;
+	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
 }
 
 function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
@@ -95,11 +94,21 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		duration: toAdminSessionDuration(packageRow.duration),
 		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
 		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
-		expiresAt: packageRow.expiresAt,
+		expiresDate:
+			packageRow.expiresAt === undefined ? "" : getSydneyDateValue(new Date(packageRow.expiresAt)),
+		expiresTime: packageRow.expiresAt === undefined ? "" : getSydneyTimeValue(packageRow.expiresAt),
 		notes: packageRow.notes ?? "",
-		packageSize: packageRow.packageSize,
-		totalDueAmount: ""
+		packageSize: packageRow.packageSize
 	};
+}
+
+function getPackageDraftTotal(draft: PackageEditDraft) {
+	return calculatePackageAmounts({
+		addons: draft.addons,
+		duration: draft.duration,
+		packageSize: draft.packageSize,
+		...pickBookingAddonQuantities(draft)
+	}).totalDueAmount;
 }
 
 export function PackageEditDialog({
@@ -111,19 +120,16 @@ export function PackageEditDialog({
 }: PackageEditDialogProps) {
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
 
-	const defaultTotalDueAmount = calculatePackageAmounts({
-		addons: draft.addons,
-		duration: draft.duration,
-		packageSize: draft.packageSize,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
+	const originalPrice = packageRow.totalDueAmount;
+	const newPrice = getPackageDraftTotal(draft);
+	const priceDifference = newPrice - originalPrice;
+	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
+	// Reset draft when dialog opens with fresh package data.
 	useEffect(() => {
-		if (!open) {
-			return;
+		if (open) {
+			setDraft(buildPackageEditDraft(packageRow));
 		}
-
-		setDraft(buildPackageEditDraft(packageRow));
 	}, [open, packageRow]);
 
 	return (
@@ -137,7 +143,7 @@ export function PackageEditDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className={cn("flex max-h-dvh flex-col", "overflow-hidden", "sm:max-w-4xl")}
+				className={cn("flex max-h-dvh flex-col", "gap-4", "overflow-hidden", "sm:max-w-3xl")}
 				onInteractOutside={(event) => {
 					if (isSaving) {
 						event.preventDefault();
@@ -160,274 +166,283 @@ export function PackageEditDialog({
 					</Button>
 				</DialogClose>
 
-				<DialogHeader className="text-left">
+				<DialogHeader className="space-y-1 text-left">
 					<DialogTitle>Edit package</DialogTitle>
 					<DialogDescription>
-						This will make permanent changes to this package. USE CAUTION.
+						This will make changes to package {packageRow.invoiceNumber}. There is no turning back
+						from this. USE CAUTION.
 					</DialogDescription>
 				</DialogHeader>
 
 				<form
 					className={cn(
-						"flex min-h-0 flex-col gap-6",
+						"flex min-h-0 flex-col gap-3",
 						"overflow-y-auto overscroll-contain",
-						"pr-4"
+						"pr-1"
 					)}
 					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();
 						void onSave(draft);
 					}}>
-					<section className="grid gap-4 md:grid-cols-2">
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-name">Customer name</Label>
-							<Input
-								id="edit-package-name"
-								value={draft.customerName}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, customerName: event.target.value }))
-								}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-account-name">Account name</Label>
-							<Input
-								id="edit-package-account-name"
-								value={draft.accountName}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, accountName: event.target.value }))
-								}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-abn">ABN</Label>
-							<Input
-								id="edit-package-abn"
-								value={draft.abn}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, abn: event.target.value }))
-								}
-								inputMode="numeric"
-								placeholder="Optional"
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-email">Email</Label>
-							<Input
-								id="edit-package-email"
-								type="email"
-								value={draft.customerEmail}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, customerEmail: event.target.value }))
-								}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-phone">Phone number</Label>
-							<Input
-								id="edit-package-phone"
-								type="tel"
-								value={draft.customerPhone}
-								onChange={(event) =>
-									setDraft((current) => ({ ...current, customerPhone: event.target.value }))
-								}
-								required
-								disabled={isSaving}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-package-expires-at">Package expiry window</Label>
-							<Input
-								id="edit-package-expires-at"
-								type="datetime-local"
-								value={formatDateTimeLocalValue(draft.expiresAt)}
-								onChange={(event) =>
-									setDraft((current) => ({
-										...current,
-										expiresAt: parseDateTimeLocalValue(event.target.value)
-									}))
-								}
-								disabled={isSaving}
-							/>
-						</div>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Package sessions</Label>
-						<RadioGroup
-							value={String(draft.packageSize)}
-							onValueChange={(value) => {
-								const packageSize = Number(value);
-
-								if (isPackageSize(packageSize)) {
-									setDraft((current) => ({ ...current, packageSize }));
-								}
-							}}
-							className="grid gap-3 sm:grid-cols-3">
-							{Object.keys(PACKAGE_PLANS)
-								.map(Number)
-								.filter(isPackageSize)
-								.map((packageSize) => {
-									const optionId = `edit-package-size-${packageSize}`;
-
-									return (
-										<label
-											key={packageSize}
-											htmlFor={optionId}
-											className={cn(
-												"flex cursor-pointer items-center gap-3",
-												"p-3",
-												"rounded-lg border",
-												"transition-colors",
-												"has-checked:border-primary has-checked:bg-primary/5"
-											)}>
-											<RadioGroupItem
-												id={optionId}
-												value={String(packageSize)}
-												disabled={isSaving}
-											/>
-											<span className="font-medium">{packageSize} sessions</span>
-										</label>
-									);
-								})}
-						</RadioGroup>
-					</section>
-
-					<section className="grid gap-3">
-						<Label>Session duration</Label>
-						<RadioGroup
-							value={draft.duration}
-							onValueChange={(value) => {
-								const duration = DURATION_OPTIONS.find((option) => option === value);
-
-								if (duration) {
-									setDraft((current) => ({ ...current, duration }));
-								}
-							}}
-							className="grid gap-3 sm:grid-cols-3">
-							{DURATION_OPTIONS.map((duration) => {
-								const optionId = `edit-package-duration-${toOptionId(duration)}`;
-
-								return (
-									<label
-										key={duration}
-										htmlFor={optionId}
-										className={cn(
-											"flex cursor-pointer items-center gap-3",
-											"p-3",
-											"rounded-lg border",
-											"transition-colors",
-											"has-checked:border-primary has-checked:bg-primary/5"
-										)}>
-										<RadioGroupItem
-											id={optionId}
-											value={duration}
+					<Accordion
+						type="single"
+						collapsible
+						className="w-full">
+						<AccordionItem value="client-details">
+							<AccordionTrigger className={accordionTriggerClassName}>
+								Client details
+							</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-name">Customer name</Label>
+										<Input
+											id="edit-package-name"
+											name="customerName"
+											autoComplete="name"
+											value={draft.customerName}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, customerName: event.target.value }));
+											}}
+											required
 											disabled={isSaving}
 										/>
-										<span className="font-medium">{duration}</span>
-									</label>
-								);
-							})}
-						</RadioGroup>
-					</section>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-account-name">Account name</Label>
+										<Input
+											id="edit-package-account-name"
+											name="accountName"
+											autoComplete="organization"
+											value={draft.accountName}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, accountName: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-abn">ABN</Label>
+										<Input
+											id="edit-package-abn"
+											name="abn"
+											autoComplete="off"
+											spellCheck={false}
+											value={draft.abn}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, abn: event.target.value }));
+											}}
+											inputMode="numeric"
+											placeholder="Optional"
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-email">Email</Label>
+										<Input
+											id="edit-package-email"
+											name="customerEmail"
+											type="email"
+											autoComplete="email"
+											spellCheck={false}
+											value={draft.customerEmail}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, customerEmail: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-phone">Phone number</Label>
+										<Input
+											id="edit-package-phone"
+											name="customerPhone"
+											type="tel"
+											autoComplete="tel"
+											inputMode="tel"
+											value={draft.customerPhone}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, customerPhone: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+								</div>
+								<div className={compactFieldClassName}>
+									<Label htmlFor="edit-package-notes">Client notes</Label>
+									<Textarea
+										id="edit-package-notes"
+										name="notes"
+										autoComplete="off"
+										rows={2}
+										value={draft.notes}
+										onChange={(event) => {
+											setDraft((current) => ({ ...current, notes: event.target.value }));
+										}}
+										placeholder="Optional"
+										disabled={isSaving}
+									/>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
 
-					<AdminAddonOptions
-						addons={draft.addons}
-						essentialEditQuantity={draft.essentialEditQuantity}
-						completeEditQuantity={draft.completeEditQuantity}
-						clipsPackageQuantity={draft.clipsPackageQuantity}
-						handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
-						disabled={isSaving}
-						idPrefix="edit-package-addon"
-						onChange={(nextValues) => setDraft((current) => ({ ...current, ...nextValues }))}
-					/>
+						<AccordionItem value="package-details">
+							<AccordionTrigger className={accordionTriggerClassName}>
+								Package details
+							</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-expires-date">Package expiry date</Label>
+										<Input
+											id="edit-package-expires-date"
+											name="expiresDate"
+											type="date"
+											autoComplete="off"
+											value={draft.expiresDate}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, expiresDate: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+									<div className={compactFieldClassName}>
+										<Label htmlFor="edit-package-expires-time">Package expiry time</Label>
+										<Input
+											id="edit-package-expires-time"
+											name="expiresTime"
+											type="time"
+											autoComplete="off"
+											value={draft.expiresTime}
+											onChange={(event) => {
+												setDraft((current) => ({ ...current, expiresTime: event.target.value }));
+											}}
+											required
+											disabled={isSaving}
+										/>
+									</div>
+								</div>
 
-					{draft.addons.includes("Essential Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-essential-edit-quantity"
-							label="Essential Edit quantity"
-							value={draft.essentialEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, essentialEditQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Complete Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-complete-edit-quantity"
-							label="Complete Edit quantity"
-							value={draft.completeEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, completeEditQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Clip Volume Pack") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-clips-package-quantity"
-							label="Clip Volume Pack quantity"
-							value={draft.clipsPackageQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, clipsPackageQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Handcrafted Clips") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-handcrafted-clips-quantity"
-							label="Handcrafted Clips quantity"
-							value={draft.handcraftedClipsQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, handcraftedClipsQuantity: value }))
-							}
-						/>
-					) : null}
+								<div className="grid gap-3 sm:grid-cols-2">
+									<div className="grid gap-2">
+										<Label>Package sessions</Label>
+										<RadioGroup
+											value={String(draft.packageSize)}
+											onValueChange={(value) => {
+												const packageSize = Number(value);
 
-					<section className="grid gap-2">
-						<Label htmlFor="edit-package-total-due">Package total due</Label>
-						<Input
-							id="edit-package-total-due"
-							type="number"
-							inputMode="decimal"
-							min="0"
-							step="0.01"
-							value={draft.totalDueAmount}
-							onChange={(event) => {
-								setDraft((current) => ({ ...current, totalDueAmount: event.target.value }));
-							}}
-							placeholder={defaultTotalDueAmount.toFixed(2)}
-							disabled={isSaving}
-						/>
-						<p className="text-muted-foreground text-sm">
-							Leave blank to use the current default: {formatAudAmount(defaultTotalDueAmount)}.
+												if (isPackageSize(packageSize)) {
+													setDraft((current) => ({ ...current, packageSize }));
+												}
+											}}
+											className={adminOptionRowClassName}>
+											{Object.keys(PACKAGE_PLANS)
+												.map(Number)
+												.filter(isPackageSize)
+												.map((packageSize) => {
+													const optionId = `edit-package-size-${packageSize}`;
+
+													return (
+														<label
+															key={packageSize}
+															htmlFor={optionId}
+															className={adminOptionButtonClassName}>
+															<RadioGroupItem
+																id={optionId}
+																value={String(packageSize)}
+																disabled={isSaving}
+																className="sr-only"
+															/>
+															{packageSize} sessions
+														</label>
+													);
+												})}
+										</RadioGroup>
+									</div>
+
+									<div className="grid gap-2">
+										<Label>Session duration</Label>
+										<RadioGroup
+											value={draft.duration}
+											onValueChange={(value) => {
+												const duration = DURATION_OPTIONS.find((option) => option === value);
+
+												if (duration) {
+													setDraft((current) => ({ ...current, duration }));
+												}
+											}}
+											className={adminOptionRowClassName}>
+											{DURATION_OPTIONS.map((duration) => {
+												const optionId = `edit-package-duration-${toOptionId(duration)}`;
+
+												return (
+													<label
+														key={duration}
+														htmlFor={optionId}
+														className={adminOptionButtonClassName}>
+														<RadioGroupItem
+															id={optionId}
+															value={duration}
+															disabled={isSaving}
+															className="sr-only"
+														/>
+														{duration}
+													</label>
+												);
+											})}
+										</RadioGroup>
+									</div>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
+
+						<AccordionItem value="addons">
+							<AccordionTrigger className={accordionTriggerClassName}>Add-ons</AccordionTrigger>
+							<AccordionContent className={accordionContentClassName}>
+								<AdminAddonOptions
+									key={open ? packageRow.id : "closed"}
+									addons={draft.addons}
+									essentialEditQuantity={draft.essentialEditQuantity}
+									completeEditQuantity={draft.completeEditQuantity}
+									clipsPackageQuantity={draft.clipsPackageQuantity}
+									handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
+									disabled={isSaving}
+									idPrefix="edit-package-addon"
+									showLabel={false}
+									onChange={(nextValues) => {
+										setDraft((current) => ({ ...current, ...nextValues }));
+									}}
+								/>
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
+
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
+						<p>
+							Total:{" "}
+							<span className="font-medium">
+								{formatAudAmount(originalPrice, { showCents: showPriceCents })}
+							</span>
 						</p>
-					</section>
-
-					<div className="grid gap-2">
-						<Label htmlFor="edit-package-notes">Notes</Label>
-						<Textarea
-							id="edit-package-notes"
-							value={draft.notes}
-							onChange={(event) =>
-								setDraft((current) => ({ ...current, notes: event.target.value }))
-							}
-							placeholder="Optional"
-							disabled={isSaving}
-						/>
+						{priceDifference !== 0 ? (
+							<p>
+								New:{" "}
+								<span className="font-medium">
+									{formatAudAmount(newPrice, { showCents: showPriceCents })}
+								</span>{" "}
+								<span className="text-muted-foreground">
+									{formatSignedPriceDifference(priceDifference, showPriceCents)}
+								</span>
+							</p>
+						) : null}
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="gap-2">
 						<Button
 							type="button"
 							variant="outline"
@@ -437,9 +452,10 @@ export function PackageEditDialog({
 						</Button>
 						<Button
 							type="submit"
+							variant="destructive"
 							disabled={isSaving}>
 							{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isSaving ? "Saving..." : "I am sure I want to make permanent changes"}
+							{isSaving ? "Saving" : "I am sure I want to make permanent changes"}
 						</Button>
 					</DialogFooter>
 				</form>
