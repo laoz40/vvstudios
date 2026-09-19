@@ -8,8 +8,8 @@ const BrandStripeIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const id = useId();
 		const clipId = `fillClip-${id.replace(/:/g, "")}`;
 
-		const start = useCallback(async () => {
-			await animate(".fill-rect", { y: [-2, 26] }, { duration: 1.4, ease: "easeInOut" });
+		const start = useCallback(() => {
+			void animate(".fill-rect", { y: [-2, 26] }, { duration: 1.4, ease: "easeInOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {

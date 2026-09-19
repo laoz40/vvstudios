@@ -7,11 +7,7 @@ const ExternalLinkIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = useCallback(() => {
-			animate(
-				".external-arrow",
-				{ x: 2, y: -2, scale: 1.1 },
-				{ duration: 0.3, ease: "easeOut" }
-			);
+			animate(".external-arrow", { x: 2, y: -2, scale: 1.1 }, { duration: 0.3, ease: "easeOut" });
 
 			animate(".external-box", { scale: 0.95 }, { duration: 0.3, ease: "easeOut" });
 		}, [animate]);

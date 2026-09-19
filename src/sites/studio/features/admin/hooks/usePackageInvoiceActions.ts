@@ -10,10 +10,7 @@ import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/str
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
 
-export type PackageInvoiceTarget = {
-	packageId: Id<"packages">;
-	stripeCustomerId?: string;
-};
+export type PackageInvoiceTarget = { packageId: Id<"packages">; stripeCustomerId?: string };
 
 function showSendStripeInvoiceError(reason: string) {
 	switch (reason) {

@@ -13,11 +13,7 @@ const EyeOffIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 				{ duration: 0.3, ease: "easeOut" }
 			);
 
-			animate(
-				".eye-parts",
-				{ opacity: 0.6, scale: 0.98 },
-				{ duration: 0.3, ease: "easeOut" }
-			);
+			animate(".eye-parts", { opacity: 0.6, scale: 0.98 }, { duration: 0.3, ease: "easeOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {

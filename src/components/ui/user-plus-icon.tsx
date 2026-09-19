@@ -7,17 +7,9 @@ const UserPlusIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
 		const [scope, animate] = useAnimate();
 
 		const start = useCallback(() => {
-			animate(
-				".user-avatar",
-				{ scale: 1.05, y: -1 },
-				{ duration: 0.25, ease: "easeOut" }
-			);
+			animate(".user-avatar", { scale: 1.05, y: -1 }, { duration: 0.25, ease: "easeOut" });
 
-			animate(
-				".plus-sign",
-				{ scale: 1.15, rotate: 90 },
-				{ duration: 0.3, ease: "easeOut" }
-			);
+			animate(".plus-sign", { scale: 1.15, rotate: 90 }, { duration: 0.3, ease: "easeOut" });
 		}, [animate]);
 
 		const stop = useCallback(() => {

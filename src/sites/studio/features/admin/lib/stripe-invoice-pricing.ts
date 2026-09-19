@@ -211,11 +211,11 @@ export function sumStripeInvoiceLineItemDrafts(
 	return lineItems.reduce((total, lineItem) => total + lineItem.amount, 0);
 }
 
-export function getStripeInvoiceAddonOptions() {
+function getStripeInvoiceAddonOptions() {
 	return ADDON_OPTIONS;
 }
 
-export function addonRequiresQuantity(addon: BookingAddon) {
+function addonRequiresQuantity(addon: BookingAddon) {
 	return isQuantityTrackedAddon(addon);
 }
 
