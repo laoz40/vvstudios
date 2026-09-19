@@ -8,6 +8,10 @@ export interface BookingInvoicePdfProps {
 }
 
 function getSessionSummary(data: BookingInvoiceData) {
+	if (data.adjustment) {
+		return `${data.adjustment.packageSize} pack · Remote Podcast usage`;
+	}
+
 	if (data.package) {
 		return `${data.package.size} pack · ${data.booking.duration} sessions`;
 	}
@@ -23,7 +27,9 @@ function getSessionSummary(data: BookingInvoiceData) {
 
 export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 	const packageDetails = data.package;
+	const adjustmentDetails = data.adjustment;
 	const isPackageInvoice = packageDetails !== undefined;
+	const isAdjustmentInvoice = adjustmentDetails !== undefined;
 
 	const packageDiscountAmount = isPackageInvoice
 		? data.lineItems
@@ -43,7 +49,11 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 						<VvPodcastLogo />
 					</View>
 					<View style={styles.headerRight}>
-						<Text style={styles.invoiceTitle}>VV Studios Booking Invoice</Text>
+						<Text style={styles.invoiceTitle}>
+							{isAdjustmentInvoice
+								? "VV Studios Package Adjustment Invoice"
+								: "VV Studios Booking Invoice"}
+						</Text>
 						<Text style={styles.businessDetailStrong}>{data.branding.businessName}</Text>
 						<Text style={styles.businessDetail}>{data.branding.contactEmail}</Text>
 						<Text style={styles.businessDetail}>ABN: 97 592 829 541</Text>
@@ -85,13 +95,17 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 
 				<View style={styles.sessionSummaryRow}>
 					<View style={styles.sessionSummaryItem}>
-						<Text style={styles.sessionSummaryLabel}>Session</Text>
+						<Text style={styles.sessionSummaryLabel}>
+							{isAdjustmentInvoice ? "Package" : "Session"}
+						</Text>
 						<Text style={styles.sessionSummaryValue}>{sessionSummary}</Text>
 					</View>
-					<View style={styles.sessionSummaryItemRight}>
-						<Text style={styles.sessionSummaryLabel}>Session date</Text>
-						<Text style={styles.sessionSummaryValue}>{data.booking.bookingDateLabel}</Text>
-					</View>
+					{isAdjustmentInvoice ? null : (
+						<View style={styles.sessionSummaryItemRight}>
+							<Text style={styles.sessionSummaryLabel}>Session date</Text>
+							<Text style={styles.sessionSummaryValue}>{data.booking.bookingDateLabel}</Text>
+						</View>
+					)}
 				</View>
 
 				<View style={styles.table}>
@@ -165,10 +179,12 @@ export function BookingInvoicePdf({ data }: BookingInvoicePdfProps) {
 					</View>
 				</View>
 
-				<View style={styles.notesSection}>
-					<Text style={styles.cancellationLabel}>Cancellation Policy:</Text>
-					<Text style={styles.notesText}>{data.notes.cancellationPolicy}</Text>
-				</View>
+				{isAdjustmentInvoice ? null : (
+					<View style={styles.notesSection}>
+						<Text style={styles.cancellationLabel}>Cancellation Policy:</Text>
+						<Text style={styles.notesText}>{data.notes.cancellationPolicy}</Text>
+					</View>
+				)}
 			</Page>
 		</Document>
 	);

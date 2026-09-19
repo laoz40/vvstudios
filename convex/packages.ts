@@ -12,8 +12,9 @@ import {
 	archivePackageService,
 	createPendingPackageService,
 	listPackagesService,
+	markPackageInvoiceEmailAttemptService,
 	markPackagePaidAndCreateScheduleTokenService,
-	markPackageReceiptEmailAttemptService,
+	markPackageUnpaidService,
 	markPackageScheduleEmailAttemptService,
 	refreshPackageScheduleTokenService,
 	savePackageInstagramHandleService,
@@ -57,6 +58,16 @@ export const createPendingPackage = internalMutation({
 	handler: (ctx, args) => createPendingPackageService(ctx, args)
 });
 
+export const markPackageInvoiceEmailAttempt = internalMutation({
+	args: {
+		packageId: v.id("packages"),
+		status: v.union(v.literal("sent"), v.literal("failed")),
+		invoiceNumber: v.optional(v.string()),
+		failureCode: v.optional(v.string())
+	},
+	handler: (ctx, args) => markPackageInvoiceEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+});
+
 export const listPackages = query({
 	args: {
 		paginationOpts: paginationOptsValidator,
@@ -95,6 +106,11 @@ export const archivePackage = mutation({
 	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
 });
 
+export const markPackageUnpaid = mutation({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => markPackageUnpaidService(ctx, args).match(tupleOk, tupleErr)
+});
+
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { packageId: v.id("packages"), paidAt: v.number() },
 	handler: (
@@ -117,16 +133,6 @@ export const refreshPackageScheduleToken = internalMutation({
 export const markPackageScheduleEmailAttempt = internalMutation({
 	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
 	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const markPackageReceiptEmailAttempt = internalMutation({
-	args: {
-		packageId: v.id("packages"),
-		status: v.union(v.literal("sent"), v.literal("failed")),
-		receiptNumber: v.optional(v.string()),
-		failureCode: v.optional(v.string())
-	},
-	handler: (ctx, args) => markPackageReceiptEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const savePackageInstagramHandle = mutation({

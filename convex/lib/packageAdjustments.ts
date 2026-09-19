@@ -57,6 +57,19 @@ export function getPackageAdjustmentInvoice(
 	});
 }
 
+export function getSentPackageAdjustmentInvoice(
+	ctx: QueryCtx | MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return getPackageAdjustmentInvoice(ctx, adjustmentId).andThen((adjustment) => {
+		if (adjustment.invoiceEmailStatus !== "sent") {
+			return err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" as const });
+		}
+
+		return ok(adjustment);
+	});
+}
+
 export function requirePackageAdjustmentPaymentEligibility(
 	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
 	now: number

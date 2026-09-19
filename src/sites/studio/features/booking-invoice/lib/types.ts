@@ -48,61 +48,6 @@ export interface BookingInvoiceLineItem {
 	rate: number;
 }
 
-export type BookingReceiptBuilderInput = Omit<
-	BookingInvoiceBuilderInput,
-	"customTotalDueAmount" | "dueDate" | "includeDepositLineItem" | "invoiceNumber"
-> & { receiptNumber?: string };
-
-export interface BookingReceiptMoneyAmounts {
-	addonsAmount: number;
-	baseAmount: number;
-	currency: "AUD";
-	subtotalAmount: number;
-	totalPaidAmount: number;
-}
-
-export type PackageReceiptBuilderInput = {
-	packageId: GenericId<"packages">;
-	name: string;
-	phone: string;
-	accountName: string;
-	abn?: string;
-	email: string;
-	duration: BookingDuration;
-	addons: BookingAddon[];
-	paidAt: number;
-	packageSize: number;
-	packageSubtotalAmount: number;
-	discountPercent: number;
-	discountAmount: number;
-	totalDueAmount: number;
-	invoiceLineItems: BookingInvoiceLineItem[];
-	leadTimeMinutes: number;
-	receiptNumber?: string;
-	scheduleExpiresAtLabel?: string;
-	scheduleUrl?: string;
-} & BookingAddonQuantities;
-
-type BookingReceiptSharedData = {
-	amounts: BookingReceiptMoneyAmounts;
-	booking: BookingInvoiceData["booking"];
-	branding: BookingInvoiceData["branding"];
-	customer: BookingInvoiceData["customer"];
-	lineItems: BookingInvoiceLineItem[];
-	notes: { cancellationPolicy: string };
-	receipt: { number: string; receiptDate: string; receiptDateLabel: string; title: string };
-};
-
-export type BookingReceiptData =
-	| (BookingReceiptSharedData & { kind: "booking"; rescheduleUrl?: string })
-	| (BookingReceiptSharedData & {
-			kind: "package";
-			leadTimeMinutes: number;
-			package: { size: number };
-			scheduleExpiresAtLabel?: string;
-			scheduleUrl?: string;
-	  });
-
 export interface BookingInvoiceData {
 	amounts: BookingInvoiceMoneyAmounts;
 	booking: {
@@ -143,6 +88,7 @@ export interface BookingInvoiceData {
 		payId: string;
 		payIdLabel: string;
 	};
+	adjustment?: { bookedAtLabel: string; packageSize: number };
 	package?: { size: number };
 	rescheduleUrl?: string;
 }

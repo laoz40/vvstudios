@@ -16,7 +16,6 @@ const bookingPageErrorMessages = {
 	BOOKING_TIME_UNAVAILABLE: "That time was just taken. Please choose another available time.",
 	BOOKING_TOO_FAR_AHEAD: "That date is too far ahead. Please choose a closer date.",
 	BOOKING_TOO_SOON: "That time is too soon. Please choose a later slot.",
-	INVALID_ZONED_TIME: "Choose a valid booking time.",
 	CLOSE_CHECKOUT_FAILED: "Something went wrong while closing checkout.",
 	GOOGLE_CALENDAR_AUTH_FAILED:
 		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
@@ -27,7 +26,6 @@ const bookingPageErrorMessages = {
 	LOAD_AVAILABILITY_FAILED: "Something went wrong while loading availability.",
 	START_CHECKOUT_FAILED: "Something went wrong while starting checkout.",
 	STRIPE_CHECKOUT_CLOSE_FAILED: "Failed to close checkout.",
-	STRIPE_CHECKOUT_CREATE_FAILED: "Something went wrong while starting checkout.",
 	STRIPE_SESSION_MISMATCH:
 		"We couldn’t close this checkout session safely. Please refresh the page and try again.",
 	UNKNOWN: "Something went wrong."
@@ -46,7 +44,7 @@ type AvailabilityToastError =
 	| UnexpectedError;
 
 type CreatePackageToastError =
-	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageCheckoutSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.packagePayment.createPackageRequest>[0]>
 	| UnexpectedError;
 
 export const devBookingErrorMessages = {
@@ -69,18 +67,16 @@ export const startCheckoutToastMessages = {
 	BOOKING_TIME_UNAVAILABLE: bookingPageErrorMessages.BOOKING_TIME_UNAVAILABLE,
 	BOOKING_TOO_FAR_AHEAD: bookingPageErrorMessages.BOOKING_TOO_FAR_AHEAD,
 	BOOKING_TOO_SOON: bookingPageErrorMessages.BOOKING_TOO_SOON,
-	INVALID_ZONED_TIME: bookingPageErrorMessages.INVALID_ZONED_TIME,
-	STRIPE_CHECKOUT_CREATE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CREATE_FAILED,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
 } satisfies Record<StartCheckoutToastError["reason"], string>;
 
 export const createPackageToastMessages = {
 	BOOKING_EMAIL_DOMAIN_INVALID: bookingPageErrorMessages.BOOKING_EMAIL_DOMAIN_INVALID,
-	BOOKING_INVALID_DURATION: bookingPageErrorMessages.BOOKING_INVALID_DURATION,
 	BOOKING_INVALID_INPUT: bookingPageErrorMessages.BOOKING_INVALID_INPUT,
 	BOOKING_RATE_LIMITED: bookingPageErrorMessages.BOOKING_RATE_LIMITED,
-	STRIPE_CHECKOUT_CREATE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CREATE_FAILED,
-	UNEXPECTED_ERROR: bookingPageErrorMessages.START_CHECKOUT_FAILED
+	INVOICE_FAILURE_CODE_REQUIRED: "Something went wrong while creating your package request.",
+	INVOICE_NUMBER_REQUIRED: "Something went wrong while creating your package request.",
+	UNEXPECTED_ERROR: "Something went wrong while creating your package request."
 } satisfies Record<CreatePackageToastError["reason"], string>;
 
 export const closeCheckoutToastMessages = {
@@ -90,11 +86,8 @@ export const closeCheckoutToastMessages = {
 } satisfies Record<CloseCheckoutToastError["reason"], string>;
 
 export const availabilityErrorMessages = {
-	BOOKING_INVALID_DATE: bookingPageErrorMessages.BOOKING_INVALID_DATE,
-	BOOKING_INVALID_TIME: bookingPageErrorMessages.BOOKING_INVALID_TIME,
 	GOOGLE_CALENDAR_AUTH_FAILED: bookingPageErrorMessages.GOOGLE_CALENDAR_AUTH_FAILED,
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED: bookingPageErrorMessages.GOOGLE_CALENDAR_AVAILABILITY_FAILED,
 	GOOGLE_CALENDAR_RATE_LIMITED: bookingPageErrorMessages.GOOGLE_CALENDAR_RATE_LIMITED,
-	INVALID_ZONED_TIME: bookingPageErrorMessages.BOOKING_INVALID_TIME,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.LOAD_AVAILABILITY_FAILED
 } satisfies Record<AvailabilityToastError["reason"], string>;

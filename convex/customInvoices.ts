@@ -7,7 +7,9 @@ import {
 } from "#convex/lib/bookingAddonQuantities";
 import {
 	createBookingCustomInvoiceService,
-	listCustomInvoicesForBookingService
+	createPackageCustomInvoiceService,
+	listCustomInvoicesForBookingService,
+	listCustomInvoicesForPackageService
 } from "#convex/services/customInvoices";
 
 export const createCustomInvoice = mutation({
@@ -25,10 +27,32 @@ export const createCustomInvoice = mutation({
 		createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
 });
 
+export const createPackageCustomInvoice = mutation({
+	args: {
+		packageId: v.id("packages"),
+		dueDate: v.optional(v.string()),
+		duration: v.optional(v.string()),
+		addons: bookingAddonsValidator,
+		...bookingAddonQuantitiesValidator,
+		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
+		includeDepositLineItem: v.boolean(),
+		includePackageDiscount: v.optional(v.boolean()),
+		customTotalDueAmount: v.optional(v.number())
+	},
+	handler: async (ctx, args) =>
+		createPackageCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
+});
+
 export const listCustomInvoicesForBooking = query({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
 		listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const listCustomInvoicesForPackage = query({
+	args: { packageId: v.id("packages") },
+	handler: async (ctx, args) =>
+		listCustomInvoicesForPackageService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getBookingCustomInvoiceInput = internalQuery({
@@ -41,5 +65,24 @@ export const getBookingCustomInvoiceInput = internalQuery({
 		}
 
 		return customInvoice;
+	}
+});
+
+export const getPackageCustomInvoiceInput = internalQuery({
+	args: { customInvoiceId: v.id("customInvoices") },
+	handler: async (ctx, args) => {
+		const customInvoice = await ctx.db.get(args.customInvoiceId);
+
+		if (!customInvoice?.packageId) {
+			return null;
+		}
+
+		const packageRecord = await ctx.db.get(customInvoice.packageId);
+
+		if (!packageRecord) {
+			return null;
+		}
+
+		return { customInvoice, packageRecord };
 	}
 });

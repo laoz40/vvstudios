@@ -53,7 +53,7 @@ export const Route = createFileRoute("/_public/_convex/book")({
 function BookingPage() {
 	// Convex actions
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
-	const createPackageCheckoutSession = useAction(api.packagePayment.createPackageCheckoutSession);
+	const createPackageRequest = useAction(api.packagePayment.createPackageRequest);
 	const { handlePaymentModalClose } = useBookingCheckoutClose();
 
 	// Form and scroll targets
@@ -93,7 +93,7 @@ function BookingPage() {
 
 	const bookingSubmit = useBookingSubmit({
 		createEmbeddedCheckoutSession,
-		createPackageCheckoutSession,
+		createPackageRequest,
 		formRef,
 		persistBookingInfoFromForm: savedBookingInfo.persistBookingInfoFromForm
 	});
@@ -196,8 +196,8 @@ function BookingPage() {
 								"text-base font-bold! tracking-wider",
 								"shadow-lg shadow-primary/45"
 							)}
-							disabled={bookingSubmit.isSubmitting}>
-							{bookingSubmit.isSubmitting ? "PROCESSING" : "COMPLETE BOOKING"}
+							disabled={bookingSubmit.isSubmitting || bookingSubmit.hasCompletedPackageBooking}>
+							{bookingSubmit.hasCompletedPackageBooking ? "REQUEST SENT" : "COMPLETE BOOKING"}
 						</Button>
 					</div>
 				</form>

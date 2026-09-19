@@ -3,9 +3,12 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 
-export type AdminPackageStatus = Doc<"packages">["status"];
+export type AdminPackageStatus =
+	| "pending_payment"
+	| "paid"
+	| "invoice_email_failed"
+	| "schedule_email_failed";
 
 export type AdminPackageRecord = Doc<"packages"> & {
 	bookedSessions?: number;
@@ -17,7 +20,6 @@ export type AdminPackageRecord = Doc<"packages"> & {
 		invoiceEmailStatus: "pending" | "sent" | "failed";
 		paymentStatus: "unpaid" | "paid";
 	} | null;
-	customStripeInvoicesSummary?: { paymentStatus: "paid" | "unpaid"; totalAmount: number } | null;
 };
 
 export type AdminPackageRow = {
@@ -37,29 +39,29 @@ export type AdminPackageRow = {
 	completeEditQuantity?: string;
 	essentialEditQuantity?: string;
 	handcraftedClipsQuantity?: string;
+	totalDueLabel: string;
 	totalDueAmount: number;
 	adjustment: {
 		id: Doc<"packageAdjustments">["_id"];
-		totalAmount: number;
+		amountLabel: string;
 		invoiceDueAt: number;
 		invoiceEmailStatus: "pending" | "sent" | "failed";
 		paymentStatus: "unpaid" | "paid";
 	} | null;
-	customStripeInvoices: { totalAmount: number; paymentStatus: "paid" | "unpaid" } | null;
 	isPaid: boolean;
 	areSessionsComplete: boolean;
+	invoiceDueAt: number;
 	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
 	invoiceNumber: string;
-	stripeCustomerId?: string;
-	stripePaymentIntentId?: string;
 	hiddenAt?: number;
 };
 
 export type AdminPackageDashboardDate =
 	| { kind: "adjustment_due"; timestamp: number }
 	| { kind: "package_expiry"; timestamp: number }
+	| { kind: "payment_due"; timestamp: number }
 	| { kind: "missing_package_expiry" };
 
 export type AdminPackageSort = { isDescending: boolean };
@@ -73,10 +75,14 @@ export function toPackageListQuerySort(sort: AdminPackageSort): PackageListQuery
 }
 
 export type AdminPackagePendingAction =
+	| "adjustmentDownload"
 	| "adjustmentEmail"
+	| "adjustmentPayment"
 	| "archive"
-	| "packageEmail"
-	| "receiptDownload"
+	| "download"
+	| "invoice"
+	| "payment"
+	| "scheduleEmail"
 	| null;
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -98,17 +104,14 @@ function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 		case "pending_payment":
 			return "Pending";
 
+		case "invoice_email_failed":
+			return "Invoice email failed";
+
 		case "paid":
 			return "Paid";
 
 		case "schedule_email_failed":
-			return "Receipt and scheduling email failed";
-
-		case "abandoned":
-			return "Abandoned";
-
-		case "expired":
-			return "Expired";
+			return "Scheduling link failed";
 		default:
 			return exhaustiveCheck(status);
 	}
@@ -117,7 +120,10 @@ function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 export type AdminPackageStatusDisplay = { className: string; icon: LucideIcon; label: string };
 
 export function getAdminPackageStatusDisplay(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "isPaid" | "status">
+	packageRow: Pick<
+		AdminPackageRow,
+		"adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid" | "status"
+	>
 ): AdminPackageStatusDisplay {
 	if (packageRow.adjustment?.invoiceEmailStatus === "failed") {
 		return {
@@ -146,34 +152,53 @@ export function getAdminPackageStatusDisplay(
 		case "paid":
 			return { className: "size-5 text-green", icon: Check, label: "Paid" };
 
+		case "invoice_email_failed":
+			return {
+				className: "size-5 text-destructive",
+				icon: MailWarning,
+				label: "Invoice email failed"
+			};
+
 		case "schedule_email_failed":
 			return {
 				className: "size-5 text-destructive",
 				icon: MailWarning,
-				label: "Receipt and scheduling email failed"
+				label: "Scheduling link failed"
 			};
-
-		case "abandoned":
-			return { className: "size-5 text-muted-foreground", icon: ClockAlert, label: "Abandoned" };
-
-		case "expired":
-			return { className: "size-5 text-destructive", icon: ClockAlert, label: "Expired" };
 		default:
 			return exhaustiveCheck(packageRow.status);
 	}
 }
 
-function isAdminPackageOverdue(packageRow: Pick<AdminPackageRow, "adjustment">) {
-	return (
-		packageRow.adjustment?.paymentStatus === "unpaid" &&
-		Date.now() > packageRow.adjustment.invoiceDueAt
-	);
+function isAdminPackageOverdue(
+	packageRow: Pick<AdminPackageRow, "invoiceDueAt" | "status"> & {
+		adjustment: Pick<
+			NonNullable<AdminPackageRow["adjustment"]>,
+			"invoiceDueAt" | "paymentStatus"
+		> | null;
+	}
+) {
+	if (packageRow.adjustment?.paymentStatus === "unpaid") {
+		return Date.now() > packageRow.adjustment.invoiceDueAt;
+	}
+
+	if (packageRow.status === "paid" || packageRow.status === "schedule_email_failed") {
+		return false;
+	}
+
+	return Date.now() > packageRow.invoiceDueAt;
 }
 
 function isAdminPackageExpired(packageRow: Pick<AdminPackageRow, "expiresAt" | "isPaid">) {
 	return (
 		packageRow.isPaid && packageRow.expiresAt !== undefined && Date.now() > packageRow.expiresAt
 	);
+}
+
+export function isAdminPackageAdjustmentPaymentEligible(
+	adjustment: NonNullable<AdminPackageRow["adjustment"]>
+) {
+	return adjustment.invoiceEmailStatus === "sent" || Date.now() > adjustment.invoiceDueAt;
 }
 
 type AdminPackageRowDimmingInput = Pick<
@@ -185,16 +210,19 @@ export function isAdminPackageRowDimmed(packageRow: AdminPackageRowDimmingInput)
 	return isAdminPackageExpired(packageRow) || (packageRow.isPaid && packageRow.areSessionsComplete);
 }
 
-export function isAdminPackagePaymentDueClose(packageRow: Pick<AdminPackageRow, "adjustment">) {
-	const dueAt = packageRow.adjustment?.invoiceDueAt;
+export function isAdminPackagePaymentDueClose(
+	packageRow: Pick<AdminPackageRow, "adjustment" | "invoiceDueAt" | "isPaid">
+) {
+	const dueAt = packageRow.adjustment?.invoiceDueAt ?? packageRow.invoiceDueAt;
 
-	if (dueAt === undefined || packageRow.adjustment?.paymentStatus !== "unpaid") {
-		return false;
-	}
+	const isPaymentOutstanding = packageRow.adjustment
+		? packageRow.adjustment.paymentStatus === "unpaid"
+		: !packageRow.isPaid;
 
 	const millisecondsUntilDue = dueAt - Date.now();
 
 	return (
+		isPaymentOutstanding &&
 		millisecondsUntilDue >= 0 &&
 		millisecondsUntilDue <= PAYMENT_REMINDER_DAYS_BEFORE_DUE * MILLISECONDS_PER_DAY
 	);
@@ -219,27 +247,31 @@ export function isAdminPackageExpiryClose(
 }
 
 function isAdminPackageUpcoming(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "isPaid">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid">
 ) {
 	if (packageRow.adjustment) {
 		return Date.now() <= packageRow.adjustment.invoiceDueAt;
 	}
 
 	if (!packageRow.isPaid) {
-		return false;
+		return Date.now() <= packageRow.invoiceDueAt;
 	}
 
 	return packageRow.expiresAt !== undefined && Date.now() <= packageRow.expiresAt;
 }
 
 export function getAdminPackageDashboardDate(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "isPaid">
+	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "invoiceDueAt" | "isPaid">
 ): AdminPackageDashboardDate {
 	if (packageRow.adjustment) {
 		return { kind: "adjustment_due", timestamp: packageRow.adjustment.invoiceDueAt };
 	}
 
-	if (!packageRow.isPaid || packageRow.expiresAt === undefined) {
+	if (!packageRow.isPaid) {
+		return { kind: "payment_due", timestamp: packageRow.invoiceDueAt };
+	}
+
+	if (packageRow.expiresAt === undefined) {
 		return { kind: "missing_package_expiry" };
 	}
 
@@ -281,32 +313,34 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		completeEditQuantity: packageRecord.completeEditQuantity,
 		essentialEditQuantity: packageRecord.essentialEditQuantity,
 		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+		totalDueLabel: formatPackageAmount(packageRecord.totalDueAmount),
 		totalDueAmount: packageRecord.totalDueAmount,
 		adjustment: packageRecord.adjustment
 			? {
 					id: packageRecord.adjustment._id,
-					totalAmount: packageRecord.adjustment.totalAmount,
+					amountLabel: formatPackageAmount(packageRecord.adjustment.totalAmount),
 					invoiceDueAt: packageRecord.adjustment.invoiceDueAt,
 					invoiceEmailStatus: packageRecord.adjustment.invoiceEmailStatus,
 					paymentStatus: packageRecord.adjustment.paymentStatus
 				}
 			: null,
-		customStripeInvoices: packageRecord.customStripeInvoicesSummary
-			? {
-					totalAmount: packageRecord.customStripeInvoicesSummary.totalAmount,
-					paymentStatus: packageRecord.customStripeInvoicesSummary.paymentStatus
-				}
-			: null,
 		isPaid: packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed",
 		areSessionsComplete: packageRecord.areSessionsComplete,
+		invoiceDueAt: packageRecord.invoiceDueAt,
 		expiresAt: packageRecord.expiresAt,
 		createdAt: packageRecord.createdAt,
 		status: packageRecord.status,
 		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
-		stripeCustomerId: packageRecord.stripeCustomerId,
-		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
 		hiddenAt: packageRecord.hiddenAt
 	};
+}
+
+function formatPackageAmount(amount: number) {
+	return new Intl.NumberFormat("en-AU", {
+		currency: "AUD",
+		maximumFractionDigits: 2,
+		style: "currency"
+	}).format(amount);
 }
 
 function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) {
@@ -328,7 +362,7 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 		`${packageRow.bookedSessions} booked`,
 		packageRow.duration,
 		packageRow.addons.join(" "),
-		formatAudAmount(packageRow.totalDueAmount),
+		packageRow.totalDueLabel,
 		getAdminPackageStatusLabel(packageRow.status)
 	]
 		.join(" ")

@@ -2,8 +2,6 @@ import { CONTACT_EMAIL, CONTACT_PHONE, STUDIO_ADDRESS, STUDIO_ADDRESS_URL } from
 
 export const BOOKING_INVOICE_TITLE = "Tax Invoice";
 
-export const BOOKING_RECEIPT_TITLE = "Receipt";
-
 export const BOOKING_DEPOSIT_AMOUNT = 50;
 
 export const BOOKING_INVOICE_BUSINESS = {
@@ -26,13 +24,6 @@ export const BOOKING_INVOICE_PAYMENT = {
 	bsb: "082-124",
 	payId: CONTACT_PHONE,
 	payIdLabel: "PayID"
-} as const;
-
-export const BOOKING_RECEIPT_NOTES = {
-	getCancellationPolicy: (noticeWindowLabel: string) =>
-		`Payments are non-refundable for customer cancellations, change of mind, late cancellations or no-shows (subject to the notice requirements below). This does not affect your rights under the Australian Consumer Law. Bookings may be rescheduled with a minimum of ${noticeWindowLabel} notice.`,
-	getPackageCancellationPolicy: (noticeWindowLabel: string) =>
-		`Sessions may be rescheduled with a minimum of ${noticeWindowLabel} notice. Late cancellations or no-shows will forfeit that session.`
 } as const;
 
 export const BOOKING_INVOICE_NOTES = {

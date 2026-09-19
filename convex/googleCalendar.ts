@@ -31,6 +31,7 @@ import {
 } from "#convex/services/driveClientPermissions";
 import {
 	completeClaimedSessionService,
+	sendBookingInvoiceForBookingService,
 	sendSessionReminderEmailService
 } from "#convex/services/bookingConfirmationActions";
 
@@ -117,10 +118,17 @@ export const updateSessionFromAdmin = action({
 		service: v.string(),
 		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
-		notes: v.optional(v.string())
+		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number())
 	},
 	handler: async (ctx, args) =>
 		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const sendBookingInvoiceForBooking = action({
+	args: { bookingId: v.id("bookings"), customInvoiceId: v.optional(v.id("customInvoices")) },
+	handler: async (ctx, args) =>
+		(await sendBookingInvoiceForBookingService(ctx, args)).match(tupleOk, tupleErr)
 });
 
 export const deleteSessionFromAdmin = action({

@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
-import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
+import PenIcon from "#/components/ui/pen-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import {
 	DropdownMenuSeparator,
@@ -14,7 +14,6 @@ import {
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
@@ -24,41 +23,48 @@ type PackageOtherActionsMenuProps = {
 	packageRow: AdminPackageRow;
 };
 
-type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & { canResendPackageEmail: boolean };
-
-type PackageReceiptMenuItemsProps = {
-	actions: ReturnType<typeof usePackageActions>;
-	canResendPackageEmail: boolean;
-	isActionPending: boolean;
-	pendingAction: ReturnType<typeof usePackageActions>["pendingAction"];
+type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & {
+	canSendInvoice: boolean;
+	canSendNewSchedulingLink: boolean;
 };
 
-function PackageReceiptMenuItems({
+function PackageInvoiceActions({
 	actions,
-	canResendPackageEmail,
-	isActionPending,
-	pendingAction
-}: PackageReceiptMenuItemsProps) {
-	if (!canResendPackageEmail || !actions.hasStripeCustomer) return null;
+	canSendInvoice,
+	canSendNewSchedulingLink,
+	packageRow
+}: PackageInvoiceActionsProps) {
+	const {
+		handleDownloadAdjustmentInvoice,
+		handleDownloadInvoice,
+		isActionPending,
+		pendingAction,
+		setIsAdjustmentInvoiceDialogOpen,
+		setIsCustomInvoiceDialogOpen,
+		setIsInvoiceDialogOpen,
+		setIsSchedulingLinkDialogOpen
+	} = actions;
 
 	return (
 		<>
+			{canSendInvoice ? (
+				<AnimatedDropdownMenuItem
+					disabled={isActionPending}
+					onSelect={() => setIsInvoiceDialogOpen(true)}
+					renderIcon={(iconRef) => (
+						<MailFilledIcon
+							ref={iconRef}
+							size={16}
+							aria-hidden
+							className="shrink-0 text-current"
+						/>
+					)}>
+					{pendingAction === "invoice" ? "Sending invoice..." : "Email invoice"}
+				</AnimatedDropdownMenuItem>
+			) : null}
 			<AnimatedDropdownMenuItem
 				disabled={isActionPending}
-				onSelect={() => actions.setIsPackageEmailDialogOpen(true)}
-				renderIcon={(iconRef) => (
-					<MailFilledIcon
-						ref={iconRef}
-						size={16}
-						aria-hidden
-						className="shrink-0 text-current"
-					/>
-				)}>
-				{pendingAction === "packageEmail" ? "Sending package email" : "Resend package email"}
-			</AnimatedDropdownMenuItem>
-			<AnimatedDropdownMenuItem
-				disabled={isActionPending}
-				onSelect={() => void actions.handleDownloadReceipt()}
+				onSelect={() => void handleDownloadInvoice()}
 				renderIcon={(iconRef) => (
 					<DownloadIcon
 						ref={iconRef}
@@ -67,33 +73,8 @@ function PackageReceiptMenuItems({
 						className="shrink-0 text-current"
 					/>
 				)}>
-				{pendingAction === "receiptDownload" ? "Generating receipt" : "Download receipt"}
+				{pendingAction === "download" ? "Generating invoice..." : "Download invoice"}
 			</AnimatedDropdownMenuItem>
-		</>
-	);
-}
-
-function PackageInvoiceActions({
-	actions,
-	canResendPackageEmail,
-	packageRow
-}: PackageInvoiceActionsProps) {
-	const {
-		isActionPending,
-		pendingAction,
-		setIsAdjustmentInvoiceDialogOpen,
-		setIsStripeBillingDialogOpen,
-		setIsStripeInvoiceDialogOpen
-	} = actions;
-
-	return (
-		<>
-			<PackageReceiptMenuItems
-				actions={actions}
-				canResendPackageEmail={canResendPackageEmail}
-				isActionPending={isActionPending}
-				pendingAction={pendingAction}
-			/>
 			{packageRow.adjustment?.invoiceEmailStatus === "failed" ? (
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}
@@ -111,34 +92,51 @@ function PackageInvoiceActions({
 						: "Retry adjustment invoice"}
 				</AnimatedDropdownMenuItem>
 			) : null}
-			{actions.hasStripeCustomer ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending || actions.isSendingStripeInvoice}
-					onSelect={() => setIsStripeInvoiceDialogOpen(true)}
-					renderIcon={(iconRef) => (
-						<BrandStripeIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					Create Stripe invoice
-				</AnimatedDropdownMenuItem>
-			) : null}
-			{actions.hasStripeBillingInvoices ? (
+			{packageRow.adjustment?.invoiceEmailStatus === "sent" ? (
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}
-					onSelect={() => setIsStripeBillingDialogOpen(true)}
+					onSelect={() => void handleDownloadAdjustmentInvoice()}
 					renderIcon={(iconRef) => (
-						<BrandStripeIcon
+						<DownloadIcon
 							ref={iconRef}
 							size={16}
 							aria-hidden
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Stripe billing
+					{pendingAction === "adjustmentDownload"
+						? "Generating adjustment invoice"
+						: "Download adjustment invoice"}
+				</AnimatedDropdownMenuItem>
+			) : null}
+			<AnimatedDropdownMenuItem
+				disabled={isActionPending}
+				onSelect={() => setIsCustomInvoiceDialogOpen(true)}
+				renderIcon={(iconRef) => (
+					<PenIcon
+						ref={iconRef}
+						size={16}
+						aria-hidden
+						className="shrink-0 text-current"
+					/>
+				)}>
+				Create custom invoice
+			</AnimatedDropdownMenuItem>
+			{canSendNewSchedulingLink ? (
+				<AnimatedDropdownMenuItem
+					disabled={isActionPending}
+					onSelect={() => setIsSchedulingLinkDialogOpen(true)}
+					renderIcon={(iconRef) => (
+						<MailFilledIcon
+							ref={iconRef}
+							size={16}
+							aria-hidden
+							className="shrink-0 text-current"
+						/>
+					)}>
+					{pendingAction === "scheduleEmail"
+						? "Sending scheduling link..."
+						: "Send New Scheduling Link"}
 				</AnimatedDropdownMenuItem>
 			) : null}
 		</>
@@ -146,8 +144,10 @@ function PackageInvoiceActions({
 }
 
 export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherActionsMenuProps) {
-	const canResendPackageEmail = packageRow.isPaid;
-	const hasPackageInvoiceActions = canResendPackageEmail || packageRow.adjustment !== null;
+	const canSendInvoice =
+		packageRow.status === "pending_payment" || packageRow.status === "invoice_email_failed";
+
+	const canSendNewSchedulingLink = packageRow.isPaid;
 	const invoiceNumber = formatBookingInvoiceNumber(packageRow.id, packageRow.createdAt);
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 
@@ -189,13 +189,13 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 					)}>
 					Copy database ID
 				</AnimatedDropdownMenuItem>
-				<StripeIdCopyMenuItems stripePaymentIntentId={packageRow.stripePaymentIntentId} />
-				{hasPackageInvoiceActions ? (
+				{canSendInvoice || canSendNewSchedulingLink ? (
 					<>
 						<DropdownMenuSeparator />
 						<PackageInvoiceActions
 							actions={actions}
-							canResendPackageEmail={canResendPackageEmail}
+							canSendInvoice={canSendInvoice}
+							canSendNewSchedulingLink={canSendNewSchedulingLink}
 							packageRow={packageRow}
 						/>
 					</>

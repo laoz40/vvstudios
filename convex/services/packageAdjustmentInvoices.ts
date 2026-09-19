@@ -6,10 +6,13 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
-import type { PackageAdjustmentInvoiceInput } from "#convex/lib/bookingInvoiceArtifacts";
-import { fromConvexTuple } from "#convex/lib/result";
-import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripeAdjustmentInvoice";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+import {
+	createPackageAdjustmentInvoiceArtifacts,
+	renderBookingInvoicePdfInNode,
+	type PackageAdjustmentInvoiceInput
+} from "#convex/lib/bookingInvoiceArtifacts";
+import { sendPackageAdjustmentInvoiceEmail } from "#convex/lib/email";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -25,6 +28,24 @@ type SendPackageAdjustmentInvoiceError =
 	| PackageAdjustmentClaimError
 	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" };
 
+type PackageAdjustmentInvoicePdfError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
+	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+	| { reason: "INVALID_BOOKING_DATA" }
+	| { reason: "INVOICE_EMAIL_RENDER_FAILED" }
+	| { reason: "INVOICE_DOWNLOAD_FAILED" };
+
+type PackageAdjustmentInvoiceInputQueryResult = Promise<
+	ConvexResult<
+		PackageAdjustmentInvoiceInput,
+		{ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" } | { reason: "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT" }
+	>
+>;
+
+type InvoicePdfPayload = { content: ArrayBuffer; contentType: string; filename: string };
+
 function markPackageAdjustmentInvoiceEmailFailed(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; claimedAt: number }
@@ -38,8 +59,7 @@ function markPackageAdjustmentInvoiceEmailFailed(
 
 export function sendPackageAdjustmentInvoiceService(
 	ctx: ActionCtx,
-	args: SendPackageAdjustmentInvoiceArgs,
-	stripe: StripeClient = getStripeClient()
+	args: SendPackageAdjustmentInvoiceArgs
 ): NeverthrowResultAsync<null, SendPackageAdjustmentInvoiceError> {
 	const claimedAt = Date.now();
 
@@ -53,43 +73,32 @@ export function sendPackageAdjustmentInvoiceService(
 				now: claimedAt
 			})
 		)
-			// Create and send the claimed adjustment invoice through Stripe.
-			.andThen((invoiceInput) => {
-				const { adjustment, packageRecord } = invoiceInput;
-
-				if (!packageRecord.stripeCustomerId) {
-					return markPackageAdjustmentInvoiceEmailFailed(ctx, {
-						adjustmentId: args.adjustmentId,
-						claimedAt
-					});
-				}
-
-				return createAndSendPackageAdjustmentStripeInvoice(stripe, {
-					adjustmentId: args.adjustmentId,
-					packageId: packageRecord._id,
-					stripeCustomerId: packageRecord.stripeCustomerId,
-					quantity: adjustment.quantity
-				})
+			// Deliver the claimed invoice using its stored package and adjustment snapshot.
+			.andThen((invoiceInput) =>
+				okOrThrow(sendPackageAdjustmentInvoiceEmail(invoiceInput))
+					.andThen((emailResult) => emailResult)
+					.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" as const }))
+					// Persist provider or render failure so an administrator can retry the invoice.
 					.orElse(() =>
 						markPackageAdjustmentInvoiceEmailFailed(ctx, {
 							adjustmentId: args.adjustmentId,
 							claimedAt
 						})
 					)
-					.andThen(({ stripeInvoiceId }) =>
-						fromConvexTuple<
-							Promise<
-								ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>
-							>
-						>(
-							ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
-								adjustmentId: args.adjustmentId,
-								claimedAt,
-								stripeInvoiceId
-							})
-						).map(() => null)
-					);
-			})
+			)
+			// Mark successful delivery only if this attempt still owns the claim.
+			.andThen(() =>
+				fromConvexTuple<
+					Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
+				>(
+					ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
+						adjustmentId: args.adjustmentId,
+						claimedAt
+					})
+				)
+					.orElse(() => ok(null))
+					.map(() => null)
+			)
 	);
 }
 
@@ -100,7 +109,37 @@ export function retryPackageAdjustmentInvoiceEmailService(
 	null,
 	SendPackageAdjustmentInvoiceError | { reason: "NOT_AUTHENTICATED" } | { reason: "NOT_AUTHORIZED" }
 > {
-	return requirePermissionActions(ctx, "send:receipt-emails").andThen(() =>
+	return requirePermissionActions(ctx, "send:invoice-emails").andThen(() =>
 		sendPackageAdjustmentInvoiceService(ctx, { ...args, attempt: "retry" })
+	);
+}
+
+export function getAdminPackageAdjustmentInvoicePdfService(
+	ctx: ActionCtx,
+	args: { adjustmentId: Id<"packageAdjustments"> }
+): NeverthrowResultAsync<InvoicePdfPayload, PackageAdjustmentInvoicePdfError> {
+	return (
+		requirePermissionActions(ctx, "view:sensitive-booking-data")
+			// Load the sent adjustment invoice input only after admin authorization succeeds.
+			.andThen(() =>
+				fromConvexTuple<PackageAdjustmentInvoiceInputQueryResult>(
+					ctx.runQuery(internal.packageAdjustments.getPackageAdjustmentInvoiceInput, args)
+				)
+			)
+			// Validate and render the stored adjustment invoice artifact.
+			.andThen((invoiceInput) => createPackageAdjustmentInvoiceArtifacts(invoiceInput))
+			// Convert PDF rendering failures into the public download error.
+			.andThen((artifactsResult) =>
+				renderBookingInvoicePdfInNode(artifactsResult.artifacts.data)
+					.mapErr(() => ({ reason: "INVOICE_DOWNLOAD_FAILED" as const }))
+					.map((pdfContent) => ({
+						content: pdfContent.buffer.slice(
+							pdfContent.byteOffset,
+							pdfContent.byteOffset + pdfContent.byteLength
+						),
+						contentType: artifactsResult.artifacts.pdf.contentType,
+						filename: artifactsResult.artifacts.pdf.filename
+					}))
+			)
 	);
 }

@@ -63,10 +63,16 @@ function BookingSummaryTotal({
 	}
 
 	return (
-		<div className="flex items-center justify-between text-lg font-semibold text-foreground">
-			<p>Total</p>
-			<p>{formatBookingPriceWithCents(total)}</p>
-		</div>
+		<>
+			<div className="flex items-center justify-between text-lg font-semibold text-foreground">
+				<p>Total</p>
+				<p>{formatBookingPriceWithCents(total)}</p>
+			</div>
+			<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
+				Only $50 booking deposit required to secure your time slot, which gets deducted from your
+				total.
+			</p>
+		</>
 	);
 }
 

@@ -28,7 +28,8 @@ const pricingFields: readonly SessionEditWarningField[] = [
 	"essentialEditQuantity",
 	"completeEditQuantity",
 	"clipsPackageQuantity",
-	"handcraftedClipsQuantity"
+	"handcraftedClipsQuantity",
+	"remainingBalanceAmount"
 ];
 
 const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
@@ -46,7 +47,8 @@ const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
 	notes: "Notes",
 	phone: "Phone number",
 	service: "Service",
-	time: "Session time"
+	time: "Session time",
+	remainingBalanceAmount: "Remaining balance due"
 };
 
 function isSessionEditWarningField(field: string): field is SessionEditWarningField {
@@ -71,6 +73,10 @@ function getSessionDraftValue(session: SessionRecord, field: SessionEditWarningF
 		field === "handcraftedClipsQuantity"
 	) {
 		return session[field] ?? "";
+	}
+
+	if (field === "remainingBalanceAmount") {
+		return session.remainingBalanceAmount?.toString() ?? "";
 	}
 
 	return session[field];
@@ -109,11 +115,13 @@ export function getSessionEditWarningState(session: SessionRecord, draft: Sessio
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 	const driveIdentityFieldLabels = getChangedFieldLabels(changedFields, driveIdentityFields);
 
+	const manualPriceWillBeUsed = draft.remainingBalanceAmount.trim().length > 0;
+
 	return {
 		changedFieldLabels: changedFields.map((field) => sessionEditFieldLabels[field]),
 		driveIdentityFieldLabels,
 		googleEventFieldLabels,
-		manualPriceWillBeUsed: false,
+		manualPriceWillBeUsed,
 		pricingFieldLabels,
 		requiresConfirmation:
 			googleEventFieldLabels.length > 0 ||

@@ -24,9 +24,11 @@ export interface BookingInvoiceEmailProps {
 
 export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 	const receiptNote = "If transferring on the day, please email the receipt.";
+	const adjustmentDetails = data.adjustment;
 	const packageDetails = data.package;
+	const isAdjustmentInvoice = adjustmentDetails !== undefined;
 	const isPackageInvoice = packageDetails !== undefined;
-	const isPackageRelatedInvoice = isPackageInvoice;
+	const isPackageRelatedInvoice = isPackageInvoice || isAdjustmentInvoice;
 
 	const paymentInstruction = isPackageRelatedInvoice
 		? data.notes.paymentNote
@@ -56,7 +58,11 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 							style={logo}
 						/>
 					) : null}
-					<Heading style={heading}>Thanks for booking, {data.customer.name}</Heading>
+					<Heading style={heading}>
+						{isAdjustmentInvoice
+							? `Hi ${data.customer.name},`
+							: `Thanks for booking, ${data.customer.name}`}
+					</Heading>
 					<Text style={paragraph}>{introText}</Text>
 					<Section style={section}>
 						<Text style={sectionTitle}>Balance due</Text>
@@ -127,6 +133,13 @@ export function BookingInvoiceEmail({ data }: BookingInvoiceEmailProps) {
 
 function getEmailCopy(data: BookingInvoiceData): BookingInvoiceEmailCopy {
 	const totalDue = formatAud(data.amounts.totalDueAmount);
+
+	if (data.adjustment) {
+		return {
+			introText: `Your Remote Podcast adjustment invoice for your ${data.adjustment.packageSize}-session package booked on ${data.adjustment.bookedAtLabel} is attached.`,
+			previewText: `Your Remote Podcast adjustment invoice for your package booked on ${data.adjustment.bookedAtLabel} has a balance due of ${totalDue}.`
+		};
+	}
 
 	if (data.package) {
 		return {

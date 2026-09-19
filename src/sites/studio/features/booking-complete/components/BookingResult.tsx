@@ -17,14 +17,14 @@ type InvoiceDownloadTarget =
 	| { kind: "booking"; stripeSessionId: string }
 	| { kind: "package"; packageId: Id<"packages"> };
 
-type BookingReceiptErrorReason =
+type BookingInvoiceErrorReason =
 	| NonNullable<
-			FunctionReturnType<typeof api.invoices.getBookingReceiptPdfByStripeSessionId>[0]
+			FunctionReturnType<typeof api.invoices.getBookingInvoicePdfByStripeSessionId>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
 
-type PackageReceiptErrorReason =
-	| NonNullable<FunctionReturnType<typeof api.invoices.getPackageReceiptPdfById>[0]>["reason"]
+type PackageInvoiceErrorReason =
+	| NonNullable<FunctionReturnType<typeof api.invoices.getPackageInvoicePdfById>[0]>["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface BookingResultProps {
@@ -40,54 +40,54 @@ export function BookingResult({
 	invoiceDownloadTarget,
 	showBookingDetails = true
 }: BookingResultProps): ReactNode {
-	const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
-	const getBookingReceiptPdf = useAction(api.invoices.getBookingReceiptPdfByStripeSessionId);
-	const getPackageReceiptPdf = useAction(api.invoices.getPackageReceiptPdfById);
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+	const getBookingInvoicePdf = useAction(api.invoices.getBookingInvoicePdfByStripeSessionId);
+	const getPackageInvoicePdf = useAction(api.invoices.getPackageInvoicePdfById);
 
-	function handleDownloadDocument(): void {
+	function handleDownloadInvoice(): void {
 		if (!invoiceDownloadTarget) {
 			return;
 		}
 
-		setIsDownloadingDocument(true);
+		setIsDownloadingInvoice(true);
 
 		void (async () => {
 			try {
 				if (invoiceDownloadTarget.kind === "package") {
-					await downloadPackageReceipt(invoiceDownloadTarget.packageId);
+					await downloadPackageInvoice(invoiceDownloadTarget.packageId);
 
 					return;
 				}
 
-				await downloadBookingReceipt(invoiceDownloadTarget.stripeSessionId);
+				await downloadBookingInvoice(invoiceDownloadTarget.stripeSessionId);
 			} finally {
-				setIsDownloadingDocument(false);
+				setIsDownloadingInvoice(false);
 			}
 		})();
 	}
 
-	async function downloadBookingReceipt(stripeSessionId: string): Promise<void> {
-		const [error, receipt] = await tryCatch(getBookingReceiptPdf({ stripeSessionId }));
+	async function downloadBookingInvoice(stripeSessionId: string): Promise<void> {
+		const [error, invoice] = await tryCatch(getBookingInvoicePdf({ stripeSessionId }));
 
 		if (error !== null) {
-			handleBookingReceiptError(error.reason);
+			handleBookingInvoiceError(error.reason);
 
 			return;
 		}
 
-		downloadReceiptPdf(receipt);
+		downloadInvoicePdf(invoice);
 	}
 
-	async function downloadPackageReceipt(packageId: Id<"packages">): Promise<void> {
-		const [error, receipt] = await tryCatch(getPackageReceiptPdf({ packageId }));
+	async function downloadPackageInvoice(packageId: Id<"packages">): Promise<void> {
+		const [error, invoice] = await tryCatch(getPackageInvoicePdf({ packageId }));
 
 		if (error !== null) {
-			handlePackageReceiptError(error.reason);
+			handlePackageInvoiceError(error.reason);
 
 			return;
 		}
 
-		downloadReceiptPdf(receipt);
+		downloadInvoicePdf(invoice);
 	}
 
 	return (
@@ -96,8 +96,8 @@ export function BookingResult({
 				booking={booking}
 				content={content}
 				invoiceDownloadTarget={invoiceDownloadTarget}
-				isDownloadingDocument={isDownloadingDocument}
-				onDownloadDocument={handleDownloadDocument}
+				isDownloadingInvoice={isDownloadingInvoice}
+				onDownloadInvoice={handleDownloadInvoice}
 			/>
 			{showBookingDetails && booking ? <BookingDetails booking={booking} /> : null}
 		</section>
@@ -108,27 +108,23 @@ interface BookingResultContentViewProps {
 	booking: BookingStatus | null;
 	content: BookingResultContent;
 	invoiceDownloadTarget?: InvoiceDownloadTarget;
-	isDownloadingDocument: boolean;
-	onDownloadDocument: () => void;
+	isDownloadingInvoice: boolean;
+	onDownloadInvoice: () => void;
 }
 
 function BookingResultContentView({
 	booking,
 	content,
 	invoiceDownloadTarget,
-	isDownloadingDocument,
-	onDownloadDocument
+	isDownloadingInvoice,
+	onDownloadInvoice
 }: BookingResultContentViewProps): ReactNode {
 	const hasConfirmedBooking = booking?.status === "confirmed" || booking?.status === "email_failed";
-	const isPackageBooking = invoiceDownloadTarget?.kind === "package";
 
-	const showReceiptDownloadLink = invoiceDownloadTarget !== undefined;
+	const showInvoiceDownloadLink =
+		Boolean(invoiceDownloadTarget) && invoiceDownloadTarget?.kind !== "package";
 
-	const receiptLeadIncludesDescription =
-		showReceiptDownloadLink && !isPackageBooking && booking?.status !== "email_failed";
-
-	const showDescription =
-		(!hasConfirmedBooking && !receiptLeadIncludesDescription) || isPackageBooking;
+	const showDescription = !hasConfirmedBooking || invoiceDownloadTarget?.kind === "package";
 
 	return (
 		<div className="space-y-8">
@@ -137,14 +133,20 @@ function BookingResultContentView({
 				hasConfirmedBooking={hasConfirmedBooking}
 				isPackageBooking={invoiceDownloadTarget?.kind === "package"}
 			/>
-			{showDescription ? <BookingResultDescription content={content} /> : null}
-			{showReceiptDownloadLink ? (
+			{showDescription ? (
+				<BookingResultDescription
+					content={content}
+					invoiceDownloadTarget={invoiceDownloadTarget}
+					isDownloadingInvoice={isDownloadingInvoice}
+					onDownloadInvoice={onDownloadInvoice}
+				/>
+			) : null}
+			{showInvoiceDownloadLink ? (
 				<p className="max-w-2xl text-base leading-normal text-muted-foreground">
-					{getReceiptLeadText({ booking, content, isPackageBooking })}{" "}
-					<DocumentDownloadButton
-						documentKind="receipt"
-						isDownloading={isDownloadingDocument}
-						onDownload={onDownloadDocument}
+					{getInvoiceLeadText({ booking, content, invoiceDownloadTarget })}{" "}
+					<InvoiceDownloadButton
+						isDownloading={isDownloadingInvoice}
+						onDownload={onDownloadInvoice}
 					/>
 					.
 				</p>
@@ -185,36 +187,56 @@ function BookingResultHeading({
 }
 
 function BookingResultDescription({
-	content
-}: Pick<BookingResultContentViewProps, "content">): ReactNode {
+	content,
+	invoiceDownloadTarget,
+	isDownloadingInvoice,
+	onDownloadInvoice
+}: Omit<BookingResultContentViewProps, "booking">): ReactNode {
 	return (
 		<div className="max-w-2xl space-y-4">
 			{content.descriptionHeading ? (
 				<h2 className="text-lg font-semibold">{content.descriptionHeading}</h2>
 			) : null}
-			<p className="text-base leading-normal text-muted-foreground">{content.description}</p>
+			{content.descriptionSteps ? (
+				<ol className="list-decimal space-y-3 pl-5 text-base leading-normal text-muted-foreground">
+					{content.descriptionSteps.map((step) => (
+						<li key={step.title}>
+							<strong className="block font-semibold text-foreground">{step.title}</strong>
+							<p>
+								{step.description}
+								{step.showInvoiceDownloadLink && invoiceDownloadTarget ? (
+									<>
+										{" "}
+										<InvoiceDownloadButton
+											isDownloading={isDownloadingInvoice}
+											onDownload={onDownloadInvoice}
+										/>
+										{step.invoiceDownloadLinkSuffix}
+									</>
+								) : null}
+							</p>
+						</li>
+					))}
+				</ol>
+			) : (
+				<p className="text-base leading-normal text-muted-foreground">{content.description}</p>
+			)}
 		</div>
 	);
 }
 
-function DocumentDownloadButton({
-	documentKind,
+function InvoiceDownloadButton({
 	isDownloading,
 	onDownload
 }: {
-	documentKind: "invoice" | "receipt";
 	isDownloading: boolean;
 	onDownload: () => void;
 }): ReactNode {
-	const idleLabel = documentKind === "receipt" ? "download your receipt" : "here";
-
-	const loadingLabel =
-		documentKind === "receipt" ? "generating receipt..." : "generating invoice...";
-
 	return (
 		<button
 			type="button"
 			className={cn(
+				// Invoice download link style
 				"accent-link",
 				"inline bg-transparent p-0",
 				"text-base font-medium leading-normal text-foreground",
@@ -222,46 +244,46 @@ function DocumentDownloadButton({
 			)}
 			disabled={isDownloading}
 			onClick={onDownload}>
-			{isDownloading ? loadingLabel : idleLabel}
+			{isDownloading ? "generating invoice..." : "here"}
 		</button>
 	);
 }
 
-function downloadReceiptPdf(receipt: {
+function downloadInvoicePdf(invoice: {
 	content: ArrayBuffer;
 	contentType: string;
 	filename: string;
 }) {
-	const content = new Uint8Array(receipt.content);
+	const content = new Uint8Array(invoice.content);
 	const pdfBuffer = new ArrayBuffer(content.byteLength);
 	new Uint8Array(pdfBuffer).set(content);
-	downloadBlob(new Blob([pdfBuffer], { type: receipt.contentType }), receipt.filename);
-	toast.success("Receipt download started.");
+	downloadBlob(new Blob([pdfBuffer], { type: invoice.contentType }), invoice.filename);
+	toast.success("Invoice download started.");
 }
 
-function handleBookingReceiptError(reason: BookingReceiptErrorReason) {
+function handleBookingInvoiceError(reason: BookingInvoiceErrorReason) {
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("Unable to find this booking.");
 
 			return;
 		case "BOOKING_NOT_CONFIRMED":
-			toast.error("Receipt is only available for confirmed bookings.");
+			toast.error("Invoice is only available for confirmed bookings.");
 
 			return;
 		case "INVOICE_DOWNLOAD_EXPIRED":
 			toast.error(
-				"Download link expired. Your receipt should be in your email. Please check there."
+				"Download link expired. Your invoice should be in your email — please check there."
 			);
 
 			return;
 		case "INVALID_BOOKING_DATA":
-			toast.error("Unable to generate receipt.");
+			toast.error("Unable to generate invoice.");
 
 			return;
-		case "RECEIPT_PDF_RENDER_FAILED":
+		case "INVOICE_DOWNLOAD_FAILED":
 		case "UNEXPECTED_ERROR":
-			toast.error("Unable to generate receipt.");
+			toast.error("Unable to generate invoice.");
 
 			return;
 		default:
@@ -269,26 +291,26 @@ function handleBookingReceiptError(reason: BookingReceiptErrorReason) {
 	}
 }
 
-function handlePackageReceiptError(reason: PackageReceiptErrorReason) {
+function handlePackageInvoiceError(reason: PackageInvoiceErrorReason) {
 	switch (reason) {
 		case "PACKAGE_NOT_FOUND":
 			toast.error("Unable to find this package request.");
 
 			return;
-		case "PACKAGE_NOT_PAID":
-			toast.error("Receipt is only available after payment is confirmed.");
-
-			return;
 		case "INVOICE_DOWNLOAD_EXPIRED":
 			toast.error(
-				"Download link expired. Your receipt should be in your email. Please check there."
+				"Download link expired. Your invoice should be in your email — please check there."
 			);
 
 			return;
 		case "INVALID_BOOKING_DATA":
-		case "RECEIPT_PDF_RENDER_FAILED":
+			toast.error("Unable to generate invoice.");
+
+			return;
+		case "INVOICE_DOWNLOAD_FAILED":
+		case "INVOICE_EMAIL_RENDER_FAILED":
 		case "UNEXPECTED_ERROR":
-			toast.error("Unable to generate receipt.");
+			toast.error("Unable to generate invoice.");
 
 			return;
 		default:
@@ -296,27 +318,28 @@ function handlePackageReceiptError(reason: PackageReceiptErrorReason) {
 	}
 }
 
-function getReceiptLeadText({
+function getInvoiceLeadText({
 	booking,
 	content,
-	isPackageBooking
+	invoiceDownloadTarget
 }: {
 	booking: BookingStatus | null;
 	content: BookingResultContent;
-	isPackageBooking: boolean;
+	invoiceDownloadTarget?: InvoiceDownloadTarget;
 }): ReactNode {
+	if (invoiceDownloadTarget?.kind === "package") {
+		return "Your invoice has been emailed to you, or you can download it";
+	}
+
 	if (booking?.status === "email_failed") {
 		return (
 			<>
 				Your booking is confirmed, but{" "}
-				<span className="font-bold text-destructive">we couldn’t email your receipt</span>. You can
+				<span className="font-bold text-destructive">we couldn’t email your invoice</span>. You can
+				download it
 			</>
 		);
 	}
 
-	if (isPackageBooking) {
-		return "Your receipt has been emailed, or you can";
-	}
-
-	return `${content.description}, or you can`;
+	return content.description;
 }

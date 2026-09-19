@@ -1,9 +1,9 @@
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import {
+	calculatePackageAmounts,
+	getPackageInvoiceDueAt
+} from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type {
-	BookingInvoiceBuilderInput,
-	PackageReceiptBuilderInput
-} from "#studio/features/booking-invoice/lib/types";
+import type { BookingInvoiceBuilderInput } from "#studio/features/booking-invoice/lib/types";
 import { z } from "zod";
 
 const bookingInvoiceIdSchema = z.custom<BookingInvoiceBuilderInput["bookingId"]>(
@@ -49,29 +49,18 @@ const SAMPLE_PACKAGE_LINE_ITEMS = createPackageInvoiceLineItemSnapshot({
 	discountPercent: SAMPLE_PACKAGE_AMOUNTS.discountPercent
 });
 
-const packageReceiptIdSchema = z.custom<PackageReceiptBuilderInput["packageId"]>(
-	(value) => z.string().min(1).safeParse(value).success
-);
-
-export const SAMPLE_PACKAGE_RECEIPT_INPUT: PackageReceiptBuilderInput = {
-	packageId: packageReceiptIdSchema.parse("preview-package-001"),
+export const SAMPLE_PACKAGE_INVOICE_INPUT = {
+	bookingId: bookingInvoiceIdSchema.parse("preview-package-001"),
 	name: "Jamie Carter",
 	phone: "0400 987 654",
 	accountName: "Southern Cross Shows",
 	abn: "98765432109",
 	email: "jamie@example.com",
-	duration: "2h",
-	addons: SAMPLE_PACKAGE_ADDONS,
-	clipsPackageQuantity: "2",
-	paidAt: SAMPLE_PACKAGE_CREATED_AT,
-	packageSize: 8,
-	packageSubtotalAmount: SAMPLE_PACKAGE_AMOUNTS.packageSubtotalAmount,
-	discountPercent: SAMPLE_PACKAGE_AMOUNTS.discountPercent,
-	discountAmount: SAMPLE_PACKAGE_AMOUNTS.discountAmount,
-	totalDueAmount: SAMPLE_PACKAGE_AMOUNTS.totalDueAmount,
-	invoiceLineItems: SAMPLE_PACKAGE_LINE_ITEMS,
+	createdAt: SAMPLE_PACKAGE_CREATED_AT,
+	invoiceDueAt: getPackageInvoiceDueAt(SAMPLE_PACKAGE_CREATED_AT),
+	invoiceNumber: "VV-20260419-PACK",
+	...SAMPLE_PACKAGE_PRICING,
+	...SAMPLE_PACKAGE_AMOUNTS,
 	leadTimeMinutes: 12 * 60,
-	receiptNumber: "VV-20260419-PACK",
-	scheduleExpiresAtLabel: "19 March 2027",
-	scheduleUrl: "https://vvstudios.example/package-schedule/preview-token"
+	invoiceLineItems: SAMPLE_PACKAGE_LINE_ITEMS
 };

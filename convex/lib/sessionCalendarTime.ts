@@ -39,15 +39,13 @@ export type SessionAvailabilityValidationError = {
 		| "BOOKING_OUTSIDE_OPENING_HOURS"
 		| "BOOKING_TOO_FAR_AHEAD"
 		| "BOOKING_TOO_SOON"
-		| "BOOKING_TIME_UNAVAILABLE"
-		| "INVALID_ZONED_TIME";
+		| "BOOKING_TIME_UNAVAILABLE";
 };
 
 export type SessionTimeParseError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_DURATION" }
-	| { reason: "BOOKING_INVALID_TIME" }
-	| { reason: "INVALID_ZONED_TIME" };
+	| { reason: "BOOKING_INVALID_TIME" };
 
 export function parseDurationMinutes(
 	duration: string
@@ -88,7 +86,7 @@ export function getUtcDateForZonedDateTime(
 				month: calendarDate.month,
 				timeZone,
 				year: calendarDate.year
-			})
+			}).mapErr(() => ({ reason: "BOOKING_INVALID_TIME" as const }))
 		)
 	);
 }

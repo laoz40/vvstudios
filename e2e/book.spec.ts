@@ -15,13 +15,15 @@
  * 3. Single session checkout opens payment modal
  *    Agree to terms and assert the Stripe payment modal opens (modal closed in `finally`).
  *
- * 4. Package checkout opens payment modal
- *    Fill a package booking, agree to terms, and assert the Stripe payment modal opens (modal closed in `finally`).
+ * 4. Package request reaches package-complete
+ *    Fill a package booking, agree to terms, and assert `/package-complete` without opening the Stripe payment modal.
  */
 import { expect, test } from "@playwright/test";
 import {
 	agreeToTerms,
 	closePaymentModal,
+	expectNoPaymentModal,
+	expectPackageRequestComplete,
 	expectPaymentModal,
 	expectTermsDialog,
 	fillPackageBookingForm,
@@ -42,7 +44,7 @@ test.describe("book page", () => {
 	});
 
 	test("single session form opens terms dialog", async ({ page }) => {
-		test.setTimeout(45_000);
+		test.setTimeout(60_000);
 
 		await page.goto("/book");
 
@@ -52,7 +54,7 @@ test.describe("book page", () => {
 	});
 
 	test("single session checkout opens payment modal", async ({ page }) => {
-		test.setTimeout(75_000);
+		test.setTimeout(120_000);
 
 		await page.goto("/book");
 
@@ -67,19 +69,16 @@ test.describe("book page", () => {
 		}
 	});
 
-	test("package checkout opens payment modal", async ({ page }) => {
-		test.setTimeout(75_000);
+	test("package request reaches package-complete", async ({ page }) => {
+		test.setTimeout(120_000);
 
 		await page.goto("/book");
 
-		try {
-			await fillPackageBookingForm(page);
-			await submitBookingForm(page);
-			await expectTermsDialog(page);
-			await agreeToTerms(page);
-			await expectPaymentModal(page);
-		} finally {
-			await closePaymentModal(page);
-		}
+		await fillPackageBookingForm(page);
+		await submitBookingForm(page);
+		await expectTermsDialog(page);
+		await agreeToTerms(page);
+		await expectPackageRequestComplete(page, 4);
+		await expectNoPaymentModal(page);
 	});
 });

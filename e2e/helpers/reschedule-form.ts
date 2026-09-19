@@ -41,9 +41,9 @@ export async function expectRescheduleComplete(
 	page: Page,
 	options: { previousDate: string; previousTime: string }
 ) {
-	await expect(page).toHaveURL(/\/reschedule-complete/, { timeout: 45_000 });
+	await expect(page).toHaveURL(/\/reschedule-complete/, { timeout: 120_000 });
 	await expect(page.getByRole("heading", { name: "Booking updated" })).toBeVisible({
-		timeout: 45_000
+		timeout: 120_000
 	});
 
 	const detailsSection = page

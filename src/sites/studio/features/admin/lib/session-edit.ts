@@ -4,6 +4,7 @@ import { api } from "#convex/_generated/api";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 import {
 	bookingSchema,
 	pickBookingAddonQuantities
@@ -16,6 +17,8 @@ type UpdateSessionFromAdminResult = FunctionReturnType<
 type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
 
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
+
+type RemainingBalanceResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 type SessionUpdateInput = {
 	bookingId: SessionRecord["_id"];
@@ -34,11 +37,17 @@ type SessionUpdateInput = {
 	clipsPackageQuantity?: string;
 	handcraftedClipsQuantity?: string;
 	notes?: string;
+	remainingBalanceAmount?: number;
 };
 
 export type ParsedSessionEditDraft =
 	| { status: "booking-invalid"; message: string }
-	| { status: "ok"; parsedValues: ParsedSessionValues };
+	| { status: "remaining-balance-invalid" }
+	| {
+			status: "ok";
+			parsedValues: ParsedSessionValues;
+			remainingBalanceAmountResult: RemainingBalanceResult;
+	  };
 
 export type SessionEditSaveOutcome = "error" | "replacement-created" | "updated";
 
@@ -50,17 +59,13 @@ const sessionUpdateErrorMessageMap = {
 	BOOKING_INVALID_DURATION: "Enter a valid session duration.",
 	BOOKING_INVALID_TIME: "Enter a valid session time.",
 	BOOKING_INVALID_INPUT: "Check the session details and balance, then try again.",
-	BOOKING_OUTSIDE_OPENING_HOURS: "Choose a time within opening hours.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Choose another time.",
-	BOOKING_TOO_FAR_AHEAD: "Choose a date within the booking window.",
-	BOOKING_TOO_SOON: "Choose a later time.",
 	GOOGLE_CALENDAR_AUTH_FAILED: "Google Calendar authentication failed. Booking was not updated.",
 	GOOGLE_CALENDAR_CREATE_FAILED: "Google Calendar failed to create the event. Please try again.",
 	GOOGLE_CALENDAR_UPDATE_FAILED: "Google Calendar failed to update the event. Please try again.",
 	GOOGLE_CALENDAR_RATE_LIMITED: "Google Calendar is busy right now. Wait a minute, then try again.",
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
 		"Something went wrong while updating the session. Please try again.",
-	INVALID_ZONED_TIME: "Enter a valid session time.",
 	UNEXPECTED_ERROR: "Something went wrong while updating the session. Please try again."
 } satisfies Record<SessionUpdateError["reason"], string>;
 
@@ -93,10 +98,24 @@ export function parseSessionEditDraft(values: SessionEditDraft): ParsedSessionEd
 		};
 	}
 
-	return { status: "ok", parsedValues: parsedValues.data };
+	const remainingBalanceDraft = values.remainingBalanceAmount.trim();
+
+	const remainingBalanceAmountResult = remainingBalanceDraft
+		? parseRemainingBalanceAmountDraft(remainingBalanceDraft)
+		: null;
+
+	if (remainingBalanceAmountResult?.status === "invalid") {
+		return { status: "remaining-balance-invalid" };
+	}
+
+	return { status: "ok", parsedValues: parsedValues.data, remainingBalanceAmountResult };
 }
 
-function buildSessionUpdateInput(session: SessionRecord, parsedValues: ParsedSessionValues) {
+function buildSessionUpdateInput(
+	session: SessionRecord,
+	parsedValues: ParsedSessionValues,
+	remainingBalanceAmountResult: RemainingBalanceResult
+) {
 	const input: SessionUpdateInput = {
 		bookingId: session._id,
 		name: parsedValues.name,
@@ -119,6 +138,10 @@ function buildSessionUpdateInput(session: SessionRecord, parsedValues: ParsedSes
 		input.notes = parsedValues.notes;
 	}
 
+	if (remainingBalanceAmountResult?.status === "valid") {
+		input.remainingBalanceAmount = remainingBalanceAmountResult.amount;
+	}
+
 	return input;
 }
 
@@ -129,7 +152,11 @@ export async function performSessionEditSave(
 		input: ReturnType<typeof buildSessionUpdateInput>
 	) => Promise<UpdateSessionFromAdminResult>
 ): Promise<SessionEditSaveOutcome> {
-	const updateInput = buildSessionUpdateInput(session, parsedDraft.parsedValues);
+	const updateInput = buildSessionUpdateInput(
+		session,
+		parsedDraft.parsedValues,
+		parsedDraft.remainingBalanceAmountResult
+	);
 
 	const [error, result] = await tryCatch(updateSession(updateInput));
 

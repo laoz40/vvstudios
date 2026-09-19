@@ -22,6 +22,8 @@ const now = Date.parse("2030-01-01T23:00:00.000Z");
 
 const tomorrowSessionStartAt = Date.parse("2030-01-03T00:00:00.000Z");
 
+const paymentDueAt = Date.parse("2030-01-03T13:00:00.000Z");
+
 const expiryAt = Date.parse("2030-01-19T13:00:00.000Z");
 
 const originalSessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
@@ -72,10 +74,10 @@ describe("daily reminder dispatch", () => {
 
 		const alreadySentBookingId = await seedBooking(t, { reminderEmailSentAt: now - 1 });
 
-		const alreadySentExpiryPackageId = await seedPackage(t, {
-			expiresAt: expiryAt,
-			status: "paid",
-			packageReminderState: { type: "expiry", status: "sent", sentAt: now - 1 }
+		const paymentPackageId = await seedPackage(t, {
+			invoiceDueAt: paymentDueAt,
+			status: "pending_payment",
+			packageReminderState: { type: "payment", status: "sent", sentAt: now - 1 }
 		});
 
 		const fullPackageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
@@ -96,8 +98,8 @@ describe("daily reminder dispatch", () => {
 		expect(await readBooking(t, alreadySentBookingId)).toMatchObject({
 			reminderEmailSentAt: now - 1
 		});
-		expect(await readPackage(t, alreadySentExpiryPackageId)).toMatchObject({
-			packageReminderState: { type: "expiry", status: "sent", sentAt: now - 1 }
+		expect(await readPackage(t, paymentPackageId)).toMatchObject({
+			packageReminderState: { type: "payment", status: "sent", sentAt: now - 1 }
 		});
 		expect(await readPackage(t, fullPackageId)).not.toHaveProperty("packageReminderState");
 	});
@@ -201,7 +203,10 @@ describe("reminder claims", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
-		const packageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
+		const packageId = await seedPackage(t, {
+			invoiceDueAt: paymentDueAt,
+			status: "pending_payment"
+		});
 
 		const bookingClaims = await Promise.all([
 			t.mutation(internal.sessionReminders.claimReminder, { bookingId, now }),
@@ -212,17 +217,17 @@ describe("reminder claims", () => {
 		const packageClaims = await Promise.all([
 			t.mutation(internal.packageReminders.claimPackageReminder, {
 				packageId,
-				reminderType: "expiry",
+				reminderType: "payment",
 				now
 			}),
 			t.mutation(internal.packageReminders.claimPackageReminder, {
 				packageId,
-				reminderType: "expiry",
+				reminderType: "payment",
 				now
 			}),
 			t.mutation(internal.packageReminders.claimPackageReminder, {
 				packageId,
-				reminderType: "expiry",
+				reminderType: "payment",
 				now
 			})
 		]);
@@ -231,7 +236,7 @@ describe("reminder claims", () => {
 		expect(packageClaims.filter((result) => result[0] === null)).toHaveLength(1);
 		expect(await readBooking(t, bookingId)).toMatchObject({ reminderEmailClaimedAt: now });
 		expect(await readPackage(t, packageId)).toMatchObject({
-			packageReminderState: { type: "expiry", status: "claimed", claimedAt: now }
+			packageReminderState: { type: "payment", status: "claimed", claimedAt: now }
 		});
 	});
 });
@@ -255,6 +260,8 @@ async function seedSchedulablePackage(t: TestClient) {
 			totalDueAmount: 400,
 			status: "paid",
 			createdAt: now - 1,
+			invoiceDueAt: now + 1,
+			invoiceEmailStatus: "sent",
 			paidAt: now - 1,
 			expiresAt: expiryAt,
 			scheduleTokenHash,
@@ -313,8 +320,11 @@ async function seedPackage(
 	t: TestClient,
 	lifecycle: {
 		status: "pending_payment" | "paid";
+		invoiceDueAt?: number;
 		expiresAt?: number;
-		packageReminderState?: { type: "expiry"; status: "sent"; sentAt: number };
+		packageReminderState?:
+			| { type: "payment"; status: "sent"; sentAt: number }
+			| { type: "expiry"; status: "sent"; sentAt: number };
 	}
 ) {
 	return await t.run((ctx) =>
@@ -333,6 +343,8 @@ async function seedPackage(
 			totalDueAmount: 400,
 			status: lifecycle.status,
 			createdAt: now - 1,
+			invoiceDueAt: lifecycle.invoiceDueAt ?? now + 1,
+			invoiceEmailStatus: "sent",
 			expiresAt: lifecycle.expiresAt,
 			packageReminderState: lifecycle.packageReminderState
 		})

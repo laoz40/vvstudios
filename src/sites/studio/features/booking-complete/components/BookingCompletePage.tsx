@@ -9,11 +9,10 @@ import {
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BookingResult } from "#studio/features/booking-complete/components/BookingResult";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
-import { PackageCompleteStatus } from "#studio/features/booking-complete/components/PackageCompleteStatus";
 import {
 	canCreateFailedBookingRescheduleLink,
 	getBookingResultContent,
-	getPackagePaidResultContent
+	getPackageResultContent
 } from "#studio/features/booking-complete/lib/booking-result-content";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -26,40 +25,29 @@ const packageIdSchema = z.custom<Id<"packages">>(
 
 const DEV_PACKAGE_ID = packageIdSchema.parse("dev-package");
 
-function getUsableStripeSessionId(sessionId: string | undefined) {
-	if ([undefined, "", "{CHECKOUT_SESSION_ID}"].includes(sessionId)) {
-		return null;
-	}
-
-	return sessionId ?? null;
-}
-
 function useBookingCompletePageData(search: BookingCompleteSearch) {
 	const activeDevScenario = import.meta.env.DEV ? search.dev_scenario : undefined;
-	const usableStripeSessionId = getUsableStripeSessionId(search.session_id);
+	const stripeSessionId = search.session_id;
 
-	const stripeQueryArgs: "skip" | { stripeSessionId: string } =
+	const usableStripeSessionId = [undefined, "", "{CHECKOUT_SESSION_ID}"].includes(stripeSessionId)
+		? null
+		: stripeSessionId;
+
+	const bookingQueryArgs: "skip" | { stripeSessionId: string } =
 		usableStripeSessionId && !activeDevScenario
 			? { stripeSessionId: usableStripeSessionId }
 			: "skip";
 
-	const liveBooking = useQuery(api.sessions.getSessionStatusByStripeSessionId, stripeQueryArgs);
-
-	const livePackage = useQuery(
-		api.packageCheckout.getPackageStatusByStripeSessionId,
-		stripeQueryArgs !== "skip" && liveBooking === null ? stripeQueryArgs : "skip"
-	);
-
-	const isLoadingBooking = stripeQueryArgs !== "skip" && liveBooking === undefined;
-
-	const isLoadingPackage =
-		stripeQueryArgs !== "skip" && liveBooking === null && livePackage === undefined;
+	const liveBooking = useQuery(api.sessions.getSessionStatusByStripeSessionId, bookingQueryArgs);
 
 	return {
 		booking: activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking,
-		hasCheckoutRequest: Boolean(search.session_id || activeDevScenario),
-		isLoading: isLoadingBooking || isLoadingPackage,
-		package: livePackage,
+		hasBookingRequest: Boolean(stripeSessionId || activeDevScenario),
+		isLoading: bookingQueryArgs !== "skip" && liveBooking === undefined,
+		isPackageRequest:
+			Boolean(search.package_id && search.package_size) || activeDevScenario === "package_request",
+		packageId: search.package_id,
+		packageSize: search.package_size,
 		previewStripeSessionId:
 			usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null),
 		usableStripeSessionId
@@ -67,34 +55,37 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 }
 
 export function BookingCompletePage({ search }: { search: BookingCompleteSearch }): ReactNode {
-	const activeDevScenario = import.meta.env.DEV ? search.dev_scenario : undefined;
-
 	const {
 		booking,
-		hasCheckoutRequest,
+		hasBookingRequest,
 		isLoading,
-		package: packageRecord,
+		isPackageRequest,
+		packageId,
+		packageSize,
 		previewStripeSessionId,
 		usableStripeSessionId
 	} = useBookingCompletePageData(search);
 
-	if (activeDevScenario === "package_request") {
+	if (isPackageRequest) {
+		const previewPackageSize = packageSize ?? 8;
+		const previewPackageId = packageId ? packageIdSchema.parse(packageId) : DEV_PACKAGE_ID;
+
 		return (
 			<BookingStatusLayout
 				bookingStatus="confirmed"
-				instagramPromptTarget={{ kind: "package", packageId: DEV_PACKAGE_ID }}
-				stripeSessionId={previewStripeSessionId}>
+				instagramPromptTarget={{ kind: "package", packageId: previewPackageId }}
+				stripeSessionId={null}>
 				<BookingResult
 					booking={null}
-					content={getPackagePaidResultContent(8)}
-					invoiceDownloadTarget={{ kind: "package", packageId: DEV_PACKAGE_ID }}
+					content={getPackageResultContent(previewPackageSize)}
+					invoiceDownloadTarget={{ kind: "package", packageId: previewPackageId }}
 					showBookingDetails={false}
 				/>
 			</BookingStatusLayout>
 		);
 	}
 
-	if (!hasCheckoutRequest) {
+	if (!hasBookingRequest) {
 		return (
 			<BookingStatusLayout>
 				{import.meta.env.DEV ? <BookingCompleteDevScenarioPanel /> : null}
@@ -114,18 +105,8 @@ export function BookingCompletePage({ search }: { search: BookingCompleteSearch 
 	if (isLoading) {
 		return (
 			<BookingStatusLayout showActions={false}>
-				<StudioLoadingState label="Confirming your booking..." />
+				<StudioLoadingState label="Creating your booking..." />
 			</BookingStatusLayout>
-		);
-	}
-
-	if (packageRecord) {
-		return (
-			<PackageCompleteStatus
-				packageRecord={packageRecord}
-				previewStripeSessionId={previewStripeSessionId}
-				usableStripeSessionId={usableStripeSessionId}
-			/>
 		);
 	}
 

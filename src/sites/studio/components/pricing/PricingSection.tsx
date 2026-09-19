@@ -50,7 +50,9 @@ const pricingPageCopy = {
 	lead: "Each session comes with a fully prepared studio for creators who want their content to look and sound professional. Includes three 4K Sony cameras, up to four RØDE PodMics, and cinematic overhead lighting.",
 	addOnsTitle: "Production add-ons",
 	editingServicesTitle: "Editing services",
-	bookSessionLabel: "Book session"
+	bookSessionLabel: "Book session",
+	bookingDepositNote:
+		"Only $50 booking deposit required to secure your time slot, which gets deducted from your total."
 } as const;
 
 const pricingSessions: readonly PricingSession[] = [
@@ -338,6 +340,14 @@ export function PricingSection({
 						</article>
 					))}
 				</div>
+
+				<p
+					className={cn(
+						landingSectionLeadClassName,
+						"self-stretch text-left italic md:text-center"
+					)}>
+					{pricingPageCopy.bookingDepositNote}
+				</p>
 			</motion.div>
 
 			<div className="mt-8 flex w-full flex-col gap-16 md:mt-24 md:gap-24">

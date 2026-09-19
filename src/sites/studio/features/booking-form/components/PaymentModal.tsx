@@ -21,8 +21,8 @@ export function BookingPaymentModal({ clientSecret, onClose }: BookingPaymentMod
 					onClose();
 				}
 			}}
-			title="Complete payment"
-			description="Pay the full total to secure your booking."
+			title="Booking Deposit"
+			description="The deposit will be deducted from the total cost and is only required to secure your session."
 			closeLabel={closeButtonLabel}
 			hideHeader
 			initialFocus="content"

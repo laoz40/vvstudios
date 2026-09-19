@@ -4,78 +4,65 @@ import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
-import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
-import {
-	downloadSessionCustomInvoice,
-	mapSessionCustomInvoicesToListItems
-} from "#studio/features/admin/lib/legacy-custom-invoices";
 import {
 	type DownloadAdminBookingInvoiceResult,
 	downloadAdminBookingInvoice
 } from "#studio/features/admin/lib/download-admin-booking-invoice";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
+import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
-function showSendStripeInvoiceError(reason: string) {
-	switch (reason) {
-		case "NOT_AUTHENTICATED":
-			toast.error("You are not signed in.");
-
-			return;
-		case "NOT_AUTHORIZED":
-			toast.error("You do not have access to send Stripe invoices.");
-
-			return;
-		case "BOOKING_NOT_FOUND":
-			toast.error("This session no longer exists.");
-
-			return;
-		case "STRIPE_CUSTOMER_NOT_FOUND":
-			toast.error("This session has no Stripe customer ID.");
-
-			return;
-		case "INVALID_LINE_ITEMS":
-			toast.error("Add at least one line item with a description and amount greater than zero.");
-
-			return;
-		case "STRIPE_INVOICE_FAILED":
-			toast.error("Unable to send Stripe invoice.");
-
-			return;
-		case "UNEXPECTED_ERROR":
-			toast.error("Something went wrong while sending the Stripe invoice.");
-
-			return;
-		default:
-			toast.error("Unable to send Stripe invoice.");
-	}
-}
+type EmailBookingInvoiceRequest = {
+	bookingId: SessionRecord["_id"];
+	customInvoiceId?: Id<"customInvoices">;
+};
 
 export function useInvoiceActions(session: SessionRecord) {
-	const sendBookingStripeInvoice = useAction(api.stripeInvoicing.sendBookingStripeInvoice);
+	const sendBookingInvoiceForBooking = useAction(api.googleCalendar.sendBookingInvoiceForBooking);
+	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
 	const bookingSettings = useQuery(api.bookingSettings.get, {});
-	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
+	const [isEmailInvoiceDialogOpen, setIsEmailInvoiceDialogOpen] = useState(false);
 
 	const customInvoicesResult = useQuery(
 		api.customInvoices.listCustomInvoicesForBooking,
-		isLegacyCustomInvoicesDialogOpen ? { bookingId: session._id } : "skip"
+		isEmailInvoiceDialogOpen ? { bookingId: session._id } : "skip"
 	);
 
-	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
-	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
-
-	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForBooking, {
-		bookingId: session._id
-	});
-
-	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
-
-	const [downloadingLegacyCustomInvoiceId, setDownloadingLegacyCustomInvoiceId] =
+	const [selectedEmailCustomInvoiceId, setSelectedEmailCustomInvoiceId] =
 		useState<Id<"customInvoices"> | null>(null);
+
+	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
+	const [isEmailingInvoice, setIsEmailingInvoice] = useState(false);
+	const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+
+	function setEmailInvoiceDialogOpen(open: boolean) {
+		setIsEmailInvoiceDialogOpen(open);
+
+		if (!open) {
+			setSelectedEmailCustomInvoiceId(null);
+		}
+	}
 
 	async function handleDownloadInvoice() {
 		setIsDownloadingInvoice(true);
+
+		if (session.packageId) {
+			const [packageError, invoice] = await tryCatch(
+				getAdminPackageInvoicePdf({ packageId: session.packageId })
+			);
+
+			setIsDownloadingInvoice(false);
+
+			if (packageError !== null) {
+				toast.error("Unable to generate package invoice.");
+
+				return;
+			}
+
+			downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
+			toast.success("Package invoice download started.");
+
+			return;
+		}
 
 		if (!bookingSettings) {
 			setIsDownloadingInvoice(false);
@@ -114,102 +101,73 @@ export function useInvoiceActions(session: SessionRecord) {
 		toast.success("Invoice download started.");
 	}
 
-	const customInvoices = customInvoicesResult?.[1];
-
-	const legacyCustomInvoices =
-		customInvoices === undefined || customInvoices === null
-			? undefined
-			: mapSessionCustomInvoicesToListItems(customInvoices, session);
-
-	async function handleDownloadLegacyCustomInvoice(customInvoiceId: Id<"customInvoices">) {
-		const customInvoice = customInvoicesResult?.[1]?.find(
-			(invoice) => invoice._id === customInvoiceId
-		);
-
-		if (!customInvoice) {
-			return;
-		}
-
-		if (!bookingSettings) {
-			toast.error("Booking settings are still loading.");
-
-			return;
-		}
-
-		setDownloadingLegacyCustomInvoiceId(customInvoice._id);
-
-		const [error] = await tryCatch<DownloadAdminBookingInvoiceResult>(
-			downloadSessionCustomInvoice({
-				customInvoice,
-				leadTimeMinutes: bookingSettings.leadTimeMinutes,
-				session
-			})
-		);
-
-		setDownloadingLegacyCustomInvoiceId(null);
-
-		if (error !== null) {
-			if (error.reason === "INVALID_INVOICE_INPUT") {
-				toast.error(error.message);
-
-				return;
-			}
-
-			toast.error("Unable to generate custom invoice.");
-
-			return;
-		}
-
-		toast.success("Custom invoice download started.");
-	}
-
-	async function handleSendStripeInvoice(input: {
-		lineItems: ParsedStripeInvoiceLineItem[];
-		requestId: string;
-	}) {
-		setIsSendingStripeInvoice(true);
+	async function handleEmailInvoice() {
+		setIsEmailingInvoice(true);
 
 		const [error] = await tryCatch(
-			sendBookingStripeInvoice({
-				bookingId: session._id,
-				lineItems: input.lineItems,
-				requestId: input.requestId
-			})
+			sendBookingInvoiceForBooking(
+				(() => {
+					const request: EmailBookingInvoiceRequest = { bookingId: session._id };
+
+					if (selectedEmailCustomInvoiceId) {
+						request.customInvoiceId = selectedEmailCustomInvoiceId;
+					}
+
+					return request;
+				})()
+			)
 		);
 
-		setIsSendingStripeInvoice(false);
+		setIsEmailingInvoice(false);
 
 		if (error !== null) {
-			showSendStripeInvoiceError(error.reason);
+			const reason = error.reason;
 
-			return;
+			switch (reason) {
+				case "NOT_AUTHENTICATED":
+					toast.error("You are not signed in.");
+
+					return;
+				case "NOT_AUTHORIZED":
+					toast.error("You do not have access to send invoice emails.");
+
+					return;
+				case "BOOKING_NOT_FOUND":
+					toast.error("That session no longer exists.");
+
+					return;
+				case "CUSTOM_INVOICE_NOT_FOUND":
+					toast.error("That custom invoice no longer exists.");
+
+					return;
+				case "INVOICE_SEND_FAILED":
+					toast.error("Unable to send invoice email.");
+
+					return;
+				case "UNEXPECTED_ERROR":
+					toast.error("Something went wrong while sending the invoice email.");
+
+					return;
+				default:
+					exhaustiveCheck(reason);
+			}
 		}
 
-		setIsStripeInvoiceDialogOpen(false);
-		toast.success("Stripe invoice sent.");
+		setEmailInvoiceDialogOpen(false);
+		toast.success(`Invoice sent to ${session.email}.`);
 	}
 
-	const { hasStripeBillingInvoices, stripeBillingInvoices } = getStripeBillingInvoicesState(
-		stripeInvoicesResult,
-		isStripeBillingDialogOpen
-	);
-
 	return {
-		downloadingLegacyCustomInvoiceId,
+		customInvoices: customInvoicesResult?.[1] ?? undefined,
 		handleDownloadInvoice,
-		handleDownloadLegacyCustomInvoice,
-		handleSendStripeInvoice,
-		hasStripeBillingInvoices,
-		hasStripeCustomer: Boolean(session.stripeCustomerId),
+		handleEmailInvoice,
+		isCustomInvoiceDialogOpen,
 		isDownloadingInvoice,
-		isLegacyCustomInvoicesDialogOpen,
-		isSendingStripeInvoice,
-		isStripeBillingDialogOpen,
-		isStripeInvoiceDialogOpen,
-		legacyCustomInvoices,
-		setIsLegacyCustomInvoicesDialogOpen,
-		setIsStripeBillingDialogOpen,
-		setIsStripeInvoiceDialogOpen,
-		stripeBillingInvoices
+		isEmailInvoiceDialogOpen,
+		isEmailingInvoice,
+		selectedEmailCustomInvoiceId,
+		setIsCustomInvoiceDialogOpen,
+		setIsEmailInvoiceDialogOpen: setEmailInvoiceDialogOpen,
+		setSelectedEmailCustomInvoiceId
 	};
 }
