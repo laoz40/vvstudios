@@ -45,7 +45,8 @@ function BookingExpiredPage() {
 						Your payment session expired
 					</h1>
 					<p className="max-w-2xl text-base text-muted-foreground">
-						Payment wasn&apos;t completed in time, so this checkout session is no longer available.
+						The booking deposit wasn&apos;t completed in time, so this checkout session is no longer
+						available.
 					</p>
 					{supportReference ? (
 						<p className="text-sm text-muted-foreground">

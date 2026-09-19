@@ -43,7 +43,7 @@ export const seoMetadata = {
 	termsAndConditions: {
 		title: "Terms & Conditions | VV Studios",
 		description:
-			"Read the VV Studios terms and conditions for bookings, payments, cancellations, conduct, delivery, and revisions.",
+			"Read the VV Studios terms and conditions for bookings, deposits, cancellations, conduct, delivery, and revisions.",
 		path: studioSite.routes.termsAndConditions
 	},
 	privacyPolicy: {

@@ -12,7 +12,7 @@ export const PERMISSIONS = [
 	"create:reschedule-links",
 	"update:payment-status",
 	"create:invoices",
-	"send:receipt-emails",
+	"send:invoice-emails",
 	"update:availability"
 ] as const;
 

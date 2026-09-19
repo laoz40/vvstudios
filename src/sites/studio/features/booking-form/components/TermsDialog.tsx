@@ -1,9 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { BOOKING_RECEIPT_NOTES } from "#studio/features/booking-invoice/lib/constants";
-import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { Modal } from "#studio/components/Modal";
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 
 const dialogTitle = "Terms & Conditions";
 
@@ -13,19 +10,18 @@ const cancelButtonLabel = "Cancel";
 
 const confirmButtonLabel = "Agree & Book";
 
-const defaultNoticeWindowLabel = formatNoticeWindowLabel(
-	DEFAULT_BOOKING_AVAILABILITY_SETTINGS.leadTimeMinutes
-);
-
 export const terms = [
-	{ title: "1 - Payment", body: "Full payment is required upfront to secure all bookings." },
+	{
+		title: "1 - Payment",
+		body: "A non-refundable deposit is required to secure all bookings. The remaining balance must be paid before or on the day of the session. No video or audio files will be delivered until full payment is received."
+	},
 	{
 		title: "2 - Damage & Liability",
 		body: "Clients are responsible for any damage caused to studio equipment or property during their session, excluding reasonable wear and tear. Repair or replacement costs will be charged accordingly."
 	},
 	{
 		title: "3 - Cancellations & Rescheduling",
-		body: BOOKING_RECEIPT_NOTES.getCancellationPolicy(defaultNoticeWindowLabel)
+		body: "Deposits are non-refundable. Bookings may be rescheduled with a minimum of 24 hours notice. Late cancellations or no-shows will forfeit the deposit."
 	},
 	{
 		title: "4 - Session Conduct & Surveillance",
@@ -33,7 +29,7 @@ export const terms = [
 	},
 	{
 		title: "5 - Delivery & Revisions",
-		body: "All content will be delivered after your session. Base edits include up to 3 revision rounds, limited to corrections (e.g. cuts, timing, errors). Additional revisions or creative changes will be charged separately."
+		body: "All content will be delivered after full payment has been received. Base edits include up to 3 revision rounds, limited to corrections (e.g. cuts, timing, errors). Additional revisions or creative changes will be charged separately."
 	}
 ] as const;
 

@@ -37,7 +37,16 @@ function backfillBookingDriveClientIdForRetry(
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.backfillBookingDriveClientId, { bookingId })
-	);
+	).mapErr((error) => {
+		switch (error.reason) {
+			case "BOOKING_NOT_FOUND":
+				return { reason: "BOOKING_NOT_FOUND" as const };
+			case "DRIVE_RECORD_NOT_FOUND":
+				return { reason: "DRIVE_FOLDERS_NOT_READY" as const };
+			default:
+				return { reason: "DRIVE_CLIENT_PERMISSIONS_SAVE_FAILED" as const };
+		}
+	});
 }
 
 export function retryClientDrivePermissionsService(

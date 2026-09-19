@@ -1,5 +1,5 @@
 /**
- * These tests cover booking and package payment claim idempotency and recoverable failure guards.
+ * These tests cover booking confirmation claim idempotency and recoverable failure guards.
  *
  * 1. First claim wins
  *    Calling the payment claim twice must keep the first Stripe event details.
@@ -9,9 +9,6 @@
  *
  * 3. Invoice email failure status guard
  *    Email failures may only move confirmed bookings into the recoverable email-failed state.
- *
- * 4. Package checkout claim
- *    Concurrent package checkout webhooks must only let one handler run completion.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "#convex/_generated/api";
@@ -99,25 +96,6 @@ describe("booking payment completion", () => {
 	});
 });
 
-describe("package payment completion", () => {
-	test("claims a Stripe completion once without letting a second handler run completion", async () => {
-		const t = createConvexTest();
-		const packageId = await seedPendingPackage(t);
-
-		const firstClaim = await claimPackage(t, packageId);
-		const claimedPackage = await readPackage(t, packageId);
-		const duplicateClaim = await claimPackage(t, packageId);
-
-		expect(firstClaim).toMatchObject([null, { outcome: "claimed" }]);
-		expect(duplicateClaim).toMatchObject([null, { outcome: "already_claimed" }]);
-		expect(await readPackage(t, packageId)).toMatchObject({
-			packageCheckoutClaimedAt: claimedPackage?.packageCheckoutClaimedAt,
-			stripePaymentIntentId: "pi-1",
-			stripeSessionId: "cs-1"
-		});
-	});
-});
-
 async function seedBooking(t: TestClient, email = "customer@example.com") {
 	return await t.run(async (ctx) => {
 		await ensureBookingSettings(ctx);
@@ -151,41 +129,6 @@ async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEven
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
 	return await t.run((ctx) => ctx.db.get(bookingId));
-}
-
-async function seedPendingPackage(t: TestClient) {
-	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "pending_payment",
-			createdAt: now,
-			invoiceEmailStatus: "sent",
-			stripeSessionId: "cs-1"
-		})
-	);
-}
-
-async function claimPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.mutation(internal.packageCheckout.claimPackageCheckoutPayment, {
-		packageId,
-		stripeSessionId: "cs-1",
-		stripePaymentIntentId: "pi-1"
-	});
-}
-
-async function readPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.run((ctx) => ctx.db.get(packageId));
 }
 
 async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"]>[0]>[0]) {

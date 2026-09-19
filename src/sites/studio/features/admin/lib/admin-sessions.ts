@@ -2,6 +2,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { hasUnsentDeliverables } from "#studio/features/admin/lib/session-edit-status";
+import { hasUnpaidRemainingBalance } from "#studio/features/admin/lib/remaining-balance";
 import {
 	DURATION_OPTIONS,
 	type BookingFormValues
@@ -13,8 +14,6 @@ export type SessionRecord = Doc<"bookings"> & {
 	packageInvoiceNumber?: string;
 	linkedPackageSize?: 4 | 8 | 12;
 	packageSessionPosition?: number;
-	packageStripeCustomerId?: string;
-	stripeInvoicesSummary?: { paymentStatus: "paid" | "unpaid"; totalAmount: number } | null;
 };
 
 export function toAdminSessionDuration(
@@ -116,7 +115,8 @@ export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSes
 		if (
 			filters.showUpcomingOnly &&
 			!isUpcomingBooking(session.date, session.time) &&
-			!hasUnsentDeliverables(session)
+			!hasUnsentDeliverables(session) &&
+			!hasUnpaidRemainingBalance(session)
 		) {
 			return false;
 		}

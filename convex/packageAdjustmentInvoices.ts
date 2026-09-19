@@ -5,6 +5,7 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "#convex/_generated/server";
 import {
+	getAdminPackageAdjustmentInvoicePdfService,
 	retryPackageAdjustmentInvoiceEmailService,
 	sendPackageAdjustmentInvoiceService
 } from "#convex/services/packageAdjustmentInvoices";
@@ -38,4 +39,20 @@ function retryPackageAdjustmentInvoiceEmailHandler(
 
 export type RetryPackageAdjustmentInvoiceEmailResult = Awaited<
 	ReturnType<typeof retryPackageAdjustmentInvoiceEmailHandler>
+>;
+
+export const getAdminPackageAdjustmentInvoicePdf = action({
+	args: { adjustmentId: v.id("packageAdjustments") },
+	handler: (ctx, args) => getAdminPackageAdjustmentInvoicePdfHandler(ctx, args)
+});
+
+function getAdminPackageAdjustmentInvoicePdfHandler(
+	ctx: ActionCtx,
+	args: { adjustmentId: Id<"packageAdjustments"> }
+) {
+	return getAdminPackageAdjustmentInvoicePdfService(ctx, args).match(tupleOk, tupleErr);
+}
+
+export type GetAdminPackageAdjustmentInvoicePdfResult = Awaited<
+	ReturnType<typeof getAdminPackageAdjustmentInvoicePdfHandler>
 >;

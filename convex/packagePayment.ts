@@ -8,12 +8,13 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/bookingAddonQuantities";
 import {
-	closeEmbeddedPackageCheckoutSessionService,
-	createPackageCheckoutSessionService
-} from "#convex/services/packageCheckoutActions";
-import { resendPackageEmailService } from "#convex/services/packagePayment";
+	confirmPackagePaymentService,
+	createPackageRequestService,
+	resendPackageInvoiceEmailService,
+	retryPackageSchedulingEmailService
+} from "#convex/services/packagePayment";
 
-export const createPackageCheckoutSession = action({
+export const createPackageRequest = action({
 	args: {
 		name: v.string(),
 		phone: v.string(),
@@ -26,16 +27,20 @@ export const createPackageCheckoutSession = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => createPackageRequestService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const closeEmbeddedPackageCheckoutSession = action({
-	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
-	handler: (ctx, args) =>
-		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
-});
-
-export const resendPackageEmail = action({
+export const resendPackageInvoiceEmail = action({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => resendPackageEmailService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => resendPackageInvoiceEmailService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const confirmPackagePayment = action({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => confirmPackagePaymentService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retryPackageSchedulingEmail = action({
+	args: { packageId: v.id("packages") },
+	handler: (ctx, args) => retryPackageSchedulingEmailService(ctx, args).match(tupleOk, tupleErr)
 });

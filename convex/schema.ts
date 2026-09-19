@@ -43,10 +43,6 @@ const packageReminderStateValidator = v.union(
 	})
 );
 
-const stripeInvoiceLineItemsValidator = v.array(
-	v.object({ description: v.string(), amount: v.number() })
-);
-
 export default defineSchema({
 	editorProfiles: defineTable({
 		tokenIdentifier: v.string(),
@@ -142,37 +138,14 @@ export default defineSchema({
 				invoiceDueAt: v.number(),
 				invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
 				invoiceEmailClaimedAt: v.optional(v.number()),
-				stripeInvoiceId: v.optional(v.string()),
-				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid")),
-				paidAt: v.optional(v.number())
+				paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"))
 			})
 		)
-	)
-		.index("by_packageId", ["packageId"])
-		.index("by_stripeInvoiceId", ["stripeInvoiceId"]),
-
-	stripeInvoices: defineTable({
-		stripeInvoiceId: v.string(),
-		kind: v.union(v.literal("booking"), v.literal("package"), v.literal("package_adjustment")),
-		bookingId: v.optional(v.id("bookings")),
-		packageId: v.optional(v.id("packages")),
-		packageAdjustmentId: v.optional(v.id("packageAdjustments")),
-		lineItems: stripeInvoiceLineItemsValidator,
-		totalAmount: v.number(),
-		paymentStatus: v.union(v.literal("unpaid"), v.literal("paid")),
-		paidAt: v.optional(v.number()),
-		createdAt: v.number(),
-		requestId: v.optional(v.string()),
-		createdBy: v.optional(v.string())
-	})
-		.index("by_stripeInvoiceId", ["stripeInvoiceId"])
-		.index("by_bookingId", ["bookingId"])
-		.index("by_packageId", ["packageId"])
-		.index("by_packageAdjustmentId", ["packageAdjustmentId"])
-		.index("by_requestId", ["requestId"]),
+	).index("by_packageId", ["packageId"]),
 
 	customInvoices: defineTable({
-		bookingId: v.id("bookings"),
+		bookingId: v.optional(v.id("bookings")),
+		packageId: v.optional(v.id("packages")),
 		invoiceNumber: v.string(),
 		dueDate: v.optional(v.string()),
 		service: v.optional(v.string()),
@@ -182,11 +155,15 @@ export default defineSchema({
 		completeEditQuantity: v.optional(v.string()),
 		clipsPackageQuantity: v.optional(v.string()),
 		handcraftedClipsQuantity: v.optional(v.string()),
+		packageSize: v.optional(v.union(v.literal(4), v.literal(8), v.literal(12))),
 		includeDepositLineItem: v.boolean(),
+		includePackageDiscount: v.optional(v.boolean()),
 		customTotalDueAmount: v.optional(v.number()),
 		createdAt: v.number(),
 		createdBy: v.optional(v.string())
-	}).index("by_bookingId", ["bookingId"]),
+	})
+		.index("by_bookingId", ["bookingId"])
+		.index("by_packageId", ["packageId"]),
 
 	bookingRescheduleLinks: defineTable({
 		bookingId: v.id("bookings"),
@@ -275,7 +252,6 @@ export default defineSchema({
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
 		stripePaymentIntentId: v.optional(v.string()),
-		stripeCustomerId: v.optional(v.string()),
 
 		// Google Calendar data
 		googleEventId: v.optional(v.string()),
@@ -340,20 +316,18 @@ export default defineSchema({
 		status: v.union(
 			v.literal("pending_payment"),
 			v.literal("paid"),
-			v.literal("schedule_email_failed"),
-			v.literal("abandoned"),
-			v.literal("expired")
+			v.literal("invoice_email_failed"),
+			v.literal("schedule_email_failed")
 		),
 		createdAt: v.number(),
+		invoiceDueAt: v.number(),
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
 
-		// Receipt metadata (receipt number + email delivery status)
+		// Invoice metadata/email status
 		invoiceNumber: v.optional(v.string()),
-		invoiceEmailStatus: v.optional(
-			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
-		),
+		invoiceEmailStatus: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed")),
 		invoiceEmailSentAt: v.optional(v.number()),
 		invoiceEmailFailureCode: v.optional(v.string()),
 		lastInvoiceEmailAttemptAt: v.optional(v.number()),
@@ -365,17 +339,10 @@ export default defineSchema({
 		scheduleTokenHash: v.optional(v.string()),
 		scheduleLinkStatus: v.optional(
 			v.union(v.literal("active"), v.literal("expired"), v.literal("disabled"))
-		),
-
-		packageCheckoutClaimedAt: v.optional(v.number()),
-
-		// Stripe data
-		stripeSessionId: v.optional(v.string()),
-		stripePaymentIntentId: v.optional(v.string()),
-		stripeCustomerId: v.optional(v.string())
+		)
 	})
+		.index("by_status_and_invoiceDueAt", ["status", "invoiceDueAt"])
 		.index("by_status_and_expiresAt", ["status", "expiresAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
-		.index("by_stripeSessionId", ["stripeSessionId"])
 });

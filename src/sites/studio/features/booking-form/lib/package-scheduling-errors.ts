@@ -62,11 +62,6 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 		case "PACKAGE_LINK_INACTIVE":
 		case "PACKAGE_NOT_PAID":
 			return getPackageLinkInvalidMessage(error).description;
-		case "BOOKING_INVALID_DATE":
-			return "Please choose a valid date.";
-		case "BOOKING_INVALID_TIME":
-		case "INVALID_ZONED_TIME":
-			return "Please choose a valid time.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
@@ -115,7 +110,6 @@ const savePackageBookingMessages = {
 	BOOKING_TOO_FAR_AHEAD: "Please choose a date before your package expiry date.",
 	BOOKING_TOO_SOON: "Please choose a later time.",
 	BOOKING_TIME_UNAVAILABLE: "That time was just booked. Please choose another time.",
-	INVALID_ZONED_TIME: "Please choose a valid time.",
 	BOOKING_RATE_LIMITED: "Too many session updates. Please wait a minute and try again.",
 	GOOGLE_CALENDAR_AUTH_FAILED: "Calendar access failed. Please try again later.",
 	GOOGLE_CALENDAR_SYNC_FAILED: "Could not update the calendar event. Please try again.",

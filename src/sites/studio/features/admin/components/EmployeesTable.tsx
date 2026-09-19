@@ -11,7 +11,7 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import { Badge } from "#/components/ui/badge";
-import UserPlusIcon from "#/components/ui/user-plus-icon";
+import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { Button } from "#/components/ui/button";
 import {
@@ -138,7 +138,7 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 							onPointerLeave={() => inviteIconRef.current?.stopAnimation()}
 							onFocus={() => inviteIconRef.current?.startAnimation()}
 							onBlur={() => inviteIconRef.current?.stopAnimation()}>
-							<UserPlusIcon
+							<MailFilledIcon
 								ref={inviteIconRef}
 								size={16}
 								aria-hidden

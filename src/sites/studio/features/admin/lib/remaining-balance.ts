@@ -1,3 +1,26 @@
+import type { Doc } from "#convex/_generated/dataModel";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
+
+export type RemainingBalanceSession = {
+	duration: string;
+	addons: BookingAddon[];
+	remainingBalanceAmount?: number;
+};
+
+export type RemainingBalancePaymentSession = RemainingBalanceSession & {
+	status: Doc<"bookings">["status"];
+	paidRemainingBalance?: boolean;
+};
+
+function getDefaultRemainingBalanceAmount(session: RemainingBalanceSession) {
+	return calculateBookingInvoiceAmounts(session).totalDueAmount;
+}
+
+export function getRemainingBalanceAmount(session: RemainingBalanceSession) {
+	return session.remainingBalanceAmount ?? getDefaultRemainingBalanceAmount(session);
+}
+
 type RemainingBalanceAmountParseResult =
 	| { status: "valid"; amount: number }
 	| { status: "invalid" };
@@ -18,21 +41,18 @@ export function parseRemainingBalanceAmountDraft(draft: string): RemainingBalanc
 	return { status: "valid", amount };
 }
 
-function amountHasCents(amount: number) {
-	return Math.round(amount * 100) % 100 !== 0;
+export function hasUnpaidRemainingBalance(session: RemainingBalancePaymentSession) {
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
+		return false;
+	}
+
+	return session.paidRemainingBalance !== true && getRemainingBalanceAmount(session) > 0;
 }
 
-export function formatAudAmount(amount: number, options?: { showCents?: boolean }) {
-	const showCents = options?.showCents ?? amountHasCents(amount);
-
+export function formatAudAmount(amount: number) {
 	return new Intl.NumberFormat("en-AU", {
+		style: "currency",
 		currency: "AUD",
-		maximumFractionDigits: showCents ? 2 : 0,
-		minimumFractionDigits: showCents ? 2 : 0,
-		style: "currency"
+		maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
 	}).format(amount);
-}
-
-export function getAudAmountRowShowCents(amounts: readonly number[]) {
-	return amounts.some(amountHasCents);
 }

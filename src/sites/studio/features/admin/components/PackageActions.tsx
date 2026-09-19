@@ -9,6 +9,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
@@ -17,16 +18,26 @@ import { cn } from "#/lib/utils";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { PackageActionDialogs } from "#studio/features/admin/components/PackageActionDialogs";
 import { PackageOtherActionsMenu } from "#studio/features/admin/components/PackageOtherActionsMenu";
+import { PaymentStatusTabs } from "#studio/features/admin/components/PaymentStatusTabs";
 import { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import {
 	getPackageArchiveActionLabel,
+	isAdminPackageAdjustmentPaymentEligible,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 
 export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
 	const actions = usePackageActions(packageRow);
 
-	const { editAction, handleArchiveChange, isActionPending, pendingAction } = actions;
+	const {
+		editAction,
+		handleAdjustmentPaymentChange,
+		handleArchiveChange,
+		handleMarkPackageUnpaid,
+		isActionPending,
+		pendingAction,
+		setIsPaymentDialogOpen
+	} = actions;
 
 	// Menu icon animation refs
 	const menuIconRef = useRef<AnimatedIconHandle | null>(null);
@@ -101,6 +112,37 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 							</a>
 						</div>
 					</DropdownMenuGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
+						Payment status
+					</DropdownMenuLabel>
+					<div className="px-2 pb-2">
+						<PaymentStatusTabs
+							disabled={isActionPending}
+							isPaid={packageRow.isPaid}
+							onMarkPaid={() => setIsPaymentDialogOpen(true)}
+							onMarkUnpaid={() => void handleMarkPackageUnpaid()}
+						/>
+					</div>
+					{packageRow.adjustment ? (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
+								Adjustment status
+							</DropdownMenuLabel>
+							<div className="px-2 pb-2">
+								<PaymentStatusTabs
+									disabled={
+										isActionPending ||
+										!isAdminPackageAdjustmentPaymentEligible(packageRow.adjustment)
+									}
+									isPaid={packageRow.adjustment.paymentStatus === "paid"}
+									onMarkPaid={() => void handleAdjustmentPaymentChange(true)}
+									onMarkUnpaid={() => void handleAdjustmentPaymentChange(false)}
+								/>
+							</div>
+						</>
+					) : null}
 					<DropdownMenuSeparator />
 					<PackageOtherActionsMenu
 						actions={actions}

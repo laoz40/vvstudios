@@ -4,6 +4,12 @@ import { exhaustiveCheck } from "#/lib/result";
 export interface BookingResultContent {
 	description: string;
 	descriptionHeading?: string;
+	descriptionSteps?: Array<{
+		title: string;
+		description: string;
+		showInvoiceDownloadLink?: boolean;
+		invoiceDownloadLinkSuffix?: string;
+	}>;
 	isBookingCompletionFailure: boolean;
 	title: string;
 }
@@ -46,7 +52,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 		case "confirmed":
 			return {
 				title: "Your booking is confirmed!",
-				description: "Your receipt has been emailed",
+				description: "Your invoice has been emailed to you, or you can download it",
 				isBookingCompletionFailure: false
 			};
 
@@ -54,7 +60,7 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 			return {
 				title: "Your booking is confirmed!",
 				description:
-					"Your booking is confirmed, but we couldn’t email your receipt. You can download it here or contact us.",
+					"Your booking is confirmed, but we couldn’t email your invoice. You can download it here or contact us.",
 				isBookingCompletionFailure: false
 			};
 
@@ -86,21 +92,28 @@ export function getBookingResultContent(booking: BookingStatus): BookingResultCo
 	}
 }
 
-export function getPackagePaidResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
+export function getPackageResultContent(packageSize: 4 | 8 | 12): BookingResultContent {
 	return {
-		title: `${packageSize}-Session Package confirmed`,
-		description: "Your receipt and scheduling link have been sent to your email.",
-		isBookingCompletionFailure: false
-	};
-}
-
-export function getPackageScheduleEmailFailedResultContent(
-	packageSize: 4 | 8 | 12
-): BookingResultContent {
-	return {
-		title: `${packageSize}-Session Package confirmed`,
-		description:
-			"Your package is confirmed, but we couldn’t email your receipt and scheduling link. Please contact us and we’ll send it to you.",
+		title: `${packageSize}-Session Package requested.`,
+		descriptionHeading: "Next Steps:",
+		description: "",
+		descriptionSteps: [
+			{
+				title: "Pay your invoice",
+				description: "Your invoice is in your email (or download it",
+				showInvoiceDownloadLink: true,
+				invoiceDownloadLinkSuffix: "). Please complete payment to start the process."
+			},
+			{
+				title: "Bank processing",
+				description: "It can take up to 24 hours for first time payments to process."
+			},
+			{
+				title: "Lock your dates",
+				description:
+					"After roughly 24 hours, your scheduling link will be sent via email. There, you can select and secure your session dates."
+			}
+		],
 		isBookingCompletionFailure: false
 	};
 }

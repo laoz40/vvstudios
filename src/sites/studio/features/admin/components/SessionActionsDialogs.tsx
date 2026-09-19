@@ -13,18 +13,15 @@ import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDe
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
 import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
-import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
-import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
-import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
+import { CustomInvoiceDialog } from "#studio/features/admin/components/CustomInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
+import { EmailInvoiceDialog } from "#studio/features/admin/components/EmailInvoiceDialog";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
-import type { usePackageInvoiceActions } from "#studio/features/admin/hooks/usePackageInvoiceActions";
 import type { useRescheduleAction } from "#studio/features/admin/hooks/useRescheduleAction";
 
 type SessionActionsDialogsProps = {
@@ -34,7 +31,6 @@ type SessionActionsDialogsProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
-	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
 	rescheduleAction: ReturnType<typeof useRescheduleAction>;
 	isAdminNotesDialogOpen: boolean;
 	onAdminNotesDialogOpenChange: (open: boolean) => void;
@@ -136,18 +132,10 @@ export function SessionActionsDialogs({
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
-	packageInvoiceActions,
 	rescheduleAction,
 	isAdminNotesDialogOpen,
 	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
-	const stripeInvoiceContext = createStripeInvoiceContext(session.duration);
-
-	const packageStripeInvoiceContext =
-		session.packageId && session.linkedPackageSize
-			? createStripeInvoiceContext(session.duration, session.linkedPackageSize)
-			: null;
-
 	return (
 		<>
 			<SessionAdminNotesDialog
@@ -161,6 +149,20 @@ export function SessionActionsDialogs({
 			<RescheduleLinkDialog
 				sessionName={session.name}
 				rescheduleAction={rescheduleAction}
+			/>
+
+			<EmailInvoiceDialog
+				open={invoiceActions.isEmailInvoiceDialogOpen}
+				bookingName={session.name}
+				bookingEmail={session.email}
+				customInvoices={invoiceActions.customInvoices}
+				isSending={invoiceActions.isEmailingInvoice}
+				selectedCustomInvoiceId={invoiceActions.selectedEmailCustomInvoiceId}
+				onOpenChange={invoiceActions.setIsEmailInvoiceDialogOpen}
+				onSelectedCustomInvoiceIdChange={invoiceActions.setSelectedEmailCustomInvoiceId}
+				onSend={() => {
+					void invoiceActions.handleEmailInvoice();
+				}}
 			/>
 
 			<DeliverablesEmailDialog
@@ -184,51 +186,11 @@ export function SessionActionsDialogs({
 				}}
 			/>
 
-			<LegacyCustomInvoicesDialog
-				open={invoiceActions.isLegacyCustomInvoicesDialogOpen}
-				customerEmail={session.email}
-				customerName={session.name}
-				downloadingInvoiceId={invoiceActions.downloadingLegacyCustomInvoiceId}
-				invoices={invoiceActions.legacyCustomInvoices}
-				onDownload={(customInvoiceId) => {
-					void invoiceActions.handleDownloadLegacyCustomInvoice(customInvoiceId);
-				}}
-				onOpenChange={invoiceActions.setIsLegacyCustomInvoicesDialogOpen}
+			<CustomInvoiceDialog
+				open={invoiceActions.isCustomInvoiceDialogOpen}
+				session={session}
+				onOpenChange={invoiceActions.setIsCustomInvoiceDialogOpen}
 			/>
-
-			<StripeBillingDialog
-				open={invoiceActions.isStripeBillingDialogOpen}
-				customerEmail={session.email}
-				customerName={session.name}
-				invoices={invoiceActions.stripeBillingInvoices}
-				onOpenChange={invoiceActions.setIsStripeBillingDialogOpen}
-			/>
-
-			{invoiceActions.hasStripeCustomer && stripeInvoiceContext ? (
-				<StripeInvoiceDialog
-					open={invoiceActions.isStripeInvoiceDialogOpen}
-					customerEmail={session.email}
-					customerName={session.name}
-					hasStripeCustomer
-					invoiceContext={stripeInvoiceContext}
-					isSending={invoiceActions.isSendingStripeInvoice}
-					onOpenChange={invoiceActions.setIsStripeInvoiceDialogOpen}
-					onSend={invoiceActions.handleSendStripeInvoice}
-				/>
-			) : null}
-
-			{packageInvoiceActions.hasStripeCustomer && packageStripeInvoiceContext ? (
-				<StripeInvoiceDialog
-					open={packageInvoiceActions.isStripeInvoiceDialogOpen}
-					customerEmail={session.email}
-					customerName={session.name}
-					hasStripeCustomer
-					invoiceContext={packageStripeInvoiceContext}
-					isSending={packageInvoiceActions.isSendingStripeInvoice}
-					onOpenChange={packageInvoiceActions.setIsStripeInvoiceDialogOpen}
-					onSend={packageInvoiceActions.handleSendStripeInvoice}
-				/>
-			) : null}
 
 			<SessionDeleteDialog
 				open={deleteAction.isDeleteDialogOpen}

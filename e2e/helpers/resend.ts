@@ -1,11 +1,8 @@
 import { z } from "zod";
 
-// Matches `sendBookingReceiptEmailsForBooking` in convex/lib/bookingDocumentEmails.ts.
-const BOOKING_RECEIPT_SUBJECT_PREFIX = "Studio booking confirmed - ";
+const INVOICE_SUBJECT_PREFIX = "Your Studio Booking Invoice -";
 
-const PACKAGE_PAID_EMAIL_SUBJECT_PREFIX = "Your ";
-
-const PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX = "-Session Package confirmed — schedule your sessions";
+const PACKAGE_SCHEDULE_SUBJECT_PREFIX = "Schedule Your ";
 
 const RESCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/reschedule\/[a-f0-9]{64}/i;
 
@@ -57,12 +54,12 @@ function isEmailSince(email: ResendEmailListItem, recipient: string, since: Date
 	return parseResendTimestamp(email.created_at) >= since;
 }
 
-function isBookingReceiptEmail(email: ResendEmailListItem, recipient: string, since: Date) {
+function isInvoiceEmail(email: ResendEmailListItem, recipient: string, since: Date) {
 	if (!isEmailSince(email, recipient, since)) {
 		return false;
 	}
 
-	return email.subject.startsWith(BOOKING_RECEIPT_SUBJECT_PREFIX);
+	return email.subject.startsWith(INVOICE_SUBJECT_PREFIX);
 }
 
 function isPackageScheduleEmail(
@@ -75,9 +72,8 @@ function isPackageScheduleEmail(
 		return false;
 	}
 
-	return (
-		email.subject.startsWith(PACKAGE_PAID_EMAIL_SUBJECT_PREFIX) &&
-		email.subject.includes(`${packageSize}${PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX}`)
+	return email.subject.startsWith(
+		`${PACKAGE_SCHEDULE_SUBJECT_PREFIX}${packageSize} Pack Studio Sessions`
 	);
 }
 
@@ -208,8 +204,8 @@ export async function waitForInvoiceRescheduleUrl({
 	apiKey,
 	recipient,
 	since,
-	timeoutMs = 60_000,
-	pollIntervalMs = 2_000
+	timeoutMs = 120_000,
+	pollIntervalMs = 3_000
 }: {
 	apiKey: string;
 	pollIntervalMs?: number;
@@ -224,9 +220,9 @@ export async function waitForInvoiceRescheduleUrl({
 		findEmail: () =>
 			findMatchingEmailInPages({
 				apiKey,
-				isMatch: (email) => isBookingReceiptEmail(email, recipient, since)
+				isMatch: (email) => isInvoiceEmail(email, recipient, since)
 			}),
-		notFoundMessage: `Booking receipt email with reschedule link not found for ${recipient} within ${timeoutMs}ms`,
+		notFoundMessage: `Invoice email with reschedule link not found for ${recipient} within ${timeoutMs}ms`,
 		pollIntervalMs,
 		recipient,
 		since,
@@ -239,8 +235,8 @@ export async function waitForPackageScheduleUrl({
 	packageSize,
 	recipient,
 	since,
-	timeoutMs = 60_000,
-	pollIntervalMs = 2_000
+	timeoutMs = 120_000,
+	pollIntervalMs = 3_000
 }: {
 	apiKey: string;
 	packageSize: number;

@@ -1,18 +1,16 @@
 import { ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
+	getSentPackageAdjustmentInvoice,
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
-import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustmentInvoicePayment";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
-import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripeInvoices";
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {
 	adjustmentId: Id<"packageAdjustments">;
@@ -21,13 +19,23 @@ export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim
 type ClaimedPackageAdjustmentInvoiceEmailArgs = {
 	adjustmentId: Id<"packageAdjustments">;
 	claimedAt: number;
-	stripeInvoiceId?: string;
 };
 
 type MarkPackageAdjustmentPaymentStatusArgs = {
 	adjustmentId: Id<"packageAdjustments">;
 	paid: boolean;
 };
+
+export function getPackageAdjustmentInvoiceInputService(
+	ctx: QueryCtx,
+	args: { adjustmentId: Id<"packageAdjustments"> }
+) {
+	return getSentPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) =>
+		getPackageFromDb(ctx, adjustment.packageId)
+			.map((packageRecord) => ({ adjustment, packageRecord }))
+			.mapErr(() => ({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const }))
+	);
+}
 
 export function claimPackageAdjustmentInvoiceEmailService(
 	ctx: MutationCtx,
@@ -102,45 +110,12 @@ export function completePackageAdjustmentInvoiceEmailService(
 			return ok({ updated: false });
 		}
 
-		const patch =
-			status === "sent" && args.stripeInvoiceId
-				? {
-						invoiceEmailStatus: status,
-						invoiceEmailClaimedAt: undefined,
-						stripeInvoiceId: args.stripeInvoiceId
-					}
-				: { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined };
-
-		return okOrThrow(ctx.db.patch(adjustment._id, patch).then(() => ({ updated: true }))).andThen(
-			(result) => {
-				if (status !== "sent" || !args.stripeInvoiceId) {
-					return ok(result);
-				}
-
-				const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
-
-				return recordPackageAdjustmentStripeInvoice(ctx, {
-					packageId: adjustment.packageId,
-					packageAdjustmentId: adjustment._id,
-					stripeInvoiceId: args.stripeInvoiceId,
-					lineItems: [
-						{
-							description: `${remotePodcastLabel} (package adjustment)`,
-							amount: adjustment.totalAmount
-						}
-					],
-					totalAmount: adjustment.totalAmount
-				}).map(() => result);
-			}
+		return okOrThrow(
+			ctx.db
+				.patch(adjustment._id, { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined })
+				.then(() => ({ updated: true }))
 		);
 	});
-}
-
-export function claimPackageAdjustmentInvoicePaymentService(
-	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
-) {
-	return claimPackageAdjustmentInvoicePayment(ctx, args);
 }
 
 export function markPackageAdjustmentPaymentStatusService(

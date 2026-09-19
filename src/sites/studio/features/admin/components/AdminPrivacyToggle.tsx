@@ -1,6 +1,5 @@
+import { Eye, EyeOff } from "lucide-react";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
-import EyeIcon from "#/components/ui/eye-icon";
-import EyeOffIcon from "#/components/ui/eye-off-icon";
 import { useAdminPrivacyMode } from "#studio/features/admin/components/AdminPrivacyMode";
 
 export function AdminPrivacyToggle() {
@@ -14,20 +13,16 @@ export function AdminPrivacyToggle() {
 			iconPosition="before"
 			aria-pressed={isPrivacyModeEnabled}
 			onClick={() => setPrivacyModeEnabled(!isPrivacyModeEnabled)}
-			renderIcon={(iconRef) =>
+			renderIcon={() =>
 				isPrivacyModeEnabled ? (
-					<EyeOffIcon
-						ref={iconRef}
-						size={16}
+					<EyeOff
 						aria-hidden
-						className="shrink-0 text-current"
+						className="size-4"
 					/>
 				) : (
-					<EyeIcon
-						ref={iconRef}
-						size={16}
+					<Eye
 						aria-hidden
-						className="shrink-0 text-current"
+						className="size-4"
 					/>
 				)
 			}>

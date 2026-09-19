@@ -51,6 +51,7 @@ export const saveAdminSessionUpdate = internalMutation({
 		addons: bookingAddonsValidator,
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
+		remainingBalanceAmount: v.optional(v.number()),
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string()),
 		confirmBooking: v.optional(v.boolean()),

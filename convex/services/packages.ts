@@ -3,6 +3,10 @@ import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
+import {
+	validatePackageInvoiceEmailAttempt,
+	type MarkPackageInvoiceEmailAttemptArgs
+} from "#convex/lib/bookingInvoiceArtifacts";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import {
 	createPackageScheduleToken,
@@ -19,10 +23,6 @@ import {
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
-import {
-	listStripeInvoicesForPackage,
-	summarizeCustomPackageStripeInvoices
-} from "#convex/lib/stripeInvoices";
 
 type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };
 
@@ -30,15 +30,11 @@ type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
 type PackageIdArgs = { packageId: Id<"packages"> };
 
+type MarkPackageUnpaidArgs = { packageId: Id<"packages"> };
+
 type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
 
 type MarkPackageScheduleEmailAttemptArgs = PackageIdArgs & { status: "sent" | "failed" };
-
-type MarkPackageReceiptEmailAttemptArgs = PackageIdArgs & {
-	status: "sent" | "failed";
-	receiptNumber?: string;
-	failureCode?: string;
-};
 
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 
@@ -86,7 +82,7 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 			okOrThrow(
 				Promise.all(
 					packagesPage.page.map(async (packageFromDb) => {
-						const [packageSessions, packageAdjustment, stripeInvoicesResult] = await Promise.all([
+						const [packageSessions, packageAdjustment] = await Promise.all([
 							getCapacityConsumingPackageSessions(
 								ctx,
 								packageFromDb._id,
@@ -97,13 +93,8 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 								.withIndex("by_packageId", (indexQuery) =>
 									indexQuery.eq("packageId", packageFromDb._id)
 								)
-								.unique(),
-							listStripeInvoicesForPackage(ctx, packageFromDb._id)
+								.unique()
 						]);
-
-						const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(
-							stripeInvoicesResult.unwrapOr([])
-						);
 
 						return {
 							...packageFromDb,
@@ -119,8 +110,7 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 											invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
 											paymentStatus: packageAdjustment.paymentStatus
 										}
-									: null,
-							customStripeInvoicesSummary
+									: null
 						};
 					})
 				).then((page) => ({ ...packagesPage, page }))
@@ -175,6 +165,28 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 			okOrThrow(
 				ctx.db
 					.patch(args.packageId, { hiddenAt: args.archived ? Date.now() : undefined })
+					.then(() => null)
+			)
+		);
+}
+
+export function markPackageUnpaidService(ctx: MutationCtx, args: MarkPackageUnpaidArgs) {
+	return requirePermission(ctx, "update:payment-status")
+		.andThen(() => getPackageFromDb(ctx, args.packageId))
+		.andThen((packageFromDb) =>
+			okOrThrow(
+				ctx.db
+					.patch(args.packageId, {
+						paidAt: undefined,
+						expiresAt: undefined,
+						packageReminderState: undefined,
+						scheduleTokenHash: undefined,
+						scheduleLinkStatus: undefined,
+						status:
+							packageFromDb.invoiceEmailStatus === "failed"
+								? "invoice_email_failed"
+								: "pending_payment"
+					})
 					.then(() => null)
 			)
 		);
@@ -263,6 +275,36 @@ export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: Packa
 		);
 }
 
+export function markPackageInvoiceEmailAttemptService(
+	ctx: MutationCtx,
+	args: MarkPackageInvoiceEmailAttemptArgs
+) {
+	return validatePackageInvoiceEmailAttempt(args).asyncAndThen(() => {
+		const now = Date.now();
+
+		const patch =
+			args.status === "sent"
+				? {
+						invoiceNumber: args.invoiceNumber,
+						invoiceEmailStatus: args.status,
+						invoiceEmailSentAt: now,
+						invoiceEmailFailureCode: undefined,
+						lastInvoiceEmailAttemptAt: now,
+						status: "pending_payment" as const
+					}
+				: {
+						invoiceNumber: undefined,
+						invoiceEmailStatus: args.status,
+						invoiceEmailSentAt: undefined,
+						invoiceEmailFailureCode: args.failureCode,
+						lastInvoiceEmailAttemptAt: now,
+						status: "invoice_email_failed" as const
+					};
+
+		return okOrThrow(ctx.db.patch(args.packageId, patch).then(() => null));
+	});
+}
+
 export function markPackageScheduleEmailAttemptService(
 	ctx: MutationCtx,
 	args: MarkPackageScheduleEmailAttemptArgs
@@ -276,35 +318,4 @@ export function markPackageScheduleEmailAttemptService(
 				.then(() => null)
 		)
 	);
-}
-
-export function markPackageReceiptEmailAttemptService(
-	ctx: MutationCtx,
-	args: MarkPackageReceiptEmailAttemptArgs
-) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() => {
-		const now = Date.now();
-
-		// Receipt fields still use invoice* columns until a schema migration renames them.
-		return okOrThrow(
-			ctx.db
-				.patch(
-					args.packageId,
-					args.status === "sent"
-						? {
-								invoiceEmailFailureCode: undefined,
-								invoiceEmailSentAt: now,
-								invoiceEmailStatus: "sent" as const,
-								invoiceNumber: args.receiptNumber,
-								lastInvoiceEmailAttemptAt: now
-							}
-						: {
-								invoiceEmailFailureCode: args.failureCode,
-								invoiceEmailStatus: "failed" as const,
-								lastInvoiceEmailAttemptAt: now
-							}
-				)
-				.then(() => null)
-		);
-	});
 }
