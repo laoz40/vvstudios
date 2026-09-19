@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { LoaderCircle, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { AdminAddonOptions } from "#studio/features/admin/components/AdminAddonOptions";
-import { AdminEditingQuantityOptions } from "#studio/features/admin/components/AdminEditingQuantityOptions";
 import {
 	Dialog,
 	DialogClose,
@@ -339,6 +338,7 @@ export function PackageEditDialog({
 					</section>
 
 					<AdminAddonOptions
+						key={open ? packageRow.id : "closed"}
 						addons={draft.addons}
 						essentialEditQuantity={draft.essentialEditQuantity}
 						completeEditQuantity={draft.completeEditQuantity}
@@ -348,51 +348,6 @@ export function PackageEditDialog({
 						idPrefix="edit-package-addon"
 						onChange={(nextValues) => setDraft((current) => ({ ...current, ...nextValues }))}
 					/>
-
-					{draft.addons.includes("Essential Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-essential-edit-quantity"
-							label="Essential Edit quantity"
-							value={draft.essentialEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, essentialEditQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Complete Edit") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-complete-edit-quantity"
-							label="Complete Edit quantity"
-							value={draft.completeEditQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, completeEditQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Clip Volume Pack") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-clips-package-quantity"
-							label="Clip Volume Pack quantity"
-							value={draft.clipsPackageQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, clipsPackageQuantity: value }))
-							}
-						/>
-					) : null}
-					{draft.addons.includes("Handcrafted Clips") ? (
-						<AdminEditingQuantityOptions
-							idPrefix="edit-package-handcrafted-clips-quantity"
-							label="Handcrafted Clips quantity"
-							value={draft.handcraftedClipsQuantity ?? ""}
-							disabled={isSaving}
-							onChange={(value) =>
-								setDraft((current) => ({ ...current, handcraftedClipsQuantity: value }))
-							}
-						/>
-					) : null}
 
 					<section className="grid gap-2">
 						<Label htmlFor="edit-package-total-due">Package total due</Label>
