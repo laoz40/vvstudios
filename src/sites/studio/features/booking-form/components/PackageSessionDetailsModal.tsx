@@ -31,22 +31,18 @@ export function PackageSessionDetailsModal({ packageData }: PackageSessionDetail
 				onOpenChange={setIsOpen}
 				title="Your Package session details"
 				closeLabel="Close package session details">
-				<dl className="grid gap-2 text-sm">
-					<div className="flex gap-8">
-						<dt className="shrink-0 text-muted-foreground">Session duration</dt>
-						<dd className="font-medium">{packageData.duration}</dd>
-					</div>
-					<div className="flex gap-8">
-						<dt className="shrink-0 text-muted-foreground">Recording space</dt>
-						<dd className="font-medium">Choose a space for each session.</dd>
-					</div>
+				<dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2 text-sm">
+					<dt className="text-muted-foreground">Session duration</dt>
+					<dd className="font-medium">{packageData.duration}</dd>
+					<dt className="text-muted-foreground">Recording space</dt>
+					<dd className="font-medium">Choose a space for each session.</dd>
 					{packageData.addons.length > 0 ? (
-						<div className="flex gap-8">
-							<dt className="shrink-0 text-muted-foreground">Add-ons</dt>
+						<>
+							<dt className="text-muted-foreground">Add-ons</dt>
 							<dd className="font-medium">
 								{formatEditingAddonList(packageData.addons, packageData)}
 							</dd>
-						</div>
+						</>
 					) : null}
 				</dl>
 			</Modal>
