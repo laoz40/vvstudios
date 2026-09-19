@@ -45,7 +45,6 @@ import {
 	getAudAmountRowShowCents
 } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { getPackageTotalDueDraftValue } from "#studio/features/admin/lib/package-edit-warnings";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 export type PackageEditDraft = {
@@ -58,7 +57,6 @@ export type PackageEditDraft = {
 	duration: BookingFormValues["duration"];
 	expiresAt?: number;
 	notes: string;
-	totalDueAmount: string;
 	packageSize: PackageSize;
 } & BookingAddonQuantities;
 
@@ -122,9 +120,17 @@ function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
 		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
 		expiresAt: packageRow.expiresAt,
 		notes: packageRow.notes ?? "",
-		packageSize: packageRow.packageSize,
-		totalDueAmount: ""
+		packageSize: packageRow.packageSize
 	};
+}
+
+function getPackageDraftTotal(draft: PackageEditDraft) {
+	return calculatePackageAmounts({
+		addons: draft.addons,
+		duration: draft.duration,
+		packageSize: draft.packageSize,
+		...pickBookingAddonQuantities(draft)
+	}).totalDueAmount;
 }
 
 export function PackageEditDialog({
@@ -136,15 +142,8 @@ export function PackageEditDialog({
 }: PackageEditDialogProps) {
 	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
 
-	const defaultTotalDueAmount = calculatePackageAmounts({
-		addons: draft.addons,
-		duration: draft.duration,
-		packageSize: draft.packageSize,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
-
 	const originalPrice = packageRow.totalDueAmount;
-	const newPrice = getPackageTotalDueDraftValue(draft);
+	const newPrice = getPackageDraftTotal(draft);
 	const priceDifference = newPrice - originalPrice;
 	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
@@ -405,25 +404,6 @@ export function PackageEditDialog({
 											})}
 										</RadioGroup>
 									</div>
-								</div>
-
-								<div className={compactFieldClassName}>
-									<Label htmlFor="edit-package-total-due">Package price override</Label>
-									<Input
-										id="edit-package-total-due"
-										name="totalDueAmount"
-										type="number"
-										inputMode="decimal"
-										autoComplete="off"
-										min="0"
-										step="0.01"
-										value={draft.totalDueAmount}
-										onChange={(event) => {
-											setDraft((current) => ({ ...current, totalDueAmount: event.target.value }));
-										}}
-										placeholder={defaultTotalDueAmount.toFixed(2)}
-										disabled={isSaving}
-									/>
 								</div>
 							</AccordionContent>
 						</AccordionItem>

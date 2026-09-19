@@ -1,7 +1,5 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 
 type PackageEditWarningField = keyof PackageEditDraft;
 
@@ -12,8 +10,7 @@ const pricingFields: readonly PackageEditWarningField[] = [
 	"completeEditQuantity",
 	"clipsPackageQuantity",
 	"handcraftedClipsQuantity",
-	"packageSize",
-	"totalDueAmount"
+	"packageSize"
 ];
 
 const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
@@ -30,8 +27,7 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	handcraftedClipsQuantity: "Handcrafted Clips quantity",
 	expiresAt: "Package expiry window",
 	notes: "Notes",
-	packageSize: "Package sessions",
-	totalDueAmount: "Package price override"
+	packageSize: "Package sessions"
 };
 
 function isPackageEditWarningField(field: string): field is PackageEditWarningField {
@@ -62,26 +58,7 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 		return packageRow.expiresAt ?? undefined;
 	}
 
-	if (field === "totalDueAmount") {
-		return packageRow.totalDueAmount;
-	}
-
 	return packageRow[field];
-}
-
-export function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
-	const totalDueDraft = draft.totalDueAmount.trim();
-
-	if (totalDueDraft.length > 0) {
-		return Number(totalDueDraft);
-	}
-
-	return calculatePackageAmounts({
-		addons: draft.addons,
-		duration: draft.duration,
-		packageSize: draft.packageSize,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
 }
 
 function didPackageEditFieldChange(
@@ -90,7 +67,7 @@ function didPackageEditFieldChange(
 	field: PackageEditWarningField
 ) {
 	const currentValue = getPackageDraftValue(packageRow, field);
-	const nextValue = field === "totalDueAmount" ? getPackageTotalDueDraftValue(draft) : draft[field];
+	const nextValue = draft[field];
 
 	if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
 		return didArrayChange(currentValue, nextValue);
@@ -115,11 +92,8 @@ export function getPackageEditWarningState(packageRow: AdminPackageRow, draft: P
 
 	const pricingFieldLabels = getChangedFieldLabels(changedFields, pricingFields);
 
-	const manualPriceWillBeUsed = draft.totalDueAmount.trim().length > 0;
-
 	return {
 		changedFieldLabels: changedFields.map((field) => packageEditFieldLabels[field]),
-		manualPriceWillBeUsed,
 		pricingFieldLabels,
 		requiresConfirmation: changedFields.length > 0
 	};

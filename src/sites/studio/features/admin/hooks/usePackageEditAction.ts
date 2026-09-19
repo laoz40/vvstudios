@@ -11,13 +11,10 @@ import {
 	packageFormSchema,
 	pickBookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { parseRemainingBalanceAmountDraft } from "#studio/features/admin/lib/remaining-balance";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
 
 type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
-
-type PackageTotalResult = ReturnType<typeof parseRemainingBalanceAmountDraft> | null;
 
 type PackageUpdateInput = {
 	packageId: AdminPackageRow["id"];
@@ -35,14 +32,12 @@ type PackageUpdateInput = {
 	notes?: string;
 	packageSize: ParsedPackageValues["packageSize"];
 	expiresAt?: number;
-	totalDueAmount?: number;
 };
 
 function buildPackageUpdateInput(
 	packageRow: AdminPackageRow,
 	values: PackageEditDraft,
-	parsedValues: ParsedPackageValues,
-	totalDueAmountResult: PackageTotalResult
+	parsedValues: ParsedPackageValues
 ) {
 	const input: PackageUpdateInput = {
 		packageId: packageRow.id,
@@ -68,10 +63,6 @@ function buildPackageUpdateInput(
 		input.expiresAt = values.expiresAt;
 	}
 
-	if (totalDueAmountResult?.status === "valid") {
-		input.totalDueAmount = totalDueAmountResult.amount;
-	}
-
 	return input;
 }
 
@@ -95,19 +86,7 @@ function parsePackageEditValues(values: PackageEditDraft) {
 		return null;
 	}
 
-	const totalDueDraft = values.totalDueAmount.trim();
-
-	const totalDueAmountResult = totalDueDraft
-		? parseRemainingBalanceAmountDraft(totalDueDraft)
-		: null;
-
-	if (totalDueAmountResult?.status === "invalid") {
-		toast.error("Enter a valid package total due.");
-
-		return null;
-	}
-
-	return { parsedValues: parsedValues.data, totalDueAmountResult };
+	return parsedValues.data;
 }
 
 function showPackageUpdateError(
@@ -134,9 +113,6 @@ function showPackageUpdateError(
 		case "PACKAGE_INVALID_EXPIRY":
 			toast.error("Enter a valid package expiry window.");
 			break;
-		case "PACKAGE_INVALID_TOTAL_DUE_AMOUNT":
-			toast.error("Enter a valid total due amount.");
-			break;
 		case "UNEXPECTED_ERROR":
 			toast.error("Something went wrong while updating the package.");
 			break;
@@ -161,13 +137,11 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 		values: PackageEditDraft,
 		options?: { skipConfirmation?: boolean }
 	) {
-		const parsedEditValues = parsePackageEditValues(values);
+		const parsedValues = parsePackageEditValues(values);
 
-		if (!parsedEditValues) {
+		if (!parsedValues) {
 			return;
 		}
-
-		const { parsedValues, totalDueAmountResult } = parsedEditValues;
 
 		if (!options?.skipConfirmation) {
 			const warningState = getPackageEditWarningState(packageRow, values);
@@ -183,12 +157,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 
 		setIsSaving(true);
 
-		const updateInput = buildPackageUpdateInput(
-			packageRow,
-			values,
-			parsedValues,
-			totalDueAmountResult
-		);
+		const updateInput = buildPackageUpdateInput(packageRow, values, parsedValues);
 
 		const [error] = await tryCatch(updatePackage(updateInput));
 

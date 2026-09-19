@@ -84,8 +84,7 @@ export const updatePackageFromAdmin = mutation({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
-		expiresAt: v.optional(v.number()),
-		totalDueAmount: v.optional(v.number())
+		expiresAt: v.optional(v.number())
 	},
 	handler: (ctx, args) => updatePackageService(ctx, args).match(tupleOk, tupleErr)
 });
