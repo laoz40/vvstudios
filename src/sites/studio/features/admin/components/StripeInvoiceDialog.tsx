@@ -182,7 +182,7 @@ export function StripeInvoiceDialog({
 					<div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm">
 						<span className="font-medium">Total</span>
 						<span className="font-medium tabular-nums">
-							{totalAmount === null ? "Complete line items" : formatAudAmount(totalAmount)}
+							{totalAmount === null ? "-" : formatAudAmount(totalAmount)}
 						</span>
 					</div>
 
