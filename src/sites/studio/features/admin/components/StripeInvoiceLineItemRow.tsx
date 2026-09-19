@@ -1,5 +1,7 @@
-import { Trash2 } from "lucide-react";
+import { useRef } from "react";
 import { Button } from "#/components/ui/button";
+import TrashIcon from "#/components/ui/trash-icon";
+import type { AnimatedIconHandle } from "#/components/ui/types";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Label } from "#/components/ui/label";
 import {
@@ -54,6 +56,7 @@ export function StripeInvoiceLineItemRow({
 	onChange,
 	onRemove
 }: StripeInvoiceLineItemRowProps) {
+	const trashIconRef = useRef<AnimatedIconHandle | null>(null);
 	const lineItemOptions = getStripeInvoiceLineItemOptions(context);
 	const selectionValue = getStripeInvoiceLineItemSelectionValue(draft);
 	const lineItemAmount = getLineItemAmount(draft, context);
@@ -137,11 +140,20 @@ export function StripeInvoiceLineItemRow({
 					type="button"
 					variant="ghost"
 					size="icon-sm"
-					className="shrink-0"
+					className="shrink-0 hover:text-destructive focus-visible:text-destructive"
 					disabled={isDisabled || !canRemove}
 					aria-label={`Remove line item ${index + 1}`}
+					onPointerEnter={() => trashIconRef.current?.startAnimation()}
+					onPointerLeave={() => trashIconRef.current?.stopAnimation()}
+					onFocus={() => trashIconRef.current?.startAnimation()}
+					onBlur={() => trashIconRef.current?.stopAnimation()}
 					onClick={onRemove}>
-					<Trash2 className="size-4" />
+					<TrashIcon
+						ref={trashIconRef}
+						size={16}
+						aria-hidden
+						className="shrink-0 text-current"
+					/>
 				</Button>
 			</div>
 

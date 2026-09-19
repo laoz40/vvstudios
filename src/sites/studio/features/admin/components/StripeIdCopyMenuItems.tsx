@@ -1,4 +1,4 @@
-import Stack3Icon from "#/components/ui/stack-3-icon";
+import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 
@@ -13,7 +13,7 @@ export function StripeIdCopyMenuItems({ stripePaymentIntentId }: StripeIdCopyMen
 		<AnimatedDropdownMenuItem
 			onSelect={() => void copyText(stripePaymentIntentId, "Stripe Payment ID")}
 			renderIcon={(iconRef) => (
-				<Stack3Icon
+				<BrandStripeIcon
 					ref={iconRef}
 					size={16}
 					aria-hidden

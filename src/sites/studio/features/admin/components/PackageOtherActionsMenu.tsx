@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { DollarSign } from "lucide-react";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
+import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
@@ -115,10 +115,12 @@ function PackageInvoiceActions({
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending || actions.isSendingStripeInvoice}
 					onSelect={() => setIsStripeInvoiceDialogOpen(true)}
-					renderIcon={() => (
-						<DollarSign
+					renderIcon={(iconRef) => (
+						<BrandStripeIcon
+							ref={iconRef}
+							size={16}
 							aria-hidden
-							className="size-4 shrink-0 text-current"
+							className="shrink-0 text-current"
 						/>
 					)}>
 					Create Stripe invoice
@@ -128,10 +130,12 @@ function PackageInvoiceActions({
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}
 					onSelect={() => setIsStripeBillingDialogOpen(true)}
-					renderIcon={() => (
-						<DollarSign
+					renderIcon={(iconRef) => (
+						<BrandStripeIcon
+							ref={iconRef}
+							size={16}
 							aria-hidden
-							className="size-4 shrink-0 text-current"
+							className="shrink-0 text-current"
 						/>
 					)}>
 					Stripe billing

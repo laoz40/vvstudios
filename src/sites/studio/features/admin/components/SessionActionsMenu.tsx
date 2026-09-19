@@ -1,10 +1,10 @@
 import { useRef } from "react";
-import { DollarSign } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
+import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
@@ -86,10 +86,12 @@ function SessionPackageStripeInvoiceMenuItem({
 			<AnimatedDropdownMenuItem
 				disabled={packageInvoiceActions.isSendingStripeInvoice}
 				onSelect={() => packageInvoiceActions.setIsStripeInvoiceDialogOpen(true)}
-				renderIcon={() => (
-					<DollarSign
+				renderIcon={(iconRef) => (
+					<BrandStripeIcon
+						ref={iconRef}
+						size={16}
 						aria-hidden
-						className="size-4 shrink-0 text-current"
+						className="shrink-0 text-current"
 					/>
 				)}>
 				Create Stripe invoice
@@ -390,10 +392,12 @@ export function SessionActionsMenu({
 											<AnimatedDropdownMenuItem
 												disabled={invoiceActions.isSendingStripeInvoice}
 												onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
-												renderIcon={() => (
-													<DollarSign
+												renderIcon={(iconRef) => (
+													<BrandStripeIcon
+														ref={iconRef}
+														size={16}
 														aria-hidden
-														className="size-4 shrink-0 text-current"
+														className="shrink-0 text-current"
 													/>
 												)}>
 												Create Stripe invoice
@@ -402,10 +406,12 @@ export function SessionActionsMenu({
 										{invoiceActions.hasStripeBillingInvoices ? (
 											<AnimatedDropdownMenuItem
 												onSelect={() => invoiceActions.setIsStripeBillingDialogOpen(true)}
-												renderIcon={() => (
-													<DollarSign
+												renderIcon={(iconRef) => (
+													<BrandStripeIcon
+														ref={iconRef}
+														size={16}
 														aria-hidden
-														className="size-4 shrink-0 text-current"
+														className="shrink-0 text-current"
 													/>
 												)}>
 												Stripe billing
