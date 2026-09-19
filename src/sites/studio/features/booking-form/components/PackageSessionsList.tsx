@@ -1,17 +1,22 @@
-import { Accordion } from "#/components/ui/accordion";
 import type { Id } from "#convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import type { BookingDateTimePickerProps } from "#studio/features/booking-form/components/BookingDateTimePicker";
-import { PackageSessionAccordionItem } from "#studio/features/booking-form/components/PackageSessionAccordionItem";
+import { PackageSessionEditorDialog } from "#studio/features/booking-form/components/PackageSessionEditorDialog";
+import { PackageSessionListItem } from "#studio/features/booking-form/components/PackageSessionListItem";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
-interface PackageSessionsAccordionProps {
+type PackageData = NonNullable<
+	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+>;
+
+interface PackageSessionsListProps {
 	activeSessionKey: string | null;
+	activeBooking: PackageData["sessions"][number] | undefined;
 	availability: BookingDateTimePickerProps["availability"];
 	highlightedBookingId: Id<"bookings"> | null;
 	isDefaultSpace: boolean;
-	packageData: NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
+	packageData: PackageData;
 	savingSessionKey: string | null;
 	isSavingDefaultSpace: boolean;
 	selectedDateValue: string;
@@ -34,8 +39,9 @@ interface PackageSessionsAccordionProps {
 	onTimeChange: (time: string) => void;
 }
 
-export function PackageSessionsAccordion({
+export function PackageSessionsList({
 	activeSessionKey,
+	activeBooking,
 	availability,
 	highlightedBookingId,
 	isDefaultSpace,
@@ -60,7 +66,7 @@ export function PackageSessionsAccordion({
 	onSessionClose,
 	onSessionSelect,
 	onTimeChange
-}: PackageSessionsAccordionProps) {
+}: PackageSessionsListProps) {
 	const dateRequiredSessions = Array.from(
 		{ length: packageData.packageSize - packageData.sessions.length },
 		(_, index) => ({ booking: null, key: `empty-${index}`, status: "dateRequired" as const })
@@ -78,7 +84,8 @@ export function PackageSessionsAccordion({
 		}));
 
 	const sessions = [...scheduledSessions, ...dateRequiredSessions];
-	const hasActiveSession = sessions.some((session) => session.key === activeSessionKey);
+	const activeSessionIndex = sessions.findIndex((session) => session.key === activeSessionKey);
+	const activeSessionNumber = activeSessionIndex >= 0 ? activeSessionIndex + 1 : null;
 
 	const selection = {
 		dateValue: selectedDateValue,
@@ -88,59 +95,62 @@ export function PackageSessionsAccordion({
 		time: selectedTime
 	};
 
-	const actions = {
-		onDateChange,
-		onMakeDefaultSpace,
-		onNotesChange,
-		onRemotePodcastChange,
-		onRequestSaveSession,
-		onRequestUnschedule,
-		onServiceChange,
-		onSessionClose,
-		onSessionSelect,
-		onTimeChange
-	};
+	const isSelectedBookingSaved =
+		activeBooking !== undefined &&
+		activeBooking.date === selection.dateValue &&
+		activeBooking.time === selection.time &&
+		activeBooking.service === selection.service &&
+		activeBooking.notes === selection.notes &&
+		activeBooking.addons.includes("Remote Podcast") === selection.remotePodcast;
+
+	const listActions = { onRequestUnschedule, onSessionClose, onSessionSelect };
 
 	return (
-		<Accordion
-			type="single"
-			collapsible
-			// Keep the shared accordion default of overflow-hidden for closed panels so
-			// the height animation clips cleanly. For these session panels, open content
-			// needs overflow-visible so shadows on edge-aligned controls are not cut off
-			// by the animated content wrapper.
-			className="mt-4 grid gap-4 [&_[data-slot=accordion-content][data-state=open]]:overflow-visible"
-			value={activeSessionKey ?? ""}
-			onValueChange={(value) => {
-				if (!value) {
-					onSessionClose();
-
-					return;
-				}
-
-				const session = sessions.find((packageSession) => packageSession.key === value);
-				onSessionSelect(value, session?.booking?.date, session?.booking?.time);
-			}}>
-			{sessions.map((session, index) => (
-				<PackageSessionAccordionItem
-					key={session.key}
-					actions={actions}
-					activeSessionKey={activeSessionKey}
+		<>
+			<div className="mt-4 grid gap-4">
+				{sessions.map((session, index) => (
+					<PackageSessionListItem
+						key={session.key}
+						actions={listActions}
+						activeSessionKey={activeSessionKey}
+						currentTimestamp={currentTimestamp}
+						duration={packageData.duration}
+						highlightedBookingId={highlightedBookingId}
+						leadTimeMinutes={leadTimeMinutes}
+						session={session}
+						sessionNumber={index + 1}
+					/>
+				))}
+			</div>
+			{activeSessionKey !== null && activeSessionNumber !== null ? (
+				<PackageSessionEditorDialog
 					availability={availability}
-					currentTimestamp={currentTimestamp}
 					duration={packageData.duration}
-					hasActiveSession={hasActiveSession}
-					highlightedBookingId={highlightedBookingId}
+					hasActiveSession
 					isDefaultSpace={isDefaultSpace}
+					isOpen
 					isSavingDefaultSpace={isSavingDefaultSpace}
-					leadTimeMinutes={leadTimeMinutes}
+					isSelectedBookingSaved={isSelectedBookingSaved}
+					onDateChange={onDateChange}
+					onMakeDefaultSpace={onMakeDefaultSpace}
+					onNotesChange={onNotesChange}
+					onOpenChange={(open) => {
+						if (!open) {
+							onSessionClose();
+						}
+					}}
+					onRemotePodcastChange={onRemotePodcastChange}
+					onRequestSaveSession={onRequestSaveSession}
+					onServiceChange={onServiceChange}
+					onTimeChange={onTimeChange}
+					preventClose={savingSessionKey !== null}
 					savingSessionKey={savingSessionKey}
 					selection={selection}
-					session={session}
-					sessionNumber={index + 1}
+					sessionKey={activeSessionKey}
+					sessionNumber={activeSessionNumber}
 					timeSelectionMessage={timeSelectionMessage}
 				/>
-			))}
-		</Accordion>
+			) : null}
+		</>
 	);
 }

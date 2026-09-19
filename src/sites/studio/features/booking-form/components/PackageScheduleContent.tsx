@@ -8,7 +8,7 @@ import { tryCatch } from "#/lib/result";
 import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { PackageSessionDetailsModal } from "#studio/features/booking-form/components/PackageSessionDetailsModal";
-import { PackageSessionsAccordion } from "#studio/features/booking-form/components/PackageSessionsAccordion";
+import { PackageSessionsList } from "#studio/features/booking-form/components/PackageSessionsList";
 import { usePackageSchedule } from "#studio/features/booking-form/hooks/usePackageSchedule";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
@@ -220,8 +220,9 @@ export function PackageScheduleContent({
 					<PackageSessionDetailsModal packageData={packageData} />
 				</div>
 
-				<PackageSessionsAccordion
+				<PackageSessionsList
 					activeSessionKey={scheduling.activeSessionKey}
+					activeBooking={scheduling.activeBooking}
 					availability={scheduling.availability}
 					highlightedBookingId={scheduling.highlightedBookingId}
 					isDefaultSpace={scheduling.selectedService === packageData.defaultSpace}
