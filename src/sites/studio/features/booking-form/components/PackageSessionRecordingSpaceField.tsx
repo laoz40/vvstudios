@@ -25,7 +25,6 @@ export function PackageSessionRecordingSpaceField({
 			disabled={disabled}
 			idPrefix="package-session-service"
 			label="Recording Space *"
-			selectionIndicatorVisibility="mobile"
 			value={value}
 			onChange={onChange}
 			headerAction={

@@ -7,6 +7,7 @@ import type { BookingAvailabilityPickerState } from "#studio/features/booking-fo
 import { usePackageCalendarBusyWindows } from "#studio/features/booking-form/hooks/usePackageCalendarBusyWindows";
 import {
 	getBookingTimeSelectionMessage,
+	isAddonAvailableForService,
 	recordingSpaceSchema,
 	type BookingFormValues,
 	type BookingTimeSelectionMessage
@@ -281,14 +282,21 @@ export function usePackageSchedule({
 
 	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
 		const booking = packageData.sessions.find((session) => session._id === sessionKey);
+
+		const selectedService =
+			recordingSpaceSchema.safeParse(booking?.service ?? packageData.defaultSpace).data ?? "";
+
+		const selectedRemotePodcast =
+			isAddonAvailableForService(selectedService, "Remote Podcast") &&
+			(booking?.addons.includes("Remote Podcast") ?? false);
+
 		setSessionSelection({
 			activeSessionKey: sessionKey,
 			highlightedBookingId: null,
 			selectedDateValue: dateValue ?? "",
 			selectedNotes: booking?.notes ?? "",
-			selectedRemotePodcast: booking?.addons.includes("Remote Podcast") ?? false,
-			selectedService:
-				recordingSpaceSchema.safeParse(booking?.service ?? packageData.defaultSpace).data ?? "",
+			selectedRemotePodcast,
+			selectedService,
 			selectedTime: time ?? ""
 		});
 	}
@@ -318,7 +326,13 @@ export function usePackageSchedule({
 	}
 
 	function setSelectedService(service: Exclude<BookingFormValues["service"], "">) {
-		setSessionSelection((current) => ({ ...current, selectedService: service }));
+		setSessionSelection((current) => ({
+			...current,
+			selectedRemotePodcast: isAddonAvailableForService(service, "Remote Podcast")
+				? current.selectedRemotePodcast
+				: false,
+			selectedService: service
+		}));
 	}
 
 	function setSelectedTime(time: string) {

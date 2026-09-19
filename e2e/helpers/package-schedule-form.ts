@@ -5,14 +5,12 @@ export async function openFirstUnscheduledPackageSession(page: Page) {
 	await expect(page.getByRole("heading", { name: "Schedule your package sessions" })).toBeVisible();
 
 	const firstDateRequiredSession = page
-		.locator('[data-slot="accordion-item"]')
+		.locator('[data-slot="package-session-item"]')
 		.filter({ hasText: "Date Required" })
 		.first();
 
 	await firstDateRequiredSession.getByText("SCHEDULE", { exact: true }).click();
-	await expect(
-		firstDateRequiredSession.getByRole("button", { name: "SAVE SESSION" })
-	).toBeVisible();
+	await expect(page.getByRole("button", { name: "SAVE SESSION" })).toBeVisible();
 }
 
 async function selectPackageRecordingSpaceIfNeeded(page: Page) {
