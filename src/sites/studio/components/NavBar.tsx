@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Menu, X } from "lucide-react";
@@ -192,6 +192,11 @@ function MobileNavbar({ pathname }: { pathname: string }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const isBookPage = pathname === studioSite.routes.book;
 	const shouldPlayIntro = pathname === studioSite.routes.home;
+
+	// Close the sheet after in-app navigation (e.g. book/home CTAs lack per-link handlers).
+	useEffect(() => {
+		setIsOpen(false);
+	}, [pathname]);
 
 	return (
 		<>
