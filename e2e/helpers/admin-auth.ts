@@ -40,5 +40,5 @@ export async function signInAsAdmin(page: Page) {
 	await setupClerkTestingToken({ page });
 	await page.goto("/login");
 	await clerk.signIn({ page, emailAddress: email });
-	await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
+	await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 }

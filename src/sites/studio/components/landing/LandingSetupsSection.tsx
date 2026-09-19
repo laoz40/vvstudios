@@ -68,7 +68,6 @@ function SetupShowcasePanel({
 					<Image
 						src={image.src}
 						alt={image.alt}
-						unstyled
 						layout="constrained"
 						width={image.width}
 						height={image.height}

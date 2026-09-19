@@ -18,7 +18,15 @@ export async function sendBookingRescheduledEmailsForBooking(
 		originalTime: string;
 		rescheduleUrl?: string;
 	}
-): Promise<Result<null, { reason: "INVALID_BOOKING_DATA" | "RESCHEDULE_EMAIL_SEND_FAILED" }>> {
+): Promise<
+	Result<
+		null,
+		| { reason: "EMAIL_RENDER_FAILED" }
+		| { reason: "EMAIL_REQUEST_FAILED" }
+		| { reason: "EMAIL_RESPONSE_FAILED" }
+		| { reason: "INVALID_BOOKING_DATA" }
+	>
+> {
 	const customerEmailResult = await sendBookingRescheduledCustomerEmail({
 		addons: booking.addons,
 		date: booking.date,

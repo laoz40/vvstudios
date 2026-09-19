@@ -281,24 +281,16 @@ export function updateSessionFromAdminWithGoogleCalendar({
 				now: Date.now(),
 				sessionStartAt
 			})
-		)
-			.mapErr(() => ({ reason: "BOOKING_TIME_UNAVAILABLE" as const }))
-			.andThen((reservationResult) => {
-				if (reservationResult.outcome === "unavailable") {
-					return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
-				}
+		).andThen((reservationResult) => {
+			if (reservationResult.outcome === "unavailable") {
+				return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+			}
 
-				// Pass the reservation through so the save can prove it owns the time.
-				const reservation = reservationResult.reservation;
+			// Pass the reservation through so the save can prove it owns the time.
+			const reservation = reservationResult.reservation;
 
-				return applyAdminSessionUpdate({
-					args,
-					session,
-					client,
-					ctx,
-					reservation,
-					settings
-				}).orElse((error) =>
+			return applyAdminSessionUpdate({ args, session, client, ctx, reservation, settings }).orElse(
+				(error) =>
 					// Release the reservation if any part of the update fails.
 					fromConvexTuple(
 						ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
@@ -306,8 +298,8 @@ export function updateSessionFromAdminWithGoogleCalendar({
 							reservation
 						})
 					).andThen(() => err(error))
-				);
-			})
+			);
+		})
 	);
 }
 

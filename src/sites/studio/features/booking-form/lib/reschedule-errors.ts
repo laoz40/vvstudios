@@ -86,9 +86,12 @@ export function resolveRescheduleBusyWindowsLoadError(
 		case "BOOKING_NOT_RESCHEDULABLE":
 			return { kind: "invalidLink", content: getInvalidMessage(error) };
 
+		case "BOOKING_INVALID_DATE":
+		case "BOOKING_INVALID_TIME":
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
+		case "INVALID_ZONED_TIME":
 		case "UNEXPECTED_ERROR":
 			return { kind: "availabilityError", message: getAvailabilityErrorMessage(error) };
 		default:
@@ -100,6 +103,11 @@ export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError):
 	const reason = error.reason;
 
 	switch (reason) {
+		case "BOOKING_INVALID_DATE":
+			return "Please choose a valid date.";
+		case "BOOKING_INVALID_TIME":
+		case "INVALID_ZONED_TIME":
+			return "Please choose a valid time.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 			return "Availability could not load right now. Please contact us and we’ll help you find a time.";
@@ -125,7 +133,11 @@ const rescheduleUpdateToastMessages = {
 	BOOKING_INVALID_TIME: "Please choose a valid time.",
 	BOOKING_INVALID_INPUT:
 		"This booking can’t be updated from this link. Please contact us for help.",
+	BOOKING_OUTSIDE_OPENING_HOURS: "Please choose a time within opening hours.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Please choose another time.",
+	BOOKING_TOO_FAR_AHEAD: "Please choose a date before your package expiry date.",
+	BOOKING_TOO_SOON: "Please choose a later time.",
+	INVALID_ZONED_TIME: "Please choose a valid time.",
 	GOOGLE_CALENDAR_AUTH_FAILED:
 		"We couldn’t update the calendar. Please contact us and we’ll help you.",
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED:

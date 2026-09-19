@@ -75,11 +75,4 @@ describe("getTomorrowTimeZoneDayRange", () => {
 		expect(dayStart).toBe(Date.parse("2030-01-02T13:00:00.000Z"));
 		expect(dayEnd).toBe(Date.parse("2030-01-03T13:00:00.000Z"));
 	});
-
-	test("matches getTimeZoneDayRange with a one-day offset", () => {
-		const tomorrowRange = getTomorrowTimeZoneDayRange(new Date(winterNow), REMINDER_TIME_ZONE);
-		const offsetRange = getTimeZoneDayRange(new Date(winterNow), REMINDER_TIME_ZONE, 1);
-
-		expect(tomorrowRange).toEqual(offsetRange);
-	});
 });

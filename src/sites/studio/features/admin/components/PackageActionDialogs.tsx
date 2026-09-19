@@ -1,10 +1,11 @@
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
-import { PackageCustomInvoiceDialog } from "#studio/features/admin/components/PackageCustomInvoiceDialog";
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
-import { PackagePaymentConfirmationDialog } from "#studio/features/admin/components/PackagePaymentConfirmationDialog";
+import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
+import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
+import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 
 type PackageActionDialogsProps = {
 	actions: ReturnType<typeof usePackageActions>;
@@ -13,6 +14,11 @@ type PackageActionDialogsProps = {
 
 export function PackageActionDialogs({ actions, packageRow }: PackageActionDialogsProps) {
 	const { editAction, pendingAction } = actions;
+
+	const stripeInvoiceContext = createStripeInvoiceContext(
+		packageRow.duration,
+		packageRow.packageSize
+	);
 
 	return (
 		<>
@@ -23,11 +29,26 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onSave={editAction.handleEditPackage}
 				isSaving={editAction.isSaving}
 			/>
-			<PackageCustomInvoiceDialog
-				open={actions.isCustomInvoiceDialogOpen}
-				packageRow={packageRow}
-				onOpenChange={actions.setIsCustomInvoiceDialogOpen}
+			<StripeBillingDialog
+				open={actions.isStripeBillingDialogOpen}
+				customerEmail={packageRow.customerEmail}
+				customerName={packageRow.customerName}
+				invoices={actions.stripeBillingInvoices}
+				onOpenChange={actions.setIsStripeBillingDialogOpen}
 			/>
+
+			{actions.hasStripeCustomer && stripeInvoiceContext ? (
+				<StripeInvoiceDialog
+					open={actions.isStripeInvoiceDialogOpen}
+					customerEmail={packageRow.customerEmail}
+					customerName={packageRow.customerName}
+					hasStripeCustomer
+					invoiceContext={stripeInvoiceContext}
+					isSending={actions.isSendingStripeInvoice}
+					onOpenChange={actions.setIsStripeInvoiceDialogOpen}
+					onSend={actions.handleSendStripeInvoice}
+				/>
+			) : null}
 			<AdminEditConfirmationDialog
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
@@ -52,25 +73,6 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 					}
 				}}
 			/>
-			<PackagePaymentConfirmationDialog
-				open={actions.isPaymentDialogOpen}
-				onOpenChange={actions.setIsPaymentDialogOpen}
-				packageRow={packageRow}
-				isConfirming={pendingAction === "payment"}
-				onConfirm={() => void actions.handleConfirmPayment()}
-			/>
-			<PackageEmailConfirmationDialog
-				open={actions.isInvoiceDialogOpen}
-				customerName={packageRow.customerName}
-				customerEmail={packageRow.customerEmail}
-				description="Confirm before sending the package invoice email to this customer."
-				isSending={pendingAction === "invoice"}
-				sendLabel="Email invoice"
-				sendingLabel="Sending invoice..."
-				title="Email package invoice to customer?"
-				onOpenChange={actions.setIsInvoiceDialogOpen}
-				onSend={() => void actions.handleResendInvoice()}
-			/>
 			<PackageEmailConfirmationDialog
 				open={actions.isAdjustmentInvoiceDialogOpen}
 				customerName={packageRow.customerName}
@@ -84,16 +86,16 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onSend={() => void actions.handleRetryAdjustmentInvoice()}
 			/>
 			<PackageEmailConfirmationDialog
-				open={actions.isSchedulingLinkDialogOpen}
+				open={actions.isPackageEmailDialogOpen}
 				customerName={packageRow.customerName}
 				customerEmail={packageRow.customerEmail}
-				description="This will create a fresh scheduling link for this package. Any previous scheduling link will stop working."
-				isSending={pendingAction === "scheduleEmail"}
-				sendLabel="Send New Scheduling Link"
-				sendingLabel="Sending scheduling link..."
-				title="Send new scheduling link to customer?"
-				onOpenChange={actions.setIsSchedulingLinkDialogOpen}
-				onSend={() => void actions.handleRetrySchedulingEmail()}
+				description="This will email the receipt and a fresh scheduling link. Any previous scheduling link will stop working."
+				isSending={pendingAction === "packageEmail"}
+				sendLabel="Resend package email"
+				sendingLabel="Sending package email"
+				title="Resend package email to customer?"
+				onOpenChange={actions.setIsPackageEmailDialogOpen}
+				onSend={() => void actions.handleResendPackageEmail()}
 			/>
 		</>
 	);

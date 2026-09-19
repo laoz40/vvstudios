@@ -1,0 +1,8 @@
+{
+	"worktree": {
+		"setup": [
+			"for f in \"$PASEO_SOURCE_CHECKOUT_PATH\"/.env*; do [ -f \"$f\" ] || continue; cp -n \"$f\" .; done",
+			"bun i"
+		]
+	}
+}

@@ -1,6 +1,9 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"jsPlugins": [{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" }],
+	"jsPlugins": [
+		{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
+		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" }
+	],
 	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
 	"categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
 	"options": { "typeAware": true, "reportUnusedDisableDirectives": "error" },
@@ -10,7 +13,8 @@
 		"build/**",
 		"convex/_generated/**",
 		"src/**/*.gen.ts",
-		"tools/oxlint/anti-slop/**"
+		"tools/oxlint/anti-slop/**",
+		"tools/oxlint/neverthrow/**"
 	],
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
@@ -195,6 +199,10 @@
 		},
 		{ "files": ["convex/lib/tests/**"], "rules": { "typescript/no-unsafe-type-assertion": "off" } },
 		{ "files": ["convex/tests/**"], "rules": { "anti-slop/no-module-mocking": "error" } },
+		{
+			"files": ["convex/lib/**", "convex/services/**"],
+			"rules": { "neverthrow/no-service-error-remap-switch": "error" }
+		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {

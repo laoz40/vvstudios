@@ -5,7 +5,8 @@ import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLink
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendBookingInvoiceEmailsForBooking, sendSessionReminderEmail } from "#convex/lib/email";
+import { sendBookingReceiptEmailsForBooking } from "#convex/lib/bookingDocumentEmails";
+import { sendSessionReminderEmail } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import {
@@ -13,7 +14,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessionReservations";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
@@ -32,30 +33,19 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
 		({ startDateTime }) =>
 			getReminderRescheduleUrl(ctx, session).andThen((rescheduleUrl) =>
-				okOrThrow(
-					sendSessionReminderEmail({
-						name: session.name,
-						email: session.email,
-						date: session.date,
-						startDateTime,
-						time: session.time,
-						timeZone,
-						service: session.service,
-						duration: session.duration,
-						addons: session.addons,
-						rescheduleUrl,
-						isPackageSession: session.packageId !== undefined
-					})
-				)
-					.andThen((emailResult) => emailResult)
-					.mapErr((emailError) => {
-						console.error("Booking reminder email send failed", {
-							bookingId: session._id,
-							reason: emailError.reason
-						});
-
-						return { reason: "RESEND_SEND_FAILED" as const };
-					})
+				sendSessionReminderEmail({
+					name: session.name,
+					email: session.email,
+					date: session.date,
+					startDateTime,
+					time: session.time,
+					timeZone,
+					service: session.service,
+					duration: session.duration,
+					addons: session.addons,
+					rescheduleUrl,
+					isPackageSession: session.packageId !== undefined
+				})
 			)
 	);
 }
@@ -138,7 +128,6 @@ export async function sendConfirmedBookingInvoice(
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
 ) {
-	// Known edge case: see sendBookingInvoiceForBookingHandler in convex/googleCalendar.ts.
 	const linkResult = await createRescheduleUrlForSession(ctx, session);
 
 	if (linkResult.isErr()) {
@@ -151,7 +140,7 @@ export async function sendConfirmedBookingInvoice(
 		return;
 	}
 
-	const emailResult = await sendBookingInvoiceEmailsForBooking(session, {
+	const emailResult = await sendBookingReceiptEmailsForBooking(session, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		rescheduleUrl: linkResult.value
 	});

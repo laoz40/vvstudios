@@ -37,9 +37,15 @@ export type {
 
 type PackageAvailabilityError =
 	| ValidPackageByTokenError
-	| { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }
-	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
-	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" };
+	| {
+			reason:
+				| "BOOKING_INVALID_DATE"
+				| "BOOKING_INVALID_TIME"
+				| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+				| "GOOGLE_CALENDAR_AUTH_FAILED"
+				| "GOOGLE_CALENDAR_RATE_LIMITED"
+				| "INVALID_ZONED_TIME";
+	  };
 
 export function getPackageBusyWindowsService(
 	ctx: ActionCtx,
@@ -75,9 +81,9 @@ export function getPackageBusyWindowsService(
 				const startDate = formatDateValue(startOfToday());
 				const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
 
-				return getDateAvailabilityRange(startDate, endDate, client.timeZone)
-					.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-					.map((availabilityRange) => ({ availabilityRange, client, packageFromDb }));
+				return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
+					(availabilityRange) => ({ availabilityRange, client, packageFromDb })
+				);
 			})
 			// Fetch every Calendar event that can block a package booking.
 			.andThen(({ availabilityRange, client, packageFromDb }) =>
@@ -94,13 +100,11 @@ export function getPackageBusyWindowsService(
 			)
 			// Group busy days by month.
 			.andThen(({ busyWindows, client, packageFromDb }) =>
-				groupBusyWindowsByDay(busyWindows, client.timeZone)
-					.mapErr(() => ({ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const }))
-					.map((busyDays) => ({
-						busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-						packageExpiresAt: packageFromDb.expiresAt,
-						timeZone: client.timeZone
-					}))
+				groupBusyWindowsByDay(busyWindows, client.timeZone).map((busyDays) => ({
+					busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
+					packageExpiresAt: packageFromDb.expiresAt,
+					timeZone: client.timeZone
+				}))
 			)
 	);
 }
