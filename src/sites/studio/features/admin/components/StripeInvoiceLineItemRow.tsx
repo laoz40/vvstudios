@@ -70,7 +70,7 @@ export function StripeInvoiceLineItemRow({
 			(draft.kind === "addon" && draft.addon !== ""));
 
 	return (
-		<div className="grid gap-2 p-3">
+		<div className="grid gap-2">
 			<div className="flex items-center gap-2">
 				<Select
 					value={selectionValue}
@@ -118,7 +118,7 @@ export function StripeInvoiceLineItemRow({
 					<SelectTrigger
 						id={`stripe-invoice-quantity-${draft.id}`}
 						aria-label={`Line ${index + 1} quantity`}
-						className="w-16">
+						className="w-20">
 						<SelectValue placeholder="Qty" />
 					</SelectTrigger>
 					<SelectContent>
@@ -142,7 +142,7 @@ export function StripeInvoiceLineItemRow({
 					size="icon-sm"
 					className="shrink-0 hover:text-destructive focus-visible:text-destructive"
 					disabled={isDisabled || !canRemove}
-					aria-label={`Remove line item ${index + 1}`}
+					aria-label={`Remove item ${index + 1}`}
 					onPointerEnter={() => trashIconRef.current?.startAnimation()}
 					onPointerLeave={() => trashIconRef.current?.stopAnimation()}
 					onFocus={() => trashIconRef.current?.startAnimation()}
