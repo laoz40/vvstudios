@@ -31,7 +31,7 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	expiresAt: "Package expiry window",
 	notes: "Notes",
 	packageSize: "Package sessions",
-	totalDueAmount: "Package total due"
+	totalDueAmount: "Package price override"
 };
 
 function isPackageEditWarningField(field: string): field is PackageEditWarningField {
@@ -69,7 +69,7 @@ function getPackageDraftValue(packageRow: AdminPackageRow, field: PackageEditWar
 	return packageRow[field];
 }
 
-function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
+export function getPackageTotalDueDraftValue(draft: PackageEditDraft) {
 	const totalDueDraft = draft.totalDueAmount.trim();
 
 	if (totalDueDraft.length > 0) {
