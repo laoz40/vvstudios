@@ -11,10 +11,20 @@ Extremely important website is accessible, and as fast first paint on marketing 
 
 ## Behaviour
 
-- Ask user before making assumptions that change behavior, UX, architecture
-- Always strive for concise, simple solutions
-- If a problem can be solved in a simpler way, propose it
+- Ask before making assumptions that change behavior, UX, architecture
+- If a problem/code can be solved in a simpler way, propose it
 - If a task contains lots of changes which would result in a massive commit, propose splitting into different commits per large change or file changed.
+
+Writing code is cheap for you, which makes over-engineering easy. Counter it by borrowing a human maintainer's fatigue. Aim for the most result with the least code and complexity.
+
+- **Prefer deletion.** When asked to refactor or improve, look for removals before additions.
+- **Maintain a flat call hierarchy.** Avoid deep call chains. A rich interface that hides substantial work is not a deep call chain. If answering a question requires tracing through more than 3 files or layers, flatten it.
+- **Consolidate decisions.** Do not repeat the same choice in several places. Put it behind one source of truth and pass the result as a simple flag.
+- **Minimize the diff.** Make the smallest change that solves the problem. Fewer lines beat "elegant" boilerplate.
+- **Question the threading.** If a task asks you to pass a new signal through types, schemas, pipelines, or similar layers, stop and look for a more direct path.
+- **Sweat the small leaks.** Remove tiny pass-throughs, representation leaks, and duplicated choices before they spread. Small leaks compound into permanent coordination costs.
+
+**Prime directive:** If a human developer would find the code exhausting to maintain, it is a bad solution. Be lazy. Stay simple.
 
 ## Code Style Guidelines
 
@@ -71,7 +81,7 @@ Extremely important website is accessible, and as fast first paint on marketing 
 - Dont duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Dont suffix internal Convex function names with `Internal` or similar; these things are obvious from looking at the code already
 
-- Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask user to clarify.
+- Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask to clarify.
 
 - Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
 
@@ -87,76 +97,4 @@ Extremely important website is accessible, and as fast first paint on marketing 
 
 ## Tests
 
-Tests verify behavior through public interfaces, not implementation details. A good test reads like a specification: "user can checkout with valid cart" tells you what capability exists and survives refactors.
-
-```typescript
-// GOOD: tests observable behavior
-test("user can checkout with valid cart", async () => {
-  const result = await checkout(cart, paymentMethod);
-  expect(result.status).toBe("confirmed");
-});
-
-// BAD: mocks internal collaborator
-test("checkout calls paymentService.process", async () => {
-  const mockPayment = jest.mock(paymentService);
-  await checkout(cart, payment);
-  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
-});
-```
-
-### Good tests
-
-- Integration-style: test through real interfaces, not mocks of internal parts
-- Public API only; describe WHAT, not HOW
-- One logical assertion per test
-- Expected values are independent literals, not recomputed the same way the implementation computes them
-
-### Bad tests
-
-Red flags:
-
-- Mocking internal collaborators or your own modules
-- Testing private methods
-- Asserting call counts or order
-- Bypassing the public API to verify (e.g. raw DB read when a retrieval query exists)
-- Test name describes HOW not WHAT
-- Tautological: expected value restates the implementation
-
-### When to mock
-
-Mock at system boundaries only:
-
-- External APIs (Stripe, email, Google)
-- Time and randomness
-- Database or file system when a real test instance is impractical
-
-Dont mock internal collaborators or anything you control.
-
-### Boundary design
-
-- Pass external dependencies in (dependency injection), dont construct them inside the unit under test
-- Prefer SDK-style interfaces (one function per external operation) over a generic fetcher with conditional mock logic
-
-### Test file comments
-
-- At top of every test file, maintain one file-level comment that describes each test
-- Format each test with short subheading, description on next line
-- Dont place comments immediately above individual tests
-
-## E2E
-
-- Prioritise E2E for customer-facing flows
-- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
-- CI E2E test stops before checkout due to Stripe hCaptcha; local specs cover payment and reschedule happy paths.
-
-## Convex tests
-
-- Only to test important flows and failures:
-    - Races
-    - Idempotency — webhook replay, send-once reminders/jobs
-    - Money calculations
-    - Background jobs — reminders, expiry, scheduled Drive setup
-    - Failure recovery — orphan Calendar cleanup, retryable states, partial Drive setup
-- Don't add unless you can explain with a strong reason.
-- Use `createConvexTest`; call public queries/mutations when they exist.
-- `ctx.db.get` in test helpers is fine when no caller-facing query exposes the state you assert on.
+When writing or reviewing tests, use the `tests` skill.
