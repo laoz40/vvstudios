@@ -1,4 +1,4 @@
-import { Armchair, EllipsisVertical, Globe, Guitar } from "lucide-react";
+import { Armchair, EllipsisVertical, Globe, Music } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import {
 	DropdownMenu,
@@ -95,28 +95,7 @@ export function PackageSessionListItem({
 				session.status === "completed" && "border-muted bg-background opacity-70 shadow-none!",
 				isHighlighted && "border-primary"
 			)}>
-			<div
-				role={canEdit ? "button" : undefined}
-				tabIndex={canEdit ? 0 : undefined}
-				className={cn(
-					"flex min-h-24 w-full items-center justify-between gap-4 py-5 sm:gap-6 md:py-6",
-					canEdit && "cursor-pointer"
-				)}
-				{...(canEdit
-					? {
-							onClick: () => {
-								handleOpenSession();
-							},
-							onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
-								if (event.key !== "Enter" && event.key !== " ") {
-									return;
-								}
-
-								event.preventDefault();
-								handleOpenSession();
-							}
-						}
-					: {})}>
+			<div className="flex min-h-24 w-full items-center justify-between gap-4 py-5 sm:gap-6 md:py-6">
 				<span className="shrink-0 text-sm text-muted-foreground">{sessionNumber}</span>
 				<span className="flex min-w-0 flex-1 flex-col items-start gap-1">
 					<Badge
@@ -143,6 +122,7 @@ export function PackageSessionListItem({
 							actions={actions}
 							booking={booking}
 							isActive={isActive}
+							onToggleSession={handleOpenSession}
 							sessionKey={session.key}
 							sessionNumber={sessionNumber}
 						/>
@@ -173,7 +153,7 @@ function RecordingSpaceServiceIcon({ service }: { service: PackageBooking["servi
 
 	if (service === "Music Setup") {
 		return (
-			<Guitar
+			<Music
 				aria-label="Music Setup"
 				className="size-4"
 			/>
@@ -234,6 +214,7 @@ interface PackageSessionActionsProps {
 	actions: PackageSessionActionHandlers;
 	booking: PackageBooking | null;
 	isActive: boolean;
+	onToggleSession: () => void;
 	sessionKey: string;
 	sessionNumber: number;
 }
@@ -242,6 +223,7 @@ function PackageSessionActions({
 	actions,
 	booking,
 	isActive,
+	onToggleSession,
 	sessionKey,
 	sessionNumber
 }: PackageSessionActionsProps) {
@@ -328,14 +310,26 @@ function PackageSessionActions({
 				</span>
 			) : null}
 			<span
+				role="button"
+				tabIndex={0}
 				className={cn(
 					booking ? "hidden md:inline-flex" : "inline-flex",
-					"min-h-8 min-w-16 items-center justify-center rounded-lg border px-3 py-1",
+					"min-h-8 min-w-16 cursor-pointer items-center justify-center rounded-lg border px-3 py-1",
 					!booking && !isActive
 						? "border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
 						: "border-foreground/15 bg-background/30 text-foreground/85",
-					"text-xs font-medium tracking-wider shadow-md hover:text-primary peer-hover/unschedule:text-foreground/85"
-				)}>
+					"text-xs font-medium tracking-wider shadow-md hover:text-primary peer-hover/unschedule:text-foreground/85",
+					"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				)}
+				onClick={onToggleSession}
+				onKeyDown={(event) => {
+					if (event.key !== "Enter" && event.key !== " ") {
+						return;
+					}
+
+					event.preventDefault();
+					onToggleSession();
+				}}>
 				{editButtonLabel}
 			</span>
 		</>
