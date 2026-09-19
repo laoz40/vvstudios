@@ -101,10 +101,7 @@ export function PackageSessionListItem({
 				<span className="flex min-w-0 flex-1 flex-col items-start gap-1">
 					<Badge
 						variant="ghost"
-						className={cn(
-							"rounded-none border-0 bg-transparent p-0",
-							statusDetails.textClassName
-						)}>
+						className={cn("rounded-none border-0 bg-transparent p-0", statusDetails.textClassName)}>
 						{statusDetails.label}
 					</Badge>
 					<PackageSessionBookingDetails

@@ -6,7 +6,9 @@ import { PackageSessionEditorDialog } from "#studio/features/booking-form/compon
 import { PackageSessionListItem } from "#studio/features/booking-form/components/PackageSessionListItem";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
-type PackageData = NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
+type PackageData = NonNullable<
+	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+>;
 
 interface PackageSessionsListProps {
 	activeSessionKey: string | null;
@@ -101,11 +103,7 @@ export function PackageSessionsList({
 		activeBooking.notes === selection.notes &&
 		activeBooking.addons.includes("Remote Podcast") === selection.remotePodcast;
 
-	const listActions = {
-		onRequestUnschedule,
-		onSessionClose,
-		onSessionSelect
-	};
+	const listActions = { onRequestUnschedule, onSessionClose, onSessionSelect };
 
 	return (
 		<>

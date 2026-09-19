@@ -144,7 +144,9 @@ export function PackageSessionEditorDialog({
 					)}
 					disabled={isSaveDisabled}
 					onClick={onRequestSaveSession}>
-					{savingSessionKey === sessionKey ? <LoaderCircle className="size-4 animate-spin" /> : null}
+					{savingSessionKey === sessionKey ? (
+						<LoaderCircle className="size-4 animate-spin" />
+					) : null}
 					{saveButtonText}
 				</Button>
 			</div>
