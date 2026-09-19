@@ -35,6 +35,11 @@ import {
 	adminOptionRowClassName
 } from "#studio/features/admin/lib/admin-form-styles";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
+import {
+	formatAudAmount,
+	getAudAmountRowShowCents
+} from "#studio/features/admin/lib/remaining-balance";
+import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
 type SessionRecord = Doc<"bookings">;
@@ -69,6 +74,12 @@ const accordionTriggerClassName = "!py-3 !text-base !font-bold hover:!text-prima
 
 const accordionContentClassName = "space-y-3 pb-3 pt-1 text-sm md:text-sm md:pb-3";
 
+function formatSignedPriceDifference(diff: number, showCents: boolean) {
+	const sign = diff > 0 ? "+" : "-";
+
+	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
+}
+
 function buildSessionEditDraft(session: SessionRecord): SessionEditDraft {
 	return {
 		name: session.name,
@@ -98,6 +109,10 @@ export function SessionEditDialog({
 	isSaving
 }: SessionEditDialogProps) {
 	const [draft, setDraft] = useState<SessionEditDraft>(() => buildSessionEditDraft(session));
+	const originalPrice = getBookingTotal(buildSessionEditDraft(session));
+	const newPrice = getBookingTotal(draft);
+	const priceDifference = newPrice - originalPrice;
+	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
 	// Reset draft when dialog opens with fresh session data.
 	useEffect(() => {
@@ -388,6 +403,26 @@ export function SessionEditDialog({
 							</AccordionContent>
 						</AccordionItem>
 					</Accordion>
+
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
+						<p>
+							Total:{" "}
+							<span className="font-medium">
+								{formatAudAmount(originalPrice, { showCents: showPriceCents })}
+							</span>
+						</p>
+						{priceDifference !== 0 ? (
+							<p>
+								New:{" "}
+								<span className="font-medium">
+									{formatAudAmount(newPrice, { showCents: showPriceCents })}
+								</span>{" "}
+								<span className="text-muted-foreground">
+									{formatSignedPriceDifference(priceDifference, showPriceCents)}
+								</span>
+							</p>
+						) : null}
+					</div>
 
 					<DialogFooter className="gap-2">
 						<Button
