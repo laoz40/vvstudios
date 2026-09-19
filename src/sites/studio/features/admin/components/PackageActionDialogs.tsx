@@ -53,12 +53,12 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				open={editAction.isEditConfirmationDialogOpen}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.changedFieldLabels ?? []}
-				nonPricingTitle="Package info will update"
-				pricingTitle="Pricing may recalculate"
+				nonPricingTitle="Package Info Changes"
+				pricingTitle="Pricing Changes"
 				description={
 					editAction.pendingEditWarningState?.manualPriceWillBeUsed
-						? "Review what this save will affect before making the package changes permanent. The manual package total due will be used instead of the recalculated default."
-						: "Review what this save will affect before making the package changes permanent."
+						? "Check what will change. Your manual package total will be used, not the recalculated amount."
+						: "Check what will change before saving."
 				}
 				onCancel={editAction.closeEditConfirmationDialog}
 				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}

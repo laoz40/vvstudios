@@ -258,7 +258,7 @@ export function SessionActionsDialogs({
 				}
 				description={
 					editAction.pendingEditWarningState?.manualPriceWillBeUsed
-						? "Review what this save will affect before making the session changes permanent. The manual remaining balance due will be used instead of the recalculated default."
+						? "Check what will change. Your manual balance due will be used, not the recalculated amount."
 						: undefined
 				}
 				onCancel={editAction.closeEditConfirmationDialog}

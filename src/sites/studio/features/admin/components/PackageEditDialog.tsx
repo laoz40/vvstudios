@@ -392,9 +392,10 @@ export function PackageEditDialog({
 						</Button>
 						<Button
 							type="submit"
+							variant="destructive"
 							disabled={isSaving}>
 							{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isSaving ? "Saving..." : "I am sure I want to make permanent changes"}
+							{isSaving ? "Saving" : "I am sure I want to make permanent changes"}
 						</Button>
 					</DialogFooter>
 				</form>
