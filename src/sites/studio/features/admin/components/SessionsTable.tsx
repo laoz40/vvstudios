@@ -171,7 +171,7 @@ export function SessionsTable({
 							<TableHead>Contact</TableHead>
 							<TableHead className="text-center">Package</TableHead>
 							<TableHead>Notes</TableHead>
-							<TableHead className="text-center">Amount</TableHead>
+							<TableHead className="text-right">Amount</TableHead>
 							<TableHead className="text-center">Deliverables</TableHead>
 							<TableHead>{renderSortButton("Created", "createdAt")}</TableHead>
 							<TableHead />

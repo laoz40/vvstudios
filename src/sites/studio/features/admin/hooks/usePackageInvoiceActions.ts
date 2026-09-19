@@ -1,122 +1,111 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { exhaustiveCheck, tryCatch } from "#/lib/result";
+import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import type {
-	AdminPackagePendingAction,
-	AdminPackageRow
-} from "#studio/features/admin/lib/admin-packages";
-import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
+import type { Id } from "#convex/_generated/dataModel";
+import type { AdminPackagePendingAction } from "#studio/features/admin/lib/admin-packages";
+import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
+import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
 
+export type PackageInvoiceTarget = { packageId: Id<"packages">; stripeCustomerId?: string };
+
+function showSendStripeInvoiceError(reason: string) {
+	switch (reason) {
+		case "NOT_AUTHENTICATED":
+			toast.error("You are not signed in.");
+
+			return;
+		case "NOT_AUTHORIZED":
+			toast.error("You do not have access to send Stripe invoices.");
+
+			return;
+		case "PACKAGE_NOT_FOUND":
+			toast.error("This package no longer exists.");
+
+			return;
+		case "STRIPE_CUSTOMER_NOT_FOUND":
+			toast.error("This package has no Stripe customer ID.");
+
+			return;
+		case "INVALID_LINE_ITEMS":
+			toast.error("Add at least one line item with a description and amount greater than zero.");
+
+			return;
+		case "STRIPE_INVOICE_FAILED":
+			toast.error("Unable to send Stripe invoice.");
+
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong while sending the Stripe invoice.");
+
+			return;
+		default:
+			toast.error("Unable to send Stripe invoice.");
+	}
+}
+
 export function usePackageInvoiceActions(
-	packageRow: AdminPackageRow,
-	setPendingAction: SetPackagePendingAction
+	packageTarget: PackageInvoiceTarget | null,
+	_setPendingAction?: SetPackagePendingAction
 ) {
-	const resendInvoice = useAction(api.packagePayment.resendPackageInvoiceEmail);
-	const getAdminPackageInvoicePdf = useAction(api.invoices.getAdminPackageInvoicePdfById);
-	const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
-	const [isCustomInvoiceDialogOpen, setIsCustomInvoiceDialogOpen] = useState(false);
+	const sendPackageStripeInvoice = useAction(api.stripeInvoicing.sendPackageStripeInvoice);
+	const [isStripeInvoiceDialogOpen, setIsStripeInvoiceDialogOpen] = useState(false);
+	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
-	async function handleDownloadInvoice() {
-		setPendingAction("download");
+	const stripeInvoicesResult = useQuery(
+		api.stripeInvoices.listStripeInvoicesForPackage,
+		packageTarget ? { packageId: packageTarget.packageId } : "skip"
+	);
 
-		const [error, invoice] = await tryCatch(
-			getAdminPackageInvoicePdf({ packageId: packageRow.id })
+	const [isSendingStripeInvoice, setIsSendingStripeInvoice] = useState(false);
+
+	async function handleSendStripeInvoice(input: {
+		lineItems: ParsedStripeInvoiceLineItem[];
+		requestId: string;
+	}) {
+		setIsSendingStripeInvoice(true);
+
+		if (!packageTarget) {
+			return;
+		}
+
+		const [error] = await tryCatch(
+			sendPackageStripeInvoice({
+				packageId: packageTarget.packageId,
+				lineItems: input.lineItems,
+				requestId: input.requestId
+			})
 		);
 
+		setIsSendingStripeInvoice(false);
+
 		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to download package invoices.");
-					break;
-
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-
-				case "INVALID_BOOKING_DATA":
-				case "INVOICE_DOWNLOAD_FAILED":
-				case "INVOICE_EMAIL_RENDER_FAILED":
-				case "UNEXPECTED_ERROR":
-					toast.error("Unable to generate package invoice.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
+			showSendStripeInvoiceError(error.reason);
 
 			return;
 		}
 
-		downloadBlob(new Blob([invoice.content], { type: invoice.contentType }), invoice.filename);
-		toast.success("Package invoice download started.");
-		setPendingAction(null);
+		setIsStripeInvoiceDialogOpen(false);
+		toast.success("Stripe invoice sent.");
 	}
 
-	async function handleResendInvoice() {
-		setPendingAction("invoice");
-
-		const [error] = await tryCatch(resendInvoice({ packageId: packageRow.id }));
-
-		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to send package invoices.");
-					break;
-
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package no longer exists.");
-					break;
-
-				case "PACKAGE_NOT_UNPAID":
-					toast.error("Only unpaid packages can receive invoice retries.");
-					break;
-
-				case "PACKAGE_INVOICE_EMAIL_FAILED":
-				case "INVOICE_FAILURE_CODE_REQUIRED":
-				case "INVOICE_NUMBER_REQUIRED":
-					toast.error("Package invoice email failed again.");
-					break;
-
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while sending the invoice.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
-
-			setPendingAction(null);
-
-			return;
-		}
-
-		toast.success("Package invoice sent.");
-		setIsInvoiceDialogOpen(false);
-		setPendingAction(null);
-	}
+	const { hasStripeBillingInvoices, stripeBillingInvoices } = getStripeBillingInvoicesState(
+		stripeInvoicesResult,
+		isStripeBillingDialogOpen
+	);
 
 	return {
-		handleDownloadInvoice,
-		handleResendInvoice,
-		isCustomInvoiceDialogOpen,
-		isInvoiceDialogOpen,
-		setIsCustomInvoiceDialogOpen,
-		setIsInvoiceDialogOpen
+		handleSendStripeInvoice,
+		hasStripeBillingInvoices,
+		hasStripeCustomer: Boolean(packageTarget?.stripeCustomerId),
+		isSendingStripeInvoice,
+		isStripeBillingDialogOpen,
+		isStripeInvoiceDialogOpen,
+		setIsStripeBillingDialogOpen,
+		setIsStripeInvoiceDialogOpen,
+		stripeBillingInvoices
 	};
 }

@@ -74,6 +74,7 @@ export type SetupError =
 				| "NOT_AUTHORIZED"
 				| "DRIVE_RECORD_NOT_FOUND"
 				| "BOOKING_NOT_FOUND"
+				| "BOOKING_NOT_PACKAGE"
 				| "BOOKING_NOT_ELIGIBLE"
 				| "BOOKING_TIMING_CHANGED"
 				| "DRIVE_FOLDERS_ALREADY_CREATED"
@@ -121,6 +122,7 @@ const recordDriveSetupFailureByReason = {
 	NOT_AUTHENTICATED: false,
 	NOT_AUTHORIZED: false,
 	BOOKING_NOT_FOUND: false,
+	BOOKING_NOT_PACKAGE: true,
 	BOOKING_NOT_ELIGIBLE: false,
 	BOOKING_TIMING_CHANGED: false,
 	DRIVE_FOLDERS_ALREADY_CREATED: false,
@@ -213,25 +215,21 @@ function shouldReplaceMissingFolder(error: SetupError, replaceMissingFolders: bo
 function clearSavedClientFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.clearDriveClientFolder, { driveClientId })
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	);
 }
 
 function clearSavedClientAssetsFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.clearDriveClientAssetsFolder, { driveClientId })
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	);
 }
 
 function clearSavedPackageFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.clearDrivePackageFolder, { bookingId })
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	return fromConvexTuple(ctx.runMutation(internal.sessions.clearDrivePackageFolder, { bookingId }));
 }
 
 function clearSavedSessionFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.clearDriveSessionFolder, { bookingId })
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	return fromConvexTuple(ctx.runMutation(internal.sessions.clearDriveSessionFolder, { bookingId }));
 }
 
 function clearSavedChildFolder(
@@ -241,7 +239,7 @@ function clearSavedChildFolder(
 ) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.clearDriveChildFolder, { bookingId, name })
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	);
 }
 
 function getOrCreateClientFolder(
@@ -284,14 +282,12 @@ function getOrCreateClientFolder(
 				displayName,
 				folder
 			})
-		)
-			.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-			.map(({ assetsFolder, driveClientId, folderId }) => ({
-				drive,
-				clientFolderId: folderId,
-				driveClientId,
-				assetsFolder
-			}))
+		).map(({ assetsFolder, driveClientId, folderId }) => ({
+			drive,
+			clientFolderId: folderId,
+			driveClientId,
+			assetsFolder
+		}))
 	);
 }
 
@@ -329,7 +325,7 @@ function getOrCreateClientAssetsFolder(
 					driveClientId: client.driveClientId,
 					folder
 				})
-			).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+			)
 		)
 		.map((assetsFolder) => ({ ...client, assetsFolder }));
 }
@@ -380,9 +376,7 @@ function getOrCreateSessionFolder(
 				driveClientId: input.driveClientId,
 				folder
 			})
-		)
-			.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-			.map((sessionFolderId) => ({ drive: input.drive, sessionFolderId }))
+		).map((sessionFolderId) => ({ drive: input.drive, sessionFolderId }))
 	);
 }
 
@@ -446,9 +440,7 @@ function getOrCreateChildFolder(
 				name,
 				folder
 			})
-		)
-			.mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
-			.map(() => folder)
+		).map(() => folder)
 	);
 }
 
@@ -490,7 +482,7 @@ function allocatePackageSessionNumberIfNeeded(
 		ctx.runMutation(internal.sessions.allocatePackageSessionNumber, {
 			bookingId: setupInfo.booking._id
 		})
-	).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }));
+	);
 }
 
 // Package sessions live inside their package folder; ordinary sessions sit directly below
@@ -541,7 +533,7 @@ function getOrCreateSessionParentFolder(
 							webViewLink: sharedPackageFolder.url
 						}
 					})
-				).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+				)
 			)
 			.map((sessionParentId) => ({ ...client, sessionParentId }))
 			.orElse((error) => {
@@ -564,7 +556,7 @@ function getOrCreateSessionParentFolder(
 					bookingId: setupInfo.booking._id,
 					folder
 				})
-			).mapErr(() => ({ reason: "GOOGLE_DRIVE_SAVE_FAILED" as const }))
+			)
 		)
 		.map((sessionParentId) => ({ ...client, sessionParentId }));
 }

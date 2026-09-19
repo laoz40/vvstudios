@@ -14,13 +14,18 @@ export default defineConfig({
 	retries: 0,
 	workers: process.env.CI ? 1 : undefined,
 	reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "html",
-	use: { baseURL, trace: "retain-on-failure", timezoneId: "Australia/Sydney" },
+	use: {
+		actionTimeout: 15_000,
+		baseURL,
+		trace: "retain-on-failure",
+		timezoneId: "Australia/Sydney"
+	},
 	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 	webServer: {
 		command: "bun run dev",
 		url: baseURL,
 		reuseExistingServer: !process.env.CI,
-		timeout: 120_000,
+		timeout: 60_000,
 		stdout: "pipe",
 		stderr: "pipe"
 	}

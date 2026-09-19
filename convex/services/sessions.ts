@@ -29,6 +29,7 @@ import {
 } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
+import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
@@ -51,8 +52,6 @@ type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
-
-type UpdateSessionPaidStatusArgs = { bookingId: Id<"bookings">; paidRemainingBalance: boolean };
 
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
@@ -154,15 +153,22 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {
-			const hasDriveWorkflowFailure = await getDriveWorkflowFailureForBooking(ctx, session);
+			const [hasDriveWorkflowFailure, stripeInvoicesResult] = await Promise.all([
+				getDriveWorkflowFailureForBooking(ctx, session),
+				listStripeInvoicesForBooking(ctx, session._id)
+			]);
+
+			const stripeInvoicesSummary = summarizeStripeInvoices(stripeInvoicesResult.unwrapOr([]));
 
 			if (!session.packageId) {
-				return { ...session, hasDriveWorkflowFailure };
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
 			}
 
 			const packageRecord = await ctx.db.get(session.packageId);
 
-			if (!packageRecord) return { ...session, hasDriveWorkflowFailure };
+			if (!packageRecord) {
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
+			}
 
 			const packageSessions = await getCapacityConsumingPackageSessions(
 				ctx,
@@ -173,11 +179,13 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 			return {
 				...session,
 				hasDriveWorkflowFailure,
+				stripeInvoicesSummary,
 				packageInvoiceNumber: formatBookingInvoiceNumber(
 					packageRecord._id,
 					packageRecord.createdAt
 				),
 				linkedPackageSize: packageRecord.packageSize,
+				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)
 					? packageSessions.findIndex(({ _id }) => _id === session._id) + 1
 					: undefined
@@ -261,21 +269,6 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 			okOrThrow(
 				ctx.db
 					.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
-		);
-}
-
-export function updateSessionPaidStatusService(
-	ctx: MutationCtx,
-	args: UpdateSessionPaidStatusArgs
-) {
-	return requirePermission(ctx, "update:payment-status")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			okOrThrow(
-				ctx.db
-					.patch(session._id, { paidRemainingBalance: args.paidRemainingBalance })
 					.then(() => null)
 			)
 		);

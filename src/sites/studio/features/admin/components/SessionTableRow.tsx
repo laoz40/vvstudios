@@ -31,8 +31,10 @@ import {
 } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
-	getRemainingBalanceAmount
+	getAudAmountRowShowCents
 } from "#studio/features/admin/lib/remaining-balance";
+import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
+import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 import {
 	formatShortMonthFullDate,
 	formatBookingDateMedium,
@@ -186,30 +188,62 @@ function SessionNotesCell({
 	);
 }
 
-function RemainingBalanceCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
+function SessionAmountCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 
-	const showRemainingBalance =
+	const showReceiptAmount =
 		!packageSessionProgressLabel &&
 		(session.status === "confirmed" || session.status === "email_failed");
 
-	if (!showRemainingBalance) {
+	const stripeInvoicesSummary = session.stripeInvoicesSummary;
+
+	if (!showReceiptAmount && !stripeInvoicesSummary) {
 		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
 	}
 
-	const amountLabel = formatAudAmount(getRemainingBalanceAmount(session));
-	const className = session.paidRemainingBalance === true ? "text-green" : "text-destructive";
+	const receiptAmount = showReceiptAmount
+		? calculateBookingReceiptAmounts(session).totalPaidAmount
+		: null;
+
+	const stripeInvoiceAmount = stripeInvoicesSummary?.totalAmount ?? null;
+
+	const rowAmounts = [receiptAmount, stripeInvoiceAmount].filter(
+		(amount): amount is number => amount !== null
+	);
+
+	const showCents = getAudAmountRowShowCents(rowAmounts);
+
+	const receiptAmountLabel =
+		receiptAmount !== null ? formatAudAmount(receiptAmount, { showCents }) : null;
+
+	const stripeInvoiceAmountLabel =
+		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
 
 	return (
-		<p className={className}>
-			<PrivacySensitiveText
-				rowId={rowId}
-				value={amountLabel}
-				label="remaining balance"
-				copyable={false}>
-				{amountLabel}
-			</PrivacySensitiveText>
-		</p>
+		<div className="flex flex-col items-end gap-1">
+			{receiptAmountLabel ? (
+				<p className="text-green">
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={receiptAmountLabel}
+						label="session amount"
+						copyable={false}>
+						{receiptAmountLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+			{stripeInvoiceAmountLabel && stripeInvoicesSummary ? (
+				<p className={getStripeInvoiceAmountClassName(stripeInvoicesSummary.paymentStatus)}>
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={stripeInvoiceAmountLabel}
+						label="Stripe invoice amount"
+						copyable={false}>
+						{stripeInvoiceAmountLabel}
+					</PrivacySensitiveText>
+				</p>
+			) : null}
+		</div>
 	);
 }
 
@@ -311,8 +345,8 @@ export function SessionTableRow({
 					isPastSession={isPastSession}
 				/>
 			</TableCell>
-			<TableCell className={cn("text-center tabular-nums", pastCellClassName)}>
-				<RemainingBalanceCell
+			<TableCell className={cn("text-right tabular-nums", pastCellClassName)}>
+				<SessionAmountCell
 					rowId={session._id}
 					session={session}
 				/>

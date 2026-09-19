@@ -30,11 +30,7 @@ export function useEditAction(session: SessionRecord) {
 		const parsedDraft = parseSessionEditDraft(values);
 
 		if (parsedDraft.status !== "ok") {
-			if (parsedDraft.status === "booking-invalid") {
-				toast.error(parsedDraft.message);
-			} else {
-				toast.error("Enter a valid remaining balance.");
-			}
+			toast.error(parsedDraft.message);
 
 			return;
 		}

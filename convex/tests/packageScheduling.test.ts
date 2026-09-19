@@ -111,7 +111,6 @@ async function seedPackage(
 			totalDueAmount: 360,
 			status: overrides.status ?? "paid",
 			createdAt: now - 1_000,
-			invoiceDueAt: now - 500,
 			paidAt: now - 100,
 			expiresAt: overrides.expiresAt ?? Date.parse("2030-01-20T00:00:00.000Z"),
 			invoiceEmailStatus: "sent",

@@ -1,97 +1,26 @@
 "use node";
 
-import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	saveConfirmedBooking,
 	sendBookingReminderEmailForSession,
 	sendConfirmedBookingInvoice
 } from "#convex/lib/bookingConfirmation";
-import { getSelectedBookingCustomInvoice } from "#convex/lib/customInvoices";
-import { sendBookingInvoiceEmailsForBooking } from "#convex/lib/email";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/bookingConfirmation";
-
-export type SendBookingInvoiceForBookingArgs = {
-	bookingId: Id<"bookings">;
-	customInvoiceId?: Id<"customInvoices">;
-};
-
-type SendBookingInvoiceError =
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" }
-	| { reason: "CUSTOM_INVOICE_NOT_FOUND" }
-	| { reason: "INVOICE_SEND_FAILED" };
 
 type CompleteClaimedSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" }
 	| { reason: "BOOKING_RESERVATION_MISMATCH" };
-
-export function sendBookingInvoiceForBookingService(
-	ctx: ActionCtx,
-	args: SendBookingInvoiceForBookingArgs
-): ResultAsync<null, SendBookingInvoiceError> {
-	return (
-		requirePermissionActions(ctx, "send:invoice-emails")
-			// Load the booking only after send:invoice-emails authorization succeeds.
-			.andThen(() => getSessionFromQuery(ctx, args.bookingId))
-			// Resolve and validate the optional stored custom invoice.
-			.andThen((session) =>
-				getSelectedBookingCustomInvoice(ctx, session._id, args.customInvoiceId).andThen(
-					(customInvoice) =>
-						args.customInvoiceId && !customInvoice
-							? err({ reason: "CUSTOM_INVOICE_NOT_FOUND" as const })
-							: ok({ customInvoice, session })
-				)
-			)
-			// Create the single-use reschedule link included in the invoice email.
-			.andThen(({ customInvoice, session }) =>
-				createRescheduleUrlForSession(ctx, session)
-					.mapErr(() => ({ reason: "INVOICE_SEND_FAILED" as const }))
-					.map((rescheduleUrl) => ({ customInvoice, rescheduleUrl, session }))
-			)
-			// Load current lead-time guidance before rendering the invoice.
-			.andThen((state) =>
-				okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
-					...state,
-					settings
-				}))
-			)
-			// Send the invoice to the customer. Host notification is repair-only for email_failed bookings.
-			.andThen(({ customInvoice, rescheduleUrl, session, settings }) =>
-				okOrThrow(
-					sendBookingInvoiceEmailsForBooking(session, {
-						customInvoice: customInvoice ?? undefined,
-						leadTimeMinutes: settings.leadTimeMinutes,
-						rescheduleUrl,
-						skipHostEmail: session.status !== "email_failed"
-					})
-				)
-					.andThen((emailResult) => emailResult)
-					.mapErr(() => ({ reason: "INVOICE_SEND_FAILED" as const }))
-					.map(() => session)
-			)
-			// Record recovery from a previous invoice-email failure.
-			.andThen((session) =>
-				fromConvexTuple(
-					ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
-						bookingId: session._id
-					})
-				).map(() => null)
-			)
-	);
-}
 
 export async function sendSessionReminderEmailService(
 	ctx: ActionCtx,
