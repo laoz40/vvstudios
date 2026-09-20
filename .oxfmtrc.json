@@ -13,11 +13,12 @@
 	"bracketSameLine": true,
 	"singleAttributePerLine": true,
 	"sortPackageJson": false,
+	"sortTailwindcss": { "stylesheet": "src/styles.css", "functions": ["cn"] },
 	"ignorePatterns": [
 		"dist",
 		"node_modules",
 		"bun.lock",
-		"components/ui/**",
+		"**/components/ui/**",
 		"convex/_generated/**",
 		"src/routeTree.gen.ts",
 		"tools/oxlint/**",
